@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import Header from '@/components/layout/Header';
-import MainNav from '@/components/layout/MainNav';
-import MacroStrip from '@/components/portfolio/MacroStrip';
-import PortfolioHero from '@/components/portfolio/PortfolioHero';
-import StockList from '@/components/portfolio/StockList';
-import SearchBar from '@/components/portfolio/SearchBar';
+import MarketSummary from '@/components/layout/MarketSummary';
+import RightSidebar from '@/components/layout/RightSidebar';
+import BottomTicker from '@/components/layout/BottomTicker';
+import PortfolioSection from '@/components/portfolio/PortfolioSection';
 import EventsSection from '@/components/events/EventsSection';
 import NewsSection from '@/components/news/NewsSection';
 import AnalysisPanel from '@/components/analysis/AnalysisPanel';
@@ -19,16 +18,17 @@ export default function Home() {
   const { currentSection, loadPortfolio, analysisSymbol } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Wait for Zustand hydration, then fetch
     const unsub = usePortfolioStore.persist.onFinishHydration(() => {
+      setHydrated(true);
       loadPortfolio();
       fetchMacro();
       refreshAll();
     });
-    // If already hydrated
     if (usePortfolioStore.persist.hasHydrated()) {
+      setHydrated(true);
       loadPortfolio();
       fetchMacro();
       refreshAll();
@@ -38,26 +38,41 @@ export default function Home() {
 
   useAutoRefresh();
 
-  return (
-    <div className="min-h-screen bg-[#F2F4F6]">
-      <div className="max-w-[460px] mx-auto">
-        <Header />
-        <MainNav />
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-[#B0B8C1] text-[13px]">불러오는 중...</div>
+      </div>
+    );
+  }
 
-        <div className="px-5 pb-12">
-          {currentSection === 'portfolio' && (
-            <>
-              <PortfolioHero />
-              <MacroStrip />
-              <SearchBar />
-              <StockList />
-            </>
-          )}
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Sticky Header - 48px */}
+      <Header />
+
+      {/* Market Summary - one line */}
+      <MarketSummary />
+
+      {/* Main body: content + right sidebar */}
+      <div className="flex flex-1 max-w-[1400px] mx-auto w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)' }}>
+        {/* Main content area */}
+        <main className="flex-1 min-w-0" style={{ padding: '40px 48px 80px 48px' }}>
+          {currentSection === 'portfolio' && <PortfolioSection />}
           {currentSection === 'events' && <EventsSection />}
           {currentSection === 'news' && <NewsSection />}
-        </div>
+        </main>
+
+        {/* Right sidebar - always visible on desktop */}
+        <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 24px 80px 24px' }}>
+          <RightSidebar />
+        </aside>
       </div>
 
+      {/* Bottom ticker - 32px fixed */}
+      <BottomTicker />
+
+      {/* Overlays */}
       {analysisSymbol && <AnalysisPanel />}
       <EditStockModal />
       <SettingsPanel />

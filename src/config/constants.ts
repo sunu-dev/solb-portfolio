@@ -9,14 +9,27 @@ export interface StockItem {
   avgCost: number;
   shares: number;
   targetReturn: number;
-  // Short-specific
+  // Investing-specific
   targetSell?: number;
   stopLoss?: number;
-  // Long-specific
   buyZones?: number[];
   weight?: number;
-  // Watch-specific
+  // Watching-specific
   buyBelow?: number;
+}
+
+export interface Transaction {
+  date: string;
+  price: number;
+  shares: number;
+  type: 'buy' | 'sell';
+}
+
+export interface AIReport {
+  currentStatus: string;
+  indicators: { name: string; value: string; signal: string }[];
+  historicalNote: string;
+  conclusion: { label: string; signal: string; desc: string };
 }
 
 export interface MacroIndicator {
@@ -115,9 +128,9 @@ export interface SignalStatus {
   text: string;
 }
 
-export type StockCategory = 'short' | 'long' | 'watch';
+export type StockCategory = 'all' | 'investing' | 'watching' | 'sold';
 
-export type PortfolioStocks = Record<StockCategory, StockItem[]>;
+export type PortfolioStocks = Record<'investing' | 'watching' | 'sold', StockItem[]>;
 
 export interface SearchResult {
   symbol: string;
@@ -136,49 +149,53 @@ export const CONFIG = {
 } as const;
 
 export const STOCK_KR: Record<string, string> = {
-  'MU': '\uB9C8\uC774\uD06C\uB860',
-  'MSFT': '\uB9C8\uC774\uD06C\uB85C\uC18C\uD504\uD2B8',
-  'AVGO': '\uBE0C\uB85C\uB4DC\uCF54',
-  'AMZN': '\uC544\uB9C8\uC874',
-  'AAPL': '\uC560\uD50C',
-  'GOOGL': '\uAD6C\uAE00',
-  'META': '\uBA54\uD0C0',
-  'NVDA': '\uC5D4\uBE44\uB514\uC544',
-  'TSLA': '\uD14C\uC2AC\uB77C',
+  'MU': '마이크론',
+  'MSFT': '마이크로소프트',
+  'AVGO': '브로드컴',
+  'AMZN': '아마존',
+  'AAPL': '애플',
+  'GOOGL': '구글',
+  'META': '메타',
+  'NVDA': '엔비디아',
+  'TSLA': '테슬라',
   'AMD': 'AMD',
-  'NFLX': '\uB137\uD50C\uB9AD\uC2A4',
-  'INTC': '\uC778\uD154',
-  'QCOM': '\uD004\uCEF4',
+  'NFLX': '넷플릭스',
+  'INTC': '인텔',
+  'QCOM': '퀄컴',
   'TSM': 'TSMC',
-  'SOXX': '\uBC18\uB3C4\uCCB4ETF',
+  'SOXX': '반도체ETF',
+  'ASTX': 'ASTX',
+  'BEX': 'BEX',
 };
 
 export const PERIODS: Period[] = [
-  { label: '1\uC77C', days: 1 },
-  { label: '3\uC77C', days: 3 },
-  { label: '1\uC8FC', days: 7 },
-  { label: '10\uC77C', days: 10 },
-  { label: '2\uC8FC', days: 14 },
-  { label: '30\uC77C', days: 30 },
-  { label: '2\uAC1C\uC6D4', days: 60 },
-  { label: '3\uAC1C\uC6D4', days: 90 },
-  { label: '6\uAC1C\uC6D4', days: 180 },
-  { label: '1\uB144', days: 365 },
+  { label: '1일', days: 1 },
+  { label: '3일', days: 3 },
+  { label: '1주', days: 7 },
+  { label: '10일', days: 10 },
+  { label: '2주', days: 14 },
+  { label: '30일', days: 30 },
+  { label: '2개월', days: 60 },
+  { label: '3개월', days: 90 },
+  { label: '6개월', days: 180 },
+  { label: '1년', days: 365 },
 ];
 
 export const DEFAULT_STOCKS: PortfolioStocks = {
-  short: [
+  investing: [
     { symbol: 'ASTX', targetSell: 48.93, stopLoss: 37.81, avgCost: 44.48, shares: 470, targetReturn: 10 },
     { symbol: 'BEX', targetSell: 27.28, stopLoss: 21.08, avgCost: 24.80, shares: 840, targetReturn: 10 },
+    { symbol: 'MU', buyZones: [430, 404, 380], weight: 40, avgCost: 418, shares: 25, targetReturn: 20 },
+    { symbol: 'MSFT', buyZones: [385, 366, 350], weight: 30, avgCost: 390, shares: 20, targetReturn: 15 },
   ],
-  long: [
-    { symbol: 'MU', buyZones: [430, 404, 380], weight: 40, avgCost: 0, shares: 0, targetReturn: 20 },
-    { symbol: 'MSFT', buyZones: [385, 366, 350], weight: 30, avgCost: 0, shares: 0, targetReturn: 15 },
-    { symbol: 'AVGO', buyZones: [315, 298, 280], weight: 30, avgCost: 0, shares: 0, targetReturn: 15 },
-  ],
-  watch: [
+  watching: [
+    { symbol: 'AVGO', buyBelow: 310, avgCost: 0, shares: 0, targetReturn: 0 },
     { symbol: 'AMZN', buyBelow: 190, avgCost: 0, shares: 0, targetReturn: 0 },
+    { symbol: 'GOOGL', buyBelow: 170, avgCost: 0, shares: 0, targetReturn: 0 },
+    { symbol: 'META', buyBelow: 550, avgCost: 0, shares: 0, targetReturn: 0 },
+    { symbol: 'TSLA', buyBelow: 250, avgCost: 0, shares: 0, targetReturn: 0 },
   ],
+  sold: [],
 };
 
 export const MACRO_IND: MacroIndicator[] = [
@@ -193,25 +210,25 @@ export const MACRO_IND: MacroIndicator[] = [
 export const PRESET_EVENTS: PresetEvent[] = [
   {
     id: 'iran-war',
-    name: '\uC774\uB780 \uC804\uC7C1',
-    emoji: '\u2694\uFE0F',
+    name: '이란 전쟁',
+    emoji: '⚔️',
     startDate: '2026-02-28',
     baseDate: '2026-02-27',
     endDate: null,
-    description: '\uBBF8\uAD6D-\uC774\uC2A4\uB77C\uC5D8 \uC5F0\uD569 \uC774\uB780 \uACF5\uC2B5. \uC720\uAC00 \uAE09\uB4F1, \uAE00\uB85C\uBC8C \uC99D\uC2DC \uAE09\uB77D.',
-    insight: '\uC804\uC7C1 \uCDA9\uACA9\uC740 \uBCF4\uD1B5 1~3\uAC1C\uC6D4 \uB0B4 \uC548\uC815\uD654\uB429\uB2C8\uB2E4. \uD604\uC7AC \uBCF4\uC720 \uC885\uBAA9\uC740 10~15% \uD560\uC778\uB41C \uC0C1\uD0DC\uB85C, \uBD84\uC7C1 \uC885\uB8CC \uC2DC \uAC15\uD558\uAC8C \uBC18\uB4F1\uD560 \uAC00\uB2A5\uC131\uC774 \uB192\uC544\uC694.',
+    description: '미국-이스라엘 연합 이란 공습. 유가 급등, 글로벌 증시 급락.',
+    insight: '전쟁 충격은 보통 1~3개월 내 안정화됩니다. 현재 보유 종목은 10~15% 할인된 상태로, 분쟁 종료 시 강하게 반등할 가능성이 높아요.',
     basePrices: { MU: 487, MSFT: 418, AVGO: 349, AMZN: 223, ASTX: 62.5, BEX: 31.2 },
     baseMacro: { 'S&P 500': 6878.88, NASDAQ: 19850, KOSPI: 7050, 'USD/KRW': 1420, 'WTI Oil': 66.81, VIX: 14.2 },
   },
   {
     id: 'ukraine-war',
-    name: '\uC6B0\uD06C\uB77C\uC774\uB098 \uC804\uC7C1',
-    emoji: '\uD83C\uDDFA\uD83C\uDDE6',
+    name: '우크라이나 전쟁',
+    emoji: '🇺🇦',
     startDate: '2022-02-24',
     baseDate: '2022-02-23',
     endDate: null,
-    description: '\uB7EC\uC2DC\uC544 \uC6B0\uD06C\uB77C\uC774\uB098 \uCE68\uACF5. \uC5D0\uB108\uC9C0/\uACE1\uBB3C \uAE09\uB4F1.',
-    insight: 'S&P 500\uC740 \uC57D -13% \uD558\uB77D \uD6C4 6\uAC1C\uC6D4 \uB0B4 \uD68C\uBCF5\uC744 \uC2DC\uC791\uD588\uC2B5\uB2C8\uB2E4. \uBC18\uB3C4\uCCB4 \uC139\uD130\uB294 \uACF5\uAE09\uB9DD \uC6B0\uB824\uB85C \uBCC0\uB3D9\uC774 \uCEF4\uC9C0\uB9CC \uC7A5\uAE30 \uC0C1\uC2B9 \uCD94\uC138\uB97C \uC720\uC9C0\uD588\uC5B4\uC694.',
+    description: '러시아 우크라이나 침공. 에너지/곡물 급등.',
+    insight: 'S&P 500은 약 -13% 하락 후 6개월 내 회복을 시작했습니다. 반도체 섹터는 공급망 우려로 변동이 컸지만 장기 상승 추세를 유지했어요.',
     basePrices: { MU: 89.16, MSFT: 287.93, AVGO: 571.64, AMZN: 3052.03 },
     baseMacro: { 'S&P 500': 4348.87, NASDAQ: 13716.72, 'USD/KRW': 1199.50, 'WTI Oil': 92.10, VIX: 28.71 },
     precomputed: {
@@ -223,13 +240,13 @@ export const PRESET_EVENTS: PresetEvent[] = [
   },
   {
     id: 'covid',
-    name: '\uCF54\uB85C\uB098 \uAE09\uB77D',
-    emoji: '\uD83E\uDDA0',
+    name: '코로나 급락',
+    emoji: '🦠',
     startDate: '2020-02-20',
     baseDate: '2020-02-19',
     endDate: '2020-06-08',
-    description: 'S&P 500 -34% \uAE09\uB77D \uD6C4 5\uAC1C\uC6D4 \uB9CC\uC5D0 \uD68C\uBCF5.',
-    insight: '\uCF54\uB85C\uB098 \uCD5C\uC800\uC810(3/23)\uC5D0\uC11C \uB9E4\uC218\uD55C \uD22C\uC790\uC790\uB294 1\uB144 \uB0B4 +70% \uC774\uC0C1 \uC218\uC775\uC744 \uB2EC\uC131\uD588\uC2B5\uB2C8\uB2E4. \uD328\uB2C9 \uC18D \uBD84\uD560 \uB9E4\uC218 \uC804\uB7B5\uC774 \uD6A8\uACFC\uC801\uC774\uC5C8\uC5B4\uC694.',
+    description: 'S&P 500 -34% 급락 후 5개월 만에 회복.',
+    insight: '코로나 최저점(3/23)에서 매수한 투자자는 1년 내 +70% 이상 수익을 달성했습니다. 패닉 속 분할 매수 전략이 효과적이었어요.',
     basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 308.96, AMZN: 2170.22 },
     baseMacro: { 'S&P 500': 3373.23, NASDAQ: 9817.18, 'USD/KRW': 1185.50, 'WTI Oil': 53.27, VIX: 14.38 },
     precomputed: {
@@ -242,28 +259,52 @@ export const PRESET_EVENTS: PresetEvent[] = [
 ];
 
 export const NEWS_QUERIES: Record<string, string> = {
-  us: '\uBBF8\uAD6D \uC99D\uC2DC \uB098\uC2A4\uB2E5 S&P500 \uC6D4\uAC00 \uC5F0\uC900',
-  kr: '\uD55C\uAD6D \uC99D\uC2DC \uCF54\uC2A4\uD53C \uCF54\uC2A4\uB2E5 \uC0BC\uC131\uC804\uC790',
-  hot: '\uC8FC\uC2DD \uD22C\uC790 \uD56B\uC774\uC288 \uC804\uB9DD \uAE09\uB4F1',
+  us: '미국 증시 나스닥 S&P500 월가 연준',
+  kr: '한국 증시 코스피 코스닥 삼성전자',
+  hot: '주식 투자 핫이슈 전망 급등',
 };
 
 // --- Trend type ---
 export type TrendType = 'strong_up' | 'up' | 'sideways' | 'down' | 'strong_down' | 'unknown';
 
 export const TREND_TEXT: Record<TrendType, string> = {
-  strong_up: '\uAC15\uD55C \uC0C1\uC2B9 \uCD94\uC138',
-  up: '\uC0C1\uC2B9 \uCD94\uC138',
-  sideways: '\uD6A1\uBCF4',
-  down: '\uD558\uB77D \uCD94\uC138',
-  strong_down: '\uAC15\uD55C \uD558\uB77D \uCD94\uC138',
-  unknown: '\uBD84\uC11D \uC911',
+  strong_up: '강한 상승 추세',
+  up: '상승 추세',
+  sideways: '횡보',
+  down: '하락 추세',
+  strong_down: '강한 하락 추세',
+  unknown: '분석 중',
 };
 
 export const TREND_INFO: Record<TrendType, { icon: string; text: string; desc: string }> = {
-  strong_up: { icon: '\uD83D\uDFE2', text: '\uAC15\uD55C \uC0C1\uC2B9', desc: '5\uC77C>20\uC77C>60\uC77C\uC120' },
-  up: { icon: '\uD83D\uDFE2', text: '\uC0C1\uC2B9', desc: '\uAC00\uACA9\uC774 20\uC77C\uC120 \uC704' },
-  sideways: { icon: '\uD83D\uDFE1', text: '\uD6A1\uBCF4', desc: '\uBC29\uD5A5 \uBD88\uBA85\uD655' },
-  down: { icon: '\uD83D\uDD34', text: '\uD558\uB77D', desc: '\uAC00\uACA9\uC774 20\uC77C\uC120 \uC544\uB798' },
-  strong_down: { icon: '\uD83D\uDD34', text: '\uAC15\uD55C \uD558\uB77D', desc: '5\uC77C<20\uC77C<60\uC77C\uC120' },
-  unknown: { icon: '\u2B55', text: '\uBD84\uC11D \uC911', desc: '\uB370\uC774\uD130 \uBD80\uC871' },
+  strong_up: { icon: '🟢', text: '강한 상승', desc: '5일>20일>60일선' },
+  up: { icon: '🟢', text: '상승', desc: '가격이 20일선 위' },
+  sideways: { icon: '🟡', text: '횡보', desc: '방향 불명확' },
+  down: { icon: '🔴', text: '하락', desc: '가격이 20일선 아래' },
+  strong_down: { icon: '🔴', text: '강한 하락', desc: '5일<20일<60일선' },
+  unknown: { icon: '⭕', text: '분석 중', desc: '데이터 부족' },
 };
+
+// Avatar color helper
+export const AVATAR_COLORS: Record<string, string> = {
+  'MU': '#4A90D9',
+  'MSFT': '#00A4EF',
+  'AVGO': '#EF4444',
+  'AMZN': '#FF9900',
+  'AAPL': '#555555',
+  'GOOGL': '#4285F4',
+  'META': '#1877F2',
+  'NVDA': '#76B900',
+  'TSLA': '#E82127',
+  'AMD': '#ED1C24',
+  'ASTX': '#6366F1',
+  'BEX': '#EC4899',
+};
+
+export function getAvatarColor(symbol: string): string {
+  if (AVATAR_COLORS[symbol]) return AVATAR_COLORS[symbol];
+  const FALLBACK = ['#3182F6', '#EF4452', '#00C6BE', '#FF9500', '#AF52DE', '#FF2D55', '#5856D6', '#34C759'];
+  let hash = 0;
+  for (let i = 0; i < symbol.length; i++) hash = symbol.charCodeAt(i) + ((hash << 5) - hash);
+  return FALLBACK[Math.abs(hash) % FALLBACK.length];
+}

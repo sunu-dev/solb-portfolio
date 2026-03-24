@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData } from '@/hooks/useStockData';
+import { X, Key, RefreshCw, Trash2, Timer } from 'lucide-react';
 
 export default function SettingsPanel() {
   const {
@@ -23,17 +24,13 @@ export default function SettingsPanel() {
     return () => window.removeEventListener('toggle-settings', handler);
   }, []);
 
-  // Close on outside click
   useEffect(() => {
-    if (!isOpen) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-settings-panel]') && !target.closest('[title="Settings"]')) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
   const handleSaveApiKey = () => {
@@ -54,7 +51,7 @@ export default function SettingsPanel() {
   };
 
   const handleClearAll = () => {
-    if (confirm('전체 초기화할까요?')) {
+    if (confirm('전체 초기화할까요? 모든 데이터가 삭제됩니다.')) {
       localStorage.clear();
       window.location.reload();
     }
@@ -65,42 +62,63 @@ export default function SettingsPanel() {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/10 z-40" onClick={() => setIsOpen(false)} />
+      <div className="fixed inset-0 bg-black/10 z-50 backdrop-blur-xs" onClick={() => setIsOpen(false)} />
 
-      {/* Panel */}
+      {/* Panel - slides from right */}
       <div
         data-settings-panel
-        className="fixed top-14 right-0 w-[320px] max-h-[calc(100vh-56px)] bg-white rounded-bl-[14px] shadow-lg border-l border-b border-black/[0.06] z-50 overflow-y-auto animate-fade-in"
+        className="fixed top-0 right-0 bottom-0 w-[380px] max-w-full bg-white z-50 shadow-2xl animate-slide-in flex flex-col"
       >
-        <div className="p-5">
-          <h3 className="text-[16px] font-bold text-[#191F28] mb-5">설정</h3>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 h-14 border-b border-[#E5E8EB] shrink-0">
+          <h3 className="text-[16px] font-bold text-[#191F28]">설정</h3>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="w-8 h-8 rounded-lg hover:bg-[#F2F4F6] flex items-center justify-center transition-colors"
+          >
+            <X className="w-5 h-5 text-[#4E5968]" />
+          </button>
+        </div>
 
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* API Key */}
-          <div className="mb-5">
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">
-              Finnhub API Key
-            </label>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Key className="w-4 h-4 text-[#8B95A1]" />
+              <label className="text-[13px] font-bold text-[#191F28]">Finnhub API Key</label>
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newApiKey}
                 onChange={(e) => setNewApiKey(e.target.value)}
-                placeholder={apiKey ? '•••••••• (변경 시 입력)' : 'API Key 입력'}
-                className="flex-1 px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
+                placeholder={apiKey ? '변경 시 새 키 입력' : 'API Key 입력'}
+                className="flex-1 px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
               />
               <button
                 onClick={handleSaveApiKey}
-                className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors"
+                className="px-4 py-2.5 rounded-xl text-[12px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors shrink-0"
               >
                 저장
               </button>
             </div>
+            {apiKey && (
+              <div className="mt-1.5 text-[11px] text-[#B0B8C1]">
+                현재: {apiKey.slice(0, 8)}...{apiKey.slice(-4)}
+              </div>
+            )}
           </div>
 
+          <div className="h-px bg-[#F2F4F6]" />
+
           {/* Auto refresh toggle */}
-          <div className="mb-5">
+          <div>
             <div className="flex items-center justify-between">
-              <label className="text-[12px] font-semibold text-[#4E5968]">자동 새로고침</label>
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-[#8B95A1]" />
+                <label className="text-[13px] font-bold text-[#191F28]">자동 새로고침</label>
+              </div>
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 className={`
@@ -110,46 +128,59 @@ export default function SettingsPanel() {
               >
                 <span
                   className={`
-                    absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform
+                    absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform
                     ${autoRefresh ? 'translate-x-[22px]' : 'translate-x-0.5'}
                   `}
                 />
               </button>
             </div>
+            <p className="text-[11px] text-[#8B95A1] mt-1 ml-6">활성화 시 주기적으로 시세를 업데이트합니다</p>
           </div>
 
           {/* Refresh interval */}
-          <div className="mb-5">
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">
-              새로고침 간격 (초)
-            </label>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Timer className="w-4 h-4 text-[#8B95A1]" />
+              <label className="text-[13px] font-bold text-[#191F28]">새로고침 간격</label>
+            </div>
             <div className="flex gap-2">
-              <input
-                type="number"
-                value={intervalSec}
-                onChange={(e) => setIntervalSec(e.target.value)}
-                min="10"
-                className="flex-1 px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  value={intervalSec}
+                  onChange={(e) => setIntervalSec(e.target.value)}
+                  min="10"
+                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all pr-10 tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#B0B8C1]">초</span>
+              </div>
               <button
                 onClick={handleUpdateInterval}
-                className="px-3 py-2 rounded-xl text-[12px] font-semibold text-[#3182F6] bg-[#3182F6]/10 hover:bg-[#3182F6]/20 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-[12px] font-semibold text-[#3182F6] bg-[#3182F6]/10 hover:bg-[#3182F6]/20 transition-colors shrink-0"
               >
                 적용
               </button>
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-black/[0.06] my-4" />
+          <div className="h-px bg-[#F2F4F6]" />
 
-          {/* Clear data */}
-          <button
-            onClick={handleClearAll}
-            className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-[#EF4452] bg-[#EF4452]/5 hover:bg-[#EF4452]/10 transition-colors"
-          >
-            전체 데이터 초기화
-          </button>
+          {/* Danger zone */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Trash2 className="w-4 h-4 text-[#EF4452]" />
+              <label className="text-[13px] font-bold text-[#EF4452]">위험 구역</label>
+            </div>
+            <button
+              onClick={handleClearAll}
+              className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-[#EF4452] bg-[#EF4452]/[0.05] hover:bg-[#EF4452]/10 ring-1 ring-[#EF4452]/10 transition-colors"
+            >
+              전체 데이터 초기화
+            </button>
+            <p className="text-[11px] text-[#B0B8C1] mt-1.5 text-center">
+              모든 종목, 설정, 캐시 데이터가 삭제됩니다
+            </p>
+          </div>
         </div>
       </div>
     </>

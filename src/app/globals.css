@@ -6,27 +6,31 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================
-   Toss Design Tokens
+   Design Tokens (Toss-inspired)
    ========================================== */
 :root {
   /* Background & Surface */
-  --bg: #F2F4F6;
+  --bg: #FFFFFF;
+  --bg-subtle: #F8F9FA;
   --surface: #FFFFFF;
-  --surface-hover: #F7F8FA;
+  --surface-hover: #F9FAFB;
 
   /* Accent */
   --accent: oklch(0.97 0 0);
+  --accent-blue: #3182F6;
   --accent-light: rgba(49, 130, 246, 0.08);
   --accent-hover: #1B64DA;
 
   /* Text */
   --text-primary: #191F28;
-  --text-secondary: #4E5968;
-  --text-tertiary: #8B95A1;
+  --text-secondary: #8B95A1;
+  --text-tertiary: #B0B8C1;
   --text-disabled: #B0B8C1;
 
   /* Borders */
   --border: oklch(0.922 0 0);
+  --border-light: #F2F4F6;
+  --border-row: #F7F8FA;
   --border-strong: #E5E8EB;
 
   /* Korean convention: RED = gain/up, BLUE = loss/down */
@@ -47,6 +51,10 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --card-radius: 16px;
+
+  /* shadcn tokens */
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -128,7 +136,7 @@
 /* ==========================================
    Base Styles
    ========================================== */
-* {
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -140,11 +148,11 @@ html {
 }
 
 body {
-  font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   background: var(--bg);
   color: var(--text-primary);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
   letter-spacing: -0.005em;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
@@ -185,6 +193,16 @@ body {
 }
 
 /* ==========================================
+   Stock Row Hover (exact mockup values)
+   ========================================== */
+.stock-row:hover {
+  background: #F9FAFB;
+  margin: 0 -12px;
+  padding: 14px 12px !important;
+  border-radius: 12px;
+}
+
+/* ==========================================
    Transitions
    ========================================== */
 .transition-slide {
@@ -222,6 +240,29 @@ body {
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* ==========================================
+   Bottom Ticker Animation
+   ========================================== */
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker-scroll 30s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* ==========================================
+   Utilities
+   ========================================== */
 /* Hide scrollbar utility */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }

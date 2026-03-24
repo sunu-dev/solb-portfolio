@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOLB PORTFOLIO — Design Mockup v5/v6</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <style>
+        /* ============================================================
+           DESIGN TOKENS
+           ============================================================ */
+        :root {
+            --bg-white: #FFFFFF;
+            --bg-subtle: #F8F9FA;
+            --bg-hover: #F9FAFB;
+
+            --border-light: #F2F4F6;
+            --border-row: #F7F8FA;
+
+            --text-primary: #191F28;
+            --text-secondary: #8B95A1;
+            --text-tertiary: #B0B8C1;
+            --text-placeholder: #ADB5BD;
+
+            --gain: #EF4452;
+            --loss: #3182F6;
+            --accent: #3182F6;
+
+            --card-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            --card-radius: 16px;
+
+            --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        }
+
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            font-family: var(--font);
+            font-size: 15px;
+            letter-spacing: -0.005em;
+            color: var(--text-primary);
+            background: var(--bg-white);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        /* ============================================================
+           SECTION LABEL (for mockup only)
+           ============================================================ */
+        .mockup-section-label {
+            display: block;
+            max-width: 1400px;
+            margin: 64px auto 16px;
+            padding: 0 32px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+        }
+        .mockup-section-label:first-of-type {
+            margin-top: 0;
+        }
+        .mockup-divider {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+        .mockup-divider hr {
+            border: none;
+            border-top: 2px dashed #E5E8EB;
+            margin: 48px 0 0;
+        }
+
+        /* ============================================================
+           1. HEADER — 48px
+           ============================================================ */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            height: 48px;
+            max-width: 100%;
+            padding: 0 24px;
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .header-logo-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .header-logo-text {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .header-logo-text .brand {
+            color: var(--accent);
+        }
+
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            margin-left: 48px;
+            height: 100%;
+        }
+        .header-nav-item {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            cursor: default;
+            white-space: nowrap;
+        }
+        .header-nav-item.active {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .header-nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 24px;
+            right: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 1px;
+        }
+
+        .header-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-search {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: var(--bg-subtle);
+            font-size: 13px;
+            color: var(--text-tertiary);
+            cursor: default;
+        }
+        .header-search kbd {
+            font-family: var(--font);
+            font-size: 11px;
+            color: var(--text-tertiary);
+            background: var(--bg-white);
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin-left: 4px;
+        }
+        .header-settings {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: default;
+        }
+        .header-settings:hover {
+            background: var(--bg-subtle);
+        }
+
+        /* ============================================================
+           2. MARKET SUMMARY — one-line (replaces macro strip)
+           ============================================================ */
+        .market-summary {
+            display: flex;
+            align-items: center;
+            max-width: 100%;
+            padding: 14px 24px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-white);
+            gap: 8px;
+        }
+        .market-summary-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFF0F0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .market-summary-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        .market-summary-text .down {
+            color: var(--loss);
+            font-weight: 700;
+        }
+        .market-summary-text .up {
+            color: var(--gain);
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           MAIN LAYOUT — Two column
+           ============================================================ */
+        .main-layout {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            min-height: calc(100vh - 48px - 49px - 32px);
+        }
+        .main-content {
+            flex: 1;
+            min-width: 0;
+            padding: 40px 48px 80px 32px;
+        }
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            border-left: 1px solid var(--border-light);
+            padding: 32px 24px 80px 24px;
+        }
+
+        /* ============================================================
+           3. HERO — 내 수익 centered
+           ============================================================ */
+        .hero {
+            text-align: center;
+            padding-bottom: 40px;
+        }
+        .hero-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-bottom: 12px;
+        }
+        .hero-profit {
+            font-size: 42px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--gain);
+        }
+        .hero-profit.loss {
+            color: var(--loss);
+        }
+        .hero-profit-pct {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--gain);
+            margin-top: 6px;
+        }
+        .hero-profit-pct.loss {
+            color: var(--loss);
+        }
+        .hero-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        .hero-stat {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .hero-stat strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .hero-stat-separator {
+            width: 1px;
+            height: 14px;
+            background: #E5E8EB;
+        }
+        .hero-border {
+            margin-top: 40px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 40px;
+        }
+
+        /* ============================================================
+           4. CATEGORY TABS — v5: 투자 중 / 관심 종목 / 매도 완료
+           ============================================================ */
+        .cat-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 32px;
+        }
+        .cat-tab {
+            position: relative;
+            padding: 0 24px 14px;
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            cursor: default;
+            white-space: nowrap;
+        }
+        .cat-tab:first-child {
+            padding-left: 0;
+        }
+        .cat-tab.active {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .cat-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 1px;
+        }
+        .cat-tab:first-child.active::after {
+            left: 0;
+        }
+        .cat-tab .count {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-left: 4px;
+            font-weight: 400;
+        }
+
+        /* ============================================================
+           5. STOCK TABLE — with 오늘등락 + 내수익 + 목표바
+           ============================================================ */
+        .stock-table {
+            width: 100%;
+        }
+        .stock-table-header {
+            display: grid;
+            grid-template-columns: minmax(180px, 1.5fr) 100px 100px 140px 160px;
+            align-items: center;
+            padding: 0 0 12px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+        .stock-table-header > span:not(:first-child) {
+            text-align: right;
+        }
+        .stock-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1.5fr) 100px 100px 140px 160px;
+            align-items: center;
+            padding: 14px 0;
+            border-top: 1px solid var(--border-row);
+            cursor: default;
+        }
+        .stock-row:hover {
+            background: var(--bg-hover);
+            margin: 0 -12px;
+            padding: 14px 12px;
+            border-radius: 12px;
+        }
+
+        .stock-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .stock-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .stock-name-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        .stock-name-kr {
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stock-name-ticker {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        .stock-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+        .badge-investing {
+            background: #F0F4FF;
+            color: var(--accent);
+        }
+        .badge-watch {
+            background: #F0FAF0;
+            color: #20C997;
+        }
+        .badge-sold {
+            background: #F5F5F5;
+            color: #8B95A1;
+        }
+
+        .stock-price-cell {
+            text-align: right;
+        }
+        .stock-price {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .stock-price-sub {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 1px;
+        }
+
+        .stock-today-cell {
+            text-align: right;
+        }
+        .stock-today {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .stock-today.up { color: var(--gain); }
+        .stock-today.down { color: var(--loss); }
+        .stock-today-sub {
+            font-size: 11px;
+            font-weight: 400;
+            margin-top: 1px;
+        }
+        .stock-today-sub.up { color: var(--gain); }
+        .stock-today-sub.down { color: var(--loss); }
+
+        .stock-pnl-cell {
+            text-align: right;
+        }
+        .stock-pnl {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .stock-pnl.up { color: var(--gain); }
+        .stock-pnl.down { color: var(--loss); }
+        .stock-pnl.neutral { color: var(--text-tertiary); }
+        .stock-pnl-sub {
+            font-size: 11px;
+            font-weight: 400;
+            margin-top: 1px;
+        }
+        .stock-pnl-sub.up { color: var(--gain); }
+        .stock-pnl-sub.down { color: var(--loss); }
+        .stock-pnl-sub.neutral { color: var(--text-tertiary); }
+
+        /* Goal progress bar in stock row */
+        .stock-goal-cell {
+            text-align: right;
+            padding-right: 4px;
+        }
+        .goal-bar-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .goal-bar-track {
+            width: 80px;
+            height: 6px;
+            border-radius: 3px;
+            background: #ECEEF0;
+            overflow: hidden;
+        }
+        .goal-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--gain);
+        }
+        .goal-bar-fill.negative {
+            background: var(--loss);
+        }
+        .goal-bar-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* ============================================================
+           5b. 내 종목 뉴스 (below stock list, on main page)
+           ============================================================ */
+        .portfolio-news {
+            margin-top: 48px;
+        }
+        .portfolio-news-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .portfolio-news-list {}
+        .portfolio-news-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-row);
+        }
+        .portfolio-news-item:last-child {
+            border-bottom: none;
+        }
+        .pn-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .pn-tag-mu { background: #EBF3FF; color: #3182F6; }
+        .pn-tag-msft { background: #F0FAF0; color: #20C997; }
+        .pn-tag-astx { background: #F3F0FF; color: #6366F1; }
+        .pn-tag-bex { background: #FFF0F5; color: #EC4899; }
+        .pn-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .pn-headline {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .pn-meta {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        /* ============================================================
+           6. RIGHT SIDEBAR
+           ============================================================ */
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sidebar-title .count {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+
+        /* SOLB AI card */
+        .ai-card {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #EBF3FF 0%, #F5EEFF 100%);
+            position: relative;
+        }
+        .ai-card-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 10px;
+        }
+        .ai-card-header .sparkle {
+            font-size: 14px;
+        }
+        .ai-card-body {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            font-weight: 500;
+        }
+        .ai-card-action {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 10px;
+            cursor: default;
+        }
+
+        /* Sidebar stock list */
+        .sidebar-stocks {
+            margin-top: 24px;
+        }
+        .sidebar-stock-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border-row);
+        }
+        .sidebar-stock-row:first-child {
+            border-top: none;
+        }
+        .sidebar-stock-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .sidebar-stock-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .sidebar-stock-name {
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .sidebar-stock-ticker {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .sidebar-stock-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .sidebar-stock-price {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .sidebar-stock-change {
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .sidebar-stock-change.up { color: var(--gain); }
+        .sidebar-stock-change.down { color: var(--loss); }
+
+        .sidebar-add-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 16px;
+            padding: 10px;
+            border: 1.5px dashed #D5DAE0;
+            border-radius: 10px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: default;
+            width: 100%;
+            background: transparent;
+        }
+
+        /* ============================================================
+           7. BOTTOM TICKER — 32px
+           ============================================================ */
+        .bottom-ticker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 32px;
+            background: var(--bg-white);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            overflow: hidden;
+        }
+        .ticker-label {
+            flex-shrink: 0;
+            padding: 0 16px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-right: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+        .ticker-scroll {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            padding: 0 16px;
+            white-space: nowrap;
+            animation: ticker-scroll 30s linear infinite;
+        }
+        @keyframes ticker-scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .ticker-item .name { color: var(--text-secondary); font-weight: 500; }
+        .ticker-item .val { font-weight: 600; }
+        .ticker-item .chg.up { color: var(--gain); font-weight: 500; }
+        .ticker-item .chg.down { color: var(--loss); font-weight: 500; }
+
+        /* ============================================================
+           8. NEWS TAB VIEW
+           ============================================================ */
+        .news-section {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 32px 80px;
+        }
+        .news-section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        .news-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 24px;
+        }
+        .news-tab {
+            position: relative;
+            padding: 0 20px 14px;
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            cursor: default;
+            white-space: nowrap;
+        }
+        .news-tab:first-child { padding-left: 0; }
+        .news-tab.active {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .news-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 20px;
+            height: 2px;
+            background: var(--text-primary);
+            border-radius: 1px;
+        }
+
+        .news-list {}
+        .news-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-row);
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-marker {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+        .news-body {
+            flex: 1;
+            min-width: 0;
+        }
+        .news-headline {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .news-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        .news-tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .tag-us { background: #F0F4FF; color: var(--accent); }
+        .tag-kr { background: #FFF0F0; color: var(--gain); }
+        .tag-interest { background: #F0FAF0; color: #20C997; }
+        .tag-popular { background: #FFF8E1; color: #F59E0B; }
+        .news-source { font-weight: 500; }
+        .news-time {}
+        .news-dot {
+            width: 2px;
+            height: 2px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+        }
+
+        /* ============================================================
+           9. ANALYSIS PANEL — 560px wide
+           ============================================================ */
+        .analysis-container {
+            max-width: 560px;
+            margin: 0 auto;
+            background: var(--bg-white);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        }
+
+        .analysis-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .analysis-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .analysis-header-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #4A90D9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        .analysis-header-name {
+            font-size: 17px;
+            font-weight: 700;
+        }
+        .analysis-header-ticker {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+        .analysis-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--text-secondary);
+            cursor: default;
+            background: transparent;
+            border: none;
+        }
+
+        .analysis-body {
+            padding: 24px;
+        }
+
+        /* Price hero */
+        .analysis-price {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+        .analysis-price-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .analysis-price-won {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        .analysis-price-change {
+            font-size: 15px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+        .analysis-price-change.down { color: var(--loss); }
+        .analysis-price-change.up { color: var(--gain); }
+
+        /* Chart shape summary card */
+        .chart-summary-card {
+            padding: 20px;
+            border-radius: 14px;
+            background: #F8F9FB;
+            border: 1px solid var(--border-light);
+            margin-bottom: 24px;
+        }
+        .chart-summary-header {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-summary-trend {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chart-summary-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 16px;
+        }
+        .chart-summary-footer {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border-light);
+        }
+        .chart-signal-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .chart-signal-badge.caution {
+            background: #FFF8E6;
+            color: #E8950A;
+        }
+        .chart-signal-badge.danger {
+            background: #FFF0F0;
+            color: var(--gain);
+        }
+        .chart-signal-badge.safe {
+            background: #EDFCF2;
+            color: #16A34A;
+        }
+        .chart-signal-rsi {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .chart-summary-glossary {
+            font-size: 13px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 14px;
+            cursor: default;
+        }
+
+        /* Signal card */
+        .signal-card {
+            padding: 16px 20px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+        }
+        .signal-card.caution {
+            background: #FFF8E6;
+        }
+        .signal-card.danger {
+            background: #FFF0F0;
+        }
+        .signal-card.safe {
+            background: #EDFCF2;
+        }
+        .signal-label {
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .signal-label.caution { color: #E8950A; }
+        .signal-label.danger { color: var(--gain); }
+        .signal-label.safe { color: #16A34A; }
+        .signal-text {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* Investment P&L — 원화 primary */
+        .pnl-card {
+            padding: 20px;
+            border-radius: 14px;
+            background: var(--bg-subtle);
+            margin-bottom: 20px;
+        }
+        .pnl-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        .pnl-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+        .pnl-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .pnl-value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .pnl-value.down { color: var(--loss); }
+        .pnl-value.up { color: var(--gain); }
+        .pnl-sub {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            font-weight: 400;
+        }
+
+        /* Goal progress bar in analysis */
+        .goal-section {
+            margin-bottom: 24px;
+        }
+        .goal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .goal-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .goal-pct {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .goal-bar-lg-track {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #ECEEF0;
+            overflow: hidden;
+        }
+        .goal-bar-lg-fill {
+            height: 100%;
+            border-radius: 5px;
+            background: var(--gain);
+        }
+        .goal-bar-lg-fill.negative {
+            background: var(--loss);
+        }
+        .goal-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        /* Buy history */
+        .buy-history {
+            margin-bottom: 24px;
+        }
+        .buy-history-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .buy-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: var(--bg-subtle);
+            margin-bottom: 6px;
+        }
+        .buy-row-date {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            min-width: 80px;
+        }
+        .buy-row-detail {
+            font-size: 13px;
+            color: var(--text-primary);
+            flex: 1;
+        }
+        .buy-row-price {
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        /* 3-level chart tabs */
+        .chart-level-tabs {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+        .chart-level-tab {
+            flex: 1;
+            padding: 10px 0;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: default;
+            border-right: 1px solid var(--border-light);
+            background: var(--bg-white);
+        }
+        .chart-level-tab:last-child {
+            border-right: none;
+        }
+        .chart-level-tab.active {
+            background: var(--text-primary);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* Chart placeholder */
+        .chart-placeholder {
+            width: 100%;
+            height: 200px;
+            border-radius: 14px;
+            background: var(--bg-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            font-size: 14px;
+            margin-bottom: 16px;
+            border: 1px dashed #E0E3E8;
+        }
+        .chart-note {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        /* Tech indicators */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .tech-card {
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--bg-subtle);
+            text-align: center;
+        }
+        .tech-card-label {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+        }
+        .tech-card-value {
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .tech-card-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.4;
+        }
+
+        /* Bollinger / MACD interpretation cards */
+        .indicator-interp {
+            padding: 16px 20px;
+            border-radius: 14px;
+            background: var(--bg-subtle);
+            margin-bottom: 12px;
+        }
+        .indicator-interp-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .indicator-interp-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .indicator-interp-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+        .indicator-interp-status.warning {
+            background: #FFF8E6;
+            color: #E8950A;
+        }
+        .indicator-interp-status.danger {
+            background: #FFF0F0;
+            color: var(--gain);
+        }
+        .indicator-interp-status.ok {
+            background: #EDFCF2;
+            color: #16A34A;
+        }
+        .indicator-interp-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Section title */
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Related news in analysis */
+        .analysis-news-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-row);
+        }
+        .analysis-news-item:last-child { border-bottom: none; }
+        .analysis-news-headline {
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.5;
+            margin-bottom: 4px;
+        }
+        .analysis-news-meta {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 10px;
+            background: var(--bg-subtle);
+            font-size: 11px;
+            color: var(--text-tertiary);
+            line-height: 1.6;
+        }
+
+        /* ============================================================
+           UTILITY
+           ============================================================ */
+        .text-gain { color: var(--gain); }
+        .text-loss { color: var(--loss); }
+    </style>
+</head>
+<body>
+
+<!-- ================================================================
+     SECTION: HEADER (48px)
+     ================================================================ -->
+
+<header class="header">
+    <div class="header-logo">
+        <div class="header-logo-icon">S</div>
+        <span class="header-logo-text"><span class="brand">SOLB</span> PORTFOLIO</span>
+    </div>
+
+    <nav class="header-nav">
+        <div class="header-nav-item active">포트폴리오</div>
+        <div class="header-nav-item">뉴스</div>
+        <div class="header-nav-item">이벤트 분석</div>
+    </nav>
+
+    <div class="header-right">
+        <div class="header-search">
+            종목 검색
+            <kbd>/</kbd>
+        </div>
+        <div class="header-settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        </div>
+    </div>
+</header>
+
+<!-- ================================================================
+     SECTION: 시장 한줄 요약 (replaces macro strip)
+     ================================================================ -->
+
+<div class="market-summary">
+    <div class="market-summary-icon">&#x1F4C9;</div>
+    <span class="market-summary-text">
+        S&P 500 <span class="down">-1.51%</span>, 나스닥 <span class="down">-2.00%</span>, 다우 <span class="down">-0.93%</span> &mdash; 기술주 중심 하락세, USD/KRW 1,501원
+    </span>
+</div>
+
+<!-- ================================================================
+     SECTION: MAIN LAYOUT (Content + Sidebar)
+     ================================================================ -->
+
+<div class="main-layout">
+
+    <!-- ============================================================
+         MAIN CONTENT
+         ============================================================ -->
+    <main class="main-content">
+
+        <!-- --------------------------------------------------------
+             3. 내 수익 HERO (profit centered, 원화 primary)
+             -------------------------------------------------------- -->
+        <div class="hero">
+            <div class="hero-label">내 수익</div>
+            <div class="hero-profit">+&#8361;18만원</div>
+            <div class="hero-profit-pct">(+1.17%)</div>
+            <div class="hero-stats">
+                <div class="hero-stat">총 평가 <strong>&#8361;1,598만원</strong></div>
+                <div class="hero-stat-separator"></div>
+                <div class="hero-stat">총 투자 <strong>&#8361;1,580만원</strong></div>
+                <div class="hero-stat-separator"></div>
+                <div class="hero-stat">종목 <strong>4개 보유</strong></div>
+            </div>
+        </div>
+
+        <div class="hero-border">
+
+        <!-- --------------------------------------------------------
+             4. CATEGORY TABS — v5: 투자 중 / 관심 종목 / 매도 완료
+             -------------------------------------------------------- -->
+        <div class="cat-tabs">
+            <div class="cat-tab active">전체 <span class="count">6</span></div>
+            <div class="cat-tab">투자 중 <span class="count">4</span></div>
+            <div class="cat-tab">관심 종목 <span class="count">2</span></div>
+            <div class="cat-tab">매도 완료 <span class="count">0</span></div>
+        </div>
+
+        <!-- --------------------------------------------------------
+             5. STOCK TABLE — 오늘등락 + 내수익 + 목표바
+             -------------------------------------------------------- -->
+        <div class="stock-table">
+            <div class="stock-table-header">
+                <span>종목명</span>
+                <span>현재가</span>
+                <span>오늘 등락</span>
+                <span>내 수익</span>
+                <span>목표 달성</span>
+            </div>
+
+            <!-- Row: MU — 마이크론 -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#4A90D9;">M</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">마이크론 <span class="stock-badge badge-investing">투자 중</span></span>
+                        <span class="stock-name-ticker">MU &middot; 25주</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$422.90</div>
+                    <div class="stock-price-sub">&#8361;63.5만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -0.98%</div>
+                    <div class="stock-today-sub down">-$4.16</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl up">+&#8361;1.8만</div>
+                    <div class="stock-pnl-sub up">(+1.17%)</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <div class="goal-bar-track">
+                            <div class="goal-bar-fill" style="width:29.5%;"></div>
+                        </div>
+                        <span class="goal-bar-label">5.9/20%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row: MSFT — 마이크로소프트 -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#00A4EF;">M</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">마이크로소프트 <span class="stock-badge badge-investing">투자 중</span></span>
+                        <span class="stock-name-ticker">MSFT &middot; 20주</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$381.87</div>
+                    <div class="stock-price-sub">&#8361;57.3만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -1.84%</div>
+                    <div class="stock-today-sub down">-$7.12</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl down">-&#8361;24.4만</div>
+                    <div class="stock-pnl-sub down">(-2.08%)</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <div class="goal-bar-track">
+                            <div class="goal-bar-fill negative" style="width:0%;"></div>
+                        </div>
+                        <span class="goal-bar-label">-2.1/15%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row: ASTX -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#6366F1;">A</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">ASTX <span class="stock-badge badge-investing">투자 중</span></span>
+                        <span class="stock-name-ticker">ASTX &middot; 470주</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$45.34</div>
+                    <div class="stock-price-sub">&#8361;6.8만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -8.40%</div>
+                    <div class="stock-today-sub down">-$4.16</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl up">+&#8361;60.7만</div>
+                    <div class="stock-pnl-sub up">(+1.93%)</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <div class="goal-bar-track">
+                            <div class="goal-bar-fill" style="width:9.7%;"></div>
+                        </div>
+                        <span class="goal-bar-label">1.9/20%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row: BEX -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#EC4899;">B</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">BEX <span class="stock-badge badge-investing">투자 중</span></span>
+                        <span class="stock-name-ticker">BEX &middot; 840주</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$21.65</div>
+                    <div class="stock-price-sub">&#8361;3.2만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -19.58%</div>
+                    <div class="stock-today-sub down">-$5.27</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl down">-&#8361;398만</div>
+                    <div class="stock-pnl-sub down">(-12.70%)</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <div class="goal-bar-track">
+                            <div class="goal-bar-fill negative" style="width:0%;"></div>
+                        </div>
+                        <span class="goal-bar-label">-12.7/25%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row: AVGO — 브로드컴 (관심) -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#EF4444;">B</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">브로드컴 <span class="stock-badge badge-watch">관심</span></span>
+                        <span class="stock-name-ticker">AVGO</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$310.51</div>
+                    <div class="stock-price-sub">&#8361;46.6만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -2.92%</div>
+                    <div class="stock-today-sub down">-$9.35</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl neutral">-</div>
+                    <div class="stock-pnl-sub neutral">미보유</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <span class="goal-bar-label" style="color:var(--text-tertiary);">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row: AMZN — 아마존 (관심) -->
+            <div class="stock-row">
+                <div class="stock-name-cell">
+                    <div class="stock-avatar" style="background:#FF9900;">A</div>
+                    <div class="stock-name-info">
+                        <span class="stock-name-kr">아마존 <span class="stock-badge badge-watch">관심</span></span>
+                        <span class="stock-name-ticker">AMZN &middot; 목표 $190</span>
+                    </div>
+                </div>
+                <div class="stock-price-cell">
+                    <div class="stock-price">$205.37</div>
+                    <div class="stock-price-sub">&#8361;30.8만</div>
+                </div>
+                <div class="stock-today-cell">
+                    <div class="stock-today down">&#9660; -1.62%</div>
+                    <div class="stock-today-sub down">-$3.38</div>
+                </div>
+                <div class="stock-pnl-cell">
+                    <div class="stock-pnl neutral">-</div>
+                    <div class="stock-pnl-sub neutral">미보유</div>
+                </div>
+                <div class="stock-goal-cell">
+                    <div class="goal-bar-wrap">
+                        <span class="goal-bar-label" style="color:var(--text-tertiary);">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end stock-table -->
+
+        <!-- --------------------------------------------------------
+             5b. 내 종목 뉴스 (on main page, below stock list)
+             -------------------------------------------------------- -->
+        <div class="portfolio-news">
+            <div class="portfolio-news-title">&#128240; 내 종목 뉴스</div>
+            <div class="portfolio-news-list">
+                <div class="portfolio-news-item">
+                    <span class="pn-tag pn-tag-mu">MU</span>
+                    <div class="pn-body">
+                        <div class="pn-headline">마이크론, HBM4 양산 일정 앞당겨... 엔비디아 차세대 GPU 탑재 예정</div>
+                        <div class="pn-meta">Reuters &middot; 3시간 전</div>
+                    </div>
+                </div>
+                <div class="portfolio-news-item">
+                    <span class="pn-tag pn-tag-msft">MSFT</span>
+                    <div class="pn-body">
+                        <div class="pn-headline">마이크로소프트, AI 인프라 투자 800억 달러로 확대... 클라우드 매출 성장 기대</div>
+                        <div class="pn-meta">Bloomberg &middot; 5시간 전</div>
+                    </div>
+                </div>
+                <div class="portfolio-news-item">
+                    <span class="pn-tag pn-tag-astx">ASTX</span>
+                    <div class="pn-body">
+                        <div class="pn-headline">ASTX, FDA 승인 임박... 3상 임상 결과 긍정적 평가</div>
+                        <div class="pn-meta">BioSpace &middot; 6시간 전</div>
+                    </div>
+                </div>
+                <div class="portfolio-news-item">
+                    <span class="pn-tag pn-tag-bex">BEX</span>
+                    <div class="pn-body">
+                        <div class="pn-headline">BEX, 대규모 유상증자 발표 후 급락... 희석 우려 확산</div>
+                        <div class="pn-meta">MarketWatch &middot; 8시간 전</div>
+                    </div>
+                </div>
+                <div class="portfolio-news-item">
+                    <span class="pn-tag pn-tag-mu">MU</span>
+                    <div class="pn-body">
+                        <div class="pn-headline">반도체 업종 전반 하락... 중국 수출 규제 확대 우려</div>
+                        <div class="pn-meta">한국경제 &middot; 9시간 전</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        </div><!-- end hero-border -->
+
+    </main>
+
+    <!-- ============================================================
+         RIGHT SIDEBAR
+         ============================================================ -->
+    <aside class="sidebar">
+
+        <!-- 관심 종목 -->
+        <div class="sidebar-title">관심 종목 <span class="count">2</span></div>
+
+        <div class="sidebar-stocks">
+            <div class="sidebar-stock-row">
+                <div class="sidebar-stock-avatar" style="background:#EF4444;">B</div>
+                <div class="sidebar-stock-info">
+                    <div class="sidebar-stock-name">브로드컴</div>
+                    <div class="sidebar-stock-ticker">AVGO</div>
+                </div>
+                <div class="sidebar-stock-right">
+                    <div class="sidebar-stock-price">$310.51</div>
+                    <div class="sidebar-stock-change down">&#9660; -2.92%</div>
+                </div>
+            </div>
+            <div class="sidebar-stock-row">
+                <div class="sidebar-stock-avatar" style="background:#FF9900;">A</div>
+                <div class="sidebar-stock-info">
+                    <div class="sidebar-stock-name">아마존</div>
+                    <div class="sidebar-stock-ticker">AMZN &middot; 목표 $190</div>
+                </div>
+                <div class="sidebar-stock-right">
+                    <div class="sidebar-stock-price">$205.37</div>
+                    <div class="sidebar-stock-change down">&#9660; -1.62%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-add-btn">+ 관심 종목 추가</div>
+
+        <!-- SOLB AI -->
+        <div style="margin-top: 40px;">
+            <div class="sidebar-title">SOLB AI</div>
+            <div class="ai-card">
+                <div class="ai-card-header">
+                    <span class="sparkle">&#10024;</span>
+                    AI 포트폴리오 인사이트
+                </div>
+                <div class="ai-card-body">
+                    BEX가 -19.58% 급락했어요. 유상증자 발표 영향으로 보입니다. 손절 라인(&#8361;2.8만)에 가까워지고 있어요.
+                </div>
+                <div class="ai-card-action">자세히 보기 &#8250;</div>
+            </div>
+
+            <div class="ai-card" style="margin-top: 12px; background: linear-gradient(135deg, #FFF8E6 0%, #FFF0F0 100%);">
+                <div class="ai-card-header" style="color: #E8950A;">
+                    <span class="sparkle">&#9888;&#65039;</span>
+                    리스크 알림
+                </div>
+                <div class="ai-card-body">
+                    MSFT 평단가($390)보다 현재가($381.87)가 낮아요. 추가 매수 또는 손절 기준을 점검하세요.
+                </div>
+                <div class="ai-card-action" style="color: #E8950A;">점검하기 &#8250;</div>
+            </div>
+        </div>
+
+    </aside>
+
+</div>
+<!-- end main-layout -->
+
+<!-- ================================================================
+     SECTION: BOTTOM TICKER
+     ================================================================ -->
+
+<div class="bottom-ticker">
+    <span class="ticker-label">실시간</span>
+    <div class="ticker-scroll">
+        <div class="ticker-item"><span class="name">S&P 500</span> <span class="val">5,580.94</span> <span class="chg down">-1.51%</span></div>
+        <div class="ticker-item"><span class="name">나스닥</span> <span class="val">17,322.99</span> <span class="chg down">-2.00%</span></div>
+        <div class="ticker-item"><span class="name">다우</span> <span class="val">41,583.90</span> <span class="chg down">-0.93%</span></div>
+        <div class="ticker-item"><span class="name">USD/KRW</span> <span class="val">1,501.20</span> <span class="chg down">-3.10</span></div>
+        <div class="ticker-item"><span class="name">미국 10년물</span> <span class="val">4.28%</span> <span class="chg down">-0.02</span></div>
+        <div class="ticker-item"><span class="name">VIX</span> <span class="val">21.32</span> <span class="chg up">+2.15</span></div>
+        <div class="ticker-item"><span class="name">WTI</span> <span class="val">$68.24</span> <span class="chg down">-1.18%</span></div>
+        <div class="ticker-item"><span class="name">비트코인</span> <span class="val">$86,412</span> <span class="chg down">-0.72%</span></div>
+        <!-- duplicate for seamless scroll -->
+        <div class="ticker-item"><span class="name">S&P 500</span> <span class="val">5,580.94</span> <span class="chg down">-1.51%</span></div>
+        <div class="ticker-item"><span class="name">나스닥</span> <span class="val">17,322.99</span> <span class="chg down">-2.00%</span></div>
+        <div class="ticker-item"><span class="name">다우</span> <span class="val">41,583.90</span> <span class="chg down">-0.93%</span></div>
+        <div class="ticker-item"><span class="name">USD/KRW</span> <span class="val">1,501.20</span> <span class="chg down">-3.10</span></div>
+        <div class="ticker-item"><span class="name">미국 10년물</span> <span class="val">4.28%</span> <span class="chg down">-0.02</span></div>
+        <div class="ticker-item"><span class="name">VIX</span> <span class="val">21.32</span> <span class="chg up">+2.15</span></div>
+        <div class="ticker-item"><span class="name">WTI</span> <span class="val">$68.24</span> <span class="chg down">-1.18%</span></div>
+        <div class="ticker-item"><span class="name">비트코인</span> <span class="val">$86,412</span> <span class="chg down">-0.72%</span></div>
+    </div>
+</div>
+
+
+<!-- ================================================================
+     --- SECTION DIVIDER: 뉴스 탭 ---
+     ================================================================ -->
+<div class="mockup-divider"><hr></div>
+<span class="mockup-section-label">&#9660; 뉴스 탭 (별도 탭 뷰)</span>
+
+<div class="news-section">
+    <div class="news-section-title">뉴스</div>
+
+    <div class="news-tabs">
+        <div class="news-tab active">내 종목</div>
+        <div class="news-tab">미국 시장</div>
+        <div class="news-tab">한국 시장</div>
+        <div class="news-tab">관심 종목</div>
+        <div class="news-tab">인기</div>
+    </div>
+
+    <div class="news-list">
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">마이크론, HBM4 양산 일정 앞당겨... 엔비디아 차세대 GPU 탑재 예정</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-us">미국</span>
+                    <span class="news-source">Reuters</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">3시간 전</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">미국 반도체 수출 규제 확대... 중국 AI칩 접근 추가 차단 예정</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-us">미국</span>
+                    <span class="news-source">Bloomberg</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">4시간 전</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">마이크로소프트, AI 인프라 투자 800억 달러로 확대... 클라우드 매출 성장 기대</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-us">미국</span>
+                    <span class="news-source">CNBC</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">5시간 전</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">BEX, 대규모 유상증자 발표 후 급락... 주가 -19.58% 하락</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-us">미국</span>
+                    <span class="news-source">MarketWatch</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">8시간 전</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">연준 인사 "금리 인하 서두르지 않겠다"... 6월 인하 기대 후퇴</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-popular">인기</span>
+                    <span class="news-source">한국경제</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">10시간 전</span>
+                </div>
+            </div>
+        </div>
+        <div class="news-item">
+            <div class="news-marker"></div>
+            <div class="news-body">
+                <div class="news-headline">아마존, 자체 AI 칩 '트레이니움3' 공개... 클라우드 경쟁 심화</div>
+                <div class="news-meta">
+                    <span class="news-tag tag-interest">관심</span>
+                    <span class="news-source">TechCrunch</span>
+                    <span class="news-dot"></span>
+                    <span class="news-time">12시간 전</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ================================================================
+     --- SECTION DIVIDER: 분석 패널 ---
+     ================================================================ -->
+<div class="mockup-divider"><hr></div>
+<span class="mockup-section-label">&#9660; 분석 패널 (종목 클릭 시 열림) &mdash; 마이크론 MU</span>
+
+<div style="padding: 40px 32px 120px; max-width: 1400px; margin: 0 auto;">
+
+<div class="analysis-container">
+
+    <!-- Header -->
+    <div class="analysis-header">
+        <div class="analysis-header-left">
+            <div class="analysis-header-avatar" style="background:#4A90D9;">M</div>
+            <div>
+                <div class="analysis-header-name">마이크론</div>
+                <div class="analysis-header-ticker">MU &middot; NASDAQ</div>
+            </div>
+        </div>
+        <button class="analysis-close">&times;</button>
+    </div>
+
+    <div class="analysis-body">
+
+        <!-- Price hero -->
+        <div class="analysis-price">
+            <div class="analysis-price-value">$422.90</div>
+            <div class="analysis-price-won">&#8361;634,893 (&#215;1,501)</div>
+            <div class="analysis-price-change down">&#9660; -$4.16 (-0.98%) 오늘</div>
+        </div>
+
+        <!-- AI 분석 리포트 버튼 -->
+        <button style="width:100%; padding:14px; background:#3182F6; color:white; border:none; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; margin-bottom:24px; display:flex; align-items:center; justify-content:center; gap:8px;">
+          <span>📊</span> AI 분석 리포트 보기
+        </button>
+
+        <!-- ========================================
+             차트 요약 카드 (v6)
+             ======================================== -->
+        <div class="chart-summary-card">
+            <div class="chart-summary-header">&#128202; 차트 요약</div>
+            <div class="chart-summary-trend">&#128201; 하락 추세에서 바닥 다지는 중</div>
+            <div class="chart-summary-desc">
+                최근 30일간 내려갔지만, 지금 가격이 더 이상 안 떨어지는 바닥 구간이에요. 과거에 이런 모양에서 70% 확률로 반등이 나왔어요.
+            </div>
+            <div class="chart-summary-footer">
+                <span class="chart-signal-badge caution">&#128993; 관망</span>
+                <span class="chart-signal-rsi">RSI 32 (과매도)</span>
+            </div>
+            <div class="chart-summary-glossary">용어가 어려우세요? &#9656;</div>
+        </div>
+
+        <!-- AI Analysis Report -->
+        <div style="background:#FAFBFF; border:1px solid rgba(49,130,246,0.12); border-radius:16px; padding:28px; margin-bottom:24px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+            <span style="font-size:18px;">📊</span>
+            <span style="font-size:15px; font-weight:700; color:#3182F6;">SOLB AI 분석</span>
+            <span style="font-size:12px; color:#B0B8C1; margin-left:auto;">2026.3.24 기준</span>
+          </div>
+
+          <!-- Current Status -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:13px; font-weight:600; color:#8B95A1; margin-bottom:8px;">📉 현재 상태</div>
+            <div style="font-size:14px; color:#191F28; line-height:1.7;">
+              하락 추세에서 바닥을 다지는 구간이에요. 20일 이동평균선 아래에서 거래 중이지만, RSI 32로 과매도 구간이에요.
+            </div>
+          </div>
+
+          <!-- Key Indicators -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:13px; font-weight:600; color:#8B95A1; margin-bottom:10px;">📊 주요 지표</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:white; border-radius:10px;">
+                <span style="font-size:13px; color:#4E5968;">이동평균</span>
+                <span style="font-size:13px; font-weight:600; color:#3182F6;">20일선($435) 아래 ▼</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:white; border-radius:10px;">
+                <span style="font-size:13px; color:#4E5968;">RSI</span>
+                <span style="font-size:13px; font-weight:600; color:#EF4452;">32 (과매도) 🟢</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:white; border-radius:10px;">
+                <span style="font-size:13px; color:#4E5968;">볼린저밴드</span>
+                <span style="font-size:13px; font-weight:600; color:#EF4452;">하단 근접 🟢</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:white; border-radius:10px;">
+                <span style="font-size:13px; color:#4E5968;">MACD</span>
+                <span style="font-size:13px; font-weight:600; color:#3182F6;">하향 교차 🔴</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:white; border-radius:10px;">
+                <span style="font-size:13px; color:#4E5968;">거래량</span>
+                <span style="font-size:13px; font-weight:600; color:#8B95A1;">평균 대비 1.2배 🟡</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historical Similar -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:13px; font-weight:600; color:#8B95A1; margin-bottom:8px;">📈 과거 유사 상황</div>
+            <div style="font-size:14px; color:#191F28; line-height:1.7;">
+              최근 1년간 RSI 30 이하에서 5번 반등했고, 평균 반등폭은 +12%였어요. 다만 2번은 추가 하락했어요.
+            </div>
+          </div>
+
+          <!-- Recent Issues -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:13px; font-weight:600; color:#8B95A1; margin-bottom:8px;">📰 최근 이슈</div>
+            <div style="font-size:14px; color:#4E5968; line-height:1.8;">
+              · 마이크론 실적 발표 D-7<br>
+              · HBM 수요 증가 전망 — 골드만삭스 목표가 상향<br>
+              · 이란 전쟁 영향으로 반도체 공급망 우려
+            </div>
+          </div>
+
+          <!-- Conclusion -->
+          <div style="background:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="font-size:14px; font-weight:700; color:#191F28;">💡 종합 판단</span>
+              <span style="font-size:12px; font-weight:600; color:#FF9500; background:rgba(255,149,0,0.08); padding:2px 8px; border-radius:6px;">관망 🟡</span>
+            </div>
+            <div style="font-size:14px; color:#4E5968; line-height:1.7;">
+              과매도 구간이지만 MACD가 아직 하향 중이에요. 반등 신호(MACD 상향 교차, RSI 반등)가 나오면 분할 매수 구간일 수 있어요. 실적 발표 전까지는 관망이 안전해 보여요.
+            </div>
+          </div>
+
+          <!-- Disclaimer -->
+          <div style="font-size:11px; color:#B0B8C1; line-height:1.6; text-align:center; padding-top:12px; border-top:1px solid #F2F4F6;">
+            ⚠️ 이 분석은 AI가 생성한 참고 자료이며, 투자 권유가 아닙니다. 투자 판단의 책임은 본인에게 있습니다.
+          </div>
+        </div>
+
+        <!-- ========================================
+             내 투자 현황 (원화 primary)
+             ======================================== -->
+        <div class="pnl-card">
+            <div class="pnl-card-title">내 투자 현황</div>
+            <div class="pnl-row">
+                <span class="pnl-label">보유 수량</span>
+                <span class="pnl-value">25주</span>
+            </div>
+            <div class="pnl-row">
+                <span class="pnl-label">평균 매수가</span>
+                <span class="pnl-value">$418.00 <span class="pnl-sub">(&#8361;627,618)</span></span>
+            </div>
+            <div class="pnl-row">
+                <span class="pnl-label">투자 원금</span>
+                <span class="pnl-value">&#8361;1,569만 <span class="pnl-sub">($10,450)</span></span>
+            </div>
+            <div class="pnl-row">
+                <span class="pnl-label">평가 금액</span>
+                <span class="pnl-value">&#8361;1,587만 <span class="pnl-sub">($10,572.50)</span></span>
+            </div>
+            <div class="pnl-row" style="padding-top: 12px; border-top: 1px solid var(--border-light); margin-top: 6px;">
+                <span class="pnl-label" style="font-weight: 600; color: var(--text-primary);">수익</span>
+                <span class="pnl-value up">+&#8361;18.4만 <span class="pnl-sub">(+1.17%)</span></span>
+            </div>
+        </div>
+
+        <!-- ========================================
+             목표 달성 바
+             ======================================== -->
+        <div class="goal-section">
+            <div class="goal-header">
+                <span class="goal-title">목표 수익률 달성</span>
+                <span class="goal-pct text-gain">5.9% / 20%</span>
+            </div>
+            <div class="goal-bar-lg-track">
+                <div class="goal-bar-lg-fill" style="width: 29.5%;"></div>
+            </div>
+            <div class="goal-labels">
+                <span>0%</span>
+                <span>목표 20%</span>
+            </div>
+        </div>
+
+        <!-- ========================================
+             매수 이력
+             ======================================== -->
+        <div class="buy-history">
+            <div class="buy-history-title">&#128203; 매수 이력</div>
+            <div class="buy-row">
+                <span class="buy-row-date">2025.01.15</span>
+                <span class="buy-row-detail">15주 매수</span>
+                <span class="buy-row-price">$412.50</span>
+            </div>
+            <div class="buy-row">
+                <span class="buy-row-date">2025.02.20</span>
+                <span class="buy-row-detail">10주 매수</span>
+                <span class="buy-row-price">$426.25</span>
+            </div>
+        </div>
+
+        <!-- ========================================
+             3-Level Chart Tabs (v6)
+             ======================================== -->
+        <div class="section-title">&#128200; 차트 분석</div>
+
+        <div class="chart-level-tabs">
+            <div class="chart-level-tab">기본</div>
+            <div class="chart-level-tab active">더 보기</div>
+            <div class="chart-level-tab">전문가</div>
+        </div>
+
+        <!-- Candle + MA chart area -->
+        <div class="chart-placeholder" style="height: 220px;">
+            캔들차트 + MA(20/60) + 거래량<br>
+            [더 보기 레벨: 볼린저 밴드 표시]
+        </div>
+
+        <!-- MACD chart area -->
+        <div class="chart-placeholder" style="height: 100px;">
+            MACD 차트 (더 보기 레벨)
+        </div>
+
+        <!-- RSI chart area -->
+        <div class="chart-placeholder" style="height: 80px;">
+            RSI 차트 (더 보기 레벨)
+        </div>
+
+        <div class="chart-note">"더 보기" 레벨: 캔들 + MA(20/60) + 볼린저 밴드 + MACD + RSI</div>
+
+        <!-- ========================================
+             Technical Indicators with interpretations
+             ======================================== -->
+        <div class="section-title" style="margin-top: 24px;">&#128295; 기술적 지표</div>
+        <div class="tech-grid">
+            <div class="tech-card">
+                <div class="tech-card-label">RSI (14)</div>
+                <div class="tech-card-value text-loss">32.4</div>
+                <div class="tech-card-desc">과매도 구간<br>반등 가능성 있음</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-card-label">MA 20일</div>
+                <div class="tech-card-value">$435.12</div>
+                <div class="tech-card-desc">현재가보다 위<br>단기 하락 추세</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-card-label">MA 60일</div>
+                <div class="tech-card-value">$441.80</div>
+                <div class="tech-card-desc">현재가보다 위<br>중기 하락 추세</div>
+            </div>
+        </div>
+
+        <!-- ========================================
+             볼린저 밴드 해석 (v6)
+             ======================================== -->
+        <div class="indicator-interp">
+            <div class="indicator-interp-header">
+                <span class="indicator-interp-name">볼린저 밴드</span>
+                <span class="indicator-interp-status warning">하단 근접</span>
+            </div>
+            <div class="indicator-interp-desc">
+                가격이 정상 범위 아래쪽이에요. 반등 가능성이 있어요.
+                <br>상단: $452.30 &middot; 중단: $435.12 &middot; 하단: $417.94
+            </div>
+        </div>
+
+        <!-- ========================================
+             MACD 해석 (v6)
+             ======================================== -->
+        <div class="indicator-interp">
+            <div class="indicator-interp-header">
+                <span class="indicator-interp-name">MACD</span>
+                <span class="indicator-interp-status danger">하향 교차</span>
+            </div>
+            <div class="indicator-interp-desc">
+                하락 힘이 세지고 있어요. 추가 하락에 주의하세요.
+                <br>MACD: -3.42 &middot; Signal: -1.88 &middot; Histogram: -1.54
+            </div>
+        </div>
+
+        <!-- Additional indicator -->
+        <div class="indicator-interp">
+            <div class="indicator-interp-header">
+                <span class="indicator-interp-name">거래량</span>
+                <span class="indicator-interp-status ok">평균 수준</span>
+            </div>
+            <div class="indicator-interp-desc">
+                최근 거래량은 20일 평균과 비슷해요. 큰 매도 압력은 없는 상태예요.
+            </div>
+        </div>
+
+        <!-- ========================================
+             관련 뉴스
+             ======================================== -->
+        <div class="section-title" style="margin-top: 32px;">&#128240; 관련 뉴스</div>
+        <div class="analysis-news-item">
+            <div class="analysis-news-headline">마이크론, HBM4 양산 일정 앞당겨... 엔비디아 차세대 GPU 탑재 예정</div>
+            <div class="analysis-news-meta">Reuters &middot; 3시간 전</div>
+        </div>
+        <div class="analysis-news-item">
+            <div class="analysis-news-headline">반도체 업종 전반 하락... 중국 수출 규제 확대 우려</div>
+            <div class="analysis-news-meta">한국경제 &middot; 9시간 전</div>
+        </div>
+        <div class="analysis-news-item">
+            <div class="analysis-news-headline">마이크론 실적 전망: AI 수요가 메모리 시장 회복 이끌 것</div>
+            <div class="analysis-news-meta">Barron's &middot; 1일 전</div>
+        </div>
+
+        <!-- ========================================
+             Disclaimer
+             ======================================== -->
+        <div class="disclaimer">
+            &#9888;&#65039; 본 정보는 투자 판단의 참고 자료이며, 투자 권유가 아닙니다. 모든 투자의 책임은 투자자 본인에게 있으며, SOLB는 투자 결과에 대해 책임을 지지 않습니다. 과거 수익률이 미래 수익률을 보장하지 않습니다.
+        </div>
+
+    </div><!-- end analysis-body -->
+
+</div><!-- end analysis-container -->
+
+</div><!-- end analysis wrapper -->
+
+</body>
+</html>

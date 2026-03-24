@@ -30,6 +30,9 @@ export function delay(ms: number): Promise<void> {
 
 export type MainSection = 'portfolio' | 'events' | 'news';
 
+// Categories that hold actual stock arrays (excludes 'all')
+type StockCategoryKey = 'investing' | 'watching' | 'sold';
+
 interface PortfolioState {
   // Portfolio data
   stocks: PortfolioStocks;
@@ -54,7 +57,7 @@ interface PortfolioState {
   lastUpdate: string | null;
 
   // Edit modal state
-  editingCat: StockCategory | '';
+  editingCat: StockCategoryKey | '';
   editingIdx: number;
 
   // Actions
@@ -67,7 +70,7 @@ interface PortfolioState {
   setAutoRefresh: (val: boolean) => void;
   setRefreshInterval: (ms: number) => void;
   setLastUpdate: (time: string | null) => void;
-  setEditingCat: (cat: StockCategory | '') => void;
+  setEditingCat: (cat: StockCategoryKey | '') => void;
   setEditingIdx: (idx: number) => void;
 
   // Macro & cache
@@ -79,9 +82,9 @@ interface PortfolioState {
   updateEventCacheEntry: (eventId: string, symbol: string, data: EventCacheEntry) => void;
 
   // Portfolio CRUD
-  addStock: (category: StockCategory, stock: StockItem) => void;
-  deleteStock: (category: StockCategory, idx: number) => void;
-  updateStock: (category: StockCategory, idx: number, data: Partial<StockItem>) => void;
+  addStock: (category: StockCategoryKey, stock: StockItem) => void;
+  deleteStock: (category: StockCategoryKey, idx: number) => void;
+  updateStock: (category: StockCategoryKey, idx: number, data: Partial<StockItem>) => void;
   loadPortfolio: () => void;
   savePortfolio: () => void;
   addCustomEvent: (event: PresetEvent) => void;
@@ -104,7 +107,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       newsCache: {},
       eventCache: {},
 
-      currentTab: 'short',
+      currentTab: 'all' as StockCategory,
       currentSection: 'portfolio',
       currentNewsMarket: 'us',
       currentEventId: 'iran-war',
@@ -185,10 +188,36 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       loadPortfolio: () => {
         const state = get();
-        // Migrate: ensure all stocks have required fields
         const stocks = { ...state.stocks };
         let needsSave = false;
-        for (const c of ['short', 'long', 'watch'] as StockCategory[]) {
+
+        // Migrate from old short/long/watch to new categories
+        const anyObj = stocks as Record<string, StockItem[]>;
+        if (anyObj['short'] || anyObj['long'] || anyObj['watch']) {
+          const oldInvesting = [...(anyObj['short'] || []), ...(anyObj['long'] || [])];
+          const oldWatching = anyObj['watch'] || [];
+          if (!stocks.investing) stocks.investing = [];
+          if (!stocks.watching) stocks.watching = [];
+          if (!stocks.sold) stocks.sold = [];
+          if (oldInvesting.length && !stocks.investing.length) {
+            stocks.investing = oldInvesting;
+            needsSave = true;
+          }
+          if (oldWatching.length && !stocks.watching.length) {
+            stocks.watching = oldWatching;
+            needsSave = true;
+          }
+          delete anyObj['short'];
+          delete anyObj['long'];
+          delete anyObj['watch'];
+        }
+
+        // Ensure all categories exist
+        if (!stocks.investing) { stocks.investing = []; needsSave = true; }
+        if (!stocks.watching) { stocks.watching = []; needsSave = true; }
+        if (!stocks.sold) { stocks.sold = []; needsSave = true; }
+
+        for (const c of ['investing', 'watching', 'sold'] as StockCategoryKey[]) {
           for (const st of stocks[c]) {
             if (st.avgCost === undefined) { st.avgCost = 0; needsSave = true; }
             if (st.shares === undefined) { st.shares = 0; needsSave = true; }
@@ -211,8 +240,10 @@ export const usePortfolioStore = create<PortfolioState>()(
       getAllSymbols: () => {
         const state = get();
         const s = new Set<string>();
-        for (const c of ['short', 'long', 'watch'] as StockCategory[]) {
-          for (const st of state.stocks[c]) s.add(st.symbol);
+        for (const c of ['investing', 'watching', 'sold'] as StockCategoryKey[]) {
+          if (state.stocks[c]) {
+            for (const st of state.stocks[c]) s.add(st.symbol);
+          }
         }
         return [...s];
       },
@@ -230,7 +261,6 @@ export const usePortfolioStore = create<PortfolioState>()(
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
-        currentTab: state.currentTab,
       }),
     }
   )

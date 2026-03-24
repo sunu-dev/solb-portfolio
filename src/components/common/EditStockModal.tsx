@@ -13,20 +13,16 @@ export default function EditStockModal() {
   const [avgCost, setAvgCost] = useState('');
   const [shares, setShares] = useState('');
   const [targetReturn, setTargetReturn] = useState('');
-  // Short-specific
   const [targetSell, setTargetSell] = useState('');
   const [stopLoss, setStopLoss] = useState('');
-  // Long-specific
   const [buyZones, setBuyZones] = useState('');
   const [weight, setWeight] = useState('');
-  // Watch-specific
   const [buyBelow, setBuyBelow] = useState('');
 
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
   const kr = stock ? (STOCK_KR[stock.symbol] || stock.symbol) : '';
 
-  // Populate form when stock changes
   useEffect(() => {
     if (!stock) return;
     setAvgCost(stock.avgCost ? String(stock.avgCost) : '');
@@ -53,17 +49,16 @@ export default function EditStockModal() {
       targetReturn: parseFloat(targetReturn) || 0,
     };
 
-    if (editingCat === 'short') {
+    if (editingCat === 'investing') {
       data.targetSell = parseFloat(targetSell) || 0;
       data.stopLoss = parseFloat(stopLoss) || 0;
-    } else if (editingCat === 'long') {
       data.buyZones = buyZones.split(',').map(Number).filter(n => n > 0);
       data.weight = parseInt(weight) || 0;
-    } else {
+    } else if (editingCat === 'watching') {
       data.buyBelow = parseFloat(buyBelow) || 0;
     }
 
-    updateStock(editingCat as 'short' | 'long' | 'watch', editingIdx, data);
+    updateStock(editingCat as 'investing' | 'watching' | 'sold', editingIdx, data);
     close();
   };
 
@@ -72,119 +67,133 @@ export default function EditStockModal() {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/30 z-50" onClick={close} />
+      <div className="fixed inset-0 bg-black/20 z-50 backdrop-blur-xs" onClick={close} />
 
       {/* Modal */}
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[440px] mx-auto bg-white rounded-[14px] z-50 p-5 animate-fade-in">
-        <h3 className="text-[16px] font-bold text-[#191F28] mb-4">
-          {stock?.symbol} {kr} 설정
-        </h3>
-
-        <div className="space-y-3">
-          {/* Common fields */}
-          <div>
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">평균 매수 단가 ($)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={avgCost}
-              onChange={(e) => setAvgCost(e.target.value)}
-              className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-            />
-          </div>
-          <div>
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">보유 수량 (주)</label>
-            <input
-              type="number"
-              value={shares}
-              onChange={(e) => setShares(e.target.value)}
-              className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-            />
-          </div>
-          <div>
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">목표 수익률 (%)</label>
-            <input
-              type="number"
-              value={targetReturn}
-              onChange={(e) => setTargetReturn(e.target.value)}
-              className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-            />
-          </div>
-
-          {/* Category-specific fields */}
-          {editingCat === 'short' && (
-            <>
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">목표가 ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={targetSell}
-                  onChange={(e) => setTargetSell(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-                />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">손절가 ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={stopLoss}
-                  onChange={(e) => setStopLoss(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-                />
-              </div>
-            </>
-          )}
-
-          {editingCat === 'long' && (
-            <>
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">매수 구간 (쉼표 구분, 예: 430,404,380)</label>
-                <input
-                  type="text"
-                  value={buyZones}
-                  onChange={(e) => setBuyZones(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-                />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">비중 (%)</label>
-                <input
-                  type="number"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-                />
-              </div>
-            </>
-          )}
-
-          {editingCat === 'watch' && (
-            <div>
-              <label className="text-[12px] font-semibold text-[#4E5968] block mb-1">매수 목표가 ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={buyBelow}
-                onChange={(e) => setBuyBelow(e.target.value)}
-                className="w-full px-3 py-2 bg-[#F2F4F6] rounded-xl text-[13px] outline-none focus:ring-1 focus:ring-[#3182F6]/30"
-              />
-            </div>
-          )}
+      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[480px] mx-auto bg-white rounded-2xl z-50 shadow-xl animate-fade-in overflow-hidden">
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F6]">
+          <h3 className="text-[18px] font-bold text-[#191F28]">
+            {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
+          </h3>
+          <p className="text-[12px] text-[#8B95A1] mt-0.5">매수 정보와 목표가를 설정하세요</p>
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-2 mt-5">
+        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4">
+            {/* Common fields */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">평균 매수 단가 ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={avgCost}
+                  onChange={(e) => setAvgCost(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">보유 수량 (주)</label>
+                <input
+                  type="number"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">목표 수익률 (%)</label>
+              <input
+                type="number"
+                value={targetReturn}
+                onChange={(e) => setTargetReturn(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                placeholder="0"
+              />
+            </div>
+
+            {/* Category-specific fields */}
+            {editingCat === 'investing' && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">목표가 ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={targetSell}
+                      onChange={(e) => setTargetSell(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">손절가 ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={stopLoss}
+                      onChange={(e) => setStopLoss(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">매수 구간 (쉼표 구분)</label>
+                  <input
+                    type="text"
+                    value={buyZones}
+                    onChange={(e) => setBuyZones(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
+                    placeholder="430, 404, 380"
+                  />
+                </div>
+                <div>
+                  <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">비중 (%)</label>
+                  <input
+                    type="number"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                    placeholder="0"
+                  />
+                </div>
+              </>
+            )}
+
+            {editingCat === 'watching' && (
+              <div>
+                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">매수 목표가 ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={buyBelow}
+                  onChange={(e) => setBuyBelow(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
+                  placeholder="0.00"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-[#F2F4F6] bg-[#F9FAFB] flex gap-3">
           <button
             onClick={close}
-            className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-[#4E5968] bg-[#F2F4F6] hover:bg-[#E5E8EB] transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-[#4E5968] bg-white ring-1 ring-black/[0.06] hover:bg-[#F2F4F6] transition-colors cursor-pointer"
           >
             취소
           </button>
           <button
             onClick={save}
-            className="flex-1 py-2.5 rounded-xl text-[13px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors cursor-pointer"
           >
             저장
           </button>
