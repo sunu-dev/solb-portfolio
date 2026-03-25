@@ -38,7 +38,7 @@ export default function Header() {
       className="sticky top-0 z-40 bg-white"
       style={{ height: '48px', borderBottom: '1px solid #F2F4F6' }}
     >
-      <div className="flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 24px' }}>
+      <div className="flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 48px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
           <div

@@ -58,7 +58,7 @@ export default function Home() {
       <MarketSummary />
 
       {/* Main body: content + right sidebar */}
-      <div className="flex flex-1 max-w-[1400px] mx-auto w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)' }}>
+      <div className="flex flex-1 w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', maxWidth: '1400px', margin: '0 auto' }}>
         {/* Main content area */}
         <main className="flex-1 min-w-0" style={{ padding: '40px 48px 80px 48px' }}>
           {currentSection === 'portfolio' && <PortfolioSection />}

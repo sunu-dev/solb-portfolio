@@ -16,7 +16,7 @@ export default function MarketSummary() {
       <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
       <div
         className="flex items-center mx-auto"
-        style={{ maxWidth: '1400px', padding: '14px 24px', gap: '8px' }}
+        style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
       >
         <div
           className="flex items-center justify-center shrink-0"
@@ -51,7 +51,7 @@ export default function MarketSummary() {
     <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
     <div
       className="flex items-center mx-auto"
-      style={{ maxWidth: '1400px', padding: '14px 24px', gap: '8px' }}
+      style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
     >
       <div
         className="flex items-center justify-center shrink-0"
