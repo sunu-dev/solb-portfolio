@@ -37,6 +37,7 @@ export default function AnalysisPanel() {
     macroData, rawCandles,
     stocks,
     apiKey,
+    currency,
   } = usePortfolioStore();
 
   const { fetchCandle, rawCandle } = useCandleData(analysisSymbol);
@@ -458,28 +459,28 @@ export default function AnalysisPanel() {
                       <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
                         <span style={{ fontSize: 14, color: '#8B95A1' }}>평균 매수가</span>
                         <span style={{ fontSize: 14, fontWeight: 600 }}>
-                          ${stockData.avgCost.toFixed(2)}{' '}
-                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
-                            (₩{Math.round(stockData.avgCost * usdKrw).toLocaleString()})
-                          </span>
+                          {currency === 'KRW'
+                            ? <>₩{Math.round(stockData.avgCost * usdKrw).toLocaleString()}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>(${stockData.avgCost.toFixed(2)})</span></>
+                            : <>${stockData.avgCost.toFixed(2)}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>(₩{Math.round(stockData.avgCost * usdKrw).toLocaleString()})</span></>
+                          }
                         </span>
                       </div>
                       <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
                         <span style={{ fontSize: 14, color: '#8B95A1' }}>투자 원금</span>
                         <span style={{ fontSize: 14, fontWeight: 600 }}>
-                          {fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)}{' '}
-                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
-                            (${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                          </span>
+                          {currency === 'KRW'
+                            ? <>{fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>(${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})</span></>
+                            : <>${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>({fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)})</span></>
+                          }
                         </span>
                       </div>
                       <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
                         <span style={{ fontSize: 14, color: '#8B95A1' }}>평가 금액</span>
                         <span style={{ fontSize: 14, fontWeight: 600 }}>
-                          {fmtWonShort(price * stockData.shares * usdKrw)}{' '}
-                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
-                            (${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                          </span>
+                          {currency === 'KRW'
+                            ? <>{fmtWonShort(price * stockData.shares * usdKrw)}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>(${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})</span></>
+                            : <>${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}<span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>({fmtWonShort(price * stockData.shares * usdKrw)})</span></>
+                          }
                         </span>
                       </div>
                       {(() => {
@@ -493,7 +494,10 @@ export default function AnalysisPanel() {
                           <div className="flex justify-between items-center" style={{ padding: '12px 0 6px', borderTop: '1px solid #F2F4F6', marginTop: 6 }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#191F28' }}>수익</span>
                             <span style={{ fontSize: 14, fontWeight: 600, color: plIsGain ? '#EF4452' : '#3182F6' }}>
-                              {plIsGain ? '+' : '-'}{fmtWonShort(Math.abs(plWon))}{' '}
+                              {currency === 'KRW'
+                                ? <>{plIsGain ? '+' : '-'}{fmtWonShort(Math.abs(plWon))}</>
+                                : <>{plIsGain ? '+' : '-'}${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</>
+                              }{' '}
                               <span style={{ fontSize: 11, fontWeight: 400 }}>
                                 ({plIsGain ? '+' : ''}{plPctVal.toFixed(2)}%)
                               </span>
@@ -503,7 +507,10 @@ export default function AnalysisPanel() {
                       })()}
                     </div>
                     <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
-                      💡 환율 ₩{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$ 기준이에요. 환율이 바뀌면 원화 금액도 달라져요.
+                      {currency === 'KRW'
+                        ? `💡 환율 ₩${usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$ 기준이에요. 환율이 바뀌면 원화 금액도 달라져요.`
+                        : '💡 달러 기준으로 표시 중이에요. 괄호 안은 원화 환산 금액이에요.'
+                      }
                     </div>
                   </div>
                 )}

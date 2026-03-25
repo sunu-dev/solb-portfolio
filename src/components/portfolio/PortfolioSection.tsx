@@ -92,6 +92,7 @@ export default function PortfolioSection() {
     setCurrentTab, setAnalysisSymbol,
     deleteStock, setEditingCat, setEditingIdx,
     alerts, dismissedAlerts,
+    currency, setCurrency,
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
@@ -174,7 +175,40 @@ export default function PortfolioSection() {
   return (
     <div>
       {/* Hero - centered */}
-      <div style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '40px' }}>
+      <div style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '40px', position: 'relative' }}>
+        {/* Currency toggle */}
+        <div className="flex items-center" style={{ position: 'absolute', top: 0, right: 0 }}>
+          <button
+            onClick={() => setCurrency('KRW')}
+            style={{
+              padding: '4px 12px',
+              fontSize: 12,
+              fontWeight: currency === 'KRW' ? 700 : 400,
+              color: currency === 'KRW' ? '#fff' : '#8B95A1',
+              background: currency === 'KRW' ? '#191F28' : 'transparent',
+              border: '1px solid #E5E8EB',
+              borderRadius: '8px 0 0 8px',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >₩</button>
+          <button
+            onClick={() => setCurrency('USD')}
+            style={{
+              padding: '4px 12px',
+              fontSize: 12,
+              fontWeight: currency === 'USD' ? 700 : 400,
+              color: currency === 'USD' ? '#fff' : '#8B95A1',
+              background: currency === 'USD' ? '#191F28' : 'transparent',
+              border: '1px solid #E5E8EB',
+              borderLeft: 'none',
+              borderRadius: '0 8px 8px 0',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >$</button>
+        </div>
+
         <div style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 400, marginBottom: '12px' }}>내 수익</div>
         {hasInvestment ? (
           <>
@@ -182,13 +216,10 @@ export default function PortfolioSection() {
               className={`tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
               style={{ fontSize: '42px', fontWeight: 800, lineHeight: 1.1 }}
             >
-              {isGain ? '+' : '-'}₩{fmtWon(Math.abs(totalPLWon))}
-            </div>
-            <div
-              className="tabular-nums"
-              style={{ fontSize: 16, color: '#8B95A1', marginTop: '4px' }}
-            >
-              ({isGain ? '+' : '-'}${Math.abs(totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+              {currency === 'KRW'
+                ? `${isGain ? '+' : '-'}₩${fmtWon(Math.abs(totalPLWon))}`
+                : `${isGain ? '+' : '-'}$${Math.abs(totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              }
             </div>
             <div
               className={`${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
@@ -198,13 +229,23 @@ export default function PortfolioSection() {
             </div>
             <div className="flex items-center justify-center" style={{ gap: '24px', marginTop: '24px' }}>
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
-                총 평가 <strong style={{ color: '#191F28', fontWeight: 600 }}>₩{fmtWon(totalValueWon)}</strong>
-                {' '}<span className="tabular-nums" style={{ fontSize: 12, color: '#B0B8C1' }}>(${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+                총 평가{' '}
+                <strong style={{ color: '#191F28', fontWeight: 600 }}>
+                  {currency === 'KRW'
+                    ? `₩${fmtWon(totalValueWon)}`
+                    : `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  }
+                </strong>
               </div>
               <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
-                총 투자 <strong style={{ color: '#191F28', fontWeight: 600 }}>₩{fmtWon(totalCostWon)}</strong>
-                {' '}<span className="tabular-nums" style={{ fontSize: 12, color: '#B0B8C1' }}>(${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
+                총 투자{' '}
+                <strong style={{ color: '#191F28', fontWeight: 600 }}>
+                  {currency === 'KRW'
+                    ? `₩${fmtWon(totalCostWon)}`
+                    : `$${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                  }
+                </strong>
               </div>
               <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
@@ -212,7 +253,10 @@ export default function PortfolioSection() {
               </div>
             </div>
             <div style={{ fontSize: 12, color: '#B0B8C1', marginTop: 12, lineHeight: 1.6, background: '#F8F9FA', padding: '10px 14px', borderRadius: 8, textAlign: 'left', display: 'inline-block', maxWidth: 480 }}>
-              💡 원화 금액은 현재 환율(₩{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$)로 환산한 금액이에요. 환율 변동에 따라 실제 수익과 차이가 날 수 있어요.
+              {currency === 'KRW'
+                ? `💡 원화 금액은 현재 환율(₩${usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$)로 환산한 금액이에요. 환율 변동에 따라 실제 수익과 차이가 날 수 있어요.`
+                : '💡 달러 기준으로 표시 중이에요. ₩ 버튼으로 원화 전환 가능해요.'
+              }
             </div>
           </>
         ) : (
@@ -320,13 +364,15 @@ export default function PortfolioSection() {
 
               // P&L calculation
               let plWon = 0;
+              let plUsd = 0;
               let plPct = 0;
               let hasPosition = false;
               if (stock.avgCost > 0 && stock.shares > 0 && price > 0) {
                 hasPosition = true;
                 const costUsd = stock.avgCost * stock.shares;
                 const valUsd = price * stock.shares;
-                plWon = (valUsd - costUsd) * usdKrw;
+                plUsd = valUsd - costUsd;
+                plWon = plUsd * usdKrw;
                 plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
               }
               const plGain = plPct >= 0;
@@ -440,7 +486,11 @@ export default function PortfolioSection() {
                             color: plGain ? '#EF4452' : '#3182F6',
                           }}
                         >
-                          {plGain ? '+' : '-'}₩{fmtWonShort(Math.abs(plWon))}
+                          {/* Korean stocks always show Won; others follow toggle */}
+                          {stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ') || currency === 'KRW'
+                            ? `${plGain ? '+' : '-'}₩${fmtWonShort(Math.abs(plWon))}`
+                            : `${plGain ? '+' : '-'}$${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          }
                         </div>
                         <div
                           className="tabular-nums"
@@ -453,14 +503,6 @@ export default function PortfolioSection() {
                         >
                           ({plGain ? '+' : ''}{plPct.toFixed(2)}%)
                         </div>
-                        {!stock.symbol.endsWith('.KS') && !stock.symbol.endsWith('.KQ') && (
-                          <div
-                            className="tabular-nums"
-                            style={{ fontSize: 11, color: '#B0B8C1', marginTop: '1px' }}
-                          >
-                            ({plGain ? '+' : '-'}${Math.abs(plWon / usdKrw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                          </div>
-                        )}
                       </>
                     ) : (
                       <>

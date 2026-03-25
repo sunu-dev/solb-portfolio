@@ -51,6 +51,7 @@ interface PortfolioState {
   analysisSymbol: string | null;
 
   // Settings
+  currency: 'KRW' | 'USD';
   apiKey: string;
   autoRefresh: boolean;
   refreshInterval: number;
@@ -66,6 +67,7 @@ interface PortfolioState {
   editingIdx: number;
 
   // Actions
+  setCurrency: (c: 'KRW' | 'USD') => void;
   setCurrentTab: (tab: StockCategory) => void;
   setCurrentSection: (section: MainSection) => void;
   setCurrentNewsMarket: (market: string) => void;
@@ -120,6 +122,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       currentEventId: 'iran-war',
       analysisSymbol: null,
 
+      currency: 'KRW' as 'KRW' | 'USD',
       apiKey: DEFAULT_API_KEY,
       autoRefresh: true,
       refreshInterval: 10000,
@@ -133,6 +136,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       editingIdx: -1,
 
       // --- Setters ---
+      setCurrency: (c) => set({ currency: c }),
       setCurrentTab: (tab) => set({ currentTab: tab }),
       setCurrentSection: (section) => set({ currentSection: section }),
       setCurrentNewsMarket: (market) => set({ currentNewsMarket: market }),
@@ -272,6 +276,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       name: 'solb-portfolio-storage',
       partialize: (state) => ({
         stocks: state.stocks,
+        currency: state.currency,
         apiKey: state.apiKey,
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
