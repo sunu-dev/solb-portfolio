@@ -36,6 +36,7 @@ export default function AnalysisPanel() {
     analysisSymbol, setAnalysisSymbol,
     macroData, rawCandles,
     stocks,
+    apiKey,
   } = usePortfolioStore();
 
   const { fetchCandle, rawCandle } = useCandleData(analysisSymbol);
@@ -232,15 +233,33 @@ export default function AnalysisPanel() {
                       const newsText = recentOnly.length > 0
                         ? recentOnly.slice(0, 3).map(n => n.title).join('\n')
                         : '최근 3시간 내 관련 뉴스 없음';
+                      // 최신 가격을 새로 가져옴
+                      let latestPrice = price;
+                      let latestChange = change;
+                      let latestCp = cp;
+                      try {
+                        const isKr = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+                        const quoteUrl = isKr
+                          ? `/api/kr-quote?symbol=${symbol}`
+                          : `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`;
+                        const qr = await fetch(quoteUrl);
+                        const qd = await qr.json();
+                        if (qd?.c) {
+                          latestPrice = qd.c;
+                          latestChange = qd.d || 0;
+                          latestCp = qd.dp || 0;
+                        }
+                      } catch { /* use existing price */ }
+
                       const resp = await fetch('/api/ai-analysis', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           symbol,
                           koreanName: kr,
-                          price,
-                          change,
-                          changePercent: cp,
+                          price: latestPrice,
+                          change: latestChange,
+                          changePercent: latestCp,
                           avgCost: stockData?.avgCost,
                           shares: stockData?.shares,
                           targetReturn: stockData?.targetReturn,
