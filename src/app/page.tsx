@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
+import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
@@ -38,6 +39,7 @@ export default function Home() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useAutoRefresh();
+  useRealtimePrice();
 
   if (!hydrated) {
     return (

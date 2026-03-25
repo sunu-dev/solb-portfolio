@@ -122,7 +122,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       apiKey: DEFAULT_API_KEY,
       autoRefresh: true,
-      refreshInterval: 30000,
+      refreshInterval: 10000,
       customEvents: [],
       lastUpdate: null,
 

@@ -52,21 +52,37 @@ function extractSource(title: string): string {
   return match ? match[1].trim() : '';
 }
 
+function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  return items
+    .sort((a, b) => {
+      const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return dateB - dateA;
+    })
+    .filter(item => {
+      if (!item.pubDate) return true;
+      return new Date(item.pubDate).getTime() > oneDayAgo;
+    })
+    .slice(0, 15);
+}
+
 export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null> {
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko`;
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko&tbs=qdr:d`;
 
   // Attempt 1: rss2json
   try {
     const r = await fetch(`${CONFIG.RSS2JSON_BASE}?rss_url=${encodeURIComponent(rssUrl)}`);
     const d = await r.json();
     if (d.status === 'ok' && d.items?.length) {
-      return d.items.map((i: Record<string, string>) => ({
+      const items = d.items.map((i: Record<string, string>) => ({
         title: i.title || '',
         link: i.link || '#',
         pubDate: i.pubDate || '',
         source: i.author || extractSource(i.title || ''),
         description: ((i.description || i.content || '') as string).replace(/<[^>]*>/g, '').substring(0, 150).trim(),
       }));
+      return sortAndFilterNews(items);
     }
   } catch { /* fall through */ }
 
@@ -76,15 +92,16 @@ export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null>
     const text = await r.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
-    const items = xml.querySelectorAll('item');
-    if (items.length) {
-      return [...items].slice(0, 15).map(item => ({
+    const xmlItems = xml.querySelectorAll('item');
+    if (xmlItems.length) {
+      const items = [...xmlItems].map(item => ({
         title: item.querySelector('title')?.textContent || '',
         link: item.querySelector('link')?.textContent || '#',
         pubDate: item.querySelector('pubDate')?.textContent || '',
         source: (item.querySelector('source')?.textContent) || extractSource(item.querySelector('title')?.textContent || ''),
         description: '',
       }));
+      return sortAndFilterNews(items);
     }
   } catch { /* fall through */ }
 
@@ -95,15 +112,16 @@ export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null>
     const text = await r.text();
     const parser = new DOMParser();
     const xml = parser.parseFromString(text, 'text/xml');
-    const items = xml.querySelectorAll('item');
-    if (items.length) {
-      return [...items].slice(0, 15).map(item => ({
+    const xmlItems = xml.querySelectorAll('item');
+    if (xmlItems.length) {
+      const items = [...xmlItems].map(item => ({
         title: item.querySelector('title')?.textContent || '',
         link: item.querySelector('link')?.textContent || '#',
         pubDate: item.querySelector('pubDate')?.textContent || '',
         source: (item.querySelector('source')?.textContent) || extractSource(item.querySelector('title')?.textContent || ''),
         description: '',
       }));
+      return sortAndFilterNews(items);
     }
   } catch (e) {
     console.error('News fetch failed:', e);
@@ -285,7 +303,7 @@ export function useAutoRefresh() {
       if (newsTimerRef.current) clearInterval(newsTimerRef.current);
       return;
     }
-    // 주가: 30초마다
+    // 주가: 10초마다
     timerRef.current = setInterval(() => {
       refreshAll();
       fetchMacro();
