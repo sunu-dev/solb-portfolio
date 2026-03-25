@@ -293,11 +293,20 @@ export default function AnalysisPanel() {
                         <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse 1.5s infinite' }}>✨</div>
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#3182F6', marginBottom: 6 }}>AI가 분석 중이에요</div>
                         <div style={{ fontSize: 13, color: '#8B95A1' }}>차트, 지표, 뉴스를 종합하고 있어요... (5~10초)</div>
-                        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6 }}>
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite' }} />
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite 0.2s' }} />
-                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite 0.4s' }} />
+                        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 8 }}>
+                          {[0, 1, 2].map(i => (
+                            <div key={i} style={{
+                              width: 10, height: 10, borderRadius: '50%', background: '#3182F6',
+                              animation: `bounce 1.4s ease-in-out ${i * 0.16}s infinite`,
+                            }} />
+                          ))}
                         </div>
+                        <style>{`
+                          @keyframes bounce {
+                            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+                            40% { transform: translateY(-12px); opacity: 1; }
+                          }
+                        `}</style>
                       </div>
                     )}
 

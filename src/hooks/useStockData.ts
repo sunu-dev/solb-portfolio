@@ -21,19 +21,29 @@ async function fetchStockQuote(symbol: string, apiKey: string): Promise<QuoteDat
   }
 }
 
-// --- Fetch candle data ---
+// --- Fetch candle data (Finnhub → Yahoo Finance fallback) ---
 async function fetchCandleDataRaw(symbol: string, apiKey: string): Promise<CandleRaw | null> {
-  const now = Math.floor(Date.now() / 1000);
-  const from = now - 400 * 86400;
+  // Attempt 1: Finnhub (US large caps)
+  if (!symbol.endsWith('.KS') && !symbol.endsWith('.KQ')) {
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      const from = now - 400 * 86400;
+      const r = await fetch(`${CONFIG.FINNHUB_BASE}/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${now}&token=${apiKey}`);
+      const d: CandleRaw = await r.json();
+      if (d.s === 'ok' && d.c?.length > 20) return d;
+    } catch { /* fall through */ }
+  }
+
+  // Attempt 2: Yahoo Finance via API Route (works for all stocks)
   try {
-    const r = await fetch(`${CONFIG.FINNHUB_BASE}/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${now}&token=${apiKey}`);
+    const r = await fetch(`/api/candle?symbol=${symbol}`);
     const d: CandleRaw = await r.json();
-    if (d.s === 'ok' && d.c?.length) return d;
-    return null;
+    if (d.s === 'ok' && d.c?.length > 20) return d;
   } catch (e) {
     console.error('fetchCandleDataRaw error:', e);
-    return null;
   }
+
+  return null;
 }
 
 // --- Fetch Korean news ---
