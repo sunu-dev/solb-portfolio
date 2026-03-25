@@ -69,9 +69,17 @@ export default function MarketSummary() {
           {nasdaqCp >= 0 ? '+' : ''}{nasdaqCp.toFixed(2)}%
         </span>
         {' '}&mdash; {sentiment}
-        {krwVal > 0 && (
-          <>, USD/KRW {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}원</>
-        )}
+        {krwVal > 0 && (() => {
+          const krwCp = usdkrw?.changePercent || 0;
+          const krwWeakening = krwCp > 0; // rate going up = KRW weakening
+          return (
+            <>, 💱 USD/KRW {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}원{' '}
+              <span style={{ fontWeight: 700, color: krwWeakening ? '#EF4452' : '#3182F6' }}>
+                ({krwWeakening ? '▲' : '▼'}{krwCp >= 0 ? '+' : ''}{krwCp.toFixed(1)}%)
+              </span>
+            </>
+          );
+        })()}
       </span>
     </div>
     </div>

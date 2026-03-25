@@ -231,11 +231,21 @@ export function useMacroData() {
       })
     );
     await Promise.all(ps);
+    // Try Yahoo Finance for more recent USD/KRW rate with change data
     try {
-      const r = await fetch(`${CONFIG.ER_API_BASE}/latest/USD`);
+      const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
       const d = await r.json();
-      if (d.rates?.KRW) updateMacroEntry('USD/KRW', { value: d.rates.KRW, change: 0, changePercent: 0 });
-    } catch { /* silent */ }
+      if (d?.c) {
+        updateMacroEntry('USD/KRW', { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+      }
+    } catch {
+      // Fall back to er-api (existing)
+      try {
+        const r = await fetch(`${CONFIG.ER_API_BASE}/latest/USD`);
+        const d = await r.json();
+        if (d.rates?.KRW) updateMacroEntry('USD/KRW', { value: d.rates.KRW, change: 0, changePercent: 0 });
+      } catch { /* silent */ }
+    }
     // KOSPI placeholder if not fetched
     const macroData = usePortfolioStore.getState().macroData;
     if (!macroData['KOSPI']) updateMacroEntry('KOSPI', { value: null, change: 0, changePercent: 0 });
@@ -290,17 +300,19 @@ export function useNewsData() {
 
 // --- useAutoRefresh ---
 export function useAutoRefresh() {
-  const { autoRefresh, refreshInterval, currentNewsMarket } = usePortfolioStore();
+  const { autoRefresh, refreshInterval, currentNewsMarket, updateMacroEntry } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { fetchNews } = useNewsData();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const newsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fxTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!autoRefresh) {
       if (timerRef.current) clearInterval(timerRef.current);
       if (newsTimerRef.current) clearInterval(newsTimerRef.current);
+      if (fxTimerRef.current) clearInterval(fxTimerRef.current);
       return;
     }
     // 주가: 10초마다
@@ -315,9 +327,21 @@ export function useAutoRefresh() {
       fetchNews('my');
     }, 30 * 60 * 1000);
 
+    // 환율: 10분마다
+    fxTimerRef.current = setInterval(async () => {
+      try {
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
+        const d = await r.json();
+        if (d?.c) {
+          updateMacroEntry('USD/KRW', { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+        }
+      } catch { /* silent */ }
+    }, 10 * 60 * 1000);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (newsTimerRef.current) clearInterval(newsTimerRef.current);
+      if (fxTimerRef.current) clearInterval(fxTimerRef.current);
     };
   }, [autoRefresh, refreshInterval, refreshAll, fetchMacro]);
 }

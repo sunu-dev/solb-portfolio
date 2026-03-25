@@ -502,6 +502,9 @@ export default function AnalysisPanel() {
                         );
                       })()}
                     </div>
+                    <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
+                      💡 환율 ₩{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$ 기준이에요. 환율이 바뀌면 원화 금액도 달라져요.
+                    </div>
                   </div>
                 )}
 

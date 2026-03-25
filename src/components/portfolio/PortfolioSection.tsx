@@ -185,6 +185,12 @@ export default function PortfolioSection() {
               {isGain ? '+' : '-'}₩{fmtWon(Math.abs(totalPLWon))}
             </div>
             <div
+              className="tabular-nums"
+              style={{ fontSize: 16, color: '#8B95A1', marginTop: '4px' }}
+            >
+              ({isGain ? '+' : '-'}${Math.abs(totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+            </div>
+            <div
               className={`${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
               style={{ fontSize: '20px', fontWeight: 600, marginTop: '6px' }}
             >
@@ -193,15 +199,20 @@ export default function PortfolioSection() {
             <div className="flex items-center justify-center" style={{ gap: '24px', marginTop: '24px' }}>
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 총 평가 <strong style={{ color: '#191F28', fontWeight: 600 }}>₩{fmtWon(totalValueWon)}</strong>
+                {' '}<span className="tabular-nums" style={{ fontSize: 12, color: '#B0B8C1' }}>(${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
               </div>
               <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 총 투자 <strong style={{ color: '#191F28', fontWeight: 600 }}>₩{fmtWon(totalCostWon)}</strong>
+                {' '}<span className="tabular-nums" style={{ fontSize: 12, color: '#B0B8C1' }}>(${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })})</span>
               </div>
               <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 종목 <strong style={{ color: '#191F28', fontWeight: 600 }}>{holdingCount}개 보유</strong>
               </div>
+            </div>
+            <div style={{ fontSize: 12, color: '#B0B8C1', marginTop: 12, lineHeight: 1.6, background: '#F8F9FA', padding: '10px 14px', borderRadius: 8, textAlign: 'left', display: 'inline-block', maxWidth: 480 }}>
+              💡 원화 금액은 현재 환율(₩{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$)로 환산한 금액이에요. 환율 변동에 따라 실제 수익과 차이가 날 수 있어요.
             </div>
           </>
         ) : (
@@ -442,6 +453,14 @@ export default function PortfolioSection() {
                         >
                           ({plGain ? '+' : ''}{plPct.toFixed(2)}%)
                         </div>
+                        {!stock.symbol.endsWith('.KS') && !stock.symbol.endsWith('.KQ') && (
+                          <div
+                            className="tabular-nums"
+                            style={{ fontSize: 11, color: '#B0B8C1', marginTop: '1px' }}
+                          >
+                            ({plGain ? '+' : '-'}${Math.abs(plWon / usdKrw).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
