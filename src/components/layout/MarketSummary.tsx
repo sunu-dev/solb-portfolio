@@ -13,9 +13,10 @@ export default function MarketSummary() {
   // No data yet
   if (!sp?.value && !nasdaq?.value) {
     return (
+      <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
       <div
-        className="flex items-center bg-white"
-        style={{ padding: '14px 24px', borderBottom: '1px solid #F2F4F6', gap: '8px' }}
+        className="flex items-center mx-auto"
+        style={{ maxWidth: '1400px', padding: '14px 24px', gap: '8px' }}
       >
         <div
           className="flex items-center justify-center shrink-0"
@@ -26,6 +27,7 @@ export default function MarketSummary() {
         <span style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 500 }}>
           시장 데이터를 불러오는 중...
         </span>
+      </div>
       </div>
     );
   }
@@ -46,9 +48,10 @@ export default function MarketSummary() {
   const isDown = (v: number) => v < 0;
 
   return (
+    <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
     <div
-      className="flex items-center bg-white"
-      style={{ padding: '14px 24px', borderBottom: '1px solid #F2F4F6', gap: '8px' }}
+      className="flex items-center mx-auto"
+      style={{ maxWidth: '1400px', padding: '14px 24px', gap: '8px' }}
     >
       <div
         className="flex items-center justify-center shrink-0"
@@ -70,6 +73,7 @@ export default function MarketSummary() {
           <>, USD/KRW {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}원</>
         )}
       </span>
+    </div>
     </div>
   );
 }
