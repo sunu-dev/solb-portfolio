@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem } from '@/config/constants';
+import type { Alert } from '@/utils/alertsEngine';
 
 const TABS: { id: StockCategory; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -33,6 +34,44 @@ function getTagColor(symbol: string) {
   return TAG_COLORS[symbol] || { bg: '#F2F4F6', color: '#8B95A1' };
 }
 
+const ALERT_BADGE_COLORS: Record<Alert['type'], { bg: string; color: string; dot: string }> = {
+  urgent: { bg: 'rgba(239,68,82,0.08)', color: '#EF4452', dot: '🔴' },
+  risk: { bg: 'rgba(255,149,0,0.08)', color: '#FF9500', dot: '🟡' },
+  opportunity: { bg: 'rgba(0,198,190,0.08)', color: '#00C6BE', dot: '🟢' },
+  insight: { bg: 'rgba(49,130,246,0.08)', color: '#3182F6', dot: '🔵' },
+  celebrate: { bg: 'rgba(175,82,222,0.08)', color: '#AF52DE', dot: '🟣' },
+};
+
+function getAlertBadgeText(alert: Alert): string {
+  // Short label for inline badge
+  if (alert.id.includes('stoploss-hit')) return '손절 도달';
+  if (alert.id.includes('stoploss-near')) return '손절 근접';
+  if (alert.id.includes('target-hit')) return '목표 달성';
+  if (alert.id.includes('target-near')) return '목표 근접';
+  if (alert.id.includes('below-avgcost')) return '평단 하회';
+  if (alert.id.includes('buy-zone')) return '매수 구간';
+  if (alert.id.includes('daily-surge')) return '급등';
+  if (alert.id.includes('daily-plunge')) return '급락';
+  if (alert.id.includes('near-52w-low')) return '52주 저점';
+  if (alert.id.includes('near-52w-high')) return '52주 고점';
+  if (alert.id.includes('golden-cross')) return '골든크로스';
+  if (alert.id.includes('death-cross')) return '데드크로스';
+  if (alert.id.includes('rsi-oversold')) {
+    const match = alert.message.match(/RSI (\d+)/);
+    return match ? `RSI ${match[1]}` : 'RSI 과매도';
+  }
+  if (alert.id.includes('rsi-overbought')) {
+    const match = alert.message.match(/RSI (\d+)/);
+    return match ? `RSI ${match[1]}` : 'RSI 과매수';
+  }
+  if (alert.id.includes('bb-lower')) return 'BB 하단';
+  if (alert.id.includes('bb-upper')) return 'BB 상단';
+  if (alert.id.includes('macd-bull')) return 'MACD 매수';
+  if (alert.id.includes('macd-bear')) return 'MACD 매도';
+  if (alert.id.includes('target-return')) return '수익 달성';
+  return '알림';
+}
+
 function fmtWon(val: number): string {
   const abs = Math.abs(val);
   if (abs >= 100000000) return `${(val / 100000000).toFixed(1)}억원`;
@@ -52,6 +91,7 @@ export default function PortfolioSection() {
     stocks, currentTab, macroData,
     setCurrentTab, setAnalysisSymbol,
     deleteStock, setEditingCat, setEditingIdx,
+    alerts, dismissedAlerts,
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
@@ -262,6 +302,11 @@ export default function PortfolioSection() {
               const badge = CAT_BADGES[stock.category];
               const priceWon = price * usdKrw;
 
+              // Find highest-severity alert for this symbol
+              const stockAlert = alerts
+                .filter(a => a.symbol === stock.symbol && !dismissedAlerts.includes(a.id))
+                .sort((a, b) => a.severity - b.severity)[0] || null;
+
               // P&L calculation
               let plWon = 0;
               let plPct = 0;
@@ -324,6 +369,25 @@ export default function PortfolioSection() {
                             {badge.label}
                           </span>
                         )}
+                        {stockAlert && (() => {
+                          const badgeStyle = ALERT_BADGE_COLORS[stockAlert.type];
+                          const badgeText = getAlertBadgeText(stockAlert);
+                          return (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 600,
+                                padding: '2px 6px',
+                                borderRadius: '10px',
+                                whiteSpace: 'nowrap',
+                                background: badgeStyle.bg,
+                                color: badgeStyle.color,
+                              }}
+                            >
+                              {badgeStyle.dot} {badgeText}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}

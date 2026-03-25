@@ -2,75 +2,57 @@
 
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { QuoteData, StockItem } from '@/config/constants';
+import type { QuoteData } from '@/config/constants';
+import type { Alert } from '@/utils/alertsEngine';
 import { Plus } from 'lucide-react';
 
-function generateInsight(
-  investingStocks: StockItem[],
-  watchingStocks: StockItem[],
-  macroData: Record<string, unknown>
-): { text: string; type: 'insight' | 'risk'; symbol: string }[] {
-  const allStocks = [...investingStocks, ...watchingStocks];
-  const insights: { text: string; type: 'insight' | 'risk'; symbol: string }[] = [];
-
-  let biggestLoss = { symbol: '', dp: 0, price: 0, avgCost: 0 };
-  let biggestGain = { symbol: '', dp: 0 };
-
-  for (const s of allStocks) {
-    const q = macroData[s.symbol] as QuoteData | undefined;
-    if (!q?.dp) continue;
-    if (q.dp > biggestGain.dp) biggestGain = { symbol: s.symbol, dp: q.dp };
-    if (q.dp < biggestLoss.dp) biggestLoss = { symbol: s.symbol, dp: q.dp, price: q.c, avgCost: s.avgCost };
-  }
-
-  // Risk alerts for stocks below avg cost
-  for (const s of investingStocks) {
-    const q = macroData[s.symbol] as QuoteData | undefined;
-    if (!q?.c || !s.avgCost || s.avgCost <= 0) continue;
-    if (q.c < s.avgCost) {
-      const kr = STOCK_KR[s.symbol] || s.symbol;
-      insights.push({
-        text: `${kr} 평단가($${s.avgCost})보다 현재가($${q.c.toFixed(2)})가 낮아요. 추가 매수 또는 손절 기준을 점검하세요.`,
-        type: 'risk',
-        symbol: s.symbol,
-      });
-    }
-  }
-
-  // Big drop insight
-  if (biggestLoss.dp < -5) {
-    const kr = STOCK_KR[biggestLoss.symbol] || biggestLoss.symbol;
-    insights.unshift({
-      text: `${kr}이(가) ${biggestLoss.dp.toFixed(2)}% 급락했어요. 손절 라인에 가까워지고 있는지 확인하세요.`,
-      type: 'insight',
-      symbol: biggestLoss.symbol,
-    });
-  } else if (biggestGain.dp > 3) {
-    const kr = STOCK_KR[biggestGain.symbol] || biggestGain.symbol;
-    insights.unshift({
-      text: `${kr}이(가) +${biggestGain.dp.toFixed(1)}% 상승 중이에요. 목표가를 확인해보세요.`,
-      type: 'insight',
-      symbol: biggestGain.symbol,
-    });
-  }
-
-  if (insights.length === 0) {
-    insights.push({
-      text: '현재 포트폴리오에 특별한 알림이 없어요. 안정적인 상태예요.',
-      type: 'insight',
-      symbol: '',
-    });
-  }
-
-  return insights.slice(0, 2);
-}
+const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
+  urgent: {
+    icon: '🚨',
+    label: '긴급 알림',
+    bg: 'rgba(239,68,82,0.04)',
+    border: '1px solid rgba(239,68,82,0.08)',
+    color: '#EF4452',
+  },
+  risk: {
+    icon: '⚠️',
+    label: '리스크 알림',
+    bg: 'rgba(255,149,0,0.04)',
+    border: '1px solid rgba(255,149,0,0.08)',
+    color: '#FF9500',
+  },
+  opportunity: {
+    icon: '💡',
+    label: '매수 기회',
+    bg: 'rgba(0,198,190,0.04)',
+    border: '1px solid rgba(0,198,190,0.08)',
+    color: '#00C6BE',
+  },
+  insight: {
+    icon: '✨',
+    label: 'AI 인사이트',
+    bg: 'rgba(49,130,246,0.04)',
+    border: '1px solid rgba(49,130,246,0.08)',
+    color: '#3182F6',
+  },
+  celebrate: {
+    icon: '🎉',
+    label: '목표 달성',
+    bg: 'rgba(175,82,222,0.04)',
+    border: '1px solid rgba(175,82,222,0.08)',
+    color: '#AF52DE',
+  },
+};
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts } = usePortfolioStore();
 
   const watchingStocks = stocks.watching || [];
-  const investingStocks = stocks.investing || [];
-  const insights = generateInsight(investingStocks, watchingStocks, macroData);
+
+  // Filter out dismissed alerts and take top 3
+  const visibleAlerts = alerts
+    .filter(a => !dismissedAlerts.includes(a.id))
+    .slice(0, 3);
 
   return (
     <div>
@@ -140,56 +122,98 @@ export default function RightSidebar() {
         관심 종목 추가
       </button>
 
-      {/* SOLB AI section */}
+      {/* SOLB AI section — Smart Alerts */}
       <div style={{ marginTop: '40px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#191F28', marginBottom: '4px' }}>SOLB AI</h3>
+        <div className="flex items-center justify-between" style={{ marginBottom: '4px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#191F28' }}>SOLB AI</h3>
+          {alerts.length > 0 && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: '#fff',
+                background: '#EF4452',
+                borderRadius: '10px',
+                padding: '2px 8px',
+                minWidth: '20px',
+                textAlign: 'center',
+              }}
+            >
+              {alerts.filter(a => !dismissedAlerts.includes(a.id)).length}
+            </span>
+          )}
+        </div>
 
-        {insights.map((ins, idx) => (
+        {visibleAlerts.length > 0 ? (
+          visibleAlerts.map((alert) => {
+            const style = ALERT_STYLE[alert.type];
+            return (
+              <div
+                key={alert.id}
+                style={{
+                  marginTop: '16px',
+                  padding: '24px',
+                  borderRadius: '16px',
+                  background: style.bg,
+                  border: style.border,
+                }}
+              >
+                <div className="flex items-center gap-1.5" style={{ marginBottom: '10px' }}>
+                  <span style={{ fontSize: '14px' }}>{style.icon}</span>
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: style.color,
+                    }}
+                  >
+                    {style.label}
+                  </span>
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: '#191F28', lineHeight: 1.5, marginBottom: '4px' }}>
+                  {alert.message}
+                </div>
+                <div style={{ fontSize: '13px', color: '#4E5968', lineHeight: 1.6 }}>
+                  {alert.detail}
+                </div>
+                {alert.symbol && alert.symbol !== 'PORTFOLIO' && (
+                  <div
+                    onClick={() => setAnalysisSymbol(alert.symbol)}
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      marginTop: '10px',
+                      cursor: 'pointer',
+                      color: style.color,
+                    }}
+                  >
+                    자세히 보기 ›
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
           <div
-            key={idx}
             style={{
               marginTop: '16px',
               padding: '24px',
               borderRadius: '16px',
-              background: ins.type === 'insight'
-                ? 'linear-gradient(135deg, rgba(49,130,246,0.04), rgba(175,82,222,0.04))'
-                : 'rgba(255,149,0,0.04)',
-              border: ins.type === 'insight'
-                ? '1px solid rgba(49,130,246,0.08)'
-                : '1px solid rgba(255,149,0,0.08)',
+              background: 'linear-gradient(135deg, rgba(49,130,246,0.04), rgba(175,82,222,0.04))',
+              border: '1px solid rgba(49,130,246,0.08)',
             }}
           >
             <div className="flex items-center gap-1.5" style={{ marginBottom: '10px' }}>
-              <span style={{ fontSize: '14px' }}>{ins.type === 'insight' ? '✨' : '⚠️'}</span>
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: ins.type === 'insight' ? '#3182F6' : '#FF9500',
-                }}
-              >
-                {ins.type === 'insight' ? 'AI 포트폴리오 인사이트' : '리스크 알림'}
+              <span style={{ fontSize: '14px' }}>✨</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#3182F6' }}>
+                AI 포트폴리오 인사이트
               </span>
             </div>
             <div style={{ fontSize: '14px', color: '#4E5968', lineHeight: 1.6 }}>
-              {ins.text}
+              현재 포트폴리오에 특별한 알림이 없어요. 안정적인 상태예요.
             </div>
-            {ins.symbol && (
-              <div
-                onClick={() => setAnalysisSymbol(ins.symbol)}
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  marginTop: '10px',
-                  cursor: 'pointer',
-                  color: ins.type === 'insight' ? '#3182F6' : '#FF9500',
-                }}
-              >
-                {ins.type === 'insight' ? '자세히 보기 ›' : '점검하기 ›'}
-              </div>
-            )}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import NewsSection from '@/components/news/NewsSection';
 import AnalysisPanel from '@/components/analysis/AnalysisPanel';
 import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
+import ToastAlert from '@/components/common/ToastAlert';
 
 export default function Home() {
   const { currentSection, loadPortfolio, analysisSymbol } = usePortfolioStore();
@@ -73,6 +74,7 @@ export default function Home() {
       <BottomTicker />
 
       {/* Overlays */}
+      <ToastAlert />
       {analysisSymbol && <AnalysisPanel />}
       <EditStockModal />
       <SettingsPanel />

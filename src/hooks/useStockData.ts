@@ -8,6 +8,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { usePortfolioStore, delay } from '@/store/portfolioStore';
 import type { QuoteData, CandleRaw, NewsItem } from '@/config/constants';
 import { CONFIG, PERIODS, MACRO_IND, NEWS_QUERIES, STOCK_KR } from '@/config/constants';
+import { checkAllAlerts } from '@/utils/alertsEngine';
 
 // --- Fetch a single stock quote ---
 async function fetchStockQuote(symbol: string, apiKey: string): Promise<QuoteData | null> {
@@ -141,6 +142,7 @@ export function useStockData() {
   const {
     apiKey, getAllSymbols, updateMacroEntry,
     updateCandleCache, updateRawCandles, setLastUpdate,
+    stocks, setAlerts,
   } = usePortfolioStore();
 
   const fetchAllQuotes = useCallback(async () => {
@@ -180,7 +182,11 @@ export function useStockData() {
   const refreshAll = useCallback(async () => {
     await fetchAllQuotes();
     await fetchAllCandles();
-  }, [fetchAllQuotes, fetchAllCandles]);
+    // Run alerts check after all data is fetched
+    const state = usePortfolioStore.getState();
+    const alerts = checkAllAlerts(state.stocks, state.macroData, state.rawCandles, state.candleCache);
+    setAlerts(alerts);
+  }, [fetchAllQuotes, fetchAllCandles, setAlerts]);
 
   return { fetchAllQuotes, fetchAllCandles, refreshAll };
 }

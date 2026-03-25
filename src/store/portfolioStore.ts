@@ -10,6 +10,7 @@ import type {
   NewsItem, EventCacheEntry, PresetEvent,
 } from '@/config/constants';
 import { DEFAULT_STOCKS, STOCK_KR, PRESET_EVENTS } from '@/config/constants';
+import type { Alert } from '@/utils/alertsEngine';
 
 // --- Utility functions ---
 export function tsToDate(ts: number): string {
@@ -56,6 +57,10 @@ interface PortfolioState {
   customEvents: PresetEvent[];
   lastUpdate: string | null;
 
+  // Alerts
+  alerts: Alert[];
+  dismissedAlerts: string[]; // alert IDs dismissed in this session
+
   // Edit modal state
   editingCat: StockCategoryKey | '';
   editingIdx: number;
@@ -72,6 +77,8 @@ interface PortfolioState {
   setLastUpdate: (time: string | null) => void;
   setEditingCat: (cat: StockCategoryKey | '') => void;
   setEditingIdx: (idx: number) => void;
+  setAlerts: (alerts: Alert[]) => void;
+  dismissAlert: (alertId: string) => void;
 
   // Macro & cache
   updateMacroEntry: (key: string, val: MacroEntry | QuoteData) => void;
@@ -119,6 +126,9 @@ export const usePortfolioStore = create<PortfolioState>()(
       customEvents: [],
       lastUpdate: null,
 
+      alerts: [],
+      dismissedAlerts: [],
+
       editingCat: '',
       editingIdx: -1,
 
@@ -134,6 +144,11 @@ export const usePortfolioStore = create<PortfolioState>()(
       setLastUpdate: (time) => set({ lastUpdate: time }),
       setEditingCat: (cat) => set({ editingCat: cat }),
       setEditingIdx: (idx) => set({ editingIdx: idx }),
+      setAlerts: (alerts) => set({ alerts }),
+      dismissAlert: (alertId) =>
+        set((state) => ({
+          dismissedAlerts: [...state.dismissedAlerts, alertId],
+        })),
 
       // --- Macro & cache ---
       updateMacroEntry: (key, val) =>
