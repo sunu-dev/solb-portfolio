@@ -9,9 +9,9 @@ function generateInsight(
   investingStocks: StockItem[],
   watchingStocks: StockItem[],
   macroData: Record<string, unknown>
-): { text: string; type: 'insight' | 'risk' }[] {
+): { text: string; type: 'insight' | 'risk'; symbol: string }[] {
   const allStocks = [...investingStocks, ...watchingStocks];
-  const insights: { text: string; type: 'insight' | 'risk' }[] = [];
+  const insights: { text: string; type: 'insight' | 'risk'; symbol: string }[] = [];
 
   let biggestLoss = { symbol: '', dp: 0, price: 0, avgCost: 0 };
   let biggestGain = { symbol: '', dp: 0 };
@@ -32,6 +32,7 @@ function generateInsight(
       insights.push({
         text: `${kr} 평단가($${s.avgCost})보다 현재가($${q.c.toFixed(2)})가 낮아요. 추가 매수 또는 손절 기준을 점검하세요.`,
         type: 'risk',
+        symbol: s.symbol,
       });
     }
   }
@@ -42,12 +43,14 @@ function generateInsight(
     insights.unshift({
       text: `${kr}이(가) ${biggestLoss.dp.toFixed(2)}% 급락했어요. 손절 라인에 가까워지고 있는지 확인하세요.`,
       type: 'insight',
+      symbol: biggestLoss.symbol,
     });
   } else if (biggestGain.dp > 3) {
     const kr = STOCK_KR[biggestGain.symbol] || biggestGain.symbol;
     insights.unshift({
       text: `${kr}이(가) +${biggestGain.dp.toFixed(1)}% 상승 중이에요. 목표가를 확인해보세요.`,
       type: 'insight',
+      symbol: biggestGain.symbol,
     });
   }
 
@@ -55,6 +58,7 @@ function generateInsight(
     insights.push({
       text: '현재 포트폴리오에 특별한 알림이 없어요. 안정적인 상태예요.',
       type: 'insight',
+      symbol: '',
     });
   }
 
@@ -90,15 +94,16 @@ export default function RightSidebar() {
             <button
               key={stock.symbol}
               onClick={() => setAnalysisSymbol(stock.symbol)}
-              className={`w-full flex items-center gap-2.5 py-2.5 cursor-pointer hover:bg-[#F9FAFB] transition-colors text-left rounded-lg ${
+              className={`w-full flex items-center cursor-pointer hover:bg-[#F9FAFB] transition-colors text-left rounded-xl ${
                 idx > 0 ? 'border-t border-[#F7F8FA]' : ''
               }`}
+              style={{ gap: '14px', padding: '14px 4px' }}
             >
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: avatarColor }}
+                className="rounded-full flex items-center justify-center shrink-0"
+                style={{ width: '44px', height: '44px', backgroundColor: avatarColor }}
               >
-                <span className="text-[13px] font-bold text-white">
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
                   {stock.symbol.charAt(0)}
                 </span>
               </div>
@@ -128,22 +133,23 @@ export default function RightSidebar() {
           const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
           if (searchBtn) searchBtn.click();
         }}
-        className="w-full flex items-center justify-center gap-1.5 mt-4 py-2.5 border-[1.5px] border-dashed border-[#D5DAE0] rounded-[10px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] rounded-[12px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] transition-colors"
+        style={{ marginTop: '20px', padding: '12px 0' }}
       >
         <Plus className="w-3.5 h-3.5" />
         관심 종목 추가
       </button>
 
       {/* SOLB AI section */}
-      <div className="mt-10">
-        <h3 className="text-[16px] font-bold text-[#191F28]">SOLB AI</h3>
+      <div style={{ marginTop: '40px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#191F28', marginBottom: '4px' }}>SOLB AI</h3>
 
         {insights.map((ins, idx) => (
           <div
             key={idx}
             style={{
-              marginTop: '20px',
-              padding: '20px',
+              marginTop: '16px',
+              padding: '24px',
               borderRadius: '16px',
               background: ins.type === 'insight'
                 ? 'linear-gradient(135deg, rgba(49,130,246,0.04), rgba(175,82,222,0.04))'
@@ -168,17 +174,20 @@ export default function RightSidebar() {
             <div style={{ fontSize: '14px', color: '#4E5968', lineHeight: 1.6 }}>
               {ins.text}
             </div>
-            <div
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                marginTop: '10px',
-                cursor: 'pointer',
-                color: ins.type === 'insight' ? '#3182F6' : '#FF9500',
-              }}
-            >
-              {ins.type === 'insight' ? '자세히 보기 ›' : '점검하기 ›'}
-            </div>
+            {ins.symbol && (
+              <div
+                onClick={() => setAnalysisSymbol(ins.symbol)}
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  marginTop: '10px',
+                  cursor: 'pointer',
+                  color: ins.type === 'insight' ? '#3182F6' : '#FF9500',
+                }}
+              >
+                {ins.type === 'insight' ? '자세히 보기 ›' : '점검하기 ›'}
+              </div>
+            )}
           </div>
         ))}
       </div>

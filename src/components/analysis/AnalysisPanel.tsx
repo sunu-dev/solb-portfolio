@@ -42,7 +42,7 @@ export default function AnalysisPanel() {
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
-  const [showAIReport, setShowAIReport] = useState(false);
+  const [showAIReport, setShowAIReport] = useState(true);
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -137,50 +137,71 @@ export default function AnalysisPanel() {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/20 z-50 backdrop-blur-xs" onClick={close} />
+'      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
 
       {/* Panel */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-[560px] max-h-[90vh] bg-white rounded-[20px] overflow-hidden shadow-2xl animate-fade-in flex flex-col" style={{ border: '1px solid #F2F4F6' }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: 16 }}>
+        <div
+          className="flex flex-col"
+          style={{
+            width: '100%',
+            maxWidth: 560,
+            maxHeight: '90vh',
+            background: '#FFFFFF',
+            borderRadius: 20,
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+            border: '1px solid #F2F4F6',
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-[#F2F4F6] shrink-0">
-            <div className="flex items-center gap-3">
+          <div
+            className="flex items-center justify-between"
+            style={{ padding: '20px 24px', borderBottom: '1px solid #F2F4F6', flexShrink: 0 }}
+          >
+            <div className="flex items-center" style={{ gap: 12 }}>
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: avatarColor }}
+                className="flex items-center justify-center"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '50%',
+                  backgroundColor: avatarColor,
+                }}
               >
-                <span className="text-[15px] font-bold text-white">{symbol.charAt(0)}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{symbol.charAt(0)}</span>
               </div>
               <div>
-                <div className="text-[17px] font-bold text-[#191F28]">{kr !== symbol ? kr : symbol}</div>
-                <div className="text-[12px] text-[#B0B8C1]">{symbol} · NASDAQ</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#191F28' }}>{kr !== symbol ? kr : symbol}</div>
+                <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · NASDAQ</div>
               </div>
             </div>
             <button
               onClick={close}
-              className="w-8 h-8 rounded-lg hover:bg-[#F2F4F6] flex items-center justify-center transition-colors cursor-pointer"
+              className="flex items-center justify-center cursor-pointer transition-colors"
+              style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
             >
-              <X className="w-5 h-5 text-[#8B95A1]" />
+              <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
             </button>
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="flex-1" style={{ overflowY: 'auto', padding: 24 }}>
             {loading ? (
-              <div className="flex items-center justify-center h-40 text-[13px] text-[#8B95A1]">
+              <div className="flex items-center justify-center" style={{ height: 160, fontSize: 13, color: '#8B95A1' }}>
                 분석 데이터를 불러오는 중...
               </div>
             ) : (
               <>
                 {/* Price hero */}
-                <div className="text-center mb-7">
-                  <div className="text-[32px] font-bold text-[#191F28] tabular-nums">
+                <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                  <div style={{ fontSize: 32, fontWeight: 700, color: '#191F28' }}>
                     ${price ? price.toFixed(2) : '--'}
                   </div>
-                  <div className="text-[14px] text-[#8B95A1] mt-1">
+                  <div style={{ fontSize: 14, color: '#8B95A1', marginTop: 4 }}>
                     ₩{priceWon > 0 ? Math.round(priceWon).toLocaleString() : '--'} (×{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })})
                   </div>
-                  <div className={`text-[15px] font-medium mt-1 ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
+                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 4, color: isGain ? '#EF4452' : '#3182F6' }}>
                     {isGain ? '▲' : '▼'} {change >= 0 ? '+' : ''}${change.toFixed(2)} ({cp >= 0 ? '+' : ''}{cp.toFixed(2)}%) 오늘
                   </div>
                 </div>
@@ -188,238 +209,265 @@ export default function AnalysisPanel() {
                 {/* AI 분석 리포트 버튼 */}
                 <button
                   onClick={() => setShowAIReport(!showAIReport)}
-                  className="w-full py-3.5 bg-[#3182F6] text-white rounded-xl text-[15px] font-semibold cursor-pointer mb-6 flex items-center justify-center gap-2 hover:bg-[#1B64DA] transition-colors"
+                  className="flex items-center justify-center cursor-pointer transition-colors"
+                  style={{
+                    width: '100%',
+                    padding: 14,
+                    background: '#3182F6',
+                    color: '#fff',
+                    borderRadius: 12,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    border: 'none',
+                    marginBottom: 24,
+                    gap: 8,
+                  }}
                 >
                   <span>📊</span> AI 분석 리포트 {showAIReport ? '닫기' : '보기'}
                 </button>
 
+                {/* AI Analysis Report — always available */}
+                {showAIReport && analysis && (
+                  <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)' }}>
+                    <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
+                      <span style={{ fontSize: 18 }}>📊</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: '#3182F6' }}>SOLB AI 분석</span>
+                      <span style={{ fontSize: 12, color: '#B0B8C1', marginLeft: 'auto' }}>
+                        {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
+                      </span>
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📉 현재 상태</div>
+                      <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{analysis.aiReport.currentStatus}</div>
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📊 주요 지표</div>
+                      <div className="flex flex-col" style={{ gap: 8 }}>
+                        {analysis.aiReport.indicators.map((ind, idx) => (
+                          <div key={idx} className="flex justify-between items-center" style={{ padding: '10px 14px', background: '#fff', borderRadius: 10 }}>
+                            <span style={{ fontSize: 13, color: '#4E5968' }}>{ind.name}</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#8B95A1' }}>{ind.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📈 과거 유사 상황</div>
+                      <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{analysis.aiReport.historicalNote}</div>
+                    </div>
+                    <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>💡 종합 판단</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: analysis.aiReport.conclusion.signal === 'positive' ? '#EDFCF2' : analysis.aiReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)', color: analysis.aiReport.conclusion.signal === 'positive' ? '#16A34A' : analysis.aiReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500' }}>
+                          {analysis.aiReport.conclusion.label} {analysis.aiReport.conclusion.signal === 'positive' ? '🟢' : analysis.aiReport.conclusion.signal === 'negative' ? '🔴' : '🟡'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.7 }}>{analysis.aiReport.conclusion.desc}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#B0B8C1', lineHeight: 1.6, textAlign: 'center', paddingTop: 12, borderTop: '1px solid #F2F4F6' }}>
+                      이 분석은 AI가 생성한 참고 자료이며, 투자 권유가 아닙니다.
+                    </div>
+                  </div>
+                )}
+                {showAIReport && !analysis && !loading && (
+                  <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#3182F6', marginBottom: 12 }}>📊 SOLB AI 분석</div>
+                    <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.7 }}>
+                      차트 데이터가 부족하여 상세 분석을 제공할 수 없어요.<br/>
+                      데이터가 충분한 종목(MU, MSFT 등)에서 AI 분석을 이용해보세요.
+                    </div>
+                  </div>
+                )}
+
                 {analysis && (
                   <>
                     {/* Chart shape summary card */}
-                    <div className="p-5 rounded-[14px] bg-[#F8F9FB] border border-[#F2F4F6] mb-6">
-                      <div className="text-[14px] font-bold mb-3.5 flex items-center gap-2">
+                    <div style={{
+                      padding: 20,
+                      borderRadius: 14,
+                      background: '#F8F9FB',
+                      border: '1px solid #F2F4F6',
+                      marginBottom: 24,
+                    }}>
+                      <div className="flex items-center" style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, gap: 8 }}>
                         📊 차트 요약
                       </div>
-                      <div className="text-[16px] font-bold mb-3 flex items-center gap-2">
+                      <div className="flex items-center" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, gap: 8 }}>
                         {analysis.chartShape.icon} {analysis.chartShape.title}
                       </div>
-                      <div className="text-[14px] text-[#8B95A1] leading-relaxed mb-4">
+                      <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.7, marginBottom: 16 }}>
                         {analysis.chartShape.desc}
                       </div>
-                      <div className="flex items-center gap-4 pt-3.5 border-t border-[#F2F4F6]">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[13px] font-bold ${
-                          analysis.chartShape.signal === 'positive' ? 'bg-[#EDFCF2] text-[#16A34A]' :
-                          analysis.chartShape.signal === 'caution' ? 'bg-[#FFF8E6] text-[#E8950A]' :
-                          'bg-[#F2F4F6] text-[#8B95A1]'
-                        }`}>
+                      <div className="flex items-center" style={{ gap: 16, paddingTop: 14, borderTop: '1px solid #F2F4F6' }}>
+                        <span
+                          className="inline-flex items-center"
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: 8,
+                            fontSize: 13,
+                            fontWeight: 700,
+                            background: analysis.chartShape.signal === 'positive' ? '#EDFCF2' :
+                                       analysis.chartShape.signal === 'caution' ? '#FFF8E6' : '#F2F4F6',
+                            color: analysis.chartShape.signal === 'positive' ? '#16A34A' :
+                                  analysis.chartShape.signal === 'caution' ? '#E8950A' : '#8B95A1',
+                          }}
+                        >
                           {analysis.chartShape.signal === 'positive' ? '🟢 긍정적' :
                            analysis.chartShape.signal === 'caution' ? '🟡 관망' : '⚪ 중립'}
                         </span>
                         {analysis.rsiVal != null && (
-                          <span className="text-[13px] text-[#8B95A1] font-medium">
+                          <span style={{ fontSize: 13, color: '#8B95A1', fontWeight: 500 }}>
                             RSI {analysis.rsiVal.toFixed(0)} {analysis.rsiVal < 30 ? '(과매도)' : analysis.rsiVal > 70 ? '(과열)' : '(적정)'}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* AI Analysis Report (collapsible) */}
-                    {showAIReport && (
-                      <div className="rounded-2xl p-7 mb-6" style={{ background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)' }}>
-                        <div className="flex items-center gap-2 mb-4">
-                          <span className="text-[18px]">📊</span>
-                          <span className="text-[15px] font-bold text-[#3182F6]">SOLB AI 분석</span>
-                          <span className="text-[12px] text-[#B0B8C1] ml-auto">
-                            {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
+                    {/* AI Report was moved outside analysis block */}
+
+                  </>
+                )}
+
+                {/* === Below here: always visible regardless of analysis data === */}
+
+                {/* Investment P&L */}
+                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
+                  <div style={{ padding: 20, borderRadius: 14, background: '#F8F9FA', marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 12 }}>내 투자 현황</div>
+                    <div>
+                      <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
+                        <span style={{ fontSize: 14, color: '#8B95A1' }}>보유 수량</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>{stockData.shares}주</span>
+                      </div>
+                      <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
+                        <span style={{ fontSize: 14, color: '#8B95A1' }}>평균 매수가</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>
+                          ${stockData.avgCost.toFixed(2)}{' '}
+                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
+                            (₩{Math.round(stockData.avgCost * usdKrw).toLocaleString()})
                           </span>
-                        </div>
-
-                        {/* Current Status */}
-                        <div className="mb-5">
-                          <div className="text-[13px] font-semibold text-[#8B95A1] mb-2">📉 현재 상태</div>
-                          <div className="text-[14px] text-[#191F28] leading-relaxed">
-                            {analysis.aiReport.currentStatus}
-                          </div>
-                        </div>
-
-                        {/* Key Indicators */}
-                        <div className="mb-5">
-                          <div className="text-[13px] font-semibold text-[#8B95A1] mb-2.5">📊 주요 지표</div>
-                          <div className="flex flex-col gap-2">
-                            {analysis.aiReport.indicators.map((ind, idx) => (
-                              <div key={idx} className="flex justify-between items-center py-2.5 px-3.5 bg-white rounded-[10px]">
-                                <span className="text-[13px] text-[#4E5968]">{ind.name}</span>
-                                <span className={`text-[13px] font-semibold ${
-                                  ind.signal === 'positive' ? 'text-[#EF4452]' :
-                                  ind.signal === 'negative' ? 'text-[#3182F6]' : 'text-[#8B95A1]'
-                                }`}>
-                                  {ind.value}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Historical */}
-                        <div className="mb-5">
-                          <div className="text-[13px] font-semibold text-[#8B95A1] mb-2">📈 과거 유사 상황</div>
-                          <div className="text-[14px] text-[#191F28] leading-relaxed">
-                            {analysis.aiReport.historicalNote}
-                          </div>
-                        </div>
-
-                        {/* Conclusion */}
-                        <div className="bg-white rounded-xl p-4 mb-4">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[14px] font-bold text-[#191F28]">💡 종합 판단</span>
-                            <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${
-                              analysis.aiReport.conclusion.signal === 'positive' ? 'bg-[#EDFCF2] text-[#16A34A]' :
-                              analysis.aiReport.conclusion.signal === 'negative' ? 'bg-[#FFF0F0] text-[#EF4452]' :
-                              'bg-[rgba(255,149,0,0.08)] text-[#FF9500]'
-                            }`}>
-                              {analysis.aiReport.conclusion.label} {
-                                analysis.aiReport.conclusion.signal === 'positive' ? '🟢' :
-                                analysis.aiReport.conclusion.signal === 'negative' ? '🔴' : '🟡'
-                              }
-                            </span>
-                          </div>
-                          <div className="text-[14px] text-[#4E5968] leading-relaxed">
-                            {analysis.aiReport.conclusion.desc}
-                          </div>
-                        </div>
-
-                        {/* Disclaimer */}
-                        <div className="text-[11px] text-[#B0B8C1] leading-relaxed text-center pt-3 border-t border-[#F2F4F6]">
-                          이 분석은 AI가 생성한 참고 자료이며, 투자 권유가 아닙니다. 투자 판단의 책임은 본인에게 있습니다.
-                        </div>
+                        </span>
                       </div>
-                    )}
-
-                    {/* Investment P&L */}
-                    {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
-                      <div className="p-5 rounded-[14px] bg-[#F8F9FA] mb-5">
-                        <div className="text-[13px] font-semibold text-[#8B95A1] mb-3">내 투자 현황</div>
-                        <div className="space-y-1.5">
-                          <div className="flex justify-between py-1.5">
-                            <span className="text-[14px] text-[#8B95A1]">보유 수량</span>
-                            <span className="text-[14px] font-semibold">{stockData.shares}주</span>
-                          </div>
-                          <div className="flex justify-between py-1.5">
-                            <span className="text-[14px] text-[#8B95A1]">평균 매수가</span>
-                            <span className="text-[14px] font-semibold">
-                              ${stockData.avgCost.toFixed(2)}{' '}
-                              <span className="text-[11px] text-[#B0B8C1] font-normal">
-                                (₩{Math.round(stockData.avgCost * usdKrw).toLocaleString()})
+                      <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
+                        <span style={{ fontSize: 14, color: '#8B95A1' }}>투자 원금</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>
+                          {fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)}{' '}
+                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
+                            (${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center" style={{ padding: '6px 0' }}>
+                        <span style={{ fontSize: 14, color: '#8B95A1' }}>평가 금액</span>
+                        <span style={{ fontSize: 14, fontWeight: 600 }}>
+                          {fmtWonShort(price * stockData.shares * usdKrw)}{' '}
+                          <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 400 }}>
+                            (${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                          </span>
+                        </span>
+                      </div>
+                      {(() => {
+                        const costUsd = stockData.avgCost * stockData.shares;
+                        const valUsd = price * stockData.shares;
+                        const plUsd = valUsd - costUsd;
+                        const plWon = plUsd * usdKrw;
+                        const plPctVal = ((price - stockData.avgCost) / stockData.avgCost) * 100;
+                        const plIsGain = plUsd >= 0;
+                        return (
+                          <div className="flex justify-between items-center" style={{ padding: '12px 0 6px', borderTop: '1px solid #F2F4F6', marginTop: 6 }}>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: '#191F28' }}>수익</span>
+                            <span style={{ fontSize: 14, fontWeight: 600, color: plIsGain ? '#EF4452' : '#3182F6' }}>
+                              {plIsGain ? '+' : '-'}{fmtWonShort(Math.abs(plWon))}{' '}
+                              <span style={{ fontSize: 11, fontWeight: 400 }}>
+                                ({plIsGain ? '+' : ''}{plPctVal.toFixed(2)}%)
                               </span>
                             </span>
                           </div>
-                          <div className="flex justify-between py-1.5">
-                            <span className="text-[14px] text-[#8B95A1]">투자 원금</span>
-                            <span className="text-[14px] font-semibold">
-                              {fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)}{' '}
-                              <span className="text-[11px] text-[#B0B8C1] font-normal">
-                                (${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                              </span>
-                            </span>
-                          </div>
-                          <div className="flex justify-between py-1.5">
-                            <span className="text-[14px] text-[#8B95A1]">평가 금액</span>
-                            <span className="text-[14px] font-semibold">
-                              {fmtWonShort(price * stockData.shares * usdKrw)}{' '}
-                              <span className="text-[11px] text-[#B0B8C1] font-normal">
-                                (${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})
-                              </span>
-                            </span>
-                          </div>
-                          {(() => {
-                            const costUsd = stockData.avgCost * stockData.shares;
-                            const valUsd = price * stockData.shares;
-                            const plUsd = valUsd - costUsd;
-                            const plWon = plUsd * usdKrw;
-                            const plPctVal = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                            const plIsGain = plUsd >= 0;
-                            return (
-                              <div className="flex justify-between py-3 border-t border-[#F2F4F6] mt-1.5">
-                                <span className="text-[14px] font-semibold text-[#191F28]">수익</span>
-                                <span className={`text-[14px] font-semibold ${plIsGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                                  {plIsGain ? '+' : '-'}{fmtWonShort(Math.abs(plWon))}{' '}
-                                  <span className="text-[11px] font-normal">
-                                    ({plIsGain ? '+' : ''}{plPctVal.toFixed(2)}%)
-                                  </span>
-                                </span>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    )}
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
 
-                    {/* Goal progress bar */}
-                    {stockData && stockData.targetReturn > 0 && stockData.avgCost > 0 && price > 0 && (
-                      <div className="mb-6">
-                        <div className="flex items-center justify-between mb-2.5">
-                          <span className="text-[13px] font-semibold text-[#8B95A1]">목표 수익률 달성</span>
-                          {(() => {
-                            const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                            return (
-                              <span className={`text-[14px] font-bold ${pct >= 0 ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                                {pct.toFixed(1)}% / {stockData.targetReturn}%
-                              </span>
-                            );
-                          })()}
-                        </div>
-                        <div className="w-full h-2.5 rounded-full bg-[#ECEEF0] overflow-hidden">
-                          {(() => {
-                            const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                            const fill = Math.min(Math.max(pct / stockData.targetReturn * 100, 0), 100);
-                            return (
-                              <div
-                                className={`h-full rounded-full ${pct >= 0 ? 'bg-[#EF4452]' : 'bg-[#3182F6]'}`}
-                                style={{ width: `${fill}%` }}
-                              />
-                            );
-                          })()}
-                        </div>
-                        <div className="flex justify-between mt-1.5 text-[11px] text-[#B0B8C1]">
-                          <span>0%</span>
-                          <span>목표 {stockData.targetReturn}%</span>
-                        </div>
-                      </div>
-                    )}
+                {/* Goal progress bar */}
+                {stockData && stockData.targetReturn > 0 && stockData.avgCost > 0 && price > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1' }}>목표 수익률 달성</span>
+                      {(() => {
+                        const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
+                        return (
+                          <span style={{ fontSize: 14, fontWeight: 700, color: pct >= 0 ? '#EF4452' : '#3182F6' }}>
+                            {pct.toFixed(1)}% / {stockData.targetReturn}%
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div style={{ width: '100%', height: 10, borderRadius: 5, background: '#ECEEF0', overflow: 'hidden' }}>
+                      {(() => {
+                        const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
+                        const fill = Math.min(Math.max(pct / stockData.targetReturn * 100, 0), 100);
+                        return (
+                          <div
+                            style={{
+                              height: '100%',
+                              borderRadius: 5,
+                              background: pct >= 0 ? '#EF4452' : '#3182F6',
+                              width: `${fill}%`,
+                            }}
+                          />
+                        );
+                      })()}
+                    </div>
+                    <div className="flex justify-between" style={{ marginTop: 6, fontSize: 11, color: '#B0B8C1' }}>
+                      <span>0%</span>
+                      <span>목표 {stockData.targetReturn}%</span>
+                    </div>
+                  </div>
+                )}
 
-                    {/* Buy history (sample) */}
-                    {stockData && stockData.avgCost > 0 && stockData.shares > 0 && (
-                      <div className="mb-6">
-                        <div className="text-[15px] font-bold mb-3 flex items-center gap-1.5">
-                          📋 매수 이력
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-3 py-2.5 px-3.5 rounded-[10px] bg-[#F8F9FA]">
-                            <span className="text-[12px] text-[#B0B8C1] min-w-[80px]">매수</span>
-                            <span className="text-[13px] text-[#191F28] flex-1">{stockData.shares}주</span>
-                            <span className="text-[13px] font-semibold shrink-0">${stockData.avgCost.toFixed(2)}</span>
-                          </div>
-                        </div>
+                {/* Buy history */}
+                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
+                      📋 매수 이력
+                    </div>
+                    <div>
+                      <div className="flex items-center" style={{ gap: 12, padding: '10px 14px', borderRadius: 10, background: '#F8F9FA' }}>
+                        <span style={{ fontSize: 12, color: '#B0B8C1', minWidth: 80 }}>매수</span>
+                        <span style={{ fontSize: 13, color: '#191F28', flex: 1 }}>{stockData.shares}주</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>${stockData.avgCost.toFixed(2)}</span>
                       </div>
-                    )}
+                    </div>
+                  </div>
+                )}
 
+                {analysis && (
+                  <>
                     {/* 3-Level Chart Tabs */}
-                    <div className="text-[15px] font-bold mb-3 flex items-center gap-1.5">
+                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
                       📈 차트 분석
                     </div>
 
-                    <div className="flex items-center border border-[#F2F4F6] rounded-[10px] overflow-hidden mb-4">
+                    <div className="flex items-center" style={{ border: '1px solid #F2F4F6', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
                       {(['basic', 'analysis', 'expert'] as ChartLevel[]).map((lvl, idx) => (
                         <button
                           key={lvl}
                           onClick={() => setChartLevel(lvl)}
-                          className={`flex-1 py-2.5 text-center text-[14px] font-medium cursor-pointer transition-colors ${
-                            idx < 2 ? 'border-r border-[#F2F4F6]' : ''
-                          } ${
-                            chartLevel === lvl
-                              ? 'bg-[#191F28] text-white font-bold'
-                              : 'bg-white text-[#8B95A1] hover:bg-[#F9FAFB]'
-                          }`}
+                          className="cursor-pointer transition-colors"
+                          style={{
+                            flex: 1,
+                            padding: '10px 0',
+                            textAlign: 'center',
+                            fontSize: 14,
+                            fontWeight: chartLevel === lvl ? 700 : 500,
+                            color: chartLevel === lvl ? '#fff' : '#8B95A1',
+                            background: chartLevel === lvl ? '#191F28' : '#FFFFFF',
+                            borderTop: 'none',
+                            borderBottom: 'none',
+                            borderLeft: 'none',
+                            borderRight: idx < 2 ? '1px solid #F2F4F6' : 'none',
+                          }}
                         >
                           {lvl === 'basic' ? '기본' : lvl === 'analysis' ? '더 보기' : '전문가'}
                         </button>
@@ -438,40 +486,42 @@ export default function AnalysisPanel() {
                       rsiData={analysis.rsi}
                     />
 
-                    <div className="text-[12px] text-[#B0B8C1] text-center mt-2 mb-6">
+                    <div style={{ fontSize: 12, color: '#B0B8C1', textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
                       {chartLevel === 'basic' && '기본: 캔들 + MA(20/60) + 거래량'}
                       {chartLevel === 'analysis' && '더 보기: 캔들 + MA(20/60) + 볼린저 밴드 + MACD + RSI'}
                       {chartLevel === 'expert' && '전문가: 모든 지표 표시'}
                     </div>
 
                     {/* Technical indicators grid */}
-                    <div className="text-[15px] font-bold mb-3 flex items-center gap-1.5 mt-6">
+                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
                       🔧 기술적 지표
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2.5 mb-6">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
                       {/* RSI */}
-                      <div className="p-3.5 rounded-xl bg-[#F8F9FA] text-center">
-                        <div className="text-[11px] text-[#B0B8C1] mb-1.5">RSI (14)</div>
-                        <div className={`text-[14px] font-bold ${
-                          analysis.rsiVal != null && analysis.rsiVal < 30 ? 'text-[#3182F6]' :
-                          analysis.rsiVal != null && analysis.rsiVal > 70 ? 'text-[#EF4452]' : 'text-[#191F28]'
-                        }`}>
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>RSI (14)</div>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
+                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : '#191F28',
+                        }}>
                           {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
                         </div>
-                        <div className="text-[11px] text-[#8B95A1] mt-1 leading-snug">
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.rsiVal != null && analysis.rsiVal < 30 ? '과매도 구간\n반등 가능성 있음' :
                            analysis.rsiVal != null && analysis.rsiVal > 70 ? '과열 구간\n조정 주의' : '적정 수준'}
                         </div>
                       </div>
 
                       {/* MA 20 */}
-                      <div className="p-3.5 rounded-xl bg-[#F8F9FA] text-center">
-                        <div className="text-[11px] text-[#B0B8C1] mb-1.5">MA 20일</div>
-                        <div className="text-[14px] font-bold text-[#191F28] tabular-nums">
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 20일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
                           {analysis.sma20.length ? `$${analysis.sma20[analysis.sma20.length - 1].toFixed(2)}` : '--'}
                         </div>
-                        <div className="text-[11px] text-[#8B95A1] mt-1 leading-snug">
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
                             ? '현재가보다 아래\n단기 상승 추세'
                             : '현재가보다 위\n단기 하락 추세'}
@@ -479,12 +529,12 @@ export default function AnalysisPanel() {
                       </div>
 
                       {/* MA 60 */}
-                      <div className="p-3.5 rounded-xl bg-[#F8F9FA] text-center">
-                        <div className="text-[11px] text-[#B0B8C1] mb-1.5">MA 60일</div>
-                        <div className="text-[14px] font-bold text-[#191F28] tabular-nums">
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 60일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
                           {analysis.sma60.length ? `$${analysis.sma60[analysis.sma60.length - 1].toFixed(2)}` : '--'}
                         </div>
-                        <div className="text-[11px] text-[#8B95A1] mt-1 leading-snug">
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
                             ? '현재가보다 아래\n중기 상승 추세'
                             : '현재가보다 위\n중기 하락 추세'}
@@ -494,18 +544,23 @@ export default function AnalysisPanel() {
 
                     {/* Bollinger interpretation */}
                     {analysis.bollingerStatus && (
-                      <div className="p-4 rounded-[14px] bg-[#F8F9FA] mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[13px] font-bold text-[#191F28]">볼린저 밴드</span>
-                          <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${
-                            analysis.bollingerStatus.signal === 'buy' ? 'bg-[#FFF8E6] text-[#E8950A]' :
-                            analysis.bollingerStatus.signal === 'sell' ? 'bg-[#FFF0F0] text-[#EF4452]' :
-                            'bg-[#EDFCF2] text-[#16A34A]'
-                          }`}>
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>볼린저 밴드</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: analysis.bollingerStatus.signal === 'buy' ? '#FFF8E6' :
+                                       analysis.bollingerStatus.signal === 'sell' ? '#FFF0F0' : '#EDFCF2',
+                            color: analysis.bollingerStatus.signal === 'buy' ? '#E8950A' :
+                                  analysis.bollingerStatus.signal === 'sell' ? '#EF4452' : '#16A34A',
+                          }}>
                             {analysis.bollingerStatus.status}
                           </span>
                         </div>
-                        <div className="text-[13px] text-[#8B95A1] leading-relaxed">
+                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
                           {analysis.bollingerStatus.desc}
                           {analysis.lastBollinger && (
                             <>
@@ -519,18 +574,23 @@ export default function AnalysisPanel() {
 
                     {/* MACD interpretation */}
                     {analysis.macdStatus && (
-                      <div className="p-4 rounded-[14px] bg-[#F8F9FA] mb-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-[13px] font-bold text-[#191F28]">MACD</span>
-                          <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${
-                            analysis.macdStatus.signal === 'buy' ? 'bg-[#EDFCF2] text-[#16A34A]' :
-                            analysis.macdStatus.signal === 'sell' ? 'bg-[#FFF0F0] text-[#EF4452]' :
-                            'bg-[#FFF8E6] text-[#E8950A]'
-                          }`}>
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>MACD</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: analysis.macdStatus.signal === 'buy' ? '#EDFCF2' :
+                                       analysis.macdStatus.signal === 'sell' ? '#FFF0F0' : '#FFF8E6',
+                            color: analysis.macdStatus.signal === 'buy' ? '#16A34A' :
+                                  analysis.macdStatus.signal === 'sell' ? '#EF4452' : '#E8950A',
+                          }}>
                             {analysis.macdStatus.status}
                           </span>
                         </div>
-                        <div className="text-[13px] text-[#8B95A1] leading-relaxed">
+                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
                           {analysis.macdStatus.desc}
                           {analysis.macdResult.macd.length > 0 && (
                             <>
@@ -543,18 +603,23 @@ export default function AnalysisPanel() {
                     )}
 
                     {/* Volume interpretation */}
-                    <div className="p-4 rounded-[14px] bg-[#F8F9FA] mb-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[13px] font-bold text-[#191F28]">거래량</span>
-                        <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-md ${
-                          analysis.volRatio > 1.5 ? 'bg-[#EDFCF2] text-[#16A34A]' :
-                          analysis.volRatio < 0.5 ? 'bg-[#FFF0F0] text-[#EF4452]' :
-                          'bg-[#EDFCF2] text-[#16A34A]'
-                        }`}>
+                    <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 24 }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>거래량</span>
+                        <span style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          background: analysis.volRatio > 1.5 ? '#EDFCF2' :
+                                     analysis.volRatio < 0.5 ? '#FFF0F0' : '#EDFCF2',
+                          color: analysis.volRatio > 1.5 ? '#16A34A' :
+                                analysis.volRatio < 0.5 ? '#EF4452' : '#16A34A',
+                        }}>
                           {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
                         </span>
                       </div>
-                      <div className="text-[13px] text-[#8B95A1] leading-relaxed">
+                      <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
                         최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
                       </div>
                     </div>
@@ -562,13 +627,13 @@ export default function AnalysisPanel() {
                 )}
 
                 {!analysis && !loading && (
-                  <div className="text-center py-8 text-[13px] text-[#FF9500]">
+                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500' }}>
                     차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.
                   </div>
                 )}
 
                 {/* Related news */}
-                <div className="text-[15px] font-bold mb-3 flex items-center gap-1.5 mt-8">
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, marginTop: 24 }}>
                   📰 관련 뉴스
                 </div>
                 {tickerNews.length > 0 ? (
@@ -579,12 +644,16 @@ export default function AnalysisPanel() {
                         <div
                           key={idx}
                           onClick={() => window.open(item.link, '_blank')}
-                          className={`py-3 cursor-pointer ${idx < tickerNews.length - 1 ? 'border-b border-[#F7F8FA]' : ''}`}
+                          className="cursor-pointer"
+                          style={{
+                            padding: '12px 0',
+                            borderBottom: idx < tickerNews.length - 1 ? '1px solid #F7F8FA' : 'none',
+                          }}
                         >
-                          <div className="text-[13px] font-semibold leading-relaxed mb-1 line-clamp-2">
+                          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, marginBottom: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {item.title}
                           </div>
-                          <div className="text-[11px] text-[#B0B8C1]">
+                          <div style={{ fontSize: 11, color: '#B0B8C1' }}>
                             {item.source}{item.source && date ? ' · ' : ''}{date}
                           </div>
                         </div>
@@ -592,14 +661,14 @@ export default function AnalysisPanel() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-4 text-[13px] text-[#8B95A1]">
+                  <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#8B95A1' }}>
                     관련 뉴스가 없어요.
                   </div>
                 )}
 
                 {/* Disclaimer */}
-                <div className="mt-6 p-4 rounded-[10px] bg-[#F8F9FA] text-[11px] text-[#B0B8C1] leading-relaxed">
-                  본 정보는 투자 판단의 참고 자료이며, 투자 권유가 아닙니다. 모든 투자의 책임은 투자자 본인에게 있으며, SOLB는 투자 결과에 대해 책임을 지지 않습니다. 과거 수익률이 미래 수익률을 보장하지 않습니다.
+                <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid #F2F4F6', marginTop: 16 }}>
+                  ⚠️ 이 분석은 참고 자료이며, 투자 권유가 아닙니다. 투자 판단의 책임은 본인에게 있습니다.
                 </div>
               </>
             )}

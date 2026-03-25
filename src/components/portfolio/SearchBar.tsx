@@ -16,6 +16,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ symbol: string; description: string }[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -42,9 +43,17 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     if (value.length < 1) { setShowResults(false); setResults([]); return; }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      const items = await searchStocks(value, apiKey);
-      setResults(items);
-      setShowResults(items.length > 0);
+      // Search both US (Finnhub) and KR (local API) stocks
+      const [usItems, krItems] = await Promise.all([
+        searchStocks(value, apiKey),
+        fetch('/api/kr-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: value }) })
+          .then(r => r.json())
+          .then(d => (d.results || []).map((r: { symbol: string; name: string }) => ({ symbol: r.symbol, description: `${r.name} (KRX)` })))
+          .catch(() => []),
+      ]);
+      const combined = [...krItems, ...usItems];
+      setResults(combined.slice(0, 8));
+      setShowResults(combined.length > 0);
     }, 300);
   }, [apiKey]);
 
@@ -71,54 +80,124 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     setShowResults(false);
     setResults([]);
     try {
-      const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`);
-      const d = await r.json();
-      if (d?.c) updateMacroEntry(sym, d);
+      if (sym.endsWith('.KS') || sym.endsWith('.KQ')) {
+        // Korean stock — use our API route
+        const r = await fetch(`/api/kr-quote?symbol=${sym}`);
+        const d = await r.json();
+        if (d?.c) updateMacroEntry(sym, d);
+      } else {
+        // US stock — use Finnhub
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`);
+        const d = await r.json();
+        if (d?.c) updateMacroEntry(sym, d);
+      }
     } catch { /* silent */ }
     if (onClose) onClose();
   }, [apiKey, stocks, currentTab, addStock, updateMacroEntry, onClose]);
 
   return (
-    <div data-search-panel className="bg-white rounded-xl shadow-lg ring-1 ring-black/[0.06] overflow-hidden">
+    <div
+      data-search-panel
+      style={{
+        background: 'white',
+        borderRadius: 16,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+        border: '1px solid #F2F4F6',
+        overflow: 'hidden',
+      }}
+    >
       {/* Search input */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#B0B8C1] pointer-events-none" />
+      <div style={{ position: 'relative' }}>
+        <Search
+          style={{
+            position: 'absolute',
+            left: 16,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 18,
+            height: 18,
+            color: '#B0B8C1',
+            pointerEvents: 'none',
+          }}
+        />
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          onBlur={() => setTimeout(() => setShowResults(false), 200)}
+          onBlur={() => setTimeout(() => setShowResults(false), 400)}
           onFocus={() => results.length > 0 && setShowResults(true)}
           onKeyDown={(e) => { if (e.key === 'Escape' && onClose) onClose(); }}
           placeholder="종목명 또는 심볼 검색"
-          className="w-full pl-10 pr-4 py-3 bg-white text-[14px] text-[#191F28] placeholder-[#B0B8C1] outline-none border-b border-[#F2F4F6]"
+          style={{
+            width: '100%',
+            padding: '14px 16px 14px 44px',
+            fontSize: 15,
+            border: 'none',
+            outline: 'none',
+            background: 'white',
+            color: '#191F28',
+            boxSizing: 'border-box',
+          }}
         />
       </div>
 
       {/* Results */}
       {showResults && results.length > 0 && (
-        <div className="max-h-[300px] overflow-y-auto">
+        <div style={{ maxHeight: 320, overflowY: 'auto' }}>
           {results.map((item, idx) => (
             <button
               key={`${item.symbol}-${idx}`}
               onClick={() => handleAdd(item.symbol, item.description)}
-              className={`w-full flex items-center justify-between px-4 py-3 hover:bg-[#F7F8FA] transition-colors text-left cursor-pointer ${
-                idx < results.length - 1 ? 'border-b border-[#F2F4F6]' : ''
-              }`}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '14px 20px',
+                borderTop: '1px solid #F7F8FA',
+                border: 'none',
+                borderTopStyle: 'solid',
+                borderTopWidth: 1,
+                borderTopColor: '#F7F8FA',
+                cursor: 'pointer',
+                background: hoveredIdx === idx ? '#F9FAFB' : 'white',
+                textAlign: 'left',
+                boxSizing: 'border-box',
+                transition: 'background 0.15s',
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#F2F4F6] flex items-center justify-center">
-                  <span className="text-[11px] font-bold text-[#4E5968]">{item.symbol.charAt(0)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: '#F2F4F6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4E5968' }}>
+                    {item.symbol.charAt(0)}
+                  </span>
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold text-[#191F28]">{item.symbol}</div>
-                  <div className="text-[11px] text-[#8B95A1] truncate max-w-[200px]">{item.description}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28' }}>
+                    {item.symbol}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.description}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-[#3182F6] shrink-0">
-                <Plus className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-semibold">추가</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                <Plus style={{ width: 14, height: 14, color: '#3182F6' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#3182F6' }}>추가</span>
               </div>
             </button>
           ))}
@@ -127,7 +206,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* Empty state */}
       {query.length > 0 && !showResults && results.length === 0 && (
-        <div className="px-4 py-6 text-center text-[13px] text-[#8B95A1]">
+        <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>
           검색 결과가 없습니다
         </div>
       )}

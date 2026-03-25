@@ -117,82 +117,105 @@ export default function EventsSection() {
   return (
     <div>
       {/* Page title */}
-      <div className="mb-6">
-        <h1 className="text-[20px] font-bold text-[#191F28]">이벤트 비교 분석</h1>
-        <p className="text-[13px] text-[#8B95A1] mt-1">과거 이벤트 시기의 포트폴리오 성과를 비교해보세요</p>
+      <div style={{ marginBottom: '24px' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#191F28', marginBottom: '4px' }}>이벤트 비교 분석</h1>
+        <p style={{ fontSize: '13px', color: '#8B95A1' }}>과거 이벤트 시기의 포트폴리오 성과를 비교해보세요</p>
       </div>
 
-      {/* Event tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-5 scrollbar-hide">
+      {/* Event pill tabs */}
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '20px' }}>
         {events.map(ev => (
           <button
             key={ev.id}
             onClick={() => setCurrentEventId(ev.id)}
-            className={`
-              shrink-0 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap cursor-pointer
-              ${currentEventId === ev.id
-                ? 'bg-[#191F28] text-white shadow-sm'
-                : 'bg-white text-[#4E5968] ring-1 ring-black/[0.06] hover:bg-[#F7F8FA]'
-              }
-            `}
+            style={{
+              flexShrink: 0,
+              padding: '8px 16px',
+              borderRadius: '20px',
+              fontSize: '13px',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              border: currentEventId === ev.id ? '1px solid #191F28' : '1px solid #E5E8EB',
+              background: currentEventId === ev.id ? '#191F28' : '#FFFFFF',
+              color: currentEventId === ev.id ? '#FFFFFF' : '#4E5968',
+            }}
           >
             {ev.emoji} {ev.name}
           </button>
         ))}
         <button
           onClick={() => setShowAddModal(true)}
-          className="shrink-0 flex items-center gap-1 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-white text-[#3182F6] ring-1 ring-[#3182F6]/20 hover:bg-[#3182F6]/[0.04] transition-all cursor-pointer"
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '8px 16px',
+            borderRadius: '20px',
+            fontSize: '13px',
+            fontWeight: 500,
+            background: '#FFFFFF',
+            color: '#3182F6',
+            border: '1px solid rgba(49, 130, 246, 0.2)',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+          }}
         >
-          <Plus className="w-3.5 h-3.5" />
+          <Plus style={{ width: '14px', height: '14px' }} />
           추가
         </button>
       </div>
 
       {/* Event detail card */}
       {currentEvent && (
-        <div className="bg-white rounded-2xl border border-[#E5E8EB] overflow-hidden">
+        <div style={{ background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E8EB', overflow: 'hidden' }}>
           {/* Event header */}
-          <div className="p-5 border-b border-[#F2F4F6]">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-[18px] font-bold text-[#191F28]">
+          <div style={{ padding: '20px', borderBottom: '1px solid #F2F4F6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: '#191F28' }}>
                 {currentEvent.emoji} {currentEvent.name}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                currentEvent.endDate
-                  ? 'bg-[#8B95A1]/10 text-[#8B95A1]'
-                  : 'bg-[#EF4452]/10 text-[#EF4452]'
-              }`}>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '10px',
+                background: currentEvent.endDate ? 'rgba(139, 149, 161, 0.1)' : 'rgba(239, 68, 82, 0.1)',
+                color: currentEvent.endDate ? '#8B95A1' : '#EF4452',
+              }}>
                 {currentEvent.endDate ? '종료' : '진행중'}
               </span>
             </div>
-            <div className="text-[12px] text-[#8B95A1] mb-1">
+            <div style={{ fontSize: '13px', color: '#8B95A1', lineHeight: 1.6, marginBottom: '4px' }}>
               {fmtDate(currentEvent.startDate)} ~ {currentEvent.endDate ? fmtDate(currentEvent.endDate) : '현재'}
             </div>
-            <div className="text-[13px] text-[#4E5968] leading-relaxed">
+            <div style={{ fontSize: '13px', color: '#8B95A1', lineHeight: 1.6 }}>
               {currentEvent.description}
             </div>
           </div>
 
           {/* Event table */}
           {loading ? (
-            <div className="flex items-center justify-center h-40 text-[13px] text-[#8B95A1]">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', fontSize: '13px', color: '#8B95A1' }}>
               데이터를 불러오는 중...
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr className="border-b border-[#F2F4F6] bg-[#F9FAFB]">
-                    <th className="text-left px-5 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">종목</th>
-                    <th className="text-right px-3 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">기준가</th>
-                    <th className="text-right px-3 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">현재가</th>
-                    <th className="text-right px-3 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">최대 하락</th>
-                    <th className="text-right px-3 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">현재 변동</th>
-                    <th className="text-center px-5 py-3.5 font-semibold text-[#8B95A1] text-[11px] uppercase tracking-wider">회복</th>
+                  <tr>
+                    <th style={{ textAlign: 'left', padding: '0 20px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>종목</th>
+                    <th style={{ textAlign: 'right', padding: '0 12px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>기준가</th>
+                    <th style={{ textAlign: 'right', padding: '0 12px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>현재가</th>
+                    <th style={{ textAlign: 'right', padding: '0 12px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>최대 하락</th>
+                    <th style={{ textAlign: 'right', padding: '0 12px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>현재 변동</th>
+                    <th style={{ textAlign: 'center', padding: '0 20px 12px', fontSize: '12px', fontWeight: 600, color: '#B0B8C1', borderBottom: '1px solid #F2F4F6' }}>회복</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {syms.map((s, idx) => {
+                  {syms.map((s) => {
                     const ed = eventData[s] as EventCacheEntry | undefined;
                     const kr = STOCK_KR[s] || '';
                     const cprice = (macroData[s] as QuoteData)?.c;
@@ -202,39 +225,47 @@ export default function EventsSection() {
                       const ccGain = cc >= 0;
 
                       return (
-                        <tr key={s} className={`border-b border-[#F2F4F6] hover:bg-[#F9FAFB] transition-colors ${idx === syms.length - 1 ? 'border-b-0' : ''}`}>
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-[#191F28]">{s}</span>
-                              {kr && <span className="text-[11px] text-[#8B95A1]">{kr}</span>}
+                        <tr key={s} style={{ borderTop: '1px solid #F7F8FA' }}>
+                          <td style={{ padding: '14px 20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 600, color: '#191F28' }}>{s}</span>
+                              {kr && <span style={{ fontSize: '11px', color: '#8B95A1' }}>{kr}</span>}
                             </div>
                           </td>
-                          <td className="text-right px-3 py-3.5 tabular-nums text-[#4E5968]">${ed.basePrice.toFixed(2)}</td>
-                          <td className="text-right px-3 py-3.5 tabular-nums font-semibold text-[#191F28]">{cprice ? `$${cprice.toFixed(2)}` : '--'}</td>
-                          <td className="text-right px-3 py-3.5">
-                            <span className="font-bold text-[#3182F6] tabular-nums">{ed.maxDrop.toFixed(1)}%</span>
+                          <td style={{ textAlign: 'right', padding: '14px 12px', fontSize: '14px', fontVariantNumeric: 'tabular-nums', color: '#4E5968' }}>${ed.basePrice.toFixed(2)}</td>
+                          <td style={{ textAlign: 'right', padding: '14px 12px', fontSize: '14px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: '#191F28' }}>{cprice ? `$${cprice.toFixed(2)}` : '--'}</td>
+                          <td style={{ textAlign: 'right', padding: '14px 12px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#3182F6', fontVariantNumeric: 'tabular-nums' }}>{ed.maxDrop.toFixed(1)}%</span>
                           </td>
-                          <td className="text-right px-3 py-3.5">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[12px] font-bold tabular-nums ${
-                              ccGain ? 'bg-[#EF4452]/[0.06] text-[#EF4452]' : 'bg-[#3182F6]/[0.06] text-[#3182F6]'
-                            }`}>
+                          <td style={{ textAlign: 'right', padding: '14px 12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              fontVariantNumeric: 'tabular-nums',
+                              background: ccGain ? 'rgba(239, 68, 82, 0.06)' : 'rgba(49, 130, 246, 0.06)',
+                              color: ccGain ? '#EF4452' : '#3182F6',
+                            }}>
                               {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
                             </span>
                           </td>
-                          <td className="text-center px-5 py-3.5">
+                          <td style={{ textAlign: 'center', padding: '14px 20px' }}>
                             {ed.recovered ? (
-                              <span className="inline-flex items-center gap-1 text-[12px] text-[#34C759] font-semibold">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#34C759', fontWeight: 600 }}>
+                                <CheckCircle2 style={{ width: '14px', height: '14px' }} />
                                 {ed.recoveryDays ? `${ed.recoveryDays}일` : '회복'}
                               </span>
                             ) : currentEvent.endDate ? (
-                              <span className="inline-flex items-center gap-1 text-[12px] text-[#EF4452] font-semibold">
-                                <XCircle className="w-3.5 h-3.5" />
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#EF4452', fontWeight: 600 }}>
+                                <XCircle style={{ width: '14px', height: '14px' }} />
                                 미회복
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[12px] text-[#FF9500] font-semibold">
-                                <Clock className="w-3.5 h-3.5" />
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#FF9500', fontWeight: 600 }}>
+                                <Clock style={{ width: '14px', height: '14px' }} />
                                 진행중
                               </span>
                             )}
@@ -243,12 +274,12 @@ export default function EventsSection() {
                       );
                     } else {
                       return (
-                        <tr key={s} className="border-b border-[#F2F4F6]">
-                          <td className="px-5 py-3.5">
-                            <span className="font-bold text-[#191F28]">{s}</span>
-                            {kr && <span className="text-[11px] text-[#8B95A1] ml-2">{kr}</span>}
+                        <tr key={s} style={{ borderTop: '1px solid #F7F8FA' }}>
+                          <td style={{ padding: '14px 20px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#191F28' }}>{s}</span>
+                            {kr && <span style={{ fontSize: '11px', color: '#8B95A1', marginLeft: '8px' }}>{kr}</span>}
                           </td>
-                          <td colSpan={5} className="text-center text-[#B0B8C1] py-3.5">데이터 없음</td>
+                          <td colSpan={5} style={{ textAlign: 'center', color: '#B0B8C1', padding: '14px 0' }}>데이터 없음</td>
                         </tr>
                       );
                     }
@@ -258,14 +289,20 @@ export default function EventsSection() {
             </div>
           )}
 
-          {/* Insight */}
+          {/* Insight card */}
           {currentEvent.insight && (
-            <div className="px-5 py-4 bg-[#F7F8FA] border-t border-[#F2F4F6]">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-[#3182F6] shrink-0 mt-0.5" />
+            <div style={{
+              margin: '0 20px 20px',
+              marginTop: '24px',
+              padding: '20px 24px',
+              background: 'linear-gradient(135deg, #EBF3FF, #F5EEFF)',
+              borderRadius: '14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'start', gap: '8px' }}>
+                <Info style={{ width: '16px', height: '16px', color: '#3182F6', flexShrink: 0, marginTop: '2px' }} />
                 <div>
-                  <div className="text-[12px] font-bold text-[#3182F6] mb-1">초보자를 위한 해석</div>
-                  <div className="text-[12px] text-[#4E5968] leading-relaxed">
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: '#3182F6', marginBottom: '8px' }}>초보자를 위한 해석</div>
+                  <div style={{ fontSize: '14px', color: '#4E5968', lineHeight: 1.6 }}>
                     {currentEvent.insight}
                   </div>
                 </div>
@@ -277,9 +314,9 @@ export default function EventsSection() {
 
       {/* Macro comparison */}
       {currentEvent && currentEvent.baseMacro && Object.keys(currentEvent.baseMacro).length > 0 && (
-        <div className="mt-4 bg-white rounded-2xl border border-[#E5E8EB] p-5">
-          <div className="text-[14px] font-bold text-[#191F28] mb-3">매크로 지표 비교</div>
-          <div className="grid grid-cols-3 gap-3">
+        <div style={{ marginTop: '16px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E5E8EB', padding: '20px' }}>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#191F28', marginBottom: '12px' }}>매크로 지표 비교</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
             {Object.entries(currentEvent.baseMacro).map(([label, baseVal]) => {
               const current = macroData[label] as { value?: number | null } | undefined;
               const currentVal = current?.value;
@@ -287,11 +324,11 @@ export default function EventsSection() {
               const isUp = changeVal !== null ? changeVal >= 0 : true;
 
               return (
-                <div key={label} className="p-3 bg-[#F7F8FA] rounded-xl text-center">
-                  <div className="text-[11px] text-[#8B95A1] mb-1">{label}</div>
-                  <div className="text-[12px] text-[#B0B8C1] mb-0.5 tabular-nums">{baseVal.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
+                <div key={label} style={{ padding: '12px', background: '#F7F8FA', borderRadius: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#8B95A1', marginBottom: '4px' }}>{label}</div>
+                  <div style={{ fontSize: '12px', color: '#B0B8C1', marginBottom: '2px', fontVariantNumeric: 'tabular-nums' }}>{baseVal.toLocaleString(undefined, { maximumFractionDigits: 1 })}</div>
                   {changeVal !== null && (
-                    <div className={`text-[12px] font-bold tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: isUp ? '#EF4452' : '#3182F6' }}>
                       {isUp ? '+' : ''}{changeVal.toFixed(1)}%
                     </div>
                   )}
@@ -327,61 +364,89 @@ function AddEventModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-50 backdrop-blur-xs" onClick={onClose} />
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[480px] mx-auto bg-white rounded-2xl z-50 p-6 shadow-xl animate-fade-in">
-        <h3 className="text-[18px] font-bold text-[#191F28] mb-5">이벤트 추가</h3>
-        <div className="space-y-4">
+      <div
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 50,
+          backdropFilter: 'blur(1px)',
+        }}
+        onClick={onClose}
+      />
+      <div style={{
+        position: 'fixed', left: '16px', right: '16px', top: '50%', transform: 'translateY(-50%)',
+        maxWidth: '480px', margin: '0 auto', background: '#FFFFFF', borderRadius: '16px',
+        zIndex: 50, padding: '24px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+      }}>
+        <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#191F28', marginBottom: '20px' }}>이벤트 추가</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">이벤트명 *</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4E5968', marginBottom: '6px' }}>이벤트명 *</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
               placeholder="예: 미중 무역 분쟁"
+              style={{
+                width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: '12px',
+                fontSize: '14px', outline: 'none', border: 'none',
+              }}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
-              <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">시작일 *</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4E5968', marginBottom: '6px' }}>시작일 *</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
+                style={{
+                  width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: '12px',
+                  fontSize: '14px', outline: 'none', border: 'none',
+                }}
               />
             </div>
             <div>
-              <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">종료일 (선택)</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4E5968', marginBottom: '6px' }}>종료일 (선택)</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
+                style={{
+                  width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: '12px',
+                  fontSize: '14px', outline: 'none', border: 'none',
+                }}
               />
             </div>
           </div>
           <div>
-            <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">설명</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4E5968', marginBottom: '6px' }}>설명</label>
             <input
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
               placeholder="이벤트 설명"
+              style={{
+                width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: '12px',
+                fontSize: '14px', outline: 'none', border: 'none',
+              }}
             />
           </div>
         </div>
-        <div className="flex gap-3 mt-6">
+        <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-[#4E5968] bg-[#F2F4F6] hover:bg-[#E5E8EB] transition-colors cursor-pointer"
+            style={{
+              flex: 1, padding: '10px', borderRadius: '12px', fontSize: '14px', fontWeight: 600,
+              color: '#4E5968', background: '#F2F4F6', border: 'none', cursor: 'pointer',
+            }}
           >
             취소
           </button>
           <button
             onClick={() => onSave({ name, startDate, endDate, description })}
-            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors cursor-pointer"
+            style={{
+              flex: 1, padding: '10px', borderRadius: '12px', fontSize: '14px', fontWeight: 600,
+              color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer',
+            }}
           >
             저장
           </button>

@@ -56,14 +56,19 @@ export default function PortfolioSection() {
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
 
-  // Fetch portfolio-related news
+  // Fetch portfolio-related news — use shorter queries for better results
   useEffect(() => {
     const investingSymbols = (stocks.investing || []).map(s => s.symbol);
     if (!investingSymbols.length) return;
-    const queries = investingSymbols.map(s => STOCK_KR[s] || s).join(' ') + ' 주가';
-    fetchKoreanNews(queries).then(items => {
+    // Use stocks that have Korean names for better search results
+    const krNames = investingSymbols
+      .map(s => STOCK_KR[s])
+      .filter(Boolean)
+      .slice(0, 3);
+    // Fallback: if no Korean names, use "미국 주식" as generic query
+    const query = krNames.length > 0 ? krNames.join(' ') + ' 주가' : '미국 주식 증시';
+    fetchKoreanNews(query).then(items => {
       if (items) {
-        // Tag news with closest stock symbol
         const tagged = items.slice(0, 5).map(item => {
           let tag = investingSymbols[0];
           for (const sym of investingSymbols) {
@@ -410,12 +415,12 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 내 종목 뉴스 */}
-        {portfolioNews.length > 0 && (
-          <div className="mt-12">
-            <div className="text-[18px] font-bold mb-5 flex items-center gap-2">
-              📰 내 종목 뉴스
-            </div>
+        {/* 내 종목 뉴스 — 항상 표시 */}
+        <div style={{ marginTop: '48px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
+          <div style={{ fontSize: '15px', fontWeight: 600, color: '#191F28', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '16px' }}>📰</span> 내 종목 뉴스
+          </div>
+          {portfolioNews.length > 0 ? (
             <div>
               {portfolioNews.map((item, idx) => {
                 const tagColor = getTagColor(item.tag);
@@ -424,21 +429,35 @@ export default function PortfolioSection() {
                   <div
                     key={idx}
                     onClick={() => window.open(item.link, '_blank')}
-                    className={`flex items-start gap-3.5 py-4 cursor-pointer ${
-                      idx < portfolioNews.length - 1 ? 'border-b border-[#F7F8FA]' : ''
-                    }`}
+                    className="cursor-pointer hover:bg-[#F9FAFB] transition-colors rounded-lg"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '14px',
+                      padding: '14px 4px',
+                      borderTop: idx > 0 ? '1px solid #F7F8FA' : 'none',
+                    }}
                   >
                     <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold whitespace-nowrap shrink-0 mt-0.5"
-                      style={{ background: tagColor.bg, color: tagColor.color }}
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                        marginTop: '2px',
+                        background: tagColor.bg,
+                        color: tagColor.color,
+                      }}
                     >
                       {item.tag}
                     </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-semibold leading-relaxed mb-1 line-clamp-2">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.5, marginBottom: '4px', color: '#191F28' }}>
                         {item.title}
                       </div>
-                      <div className="text-[12px] text-[#B0B8C1]">
+                      <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {item.source}{item.source && relTime ? ' · ' : ''}{relTime}
                       </div>
                     </div>
@@ -446,8 +465,12 @@ export default function PortfolioSection() {
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <div style={{ fontSize: '13px', color: '#B0B8C1', padding: '20px 0' }}>
+              뉴스를 불러오는 중...
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
