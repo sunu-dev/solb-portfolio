@@ -262,23 +262,34 @@ export function useNewsData() {
 
 // --- useAutoRefresh ---
 export function useAutoRefresh() {
-  const { autoRefresh, refreshInterval } = usePortfolioStore();
+  const { autoRefresh, refreshInterval, currentNewsMarket } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
+  const { fetchNews } = useNewsData();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const newsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!autoRefresh) {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (newsTimerRef.current) clearInterval(newsTimerRef.current);
       return;
     }
+    // 주가: 30초마다
     timerRef.current = setInterval(() => {
       refreshAll();
       fetchMacro();
     }, refreshInterval);
 
+    // 뉴스: 30분마다
+    newsTimerRef.current = setInterval(() => {
+      fetchNews(currentNewsMarket || 'us');
+      fetchNews('my');
+    }, 30 * 60 * 1000);
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (newsTimerRef.current) clearInterval(newsTimerRef.current);
     };
   }, [autoRefresh, refreshInterval, refreshAll, fetchMacro]);
 }

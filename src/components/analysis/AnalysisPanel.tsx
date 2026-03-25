@@ -42,7 +42,10 @@ export default function AnalysisPanel() {
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
-  const [showAIReport, setShowAIReport] = useState(true);
+  const [showAIReport, setShowAIReport] = useState(false);
+  const [aiReport, setAiReport] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -208,7 +211,55 @@ export default function AnalysisPanel() {
 
                 {/* AI 분석 리포트 버튼 */}
                 <button
-                  onClick={() => setShowAIReport(!showAIReport)}
+                  onClick={async () => {
+                    if (showAIReport) { setShowAIReport(false); return; }
+                    setShowAIReport(true);
+                    if (aiReport) return; // already loaded
+                    setAiLoading(true);
+                    setAiError('');
+                    try {
+                      // AI 분석 시 뉴스를 새로 가져옴 (최신 반영)
+                      const freshKr = STOCK_KR[symbol] || symbol;
+                      const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
+                      const freshNews = await fetchKoreanNews(freshQuery);
+                      if (freshNews?.length) setTickerNews(freshNews.slice(0, 6));
+                      // 3시간 이내 뉴스만 필터링
+                      const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
+                      const recentOnly = (freshNews || tickerNews).filter(n => {
+                        if (!n.pubDate) return false;
+                        return new Date(n.pubDate).getTime() > threeHoursAgo;
+                      });
+                      const newsText = recentOnly.length > 0
+                        ? recentOnly.slice(0, 3).map(n => n.title).join('\n')
+                        : '최근 3시간 내 관련 뉴스 없음';
+                      const resp = await fetch('/api/ai-analysis', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          symbol,
+                          koreanName: kr,
+                          price,
+                          change,
+                          changePercent: cp,
+                          avgCost: stockData?.avgCost,
+                          shares: stockData?.shares,
+                          targetReturn: stockData?.targetReturn,
+                          rsi: analysis?.rsiVal?.toFixed(0),
+                          trend: analysis?.trend,
+                          cross: analysis?.cross,
+                          pattern: analysis?.pattern?.name,
+                          bollingerStatus: analysis?.bollingerStatus?.status,
+                          macdStatus: analysis?.macdStatus?.status,
+                          volRatio: analysis?.volRatio,
+                          recentNews: newsText,
+                        }),
+                      });
+                      const data = await resp.json();
+                      if (data.success) { setAiReport(data.report); }
+                      else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
+                    } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }
+                    setAiLoading(false);
+                  }}
                   className="flex items-center justify-center cursor-pointer transition-colors"
                   style={{
                     width: '100%',
@@ -226,8 +277,8 @@ export default function AnalysisPanel() {
                   <span>📊</span> AI 분석 리포트 {showAIReport ? '닫기' : '보기'}
                 </button>
 
-                {/* AI Analysis Report — always available */}
-                {showAIReport && analysis && (
+                {/* AI Analysis Report — Gemini API */}
+                {showAIReport && (
                   <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)' }}>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
                       <span style={{ fontSize: 18 }}>📊</span>
@@ -236,45 +287,82 @@ export default function AnalysisPanel() {
                         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
                       </span>
                     </div>
-                    <div style={{ marginBottom: 20 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📉 현재 상태</div>
-                      <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{analysis.aiReport.currentStatus}</div>
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📊 주요 지표</div>
-                      <div className="flex flex-col" style={{ gap: 8 }}>
-                        {analysis.aiReport.indicators.map((ind, idx) => (
-                          <div key={idx} className="flex justify-between items-center" style={{ padding: '10px 14px', background: '#fff', borderRadius: 10 }}>
-                            <span style={{ fontSize: 13, color: '#4E5968' }}>{ind.name}</span>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#8B95A1' }}>{ind.value}</span>
+
+                    {aiLoading && (
+                      <div style={{ textAlign: 'center', padding: '32px 0' }}>
+                        <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse 1.5s infinite' }}>✨</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#3182F6', marginBottom: 6 }}>AI가 분석 중이에요</div>
+                        <div style={{ fontSize: 13, color: '#8B95A1' }}>차트, 지표, 뉴스를 종합하고 있어요... (5~10초)</div>
+                        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite' }} />
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite 0.2s' }} />
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: 'pulse 1s infinite 0.4s' }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {aiError && (
+                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#FF9500' }}>
+                        {aiError}
+                        <div style={{ marginTop: 8 }}>
+                          <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: '#3182F6', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {aiReport && (
+                      <>
+                        <div style={{ marginBottom: 20 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📉 현재 상태</div>
+                          <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.currentStatus}</div>
+                        </div>
+                        {aiReport.indicators?.length > 0 && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📊 주요 지표</div>
+                            <div className="flex flex-col" style={{ gap: 8 }}>
+                              {aiReport.indicators.map((ind: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center" style={{ padding: '10px 14px', background: '#fff', borderRadius: 10 }}>
+                                  <span style={{ fontSize: 13, color: '#4E5968' }}>{ind.name}</span>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#8B95A1' }}>{ind.value}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        ))}
+                        )}
+                        {aiReport.historicalNote && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📈 과거 유사 상황</div>
+                            <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.historicalNote}</div>
+                          </div>
+                        )}
+                        {aiReport.newsContext && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📰 뉴스 영향</div>
+                            <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.newsContext}</div>
+                          </div>
+                        )}
+                        {aiReport.conclusion && (
+                          <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                            <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>💡 종합 판단</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: aiReport.conclusion.signal === 'positive' ? '#EDFCF2' : aiReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)', color: aiReport.conclusion.signal === 'positive' ? '#16A34A' : aiReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500' }}>
+                                {aiReport.conclusion.label} {aiReport.conclusion.signal === 'positive' ? '🟢' : aiReport.conclusion.signal === 'negative' ? '🔴' : '🟡'}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.7 }}>{aiReport.conclusion.desc}</div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {!aiLoading && !aiReport && !aiError && (
+                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#8B95A1' }}>
+                        AI 분석을 준비 중이에요...
                       </div>
-                    </div>
-                    <div style={{ marginBottom: 20 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📈 과거 유사 상황</div>
-                      <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{analysis.aiReport.historicalNote}</div>
-                    </div>
-                    <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>💡 종합 판단</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: analysis.aiReport.conclusion.signal === 'positive' ? '#EDFCF2' : analysis.aiReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)', color: analysis.aiReport.conclusion.signal === 'positive' ? '#16A34A' : analysis.aiReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500' }}>
-                          {analysis.aiReport.conclusion.label} {analysis.aiReport.conclusion.signal === 'positive' ? '🟢' : analysis.aiReport.conclusion.signal === 'negative' ? '🔴' : '🟡'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.7 }}>{analysis.aiReport.conclusion.desc}</div>
-                    </div>
+                    )}
+
                     <div style={{ fontSize: 11, color: '#B0B8C1', lineHeight: 1.6, textAlign: 'center', paddingTop: 12, borderTop: '1px solid #F2F4F6' }}>
-                      이 분석은 AI가 생성한 참고 자료이며, 투자 권유가 아닙니다.
-                    </div>
-                  </div>
-                )}
-                {showAIReport && !analysis && !loading && (
-                  <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)', textAlign: 'center' }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#3182F6', marginBottom: 12 }}>📊 SOLB AI 분석</div>
-                    <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.7 }}>
-                      차트 데이터가 부족하여 상세 분석을 제공할 수 없어요.<br/>
-                      데이터가 충분한 종목(MU, MSFT 등)에서 AI 분석을 이용해보세요.
+                      이 분석은 AI(Gemini)가 생성한 참고 자료이며, 투자 권유가 아닙니다.
                     </div>
                   </div>
                 )}
