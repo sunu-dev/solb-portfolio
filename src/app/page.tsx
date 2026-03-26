@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
@@ -15,12 +16,17 @@ import AnalysisPanel from '@/components/analysis/AnalysisPanel';
 import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
 import ToastAlert from '@/components/common/ToastAlert';
+import LoginModal from '@/components/auth/LoginModal';
+import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 
 export default function Home() {
   const { currentSection, loadPortfolio, analysisSymbol } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
+  const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
   const [hydrated, setHydrated] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     const unsub = usePortfolioStore.persist.onFinishHydration(() => {
@@ -37,6 +43,21 @@ export default function Home() {
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Show onboarding on first login
+  useEffect(() => {
+    if (user && !authLoading) {
+      const onboarded = localStorage.getItem('solb_onboarded');
+      if (!onboarded) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user, authLoading]);
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('solb_onboarded', 'true');
+    setShowOnboarding(false);
+  };
+
   useAutoRefresh();
   useRealtimePrice();
 
@@ -48,10 +69,20 @@ export default function Home() {
     );
   }
 
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split('@')[0] ||
+    '';
+
   return (
     <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
       {/* Sticky Header - 48px */}
-      <Header />
+      <Header
+        user={user}
+        onLoginClick={() => setShowLogin(true)}
+        onSignOut={signOut}
+      />
 
       {/* Market Summary - one line */}
       <MarketSummary />
@@ -80,6 +111,28 @@ export default function Home() {
       {analysisSymbol && <AnalysisPanel />}
       <EditStockModal />
       <SettingsPanel />
+
+      {/* Auth overlays */}
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onGoogleLogin={() => {
+          setShowLogin(false);
+          signInWithGoogle();
+        }}
+        onKakaoLogin={() => {
+          setShowLogin(false);
+          signInWithKakao();
+        }}
+      />
+
+      {/* Onboarding overlay */}
+      {showOnboarding && (
+        <OnboardingFlow
+          userName={userName}
+          onComplete={handleOnboardingComplete}
+        />
+      )}
     </div>
   );
 }

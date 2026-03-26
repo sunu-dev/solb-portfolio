@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { useStockData, useMacroData } from '@/hooks/useStockData';
 import { Settings } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
+import UserMenu from '@/components/auth/UserMenu';
+import type { User } from '@supabase/supabase-js';
 
 const NAV_ITEMS: { label: string; section: MainSection }[] = [
   { label: '포트폴리오', section: 'portfolio' },
@@ -12,7 +13,13 @@ const NAV_ITEMS: { label: string; section: MainSection }[] = [
   { label: '이벤트 분석', section: 'events' },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  user?: User | null;
+  onLoginClick?: () => void;
+  onSignOut?: () => void;
+}
+
+export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
   const { currentSection, setCurrentSection } = usePortfolioStore();
   const [showSearch, setShowSearch] = useState(false);
 
@@ -137,22 +144,49 @@ export default function Header() {
           )}
         </div>
 
-        {/* Settings */}
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
-          className="flex items-center justify-center cursor-pointer transition-colors"
-          style={{
-            width: '32px',
-            height: '32px',
-            borderRadius: '8px',
-            color: '#8B95A1',
-            marginLeft: '8px',
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Settings className="w-[18px] h-[18px]" />
-        </button>
+        {/* Auth area: Login button or UserMenu */}
+        {user ? (
+          <UserMenu user={user} onSignOut={onSignOut || (() => {})} />
+        ) : (
+          <>
+            {/* Settings (only when not logged in) */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
+              className="flex items-center justify-center cursor-pointer transition-colors"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                color: '#8B95A1',
+                marginLeft: '8px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <Settings className="w-[18px] h-[18px]" />
+            </button>
+
+            {/* Login button */}
+            <button
+              onClick={onLoginClick}
+              style={{
+                marginLeft: '8px',
+                fontSize: '13px',
+                fontWeight: 600,
+                color: '#3182F6',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '6px 12px',
+                borderRadius: '8px',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F6FF')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              로그인
+            </button>
+          </>
+        )}
       </div>
     </header>
   );
