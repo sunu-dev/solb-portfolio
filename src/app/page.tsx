@@ -11,6 +11,8 @@ import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
 import BottomTicker from '@/components/layout/BottomTicker';
+import MobileNav from '@/components/layout/MobileNav';
+import MobileSidebar from '@/components/layout/MobileSidebar';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
 import EventsSection from '@/components/events/EventsSection';
 import NewsSection from '@/components/news/NewsSection';
@@ -30,6 +32,7 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Supabase DB 동기화 (로그인 시에만 활성화)
   usePortfolioSync(user);
@@ -154,6 +157,15 @@ export default function Home() {
           onComplete={handleOnboardingComplete}
         />
       )}
+
+      {/* Mobile bottom navigation (hidden on lg+) */}
+      <MobileNav onMoreClick={() => setShowMobileSidebar(true)} />
+
+      {/* Mobile sidebar sheet */}
+      <MobileSidebar
+        isOpen={showMobileSidebar}
+        onClose={() => setShowMobileSidebar(false)}
+      />
     </div>
   );
 }
