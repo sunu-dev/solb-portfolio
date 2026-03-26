@@ -170,6 +170,24 @@ export default function PortfolioSection() {
   const totalPLWon = totalPL * usdKrw;
   const hasInvestment = totalCost > 0;
 
+  // 오늘 변동 계산 (투자중 종목의 당일 변동 합산)
+  let todayChange = 0;
+  let winCount = 0;
+  let bestStock = { symbol: '', dp: -Infinity };
+  let worstStock = { symbol: '', dp: Infinity };
+  investingStocks.forEach(stock => {
+    const d = macroData[stock.symbol] as QuoteData | undefined;
+    if (!d?.c || !stock.shares) return;
+    todayChange += (d.d || 0) * stock.shares;
+    if (d.c > stock.avgCost && stock.avgCost > 0) winCount++;
+    const dp = d.dp || 0;
+    if (dp > bestStock.dp) bestStock = { symbol: stock.symbol, dp };
+    if (dp < worstStock.dp) worstStock = { symbol: stock.symbol, dp };
+  });
+  const todayChangeWon = todayChange * usdKrw;
+  const todayChangePct = totalValue > 0 ? (todayChange / (totalValue - todayChange)) * 100 : 0;
+  const todayGain = todayChange >= 0;
+
   // Build display list
   const activeTab = currentTab as string;
   type DisplayStock = StockItem & { category: 'investing' | 'watching' | 'sold'; originalIdx: number };
@@ -266,7 +284,22 @@ export default function PortfolioSection() {
             >
               ({isGain ? '+' : ''}{totalPLPercent.toFixed(2)}%)
             </div>
-            <div className="flex items-center justify-center flex-wrap" style={{ gap: '24px', marginTop: '24px' }}>
+
+            {/* 오늘 변동 */}
+            {holdingCount > 0 && (
+              <div style={{ marginTop: 16, padding: '8px 16px', borderRadius: 10, background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)', display: 'inline-block' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: todayGain ? '#EF4452' : '#3182F6' }}>
+                  오늘 {todayGain ? '▲' : '▼'}{' '}
+                  {currency === 'KRW'
+                    ? `${todayGain ? '+' : ''}₩${fmtWonShort(todayChangeWon)}`
+                    : `${todayGain ? '+' : ''}$${todayChange.toFixed(2)}`}
+                  {' '}({todayGain ? '+' : ''}{todayChangePct.toFixed(2)}%)
+                </span>
+              </div>
+            )}
+
+            {/* 총평가/총투자/보유 */}
+            <div className="flex items-center justify-center flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 총 평가{' '}
                 <strong style={{ color: '#191F28', fontWeight: 600 }}>
@@ -291,12 +324,25 @@ export default function PortfolioSection() {
                 종목 <strong style={{ color: '#191F28', fontWeight: 600 }}>{holdingCount}개 보유</strong>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: '#B0B8C1', marginTop: 12, lineHeight: 1.6, background: '#F8F9FA', padding: '10px 14px', borderRadius: 8, textAlign: 'left', display: 'inline-block', maxWidth: 480 }}>
-              {currency === 'KRW'
-                ? `💡 원화 금액은 현재 환율(₩${usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$)로 환산한 금액이에요. 환율 변동에 따라 실제 수익과 차이가 날 수 있어요.`
-                : '💡 달러 기준으로 표시 중이에요. ₩ 버튼으로 원화 전환 가능해요.'
-              }
-            </div>
+
+            {/* 인사이트: 승률 + 최고/최저 */}
+            {holdingCount >= 2 && (
+              <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12, color: '#8B95A1', background: '#F8F9FA', padding: '5px 12px', borderRadius: 8 }}>
+                  승률 {holdingCount > 0 ? Math.round((winCount / holdingCount) * 100) : 0}% ({winCount}/{holdingCount})
+                </span>
+                {bestStock.symbol && bestStock.dp > -Infinity && (
+                  <span style={{ fontSize: 12, color: '#EF4452', background: 'rgba(239,68,82,0.06)', padding: '5px 12px', borderRadius: 8 }}>
+                    Best {STOCK_KR[bestStock.symbol] || bestStock.symbol} {bestStock.dp >= 0 ? '+' : ''}{bestStock.dp.toFixed(1)}%
+                  </span>
+                )}
+                {worstStock.symbol && worstStock.dp < Infinity && (
+                  <span style={{ fontSize: 12, color: '#3182F6', background: 'rgba(49,130,246,0.06)', padding: '5px 12px', borderRadius: 8 }}>
+                    Worst {STOCK_KR[worstStock.symbol] || worstStock.symbol} {worstStock.dp >= 0 ? '+' : ''}{worstStock.dp.toFixed(1)}%
+                  </span>
+                )}
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -544,7 +590,11 @@ export default function PortfolioSection() {
                       </div>
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}
-                        {stock.shares > 0 && ` · ${stock.shares}주`}
+                        {stock.shares > 0 && stock.avgCost > 0
+                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? `₩${fmtWonShort(stock.avgCost * usdKrw)}` : `$${stock.avgCost.toFixed(2)}`}`
+                          : stock.shares > 0
+                            ? ` · ${stock.shares}주`
+                            : ''}
                         {!stock.shares && stock.buyBelow
                           ? ` · 목표 ${currency === 'KRW' ? `₩${fmtWonShort(stock.buyBelow * usdKrw)}` : `$${stock.buyBelow}`}`
                           : ''}
