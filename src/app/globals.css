@@ -271,6 +271,14 @@ body {
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
 .dark {
+  /* Custom dark tokens */
+  --bg: #0F1117;
+  --surface: #1A1D2E;
+  --text-primary: #F0F0F0;
+  --text-secondary: #8E8E9A;
+  --border-light: #2A2D3D;
+
+  /* shadcn dark tokens */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);

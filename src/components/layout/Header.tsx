@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
-  const { currentSection, setCurrentSection } = usePortfolioStore();
+  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore();
   const [showSearch, setShowSearch] = useState(false);
 
   // Keyboard shortcut for search
@@ -104,6 +104,26 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
         {/* Spacer */}
         <div className="flex-1" />
+
+        {/* Dark mode toggle */}
+        <button
+          onClick={toggleDarkMode}
+          className="flex items-center justify-center cursor-pointer transition-colors"
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            fontSize: '16px',
+            marginRight: '4px',
+            background: 'transparent',
+            border: 'none',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          title={darkMode ? '라이트 모드' : '다크 모드'}
+        >
+          {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+        </button>
 
         {/* Search toggle */}
         <div className="relative">

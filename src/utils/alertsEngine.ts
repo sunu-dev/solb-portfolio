@@ -269,6 +269,13 @@ export function checkAllAlerts(
     }
   }
 
+  // --- Composite alerts (Level 1.5) ---
+  for (const stock of allStocks) {
+    const quote = macroData[stock.symbol] as QuoteData;
+    const candle = rawCandles[stock.symbol];
+    if (quote?.c) checkCompositeAlerts(stock.symbol, quote, candle, alerts);
+  }
+
   // --- Portfolio-wide checks ---
 
   // 19. Portfolio down >10%
@@ -318,4 +325,69 @@ export function checkAllAlerts(
 
   // Return top 10
   return alerts.slice(0, 10);
+}
+
+// ==========================================
+// Composite alerts -- Level 1.5 compound conditions
+// ==========================================
+
+function checkCompositeAlerts(symbol: string, quote: QuoteData, candle: CandleRaw | undefined, alerts: Alert[]): void {
+  if (!candle || !candle.c || candle.c.length < 30) return;
+
+  const closes = candle.c;
+  const sma20 = calcSMA(closes, 20);
+  const rsi = calcRSI(closes);
+  const bb = calcBollingerBands(closes);
+  const macd = calcMACD(closes);
+  const volumes = candle.v || [];
+  const avgVol = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+  const lastVol = volumes[volumes.length - 1] || 0;
+  const volRatio = avgVol ? lastVol / avgVol : 1;
+  const price = quote.c;
+  const rsiVal = rsi.length ? rsi[rsi.length - 1] : 50;
+  const lastBB = bb.length ? bb[bb.length - 1] : null;
+  const macdLast = macd.macd.length ? macd.macd[macd.macd.length - 1] : 0;
+  const sigLast = macd.signal.length ? macd.signal[macd.signal.length - 1] : 0;
+  const cross = detectCross(calcSMA(closes, 5), sma20);
+  const name = kr(symbol);
+
+  // 1. RSI 과매도 + 볼린저 하단 + 거래량 증가 = 강한 반등 신호
+  if (rsiVal < 30 && lastBB && price <= lastBB.lower * 1.02 && volRatio > 1.3) {
+    alerts.push(makeAlert(symbol, 'composite-strong-bounce', 'opportunity', 2,
+      `${name} 강한 반등 신호 감지!`,
+      `RSI ${rsiVal.toFixed(0)}(과매도) + 볼린저 하단 근접 + 거래량 ${(volRatio * 100).toFixed(0)}% — 여러 지표가 동시에 반등을 가리키고 있어요.`));
+  }
+
+  // 2. 골든크로스 + MACD 상향 + 거래량 증가 = 강한 상승 전환
+  if (cross === 'golden' && macdLast > sigLast && volRatio > 1.3) {
+    alerts.push(makeAlert(symbol, 'composite-strong-uptrend', 'insight', 2,
+      `${name} 강한 상승 전환 신호!`,
+      `골든크로스 + MACD 상향 교차 + 거래량 증가 — 상승 추세 전환의 강한 신호예요.`));
+  }
+
+  // 3. RSI 과매수 + 볼린저 상단 + 거래량 감소 = 조정 가능성
+  if (rsiVal > 70 && lastBB && price >= lastBB.upper * 0.98 && volRatio < 0.7) {
+    alerts.push(makeAlert(symbol, 'composite-overheated', 'risk', 2,
+      `${name} 과열 + 관심 감소 주의`,
+      `RSI ${rsiVal.toFixed(0)}(과매수) + 볼린저 상단 + 거래량 감소 — 조정이 올 수 있어요.`));
+  }
+
+  // 4. 데드크로스 + MACD 하향 + 거래량 증가 = 강한 하락 전환
+  if (cross === 'death' && macdLast < sigLast && volRatio > 1.3) {
+    alerts.push(makeAlert(symbol, 'composite-strong-downtrend', 'risk', 2,
+      `${name} 강한 하락 전환 신호`,
+      `데드크로스 + MACD 하향 교차 + 거래량 증가 — 하락 추세 전환에 주의하세요.`));
+  }
+
+  // 5. 횡보 + 볼린저 밴드 수축 = 큰 움직임 예고
+  if (lastBB) {
+    const bbWidth = (lastBB.upper - lastBB.lower) / lastBB.middle;
+    const prevBB = bb.length > 20 ? bb[bb.length - 20] : null;
+    const prevWidth = prevBB ? (prevBB.upper - prevBB.lower) / prevBB.middle : bbWidth;
+    if (bbWidth < prevWidth * 0.6 && rsiVal > 40 && rsiVal < 60) {
+      alerts.push(makeAlert(symbol, 'composite-squeeze', 'insight', 3,
+        `${name} 변동성 수축 — 큰 움직임 예고`,
+        `볼린저 밴드가 좁아지고 RSI가 중립이에요. 곧 큰 방향이 정해질 수 있어요.`));
+    }
+  }
 }

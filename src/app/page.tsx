@@ -22,7 +22,7 @@ import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import { logApiCall } from '@/lib/apiLogger';
 
 export default function Home() {
-  const { currentSection, loadPortfolio, analysisSymbol } = usePortfolioStore();
+  const { currentSection, loadPortfolio, analysisSymbol, darkMode } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
@@ -69,6 +69,11 @@ export default function Home() {
     localStorage.setItem('solb_onboarded', 'true');
     setShowOnboarding(false);
   };
+
+  // Apply dark class to html element
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   useAutoRefresh();
   useRealtimePrice();

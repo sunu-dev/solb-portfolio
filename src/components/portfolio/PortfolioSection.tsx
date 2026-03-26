@@ -98,6 +98,8 @@ export default function PortfolioSection() {
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
+  const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Fetch portfolio-related news — use shorter queries for better results
   useEffect(() => {
@@ -173,6 +175,31 @@ export default function PortfolioSection() {
     const cat = activeTab as 'investing' | 'watching' | 'sold';
     displayList = (stocks[cat] || []).map((s, idx) => ({ ...s, category: cat, originalIdx: idx }));
   }
+
+  function handleSort(col: typeof sortBy) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('desc'); }
+  }
+
+  const sortedList = [...displayList].sort((a, b) => {
+    const qa = macroData[a.symbol] as QuoteData | undefined;
+    const qb = macroData[b.symbol] as QuoteData | undefined;
+    let va = 0, vb = 0;
+    switch (sortBy) {
+      case 'name': return sortDir === 'asc' ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
+      case 'price': va = qa?.c || 0; vb = qb?.c || 0; break;
+      case 'change': va = qa?.dp || 0; vb = qb?.dp || 0; break;
+      case 'pnl':
+        va = a.avgCost > 0 && (qa?.c || 0) > 0 ? ((qa!.c - a.avgCost) / a.avgCost * 100) : -999;
+        vb = b.avgCost > 0 && (qb?.c || 0) > 0 ? ((qb!.c - b.avgCost) / b.avgCost * 100) : -999;
+        break;
+      case 'goal':
+        va = a.targetReturn > 0 && a.avgCost > 0 && (qa?.c || 0) > 0 ? ((qa!.c - a.avgCost) / a.avgCost * 100) / a.targetReturn : -999;
+        vb = b.targetReturn > 0 && b.avgCost > 0 && (qb?.c || 0) > 0 ? ((qb!.c - b.avgCost) / b.avgCost * 100) / b.targetReturn : -999;
+        break;
+    }
+    return sortDir === 'asc' ? va - vb : vb - va;
+  });
 
   return (
     <div>
@@ -340,15 +367,25 @@ export default function PortfolioSection() {
                 fontWeight: 400,
               }}
             >
-              <span>종목명</span>
-              <span className="text-right">현재가</span>
-              <span className="text-right">오늘 등락</span>
-              <span className="text-right hide-mobile">내 수익</span>
-              <span className="text-right hide-mobile">목표 달성</span>
+              <span onClick={() => handleSort('name')} style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
+                종목명 {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </span>
+              <span onClick={() => handleSort('price')} className="text-right" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
+                현재가 {sortBy === 'price' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </span>
+              <span onClick={() => handleSort('change')} className="text-right" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
+                오늘 등락 {sortBy === 'change' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </span>
+              <span onClick={() => handleSort('pnl')} className="text-right hide-mobile" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
+                내 수익 {sortBy === 'pnl' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </span>
+              <span onClick={() => handleSort('goal')} className="text-right hide-mobile" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
+                목표 달성 {sortBy === 'goal' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </span>
             </div>
 
             {/* Rows */}
-            {displayList.map((stock, i) => {
+            {sortedList.map((stock, i) => {
               const d = macroData[stock.symbol] as QuoteData | undefined;
               const price = d?.c || 0;
               const change = d?.d || 0;

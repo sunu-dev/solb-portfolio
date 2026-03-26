@@ -52,6 +52,7 @@ interface PortfolioState {
 
   // Settings
   currency: 'KRW' | 'USD';
+  darkMode: boolean;
   apiKey: string;
   autoRefresh: boolean;
   refreshInterval: number;
@@ -68,6 +69,7 @@ interface PortfolioState {
 
   // Actions
   setCurrency: (c: 'KRW' | 'USD') => void;
+  toggleDarkMode: () => void;
   setCurrentTab: (tab: StockCategory) => void;
   setCurrentSection: (section: MainSection) => void;
   setCurrentNewsMarket: (market: string) => void;
@@ -126,6 +128,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       analysisSymbol: null,
 
       currency: 'KRW' as 'KRW' | 'USD',
+      darkMode: false,
       apiKey: DEFAULT_API_KEY,
       autoRefresh: true,
       refreshInterval: 10000,
@@ -140,6 +143,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       // --- Setters ---
       setCurrency: (c) => set({ currency: c }),
+      toggleDarkMode: () => set((s) => ({ darkMode: !s.darkMode })),
       setCurrentTab: (tab) => set({ currentTab: tab }),
       setCurrentSection: (section) => set({ currentSection: section }),
       setCurrentNewsMarket: (market) => set({ currentNewsMarket: market }),
@@ -283,6 +287,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       partialize: (state) => ({
         stocks: state.stocks,
         currency: state.currency,
+        darkMode: state.darkMode,
         apiKey: state.apiKey,
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,

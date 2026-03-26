@@ -18,6 +18,8 @@ export default function EditStockModal() {
   const [buyZones, setBuyZones] = useState('');
   const [weight, setWeight] = useState('');
   const [buyBelow, setBuyBelow] = useState('');
+  const [addBuyPrice, setAddBuyPrice] = useState('');
+  const [addBuyShares, setAddBuyShares] = useState('');
 
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
@@ -33,6 +35,8 @@ export default function EditStockModal() {
     setBuyZones(stock.buyZones ? stock.buyZones.join(',') : '');
     setWeight(stock.weight ? String(stock.weight) : '');
     setBuyBelow(stock.buyBelow ? String(stock.buyBelow) : '');
+    setAddBuyPrice('');
+    setAddBuyShares('');
   }, [stock]);
 
   const close = () => {
@@ -40,12 +44,31 @@ export default function EditStockModal() {
     setEditingIdx(-1);
   };
 
+  // Compute new avg cost preview
+  const oldCostNum = parseFloat(avgCost) || 0;
+  const oldSharesNum = parseInt(shares) || 0;
+  const addPriceNum = parseFloat(addBuyPrice) || 0;
+  const addSharesNum = parseInt(addBuyShares) || 0;
+  const newTotalShares = oldSharesNum + addSharesNum;
+  const newAvgCost = newTotalShares > 0
+    ? (oldCostNum * oldSharesNum + addPriceNum * addSharesNum) / newTotalShares
+    : oldCostNum;
+
   const save = () => {
     if (!editingCat || editingIdx < 0) return;
 
+    let finalAvgCost = parseFloat(avgCost) || 0;
+    let finalShares = parseInt(shares) || 0;
+
+    // Recalculate if additional buy is provided
+    if (addPriceNum > 0 && addSharesNum > 0) {
+      finalShares = finalShares + addSharesNum;
+      finalAvgCost = (finalAvgCost * (parseInt(shares) || 0) + addPriceNum * addSharesNum) / finalShares;
+    }
+
     const data: Record<string, unknown> = {
-      avgCost: parseFloat(avgCost) || 0,
-      shares: parseInt(shares) || 0,
+      avgCost: finalAvgCost,
+      shares: finalShares,
       targetReturn: parseFloat(targetReturn) || 0,
     };
 
@@ -165,6 +188,41 @@ export default function EditStockModal() {
                   />
                 </div>
               </>
+            )}
+
+            {/* 추가 매수 (investing only) */}
+            {editingCat === 'investing' && (
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #F2F4F6' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#191F28' }}>추가 매수 기록</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={addBuyPrice}
+                      onChange={e => setAddBuyPrice(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 14 }}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>수량</label>
+                    <input
+                      type="number"
+                      value={addBuyShares}
+                      onChange={e => setAddBuyShares(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 14 }}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+                {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
+                  <div style={{ fontSize: 12, color: '#3182F6', marginTop: 8 }}>
+                    → 새 평균단가: ${newAvgCost.toFixed(2)} / 총 {newTotalShares}주
+                  </div>
+                )}
+              </div>
             )}
 
             {editingCat === 'watching' && (
