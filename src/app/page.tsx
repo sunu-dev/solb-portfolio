@@ -6,6 +6,7 @@ import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useAuth } from '@/hooks/useAuth';
 import { usePortfolioSync } from '@/hooks/usePortfolioSync';
+import { useNotification } from '@/hooks/useNotification';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
@@ -32,6 +33,9 @@ export default function Home() {
 
   // Supabase DB 동기화 (로그인 시에만 활성화)
   usePortfolioSync(user);
+
+  // PWA push notifications
+  useNotification();
 
   useEffect(() => {
     const unsub = usePortfolioStore.persist.onFinishHydration(() => {

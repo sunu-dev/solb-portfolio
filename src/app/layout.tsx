@@ -17,6 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable)}>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#3182F6" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      </head>
       <body className="min-h-full bg-[#F2F4F6]">{children}</body>
     </html>
   );

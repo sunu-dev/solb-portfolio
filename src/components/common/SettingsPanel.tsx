@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData } from '@/hooks/useStockData';
+import { useNotification } from '@/hooks/useNotification';
 import { X } from 'lucide-react';
 
 export default function SettingsPanel() {
@@ -12,6 +13,7 @@ export default function SettingsPanel() {
     refreshInterval, setRefreshInterval,
   } = usePortfolioStore();
   const { refreshAll } = useStockData();
+  const { requestPermission } = useNotification();
 
   const [isOpen, setIsOpen] = useState(false);
   const [newApiKey, setNewApiKey] = useState('');
@@ -268,6 +270,39 @@ export default function SettingsPanel() {
                 적용
               </button>
             </div>
+          </div>
+
+          {/* 알림 설정 */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
+              알림
+            </div>
+            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
+              손절가, 목표가 도달 시 브라우저 알림을 받을 수 있어요.
+            </div>
+            <button
+              onClick={async () => {
+                const granted = await requestPermission();
+                if (granted) alert('알림이 활성화되었습니다!');
+                else alert('알림 권한이 거부되었습니다. 브라우저 설정에서 변경할 수 있어요.');
+              }}
+              style={{
+                width: '100%',
+                padding: 12,
+                background: '#3182F6',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = '#1B64DA')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = '#3182F6')}
+            >
+              알림 허용하기
+            </button>
           </div>
 
           {/* Danger Zone */}
