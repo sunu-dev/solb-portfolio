@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { StockItem } from '@/config/constants';
+import { logApiCall } from '@/lib/apiLogger';
 
 interface OnboardingFlowProps {
   userName: string;
@@ -133,6 +134,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                       if (isAdded) return;
                       const ns: StockItem = { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 };
                       addStock('watching', ns);
+                      logApiCall('onboarding_stock_add', s.symbol);
                       setAdded(prev => new Set(prev).add(s.symbol));
                     }}
                     style={{

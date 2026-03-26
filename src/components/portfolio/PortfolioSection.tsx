@@ -7,6 +7,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
+import { logApiCall } from '@/lib/apiLogger';
 
 const TABS: { id: StockCategory; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -545,7 +546,7 @@ export default function PortfolioSection() {
                       <Edit3 size={14} color="#B0B8C1" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteStock(stock.category, stock.originalIdx); }}
+                      onClick={(e) => { e.stopPropagation(); deleteStock(stock.category, stock.originalIdx); logApiCall('stock_delete', stock.symbol); }}
                       style={{ padding: 4, borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none' }}
                     >
                       <Trash2 size={14} color="#B0B8C1" />

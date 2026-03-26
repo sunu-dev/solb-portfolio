@@ -19,6 +19,7 @@ import SettingsPanel from '@/components/common/SettingsPanel';
 import ToastAlert from '@/components/common/ToastAlert';
 import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import { logApiCall } from '@/lib/apiLogger';
 
 export default function Home() {
   const { currentSection, loadPortfolio, analysisSymbol } = usePortfolioStore();
@@ -46,6 +47,13 @@ export default function Home() {
     }
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Log login event
+  useEffect(() => {
+    if (user && !authLoading) {
+      logApiCall('login', undefined, { provider: user.app_metadata?.provider || 'unknown' });
+    }
+  }, [user, authLoading]);
 
   // Show onboarding on first login
   useEffect(() => {

@@ -12,6 +12,7 @@ import {
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
 import { X } from 'lucide-react';
+import { logApiCall } from '@/lib/apiLogger';
 
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
 
@@ -288,6 +289,7 @@ export default function AnalysisPanel() {
                       if (data.success) {
                         setAiReport(data.report);
                         if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
+                        logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
                       }
                       else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
                     } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }

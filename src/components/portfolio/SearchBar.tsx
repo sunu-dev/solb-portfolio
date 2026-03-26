@@ -6,6 +6,7 @@ import { searchStocks } from '@/hooks/useStockData';
 import { STOCK_KR } from '@/config/constants';
 import type { StockItem } from '@/config/constants';
 import { Search, Plus } from 'lucide-react';
+import { logApiCall } from '@/lib/apiLogger';
 
 interface SearchBarProps {
   onClose?: () => void;
@@ -76,6 +77,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     if (targetCat === 'watching') ns.buyBelow = 0;
 
     addStock(targetCat, ns);
+    logApiCall('stock_add', sym);
     setQuery('');
     setShowResults(false);
     setResults([]);
