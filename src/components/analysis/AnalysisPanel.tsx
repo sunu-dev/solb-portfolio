@@ -58,10 +58,26 @@ export default function AnalysisPanel() {
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
   const avatarColor = symbol ? getAvatarColor(symbol) : '#3182F6';
 
+  // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
   useEffect(() => {
-    if (!symbol) return;
+    if (!symbol || !apiKey) return;
     setLoading(true);
-    fetchCandle().finally(() => setLoading(false));
+
+    const fetchFreshQuote = async () => {
+      try {
+        const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+        const url = isKR
+          ? `/api/kr-quote?symbol=${symbol}`
+          : `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`;
+        const r = await fetch(url);
+        const d = await r.json();
+        if (d?.c) {
+          usePortfolioStore.getState().updateMacroEntry(symbol, d);
+        }
+      } catch { /* fallback to cached */ }
+    };
+
+    Promise.all([fetchCandle(), fetchFreshQuote()]).finally(() => setLoading(false));
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {

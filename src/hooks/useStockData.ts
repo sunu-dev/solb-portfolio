@@ -186,8 +186,8 @@ export function useStockData() {
       const cached = localStorage.getItem(QUOTE_CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
-        // Use cache if less than 5 minutes old
-        if (Date.now() - ts < 5 * 60 * 1000) {
+        // Use cache if less than 2 minutes old
+        if (Date.now() - ts < 2 * 60 * 1000) {
           for (const [sym, quote] of Object.entries(data)) {
             if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
           }

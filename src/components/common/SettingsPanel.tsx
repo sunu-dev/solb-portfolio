@@ -2,21 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { useStockData } from '@/hooks/useStockData';
 import { useNotification } from '@/hooks/useNotification';
+import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 
 export default function SettingsPanel() {
   const {
-    apiKey, setApiKey,
     autoRefresh, setAutoRefresh,
     refreshInterval, setRefreshInterval,
   } = usePortfolioStore();
-  const { refreshAll } = useStockData();
   const { requestPermission } = useNotification();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [newApiKey, setNewApiKey] = useState('');
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
 
   // Listen for toggle event from Header
@@ -35,16 +32,6 @@ export default function SettingsPanel() {
     return () => { document.body.style.overflow = ''; };
   }, [isOpen]);
 
-  const handleSaveApiKey = () => {
-    const k = newApiKey.trim();
-    if (k) {
-      setApiKey(k);
-      alert('저장됨');
-      setNewApiKey('');
-      refreshAll();
-    }
-  };
-
   const handleUpdateInterval = () => {
     const sec = parseInt(intervalSec);
     if (sec >= 10) {
@@ -52,11 +39,20 @@ export default function SettingsPanel() {
     }
   };
 
-  const handleClearAll = () => {
-    if (confirm('전체 초기화할까요? 모든 데이터가 삭제됩니다.')) {
-      localStorage.clear();
-      window.location.reload();
-    }
+  const handleClearAll = async () => {
+    if (!confirm('전체 초기화할까요? 모든 종목, 설정, 캐시 데이터가 삭제됩니다.')) return;
+
+    // Supabase DB에서도 포트폴리오 삭제
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('user_portfolios').delete().eq('user_id', user.id);
+      }
+    } catch { /* 비로그인 사용자 무시 */ }
+
+    // 로컬 데이터 전부 삭제 후 리로드
+    localStorage.clear();
+    window.location.reload();
   };
 
   if (!isOpen) return null;
@@ -127,57 +123,6 @@ export default function SettingsPanel() {
 
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-
-          {/* API Key Section */}
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
-              Finnhub API Key
-            </div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
-              시세 데이터를 가져오기 위한 API 키를 입력하세요
-            </div>
-            <input
-              type="text"
-              value={newApiKey}
-              onChange={(e) => setNewApiKey(e.target.value)}
-              placeholder={apiKey ? '변경 시 새 키 입력' : 'API Key 입력'}
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                fontSize: 14,
-                borderRadius: 10,
-                border: '1px solid #E5E8EB',
-                background: 'white',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {apiKey && (
-              <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 6 }}>
-                현재: {apiKey.slice(0, 8)}...{apiKey.slice(-4)}
-              </div>
-            )}
-            <button
-              onClick={handleSaveApiKey}
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 10,
-                background: '#3182F6',
-                color: 'white',
-                fontSize: 14,
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                marginTop: 8,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#1B64DA')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#3182F6')}
-            >
-              저장
-            </button>
-          </div>
 
           {/* Auto Refresh Toggle Section */}
           <div style={{ marginBottom: 28 }}>
