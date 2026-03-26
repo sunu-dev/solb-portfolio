@@ -103,128 +103,87 @@ export default function EditStockModal() {
       <div className="fixed inset-0 bg-black/20 z-50 backdrop-blur-xs" onClick={close} />
 
       {/* Modal */}
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-[480px] mx-auto bg-white rounded-2xl z-50 shadow-xl animate-fade-in overflow-hidden">
+      <div
+        style={{
+          position: 'fixed',
+          left: 16, right: 16,
+          top: '50%', transform: 'translateY(-50%)',
+          maxWidth: 480, margin: '0 auto',
+          background: '#FFFFFF',
+          borderRadius: 20,
+          zIndex: 50,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          overflow: 'hidden',
+        }}
+      >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[#F2F4F6]">
-          <h3 className="text-[18px] font-bold text-[#191F28]">
+        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #F2F4F6' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28' }}>
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
-          </h3>
-          <p className="text-[12px] text-[#8B95A1] mt-0.5">매수 정보와 목표가를 설정하세요</p>
+          </div>
+          <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2 }}>매수 정보와 목표가를 설정하세요</div>
         </div>
 
-        <div className="px-6 py-4 max-h-[min(60vh,calc(100vh-200px))] overflow-y-auto">
-          <div className="space-y-4">
-            {/* Common fields */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">평균 매수 단가 ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={avgCost}
-                  onChange={(e) => setAvgCost(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">보유 수량 (주)</label>
-                <input
-                  type="number"
-                  value={shares}
-                  onChange={(e) => setShares(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-
+        <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 200px))', overflowY: 'auto' }}>
+          {/* Common fields */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">목표 수익률 (%)</label>
-              <input
-                type="number"
-                value={targetReturn}
-                onChange={(e) => setTargetReturn(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                placeholder="0"
-              />
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>평균 매수 단가 ($)</label>
+              <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
             </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>보유 수량 (주)</label>
+              <input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          </div>
 
-            {/* Category-specific fields */}
-            {editingCat === 'investing' && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">목표가 ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={targetSell}
-                      onChange={(e) => setTargetSell(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">손절가 ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={stopLoss}
-                      onChange={(e) => setStopLoss(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                      placeholder="0.00"
-                    />
-                  </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
+            <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="0"
+              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+          </div>
+
+          {/* Category-specific fields */}
+          {editingCat === 'investing' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표가 ($)</label>
+                  <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
+                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">매수 구간 (쉼표 구분)</label>
-                  <input
-                    type="text"
-                    value={buyZones}
-                    onChange={(e) => setBuyZones(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all"
-                    placeholder="430, 404, 380"
-                  />
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>손절가 ($)</label>
+                  <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
+                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
-                <div>
-                  <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">비중 (%)</label>
-                  <input
-                    type="number"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                    placeholder="0"
-                  />
-                </div>
-              </>
-            )}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 구간 (쉼표 구분)</label>
+                <input type="text" value={buyZones} onChange={(e) => setBuyZones(e.target.value)} placeholder="430, 404, 380"
+                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>비중 (%)</label>
+                <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0"
+                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
 
-            {/* 추가 매수 (investing only) */}
-            {editingCat === 'investing' && (
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #F2F4F6' }}>
+              {/* 추가 매수 */}
+              <div style={{ paddingTop: 16, borderTop: '1px solid #F2F4F6' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#191F28' }}>추가 매수 기록</div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
                     <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ($)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={addBuyPrice}
-                      onChange={e => setAddBuyPrice(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 14 }}
-                      placeholder="0.00"
-                    />
+                    <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
+                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div>
                     <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>수량</label>
-                    <input
-                      type="number"
-                      value={addBuyShares}
-                      onChange={e => setAddBuyShares(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 14 }}
-                      placeholder="0"
-                    />
+                    <input type="number" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
+                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
@@ -233,36 +192,26 @@ export default function EditStockModal() {
                   </div>
                 )}
               </div>
-            )}
+            </>
+          )}
 
-            {editingCat === 'watching' && (
-              <div>
-                <label className="text-[12px] font-semibold text-[#4E5968] block mb-1.5">매수 목표가 ($)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={buyBelow}
-                  onChange={(e) => setBuyBelow(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F2F4F6] rounded-xl text-[14px] outline-none focus:ring-2 focus:ring-[#3182F6]/30 transition-all tabular-nums"
-                  placeholder="0.00"
-                />
-              </div>
-            )}
-          </div>
+          {editingCat === 'watching' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 목표가 ($)</label>
+              <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#F2F4F6] bg-[#F9FAFB] flex gap-3">
-          <button
-            onClick={close}
-            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-[#4E5968] bg-white ring-1 ring-black/[0.06] hover:bg-[#F2F4F6] transition-colors cursor-pointer"
-          >
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #F2F4F6', background: '#F9FAFB', display: 'flex', gap: 12 }}>
+          <button onClick={close}
+            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', background: '#FFFFFF', border: '1px solid #E5E8EB', cursor: 'pointer' }}>
             취소
           </button>
-          <button
-            onClick={save}
-            className="flex-1 py-2.5 rounded-xl text-[14px] font-semibold text-white bg-[#3182F6] hover:bg-[#1B64DA] transition-colors cursor-pointer"
-          >
+          <button onClick={save}
+            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer' }}>
             저장
           </button>
         </div>
