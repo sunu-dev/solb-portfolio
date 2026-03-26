@@ -26,26 +26,35 @@ export default function ToastAlert() {
   const [visible, setVisible] = useState(false);
   const shownIdsRef = useRef<Set<string>>(new Set());
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownRef = useRef(false);
 
   useEffect(() => {
-    // Find a new urgent/risk alert (severity <= 2) that hasn't been shown or dismissed
+    // Only show truly critical alerts as toasts (severity 1 only)
+    // severity 2+ alerts are visible in the sidebar
+    if (cooldownRef.current || currentToast) return;
+
     const newAlert = alerts.find(
       a =>
-        a.severity <= 2 &&
+        a.severity <= 1 &&
         !dismissedAlerts.includes(a.id) &&
         !shownIdsRef.current.has(a.id)
     );
 
-    if (newAlert && !currentToast) {
+    if (newAlert) {
       shownIdsRef.current.add(newAlert.id);
       setCurrentToast(newAlert);
       setVisible(true);
 
-      // Auto-dismiss after 4 seconds
+      // Auto-dismiss after 5 seconds
       timerRef.current = setTimeout(() => {
         setVisible(false);
-        setTimeout(() => setCurrentToast(null), 300); // Wait for animation
-      }, 4000);
+        setTimeout(() => {
+          setCurrentToast(null);
+          // 60s cooldown before next toast
+          cooldownRef.current = true;
+          setTimeout(() => { cooldownRef.current = false; }, 60_000);
+        }, 300);
+      }, 5000);
     }
 
     return () => {
