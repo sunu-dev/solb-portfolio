@@ -179,13 +179,40 @@ export function useStockData() {
   const fetchAllQuotes = useCallback(async () => {
     if (!apiKey) return;
     const syms = getAllSymbols();
+
+    // Stale-While-Revalidate: show cached prices instantly
+    const QUOTE_CACHE_KEY = 'solb_quote_cache';
+    try {
+      const cached = localStorage.getItem(QUOTE_CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        // Use cache if less than 5 minutes old
+        if (Date.now() - ts < 5 * 60 * 1000) {
+          for (const [sym, quote] of Object.entries(data)) {
+            if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Fetch fresh quotes in parallel
+    const freshData: Record<string, QuoteData> = {};
     await Promise.all(
       syms.map(s =>
         fetchStockQuote(s, apiKey).then(d => {
-          if (d && d.c) updateMacroEntry(s, d);
+          if (d && d.c) {
+            updateMacroEntry(s, d);
+            freshData[s] = d;
+          }
         })
       )
     );
+
+    // Save to cache
+    try {
+      localStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify({ data: freshData, ts: Date.now() }));
+    } catch { /* storage full */ }
+
     setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
   }, [apiKey, getAllSymbols, updateMacroEntry, setLastUpdate]);
 
