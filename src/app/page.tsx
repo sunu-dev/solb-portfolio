@@ -26,14 +26,13 @@ export default function Home() {
     const unsub = usePortfolioStore.persist.onFinishHydration(() => {
       setHydrated(true);
       loadPortfolio();
-      fetchMacro();
-      refreshAll();
+      // Macro and quotes in parallel for faster first paint
+      Promise.all([fetchMacro(), refreshAll()]);
     });
     if (usePortfolioStore.persist.hasHydrated()) {
       setHydrated(true);
       loadPortfolio();
-      fetchMacro();
-      refreshAll();
+      Promise.all([fetchMacro(), refreshAll()]);
     }
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

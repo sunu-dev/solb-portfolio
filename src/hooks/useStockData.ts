@@ -192,9 +192,36 @@ export function useStockData() {
   const fetchAllCandles = useCallback(async () => {
     if (!apiKey) return;
     const syms = getAllSymbols();
-    for (const s of syms) {
+
+    // Process candles in parallel batches of 3 (respect rate limits)
+    const processCandle = async (s: string) => {
+      // Check localStorage cache first (candles change daily only)
+      const cacheKey = `candle_${s}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          const { data, date } = JSON.parse(cached);
+          const today = new Date().toDateString();
+          if (date === today && data?.c?.length > 20) {
+            updateRawCandles(s, data);
+            const closes = data.c;
+            const cp = closes[closes.length - 1];
+            const result: Record<number, number> = {};
+            PERIODS.forEach(p => {
+              const back = Math.min(Math.round(p.days * 5 / 7), closes.length - 1);
+              const idx = Math.max(closes.length - 1 - back, 0);
+              result[p.days] = ((cp - Math.max(...closes.slice(idx))) / Math.max(...closes.slice(idx))) * 100;
+            });
+            updateCandleCache(s, result);
+            return; // Cache hit, skip API call
+          }
+        } catch { /* invalid cache, fetch fresh */ }
+      }
+
       const raw = await fetchCandleDataRaw(s, apiKey);
       if (raw) {
+        // Save to localStorage cache
+        try { localStorage.setItem(cacheKey, JSON.stringify({ data: raw, date: new Date().toDateString() })); } catch { /* storage full */ }
         updateRawCandles(s, raw);
         const closes = raw.c;
         const cp = closes[closes.length - 1];
@@ -206,17 +233,32 @@ export function useStockData() {
         });
         updateCandleCache(s, result);
       }
-      await delay(150);
+    };
+
+    // Batch parallel: 3 at a time
+    for (let i = 0; i < syms.length; i += 3) {
+      const batch = syms.slice(i, i + 3);
+      await Promise.all(batch.map(processCandle));
+      if (i + 3 < syms.length) await delay(100);
     }
   }, [apiKey, getAllSymbols, updateRawCandles, updateCandleCache]);
 
   const refreshAll = useCallback(async () => {
+    // 1. Quotes first (fast, shows prices immediately)
     await fetchAllQuotes();
-    await fetchAllCandles();
-    // Run alerts check after all data is fetched
-    const state = usePortfolioStore.getState();
-    const alerts = checkAllAlerts(state.stocks, state.macroData, state.rawCandles, state.candleCache);
-    setAlerts(alerts);
+
+    // 2. Run alerts with whatever candle data we have
+    const state1 = usePortfolioStore.getState();
+    const alerts1 = checkAllAlerts(state1.stocks, state1.macroData, state1.rawCandles, state1.candleCache);
+    setAlerts(alerts1);
+
+    // 3. Candles in background (slow, but prices already visible)
+    fetchAllCandles().then(() => {
+      // Re-run alerts with full candle data
+      const state2 = usePortfolioStore.getState();
+      const alerts2 = checkAllAlerts(state2.stocks, state2.macroData, state2.rawCandles, state2.candleCache);
+      setAlerts(alerts2);
+    });
   }, [fetchAllQuotes, fetchAllCandles, setAlerts]);
 
   return { fetchAllQuotes, fetchAllCandles, refreshAll };
