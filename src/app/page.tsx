@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useAuth } from '@/hooks/useAuth';
+import { usePortfolioSync } from '@/hooks/usePortfolioSync';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
@@ -27,6 +28,9 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Supabase DB 동기화 (로그인 시에만 활성화)
+  usePortfolioSync(user);
 
   useEffect(() => {
     const unsub = usePortfolioStore.persist.onFinishHydration(() => {

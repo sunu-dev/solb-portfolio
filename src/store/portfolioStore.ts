@@ -98,6 +98,9 @@ interface PortfolioState {
   savePortfolio: () => void;
   addCustomEvent: (event: PresetEvent) => void;
 
+  // Sync
+  setStocksFromDB: (stocks: PortfolioStocks) => void;
+
   // Helpers
   getAllSymbols: () => string[];
   getAllEvents: () => PresetEvent[];
@@ -254,6 +257,9 @@ export const usePortfolioStore = create<PortfolioState>()(
         set((state) => ({
           customEvents: [...state.customEvents, event],
         })),
+
+      // --- Sync ---
+      setStocksFromDB: (stocks) => set({ stocks }),
 
       // --- Helpers ---
       getAllSymbols: () => {
