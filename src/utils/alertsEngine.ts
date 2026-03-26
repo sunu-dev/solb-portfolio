@@ -178,7 +178,7 @@ export function checkAllAlerts(
     if (cross === 'golden') {
       alerts.push(makeAlert(
         stock.symbol, 'golden-cross', 'insight', 3,
-        `${name} 골든크로스 발생`,
+        `${name} 상승 전환 신호 (골든크로스)`,
         `단기선(5일)이 중기선(20일)을 상향 돌파했어요. 상승 전환 신호예요.`
       ));
     }
@@ -187,7 +187,7 @@ export function checkAllAlerts(
     if (cross === 'death') {
       alerts.push(makeAlert(
         stock.symbol, 'death-cross', 'risk', 3,
-        `${name} 데드크로스 발생`,
+        `${name} 하락 전환 신호 (데드크로스)`,
         `단기선(5일)이 중기선(20일)을 하향 돌파했어요. 하락 주의 신호예요.`
       ));
     }
@@ -201,8 +201,8 @@ export function checkAllAlerts(
       if (rsiVal < 30) {
         alerts.push(makeAlert(
           stock.symbol, 'rsi-oversold', 'opportunity', 3,
-          `${name} RSI ${rsiVal.toFixed(0)} 과매도`,
-          `RSI가 30 이하로 과매도 구간이에요. 반등 가능성을 살펴보세요.`
+          `${name} RSI ${rsiVal.toFixed(0)} — 많이 떨어진 상태`,
+          `RSI가 30 이하로 많이 떨어진 구간이에요. 반등 가능성을 살펴보세요.`
         ));
       }
 
@@ -210,8 +210,8 @@ export function checkAllAlerts(
       if (rsiVal > 70) {
         alerts.push(makeAlert(
           stock.symbol, 'rsi-overbought', 'risk', 4,
-          `${name} RSI ${rsiVal.toFixed(0)} 과매수`,
-          `RSI가 70 이상으로 과열 구간이에요. 단기 조정 가능성이 있어요.`
+          `${name} RSI ${rsiVal.toFixed(0)} — 많이 오른 상태`,
+          `RSI가 70 이상으로 많이 오른 구간이에요. 단기 조정 가능성이 있어요.`
         ));
       }
     }
@@ -225,7 +225,7 @@ export function checkAllAlerts(
       if (price <= lastBB.lower) {
         alerts.push(makeAlert(
           stock.symbol, 'bb-lower', 'opportunity', 4,
-          `${name} 볼린저 하단 이탈`,
+          `${name} 가격이 평소보다 많이 떨어진 구간 (볼린저 하단)`,
           `가격이 볼린저밴드 하단($${lastBB.lower.toFixed(2)})을 벗어났어요. 반등 가능성이 있어요.`
         ));
       }
@@ -234,7 +234,7 @@ export function checkAllAlerts(
       if (price >= lastBB.upper) {
         alerts.push(makeAlert(
           stock.symbol, 'bb-upper', 'risk', 4,
-          `${name} 볼린저 상단 이탈`,
+          `${name} 가격이 평소보다 많이 오른 구간 (볼린저 상단)`,
           `가격이 볼린저밴드 상단($${lastBB.upper.toFixed(2)})을 벗어났어요. 과열 주의예요.`
         ));
       }
@@ -252,7 +252,7 @@ export function checkAllAlerts(
         if (prevHist < 0 && lastHist >= 0) {
           alerts.push(makeAlert(
             stock.symbol, 'macd-bull', 'insight', 3,
-            `${name} MACD 상향 교차`,
+            `${name} 상승 힘이 세지는 신호 (MACD 상향 교차)`,
             `MACD가 시그널선을 상향 돌파했어요. 상승 모멘텀이 강해지고 있어요.`
           ));
         }
@@ -261,7 +261,7 @@ export function checkAllAlerts(
         if (prevHist > 0 && lastHist <= 0) {
           alerts.push(makeAlert(
             stock.symbol, 'macd-bear', 'risk', 3,
-            `${name} MACD 하향 교차`,
+            `${name} 하락 힘이 세지는 신호 (MACD 하향 교차)`,
             `MACD가 시그널선을 하향 돌파했어요. 하락 모멘텀이 강해지고 있어요.`
           ));
         }

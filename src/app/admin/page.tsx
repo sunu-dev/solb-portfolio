@@ -26,8 +26,10 @@ export default function AdminPage() {
     if (loading) return;
     if (!user) { setError('로그인이 필요합니다.'); return; }
 
-    // Simple admin check — by email or user ID
-    // For now, any logged-in user can see admin (restrict later)
+    // Admin check — restrict to specific admin emails
+    // TODO: Restrict to specific admin user IDs
+    const isAdmin = ADMIN_EMAILS.includes(user.email || '');
+    if (!isAdmin) { setError('관리자 권한이 없습니다.'); return; }
 
     fetchStats();
   }, [user, loading]);
@@ -99,6 +101,14 @@ export default function AdminPage() {
   }
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>로딩 중...</div>;
+  if (!user && !loading) {
+    return (
+      <div style={{ padding: 48, textAlign: 'center' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>관리자 페이지</div>
+        <div style={{ fontSize: 14, color: '#8B95A1' }}>로그인이 필요합니다.</div>
+      </div>
+    );
+  }
   if (error) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error}</div>;
   if (!stats) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>통계를 불러오는 중...</div>;
 

@@ -9,6 +9,14 @@ import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 
+const QUICK_ADD_STOCKS = [
+  { symbol: '005930.KS', label: '삼성전자' },
+  { symbol: 'NVDA', label: 'NVDA' },
+  { symbol: 'AAPL', label: 'AAPL' },
+  { symbol: 'MSFT', label: 'MSFT' },
+  { symbol: 'TSLA', label: 'TSLA' },
+];
+
 const TABS: { id: StockCategory; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'investing', label: '투자 중' },
@@ -93,6 +101,7 @@ export default function PortfolioSection() {
     stocks, currentTab, macroData,
     setCurrentTab, setAnalysisSymbol,
     deleteStock, setEditingCat, setEditingIdx,
+    addStock,
     alerts, dismissedAlerts,
     currency, setCurrency,
   } = usePortfolioStore();
@@ -349,10 +358,41 @@ export default function PortfolioSection() {
 
         {/* Stock table */}
         {displayList.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="text-[36px] mb-3">📊</div>
-            <div className="text-[15px] font-semibold text-[#191F28]">종목이 없습니다</div>
-            <div className="text-[13px] text-[#8B95A1] mt-1">상단 검색에서 추가하세요</div>
+          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>종목을 추가해볼까요?</div>
+            <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.6, marginBottom: 32 }}>
+              관심 있는 종목을 추가하면<br/>실시간 가격, AI 분석, 스마트 알림을 받을 수 있어요.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+              {QUICK_ADD_STOCKS.map(s => {
+                const alreadyAdded = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])].some(st => st.symbol === s.symbol);
+                return (
+                  <button
+                    key={s.symbol}
+                    onClick={() => {
+                      if (alreadyAdded) return;
+                      addStock('watching', { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 20,
+                      background: alreadyAdded ? '#3182F6' : '#F2F4F6',
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: alreadyAdded ? '#fff' : '#333D4B',
+                      border: 'none',
+                      cursor: alreadyAdded ? 'default' : 'pointer',
+                    }}
+                  >
+                    {alreadyAdded ? `\u2713 ${s.label}` : `+ ${s.label}`}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 13, color: '#B0B8C1' }}>
+              또는 상단 검색에서 원하는 종목을 찾아보세요
+            </div>
           </div>
         ) : (
           <div>
