@@ -182,19 +182,8 @@ export const PERIODS: Period[] = [
 ];
 
 export const DEFAULT_STOCKS: PortfolioStocks = {
-  investing: [
-    { symbol: 'ASTX', targetSell: 48.93, stopLoss: 37.81, avgCost: 44.48, shares: 470, targetReturn: 10 },
-    { symbol: 'BEX', targetSell: 27.28, stopLoss: 21.08, avgCost: 24.80, shares: 840, targetReturn: 10 },
-    { symbol: 'MU', buyZones: [430, 404, 380], weight: 40, avgCost: 418, shares: 25, targetReturn: 20 },
-    { symbol: 'MSFT', buyZones: [385, 366, 350], weight: 30, avgCost: 390, shares: 20, targetReturn: 15 },
-  ],
-  watching: [
-    { symbol: 'AVGO', buyBelow: 310, avgCost: 0, shares: 0, targetReturn: 0 },
-    { symbol: 'AMZN', buyBelow: 190, avgCost: 0, shares: 0, targetReturn: 0 },
-    { symbol: 'GOOGL', buyBelow: 170, avgCost: 0, shares: 0, targetReturn: 0 },
-    { symbol: 'META', buyBelow: 550, avgCost: 0, shares: 0, targetReturn: 0 },
-    { symbol: 'TSLA', buyBelow: 250, avgCost: 0, shares: 0, targetReturn: 0 },
-  ],
+  investing: [],
+  watching: [],
   sold: [],
 };
 

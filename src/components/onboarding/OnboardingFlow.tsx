@@ -1,16 +1,26 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { usePortfolioStore } from '@/store/portfolioStore';
+import type { StockItem } from '@/config/constants';
 
 interface OnboardingFlowProps {
   userName: string;
   onComplete: () => void;
 }
 
-const POPULAR_STOCKS = ['삼성전자', 'NVDA', 'AAPL', 'MSFT', 'TSLA'];
+const POPULAR_STOCKS = [
+  { symbol: '005930.KS', label: '삼성전자' },
+  { symbol: 'NVDA', label: 'NVDA' },
+  { symbol: 'AAPL', label: 'AAPL' },
+  { symbol: 'MSFT', label: 'MSFT' },
+  { symbol: 'TSLA', label: 'TSLA' },
+];
 
 export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(0);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const { addStock } = usePortfolioStore();
 
   const handleNext = useCallback(() => {
     if (step < 2) {
@@ -114,22 +124,34 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 marginBottom: '16px',
               }}
             >
-              {POPULAR_STOCKS.map((s) => (
-                <span
-                  key={s}
-                  style={{
-                    display: 'inline-block',
-                    padding: '8px 18px',
-                    borderRadius: '20px',
-                    background: '#F2F4F6',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    color: '#333D4B',
-                  }}
-                >
-                  {s}
-                </span>
-              ))}
+              {POPULAR_STOCKS.map((s) => {
+                const isAdded = added.has(s.symbol);
+                return (
+                  <button
+                    key={s.symbol}
+                    onClick={() => {
+                      if (isAdded) return;
+                      const ns: StockItem = { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 };
+                      addStock('watching', ns);
+                      setAdded(prev => new Set(prev).add(s.symbol));
+                    }}
+                    style={{
+                      display: 'inline-block',
+                      padding: '10px 20px',
+                      borderRadius: '20px',
+                      background: isAdded ? '#3182F6' : '#F2F4F6',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: isAdded ? '#fff' : '#333D4B',
+                      border: 'none',
+                      cursor: isAdded ? 'default' : 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {isAdded ? `✓ ${s.label}` : s.label}
+                  </button>
+                );
+              })}
             </div>
             <p
               style={{
