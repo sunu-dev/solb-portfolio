@@ -9,10 +9,11 @@ interface StockChartProps {
   sma5: number[];
   sma20: number[];
   sma60: number[];
-  level?: 'basic' | 'analysis' | 'expert';
+  level?: 'basic' | 'detail';
   bollingerBands?: { middle: number; upper: number; lower: number }[];
   macdData?: { macd: number[]; signal: number[]; histogram: number[] };
   rsiData?: number[];
+  visibleBars?: number; // 0 = fit all
 }
 
 export default function StockChart({
@@ -21,6 +22,7 @@ export default function StockChart({
   bollingerBands,
   macdData,
   rsiData,
+  visibleBars = 60,
 }: StockChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
@@ -28,6 +30,7 @@ export default function StockChart({
   const macdChartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
   const rsiContainerRef = useRef<HTMLDivElement>(null);
   const rsiChartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
+  const observersRef = useRef<ResizeObserver[]>([]);
 
   useEffect(() => {
     if (!containerRef.current || !raw?.t?.length) return;
@@ -37,10 +40,12 @@ export default function StockChart({
     import('lightweight-charts').then((LightweightCharts) => {
       if (!isMounted || !containerRef.current) return;
 
-      // Clean up previous charts
+      // Clean up previous charts & observers
       if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
       if (macdChartRef.current) { macdChartRef.current.remove(); macdChartRef.current = null; }
       if (rsiChartRef.current) { rsiChartRef.current.remove(); rsiChartRef.current = null; }
+      observersRef.current.forEach(ro => ro.disconnect());
+      observersRef.current = [];
 
       const chartOpts = {
         width: containerRef.current.clientWidth,
@@ -116,18 +121,18 @@ export default function StockChart({
       if (sma20.length) addLine(sma20, raw.t.length - sma20.length, '#ffa726', 1);
       if (sma60.length) addLine(sma60, raw.t.length - sma60.length, '#a29bfe', 1);
 
-      // Expert: also show MA 5
-      if (level === 'expert' && sma5.length) {
+      // Detail: also show MA 5
+      if (level === 'detail' && sma5.length) {
         addLine(sma5, raw.t.length - sma5.length, '#4fc3f7', 1);
       }
 
-      // Analysis / Expert: Bollinger Bands
-      if ((level === 'analysis' || level === 'expert') && bollingerBands && bollingerBands.length) {
+      // Detail: Bollinger Bands
+      if (level === 'detail' && bollingerBands && bollingerBands.length) {
         const startIdx = raw.t.length - bollingerBands.length;
         const upperLine = chart.addSeries(LightweightCharts.LineSeries, {
           color: 'rgba(139, 149, 161, 0.4)',
           lineWidth: 1,
-          lineStyle: 2, // dashed
+          lineStyle: 2,
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
@@ -150,7 +155,16 @@ export default function StockChart({
         })));
       }
 
-      chart.timeScale().fitContent();
+      // Set visible range: default 3M (60 bars), 0 = fit all
+      const dataLength = candleData.length;
+      if (visibleBars > 0 && dataLength > visibleBars) {
+        chart.timeScale().setVisibleLogicalRange({
+          from: dataLength - visibleBars,
+          to: dataLength - 1,
+        });
+      } else {
+        chart.timeScale().fitContent();
+      }
 
       // Resize observer for main chart
       const ro = new ResizeObserver(entries => {
@@ -159,9 +173,10 @@ export default function StockChart({
         }
       });
       ro.observe(containerRef.current!);
+      observersRef.current.push(ro);
 
-      // MACD sub-chart
-      if ((level === 'analysis' || level === 'expert') && macdData && macdContainerRef.current) {
+      // MACD sub-chart (detail only)
+      if (level === 'detail' && macdData && macdContainerRef.current) {
         const macdChart = LightweightCharts.createChart(macdContainerRef.current, {
           width: macdContainerRef.current.clientWidth,
           height: 100,
@@ -177,7 +192,6 @@ export default function StockChart({
         });
         macdChartRef.current = macdChart;
 
-        // MACD histogram
         const histStart = raw.t.length - macdData.histogram.length;
         const histSeries = macdChart.addSeries(LightweightCharts.HistogramSeries, {
           priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
@@ -188,35 +202,28 @@ export default function StockChart({
           color: v >= 0 ? 'rgba(239,68,82,0.4)' : 'rgba(49,130,246,0.4)',
         })));
 
-        // MACD line
         const macdStart = raw.t.length - macdData.macd.length;
         const macdLineSeries = macdChart.addSeries(LightweightCharts.LineSeries, {
-          color: '#3182F6',
-          lineWidth: 1,
-          priceLineVisible: false,
-          lastValueVisible: false,
-          crosshairMarkerVisible: false,
+          color: '#3182F6', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         macdLineSeries.setData(macdData.macd.map((v, i) => ({
-          time: tsToDate(raw.t[macdStart + i]) as string,
-          value: v,
+          time: tsToDate(raw.t[macdStart + i]) as string, value: v,
         })));
 
-        // Signal line
         const signalStart = raw.t.length - macdData.signal.length;
         const signalLineSeries = macdChart.addSeries(LightweightCharts.LineSeries, {
-          color: '#ffa726',
-          lineWidth: 1,
-          priceLineVisible: false,
-          lastValueVisible: false,
-          crosshairMarkerVisible: false,
+          color: '#ffa726', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         signalLineSeries.setData(macdData.signal.map((v, i) => ({
-          time: tsToDate(raw.t[signalStart + i]) as string,
-          value: v,
+          time: tsToDate(raw.t[signalStart + i]) as string, value: v,
         })));
 
-        macdChart.timeScale().fitContent();
+        // Sync visible range with main chart
+        if (visibleBars > 0 && dataLength > visibleBars) {
+          macdChart.timeScale().setVisibleLogicalRange({ from: dataLength - visibleBars, to: dataLength - 1 });
+        } else {
+          macdChart.timeScale().fitContent();
+        }
 
         const ro2 = new ResizeObserver(entries => {
           for (const e of entries) {
@@ -224,10 +231,11 @@ export default function StockChart({
           }
         });
         ro2.observe(macdContainerRef.current!);
+        observersRef.current.push(ro2);
       }
 
-      // RSI sub-chart (analysis/expert)
-      if ((level === 'analysis' || level === 'expert') && rsiData && rsiData.length && rsiContainerRef.current) {
+      // RSI sub-chart (detail only)
+      if (level === 'detail' && rsiData && rsiData.length && rsiContainerRef.current) {
         const rsiChart = LightweightCharts.createChart(rsiContainerRef.current, {
           width: rsiContainerRef.current.clientWidth,
           height: 80,
@@ -245,18 +253,18 @@ export default function StockChart({
 
         const rsiStart = raw.t.length - rsiData.length;
         const rsiLineSeries = rsiChart.addSeries(LightweightCharts.LineSeries, {
-          color: '#a29bfe',
-          lineWidth: 1,
-          priceLineVisible: false,
-          lastValueVisible: false,
-          crosshairMarkerVisible: false,
+          color: '#a29bfe', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         rsiLineSeries.setData(rsiData.map((v, i) => ({
-          time: tsToDate(raw.t[rsiStart + i]) as string,
-          value: v,
+          time: tsToDate(raw.t[rsiStart + i]) as string, value: v,
         })));
 
-        rsiChart.timeScale().fitContent();
+        // Sync visible range
+        if (visibleBars > 0 && dataLength > visibleBars) {
+          rsiChart.timeScale().setVisibleLogicalRange({ from: dataLength - visibleBars, to: dataLength - 1 });
+        } else {
+          rsiChart.timeScale().fitContent();
+        }
 
         const ro3 = new ResizeObserver(entries => {
           for (const e of entries) {
@@ -264,11 +272,8 @@ export default function StockChart({
           }
         });
         ro3.observe(rsiContainerRef.current!);
+        observersRef.current.push(ro3);
       }
-
-      return () => {
-        ro.disconnect();
-      };
     });
 
     return () => {
@@ -276,21 +281,23 @@ export default function StockChart({
       if (chartRef.current) { chartRef.current.remove(); chartRef.current = null; }
       if (macdChartRef.current) { macdChartRef.current.remove(); macdChartRef.current = null; }
       if (rsiChartRef.current) { rsiChartRef.current.remove(); rsiChartRef.current = null; }
+      observersRef.current.forEach(ro => ro.disconnect());
+      observersRef.current = [];
     };
-  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData]);
+  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars]);
 
   return (
     <div>
       <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
 
-      {(level === 'analysis' || level === 'expert') && macdData && (
+      {level === 'detail' && macdData && (
         <>
           <div className="text-[11px] text-[#B0B8C1] mt-3 mb-1 font-medium">MACD</div>
           <div ref={macdContainerRef} className="w-full rounded-lg overflow-hidden" />
         </>
       )}
 
-      {(level === 'analysis' || level === 'expert') && rsiData && rsiData.length > 0 && (
+      {level === 'detail' && rsiData && rsiData.length > 0 && (
         <>
           <div className="text-[11px] text-[#B0B8C1] mt-3 mb-1 font-medium">RSI</div>
           <div ref={rsiContainerRef} className="w-full rounded-lg overflow-hidden" />
@@ -300,8 +307,8 @@ export default function StockChart({
       <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
         <span><span className="text-[#ffa726]">━</span> 20일</span>
         <span><span className="text-[#a29bfe]">━</span> 60일</span>
-        {level === 'expert' && <span><span className="text-[#4fc3f7]">━</span> 5일</span>}
-        {(level === 'analysis' || level === 'expert') && bollingerBands && (
+        {level === 'detail' && <span><span className="text-[#4fc3f7]">━</span> 5일</span>}
+        {level === 'detail' && bollingerBands && (
           <span><span className="text-[#8B95A1]">┄</span> 볼린저</span>
         )}
       </div>

@@ -20,7 +20,7 @@ const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
 const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-type ChartLevel = 'basic' | 'analysis' | 'expert';
+type ChartLevel = 'basic' | 'detail';
 
 function fmtWon(val: number): string {
   const abs = Math.abs(val);
@@ -49,6 +49,7 @@ export default function AnalysisPanel() {
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
+  const [chartRange, setChartRange] = useState<number>(60); // default 3M (60 trading days)
   const [showAIReport, setShowAIReport] = useState(false);
   const [aiReport, setAiReport] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -384,9 +385,9 @@ export default function AnalysisPanel() {
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📊 주요 지표</div>
                             <div className="flex flex-col" style={{ gap: 8 }}>
                               {aiReport.indicators.map((ind: any, idx: number) => (
-                                <div key={idx} className="flex justify-between items-center" style={{ padding: '10px 14px', background: '#fff', borderRadius: 10 }}>
-                                  <span style={{ fontSize: 13, color: '#4E5968' }}>{ind.name}</span>
-                                  <span style={{ fontSize: 13, fontWeight: 600, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#8B95A1' }}>{ind.value}</span>
+                                <div key={idx} style={{ padding: '12px 14px', background: '#fff', borderRadius: 10 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: '#8B95A1', marginBottom: 4 }}>{ind.name}</div>
+                                  <div style={{ fontSize: 13, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#4E5968', lineHeight: 1.6 }}>{ind.value}</div>
                                 </div>
                               ))}
                             </div>
@@ -609,8 +610,9 @@ export default function AnalysisPanel() {
                       📈 차트 분석
                     </div>
 
-                    <div className="flex items-center" style={{ border: '1px solid #F2F4F6', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
-                      {(['basic', 'analysis', 'expert'] as ChartLevel[]).map((lvl, idx) => (
+                    {/* Chart level tabs: 2 tabs */}
+                    <div className="flex items-center" style={{ border: '1px solid #F2F4F6', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+                      {(['basic', 'detail'] as ChartLevel[]).map((lvl, idx) => (
                         <button
                           key={lvl}
                           onClick={() => setChartLevel(lvl)}
@@ -626,10 +628,37 @@ export default function AnalysisPanel() {
                             borderTop: 'none',
                             borderBottom: 'none',
                             borderLeft: 'none',
-                            borderRight: idx < 2 ? '1px solid #F2F4F6' : 'none',
+                            borderRight: idx < 1 ? '1px solid #F2F4F6' : 'none',
                           }}
                         >
-                          {lvl === 'basic' ? '기본' : lvl === 'analysis' ? '더 보기' : '전문가'}
+                          {lvl === 'basic' ? '기본' : '상세'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Timeframe selector */}
+                    <div className="flex items-center justify-center" style={{ gap: 4, marginBottom: 16 }}>
+                      {([
+                        { label: '1M', days: 22 },
+                        { label: '3M', days: 60 },
+                        { label: '6M', days: 120 },
+                        { label: '1Y', days: 0 },
+                      ]).map(tf => (
+                        <button
+                          key={tf.label}
+                          onClick={() => setChartRange(tf.days)}
+                          className="cursor-pointer"
+                          style={{
+                            padding: '5px 14px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: chartRange === tf.days ? 700 : 500,
+                            color: chartRange === tf.days ? '#3182F6' : '#8B95A1',
+                            background: chartRange === tf.days ? 'rgba(49,130,246,0.08)' : 'transparent',
+                            border: 'none',
+                          }}
+                        >
+                          {tf.label}
                         </button>
                       ))}
                     </div>
@@ -644,12 +673,11 @@ export default function AnalysisPanel() {
                       bollingerBands={analysis.bollinger}
                       macdData={analysis.macdResult}
                       rsiData={analysis.rsi}
+                      visibleBars={chartRange}
                     />
 
                     <div style={{ fontSize: 12, color: '#B0B8C1', textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
-                      {chartLevel === 'basic' && '기본: 캔들 + MA(20/60) + 거래량'}
-                      {chartLevel === 'analysis' && '더 보기: 캔들 + MA(20/60) + 볼린저 밴드 + MACD + RSI'}
-                      {chartLevel === 'expert' && '전문가: 모든 지표 표시'}
+                      {chartLevel === 'basic' ? '캔들 + MA(20/60) + 거래량' : '캔들 + MA(5/20/60) + 볼린저밴드 + MACD + RSI'}
                     </div>
 
                     {/* Technical indicators grid */}
