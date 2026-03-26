@@ -104,6 +104,7 @@ export default function PortfolioSection() {
     addStock,
     alerts, dismissedAlerts,
     currency, setCurrency,
+    lastUpdate,
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
@@ -355,6 +356,14 @@ export default function PortfolioSection() {
             );
           })}
         </div>
+
+        {/* 지연 시세 안내 */}
+        {displayList.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8, fontSize: 11, color: '#B0B8C1' }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#B0B8C1', display: 'inline-block' }} />
+            15분 지연 시세{lastUpdate && ` · ${lastUpdate} 갱신`}
+          </div>
+        )}
 
         {/* Stock table */}
         {displayList.length === 0 ? (

@@ -230,6 +230,9 @@ export default function AnalysisPanel() {
                   <div style={{ fontSize: 15, fontWeight: 500, marginTop: 4, color: isGain ? '#EF4452' : '#3182F6' }}>
                     {isGain ? '▲' : '▼'} {change >= 0 ? '+' : ''}${change.toFixed(2)} ({cp >= 0 ? '+' : ''}{cp.toFixed(2)}%) 오늘
                   </div>
+                  <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 6 }}>
+                    ⏱ 약 15분 지연 시세
+                  </div>
                 </div>
 
                 {/* AI 분석 리포트 버튼 */}

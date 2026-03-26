@@ -82,6 +82,9 @@ export default function MarketSummary() {
           );
         })()}
       </span>
+      <span className="shrink-0 hidden md:inline" style={{ fontSize: '11px', color: '#B0B8C1', marginLeft: 8 }}>
+        (15분 지연)
+      </span>
     </div>
     </div>
   );
