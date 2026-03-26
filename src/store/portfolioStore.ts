@@ -96,6 +96,7 @@ interface PortfolioState {
   addStock: (category: StockCategoryKey, stock: StockItem) => void;
   deleteStock: (category: StockCategoryKey, idx: number) => void;
   updateStock: (category: StockCategoryKey, idx: number, data: Partial<StockItem>) => void;
+  moveStock: (fromCat: StockCategoryKey, idx: number, toCat: StockCategoryKey) => void;
   loadPortfolio: () => void;
   savePortfolio: () => void;
   addCustomEvent: (event: PresetEvent) => void;
@@ -206,9 +207,33 @@ export const usePortfolioStore = create<PortfolioState>()(
       updateStock: (category, idx, data) =>
         set((state) => {
           const updated = { ...state.stocks };
+          const newStock = { ...updated[category][idx], ...data };
           updated[category] = updated[category].map((s, i) =>
-            i === idx ? { ...s, ...data } : s
+            i === idx ? newStock : s
           );
+
+          // 자동 분류: avgCost > 0 && shares > 0이면 investing으로, 둘 다 0이면 watching으로
+          const hasPosition = (newStock.avgCost || 0) > 0 && (newStock.shares || 0) > 0;
+          if (hasPosition && category !== 'investing') {
+            // watching/sold → investing로 이동
+            updated[category] = updated[category].filter((_, i) => i !== idx);
+            updated.investing = [...updated.investing, newStock];
+          } else if (!hasPosition && category === 'investing') {
+            // investing에서 수량/단가 0으로 변경 → watching으로 이동
+            updated[category] = updated[category].filter((_, i) => i !== idx);
+            updated.watching = [...updated.watching, { ...newStock, buyBelow: newStock.buyBelow || 0 }];
+          }
+
+          return { stocks: updated };
+        }),
+
+      moveStock: (fromCat, idx, toCat) =>
+        set((state) => {
+          const updated = { ...state.stocks };
+          const stock = updated[fromCat][idx];
+          if (!stock || fromCat === toCat) return state;
+          updated[fromCat] = updated[fromCat].filter((_, i) => i !== idx);
+          updated[toCat] = [...updated[toCat], stock];
           return { stocks: updated };
         }),
 

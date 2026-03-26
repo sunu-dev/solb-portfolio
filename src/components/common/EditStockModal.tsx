@@ -7,7 +7,7 @@ import { STOCK_KR } from '@/config/constants';
 export default function EditStockModal() {
   const {
     stocks, editingCat, editingIdx,
-    setEditingCat, setEditingIdx, updateStock,
+    setEditingCat, setEditingIdx, updateStock, moveStock,
   } = usePortfolioStore();
 
   const [avgCost, setAvgCost] = useState('');
@@ -125,6 +125,42 @@ export default function EditStockModal() {
         </div>
 
         <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 200px))', overflowY: 'auto' }}>
+          {/* Category selector */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>분류</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {([
+                { id: 'investing', label: '투자 중' },
+                { id: 'watching', label: '관심 종목' },
+                { id: 'sold', label: '매도 완료' },
+              ] as const).map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => {
+                    if (editingCat === cat.id) return;
+                    const idx = editingIdx;
+                    moveStock(editingCat as 'investing' | 'watching' | 'sold', idx, cat.id);
+                    setEditingCat(cat.id);
+                    setEditingIdx(stocks[cat.id].length); // moved to end
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: editingCat === cat.id ? 700 : 500,
+                    color: editingCat === cat.id ? '#3182F6' : '#8B95A1',
+                    background: editingCat === cat.id ? 'rgba(49,130,246,0.08)' : '#F2F4F6',
+                    border: editingCat === cat.id ? '1px solid rgba(49,130,246,0.3)' : '1px solid transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Common fields */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
