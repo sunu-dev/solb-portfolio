@@ -536,7 +536,9 @@ export default function PortfolioSection() {
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}
                         {stock.shares > 0 && ` · ${stock.shares}주`}
-                        {!stock.shares && stock.buyBelow ? ` · 목표 $${stock.buyBelow}` : ''}
+                        {!stock.shares && stock.buyBelow
+                          ? ` · 목표 ${currency === 'KRW' ? `₩${fmtWonShort(stock.buyBelow * usdKrw)}` : `$${stock.buyBelow}`}`
+                          : ''}
                       </div>
                     </div>
                   </div>
@@ -544,10 +546,18 @@ export default function PortfolioSection() {
                   {/* Price cell */}
                   <div className="text-right">
                     <div className="text-[15px] font-semibold text-[#191F28] tabular-nums">
-                      ${price ? price.toFixed(2) : '--'}
+                      {price
+                        ? currency === 'KRW'
+                          ? `₩${fmtWonShort(priceWon)}`
+                          : `$${price.toFixed(2)}`
+                        : '--'}
                     </div>
                     <div className="text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
-                      {price > 0 ? `₩${fmtWonShort(priceWon)}` : ''}
+                      {price > 0
+                        ? currency === 'KRW'
+                          ? `$${price.toFixed(2)}`
+                          : `₩${fmtWonShort(priceWon)}`
+                        : ''}
                     </div>
                   </div>
 
@@ -557,7 +567,11 @@ export default function PortfolioSection() {
                       {price ? `${isStockGain ? '▲' : '▼'} ${isStockGain ? '+' : ''}${dp.toFixed(2)}%` : '--'}
                     </div>
                     <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isStockGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                      {price ? `${change >= 0 ? '+' : ''}$${change.toFixed(2)}` : ''}
+                      {price
+                        ? currency === 'KRW'
+                          ? `${change >= 0 ? '+' : ''}₩${fmtWonShort(Math.abs(change * usdKrw))}`
+                          : `${change >= 0 ? '+' : ''}$${change.toFixed(2)}`
+                        : ''}
                     </div>
                   </div>
 
