@@ -8,6 +8,8 @@ import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem } from '
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import PortfolioHeatmap from './PortfolioHeatmap';
+import GoalProgress from './GoalProgress';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -353,6 +355,33 @@ export default function PortfolioSection() {
           </>
         )}
       </div>
+
+      {/* Portfolio Heatmap + Goal Progress */}
+      {hasInvestment && (
+        <div style={{ marginTop: 32 }}>
+          <PortfolioHeatmap
+            stocks={investingStocks}
+            macroData={macroData}
+            usdKrw={usdKrw}
+            currency={currency}
+          />
+          <GoalProgress
+            stocks={investingStocks.map(s => {
+              const q = macroData[s.symbol] as QuoteData | undefined;
+              return {
+                symbol: s.symbol,
+                avgCost: s.avgCost,
+                shares: s.shares,
+                targetReturn: s.targetReturn,
+                currentPrice: q?.c || 0,
+                value: (q?.c || 0) * s.shares,
+              };
+            })}
+            currency={currency}
+            usdKrw={usdKrw}
+          />
+        </div>
+      )}
 
       {/* Divider + content below */}
       <div style={{ marginTop: '40px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
