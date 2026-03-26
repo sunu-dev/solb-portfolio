@@ -51,16 +51,16 @@ export default function MarketSummary() {
     <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
     <div
       className="flex items-center mx-auto market-summary-bar"
-      style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
+      style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px', overflow: 'hidden' }}
     >
-      <style>{`@media (max-width: 768px) { .market-summary-bar { padding: 10px 16px !important; } .market-summary-text { font-size: 12px !important; } }`}</style>
+      <style>{`@media (max-width: 768px) { .market-summary-bar { padding: 10px 16px !important; } .market-summary-text { font-size: 12px !important; white-space: nowrap; } }`}</style>
       <div
         className="flex items-center justify-center shrink-0"
         style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#FFF0F0', fontSize: '10px' }}
       >
         📉
       </div>
-      <span className="market-summary-text" style={{ fontSize: '14px', color: '#191F28', fontWeight: 500, lineHeight: 1.5 }}>
+      <span className="market-summary-text" style={{ fontSize: '14px', color: '#191F28', fontWeight: 500, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
         S&P 500{' '}
         <span className={`font-bold ${isDown(spCp) ? 'text-[#3182F6]' : 'text-[#EF4452]'}`}>
           {spCp >= 0 ? '+' : ''}{spCp.toFixed(2)}%

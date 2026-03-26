@@ -48,7 +48,7 @@ export default function GlossaryTooltip({ term, children }: Props) {
             left: '50%',
             transform: 'translateX(-50%)',
             marginBottom: 8,
-            width: 280,
+            width: 'min(280px, 90vw)',
             padding: '14px 18px',
             background: '#191F28',
             color: '#fff',

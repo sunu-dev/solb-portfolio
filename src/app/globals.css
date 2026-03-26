@@ -145,6 +145,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 body {
@@ -156,6 +157,7 @@ body {
   letter-spacing: -0.005em;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
 
 /* ==========================================
@@ -469,7 +471,32 @@ body {
    ========================================== */
 @media (max-width: 1023px) {
   .main-content {
-    padding-bottom: 72px !important;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ==========================================
+   Safe Area Insets (iPhone X+ notch/home bar)
+   ========================================== */
+.mobile-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* ==========================================
+   Touch Optimization
+   ========================================== */
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Active state for touch devices (replaces hover) */
+@media (hover: none) {
+  button:active, [role="button"]:active {
+    opacity: 0.7;
+  }
+  .stock-row:active {
+    background: #F9FAFB;
   }
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import RightSidebar from './RightSidebar';
 
 interface Props {
@@ -8,6 +9,15 @@ interface Props {
 }
 
 export default function MobileSidebar({ isOpen, onClose }: Props) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -27,7 +37,10 @@ export default function MobileSidebar({ isOpen, onClose }: Props) {
           borderRadius: '20px 20px 0 0',
           zIndex: 70,
           overflowY: 'auto',
-          padding: '20px 20px 80px',
+          paddingTop: 20,
+          paddingLeft: 20,
+          paddingRight: 20,
+          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
           animation: 'slideUp 0.3s ease-out',
         }}
         className="mobile-sidebar-sheet"

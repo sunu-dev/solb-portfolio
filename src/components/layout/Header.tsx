@@ -158,7 +158,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             </kbd>
           </button>
           {showSearch && (
-            <div className="absolute right-0 top-full mt-2 w-[360px] z-50">
+            <div className="fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
               <SearchBar onClose={() => setShowSearch(false)} />
             </div>
           )}

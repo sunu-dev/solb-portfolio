@@ -27,7 +27,7 @@ export default function BottomTicker() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-30 bg-white flex items-center overflow-hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-white hidden lg:flex items-center overflow-hidden"
       style={{ height: '32px', borderTop: '1px solid #F2F4F6', fontSize: '12px' }}
     >
       {/* Label */}

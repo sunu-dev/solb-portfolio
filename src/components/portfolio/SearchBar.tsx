@@ -146,7 +146,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* Results */}
       {showResults && results.length > 0 && (
-        <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+        <div style={{ maxHeight: 'min(320px, calc(100vh - 160px))', overflowY: 'auto' }}>
           {results.map((item, idx) => (
             <button
               key={`${item.symbol}-${idx}`}

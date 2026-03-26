@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 
@@ -24,6 +24,16 @@ export default function EditStockModal() {
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
   const kr = stock ? (STOCK_KR[stock.symbol] || stock.symbol) : '';
+
+  // Scroll lock when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   useEffect(() => {
     if (!stock) return;
@@ -102,7 +112,7 @@ export default function EditStockModal() {
           <p className="text-[12px] text-[#8B95A1] mt-0.5">매수 정보와 목표가를 설정하세요</p>
         </div>
 
-        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+        <div className="px-6 py-4 max-h-[min(60vh,calc(100vh-200px))] overflow-y-auto">
           <div className="space-y-4">
             {/* Common fields */}
             <div className="grid grid-cols-2 gap-3">

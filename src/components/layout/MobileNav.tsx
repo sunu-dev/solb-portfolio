@@ -23,7 +23,6 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 56,
         background: 'white',
         borderTop: '1px solid #F2F4F6',
         display: 'flex',

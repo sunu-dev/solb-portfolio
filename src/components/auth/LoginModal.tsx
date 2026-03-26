@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,6 +16,16 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
     },
     [onClose],
   );
+
+  // Scroll lock when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
