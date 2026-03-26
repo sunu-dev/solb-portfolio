@@ -366,13 +366,21 @@ export default function PortfolioSection() {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {QUICK_ADD_STOCKS.map(s => {
-                const alreadyAdded = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])].some(st => st.symbol === s.symbol);
+                const allStocks = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
+                const alreadyAdded = allStocks.some(st => st.symbol === s.symbol);
                 return (
                   <button
                     key={s.symbol}
                     onClick={() => {
-                      if (alreadyAdded) return;
-                      addStock('watching', { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
+                      if (alreadyAdded) {
+                        // 해제: 해당 종목 찾아서 삭제
+                        for (const cat of ['investing', 'watching', 'sold'] as const) {
+                          const idx = (stocks[cat] || []).findIndex(st => st.symbol === s.symbol);
+                          if (idx >= 0) { deleteStock(cat, idx); break; }
+                        }
+                      } else {
+                        addStock('watching', { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
+                      }
                     }}
                     style={{
                       padding: '10px 20px',
@@ -382,7 +390,7 @@ export default function PortfolioSection() {
                       fontWeight: 500,
                       color: alreadyAdded ? '#fff' : '#333D4B',
                       border: 'none',
-                      cursor: alreadyAdded ? 'default' : 'pointer',
+                      cursor: 'pointer',
                     }}
                   >
                     {alreadyAdded ? `\u2713 ${s.label}` : `+ ${s.label}`}
