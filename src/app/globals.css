@@ -304,6 +304,34 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* ==========================================
+   Mobile Responsive
+   ========================================== */
+@media (max-width: 768px) {
+  .header-inner {
+    padding: 0 16px !important;
+  }
+  .stock-table-row {
+    grid-template-columns: 1fr 80px 70px auto !important;
+  }
+  .stock-table-header {
+    display: none !important;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Stock row edit/delete buttons */
+.stock-row:hover .row-actions {
+  opacity: 1 !important;
+}
+@media (max-width: 768px) {
+  .row-actions {
+    opacity: 1 !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

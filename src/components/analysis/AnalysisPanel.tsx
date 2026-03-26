@@ -15,6 +15,10 @@ import { X } from 'lucide-react';
 
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
 
+// AI report cache (module-level, persists across re-renders)
+const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
 type ChartLevel = 'basic' | 'analysis' | 'expert';
 
 function fmtWon(val: number): string {
@@ -150,7 +154,7 @@ export default function AnalysisPanel() {
           className="flex flex-col"
           style={{
             width: '100%',
-            maxWidth: 560,
+            maxWidth: 'min(560px, 95vw)',
             maxHeight: '90vh',
             background: '#FFFFFF',
             borderRadius: 20,
@@ -217,6 +221,12 @@ export default function AnalysisPanel() {
                     if (showAIReport) { setShowAIReport(false); return; }
                     setShowAIReport(true);
                     if (aiReport) return; // already loaded
+                    // Check cache first
+                    const cached = symbol ? aiReportCache[symbol] : null;
+                    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                      setAiReport(cached.report);
+                      return;
+                    }
                     setAiLoading(true);
                     setAiError('');
                     try {
@@ -275,7 +285,10 @@ export default function AnalysisPanel() {
                         }),
                       });
                       const data = await resp.json();
-                      if (data.success) { setAiReport(data.report); }
+                      if (data.success) {
+                        setAiReport(data.report);
+                        if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
+                      }
                       else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
                     } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }
                     setAiLoading(false);

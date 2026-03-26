@@ -53,18 +53,21 @@ function extractSource(title: string): string {
 }
 
 function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
+  const sorted = items.sort((a, b) => {
+    const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+    const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  // Try 24 hours first
   const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  return items
-    .sort((a, b) => {
-      const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-      const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-      return dateB - dateA;
-    })
-    .filter(item => {
-      if (!item.pubDate) return true;
-      return new Date(item.pubDate).getTime() > oneDayAgo;
-    })
-    .slice(0, 15);
+  const recent = sorted.filter(item => !item.pubDate || new Date(item.pubDate).getTime() > oneDayAgo);
+  if (recent.length >= 3) return recent.slice(0, 15);
+
+  // Fallback to 72 hours if not enough (weekend/night)
+  const threeDaysAgo = Date.now() - 72 * 60 * 60 * 1000;
+  const fallback = sorted.filter(item => !item.pubDate || new Date(item.pubDate).getTime() > threeDaysAgo);
+  return fallback.slice(0, 15);
 }
 
 export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null> {

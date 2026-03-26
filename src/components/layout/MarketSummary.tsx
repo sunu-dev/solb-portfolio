@@ -15,7 +15,7 @@ export default function MarketSummary() {
     return (
       <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
       <div
-        className="flex items-center mx-auto"
+        className="flex items-center mx-auto market-summary-bar"
         style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
       >
         <div
@@ -24,7 +24,7 @@ export default function MarketSummary() {
         >
           📊
         </div>
-        <span style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 500 }}>
+        <span className="market-summary-text" style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 500 }}>
           시장 데이터를 불러오는 중...
         </span>
       </div>
@@ -50,16 +50,17 @@ export default function MarketSummary() {
   return (
     <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
     <div
-      className="flex items-center mx-auto"
+      className="flex items-center mx-auto market-summary-bar"
       style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
     >
+      <style>{`@media (max-width: 768px) { .market-summary-bar { padding: 10px 16px !important; } .market-summary-text { font-size: 12px !important; } }`}</style>
       <div
         className="flex items-center justify-center shrink-0"
         style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#FFF0F0', fontSize: '10px' }}
       >
         📉
       </div>
-      <span style={{ fontSize: '14px', color: '#191F28', fontWeight: 500, lineHeight: 1.5 }}>
+      <span className="market-summary-text" style={{ fontSize: '14px', color: '#191F28', fontWeight: 500, lineHeight: 1.5 }}>
         S&P 500{' '}
         <span className={`font-bold ${isDown(spCp) ? 'text-[#3182F6]' : 'text-[#EF4452]'}`}>
           {spCp >= 0 ? '+' : ''}{spCp.toFixed(2)}%

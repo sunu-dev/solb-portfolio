@@ -38,7 +38,7 @@ export default function Header() {
       className="sticky top-0 z-40 bg-white"
       style={{ height: '48px', borderBottom: '1px solid #F2F4F6' }}
     >
-      <div className="flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 48px' }}>
+      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 48px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
           <div
@@ -54,12 +54,12 @@ export default function Header() {
           </div>
           <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.01em' }}>
             <span style={{ color: '#3182F6' }}>SOLB</span>
-            <span style={{ color: '#191F28' }}> PORTFOLIO</span>
+            <span className="hidden md:inline" style={{ color: '#191F28' }}> PORTFOLIO</span>
           </span>
         </div>
 
         {/* Main navigation tabs */}
-        <nav className="flex items-center" style={{ marginLeft: '48px', height: '100%' }}>
+        <nav className="flex items-center overflow-x-auto scrollbar-hide" style={{ marginLeft: '48px', height: '100%' }}>
           {NAV_ITEMS.map((item) => {
             const isActive = currentSection === item.section;
             return (
@@ -113,7 +113,8 @@ export default function Header() {
               color: '#B0B8C1',
             }}
           >
-            종목 검색
+            <span className="hidden md:inline">종목 검색</span>
+            <span className="md:hidden">검색</span>
             <kbd
               className="font-sans"
               style={{

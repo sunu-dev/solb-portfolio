@@ -123,7 +123,7 @@ export default function EventsSection() {
       </div>
 
       {/* Event pill tabs */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '20px' }}>
+      <div className="scrollbar-hide" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '20px' }}>
         {events.map(ev => (
           <button
             key={ev.id}

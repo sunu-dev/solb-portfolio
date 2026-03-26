@@ -6,6 +6,7 @@ import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
+import { Edit3, Trash2 } from 'lucide-react';
 
 const TABS: { id: StockCategory; label: string }[] = [
   { id: 'all', label: '전체' },
@@ -227,7 +228,7 @@ export default function PortfolioSection() {
             >
               ({isGain ? '+' : ''}{totalPLPercent.toFixed(2)}%)
             </div>
-            <div className="flex items-center justify-center" style={{ gap: '24px', marginTop: '24px' }}>
+            <div className="flex items-center justify-center flex-wrap" style={{ gap: '24px', marginTop: '24px' }}>
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 총 평가{' '}
                 <strong style={{ color: '#191F28', fontWeight: 600 }}>
@@ -273,7 +274,7 @@ export default function PortfolioSection() {
       <div style={{ marginTop: '40px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
 
         {/* Category tabs */}
-        <div className="flex items-center" style={{ gap: 0, borderBottom: '1px solid #F2F4F6', marginBottom: '32px' }}>
+        <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid #F2F4F6', marginBottom: '32px' }}>
           {TABS.map((tab, tabIdx) => {
             const isActive = activeTab === tab.id;
             const isFirst = tabIdx === 0;
@@ -329,7 +330,7 @@ export default function PortfolioSection() {
           <div>
             {/* Table header */}
             <div
-              className="grid items-center"
+              className="stock-table-header grid items-center"
               style={{
                 gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px',
                 padding: '0 0 12px',
@@ -341,8 +342,8 @@ export default function PortfolioSection() {
               <span>종목명</span>
               <span className="text-right">현재가</span>
               <span className="text-right">오늘 등락</span>
-              <span className="text-right">내 수익</span>
-              <span className="text-right">목표 달성</span>
+              <span className="text-right hide-mobile">내 수익</span>
+              <span className="text-right hide-mobile">목표 달성</span>
             </div>
 
             {/* Rows */}
@@ -389,9 +390,9 @@ export default function PortfolioSection() {
                 <div
                   key={`${stock.symbol}-${stock.category}-${i}`}
                   onClick={() => setAnalysisSymbol(stock.symbol)}
-                  className="stock-row grid items-center cursor-pointer transition-all"
+                  className="stock-row stock-table-row grid items-center cursor-pointer transition-all"
                   style={{
-                    gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px',
+                    gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                     padding: '14px 0',
                     borderTop: '1px solid #F7F8FA',
                   }}
@@ -410,7 +411,7 @@ export default function PortfolioSection() {
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{stock.symbol.charAt(0)}</span>
                     </div>
                     <div className="min-w-0" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div className="flex items-center" style={{ fontSize: '15px', fontWeight: 600, gap: '6px' }}>
+                      <div className="flex items-center flex-wrap" style={{ fontSize: '15px', fontWeight: 600, gap: '6px' }}>
                         <span>{kr}</span>
                         {badge && (
                           <span
@@ -475,7 +476,7 @@ export default function PortfolioSection() {
                   </div>
 
                   {/* P&L cell */}
-                  <div className="text-right">
+                  <div className="text-right hide-mobile">
                     {hasPosition ? (
                       <>
                         <div
@@ -513,7 +514,7 @@ export default function PortfolioSection() {
                   </div>
 
                   {/* Goal progress cell */}
-                  <div className="text-right pr-1">
+                  <div className="text-right pr-1 hide-mobile">
                     {hasGoal ? (
                       <div className="flex items-center justify-end" style={{ gap: '8px' }}>
                         <div style={{ width: '100px', height: '6px', background: '#F2F4F6', borderRadius: '3px', overflow: 'hidden' }}>
@@ -533,6 +534,22 @@ export default function PortfolioSection() {
                     ) : (
                       <span className="text-[11px] text-[#B0B8C1]">-</span>
                     )}
+                  </div>
+
+                  {/* Edit/Delete actions */}
+                  <div className="row-actions flex items-center gap-1" style={{ opacity: 0, transition: 'opacity 0.2s' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingCat(stock.category); setEditingIdx(stock.originalIdx); }}
+                      style={{ padding: 4, borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none' }}
+                    >
+                      <Edit3 size={14} color="#B0B8C1" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteStock(stock.category, stock.originalIdx); }}
+                      style={{ padding: 4, borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none' }}
+                    >
+                      <Trash2 size={14} color="#B0B8C1" />
+                    </button>
                   </div>
                 </div>
               );
