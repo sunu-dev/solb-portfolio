@@ -134,7 +134,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           style={{
             width: '100%',
             padding: '14px 16px 14px 44px',
-            fontSize: 15,
+            fontSize: 16,
             border: 'none',
             outline: 'none',
             background: 'white',

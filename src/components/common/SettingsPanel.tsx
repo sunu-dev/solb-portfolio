@@ -187,7 +187,7 @@ export default function SettingsPanel() {
                   padding: '8px 12px',
                   borderRadius: 8,
                   border: '1px solid #E5E8EB',
-                  fontSize: 14,
+                  fontSize: 16,
                   textAlign: 'center',
                   outline: 'none',
                   boxSizing: 'border-box',

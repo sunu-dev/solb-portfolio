@@ -130,19 +130,19 @@ export default function EditStockModal() {
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>평균 매수 단가 ($)</label>
               <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>보유 수량 (주)</label>
               <input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
             <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="0"
-              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* Category-specific fields */}
@@ -152,23 +152,23 @@ export default function EditStockModal() {
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표가 ($)</label>
                   <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>손절가 ($)</label>
                   <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 구간 (쉼표 구분)</label>
                 <input type="text" value={buyZones} onChange={(e) => setBuyZones(e.target.value)} placeholder="430, 404, 380"
-                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>비중 (%)</label>
                 <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0"
-                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* 추가 매수 */}
@@ -178,12 +178,12 @@ export default function EditStockModal() {
                   <div>
                     <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ($)</label>
                     <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
-                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>수량</label>
                     <input type="number" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
-                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
@@ -199,7 +199,7 @@ export default function EditStockModal() {
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 목표가 ($)</label>
               <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           )}
         </div>
