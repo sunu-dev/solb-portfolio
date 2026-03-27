@@ -4,6 +4,12 @@
 
 // --- Interfaces ---
 
+export interface StockNote {
+  text: string;
+  emoji: string; // 감정 태그
+  date: string;  // ISO date
+}
+
 export interface StockItem {
   symbol: string;
   avgCost: number;
@@ -16,6 +22,8 @@ export interface StockItem {
   weight?: number;
   // Watching-specific
   buyBelow?: number;
+  // Notes
+  notes?: StockNote[];
 }
 
 export interface Transaction {

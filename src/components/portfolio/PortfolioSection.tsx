@@ -11,6 +11,8 @@ import { logApiCall } from '@/lib/apiLogger';
 import PortfolioHeatmap from './PortfolioHeatmap';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
+import LoginStreak from './LoginStreak';
+import ShareCard from './ShareCard';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -234,6 +236,9 @@ export default function PortfolioSection() {
 
   return (
     <div>
+      {/* Login Streak */}
+      <LoginStreak />
+
       {/* Hero - centered */}
       <div style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '40px', position: 'relative' }}>
         {/* Currency toggle */}
@@ -394,6 +399,7 @@ export default function PortfolioSection() {
               };
             })}
           />
+          <ShareCard />
         </div>
       )}
 

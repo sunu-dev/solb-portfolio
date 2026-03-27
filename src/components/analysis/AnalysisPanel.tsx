@@ -16,6 +16,7 @@ import { logApiCall } from '@/lib/apiLogger';
 
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
 import BuySimulator from '@/components/portfolio/BuySimulator';
+import InvestmentNotes from '@/components/portfolio/InvestmentNotes';
 
 // AI report cache (module-level, persists across re-renders)
 const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
@@ -626,6 +627,27 @@ export default function AnalysisPanel() {
                     />
                   </div>
                 )}
+
+                {/* Investment Notes */}
+                {symbol && stockData && (() => {
+                  // Find the stock's category and index for notes
+                  const state = usePortfolioStore.getState();
+                  for (const cat of ['investing', 'watching', 'sold'] as const) {
+                    const idx = (state.stocks[cat] || []).findIndex(s => s.symbol === symbol);
+                    if (idx >= 0) {
+                      const stock = state.stocks[cat][idx];
+                      return (
+                        <InvestmentNotes
+                          symbol={symbol}
+                          category={cat}
+                          stockIdx={idx}
+                          notes={stock.notes || []}
+                        />
+                      );
+                    }
+                  }
+                  return null;
+                })()}
 
                 {analysis && (
                   <>
