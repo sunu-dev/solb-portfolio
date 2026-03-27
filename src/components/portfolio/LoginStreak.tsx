@@ -16,7 +16,10 @@ interface StreakData {
 }
 
 function getToday(): string {
-  return new Date().toISOString().split('T')[0];
+  // KST 기준 날짜 (UTC+9)
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
 }
 
 function loadStreak(): StreakData {
@@ -45,10 +48,11 @@ export default function LoginStreak() {
       return;
     }
 
-    // 어제인지 확인
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    // 어제인지 확인 (KST 기준)
+    const now = new Date();
+    const kstYesterday = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    kstYesterday.setDate(kstYesterday.getDate() - 1);
+    const yesterdayStr = kstYesterday.toISOString().split('T')[0];
 
     let newCount: number;
     if (saved.lastDate === yesterdayStr) {

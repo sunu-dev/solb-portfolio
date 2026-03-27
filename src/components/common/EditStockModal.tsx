@@ -152,10 +152,13 @@ export default function EditStockModal() {
                   key={cat.id}
                   onClick={() => {
                     if (editingCat === cat.id) return;
+                    const fromCat = editingCat as 'investing' | 'watching' | 'sold';
                     const idx = editingIdx;
-                    moveStock(editingCat as 'investing' | 'watching' | 'sold', idx, cat.id);
+                    // moveStock 후 새 카테고리의 마지막 인덱스를 사용
+                    const newIdx = (stocks[cat.id] || []).length; // 이동 전 길이 = 이동 후 마지막 인덱스
+                    moveStock(fromCat, idx, cat.id);
                     setEditingCat(cat.id);
-                    setEditingIdx(stocks[cat.id].length); // moved to end
+                    setEditingIdx(newIdx);
                   }}
                   style={{
                     flex: 1,

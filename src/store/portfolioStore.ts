@@ -109,7 +109,7 @@ interface PortfolioState {
   getAllEvents: () => PresetEvent[];
 }
 
-const DEFAULT_API_KEY = 'd6va409r01qiiutb2g9gd6va409r01qiiutb2ga0';
+const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
 
 export const usePortfolioStore = create<PortfolioState>()(
   persist(

@@ -13,7 +13,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ onClose }: SearchBarProps) {
-  const { apiKey, stocks, currentTab, addStock, updateMacroEntry } = usePortfolioStore();
+  const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx } = usePortfolioStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ symbol: string; description: string }[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -78,6 +78,12 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
     addStock(targetCat, ns);
     logApiCall('stock_add', sym);
+
+    // 추가 직후 편집 모달 열어서 매수 정보 입력 유도
+    const newIdx = (stocks[targetCat] || []).length; // 방금 추가된 종목의 인덱스
+    setEditingCat(targetCat);
+    setEditingIdx(newIdx);
+
     setQuery('');
     setShowResults(false);
     setResults([]);

@@ -39,8 +39,8 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
     setIsAdding(false);
   };
 
-  const handleDelete = (idx: number) => {
-    const updated = notes.filter((_, i) => i !== idx);
+  const handleDelete = (noteDate: string) => {
+    const updated = notes.filter(n => n.date !== noteDate);
     updateStock(category, stockIdx, { notes: updated });
   };
 
@@ -129,7 +129,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
             const dateStr = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
             return (
               <div
-                key={idx}
+                key={note.date}
                 style={{
                   padding: '12px 14px',
                   borderRadius: 12,
@@ -142,7 +142,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
                   <span style={{ fontSize: 14 }}>{note.emoji}</span>
                   <span style={{ fontSize: 11, color: '#B0B8C1' }}>{dateStr}</span>
                   <button
-                    onClick={() => handleDelete(notes.indexOf(note))}
+                    onClick={() => handleDelete(note.date)}
                     style={{ marginLeft: 'auto', fontSize: 12, color: '#B0B8C1', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     ✕
