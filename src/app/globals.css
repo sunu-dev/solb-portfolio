@@ -340,8 +340,12 @@ body {
 }
 
 /* Stock row edit/delete buttons */
+.row-actions {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
 .stock-row:hover .row-actions {
-  opacity: 1 !important;
+  opacity: 1;
 }
 @media (max-width: 768px) {
   .row-actions {

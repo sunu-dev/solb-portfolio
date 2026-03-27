@@ -25,12 +25,15 @@ export default function ToastAlert() {
   const [currentToast, setCurrentToast] = useState<Alert | null>(null);
   const [visible, setVisible] = useState(false);
   const shownIdsRef = useRef<Set<string>>(new Set());
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
   const cooldownRef = useRef(false);
 
+  const clearAllTimers = () => {
+    timersRef.current.forEach(t => clearTimeout(t));
+    timersRef.current = [];
+  };
+
   useEffect(() => {
-    // Only show truly critical alerts as toasts (severity 1 only)
-    // severity 2+ alerts are visible in the sidebar
     if (cooldownRef.current || currentToast) return;
 
     const newAlert = alerts.find(
@@ -45,30 +48,30 @@ export default function ToastAlert() {
       setCurrentToast(newAlert);
       setVisible(true);
 
-      // Auto-dismiss after 5 seconds
-      timerRef.current = setTimeout(() => {
+      const t1 = setTimeout(() => {
         setVisible(false);
-        setTimeout(() => {
+        const t2 = setTimeout(() => {
           setCurrentToast(null);
-          // 60s cooldown before next toast
           cooldownRef.current = true;
-          setTimeout(() => { cooldownRef.current = false; }, 60_000);
+          const t3 = setTimeout(() => { cooldownRef.current = false; }, 60_000);
+          timersRef.current.push(t3);
         }, 300);
+        timersRef.current.push(t2);
       }, 5000);
+      timersRef.current.push(t1);
     }
 
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+    return () => clearAllTimers();
   }, [alerts, dismissedAlerts, currentToast]);
 
   const handleDismiss = () => {
     if (currentToast) {
       dismissAlert(currentToast.id);
     }
-    if (timerRef.current) clearTimeout(timerRef.current);
+    clearAllTimers();
     setVisible(false);
-    setTimeout(() => setCurrentToast(null), 300);
+    const t = setTimeout(() => setCurrentToast(null), 300);
+    timersRef.current.push(t);
   };
 
   if (!currentToast) return null;

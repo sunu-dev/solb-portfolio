@@ -24,6 +24,8 @@ export default function EditStockModal() {
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
   const kr = stock ? (STOCK_KR[stock.symbol] || stock.symbol) : '';
+  const isKR = stock ? (stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ')) : false;
+  const unit = isKR ? '₩' : '$';
 
   // Scroll lock when modal is open
   useEffect(() => {
@@ -181,7 +183,7 @@ export default function EditStockModal() {
           {/* Common fields */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>평균 매수 단가 ($)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit})</label>
               <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
                 style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
@@ -203,12 +205,12 @@ export default function EditStockModal() {
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표가 ($)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표가 ({unit})</label>
                   <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
                     style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>손절가 ($)</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>손절가 ({unit})</label>
                   <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
                     style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
@@ -229,7 +231,7 @@ export default function EditStockModal() {
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#191F28' }}>추가 매수 기록</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ($)</label>
+                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ({unit})</label>
                     <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
                       style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
@@ -241,7 +243,7 @@ export default function EditStockModal() {
                 </div>
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
                   <div style={{ fontSize: 12, color: '#3182F6', marginTop: 8 }}>
-                    → 새 평균단가: ${newAvgCost.toFixed(2)} / 총 {newTotalShares}주
+                    → 새 평균단가: {unit}{newAvgCost.toFixed(isKR ? 0 : 2)} / 총 {newTotalShares}주
                   </div>
                 )}
               </div>
@@ -250,7 +252,7 @@ export default function EditStockModal() {
 
           {editingCat === 'watching' && (
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 목표가 ($)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 목표가 ({unit})</label>
               <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
                 style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>

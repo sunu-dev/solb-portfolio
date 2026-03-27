@@ -113,6 +113,7 @@ export default function PortfolioSection() {
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
+  const [newsLoaded, setNewsLoaded] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
@@ -142,7 +143,8 @@ export default function PortfolioSection() {
         });
         setPortfolioNews(tagged);
       }
-    });
+      setNewsLoaded(true);
+    }).catch(() => setNewsLoaded(true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // USD/KRW rate
@@ -710,7 +712,7 @@ export default function PortfolioSection() {
                   </div>
 
                   {/* Edit/Delete actions */}
-                  <div className="row-actions flex items-center gap-0" style={{ opacity: 0, transition: 'opacity 0.2s' }}>
+                  <div className="row-actions flex items-center gap-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingCat(stock.category); setEditingIdx(stock.originalIdx); }}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
@@ -718,7 +720,7 @@ export default function PortfolioSection() {
                       <Edit3 size={14} color="#B0B8C1" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); deleteStock(stock.category, stock.originalIdx); logApiCall('stock_delete', stock.symbol); }}
+                      onClick={(e) => { e.stopPropagation(); if (confirm(`${STOCK_KR[stock.symbol] || stock.symbol} 종목을 삭제할까요?`)) { deleteStock(stock.category, stock.originalIdx); logApiCall('stock_delete', stock.symbol); } }}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
                       <Trash2 size={14} color="#B0B8C1" />
@@ -782,7 +784,7 @@ export default function PortfolioSection() {
             </div>
           ) : (
             <div style={{ fontSize: '13px', color: '#B0B8C1', padding: '20px 0' }}>
-              뉴스를 불러오는 중...
+              {newsLoaded ? '관련 뉴스가 없습니다' : '뉴스를 불러오는 중...'}
             </div>
           )}
         </div>

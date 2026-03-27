@@ -202,7 +202,7 @@ export default function AnalysisPanel() {
               </div>
               <div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: '#191F28' }}>{kr !== symbol ? kr : symbol}</div>
-                <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · NASDAQ</div>
+                <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · {symbol.endsWith('.KS') ? 'KRX' : symbol.endsWith('.KQ') ? 'KOSDAQ' : 'NASDAQ'}</div>
               </div>
             </div>
             <button

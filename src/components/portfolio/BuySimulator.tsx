@@ -30,7 +30,7 @@ export default function BuySimulator({
   if (!currentPrice || currentPrice <= 0) return null;
 
   const kr = STOCK_KR[symbol] || symbol;
-  const amountNum = parseInt(amount) || 0;
+  const amountNum = parseFloat(amount) || 0;
   const amountUsd = currency === 'KRW' ? amountNum / usdKrw : amountNum;
   const newShares = Math.floor(amountUsd / currentPrice);
   const actualCost = newShares * currentPrice;
@@ -112,8 +112,8 @@ export default function BuySimulator({
             onClick={() => setAmount(String(p.val))}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
-              background: parseInt(amount) === p.val ? 'rgba(49,130,246,0.08)' : '#F2F4F6',
-              color: parseInt(amount) === p.val ? '#3182F6' : '#8B95A1',
+              background: parseFloat(amount) === p.val ? 'rgba(49,130,246,0.08)' : '#F2F4F6',
+              color: parseFloat(amount) === p.val ? '#3182F6' : '#8B95A1',
               border: 'none', cursor: 'pointer',
             }}
           >
