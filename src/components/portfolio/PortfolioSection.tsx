@@ -240,7 +240,12 @@ export default function PortfolioSection() {
       <LoginStreak />
 
       {/* Hero - centered */}
-      <div style={{ textAlign: 'center', paddingTop: '20px', paddingBottom: '40px', position: 'relative' }}>
+      <div className="hero-section" style={{ paddingTop: '20px', paddingBottom: '40px', position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '20px 16px 40px', borderRadius: 16 }}>
+        <style>{`
+          .hero-section { text-align: center; }
+          @media (min-width: 769px) { .hero-section { margin: 0 -48px !important; padding: 20px 48px 40px !important; } }
+          @media (min-width: 1024px) { .hero-section { text-align: left; } }
+        `}</style>
         {/* Currency toggle */}
         <div className="flex items-center" style={{ position: 'absolute', top: 0, right: 0 }}>
           <button
@@ -274,7 +279,7 @@ export default function PortfolioSection() {
           >$</button>
         </div>
 
-        <div style={{ fontSize: '14px', color: '#8B95A1', fontWeight: 400, marginBottom: '12px' }}>내 수익</div>
+        <div style={{ fontSize: '13px', color: '#8B95A1', fontWeight: 500, marginBottom: '12px', letterSpacing: '0.04em' }}>내 수익</div>
         {hasInvestment ? (
           <>
             <div
@@ -307,7 +312,7 @@ export default function PortfolioSection() {
             )}
 
             {/* 총평가/총투자/보유 */}
-            <div className="flex items-center justify-center flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
+            <div className="flex items-center justify-center lg:justify-start flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
               <div style={{ fontSize: '14px', color: '#8B95A1' }}>
                 총 평가{' '}
                 <strong style={{ color: '#191F28', fontWeight: 600 }}>
@@ -335,7 +340,7 @@ export default function PortfolioSection() {
 
             {/* 인사이트: 승률 + 최고/최저 */}
             {holdingCount >= 2 && (
-              <div style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8 }}>
+              <div className="justify-center lg:justify-start" style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <span style={{ fontSize: 12, color: '#8B95A1', background: '#F8F9FA', padding: '5px 12px', borderRadius: 8 }}>
                   승률 {holdingCount > 0 ? Math.round((winCount / holdingCount) * 100) : 0}% ({winCount}/{holdingCount})
                 </span>
@@ -543,6 +548,7 @@ export default function PortfolioSection() {
                   style={{
                     gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                     padding: '14px 0',
+                    animationDelay: `${i * 30}ms`,
                     borderTop: '1px solid #F7F8FA',
                   }}
                 >

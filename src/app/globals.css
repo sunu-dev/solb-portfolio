@@ -51,7 +51,7 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  --card-shadow: 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06);
   --card-radius: 16px;
 
   /* shadcn tokens */
@@ -426,6 +426,32 @@ body {
   background: #1A1D35 !important;
 }
 
+/* Dark mode: additional inline style overrides */
+.dark [style*="background: #FFFFFF"],
+.dark [style*="background: '#FFFFFF'"],
+.dark [style*="background: white"] {
+  background: var(--surface) !important;
+}
+
+.dark [style*="color: #4E5968"],
+.dark [style*="color: '#4E5968'"] {
+  color: var(--text-secondary) !important;
+}
+
+.dark [style*="color: #333D4B"],
+.dark [style*="color: '#333D4B'"] {
+  color: var(--text-primary) !important;
+}
+
+.dark [style*="border: 1px solid #E5E8EB"],
+.dark [style*="border-top: 1px solid #E5E8EB"] {
+  border-color: var(--border-light) !important;
+}
+
+.dark [style*="background: '#EDFCF2'"] {
+  background: rgba(22, 163, 74, 0.1) !important;
+}
+
 /* Dark scrollbar */
 .dark ::-webkit-scrollbar-thumb {
   background: #3A3D4D;
@@ -491,11 +517,23 @@ button, a, [role="button"] {
 /* Active state for touch devices (replaces hover) */
 @media (hover: none) {
   button:active, [role="button"]:active {
-    opacity: 0.7;
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
   }
   .stock-row:active {
-    background: #F9FAFB;
+    background: rgba(49,130,246,0.04);
+    transform: scale(0.995);
+    transition: transform 0.1s ease, background 0.1s ease;
   }
+}
+
+/* Stock row entrance animation */
+@keyframes rowFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stock-row {
+  animation: rowFadeIn 0.3s ease-out both;
 }
 
 /* ==========================================

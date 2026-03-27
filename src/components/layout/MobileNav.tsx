@@ -1,12 +1,13 @@
 'use client';
 
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
+import { BarChart3, Newspaper, CalendarDays, Menu } from 'lucide-react';
 
-const TABS: { id: MainSection | 'more'; label: string; icon: string }[] = [
-  { id: 'portfolio', label: '포트폴리오', icon: '📊' },
-  { id: 'news', label: '뉴스', icon: '📰' },
-  { id: 'events', label: '이벤트', icon: '📅' },
-  { id: 'more', label: '더보기', icon: '☰' },
+const TABS: { id: MainSection | 'more'; label: string; Icon: typeof BarChart3 }[] = [
+  { id: 'portfolio', label: '포트폴리오', Icon: BarChart3 },
+  { id: 'news', label: '뉴스', Icon: Newspaper },
+  { id: 'events', label: '이벤트', Icon: CalendarDays },
+  { id: 'more', label: '더보기', Icon: Menu },
 ];
 
 interface MobileNavProps {
@@ -45,16 +46,31 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 2,
+              gap: 3,
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? '#3182F6' : '#8B95A1',
-              fontSize: 10,
+              color: isActive ? '#3182F6' : '#B0B8C1',
+              fontSize: 11,
               fontWeight: isActive ? 600 : 400,
+              position: 'relative',
+              paddingTop: 10,
+              paddingBottom: 6,
             }}
           >
-            <span style={{ fontSize: 20 }}>{tab.icon}</span>
+            {isActive && (
+              <span style={{
+                position: 'absolute',
+                top: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 20,
+                height: 2,
+                background: '#3182F6',
+                borderRadius: 1,
+              }} />
+            )}
+            <tab.Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
             <span>{tab.label}</span>
           </button>
         );
