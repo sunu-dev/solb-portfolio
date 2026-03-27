@@ -116,6 +116,7 @@ export default function PortfolioSection() {
   const [newsLoaded, setNewsLoaded] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
 
   // Fetch portfolio-related news — use shorter queries for better results
   useEffect(() => {
@@ -720,7 +721,17 @@ export default function PortfolioSection() {
                       <Edit3 size={14} color="#B0B8C1" />
                     </button>
                     <button
-                      onClick={(e) => { e.stopPropagation(); if (confirm(`${STOCK_KR[stock.symbol] || stock.symbol} 종목을 삭제할까요?`)) { deleteStock(stock.category, stock.originalIdx); logApiCall('stock_delete', stock.symbol); } }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const deleted = stocks[stock.category]?.[stock.originalIdx];
+                        if (!deleted) return;
+                        deleteStock(stock.category, stock.originalIdx);
+                        logApiCall('stock_delete', stock.symbol);
+                        // Undo 토스트
+                        if (undoData?.timer) clearTimeout(undoData.timer);
+                        const timer = setTimeout(() => setUndoData(null), 5000);
+                        setUndoData({ cat: stock.category, stock: deleted, timer });
+                      }}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
                       <Trash2 size={14} color="#B0B8C1" />
@@ -818,6 +829,40 @@ export default function PortfolioSection() {
           );
         })()}
       </div>
+
+      {/* Undo 삭제 토스트 */}
+      {undoData && (
+        <div style={{
+          position: 'fixed',
+          bottom: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--text-primary, #191F28)',
+          color: '#FFFFFF',
+          padding: '12px 20px',
+          borderRadius: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          zIndex: 100,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          fontSize: 13,
+          fontWeight: 500,
+          maxWidth: 'calc(100vw - 32px)',
+        }}>
+          <span>{STOCK_KR[undoData.stock.symbol] || undoData.stock.symbol} 삭제됨</span>
+          <button
+            onClick={() => {
+              addStock(undoData.cat, undoData.stock);
+              clearTimeout(undoData.timer);
+              setUndoData(null);
+            }}
+            style={{ background: 'none', border: 'none', color: '#3182F6', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: '4px 8px' }}
+          >
+            되돌리기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

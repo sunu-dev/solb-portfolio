@@ -95,38 +95,54 @@ export default function LandingPage() {
           ))}
         </div>
 
-        {/* CTA button */}
-        <Link
-          href="/"
-          style={{
-            display: 'inline-block',
-            padding: '16px 48px',
-            background: '#3182F6',
-            color: '#FFFFFF',
-            fontSize: 17,
-            fontWeight: 700,
-            borderRadius: 14,
-            textDecoration: 'none',
-            transition: 'background 0.2s ease',
-            boxShadow: '0 4px 16px rgba(49, 130, 246, 0.3)',
-          }}
-        >
-          무료로 시작하기
-        </Link>
+        {/* CTA buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-block',
+              padding: '16px 48px',
+              background: '#3182F6',
+              color: '#FFFFFF',
+              fontSize: 17,
+              fontWeight: 700,
+              borderRadius: 14,
+              textDecoration: 'none',
+              transition: 'background 0.2s ease',
+              boxShadow: '0 4px 16px rgba(49, 130, 246, 0.3)',
+            }}
+          >
+            무료로 시작하기
+          </Link>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-block',
+              padding: '12px 32px',
+              background: 'transparent',
+              color: '#8B95A1',
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 12,
+              textDecoration: 'none',
+              border: '1px solid #E5E8EB',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            가입 없이 둘러보기 →
+          </Link>
+        </div>
 
-        {/* Tagline */}
+        {/* Social proof */}
         <p
           style={{
-            marginTop: 48,
-            fontSize: 15,
+            marginTop: 32,
+            fontSize: 13,
             color: '#B0B8C1',
             lineHeight: 1.7,
-            fontStyle: 'italic',
           }}
         >
-          &ldquo;차트 몰라도 괜찮아요.
-          <br />
-          솔브가 읽어드릴게요.&rdquo;
+          삼성전자, NVDA, AAPL 등 인기 종목을 바로 추가해보세요
         </p>
       </div>
     </div>

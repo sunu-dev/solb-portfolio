@@ -8,6 +8,13 @@ export function useRealtimePrice() {
   const wsRef = useRef<WebSocket | null>(null);
   const subscribedRef = useRef<Set<string>>(new Set());
 
+  // 심볼 목록을 문자열로 직렬화하여 deps로 사용 (종목 교체 감지)
+  const allSymbolsKey = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])]
+    .map(s => s.symbol)
+    .filter(s => !s.endsWith('.KS') && !s.endsWith('.KQ'))
+    .sort()
+    .join(',');
+
   useEffect(() => {
     if (!apiKey) return;
 
@@ -86,5 +93,5 @@ export function useRealtimePrice() {
       ws.close();
       subscribedRef.current.clear();
     };
-  }, [apiKey, stocks.investing?.length, stocks.watching?.length]);
+  }, [apiKey, allSymbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 }

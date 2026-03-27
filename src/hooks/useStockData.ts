@@ -237,7 +237,7 @@ export function useStockData() {
             PERIODS.forEach(p => {
               const back = Math.min(Math.round(p.days * 5 / 7), closes.length - 1);
               const idx = Math.max(closes.length - 1 - back, 0);
-              result[p.days] = ((cp - Math.max(...closes.slice(idx))) / Math.max(...closes.slice(idx))) * 100;
+              const sliced = closes.slice(idx); const maxVal = sliced.reduce((a: number, b: number) => a > b ? a : b, sliced[0] || 1); result[p.days] = maxVal > 0 ? ((cp - maxVal) / maxVal) * 100 : 0;
             });
             updateCandleCache(s, result);
             return; // Cache hit, skip API call
@@ -256,7 +256,7 @@ export function useStockData() {
         PERIODS.forEach(p => {
           const back = Math.min(Math.round(p.days * 5 / 7), closes.length - 1);
           const idx = Math.max(closes.length - 1 - back, 0);
-          result[p.days] = ((cp - Math.max(...closes.slice(idx))) / Math.max(...closes.slice(idx))) * 100;
+          const sliced = closes.slice(idx); const maxVal = sliced.reduce((a: number, b: number) => a > b ? a : b, sliced[0] || 1); result[p.days] = maxVal > 0 ? ((cp - maxVal) / maxVal) * 100 : 0;
         });
         updateCandleCache(s, result);
       }
@@ -342,7 +342,7 @@ export function useCandleData(symbol: string | null) {
       PERIODS.forEach(p => {
         const back = Math.min(Math.round(p.days * 5 / 7), closes.length - 1);
         const idx = Math.max(closes.length - 1 - back, 0);
-        result[p.days] = ((cp - Math.max(...closes.slice(idx))) / Math.max(...closes.slice(idx))) * 100;
+        const sliced = closes.slice(idx); const maxVal = sliced.reduce((a: number, b: number) => a > b ? a : b, sliced[0] || 1); result[p.days] = maxVal > 0 ? ((cp - maxVal) / maxVal) * 100 : 0;
       });
       updateCandleCache(symbol, result);
     }
