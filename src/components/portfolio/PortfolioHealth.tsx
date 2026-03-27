@@ -149,8 +149,8 @@ export default function PortfolioHealth({ stocks }: Props) {
   if (stocks.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 24, background: '#F8F9FA', borderRadius: 16, padding: '20px 20px 12px' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>💊 포트폴리오 건강 점수</div>
+    <div style={{ marginBottom: 32, background: '#F8F9FA', borderRadius: 16, padding: '20px 20px 12px' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>포트폴리오 건강 점수</div>
 
       <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <style>{`

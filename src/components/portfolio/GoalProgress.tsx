@@ -57,10 +57,10 @@ export default function GoalProgress({ stocks, currency, usdKrw }: GoalProgressP
 
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>🎯 목표 달성 현황</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>목표 달성 현황</div>
 
       {/* Portfolio-level goal */}
-      <div style={{ background: '#F8F9FA', borderRadius: 14, padding: '16px 20px', marginBottom: 16 }}>
+      <div style={{ background: '#F8F9FA', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#191F28' }}>전체 포트폴리오</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: weightedCurrent >= weightedTarget ? '#EF4452' : '#3182F6' }}>

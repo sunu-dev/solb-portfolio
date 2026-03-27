@@ -49,7 +49,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>📝 투자 메모</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>투자 메모</span>
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}

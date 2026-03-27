@@ -173,10 +173,10 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
   const layout = squarify(nodes, { x: 0, y: 0, w: WIDTH, h: HEIGHT });
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 32 }}>
       {/* Header + toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>📊 내 포트폴리오 맵</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>내 포트폴리오 맵</div>
         <div style={{ display: 'flex', gap: 4 }}>
           {([
             { id: 'pnl' as const, label: '수익률' },

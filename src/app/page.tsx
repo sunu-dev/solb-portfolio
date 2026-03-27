@@ -122,7 +122,7 @@ export default function Home() {
         </main>
 
         {/* Right sidebar - always visible on desktop */}
-        <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 24px 80px 24px' }}>
+        <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 24px 80px 24px', position: 'sticky', top: 48, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
           <RightSidebar />
         </aside>
       </div>

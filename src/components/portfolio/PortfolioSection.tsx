@@ -362,49 +362,8 @@ export default function PortfolioSection() {
         )}
       </div>
 
-      {/* Portfolio Heatmap + Goal Progress */}
-      {hasInvestment && (
-        <div style={{ marginTop: 32 }}>
-          <PortfolioHeatmap
-            stocks={investingStocks}
-            macroData={macroData}
-            usdKrw={usdKrw}
-            currency={currency}
-          />
-          <GoalProgress
-            stocks={investingStocks.map(s => {
-              const q = macroData[s.symbol] as QuoteData | undefined;
-              return {
-                symbol: s.symbol,
-                avgCost: s.avgCost,
-                shares: s.shares,
-                targetReturn: s.targetReturn,
-                currentPrice: q?.c || 0,
-                value: (q?.c || 0) * s.shares,
-              };
-            })}
-            currency={currency}
-            usdKrw={usdKrw}
-          />
-          <PortfolioHealth
-            stocks={investingStocks.map(s => {
-              const q = macroData[s.symbol] as QuoteData | undefined;
-              return {
-                symbol: s.symbol,
-                avgCost: s.avgCost,
-                shares: s.shares,
-                targetReturn: s.targetReturn,
-                currentPrice: q?.c || 0,
-                value: (q?.c || 0) * s.shares,
-              };
-            })}
-          />
-          <ShareCard />
-        </div>
-      )}
-
-      {/* Divider + content below */}
-      <div style={{ marginTop: '40px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
+      {/* Divider + content below — 종목 리스트 먼저 */}
+      <div style={{ marginTop: 32, borderTop: '1px solid #F2F4F6', paddingTop: 32 }}>
 
         {/* Category tabs */}
         <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid #F2F4F6', marginBottom: '32px' }}>
@@ -768,7 +727,7 @@ export default function PortfolioSection() {
         {/* 내 종목 뉴스 — 항상 표시 */}
         <div style={{ marginTop: '48px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
           <div style={{ fontSize: '15px', fontWeight: 600, color: '#191F28', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '16px' }}>📰</span> 내 종목 뉴스
+            내 종목 뉴스
           </div>
           {portfolioNews.length > 0 ? (
             <div>
@@ -821,6 +780,35 @@ export default function PortfolioSection() {
             </div>
           )}
         </div>
+
+        {/* 분석 위젯 — 종목 리스트/뉴스 아래 */}
+        {hasInvestment && (() => {
+          const investingData = investingStocks.map(s => {
+            const q = macroData[s.symbol] as QuoteData | undefined;
+            return {
+              symbol: s.symbol, avgCost: s.avgCost, shares: s.shares,
+              targetReturn: s.targetReturn, currentPrice: q?.c || 0,
+              value: (q?.c || 0) * s.shares,
+            };
+          });
+          return (
+            <div style={{ marginTop: 32, borderTop: '1px solid #F2F4F6', paddingTop: 32 }}>
+              {/* 데스크탑 2-column 그리드 */}
+              <div className="portfolio-widgets-grid">
+                <style>{`
+                  .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
+                  @media (min-width: 1024px) {
+                    .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                  }
+                `}</style>
+                <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
+                <PortfolioHealth stocks={investingData} />
+              </div>
+              <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
+              <ShareCard />
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

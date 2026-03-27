@@ -444,7 +444,7 @@ export default function AnalysisPanel() {
                       marginBottom: 24,
                     }}>
                       <div className="flex items-center" style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, gap: 8 }}>
-                        📊 차트 요약
+                        차트 요약
                       </div>
                       <div className="flex items-center" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, gap: 8 }}>
                         {analysis.chartShape.icon} {analysis.chartShape.title}
@@ -593,7 +593,7 @@ export default function AnalysisPanel() {
                 {stockData && stockData.avgCost > 0 && stockData.shares > 0 && (
                   <div style={{ marginBottom: 24 }}>
                     <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
-                      📋 매수 이력
+                      매수 이력
                     </div>
                     <div>
                       <div className="flex items-center" style={{ gap: 12, padding: '10px 14px', borderRadius: 10, background: '#F8F9FA' }}>
@@ -653,7 +653,7 @@ export default function AnalysisPanel() {
                   <>
                     {/* Chart Tabs */}
                     <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
-                      📈 차트 분석
+                      차트 분석
                     </div>
 
                     {/* Chart level tabs: 2 tabs */}
@@ -728,7 +728,7 @@ export default function AnalysisPanel() {
 
                     {/* Technical indicators grid */}
                     <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
-                      🔧 기술적 지표
+                      기술적 지표
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
