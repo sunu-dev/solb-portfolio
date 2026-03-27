@@ -469,9 +469,38 @@ export default function PortfolioSection() {
                 );
               })}
             </div>
-            <div style={{ fontSize: 13, color: '#B0B8C1' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 24 }}>
               또는 상단 검색에서 원하는 종목을 찾아보세요
             </div>
+
+            {/* 샘플 포트폴리오 체험 */}
+            <button
+              onClick={() => {
+                const samples = [
+                  { symbol: 'NVDA', avgCost: 95, shares: 10, targetReturn: 30 },
+                  { symbol: 'AAPL', avgCost: 175, shares: 5, targetReturn: 15 },
+                  { symbol: 'MSFT', avgCost: 380, shares: 3, targetReturn: 20 },
+                ];
+                samples.forEach(s => {
+                  const existing = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
+                  if (!existing.some(st => st.symbol === s.symbol)) {
+                    addStock('investing', s);
+                  }
+                });
+              }}
+              style={{
+                padding: '10px 24px',
+                borderRadius: 12,
+                background: 'transparent',
+                color: '#3182F6',
+                fontSize: 13,
+                fontWeight: 600,
+                border: '1px dashed rgba(49,130,246,0.4)',
+                cursor: 'pointer',
+              }}
+            >
+              샘플 포트폴리오로 체험하기
+            </button>
           </div>
         ) : (
           <div>
