@@ -20,6 +20,8 @@ interface Props {
   notes: StockNote[];
 }
 
+let noteIdCounter = 0;
+
 export default function InvestmentNotes({ symbol, category, stockIdx, notes }: Props) {
   const { updateStock } = usePortfolioStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -31,7 +33,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
     const newNote: StockNote = {
       text: text.trim(),
       emoji: selectedEmoji,
-      date: new Date().toISOString(),
+      date: new Date().toISOString() + '_' + (++noteIdCounter), // 고유 ID 보장
     };
     const updated = [...(notes || []), newNote];
     updateStock(category, stockIdx, { notes: updated });
@@ -44,12 +46,12 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
     updateStock(category, stockIdx, { notes: updated });
   };
 
-  const sortedNotes = [...(notes || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const sortedNotes = [...(notes || [])].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ marginBottom: 32 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>투자 메모</span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>투자 메모</span>
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}
@@ -60,10 +62,8 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
         )}
       </div>
 
-      {/* 메모 입력 */}
       {isAdding && (
-        <div style={{ padding: 16, borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
-          {/* 감정 태그 */}
+        <div style={{ padding: 16, borderRadius: 16, background: 'var(--bg-subtle, #F8F9FA)', marginBottom: 12 }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             {EMOTION_TAGS.map(tag => (
               <button
@@ -73,9 +73,9 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
                   padding: '4px 10px',
                   borderRadius: 8,
                   fontSize: 12,
-                  background: selectedEmoji === tag.emoji ? 'rgba(49,130,246,0.1)' : '#FFFFFF',
-                  border: selectedEmoji === tag.emoji ? '1px solid rgba(49,130,246,0.3)' : '1px solid #E5E8EB',
-                  color: selectedEmoji === tag.emoji ? '#3182F6' : '#8B95A1',
+                  background: selectedEmoji === tag.emoji ? 'rgba(49,130,246,0.1)' : 'var(--surface, #FFFFFF)',
+                  border: selectedEmoji === tag.emoji ? '1px solid rgba(49,130,246,0.3)' : '1px solid var(--border-strong, #E5E8EB)',
+                  color: selectedEmoji === tag.emoji ? '#3182F6' : 'var(--text-secondary, #8B95A1)',
                   cursor: 'pointer',
                   fontWeight: selectedEmoji === tag.emoji ? 600 : 400,
                 }}
@@ -93,10 +93,11 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
               width: '100%',
               minHeight: 70,
               padding: '10px 14px',
-              borderRadius: 10,
+              borderRadius: 12,
               border: 'none',
-              background: '#FFFFFF',
-              fontSize: 14,
+              background: 'var(--surface, #FFFFFF)',
+              color: 'var(--text-primary, #191F28)',
+              fontSize: 16,
               outline: 'none',
               resize: 'vertical',
               boxSizing: 'border-box',
@@ -107,13 +108,13 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <button
               onClick={() => { setIsAdding(false); setText(''); }}
-              style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#8B95A1', background: '#FFFFFF', border: '1px solid #E5E8EB', cursor: 'pointer' }}
+              style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong, #E5E8EB)', cursor: 'pointer' }}
             >
               취소
             </button>
             <button
               onClick={handleAdd}
-              style={{ flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer' }}
+              style={{ flex: 1, padding: '8px 0', borderRadius: 12, fontSize: 13, fontWeight: 600, color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer' }}
             >
               저장
             </button>
@@ -121,11 +122,10 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
         </div>
       )}
 
-      {/* 타임라인 */}
       {sortedNotes.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {sortedNotes.map((note, idx) => {
-            const d = new Date(note.date);
+          {sortedNotes.map((note) => {
+            const d = new Date(note.date.split('_')[0]); // ID suffix 제거
             const dateStr = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
             return (
               <div
@@ -133,28 +133,27 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
                 style={{
                   padding: '12px 14px',
                   borderRadius: 12,
-                  background: '#FFFFFF',
-                  border: '1px solid #F2F4F6',
-                  position: 'relative',
+                  background: 'var(--surface, #FFFFFF)',
+                  border: '1px solid var(--border-light, #F2F4F6)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 14 }}>{note.emoji}</span>
-                  <span style={{ fontSize: 11, color: '#B0B8C1' }}>{dateStr}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>{dateStr}</span>
                   <button
                     onClick={() => handleDelete(note.date)}
-                    style={{ marginLeft: 'auto', fontSize: 12, color: '#B0B8C1', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
                   >
                     ✕
                   </button>
                 </div>
-                <div style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6 }}>{note.text}</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>{note.text}</div>
               </div>
             );
           })}
         </div>
       ) : !isAdding && (
-        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: '#B0B8C1' }}>
+        <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)' }}>
           매수/매도 이유를 기록하면 나중에 복기할 수 있어요
         </div>
       )}
