@@ -6,7 +6,6 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 export function useRealtimePrice() {
   const { apiKey, stocks, updateMacroEntry } = usePortfolioStore();
   const wsRef = useRef<WebSocket | null>(null);
-  const subscribedRef = useRef<Set<string>>(new Set());
 
   // 심볼 목록을 문자열로 직렬화하여 deps로 사용 (종목 교체 감지)
   const allSymbolsKey = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])]
@@ -18,7 +17,6 @@ export function useRealtimePrice() {
   useEffect(() => {
     if (!apiKey) return;
 
-    // Get all US stock symbols (not .KS/.KQ)
     const allStocks = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
     const usSymbols = allStocks
       .map(s => s.symbol)
@@ -26,20 +24,17 @@ export function useRealtimePrice() {
 
     if (usSymbols.length === 0) return;
 
-    // Check if market is open (US market: Mon-Fri, ~14:30-21:00 UTC)
-    // Simplified: just try to connect, server won't send data outside hours
+    // 연결마다 독립적인 구독 Set 사용 (race condition 방지)
+    const subscribed = new Set<string>();
 
     const ws = new WebSocket(`wss://ws.finnhub.io?token=${apiKey}`);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      // Subscribe to all US symbols (max 50)
       const toSubscribe = usSymbols.slice(0, 50);
       toSubscribe.forEach(symbol => {
-        if (!subscribedRef.current.has(symbol)) {
-          ws.send(JSON.stringify({ type: 'subscribe', symbol }));
-          subscribedRef.current.add(symbol);
-        }
+        ws.send(JSON.stringify({ type: 'subscribe', symbol }));
+        subscribed.add(symbol);
       });
     };
 
@@ -47,7 +42,6 @@ export function useRealtimePrice() {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === 'trade' && msg.data?.length) {
-          // Group by symbol, take latest trade
           const latest: Record<string, { p: number; v: number; t: number }> = {};
           for (const trade of msg.data) {
             if (!latest[trade.s] || trade.t > latest[trade.s].t) {
@@ -55,11 +49,9 @@ export function useRealtimePrice() {
             }
           }
 
-          // Update store with latest prices
           for (const [symbol, trade] of Object.entries(latest)) {
             const existing = usePortfolioStore.getState().macroData[symbol] as any;
             if (existing) {
-              // Update current price, keep previous close for change calculation
               const pc = existing.pc || existing.c;
               const change = trade.p - pc;
               const changePercent = pc ? (change / pc) * 100 : 0;
@@ -75,23 +67,16 @@ export function useRealtimePrice() {
       } catch { /* ignore parse errors */ }
     };
 
-    ws.onerror = () => {
-      // Silent — will fall back to polling
-    };
-
-    ws.onclose = () => {
-      subscribedRef.current.clear();
-    };
+    ws.onerror = () => { /* Silent — falls back to polling */ };
 
     return () => {
-      // Unsubscribe all
+      // Cleanup: unsubscribe + close (이 연결의 subscribed Set만 사용)
       if (ws.readyState === WebSocket.OPEN) {
-        subscribedRef.current.forEach(symbol => {
+        subscribed.forEach(symbol => {
           ws.send(JSON.stringify({ type: 'unsubscribe', symbol }));
         });
       }
       ws.close();
-      subscribedRef.current.clear();
     };
   }, [apiKey, allSymbolsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 }

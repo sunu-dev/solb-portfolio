@@ -37,7 +37,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         position: 'fixed',
         inset: 0,
         zIndex: 110,
-        background: '#fff',
+        background: 'var(--bg, #fff)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -54,7 +54,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               width: step === i ? '24px' : '8px',
               height: '8px',
               borderRadius: '4px',
-              background: step === i ? '#3182F6' : '#E5E8EB',
+              background: step === i ? '#3182F6' : 'var(--border-strong, #E5E8EB)',
               transition: 'all 0.3s ease',
             }}
           />
@@ -70,7 +70,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               style={{
                 fontSize: '24px',
                 fontWeight: 700,
-                color: '#191F28',
+                color: 'var(--text-primary, #191F28)',
                 marginBottom: '16px',
                 lineHeight: 1.4,
               }}
@@ -80,7 +80,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <p
               style={{
                 fontSize: '16px',
-                color: '#8B95A1',
+                color: 'var(--text-secondary, #8B95A1)',
                 lineHeight: 1.6,
                 marginBottom: '48px',
               }}
@@ -99,7 +99,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               style={{
                 fontSize: '24px',
                 fontWeight: 700,
-                color: '#191F28',
+                color: 'var(--text-primary, #191F28)',
                 marginBottom: '16px',
                 lineHeight: 1.4,
               }}
@@ -109,7 +109,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <p
               style={{
                 fontSize: '15px',
-                color: '#8B95A1',
+                color: 'var(--text-secondary, #8B95A1)',
                 lineHeight: 1.6,
                 marginBottom: '28px',
               }}
@@ -141,10 +141,10 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                       display: 'inline-block',
                       padding: '10px 20px',
                       borderRadius: '20px',
-                      background: isAdded ? '#3182F6' : '#F2F4F6',
+                      background: isAdded ? '#3182F6' : 'var(--bg-subtle, #F2F4F6)',
                       fontSize: '14px',
                       fontWeight: 600,
-                      color: isAdded ? '#fff' : '#333D4B',
+                      color: isAdded ? '#fff' : 'var(--text-primary, #333D4B)',
                       border: 'none',
                       cursor: isAdded ? 'default' : 'pointer',
                       transition: 'all 0.2s',
@@ -158,7 +158,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <p
               style={{
                 fontSize: '13px',
-                color: '#B0B8C1',
+                color: 'var(--text-tertiary, #B0B8C1)',
                 marginBottom: '48px',
               }}
             >
@@ -174,7 +174,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               style={{
                 fontSize: '24px',
                 fontWeight: 700,
-                color: '#191F28',
+                color: 'var(--text-primary, #191F28)',
                 marginBottom: '16px',
                 lineHeight: 1.4,
               }}
@@ -184,7 +184,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <p
               style={{
                 fontSize: '16px',
-                color: '#8B95A1',
+                color: 'var(--text-secondary, #8B95A1)',
                 lineHeight: 1.6,
                 marginBottom: '48px',
               }}

@@ -73,10 +73,10 @@ export default function LandingPage() {
           }}
         >
           {[
-            { icon: '\u{1F4B0}', text: '실시간 가격 + 원화 환산' },
-            { icon: '\u{1F916}', text: 'AI가 차트를 한국어로 읽어줘요' },
-            { icon: '\u{1F514}', text: '손절/목표 자동 알림' },
-            { icon: '\u{1F511}', text: 'Google/카카오 로그인' },
+            { label: '시세', text: '실시간 가격 + 원화 환산' },
+            { label: 'AI', text: 'AI가 차트를 한국어로 읽어줘요' },
+            { label: '알림', text: '손절/목표 자동 알림' },
+            { label: '로그인', text: 'Google/카카오 로그인' },
           ].map((item, i) => (
             <div
               key={i}
@@ -89,7 +89,19 @@ export default function LandingPage() {
                 fontWeight: 500,
               }}
             >
-              <span style={{ fontSize: 24, flexShrink: 0, width: 32, textAlign: 'center' }}>{item.icon}</span>
+              <span style={{
+                flexShrink: 0,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: '#F0F4FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#3182F6',
+              }}>{item.label.slice(0, 2)}</span>
               <span>{item.text}</span>
             </div>
           ))}
