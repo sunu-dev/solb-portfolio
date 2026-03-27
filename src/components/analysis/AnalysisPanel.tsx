@@ -15,6 +15,7 @@ import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
+import BuySimulator from '@/components/portfolio/BuySimulator';
 
 // AI report cache (module-level, persists across re-renders)
 const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
@@ -603,9 +604,32 @@ export default function AnalysisPanel() {
                   </div>
                 )}
 
+                {/* Buy Simulator */}
+                {symbol && price > 0 && (
+                  <div style={{ marginBottom: 24 }}>
+                    <BuySimulator
+                      symbol={symbol}
+                      currentPrice={price}
+                      avgCost={stockData?.avgCost || 0}
+                      shares={stockData?.shares || 0}
+                      totalPortfolioValue={(() => {
+                        const state = usePortfolioStore.getState();
+                        let tv = 0;
+                        (state.stocks.investing || []).forEach(s => {
+                          const q = state.macroData[s.symbol] as QuoteData | undefined;
+                          if (q?.c && s.shares) tv += q.c * s.shares;
+                        });
+                        return tv;
+                      })()}
+                      usdKrw={usdKrw}
+                      currency={currency}
+                    />
+                  </div>
+                )}
+
                 {analysis && (
                   <>
-                    {/* 3-Level Chart Tabs */}
+                    {/* Chart Tabs */}
                     <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
                       📈 차트 분석
                     </div>

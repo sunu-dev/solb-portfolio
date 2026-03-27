@@ -10,6 +10,7 @@ import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import PortfolioHeatmap from './PortfolioHeatmap';
 import GoalProgress from './GoalProgress';
+import PortfolioHealth from './PortfolioHealth';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -379,6 +380,19 @@ export default function PortfolioSection() {
             })}
             currency={currency}
             usdKrw={usdKrw}
+          />
+          <PortfolioHealth
+            stocks={investingStocks.map(s => {
+              const q = macroData[s.symbol] as QuoteData | undefined;
+              return {
+                symbol: s.symbol,
+                avgCost: s.avgCost,
+                shares: s.shares,
+                targetReturn: s.targetReturn,
+                currentPrice: q?.c || 0,
+                value: (q?.c || 0) * s.shares,
+              };
+            })}
           />
         </div>
       )}
