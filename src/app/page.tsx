@@ -87,7 +87,7 @@ export default function Home() {
 
   if (!hydrated) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
         <div className="text-[#B0B8C1] text-[13px]">불러오는 중...</div>
       </div>
     );
@@ -100,7 +100,7 @@ export default function Home() {
     '';
 
   return (
-    <div className="min-h-screen bg-white flex flex-col overflow-x-hidden">
+    <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: 'var(--bg, #FFFFFF)' }}>
       {/* Sticky Header - 48px */}
       <Header
         user={user}

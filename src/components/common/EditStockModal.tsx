@@ -111,11 +111,14 @@ export default function EditStockModal() {
           position: 'fixed',
           left: 16, right: 16,
           maxWidth: 480, margin: '0 auto',
-          background: '#FFFFFF',
+          background: 'var(--surface, #FFFFFF)',
           zIndex: 50,
           boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           overflow: 'hidden',
         }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${stock?.symbol || ''} 설정`}
       >
         <style>{`
           .edit-stock-modal {
@@ -134,16 +137,16 @@ export default function EditStockModal() {
         `}</style>
         {/* Header */}
         <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #F2F4F6' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28' }}>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
           </div>
-          <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2 }}>매수 정보와 목표가를 설정하세요</div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>매수 정보와 목표가를 설정하세요</div>
         </div>
 
         <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 200px))', overflowY: 'auto' }}>
           {/* Category selector */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>분류</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>분류</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {([
                 { id: 'investing', label: '투자 중' },
@@ -183,21 +186,21 @@ export default function EditStockModal() {
           {/* Common fields */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit})</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit})</label>
               <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>보유 수량 (주)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주)</label>
               <input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
             <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="0"
-              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
           </div>
 
           {/* Category-specific fields */}
@@ -205,40 +208,40 @@ export default function EditStockModal() {
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>목표가 ({unit})</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>목표가 ({unit})</label>
                   <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>손절가 ({unit})</label>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>손절가 ({unit})</label>
                   <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 구간 (쉼표 구분)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>매수 구간 (쉼표 구분)</label>
                 <input type="text" value={buyZones} onChange={(e) => setBuyZones(e.target.value)} placeholder="430, 404, 380"
-                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>비중 (%)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>비중 (%)</label>
                 <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0"
-                  style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
               </div>
 
               {/* 추가 매수 */}
               <div style={{ paddingTop: 16, borderTop: '1px solid #F2F4F6' }}>
-                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#191F28' }}>추가 매수 기록</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary, #191F28)' }}>추가 매수 기록</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>매수가 ({unit})</label>
+                    <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>매수가 ({unit})</label>
                     <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
-                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>수량</label>
+                    <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>수량</label>
                     <input type="number" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
-                      style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
@@ -252,17 +255,17 @@ export default function EditStockModal() {
 
           {editingCat === 'watching' && (
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', display: 'block', marginBottom: 6 }}>매수 목표가 ({unit})</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>매수 목표가 ({unit})</label>
               <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #F2F4F6', background: '#F9FAFB', display: 'flex', gap: 12 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid #F2F4F6', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
           <button onClick={close}
-            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', background: '#FFFFFF', border: '1px solid #E5E8EB', cursor: 'pointer' }}>
+            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong, #E5E8EB)', cursor: 'pointer' }}>
             취소
           </button>
           <button onClick={save}

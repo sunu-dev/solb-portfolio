@@ -176,12 +176,15 @@ export default function AnalysisPanel() {
             width: '100%',
             maxWidth: 'min(700px, 95vw)',
             maxHeight: '90vh',
-            background: '#FFFFFF',
+            background: 'var(--surface, #FFFFFF)',
             borderRadius: 20,
             overflow: 'hidden',
             boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            border: '1px solid #F2F4F6',
+            border: '1px solid var(--border-light, #F2F4F6)',
           }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${symbol || ''} 분석`}
         >
           {/* Header */}
           <div
@@ -207,8 +210,9 @@ export default function AnalysisPanel() {
             </div>
             <button
               onClick={close}
+              aria-label="닫기"
               className="flex items-center justify-center cursor-pointer transition-colors"
-              style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+              style={{ width: 44, height: 44, borderRadius: 8, background: 'transparent', border: 'none' }}
             >
               <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
             </button>

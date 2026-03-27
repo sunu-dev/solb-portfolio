@@ -22,7 +22,7 @@ function ProgressBar({ current, target, color }: { current: number; target: numb
   const isAchieved = current >= target && target > 0;
 
   return (
-    <div style={{ position: 'relative', height: 6, borderRadius: 3, background: '#F2F4F6', overflow: 'hidden' }}>
+    <div role="progressbar" aria-valuenow={Math.round(current)} aria-valuemin={0} aria-valuemax={Math.round(target)} style={{ position: 'relative', height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
       <div
         style={{
           height: '100%',
@@ -57,20 +57,20 @@ export default function GoalProgress({ stocks, currency, usdKrw }: GoalProgressP
 
   return (
     <div style={{ marginBottom: 32 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>목표 달성 현황</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 16 }}>목표 달성 현황</div>
 
       {/* Portfolio-level goal */}
-      <div style={{ background: '#F8F9FA', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
+      <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 16, padding: '16px 20px', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#191F28' }}>전체 포트폴리오</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>전체 포트폴리오</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: weightedCurrent >= weightedTarget ? '#EF4452' : '#3182F6' }}>
             {weightedCurrent >= 0 ? '+' : ''}{weightedCurrent.toFixed(1)}% / {weightedTarget.toFixed(1)}%
           </span>
         </div>
         <ProgressBar current={Math.max(weightedCurrent, 0)} target={weightedTarget} color="#3182F6" />
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-          <span style={{ fontSize: 11, color: '#B0B8C1' }}>달성률 {Math.round(Math.max(overallProgress, 0))}%</span>
-          <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>달성률 {Math.round(Math.max(overallProgress, 0))}%</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
             {overallProgress >= 100 ? '🎉 목표 달성!' : `목표까지 ${(weightedTarget - weightedCurrent).toFixed(1)}%p`}
           </span>
         </div>
@@ -98,8 +98,8 @@ export default function GoalProgress({ stocks, currency, usdKrw }: GoalProgressP
                 style={{
                   padding: '14px 16px',
                   borderRadius: 12,
-                  background: isAchieved ? 'rgba(239,68,82,0.04)' : '#FFFFFF',
-                  border: `1px solid ${isAchieved ? 'rgba(239,68,82,0.15)' : '#F2F4F6'}`,
+                  background: isAchieved ? 'rgba(239,68,82,0.04)' : 'var(--surface, #FFFFFF)',
+                  border: `1px solid ${isAchieved ? 'rgba(239,68,82,0.15)' : 'var(--border-light, #F2F4F6)'}`,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -111,7 +111,7 @@ export default function GoalProgress({ stocks, currency, usdKrw }: GoalProgressP
                     }}>
                       {stock.symbol.charAt(0)}
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#191F28' }}>{kr}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{kr}</span>
                     {isAchieved && <span style={{ fontSize: 10, background: '#EDFCF2', color: '#16A34A', padding: '1px 6px', borderRadius: 4, fontWeight: 600 }}>달성</span>}
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? '#EF4452' : '#3182F6', fontVariantNumeric: 'tabular-nums' }}>
@@ -120,10 +120,10 @@ export default function GoalProgress({ stocks, currency, usdKrw }: GoalProgressP
                 </div>
                 <ProgressBar current={Math.max(pnlPct, 0)} target={stock.targetReturn} color={isGain ? '#EF4452' : '#3182F6'} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
-                  <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
                     목표 {stock.targetReturn}%
                   </span>
-                  <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
                     {isAchieved ? `+${(pnlPct - stock.targetReturn).toFixed(1)}%p 초과` : `${(stock.targetReturn - pnlPct).toFixed(1)}%p 남음`}
                   </span>
                 </div>

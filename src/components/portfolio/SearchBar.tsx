@@ -107,7 +107,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     <div
       data-search-panel
       style={{
-        background: 'white',
+        background: 'var(--surface, white)',
         borderRadius: 16,
         boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
         border: '1px solid #F2F4F6',
@@ -143,8 +143,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             fontSize: 16,
             border: 'none',
             outline: 'none',
-            background: 'white',
-            color: '#191F28',
+            background: 'var(--surface, white)',
+            color: 'var(--text-primary, #191F28)',
             boxSizing: 'border-box',
           }}
         />
@@ -195,7 +195,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
                     {item.symbol}
                   </div>
                   <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

@@ -79,17 +79,17 @@ export default function BuySimulator({
       marginTop: 8,
       padding: '16px 18px',
       borderRadius: 14,
-      background: '#FFFFFF',
+      background: 'var(--surface, #FFFFFF)',
       border: '1px solid #F2F4F6',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>💰 매수 시뮬레이션</span>
-        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', fontSize: 16, color: '#B0B8C1', cursor: 'pointer' }}>✕</button>
+        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>💰 매수 시뮬레이션</span>
+        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', fontSize: 16, color: 'var(--text-tertiary, #B0B8C1)', cursor: 'pointer' }}>✕</button>
       </div>
 
       {/* 금액 입력 */}
       <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 6 }}>
+        <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 6 }}>
           투자 금액 ({currency === 'KRW' ? '원' : '$'})
         </label>
         <input
@@ -97,7 +97,7 @@ export default function BuySimulator({
           value={amount}
           onChange={e => setAmount(e.target.value)}
           style={{
-            width: '100%', padding: '10px 14px', background: '#F2F4F6',
+            width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)',
             border: 'none', borderRadius: 10, fontSize: 16, outline: 'none', boxSizing: 'border-box',
             fontVariantNumeric: 'tabular-nums',
           }}
@@ -145,13 +145,13 @@ export default function BuySimulator({
             />
           </div>
           {remainingCash > 1 && (
-            <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center' }}>
               잔여 {currency === 'KRW' ? `₩${Math.round(remainingCash * usdKrw).toLocaleString()}` : `$${remainingCash.toFixed(2)}`} (1주 미만 단수 차이)
             </div>
           )}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#8B95A1' }}>
+        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
           금액이 1주 가격보다 적어요
         </div>
       )}
@@ -161,10 +161,10 @@ export default function BuySimulator({
 
 function ResultCard({ label, value, sub, highlight }: { label: string; value: string; sub: string; highlight?: boolean }) {
   return (
-    <div style={{ padding: '10px 12px', borderRadius: 10, background: '#F8F9FA' }}>
-      <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 4 }}>{label}</div>
+    <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--bg-subtle, #F8F9FA)' }}>
+      <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: highlight ? '#16A34A' : '#191F28' }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 2 }}>{sub}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>{sub}</div>
     </div>
   );
 }

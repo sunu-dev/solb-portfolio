@@ -132,9 +132,9 @@ function MetricRow({ label, score, max, detail, color }: { label: string; score:
   const pct = max > 0 ? (score / max) * 100 : 0;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-      <div style={{ width: 70, fontSize: 12, fontWeight: 600, color: '#4E5968', flexShrink: 0 }}>{label}</div>
+      <div style={{ width: 70, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', flexShrink: 0 }}>{label}</div>
       <div style={{ flex: 1 }}>
-        <div style={{ height: 6, borderRadius: 3, background: '#F2F4F6', overflow: 'hidden' }}>
+        <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
           <div style={{ height: '100%', borderRadius: 3, background: color, width: `${pct}%`, transition: 'width 0.7s ease-out' }} />
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function PortfolioHealth({ stocks }: Props) {
 
   return (
     <div style={{ marginBottom: 32, background: '#F8F9FA', borderRadius: 16, padding: '20px 20px 12px' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>포트폴리오 건강 점수</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 16 }}>포트폴리오 건강 점수</div>
 
       <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <style>{`
@@ -169,7 +169,7 @@ export default function PortfolioHealth({ stocks }: Props) {
       </div>
 
       {/* 한줄 피드백 */}
-      <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: '#FFFFFF', fontSize: 12, color: '#4E5968', lineHeight: 1.6 }}>
+      <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #FFFFFF)', fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
         {health.concentration.score < 15 && `⚠️ ${health.concentration.detail}. 분산 투자를 고려해보세요. `}
         {health.diversification.score < 15 && `💡 ${health.diversification.detail}. 다른 섹터 종목을 추가해보세요. `}
         {health.goalSetting.score < 20 && `🎯 ${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 타이밍을 잡기 쉬워요. `}

@@ -86,7 +86,7 @@ export default function ToastAlert() {
         top: visible ? '60px' : '0px',
         left: '50%',
         transform: 'translateX(-50%)',
-        background: 'white',
+        background: 'var(--surface, white)',
         borderRadius: '16px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
         padding: '16px 24px',
@@ -103,7 +103,7 @@ export default function ToastAlert() {
     >
       <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '14px', fontWeight: 600, color: '#191F28', lineHeight: 1.4 }}>
+        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.4 }}>
           {currentToast.message}
         </div>
         <div style={{ fontSize: '12px', color: '#8B95A1', marginTop: '4px', lineHeight: 1.4 }}>
