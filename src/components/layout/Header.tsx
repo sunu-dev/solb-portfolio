@@ -42,8 +42,8 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-40 bg-white"
-      style={{ height: '48px', borderBottom: '1px solid #F2F4F6' }}
+      className="sticky top-0 z-40"
+      style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 48px' }}>
         {/* Logo */}

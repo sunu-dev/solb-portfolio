@@ -110,7 +110,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         background: 'var(--surface, white)',
         borderRadius: 16,
         boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-        border: '1px solid #F2F4F6',
+        border: '1px solid var(--border-light, #F2F4F6)',
         overflow: 'hidden',
       }}
     >
@@ -124,7 +124,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             transform: 'translateY(-50%)',
             width: 18,
             height: 18,
-            color: '#B0B8C1',
+            color: 'var(--text-tertiary, #B0B8C1)',
             pointerEvents: 'none',
           }}
         />
@@ -171,7 +171,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                 borderTopWidth: 1,
                 borderTopColor: '#F7F8FA',
                 cursor: 'pointer',
-                background: hoveredIdx === idx ? '#F9FAFB' : 'white',
+                background: hoveredIdx === idx ? 'var(--surface-hover, #F9FAFB)' : 'var(--surface, white)',
                 textAlign: 'left',
                 boxSizing: 'border-box',
                 transition: 'background 0.15s',
@@ -183,14 +183,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                     width: 32,
                     height: 32,
                     borderRadius: '50%',
-                    background: '#F2F4F6',
+                    background: 'var(--bg-subtle, #F2F4F6)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                   }}
                 >
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#4E5968' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #4E5968)' }}>
                     {item.symbol.charAt(0)}
                   </span>
                 </div>

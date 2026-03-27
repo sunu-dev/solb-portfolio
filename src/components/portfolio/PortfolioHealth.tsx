@@ -122,7 +122,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <span style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{score}</span>
-        <span style={{ fontSize: 11, color: '#8B95A1', marginTop: 2 }}>{label}</span>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', marginTop: 2 }}>{label}</span>
       </div>
     </div>
   );
@@ -149,7 +149,7 @@ export default function PortfolioHealth({ stocks }: Props) {
   if (stocks.length === 0) return null;
 
   return (
-    <div style={{ marginBottom: 32, background: '#F8F9FA', borderRadius: 16, padding: '20px 20px 12px' }}>
+    <div style={{ marginBottom: 32, background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 16, padding: '20px 20px 12px' }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 16 }}>포트폴리오 건강 점수</div>
 
       <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
