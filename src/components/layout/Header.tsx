@@ -110,11 +110,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           onClick={toggleDarkMode}
           className="flex items-center justify-center cursor-pointer transition-colors"
           style={{
-            width: '32px',
-            height: '32px',
+            width: '44px',
+            height: '44px',
             borderRadius: '8px',
             fontSize: '16px',
-            marginRight: '4px',
+            marginRight: '0px',
             background: 'transparent',
             border: 'none',
           }}
@@ -174,11 +174,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
               className="flex items-center justify-center cursor-pointer transition-colors"
               style={{
-                width: '32px',
-                height: '32px',
+                width: '44px',
+                height: '44px',
                 borderRadius: '8px',
                 color: '#8B95A1',
-                marginLeft: '8px',
+                marginLeft: '4px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}

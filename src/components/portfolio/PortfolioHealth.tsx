@@ -152,9 +152,15 @@ export default function PortfolioHealth({ stocks }: Props) {
     <div style={{ marginBottom: 24, background: '#F8F9FA', borderRadius: 16, padding: '20px 20px 12px' }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>💊 포트폴리오 건강 점수</div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+      <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <style>{`
+          @media (max-width: 380px) {
+            .health-layout { flex-direction: column !important; }
+            .health-layout > div:first-child { margin-bottom: 8px; }
+          }
+        `}</style>
         <ScoreRing score={health.total} />
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <MetricRow label="집중도" score={health.concentration.score} max={30} detail={health.concentration.detail} color={health.concentration.color} />
           <MetricRow label="섹터 분산" score={health.diversification.score} max={25} detail={health.diversification.detail} color={health.diversification.color} />
           <MetricRow label="목표 설정" score={health.goalSetting.score} max={25} detail={health.goalSetting.detail} color={health.goalSetting.color} />

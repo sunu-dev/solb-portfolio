@@ -512,7 +512,7 @@ export default function PortfolioSection() {
             <div
               className="stock-table-header grid items-center"
               style={{
-                gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px',
+                gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                 padding: '0 0 12px',
                 fontSize: '12px',
                 color: '#B0B8C1',
@@ -745,16 +745,16 @@ export default function PortfolioSection() {
                   </div>
 
                   {/* Edit/Delete actions */}
-                  <div className="row-actions flex items-center gap-1" style={{ opacity: 0, transition: 'opacity 0.2s' }}>
+                  <div className="row-actions flex items-center gap-0" style={{ opacity: 0, transition: 'opacity 0.2s' }}>
                     <button
                       onClick={(e) => { e.stopPropagation(); setEditingCat(stock.category); setEditingIdx(stock.originalIdx); }}
-                      style={{ padding: 4, borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none' }}
+                      style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
                       <Edit3 size={14} color="#B0B8C1" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteStock(stock.category, stock.originalIdx); logApiCall('stock_delete', stock.symbol); }}
-                      style={{ padding: 4, borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none' }}
+                      style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
                       <Trash2 size={14} color="#B0B8C1" />
                     </button>

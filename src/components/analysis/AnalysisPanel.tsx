@@ -174,7 +174,7 @@ export default function AnalysisPanel() {
           className="flex flex-col"
           style={{
             width: '100%',
-            maxWidth: 'min(560px, 95vw)',
+            maxWidth: 'min(700px, 95vw)',
             maxHeight: '90vh',
             background: '#FFFFFF',
             borderRadius: 20,

@@ -78,7 +78,8 @@ export default function LoginStreak() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 12,
+      flexWrap: 'wrap',
+      gap: '6px 12px',
       padding: '8px 16px',
       borderRadius: 10,
       background: showBadge ? 'rgba(239,68,82,0.06)' : '#F8F9FA',
@@ -87,10 +88,9 @@ export default function LoginStreak() {
     }}>
       <span style={{ fontSize: 16 }}>{currentBadge?.emoji || '🔥'}</span>
       <span style={{ fontSize: 13, fontWeight: 600, color: '#191F28' }}>
-        {streak.count}일 연속 접속
+        {streak.count}일 연속
       </span>
-      {/* 뱃지 목록 */}
-      <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
         {BADGES.map(b => (
           <span
             key={b.days}
