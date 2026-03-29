@@ -589,7 +589,7 @@ export default function AnalysisPanel() {
                             flexShrink: 0,
                           }}
                         >
-                          <span style={{ fontSize: 22 }}>{m.icon}</span>
+                          <img src={m.image} alt={m.nameKr} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                           <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
                             {m.nameKr}
                           </span>
@@ -613,7 +613,7 @@ export default function AnalysisPanel() {
                       {/* Profile card */}
                       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${selectedMentor.color}15` }}>
                         <div className="flex items-start" style={{ gap: 12 }}>
-                          <span style={{ fontSize: 28, lineHeight: 1 }}>{selectedMentor.icon}</span>
+                          <img src={selectedMentor.image} alt={selectedMentor.nameKr} style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
                               {selectedMentor.nameKr}

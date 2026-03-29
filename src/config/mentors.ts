@@ -3,6 +3,7 @@ export interface Mentor {
   name: string;
   nameKr: string;
   icon: string;
+  image: string;
   color: string;
   style: string;
   tagline: string;
@@ -18,6 +19,7 @@ export const MENTORS: Mentor[] = [
     name: 'Warren Buffett',
     nameKr: '워렌 버핏',
     icon: '🎩',
+    image: '/mentors/mentor-buffett.jpg',
     color: '#1B4332',
     style: '가치투자',
     tagline: '60년간 연 20% 수익, 세계 최고 부자 투자자',
@@ -58,6 +60,7 @@ export const MENTORS: Mentor[] = [
     name: 'Peter Lynch',
     nameKr: '피터 린치',
     icon: '🔍',
+    image: '/mentors/mentor-lynch.jpg',
     color: '#2563EB',
     style: '생활투자',
     tagline: '13년간 펀드 수익률 2,703%, 생활 속 투자 달인',
@@ -98,6 +101,7 @@ export const MENTORS: Mentor[] = [
     name: 'Ray Dalio',
     nameKr: '레이 달리오',
     icon: '⚖️',
+    image: '/mentors/mentor-dalio.jpg',
     color: '#7C3AED',
     style: '올웨더',
     tagline: '세계 최대 헤지펀드 창립자, 어떤 위기에도 버티는 전략',
@@ -138,6 +142,7 @@ export const MENTORS: Mentor[] = [
     name: 'Cathie Wood',
     nameKr: '캐시 우드',
     icon: '🚀',
+    image: '/mentors/mentor-wood.jpg',
     color: '#EC4899',
     style: '혁신성장',
     tagline: '테슬라를 $50에 산 여성, 미래 기술에 올인',
@@ -178,6 +183,7 @@ export const MENTORS: Mentor[] = [
     name: 'Benjamin Graham',
     nameKr: '벤저민 그레이엄',
     icon: '📚',
+    image: '/mentors/mentor-graham.jpg',
     color: '#78716C',
     style: '안전마진',
     tagline: '버핏의 스승, 가치투자의 교과서를 쓴 사람',
@@ -218,6 +224,7 @@ export const MENTORS: Mentor[] = [
     name: 'George Soros',
     nameKr: '조지 소로스',
     icon: '🌊',
+    image: '/mentors/mentor-soros.jpg',
     color: '#DC2626',
     style: '매크로',
     tagline: '영란은행을 무너뜨린 남자, 한 번에 $1B 수익',
@@ -258,6 +265,7 @@ export const MENTORS: Mentor[] = [
     name: 'John Bogle',
     nameKr: '존 보글',
     icon: '📊',
+    image: '/mentors/mentor-bogle.jpg',
     color: '#059669',
     style: '인덱스',
     tagline: '인덱스 펀드를 발명한 사람, "시장을 이길 수 없다"',
@@ -298,6 +306,7 @@ export const MENTORS: Mentor[] = [
     name: 'Jesse Livermore',
     nameKr: '제시 리버모어',
     icon: '⚡',
+    image: '/mentors/mentor-livermore.jpg',
     color: '#F59E0B',
     style: '추세추종',
     tagline: '1929년 대공황에서 $100M 번 전설적 트레이더',
