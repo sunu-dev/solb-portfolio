@@ -605,11 +605,35 @@ export default function AnalysisPanel() {
                       background: `${selectedMentor.color}08`,
                       border: `1px solid ${selectedMentor.color}20`,
                     }}>
-                      <div className="flex items-center" style={{ gap: 8, marginBottom: 14 }}>
-                        <span style={{ fontSize: 20 }}>{selectedMentor.icon}</span>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
-                          {selectedMentor.nameKr}의 분석
-                        </span>
+                      {/* Profile card */}
+                      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${selectedMentor.color}15` }}>
+                        <div className="flex items-start" style={{ gap: 12 }}>
+                          <span style={{ fontSize: 28, lineHeight: 1 }}>{selectedMentor.icon}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
+                              {selectedMentor.nameKr}
+                              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 6 }}>
+                                {selectedMentor.name}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+                              {selectedMentor.track}
+                            </div>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginTop: 6 }}>
+                              {selectedMentor.tagline}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-secondary, #4E5968)', marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--surface, #fff)', borderLeft: `3px solid ${selectedMentor.color}40` }}>
+                          &ldquo;{selectedMentor.famousQuote}&rdquo;
+                        </div>
+                        <div className="flex flex-wrap" style={{ gap: 4, marginTop: 8 }}>
+                          {selectedMentor.keywords.map(kw => (
+                            <span key={kw} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: `${selectedMentor.color}12`, color: selectedMentor.color, fontWeight: 500 }}>
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
                       {mentorLoading && <AIProgressIndicator />}

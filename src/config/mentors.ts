@@ -5,6 +5,9 @@ export interface Mentor {
   icon: string;
   color: string;
   style: string;
+  tagline: string;
+  track: string;
+  famousQuote: string;
   keywords: string[];
   systemPrompt: string;
 }
@@ -17,6 +20,9 @@ export const MENTORS: Mentor[] = [
     icon: '🎩',
     color: '#1B4332',
     style: '가치투자',
+    tagline: '60년간 연 20% 수익, 세계 최고 부자 투자자',
+    track: '버크셔해서웨이 회장 · 운용자산 $900B+',
+    famousQuote: '남들이 두려워할 때 탐욕스러워라.',
     keywords: ['경제적 해자', '내재가치', '장기보유', '안전마진'],
     systemPrompt: `당신은 워렌 버핏입니다. 가치투자의 전설로서 분석하세요.
 핵심 원칙:
@@ -36,6 +42,9 @@ export const MENTORS: Mentor[] = [
     icon: '🔍',
     color: '#2563EB',
     style: '생활투자',
+    tagline: '13년간 펀드 수익률 2,703%, 생활 속 투자 달인',
+    track: '마젤란 펀드 매니저 · 연평균 29% 수익',
+    famousQuote: '아는 것에 투자하라.',
     keywords: ['아는 것에 투자', 'PEG', '텐배거', '생활 속 발견'],
     systemPrompt: `당신은 피터 린치입니다. 마젤란 펀드의 전설적 매니저로서 분석하세요.
 핵심 원칙:
@@ -55,6 +64,9 @@ export const MENTORS: Mentor[] = [
     icon: '⚖️',
     color: '#7C3AED',
     style: '올웨더',
+    tagline: '세계 최대 헤지펀드 창립자, 어떤 위기에도 버티는 전략',
+    track: '브릿지워터 창립 · 운용자산 $150B+',
+    famousQuote: '가장 중요한 것은 당신이 모르는 것을 아는 것입니다.',
     keywords: ['분산', '리스크 패리티', '매크로', '원칙'],
     systemPrompt: `당신은 레이 달리오입니다. 브릿지워터 창립자로서 분석하세요.
 핵심 원칙:
@@ -74,6 +86,9 @@ export const MENTORS: Mentor[] = [
     icon: '🚀',
     color: '#EC4899',
     style: '혁신성장',
+    tagline: '테슬라를 $50에 산 여성, 미래 기술에 올인',
+    track: 'ARK Invest 창립자 · 2020년 수익률 152%',
+    famousQuote: '우리는 역사상 가장 큰 기술 혁명의 초기에 있습니다.',
     keywords: ['파괴적 혁신', 'AI/로봇', '5년 전망', '기하급수적 성장'],
     systemPrompt: `당신은 캐시 우드입니다. ARK Invest 창립자로서 분석하세요.
 핵심 원칙:
@@ -93,6 +108,9 @@ export const MENTORS: Mentor[] = [
     icon: '📚',
     color: '#78716C',
     style: '안전마진',
+    tagline: '버핏의 스승, 가치투자의 교과서를 쓴 사람',
+    track: '컬럼비아대 교수 · 《현명한 투자자》 저자',
+    famousQuote: '투자의 최대 적은 자기 자신입니다.',
     keywords: ['안전마진', 'PBR', '채권적 주식', '방어적 투자'],
     systemPrompt: `당신은 벤저민 그레이엄입니다. 가치투자의 아버지로서 분석하세요.
 핵심 원칙:
@@ -112,6 +130,9 @@ export const MENTORS: Mentor[] = [
     icon: '🌊',
     color: '#DC2626',
     style: '매크로',
+    tagline: '영란은행을 무너뜨린 남자, 한 번에 $1B 수익',
+    track: '퀀텀 펀드 창립 · 연평균 30%+ 수익',
+    famousQuote: '중요한 것은 옳고 그름이 아니라, 옳을 때 얼마나 버느냐입니다.',
     keywords: ['반사이론', '글로벌 매크로', '대담한 베팅', '추세 전환'],
     systemPrompt: `당신은 조지 소로스입니다. 퀀텀 펀드 창립자로서 분석하세요.
 핵심 원칙:
@@ -131,6 +152,9 @@ export const MENTORS: Mentor[] = [
     icon: '📊',
     color: '#059669',
     style: '인덱스',
+    tagline: '인덱스 펀드를 발명한 사람, "시장을 이길 수 없다"',
+    track: '뱅가드 그룹 창립 · 운용자산 $7T+',
+    famousQuote: '건초 더미에서 바늘을 찾지 마세요. 건초 더미 전체를 사세요.',
     keywords: ['패시브', '저비용', '인덱스 펀드', '시장 평균'],
     systemPrompt: `당신은 존 보글입니다. 뱅가드 그룹 창립자로서 분석하세요.
 핵심 원칙:
@@ -150,6 +174,9 @@ export const MENTORS: Mentor[] = [
     icon: '⚡',
     color: '#F59E0B',
     style: '추세추종',
+    tagline: '1929년 대공황에서 $100M 번 전설적 트레이더',
+    track: '월가 역사상 최고의 트레이더',
+    famousQuote: '돈을 버는 건 앉아서 기다리는 것이지, 거래하는 것이 아닙니다.',
     keywords: ['모멘텀', '타이밍', '손절', '추세'],
     systemPrompt: `당신은 제시 리버모어입니다. 월스트리트 역사상 가장 위대한 트레이더로서 분석하세요.
 핵심 원칙:
