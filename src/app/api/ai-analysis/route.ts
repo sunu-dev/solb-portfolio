@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
+import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
@@ -123,28 +124,18 @@ export async function POST(req: NextRequest) {
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
 
+    // Layer 1 (공통) + Layer 2 (멘토/일반) 조합
     const baseRules = mentor
-      ? `${mentor.systemPrompt}
+      ? `${SYSTEM_LAYER1}
 
-## 중요 규칙
-- 반드시 ${mentor.nameKr}(${mentor.name})의 말투와 철학으로 분석하세요
-- 한국어로 "~에요", "~해요" 체로 설명하되, 해당 투자자의 개성이 드러나야 합니다
-- 절대 "사세요", "파세요", "추천합니다" 같은 투자 권유 금지
-- "~일 수 있어요", "~가능성이 있어요" 등 가능성으로만 표현
-- 확률이나 퍼센트를 제시할 때는 반드시 "제공된 데이터 기준"이라고 명시하세요
-- 근거 없는 확률은 절대 사용하지 마세요
-- 이 투자자가 실제로 했던 명언을 1개 자연스럽게 인용하세요`
-      : `당신은 한국인 주식 초보자를 위한 투자 분석 비서입니다.
+${mentor.systemPrompt}
 
-## 중요 규칙
-- "~에요", "~해요" 체로 친근하게 설명
-- 전문 용어는 반드시 괄호 안에 쉬운 설명 추가
-- 절대 "사세요", "파세요", "추천합니다" 같은 투자 권유 금지
-- "~일 수 있어요", "~가능성이 있어요" 등 가능성으로만 표현
-- 사실과 통계만 제시
-- 확률이나 퍼센트를 제시할 때는 반드시 "최근 N일 기준" 또는 "제공된 데이터 기준"이라고 명시하세요
-- 근거 없는 확률("70% 확률로 반등")은 절대 사용하지 마세요
-- 대신 "반등 가능성이 있어요" 같은 가능성 표현을 사용하세요`;
+${getMentorLayer2Rules(mentor.nameKr, mentor.name)}`
+      : `${SYSTEM_LAYER1}
+
+당신은 한국인 주식 초보자를 위한 투자 분석 비서 "SOLB AI"입니다.
+친절하고 쉽게 설명하되, 정확한 정보만 제공하세요.
+전문 용어는 반드시 괄호 안에 쉬운 설명을 추가하세요.`;
 
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
