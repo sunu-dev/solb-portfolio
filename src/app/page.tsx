@@ -14,6 +14,7 @@ import RightSidebar from '@/components/layout/RightSidebar';
 import BottomTicker from '@/components/layout/BottomTicker';
 import MobileNav from '@/components/layout/MobileNav';
 import MobileSidebar from '@/components/layout/MobileSidebar';
+import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
 import EventsSection from '@/components/events/EventsSection';
 import NewsSection from '@/components/news/NewsSection';
@@ -34,12 +35,13 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [showMobileAlerts, setShowMobileAlerts] = useState(false);
 
-  // Mobile sidebar open via custom event (from header bell icon)
+  // Mobile alert sheet open via custom event (from header bell icon)
   useEffect(() => {
-    const handler = () => setShowMobileSidebar(true);
-    window.addEventListener('open-mobile-sidebar', handler);
-    return () => window.removeEventListener('open-mobile-sidebar', handler);
+    const handler = () => setShowMobileAlerts(true);
+    window.addEventListener('open-mobile-alerts', handler);
+    return () => window.removeEventListener('open-mobile-alerts', handler);
   }, []);
 
   // Supabase DB 동기화 (로그인 시에만 활성화)
@@ -192,6 +194,12 @@ export default function Home() {
 
       {/* Mobile bottom navigation (hidden on lg+) */}
       <MobileNav onMoreClick={() => setShowMobileSidebar(true)} />
+
+      {/* Mobile alert sheet (bell icon) */}
+      <MobileAlertSheet
+        isOpen={showMobileAlerts}
+        onClose={() => setShowMobileAlerts(false)}
+      />
 
       {/* Mobile sidebar sheet */}
       <MobileSidebar

@@ -128,15 +128,15 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Alert bell */}
         <button
           onClick={(e) => {
-            e.currentTarget.blur(); // 클릭 후 focus 상태 즉시 해제
+            e.currentTarget.blur();
+            // Desktop (lg+): scroll to sidebar alert center
             const el = document.getElementById('solb-alert-center');
-            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-            window.dispatchEvent(new CustomEvent('open-mobile-sidebar'));
-            // MobileSidebar 열린 후 알림센터로 스크롤
-            setTimeout(() => {
-              const alertEl = document.getElementById('solb-alert-center');
-              if (alertEl) alertEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 400);
+            if (el && window.innerWidth >= 1024) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              return;
+            }
+            // Mobile: open dedicated alert bottom sheet
+            window.dispatchEvent(new CustomEvent('open-mobile-alerts'));
           }}
           className="relative flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
