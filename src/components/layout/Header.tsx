@@ -108,8 +108,8 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
         {/* Dark mode toggle */}
         <button
-          onClick={toggleDarkMode}
-          className="flex items-center justify-center cursor-pointer transition-colors shrink-0"
+          onClick={(e) => { e.currentTarget.blur(); toggleDarkMode(); }}
+          className="flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
             width: '36px',
             height: '36px',
@@ -117,9 +117,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             fontSize: '16px',
             background: 'transparent',
             border: 'none',
+            WebkitTapHighlightColor: 'transparent',
+            outline: 'none',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
           {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
@@ -127,12 +127,18 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
         {/* Alert bell */}
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.currentTarget.blur(); // 클릭 후 focus 상태 즉시 해제
             const el = document.getElementById('solb-alert-center');
             if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
             window.dispatchEvent(new CustomEvent('open-mobile-sidebar'));
+            // MobileSidebar 열린 후 알림센터로 스크롤
+            setTimeout(() => {
+              const alertEl = document.getElementById('solb-alert-center');
+              if (alertEl) alertEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400);
           }}
-          className="relative flex items-center justify-center cursor-pointer transition-colors shrink-0"
+          className="relative flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
             width: '36px',
             height: '36px',
@@ -140,9 +146,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             background: 'transparent',
             border: 'none',
             color: 'var(--text-secondary, #8B95A1)',
+            WebkitTapHighlightColor: 'transparent',
+            outline: 'none',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           title="알림"
         >
           <Bell className="w-[16px] h-[16px]" />
