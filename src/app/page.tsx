@@ -20,7 +20,7 @@ import NewsSection from '@/components/news/NewsSection';
 import AnalysisPanel from '@/components/analysis/AnalysisPanel';
 import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
-import ToastAlert from '@/components/common/ToastAlert';
+// ToastAlert removed — alerts now shown in sidebar notification center
 import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import { logApiCall } from '@/lib/apiLogger';
@@ -157,7 +157,6 @@ export default function Home() {
       <BottomTicker />
 
       {/* Overlays */}
-      <ToastAlert />
       {analysisSymbol && <AnalysisPanel />}
       <EditStockModal />
       <SettingsPanel />

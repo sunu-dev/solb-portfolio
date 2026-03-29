@@ -107,7 +107,7 @@ export default function PortfolioSection() {
     setCurrentTab, setAnalysisSymbol,
     deleteStock, setEditingCat, setEditingIdx,
     addStock,
-    alerts, dismissedAlerts,
+    alerts, dismissedAlerts, dismissAlert,
     currency, setCurrency,
     lastUpdate,
   } = usePortfolioStore();
@@ -237,8 +237,50 @@ export default function PortfolioSection() {
     return sortDir === 'asc' ? va - vb : vb - va;
   });
 
+  // Urgent inline banners (severity 1 only)
+  const urgentAlerts = alerts
+    .filter(a => a.severity <= 1 && !dismissedAlerts.includes(a.id))
+    .slice(0, 2);
+
   return (
     <div>
+      {/* Urgent inline banners */}
+      {urgentAlerts.map(alert => (
+        <div
+          key={alert.id}
+          className="animate-fade-in"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: '12px 16px',
+            marginBottom: 8,
+            borderRadius: 12,
+            background: alert.type === 'celebrate' ? 'rgba(175,82,222,0.06)' : 'rgba(239,68,82,0.06)',
+            border: `1px solid ${alert.type === 'celebrate' ? 'rgba(175,82,222,0.12)' : 'rgba(239,68,82,0.12)'}`,
+          }}
+        >
+          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
+            {alert.type === 'celebrate' ? '🎉' : alert.type === 'urgent' ? '🚨' : '⚠️'}
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.4 }}>
+              {alert.message}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+              {alert.detail}
+            </div>
+          </div>
+          <button
+            onClick={() => dismissAlert(alert.id)}
+            className="cursor-pointer"
+            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+
       {/* Login Streak */}
       <LoginStreak />
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { Settings } from 'lucide-react';
+import { Settings, Bell } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -20,7 +20,8 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
-  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore();
+  const { currentSection, setCurrentSection, darkMode, toggleDarkMode, alerts, dismissedAlerts } = usePortfolioStore();
+  const unreadCount = alerts.filter(a => !dismissedAlerts.includes(a.id)).length;
   const [showSearch, setShowSearch] = useState(false);
 
   // Keyboard shortcut for search
@@ -123,6 +124,52 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
           {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+        </button>
+
+        {/* Alert bell */}
+        <button
+          onClick={() => {
+            // Desktop: scroll to alert center
+            const el = document.getElementById('solb-alert-center');
+            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+            // Mobile: open sidebar
+            const mobileBtn = document.querySelector('[data-slot="mobile-sidebar-trigger"]') as HTMLElement;
+            if (mobileBtn) mobileBtn.click();
+          }}
+          className="relative flex items-center justify-center cursor-pointer transition-colors"
+          style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '8px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary, #8B95A1)',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
+          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          title="알림"
+        >
+          <Bell className="w-[18px] h-[18px]" />
+          {unreadCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: 6,
+                right: 6,
+                fontSize: 9,
+                fontWeight: 700,
+                color: '#fff',
+                background: '#EF4452',
+                borderRadius: 8,
+                padding: '1px 4px',
+                minWidth: 14,
+                textAlign: 'center',
+                lineHeight: '14px',
+              }}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {/* Search toggle */}
