@@ -54,25 +54,28 @@ function calcHealthScore(stocks: HealthStock[]): {
   const weights = stocks.map(s => totalValue > 0 ? (s.value / totalValue) * 100 : 0);
   const maxWeight = Math.max(...weights);
   let concScore = 30;
-  let concDetail = '분산 투자 양호';
-  if (maxWeight > 70) { concScore = 5; concDetail = `한 종목에 ${maxWeight.toFixed(0)}% 집중 — 위험`; }
-  else if (maxWeight > 50) { concScore = 15; concDetail = `최대 비중 ${maxWeight.toFixed(0)}% — 분산 필요`; }
-  else if (maxWeight > 35) { concScore = 22; concDetail = `최대 비중 ${maxWeight.toFixed(0)}% — 적정`; }
+  const topSymbol = stocks.length > 0 ? stocks.reduce((a, b) => a.value > b.value ? a : b).symbol : '';
+  const topName = STOCK_KR[topSymbol] || topSymbol;
+  let concDetail = `${stocks.length}개 종목에 고르게 분산 (최대 ${maxWeight.toFixed(0)}%)`;
+  if (maxWeight > 70) { concScore = 5; concDetail = `${topName}에 ${maxWeight.toFixed(0)}% 집중 — 위험`; }
+  else if (maxWeight > 50) { concScore = 15; concDetail = `${topName} 비중 ${maxWeight.toFixed(0)}% — 분산 필요`; }
+  else if (maxWeight > 35) { concScore = 22; concDetail = `${topName} 비중 ${maxWeight.toFixed(0)}% — 적정 수준`; }
 
   // 2. 섹터 분산 (25점) - 다양한 섹터에 투자할수록 높음
   const sectors = new Set(stocks.map(s => getSector(s.symbol)));
   let divScore = 25;
-  let divDetail = `${sectors.size}개 섹터 분산`;
-  if (sectors.size <= 1) { divScore = 5; divDetail = '1개 섹터에만 투자 중'; }
-  else if (sectors.size === 2) { divScore = 15; divDetail = '2개 섹터 — 더 분산 추천'; }
+  const sectorList = [...sectors];
+  let divDetail = `${sectorList.join(', ')} 등 ${sectors.size}개 섹터`;
+  if (sectors.size <= 1) { divScore = 5; divDetail = `${sectorList[0] || '알 수 없음'} 섹터에만 투자 중`; }
+  else if (sectors.size === 2) { divScore = 15; divDetail = `${sectorList.join(', ')} 2개 섹터 — 더 분산 추천`; }
 
   // 3. 목표 설정 (25점) - 모든 종목에 목표수익률이 설정됐는지
   const withGoal = stocks.filter(s => s.targetReturn > 0).length;
   const goalRatio = stocks.length > 0 ? withGoal / stocks.length : 0;
   let goalScore = Math.round(goalRatio * 25);
   let goalDetail = goalRatio === 1
-    ? '모든 종목에 목표 설정'
-    : `${withGoal}/${stocks.length}종목 목표 설정`;
+    ? `${stocks.length}개 종목 모두 목표 수익률 설정 완료`
+    : `${stocks.length}개 중 ${withGoal}개 종목만 목표 설정됨`;
 
   // 4. 손익 밸런스 (20점) - 수익/손실 종목 비율
   let winCount = 0;
@@ -128,17 +131,35 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+function getScoreLabel(score: number, max: number): string {
+  const ratio = score / max;
+  if (ratio >= 0.8) return '건강';
+  if (ratio >= 0.5) return '주의';
+  return '위험';
+}
+
 function MetricRow({ label, score, max, detail, color }: { label: string; score: number; max: number; detail: string; color: string }) {
   const pct = max > 0 ? (score / max) * 100 : 0;
+  const statusLabel = getScoreLabel(score, max);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-      <div style={{ width: 70, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', flexShrink: 0 }}>{label}</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', borderRadius: 3, background: color, width: `${pct}%`, transition: 'width 0.7s ease-out' }} />
+    <div style={{ padding: '10px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 70, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', flexShrink: 0 }}>{label}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 3, background: color, width: `${pct}%`, transition: 'width 0.7s ease-out' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color, padding: '1px 6px', borderRadius: 4, background: color === '#16A34A' ? 'rgba(22,163,74,0.08)' : color === '#FF9500' ? 'rgba(255,149,0,0.08)' : 'rgba(239,68,82,0.08)' }}>
+            {statusLabel}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', width: 32, textAlign: 'right' }}>{score}/{max}</span>
         </div>
       </div>
-      <div style={{ fontSize: 12, fontWeight: 700, color, width: 36, textAlign: 'right', flexShrink: 0 }}>{score}/{max}</div>
+      <div style={{ marginTop: 4, paddingLeft: 82, fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.4 }}>
+        {detail}
+      </div>
     </div>
   );
 }
@@ -168,15 +189,28 @@ export default function PortfolioHealth({ stocks }: Props) {
         </div>
       </div>
 
-      {/* 한줄 피드백 */}
-      <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #FFFFFF)', fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
-        {health.concentration.score < 15 && `⚠️ ${health.concentration.detail}. 분산 투자를 고려해보세요. `}
-        {health.diversification.score < 15 && `💡 ${health.diversification.detail}. 다른 섹터 종목을 추가해보세요. `}
-        {health.goalSetting.score < 20 && `🎯 ${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 타이밍을 잡기 쉬워요. `}
-        {health.total >= 80 && '🎉 포트폴리오가 잘 관리되고 있어요!'}
-        {health.total >= 60 && health.total < 80 && '👍 전반적으로 양호해요. 약한 부분을 보완하면 더 좋아져요.'}
-        {health.total < 40 && '🔍 포트폴리오 구성을 점검해보세요.'}
-      </div>
+      {/* 개선 제안 */}
+      {(() => {
+        const tips: { icon: string; text: string }[] = [];
+        if (health.concentration.score < 15) tips.push({ icon: '⚠️', text: `${health.concentration.detail}. 분산 투자를 고려해보세요.` });
+        if (health.diversification.score < 15) tips.push({ icon: '💡', text: `${health.diversification.detail}. 다른 섹터 종목을 추가해보세요.` });
+        if (health.goalSetting.score < 20) tips.push({ icon: '🎯', text: `${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 타이밍을 잡기 쉬워요.` });
+        if (health.profitBalance.score < 10) tips.push({ icon: '📉', text: `${health.profitBalance.detail} — 손절 기준을 점검해보세요.` });
+        if (tips.length === 0 && health.total >= 80) tips.push({ icon: '🎉', text: '포트폴리오가 잘 관리되고 있어요!' });
+        if (tips.length === 0 && health.total >= 60) tips.push({ icon: '👍', text: '전반적으로 양호해요. 약한 부분을 보완하면 더 좋아져요.' });
+        if (tips.length === 0) tips.push({ icon: '🔍', text: '포트폴리오 구성을 점검해보세요.' });
+
+        return (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {tips.map((tip, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--surface, #FFFFFF)', fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
+                <span style={{ flexShrink: 0 }}>{tip.icon}</span>
+                <span>{tip.text}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
