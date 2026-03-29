@@ -281,16 +281,16 @@ export default function PortfolioSection() {
         </div>
       ))}
 
-      {/* Login Streak */}
-      <LoginStreak />
-
       {/* Hero - centered */}
-      <div className="hero-section" style={{ paddingTop: '20px', paddingBottom: '40px', position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '20px 16px 40px', borderRadius: 16 }}>
+      <div className="hero-section" style={{ paddingTop: '20px', paddingBottom: '40px', position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '20px 16px 24px', borderRadius: 16 }}>
         <style>{`
           .hero-section { text-align: center; }
           @media (min-width: 769px) { .hero-section { margin: 0 -48px !important; padding: 20px 48px 40px !important; } }
           @media (min-width: 1024px) { .hero-section { text-align: left; } }
         `}</style>
+
+        {/* Login Streak */}
+        <LoginStreak />
         {/* Currency toggle */}
         <div className="flex items-center" style={{ position: 'absolute', top: 0, right: 0 }}>
           <button
@@ -440,7 +440,7 @@ export default function PortfolioSection() {
       </div>
 
       {/* Divider + content below — 종목 리스트 먼저 */}
-      <div style={{ marginTop: 32, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 32 }}>
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 20 }}>
 
         {/* Category tabs */}
         <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '32px' }}>
