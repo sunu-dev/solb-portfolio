@@ -109,17 +109,16 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Dark mode toggle */}
         <button
           onClick={toggleDarkMode}
-          className="flex items-center justify-center cursor-pointer transition-colors"
+          className="flex items-center justify-center cursor-pointer transition-colors shrink-0"
           style={{
-            width: '44px',
-            height: '44px',
+            width: '36px',
+            height: '36px',
             borderRadius: '8px',
             fontSize: '16px',
-            marginRight: '0px',
             background: 'transparent',
             border: 'none',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
+          onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
@@ -129,16 +128,14 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Alert bell */}
         <button
           onClick={() => {
-            // Desktop: scroll to alert center in right sidebar
             const el = document.getElementById('solb-alert-center');
             if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-            // Mobile: open mobile sidebar via custom event
             window.dispatchEvent(new CustomEvent('open-mobile-sidebar'));
           }}
-          className="relative flex items-center justify-center cursor-pointer transition-colors"
+          className="relative flex items-center justify-center cursor-pointer transition-colors shrink-0"
           style={{
-            width: '44px',
-            height: '44px',
+            width: '36px',
+            height: '36px',
             borderRadius: '8px',
             background: 'transparent',
             border: 'none',
@@ -148,13 +145,13 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           title="알림"
         >
-          <Bell className="w-[18px] h-[18px]" />
+          <Bell className="w-[16px] h-[16px]" />
           {unreadCount > 0 && (
             <span
               style={{
                 position: 'absolute',
-                top: 6,
-                right: 6,
+                top: 2,
+                right: 2,
                 fontSize: 9,
                 fontWeight: 700,
                 color: '#fff',
