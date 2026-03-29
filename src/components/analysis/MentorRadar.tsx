@@ -7,10 +7,10 @@ interface Props {
   scores: StockAttributes;
 }
 
-const SIZE = 240;
+const SIZE = 280;
 const CENTER = SIZE / 2;
-const RADIUS = 75;
-const LABEL_RADIUS = RADIUS + 30;
+const RADIUS = 70;
+const LABEL_RADIUS = RADIUS + 35;
 const LEVELS = 5;
 const AXES = ATTRIBUTE_LABELS.length;
 
