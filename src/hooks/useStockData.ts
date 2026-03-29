@@ -71,60 +71,12 @@ function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
 }
 
 export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null> {
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko&tbs=qdr:d`;
-
-  // Attempt 1: rss2json
+  // Use server-side API route (no CORS issues, cached)
   try {
-    const r = await fetch(`${CONFIG.RSS2JSON_BASE}?rss_url=${encodeURIComponent(rssUrl)}`);
+    const r = await fetch(`/api/news?q=${encodeURIComponent(query)}`);
     const d = await r.json();
-    if (d.status === 'ok' && d.items?.length) {
-      const items = d.items.map((i: Record<string, string>) => ({
-        title: i.title || '',
-        link: i.link || '#',
-        pubDate: i.pubDate || '',
-        source: i.author || extractSource(i.title || ''),
-        description: ((i.description || i.content || '') as string).replace(/<[^>]*>/g, '').substring(0, 150).trim(),
-      }));
-      return sortAndFilterNews(items);
-    }
-  } catch { /* fall through */ }
-
-  // Attempt 2: Direct fetch + DOMParser
-  try {
-    const r = await fetch(rssUrl);
-    const text = await r.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'text/xml');
-    const xmlItems = xml.querySelectorAll('item');
-    if (xmlItems.length) {
-      const items = [...xmlItems].map(item => ({
-        title: item.querySelector('title')?.textContent || '',
-        link: item.querySelector('link')?.textContent || '#',
-        pubDate: item.querySelector('pubDate')?.textContent || '',
-        source: (item.querySelector('source')?.textContent) || extractSource(item.querySelector('title')?.textContent || ''),
-        description: '',
-      }));
-      return sortAndFilterNews(items);
-    }
-  } catch { /* fall through */ }
-
-  // Attempt 3: allorigins CORS proxy
-  try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`;
-    const r = await fetch(proxyUrl);
-    const text = await r.text();
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(text, 'text/xml');
-    const xmlItems = xml.querySelectorAll('item');
-    if (xmlItems.length) {
-      const items = [...xmlItems].map(item => ({
-        title: item.querySelector('title')?.textContent || '',
-        link: item.querySelector('link')?.textContent || '#',
-        pubDate: item.querySelector('pubDate')?.textContent || '',
-        source: (item.querySelector('source')?.textContent) || extractSource(item.querySelector('title')?.textContent || ''),
-        description: '',
-      }));
-      return sortAndFilterNews(items);
+    if (d.items?.length) {
+      return d.items;
     }
   } catch (e) {
     console.error('News fetch failed:', e);
