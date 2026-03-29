@@ -215,25 +215,28 @@ export function useStockData() {
     const macroSymbols = MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(i => i.symbol!);
     const allSyms = [...new Set([...syms, ...macroSymbols])];
 
+    let batchOk = false;
     try {
       const r = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symbols: allSyms, apiKey, macro: true }),
       });
-      const { quotes, usdKrw } = await r.json();
+      if (!r.ok) throw new Error(`batch API ${r.status}`);
+      const json = await r.json();
+      const quotes = json?.quotes;
+      const usdKrw = json?.usdKrw;
 
-      // Update stock quotes
-      if (quotes) {
+      // Check we actually got data
+      if (quotes && Object.keys(quotes).some(k => quotes[k]?.c)) {
+        batchOk = true;
         for (const [sym, d] of Object.entries(quotes)) {
           if (d && (d as QuoteData).c) {
-            // Check if it's a macro symbol
             const macroInd = MACRO_IND.find(i => i.symbol === sym);
             if (macroInd) {
               const q = d as QuoteData;
               updateMacroEntry(macroInd.label, { value: q.c, change: q.d || 0, changePercent: q.dp || 0 });
             }
-            // Always update by symbol too (for stock quotes)
             if (syms.includes(sym)) {
               updateMacroEntry(sym, d as QuoteData);
               freshData[sym] = d as QuoteData;
@@ -242,22 +245,35 @@ export function useStockData() {
         }
       }
 
-      // Update USD/KRW
       if (usdKrw?.c) {
         updateMacroEntry('USD/KRW', { value: usdKrw.c, change: usdKrw.d || 0, changePercent: usdKrw.dp || 0 });
       }
-    } catch {
-      // Fallback to individual requests if batch API fails
+    } catch { /* batch failed, will fallback below */ }
+
+    // Fallback: individual requests if batch returned no data
+    if (!batchOk) {
       await Promise.all(
-        syms.map(s =>
+        allSyms.map(s =>
           fetchStockQuote(s, apiKey).then(d => {
             if (d && d.c) {
-              updateMacroEntry(s, d);
-              freshData[s] = d;
+              const macroInd = MACRO_IND.find(i => i.symbol === s);
+              if (macroInd) {
+                updateMacroEntry(macroInd.label, { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+              }
+              if (syms.includes(s)) {
+                updateMacroEntry(s, d);
+                freshData[s] = d;
+              }
             }
           })
         )
       );
+      // USD/KRW fallback
+      try {
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
+        const d = await r.json();
+        if (d?.c) updateMacroEntry('USD/KRW', { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+      } catch { /* silent */ }
     }
 
     // Save to cache

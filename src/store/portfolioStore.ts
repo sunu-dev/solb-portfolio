@@ -239,6 +239,12 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       loadPortfolio: () => {
         const state = get();
+
+        // If persisted apiKey is empty but env var exists, use env var
+        if (!state.apiKey && DEFAULT_API_KEY) {
+          set({ apiKey: DEFAULT_API_KEY });
+        }
+
         const stocks = { ...state.stocks };
         let needsSave = false;
 
