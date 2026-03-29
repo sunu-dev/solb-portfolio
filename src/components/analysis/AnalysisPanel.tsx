@@ -14,8 +14,10 @@ import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/co
 import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { supabase } from '@/lib/supabase';
-import { MENTORS } from '@/config/mentors';
+import { MENTORS, MENTOR_MAP } from '@/config/mentors';
 import type { Mentor } from '@/config/mentors';
+import { calcMentorScores } from '@/utils/mentorScores';
+import MentorRadar from './MentorRadar';
 
 const AI_STEPS = [
   { label: '최신 뉴스 수집 중', pct: 15 },
@@ -518,14 +520,37 @@ export default function AnalysisPanel() {
                 )}
 
                 {/* ============================================
-                    멘토 분석 섹션
+                    레이더 차트 + 멘토 분석 섹션
                     ============================================ */}
                 <div style={{ marginBottom: 24 }}>
+                  {/* Radar chart */}
+                  <MentorRadar
+                    scores={calcMentorScores({
+                      symbol: symbol || '',
+                      price,
+                      change,
+                      changePercent: cp,
+                      rsiVal: analysis?.rsiVal ?? undefined,
+                      trend: analysis?.trend,
+                      cross: analysis?.cross ?? undefined,
+                      bollingerStatus: analysis?.bollingerStatus?.status ?? undefined,
+                      macdStatus: analysis?.macdStatus?.status ?? undefined,
+                      volRatio: analysis?.volRatio ?? undefined,
+                      avgCost: stockData?.avgCost,
+                      shares: stockData?.shares,
+                      targetReturn: stockData?.targetReturn,
+                    })}
+                    onSelectMentor={(id) => {
+                      const m = MENTOR_MAP[id];
+                      if (m) {
+                        if (selectedMentor?.id === id) { setSelectedMentor(null); setMentorReport(null); }
+                        else { setSelectedMentor(m); setMentorReport(null); }
+                      }
+                    }}
+                  />
+
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 12 }}>
-                    투자 멘토에게 물어보기
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 14 }}>
-                    전설적 투자자의 관점으로 이 종목을 분석해요
+                    멘토에게 상세 분석 받기
                   </div>
 
                   {/* Mentor avatars — horizontal scroll */}
@@ -593,8 +618,8 @@ export default function AnalysisPanel() {
                           <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
                             {m.nameKr}
                           </span>
-                          <span style={{ fontSize: 9, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
-                            {m.style}
+                          <span style={{ fontSize: 8, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap', letterSpacing: 1 }}>
+                            {'★'.repeat(m.risk)}{'☆'.repeat(5 - m.risk)}
                           </span>
                         </button>
                       );
@@ -615,16 +640,15 @@ export default function AnalysisPanel() {
                         <div className="flex items-start" style={{ gap: 12 }}>
                           <span style={{ fontSize: 32, lineHeight: 1 }}>{selectedMentor.icon}</span>
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
-                              {selectedMentor.nameKr}
-                              <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 6 }}>
-                                {selectedMentor.name}
+                            <div className="flex items-center" style={{ gap: 8 }}>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
+                                {selectedMentor.nameKr}
+                              </span>
+                              <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 1 }}>
+                                리스크 {'★'.repeat(selectedMentor.risk)}{'☆'.repeat(5 - selectedMentor.risk)}
                               </span>
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-                              {selectedMentor.track}
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginTop: 6 }}>
+                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginTop: 4 }}>
                               {selectedMentor.tagline}
                             </div>
                           </div>

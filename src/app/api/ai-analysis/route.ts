@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 
 ${mentor.systemPrompt}
 
-${getMentorLayer2Rules(mentor.nameKr, mentor.name)}`
+${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
       : `${SYSTEM_LAYER1}
 
 당신은 한국인 주식 초보자를 위한 투자 분석 비서 "SOLB AI"입니다.
