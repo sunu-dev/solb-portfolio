@@ -13,6 +13,8 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
 import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { MENTORS } from '@/config/mentors';
+import type { Mentor } from '@/config/mentors';
 
 const AI_STEPS = [
   { label: '최신 뉴스 수집 중', pct: 15 },
@@ -100,6 +102,8 @@ import InvestmentNotes from '@/components/portfolio/InvestmentNotes';
 
 // AI report cache (module-level, persists across re-renders)
 const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
+// Mentor report cache: keyed by "symbol-mentorId"
+const mentorReportCache: Record<string, { report: any; timestamp: number }> = {};
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 type ChartLevel = 'basic' | 'detail';
@@ -136,6 +140,9 @@ export default function AnalysisPanel() {
   const [aiReport, setAiReport] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [mentorReport, setMentorReport] = useState<any>(null);
+  const [mentorLoading, setMentorLoading] = useState(false);
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -506,6 +513,188 @@ export default function AnalysisPanel() {
                     </div>
                   </div>
                 )}
+
+                {/* ============================================
+                    멘토 분석 섹션
+                    ============================================ */}
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 12 }}>
+                    투자 멘토에게 물어보기
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 14 }}>
+                    전설적 투자자의 관점으로 이 종목을 분석해요
+                  </div>
+
+                  {/* Mentor avatars — horizontal scroll */}
+                  <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                    {MENTORS.map(m => {
+                      const isActive = selectedMentor?.id === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          onClick={async () => {
+                            if (isActive) { setSelectedMentor(null); setMentorReport(null); return; }
+                            setSelectedMentor(m);
+                            setMentorReport(null);
+
+                            // Check cache
+                            const cacheKey = `${symbol}-${m.id}`;
+                            const cached = mentorReportCache[cacheKey];
+                            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                              setMentorReport(cached.report);
+                              return;
+                            }
+
+                            setMentorLoading(true);
+                            try {
+                              const resp = await fetch('/api/ai-analysis', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  symbol, koreanName: kr, price, change, changePercent: cp,
+                                  avgCost: stockData?.avgCost, shares: stockData?.shares,
+                                  targetReturn: stockData?.targetReturn,
+                                  rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
+                                  cross: analysis?.cross, pattern: analysis?.pattern?.name,
+                                  bollingerStatus: analysis?.bollingerStatus?.status,
+                                  macdStatus: analysis?.macdStatus?.status, volRatio: analysis?.volRatio,
+                                  mentorId: m.id,
+                                }),
+                              });
+                              const data = await resp.json();
+                              if (data.success) {
+                                setMentorReport(data.report);
+                                mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
+                                logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
+                              }
+                            } catch { /* silent */ }
+                            setMentorLoading(false);
+                          }}
+                          className="cursor-pointer transition-all"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '8px 10px',
+                            borderRadius: 12,
+                            border: isActive ? `2px solid ${m.color}` : '2px solid transparent',
+                            background: isActive ? `${m.color}10` : 'var(--bg-subtle, #F8F9FA)',
+                            minWidth: 72,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{ fontSize: 22 }}>{m.icon}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
+                            {m.nameKr}
+                          </span>
+                          <span style={{ fontSize: 9, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
+                            {m.style}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Mentor report card */}
+                  {selectedMentor && (
+                    <div style={{
+                      marginTop: 14,
+                      borderRadius: 16,
+                      padding: 20,
+                      background: `${selectedMentor.color}08`,
+                      border: `1px solid ${selectedMentor.color}20`,
+                    }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 14 }}>
+                        <span style={{ fontSize: 20 }}>{selectedMentor.icon}</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
+                          {selectedMentor.nameKr}의 분석
+                        </span>
+                      </div>
+
+                      {mentorLoading && <AIProgressIndicator />}
+
+                      {mentorReport && (
+                        <>
+                          {/* Score */}
+                          {mentorReport.mentorScore && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #fff)' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                                {selectedMentor.nameKr} 점수
+                              </span>
+                              <span style={{ marginLeft: 'auto', fontSize: 16, letterSpacing: 2 }}>
+                                {'★'.repeat(mentorReport.mentorScore)}{'☆'.repeat(5 - mentorReport.mentorScore)}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Verdict */}
+                          {mentorReport.mentorVerdict && (
+                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.6, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #fff)', borderLeft: `3px solid ${selectedMentor.color}` }}>
+                              &ldquo;{mentorReport.mentorVerdict}&rdquo;
+                            </div>
+                          )}
+
+                          {/* Current status */}
+                          <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7, marginBottom: 14 }}>
+                            {mentorReport.currentStatus}
+                          </div>
+
+                          {/* Key advice */}
+                          {mentorReport.keyAdvice?.length > 0 && (
+                            <div style={{ marginBottom: 14 }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', marginBottom: 8 }}>
+                                {selectedMentor.icon} {selectedMentor.nameKr}의 조언
+                              </div>
+                              {mentorReport.keyAdvice.map((advice: string, i: number) => (
+                                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.6, marginBottom: 6 }}>
+                                  <span style={{ color: selectedMentor.color, flexShrink: 0 }}>{i + 1}.</span>
+                                  <span>{advice}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Quote */}
+                          {mentorReport.quote && (
+                            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', fontStyle: 'italic', lineHeight: 1.6, padding: '10px 14px', borderRadius: 8, background: 'var(--surface, #fff)', marginBottom: 14 }}>
+                              {mentorReport.quote}
+                            </div>
+                          )}
+
+                          {/* Conclusion */}
+                          {mentorReport.conclusion && (
+                            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, #fff)' }}>
+                              <div className="flex items-center" style={{ gap: 8, marginBottom: 6 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>종합 판단</span>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
+                                  background: mentorReport.conclusion.signal === 'positive' ? '#EDFCF2' : mentorReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)',
+                                  color: mentorReport.conclusion.signal === 'positive' ? '#16A34A' : mentorReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500',
+                                }}>
+                                  {mentorReport.conclusion.label}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
+                                {mentorReport.conclusion.desc}
+                              </div>
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 12 }}>
+                            AI가 {selectedMentor.nameKr}의 투자 철학을 기반으로 생성한 참고 자료입니다.
+                          </div>
+                        </>
+                      )}
+
+                      {!mentorLoading && !mentorReport && (
+                        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
+                          분석을 준비하고 있어요...
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {analysis && (
                   <>
