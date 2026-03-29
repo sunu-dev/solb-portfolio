@@ -282,17 +282,20 @@ export default function PortfolioSection() {
       ))}
 
       {/* Hero - centered */}
-      <div className="hero-section" style={{ paddingTop: '20px', paddingBottom: '40px', position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '20px 16px 24px', borderRadius: 16 }}>
+      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '12px 16px 24px', borderRadius: 16 }}>
         <style>{`
           .hero-section { text-align: center; }
-          @media (min-width: 769px) { .hero-section { margin: 0 -48px !important; padding: 20px 48px 40px !important; } }
+          @media (min-width: 769px) { .hero-section { margin: 0 -48px !important; padding: 12px 48px 24px !important; } }
           @media (min-width: 1024px) { .hero-section { text-align: left; } }
         `}</style>
 
         {/* Login Streak */}
         <LoginStreak />
-        {/* Currency toggle */}
-        <div className="flex items-center" style={{ position: 'absolute', top: 0, right: 0 }}>
+
+        {/* "내 수익" label + Currency toggle — 같은 줄 */}
+        <div className="flex items-center justify-between" style={{ marginTop: 8, marginBottom: 12 }}>
+          <div style={{ fontSize: '13px', color: 'var(--text-secondary, #8B95A1)', fontWeight: 500, letterSpacing: '0.04em' }}>내 수익</div>
+          <div className="flex items-center">
           <button
             onClick={() => setCurrency('KRW')}
             className="currency-toggle-btn"
@@ -324,9 +327,9 @@ export default function PortfolioSection() {
               transition: 'all 0.15s ease',
             }}
           >$</button>
+          </div>
         </div>
 
-        <div style={{ fontSize: '13px', color: '#8B95A1', fontWeight: 500, marginBottom: '12px', letterSpacing: '0.04em' }}>내 수익</div>
         {hasInvestment ? (
           <>
             <div
