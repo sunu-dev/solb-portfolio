@@ -57,14 +57,20 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Filter: recent 72 hours, max 15
+    // Sort by date (newest first) then filter recent 72 hours
+    const sorted = items.sort((a, b) => {
+      const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+      const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+      return db - da;
+    });
+
     const threeDaysAgo = Date.now() - 72 * 60 * 60 * 1000;
-    const recent = items
+    const recent = sorted
       .filter(item => !item.pubDate || new Date(item.pubDate).getTime() > threeDaysAgo)
       .slice(0, 15);
 
     return NextResponse.json(
-      { items: recent.length >= 3 ? recent : items.slice(0, 15) },
+      { items: recent.length >= 3 ? recent : sorted.slice(0, 15) },
       {
         headers: {
           'Cache-Control': 's-maxage=600, stale-while-revalidate=1200',
