@@ -14,6 +14,86 @@ import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/co
 import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 
+const AI_STEPS = [
+  { label: '최신 뉴스 수집 중', pct: 15 },
+  { label: '시세 데이터 갱신 중', pct: 35 },
+  { label: '기술 지표 분석 중', pct: 55 },
+  { label: 'AI 리포트 생성 중', pct: 75 },
+  { label: '결과 정리 중', pct: 92 },
+];
+
+function AIProgressIndicator() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const timers = AI_STEPS.map((_, i) =>
+      setTimeout(() => setStep(i), i === 0 ? 300 : i * 2200 + 300)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  const current = AI_STEPS[step] || AI_STEPS[AI_STEPS.length - 1];
+
+  return (
+    <div style={{ padding: '28px 0' }}>
+      {/* Progress bar */}
+      <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{
+          height: '100%',
+          borderRadius: 3,
+          background: 'linear-gradient(90deg, #3182F6, #6366F1)',
+          width: `${current.pct}%`,
+          transition: 'width 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} />
+      </div>
+
+      {/* Percentage + step label */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>
+          {current.label}...
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#3182F6', fontVariantNumeric: 'tabular-nums' }}>
+          {current.pct}%
+        </span>
+      </div>
+
+      {/* Step checklist */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {AI_STEPS.map((s, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
+            <span style={{
+              width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600,
+              background: i < step ? 'rgba(49,130,246,0.1)' : i === step ? '#3182F6' : 'var(--bg-subtle, #F2F4F6)',
+              color: i < step ? '#3182F6' : i === step ? '#fff' : 'var(--text-tertiary, #B0B8C1)',
+              transition: 'all 0.3s ease',
+            }}>
+              {i < step ? '✓' : i + 1}
+            </span>
+            <span style={{
+              color: i <= step ? 'var(--text-primary, #191F28)' : 'var(--text-tertiary, #B0B8C1)',
+              fontWeight: i === step ? 600 : 400,
+              transition: 'all 0.3s ease',
+            }}>
+              {s.label}
+            </span>
+            {i === step && (
+              <span style={{ marginLeft: 'auto' }}>
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#3182F6', animation: 'aiPulse 1.2s ease-in-out infinite' }} />
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <style>{`
+        @keyframes aiPulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
 import BuySimulator from '@/components/portfolio/BuySimulator';
 import InvestmentNotes from '@/components/portfolio/InvestmentNotes';
@@ -221,8 +301,18 @@ export default function AnalysisPanel() {
           {/* Scrollable body */}
           <div className="flex-1" style={{ overflowY: 'auto', padding: 24 }}>
             {loading ? (
-              <div className="flex items-center justify-center" style={{ height: 160, fontSize: 13, color: '#8B95A1' }}>
-                분석 데이터를 불러오는 중...
+              <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
+                <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: '#3182F6', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>분석 데이터를 불러오는 중...</div>
+                <style>{`
+                  @keyframes loadingBar {
+                    0% { width: 0%; }
+                    50% { width: 70%; }
+                    100% { width: 100%; }
+                  }
+                `}</style>
               </div>
             ) : (
               <>
@@ -349,27 +439,7 @@ export default function AnalysisPanel() {
                       </span>
                     </div>
 
-                    {aiLoading && (
-                      <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                        <div style={{ fontSize: 28, marginBottom: 12, animation: 'pulse 1.5s infinite' }}>✨</div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: '#3182F6', marginBottom: 6 }}>AI가 분석 중이에요</div>
-                        <div style={{ fontSize: 13, color: '#8B95A1' }}>차트, 지표, 뉴스를 종합하고 있어요... (5~10초)</div>
-                        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 8 }}>
-                          {[0, 1, 2].map(i => (
-                            <div key={i} style={{
-                              width: 10, height: 10, borderRadius: '50%', background: '#3182F6',
-                              animation: `bounce 1.4s ease-in-out ${i * 0.16}s infinite`,
-                            }} />
-                          ))}
-                        </div>
-                        <style>{`
-                          @keyframes bounce {
-                            0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-                            40% { transform: translateY(-12px); opacity: 1; }
-                          }
-                        `}</style>
-                      </div>
-                    )}
+                    {aiLoading && <AIProgressIndicator />}
 
                     {aiError && (
                       <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#FF9500' }}>

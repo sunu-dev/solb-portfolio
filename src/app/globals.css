@@ -494,6 +494,44 @@ body {
   background: var(--surface) !important;
 }
 
+/* Dark hero gradient */
+.dark .hero-section {
+  background: linear-gradient(180deg, rgba(26, 29, 53, 0.7) 0%, transparent 100%) !important;
+}
+
+/* Dark mode: Tailwind arbitrary text color overrides */
+.dark .text-\[\#191F28\] { color: var(--text-primary) !important; }
+.dark .text-\[\#333D4B\] { color: var(--text-primary) !important; }
+.dark .text-\[\#4E5968\] { color: var(--text-secondary) !important; }
+.dark .text-\[\#8B95A1\] { color: var(--text-secondary) !important; }
+.dark .text-\[\#B0B8C1\] { color: var(--text-tertiary) !important; }
+
+/* Dark mode: Tailwind arbitrary border color overrides */
+.dark .border-\[\#F7F8FA\] { border-color: var(--border-light) !important; }
+.dark .border-\[\#F2F4F6\] { border-color: var(--border-light) !important; }
+.dark .border-\[\#E5E8EB\] { border-color: var(--border-light) !important; }
+.dark .border-\[\#D5DAE0\] { border-color: var(--border-light) !important; }
+
+/* Dark mode: Tailwind arbitrary hover background overrides */
+.dark .hover\:bg-\[\#F9FAFB\]:hover { background-color: var(--bg-hover) !important; }
+
+/* Dark mode: category badge backgrounds */
+.dark .bg-\[\#F0F4FF\] { background-color: rgba(49, 130, 246, 0.15) !important; }
+.dark .bg-\[\#F0FAF0\] { background-color: rgba(32, 201, 151, 0.15) !important; }
+.dark .bg-\[\#F5F5F5\] { background-color: rgba(139, 149, 161, 0.15) !important; }
+
+/* Dark mode: inline background #E5E8EB (separators) */
+.dark [style*="background: #E5E8EB"],
+.dark [style*="background:#E5E8EB"] {
+  background: var(--border-light) !important;
+}
+
+/* Dark mode: inline background #191F28 (active buttons, tab indicator) */
+.dark [style*="background: #191F28"],
+.dark [style*="background:#191F28"] {
+  background: #E8E8ED !important;
+}
+
 /* ==========================================
    Mobile Bottom Nav Spacing
    ========================================== */

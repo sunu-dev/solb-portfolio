@@ -58,7 +58,7 @@ export default function RightSidebar() {
     <div>
       {/* 관심 종목 header */}
       <div className="flex items-center gap-1.5">
-        <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#191F28' }}>관심 종목</h3>
+        <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>관심 종목</h3>
         <span className="text-[13px] text-[#B0B8C1] font-normal">{watchingStocks.length}</span>
       </div>
 
@@ -76,8 +76,8 @@ export default function RightSidebar() {
             <button
               key={stock.symbol}
               onClick={() => setAnalysisSymbol(stock.symbol)}
-              className={`w-full flex items-center cursor-pointer hover:bg-[#F9FAFB] transition-colors text-left rounded-xl ${
-                idx > 0 ? 'border-t border-[#F7F8FA]' : ''
+              className={`w-full flex items-center cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors text-left rounded-xl ${
+                idx > 0 ? 'border-t border-[#F7F8FA] dark:border-[var(--border-light)]' : ''
               }`}
               style={{ gap: '14px', padding: '14px 4px' }}
             >
@@ -90,14 +90,14 @@ export default function RightSidebar() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-semibold text-[#191F28] truncate">{kr}</div>
+                <div className="text-[14px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] truncate">{kr}</div>
                 <div className="text-[11px] text-[#B0B8C1]">
                   {stock.symbol}
                   {stock.buyBelow ? ` · 목표 $${stock.buyBelow}` : ''}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[13px] font-semibold text-[#191F28] tabular-nums">
+                <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
                   {price ? `$${price.toFixed(2)}` : '--'}
                 </div>
                 <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
@@ -115,7 +115,7 @@ export default function RightSidebar() {
           const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
           if (searchBtn) searchBtn.click();
         }}
-        className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] rounded-[12px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] dark:border-[var(--border-light)] rounded-[12px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors"
         style={{ marginTop: '20px', padding: '12px 0' }}
       >
         <Plus className="w-3.5 h-3.5" />
@@ -125,7 +125,7 @@ export default function RightSidebar() {
       {/* SOLB AI section — Smart Alerts */}
       <div style={{ marginTop: '40px' }}>
         <div className="flex items-center justify-between" style={{ marginBottom: '4px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#191F28' }}>SOLB AI</h3>
+          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>SOLB AI</h3>
           {alerts.length > 0 && (
             <span
               style={{
@@ -170,10 +170,10 @@ export default function RightSidebar() {
                     {style.label}
                   </span>
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: '#191F28', lineHeight: 1.5, marginBottom: '4px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.5, marginBottom: '4px' }}>
                   {alert.message}
                 </div>
-                <div style={{ fontSize: '13px', color: '#4E5968', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
                   {alert.detail}
                 </div>
                 {alert.symbol && alert.symbol !== 'PORTFOLIO' && (
@@ -209,7 +209,7 @@ export default function RightSidebar() {
                 AI 포트폴리오 인사이트
               </span>
             </div>
-            <div style={{ fontSize: '14px', color: '#4E5968', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '14px', color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
               현재 포트폴리오에 특별한 알림이 없어요. 안정적인 상태예요.
             </div>
           </div>

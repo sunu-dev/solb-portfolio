@@ -180,14 +180,14 @@ export function useStockData() {
     if (!apiKey) return;
     const syms = getAllSymbols();
 
-    // Stale-While-Revalidate: show cached prices instantly
+    // Stale-While-Revalidate: show cached prices instantly (even if stale)
     const QUOTE_CACHE_KEY = 'solb_quote_cache';
     try {
       const cached = localStorage.getItem(QUOTE_CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
-        // Use cache if less than 2 minutes old
-        if (Date.now() - ts < 2 * 60 * 1000) {
+        // Always restore from cache if less than 30 minutes old
+        if (Date.now() - ts < 30 * 60 * 1000) {
           for (const [sym, quote] of Object.entries(data)) {
             if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
           }
@@ -195,22 +195,84 @@ export function useStockData() {
       }
     } catch { /* ignore */ }
 
-    // Fetch fresh quotes in parallel
-    const freshData: Record<string, QuoteData> = {};
-    await Promise.all(
-      syms.map(s =>
-        fetchStockQuote(s, apiKey).then(d => {
-          if (d && d.c) {
-            updateMacroEntry(s, d);
-            freshData[s] = d;
+    // Also restore macro cache
+    try {
+      const macroCached = localStorage.getItem('solb_macro_cache');
+      if (macroCached) {
+        const { data, ts } = JSON.parse(macroCached);
+        if (Date.now() - ts < 30 * 60 * 1000) {
+          for (const [key, val] of Object.entries(data)) {
+            if (val) updateMacroEntry(key, val as QuoteData);
           }
-        })
-      )
-    );
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Fetch fresh quotes via server batch API (1 request instead of N)
+    const freshData: Record<string, QuoteData> = {};
+
+    // Include macro symbols in batch
+    const macroSymbols = MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(i => i.symbol!);
+    const allSyms = [...new Set([...syms, ...macroSymbols])];
+
+    try {
+      const r = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols: allSyms, apiKey, macro: true }),
+      });
+      const { quotes, usdKrw } = await r.json();
+
+      // Update stock quotes
+      if (quotes) {
+        for (const [sym, d] of Object.entries(quotes)) {
+          if (d && (d as QuoteData).c) {
+            // Check if it's a macro symbol
+            const macroInd = MACRO_IND.find(i => i.symbol === sym);
+            if (macroInd) {
+              const q = d as QuoteData;
+              updateMacroEntry(macroInd.label, { value: q.c, change: q.d || 0, changePercent: q.dp || 0 });
+            }
+            // Always update by symbol too (for stock quotes)
+            if (syms.includes(sym)) {
+              updateMacroEntry(sym, d as QuoteData);
+              freshData[sym] = d as QuoteData;
+            }
+          }
+        }
+      }
+
+      // Update USD/KRW
+      if (usdKrw?.c) {
+        updateMacroEntry('USD/KRW', { value: usdKrw.c, change: usdKrw.d || 0, changePercent: usdKrw.dp || 0 });
+      }
+    } catch {
+      // Fallback to individual requests if batch API fails
+      await Promise.all(
+        syms.map(s =>
+          fetchStockQuote(s, apiKey).then(d => {
+            if (d && d.c) {
+              updateMacroEntry(s, d);
+              freshData[s] = d;
+            }
+          })
+        )
+      );
+    }
 
     // Save to cache
     try {
       localStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify({ data: freshData, ts: Date.now() }));
+    } catch { /* storage full */ }
+
+    // Also save macro cache for instant restore
+    try {
+      const freshMacro = usePortfolioStore.getState().macroData;
+      const macroCache: Record<string, unknown> = {};
+      for (const key of ['S&P 500', 'NASDAQ', 'WTI', 'VIX', 'USD/KRW']) {
+        if (freshMacro[key]) macroCache[key] = freshMacro[key];
+      }
+      localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));
     } catch { /* storage full */ }
 
     setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
@@ -321,6 +383,16 @@ export function useMacroData() {
     // KOSPI placeholder if not fetched
     const macroData = usePortfolioStore.getState().macroData;
     if (!macroData['KOSPI']) updateMacroEntry('KOSPI', { value: null, change: 0, changePercent: 0 });
+
+    // Save macro data to localStorage for instant restore on next visit
+    try {
+      const freshMacro = usePortfolioStore.getState().macroData;
+      const macroCache: Record<string, unknown> = {};
+      for (const key of ['S&P 500', 'NASDAQ', 'WTI', 'VIX', 'USD/KRW']) {
+        if (freshMacro[key]) macroCache[key] = freshMacro[key];
+      }
+      localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));
+    } catch { /* storage full */ }
   }, [apiKey, updateMacroEntry]);
 
   return { fetchMacro };

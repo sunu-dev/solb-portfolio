@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
+import type { MacroEntry, QuoteData } from '@/config/constants';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useAuth } from '@/hooks/useAuth';
 import { usePortfolioSync } from '@/hooks/usePortfolioSync';
@@ -47,6 +48,32 @@ export default function Home() {
       initialized = true;
       setHydrated(true);
       loadPortfolio();
+
+      // Instantly restore cached macro + quote data from localStorage
+      const { updateMacroEntry } = usePortfolioStore.getState();
+      try {
+        const macroCached = localStorage.getItem('solb_macro_cache');
+        if (macroCached) {
+          const { data, ts } = JSON.parse(macroCached);
+          if (Date.now() - ts < 30 * 60 * 1000) {
+            for (const [key, val] of Object.entries(data)) {
+              if (val) updateMacroEntry(key, val as MacroEntry);
+            }
+          }
+        }
+      } catch { /* ignore */ }
+      try {
+        const quoteCached = localStorage.getItem('solb_quote_cache');
+        if (quoteCached) {
+          const { data, ts } = JSON.parse(quoteCached);
+          if (Date.now() - ts < 30 * 60 * 1000) {
+            for (const [sym, quote] of Object.entries(data)) {
+              if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
       Promise.all([fetchMacro(), refreshAll()]);
     };
     const unsub = usePortfolioStore.persist.onFinishHydration(init);

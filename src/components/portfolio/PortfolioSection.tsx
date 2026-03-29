@@ -253,13 +253,14 @@ export default function PortfolioSection() {
         <div className="flex items-center" style={{ position: 'absolute', top: 0, right: 0 }}>
           <button
             onClick={() => setCurrency('KRW')}
+            className="currency-toggle-btn"
             style={{
               padding: '4px 12px',
               fontSize: 12,
               fontWeight: currency === 'KRW' ? 700 : 400,
               color: currency === 'KRW' ? '#fff' : '#8B95A1',
-              background: currency === 'KRW' ? '#191F28' : 'transparent',
-              border: '1px solid #E5E8EB',
+              background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
+              border: '1px solid var(--border-light, #E5E8EB)',
               borderRadius: '8px 0 0 8px',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
@@ -267,13 +268,14 @@ export default function PortfolioSection() {
           >₩</button>
           <button
             onClick={() => setCurrency('USD')}
+            className="currency-toggle-btn"
             style={{
               padding: '4px 12px',
               fontSize: 12,
               fontWeight: currency === 'USD' ? 700 : 400,
               color: currency === 'USD' ? '#fff' : '#8B95A1',
-              background: currency === 'USD' ? '#191F28' : 'transparent',
-              border: '1px solid #E5E8EB',
+              background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
+              border: '1px solid var(--border-light, #E5E8EB)',
               borderLeft: 'none',
               borderRadius: '0 8px 8px 0',
               cursor: 'pointer',
@@ -316,35 +318,35 @@ export default function PortfolioSection() {
 
             {/* 총평가/총투자/보유 */}
             <div className="flex items-center justify-center lg:justify-start flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
-              <div style={{ fontSize: '14px', color: '#8B95A1' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
                 총 평가{' '}
-                <strong style={{ color: '#191F28', fontWeight: 600 }}>
+                <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>
                   {currency === 'KRW'
                     ? `₩${fmtWon(totalValueWon)}`
                     : `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                   }
                 </strong>
               </div>
-              <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
-              <div style={{ fontSize: '14px', color: '#8B95A1' }}>
+              <div style={{ width: '1px', height: '14px', background: 'var(--border-light, #E5E8EB)' }} />
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
                 총 투자{' '}
-                <strong style={{ color: '#191F28', fontWeight: 600 }}>
+                <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>
                   {currency === 'KRW'
                     ? `₩${fmtWon(totalCostWon)}`
                     : `$${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
                   }
                 </strong>
               </div>
-              <div style={{ width: '1px', height: '14px', background: '#E5E8EB' }} />
-              <div style={{ fontSize: '14px', color: '#8B95A1' }}>
-                종목 <strong style={{ color: '#191F28', fontWeight: 600 }}>{holdingCount}개 보유</strong>
+              <div style={{ width: '1px', height: '14px', background: 'var(--border-light, #E5E8EB)' }} />
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
+                종목 <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>{holdingCount}개 보유</strong>
               </div>
             </div>
 
             {/* 인사이트: 승률 + 최고/최저 */}
             {holdingCount >= 2 && (
               <div className="justify-center lg:justify-start" style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ fontSize: 12, color: '#8B95A1', background: '#F8F9FA', padding: '5px 12px', borderRadius: 8 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', background: 'var(--bg-subtle, #F8F9FA)', padding: '5px 12px', borderRadius: 8 }}>
                   승률 {holdingCount > 0 ? Math.round((winCount / holdingCount) * 100) : 0}% ({winCount}/{holdingCount})
                 </span>
                 {bestStock.symbol && bestStock.dp > -Infinity && (
@@ -360,10 +362,35 @@ export default function PortfolioSection() {
               </div>
             )}
           </>
+        ) : allStocksList.length > 0 ? (
+          /* 종목은 있지만 시세 로딩 중 — 스켈레톤 UI */
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <div className="skeleton-shimmer" style={{ width: 280, height: 42, borderRadius: 8 }} />
+              <div className="skeleton-shimmer" style={{ width: 120, height: 24, borderRadius: 6 }} />
+              <div className="skeleton-shimmer" style={{ width: 160, height: 28, borderRadius: 8, marginTop: 8 }} />
+            </div>
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+              }
+              .skeleton-shimmer {
+                background: linear-gradient(90deg, var(--bg-subtle, #F2F4F6) 25%, var(--surface-hover, #E8EBF0) 50%, var(--bg-subtle, #F2F4F6) 75%);
+                background-size: 200% 100%;
+                animation: shimmer 1.5s ease-in-out infinite;
+              }
+            `}</style>
+            <div className="flex items-center justify-center lg:justify-start flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
+              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
+                시세 데이터를 불러오는 중...
+              </div>
+            </div>
+          </>
         ) : (
           <>
-            <div className="text-[32px] font-bold text-[#191F28]">
-              {allStocksList.length > 0 ? '데이터 불러오는 중...' : '종목을 추가해보세요'}
+            <div className="text-[32px] font-bold" style={{ color: 'var(--text-primary, #191F28)' }}>
+              종목을 추가해보세요
             </div>
             <div className="text-[13px] text-[#8B95A1] mt-2">매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
           </>
@@ -371,10 +398,10 @@ export default function PortfolioSection() {
       </div>
 
       {/* Divider + content below — 종목 리스트 먼저 */}
-      <div style={{ marginTop: 32, borderTop: '1px solid #F2F4F6', paddingTop: 32 }}>
+      <div style={{ marginTop: 32, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 32 }}>
 
         {/* Category tabs */}
-        <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid #F2F4F6', marginBottom: '32px' }}>
+        <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '32px' }}>
           {TABS.map((tab, tabIdx) => {
             const isActive = activeTab === tab.id;
             const isFirst = tabIdx === 0;
@@ -393,12 +420,12 @@ export default function PortfolioSection() {
                   padding: isFirst ? '0 24px 14px 0' : '0 24px 14px',
                   fontSize: '15px',
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? '#191F28' : '#8B95A1',
+                  color: isActive ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
                   whiteSpace: 'nowrap',
                 }}
               >
                 {tab.label}
-                <span className="tabular-nums" style={{ fontSize: '13px', color: '#B0B8C1', marginLeft: '4px', fontWeight: 400 }}>
+                <span className="tabular-nums" style={{ fontSize: '13px', color: 'var(--text-tertiary, #B0B8C1)', marginLeft: '4px', fontWeight: 400 }}>
                   {count}
                 </span>
                 {isActive && (
@@ -407,7 +434,7 @@ export default function PortfolioSection() {
                     style={{
                       bottom: 0,
                       height: '2px',
-                      background: '#191F28',
+                      background: 'var(--text-primary, #191F28)',
                       borderRadius: '1px',
                       left: isFirst ? 0 : '24px',
                       right: '24px',
@@ -431,8 +458,8 @@ export default function PortfolioSection() {
         {displayList.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>종목을 추가해볼까요?</div>
-            <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.6, marginBottom: 32 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>종목을 추가해볼까요?</div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 32 }}>
               관심 있는 종목을 추가하면<br/>실시간 가격, AI 분석, 스마트 알림을 받을 수 있어요.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
@@ -456,10 +483,10 @@ export default function PortfolioSection() {
                     style={{
                       padding: '10px 20px',
                       borderRadius: 20,
-                      background: alreadyAdded ? '#3182F6' : '#F2F4F6',
+                      background: alreadyAdded ? '#3182F6' : 'var(--bg-subtle, #F2F4F6)',
                       fontSize: 14,
                       fontWeight: 500,
-                      color: alreadyAdded ? '#fff' : '#333D4B',
+                      color: alreadyAdded ? '#fff' : 'var(--text-primary, #333D4B)',
                       border: 'none',
                       cursor: 'pointer',
                     }}
@@ -511,7 +538,7 @@ export default function PortfolioSection() {
                 gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                 padding: '0 0 12px',
                 fontSize: '12px',
-                color: '#B0B8C1',
+                color: 'var(--text-tertiary, #B0B8C1)',
                 fontWeight: 400,
               }}
             >
@@ -581,7 +608,7 @@ export default function PortfolioSection() {
                     gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                     padding: '14px 0',
                     animationDelay: `${i * 30}ms`,
-                    borderTop: '1px solid #F7F8FA',
+                    borderTop: '1px solid var(--border-light, #F7F8FA)',
                   }}
                 >
                   {/* Name cell */}
@@ -655,7 +682,7 @@ export default function PortfolioSection() {
                         ? currency === 'KRW'
                           ? `₩${fmtWonShort(priceWon)}`
                           : `$${price.toFixed(2)}`
-                        : '--'}
+                        : <span className="skeleton-shimmer inline-block" style={{ width: 60, height: 16, borderRadius: 4 }} />}
                     </div>
                     <div className="text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
                       {price > 0
@@ -722,7 +749,7 @@ export default function PortfolioSection() {
                   <div className="text-right pr-1 hide-mobile">
                     {hasGoal ? (
                       <div className="flex items-center justify-end" style={{ gap: '8px' }}>
-                        <div style={{ width: '100px', height: '6px', background: '#F2F4F6', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ width: '100px', height: '6px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: '3px', overflow: 'hidden' }}>
                           <div
                             style={{
                               height: '100%',
@@ -773,8 +800,8 @@ export default function PortfolioSection() {
         )}
 
         {/* 내 종목 뉴스 — 항상 표시 */}
-        <div style={{ marginTop: '48px', borderTop: '1px solid #F2F4F6', paddingTop: '40px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 600, color: '#191F28', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ marginTop: '48px', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: '40px' }}>
+          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             내 종목 뉴스
           </div>
           {portfolioNews.length > 0 ? (
@@ -792,7 +819,7 @@ export default function PortfolioSection() {
                       alignItems: 'flex-start',
                       gap: '14px',
                       padding: '14px 4px',
-                      borderTop: idx > 0 ? '1px solid #F7F8FA' : 'none',
+                      borderTop: idx > 0 ? '1px solid var(--border-light, #F7F8FA)' : 'none',
                     }}
                   >
                     <span
@@ -811,7 +838,7 @@ export default function PortfolioSection() {
                       {item.tag}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.5, marginBottom: '4px', color: '#191F28' }}>
+                      <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.5, marginBottom: '4px', color: 'var(--text-primary, #191F28)' }}>
                         {item.title}
                       </div>
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
@@ -840,7 +867,7 @@ export default function PortfolioSection() {
             };
           });
           return (
-            <div style={{ marginTop: 32, borderTop: '1px solid #F2F4F6', paddingTop: 32 }}>
+            <div style={{ marginTop: 32, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 32 }}>
               {/* 데스크탑 2-column 그리드 */}
               <div className="portfolio-widgets-grid">
                 <style>{`
