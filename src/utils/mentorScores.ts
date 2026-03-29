@@ -1,6 +1,6 @@
 /**
- * 로컬 규칙 기반 멘토별 적합도 점수 계산 (API 호출 없이 즉시)
- * 기술 지표 + 종목 특성으로 6개 멘토 관점의 점수를 산출
+ * 종목 속성 6축 점수 계산 (로컬, API 0회)
+ * 안전성 / 성장성 / 가치 / 수익성 / 추세 / 관심도
  */
 
 interface ScoreInput {
@@ -19,122 +19,131 @@ interface ScoreInput {
   targetReturn?: number;
 }
 
-export interface MentorScores {
-  index: number;
-  dividend: number;
-  value: number;
-  balance: number;
-  growth: number;
-  chart: number;
+export interface StockAttributes {
+  safety: number;     // 안전성
+  growth: number;     // 성장성
+  value: number;      // 가치
+  income: number;     // 수익성
+  trend: number;      // 추세
+  interest: number;   // 관심도
 }
+
+export const ATTRIBUTE_LABELS: { key: keyof StockAttributes; label: string; icon: string; desc: string }[] = [
+  { key: 'safety', label: '안전성', icon: '🛡️', desc: '이 종목이 얼마나 안전한가' },
+  { key: 'growth', label: '성장성', icon: '🌱', desc: '미래 성장 잠재력' },
+  { key: 'value', label: '가치', icon: '💎', desc: '현재 가격이 적정한가' },
+  { key: 'income', label: '수익성', icon: '💰', desc: '배당/현금흐름' },
+  { key: 'trend', label: '추세', icon: '📈', desc: '최근 흐름이 좋은가' },
+  { key: 'interest', label: '관심도', icon: '🔥', desc: '시장의 관심' },
+];
 
 // 종목 유형 판별
 function getAssetType(symbol: string): 'leveraged' | 'inverse' | 'index_etf' | 'sector_etf' | 'dividend_etf' | 'kr_stock' | 'stock' {
   const s = symbol.toUpperCase();
-  // 레버리지 ETF
   if (['TQQQ', 'SOXL', 'UPRO', 'FNGU', 'KORU', 'LABU', 'TNA', 'SPXL', 'TECL', 'FAS'].includes(s)) return 'leveraged';
-  // 인버스 ETF
   if (['SQQQ', 'SH', 'SPXS', 'SDOW', 'SPXU', 'TZA', 'FAZ'].includes(s)) return 'inverse';
-  // 인덱스 ETF
   if (['SPY', 'VOO', 'VTI', 'QQQ', 'IWM', 'IVV', 'DIA', 'VT', 'VXUS'].includes(s)) return 'index_etf';
-  // 배당 ETF
   if (['SCHD', 'VYM', 'HDV', 'DVY', 'DGRO', 'VIG', 'SPYD', 'JEPI', 'JEPQ'].includes(s)) return 'dividend_etf';
-  // 섹터/테마 ETF
   if (['XLK', 'XLE', 'XLF', 'XLV', 'ARKK', 'ARKW', 'SOXX', 'SMH', 'TAN', 'ICLN'].includes(s)) return 'sector_etf';
-  // 한국 주식
   if (s.endsWith('.KS') || s.endsWith('.KQ')) return 'kr_stock';
   return 'stock';
 }
 
-// 테크/혁신 관련 종목
 function isInnovationRelated(symbol: string): boolean {
   const s = symbol.toUpperCase();
-  return ['NVDA', 'AMD', 'TSLA', 'PLTR', 'IONQ', 'RKLB', 'AI', 'PATH', 'CRSP', 'EDIT',
-    'ARKK', 'ARKW', 'SOXX', 'SMH', 'DKNG', 'COIN', 'MSTR', 'SQ', 'SHOP'].includes(s);
+  return ['NVDA', 'AMD', 'TSLA', 'PLTR', 'IONQ', 'RKLB', 'AI', 'PATH', 'CRSP',
+    'ARKK', 'ARKW', 'SOXX', 'SMH', 'COIN', 'MSTR', 'SQ', 'SHOP', 'NET', 'SNOW'].includes(s);
 }
 
-export function calcMentorScores(input: ScoreInput): MentorScores {
+function clamp(v: number): number {
+  return Math.max(1, Math.min(5, Math.round(v)));
+}
+
+export function calcStockAttributes(input: ScoreInput): StockAttributes {
   const type = getAssetType(input.symbol);
   const rsi = input.rsiVal || 50;
-  const trend = input.trend || '';
+  const trendStr = input.trend || '';
   const macd = input.macdStatus || '';
   const vol = input.volRatio || 1;
-  const isUp = input.changePercent >= 0;
-  const hasPosition = (input.avgCost || 0) > 0 && (input.shares || 0) > 0;
+  const dp = Math.abs(input.changePercent);
 
-  // 기본 점수
-  const scores: MentorScores = { index: 3, dividend: 3, value: 3, balance: 3, growth: 3, chart: 3 };
+  let safety = 3, growth = 3, value = 3, income = 3, trend = 3, interest = 3;
 
-  // === 종목 유형별 점수 조정 ===
+  // ===== 종목 유형별 기본 프로필 =====
+  switch (type) {
+    case 'leveraged':
+      safety = 1; growth = 3; value = 2; income = 1; trend = 3; interest = 4;
+      break;
+    case 'inverse':
+      safety = 1; growth = 1; value = 2; income = 1; trend = 3; interest = 3;
+      break;
+    case 'index_etf':
+      safety = 5; growth = 3; value = 4; income = 3; trend = 3; interest = 3;
+      break;
+    case 'dividend_etf':
+      safety = 4; growth = 2; value = 4; income = 5; trend = 3; interest = 2;
+      break;
+    case 'sector_etf':
+      safety = 3; growth = 3; value = 3; income = 2; trend = 3; interest = 3;
+      break;
+    case 'kr_stock':
+      safety = 3; growth = 3; value = 3; income = 2; trend = 3; interest = 3;
+      break;
+    case 'stock':
+    default:
+      safety = 3; growth = 3; value = 3; income = 2; trend = 3; interest = 3;
+  }
+
+  // ===== 기술 지표 기반 조정 (개별 주식/ETF) =====
+  if (type !== 'leveraged' && type !== 'inverse') {
+
+    // 안전성: 변동성 낮을수록, RSI 중립일수록 안전
+    if (dp < 1) safety += 1;
+    else if (dp > 5) safety -= 1;
+    if (rsi > 30 && rsi < 70) safety += 0.5; // 극단치 아니면 안정적
+    else safety -= 0.5;
+
+    // 성장성: 혁신 섹터면 높음
+    if (isInnovationRelated(input.symbol)) growth += 1.5;
+    if (type === 'sector_etf' && ['ARKK', 'SOXX', 'SMH'].includes(input.symbol.toUpperCase())) growth += 1;
+
+    // 가치: RSI 낮으면 저평가 가능성, 평단 대비 할인이면 가산
+    if (rsi < 30) value += 1.5;
+    else if (rsi < 40) value += 0.5;
+    else if (rsi > 70) value -= 1;
+    if (input.avgCost && input.price > 0 && input.price < input.avgCost * 0.8) value += 1;
+
+    // 수익성: 배당 ETF면 높음, 일반 주식은 보통
+    if (type === 'dividend_etf') income = 5;
+
+    // 추세: 이동평균/MACD/RSI 종합
+    if (trendStr.includes('상승')) trend += 1;
+    else if (trendStr.includes('하락')) trend -= 1;
+    if (macd.includes('상승') || macd.includes('매수')) trend += 0.5;
+    else if (macd.includes('하락') || macd.includes('매도')) trend -= 0.5;
+    if (rsi < 30) trend -= 0.5; // 약세
+    else if (rsi > 60 && rsi < 75) trend += 0.5; // 강세(과열 아닌)
+
+    // 관심도: 거래량 비율 + 일일 변동폭
+    if (vol > 2) interest += 1.5;
+    else if (vol > 1.3) interest += 0.5;
+    else if (vol < 0.5) interest -= 1;
+    if (dp > 3) interest += 0.5;
+  }
+
+  // 레버리지/인버스는 추세만 기술 지표로 조정
   if (type === 'leveraged' || type === 'inverse') {
-    scores.index = 1;
-    scores.dividend = 1;
-    scores.value = 1;
-    scores.balance = 1;
-    scores.growth = 2;
-    scores.chart = trend.includes('상승') ? 4 : 2;
-    return scores;
+    if (trendStr.includes('상승')) trend += 1;
+    else if (trendStr.includes('하락')) trend -= 1;
+    if (vol > 1.5) interest += 0.5;
   }
 
-  if (type === 'index_etf') {
-    scores.index = 5;
-    scores.dividend = 3;
-    scores.value = 4;
-    scores.balance = 4;
-    scores.growth = 2;
-    scores.chart = trend.includes('상승') ? 4 : trend.includes('하락') ? 2 : 3;
-    return scores;
-  }
-
-  if (type === 'dividend_etf') {
-    scores.index = 4;
-    scores.dividend = 5;
-    scores.value = 4;
-    scores.balance = 4;
-    scores.growth = 2;
-    scores.chart = 3;
-    return scores;
-  }
-
-  // === 개별 주식 / 섹터 ETF / 한국 주식 ===
-
-  // 인덱스 관점: 개별 종목은 기본 낮음
-  scores.index = type === 'sector_etf' ? 3 : 2;
-
-  // 배당 관점: (데이터 없으면 중립)
-  scores.dividend = 3;
-
-  // 가치투자 관점: RSI 낮으면 저평가 가능성
-  if (rsi < 30) scores.value = 4;
-  else if (rsi < 45) scores.value = 4;
-  else if (rsi > 70) scores.value = 2;
-  if (hasPosition && input.avgCost && input.price < input.avgCost * 0.8) scores.value = 4; // 평단 대비 20% 이상 하락
-
-  // 분산 관점: 단일 종목이면 낮음
-  scores.balance = hasPosition ? 2 : 3;
-
-  // 혁신성장 관점
-  if (isInnovationRelated(input.symbol)) {
-    scores.growth = rsi < 40 ? 5 : 4; // 혁신주 + 과매도면 최고
-  } else {
-    scores.growth = 2;
-  }
-  if (type === 'sector_etf') scores.growth = 3;
-
-  // 차트분석 관점: 기술 지표 종합
-  let chartScore = 3;
-  // 추세
-  if (trend.includes('상승')) chartScore += 1;
-  else if (trend.includes('하락')) chartScore -= 1;
-  // MACD
-  if (macd.includes('상승') || macd.includes('매수')) chartScore += 0.5;
-  else if (macd.includes('하락') || macd.includes('매도')) chartScore -= 0.5;
-  // RSI
-  if (rsi < 30) chartScore += 0.5; // 반등 가능
-  else if (rsi > 70) chartScore -= 0.5; // 과열
-  // 거래량
-  if (vol > 1.5) chartScore += 0.5;
-  scores.chart = Math.max(1, Math.min(5, Math.round(chartScore)));
-
-  return scores;
+  return {
+    safety: clamp(safety),
+    growth: clamp(growth),
+    value: clamp(value),
+    income: clamp(income),
+    trend: clamp(trend),
+    interest: clamp(interest),
+  };
 }

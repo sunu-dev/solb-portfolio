@@ -1,36 +1,32 @@
 'use client';
 
-import { MENTORS } from '@/config/mentors';
-import type { MentorScores } from '@/utils/mentorScores';
+import { ATTRIBUTE_LABELS } from '@/utils/mentorScores';
+import type { StockAttributes } from '@/utils/mentorScores';
 
 interface Props {
-  scores: MentorScores;
-  onSelectMentor: (mentorId: string) => void;
+  scores: StockAttributes;
 }
 
-const SIZE = 220;
+const SIZE = 240;
 const CENTER = SIZE / 2;
-const RADIUS = 80;
-const LABEL_RADIUS = RADIUS + 28;
+const RADIUS = 75;
+const LABEL_RADIUS = RADIUS + 30;
 const LEVELS = 5;
+const AXES = ATTRIBUTE_LABELS.length;
 
 function polarToXY(angle: number, r: number): [number, number] {
-  // Start from top (270°), go clockwise
   const rad = ((angle - 90) * Math.PI) / 180;
   return [CENTER + r * Math.cos(rad), CENTER + r * Math.sin(rad)];
 }
 
-export default function MentorRadar({ scores, onSelectMentor }: Props) {
-  const mentorIds = MENTORS.map(m => m.id);
-  const scoreMap: Record<string, number> = { ...scores };
-  const values = mentorIds.map(id => scoreMap[id] || 3);
-  const angleStep = 360 / mentorIds.length;
+export default function MentorRadar({ scores }: Props) {
+  const values = ATTRIBUTE_LABELS.map(a => scores[a.key] || 3);
+  const angleStep = 360 / AXES;
 
-  // Grid lines (pentagon levels)
+  // Grid hexagons
   const gridLines = Array.from({ length: LEVELS }, (_, level) => {
     const r = (RADIUS / LEVELS) * (level + 1);
-    const points = mentorIds.map((_, i) => polarToXY(i * angleStep, r).join(',')).join(' ');
-    return points;
+    return ATTRIBUTE_LABELS.map((_, i) => polarToXY(i * angleStep, r).join(',')).join(' ');
   });
 
   // Data polygon
@@ -39,13 +35,18 @@ export default function MentorRadar({ scores, onSelectMentor }: Props) {
     return polarToXY(i * angleStep, r).join(',');
   }).join(' ');
 
+  // Average score
+  const avg = (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1);
+
   return (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-        관점별 적합도
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 12 }}>
-        6가지 투자 관점에서 본 이 종목의 적합도예요
+      <div className="flex items-center justify-between" style={{ marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          종목 분석 레이더
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)' }}>
+          종합 {avg}/5
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -55,30 +56,30 @@ export default function MentorRadar({ scores, onSelectMentor }: Props) {
             <polygon
               key={i}
               points={points}
-              fill="none"
+              fill={i === LEVELS - 1 ? 'var(--bg-subtle, #F8F9FA)' : 'none'}
               stroke="var(--border-light, #F2F4F6)"
               strokeWidth={1}
             />
           ))}
 
           {/* Axis lines */}
-          {mentorIds.map((_, i) => {
+          {ATTRIBUTE_LABELS.map((_, i) => {
             const [x, y] = polarToXY(i * angleStep, RADIUS);
             return (
               <line
                 key={i}
                 x1={CENTER} y1={CENTER}
                 x2={x} y2={y}
-                stroke="var(--border-light, #F2F4F6)"
+                stroke="var(--border-light, #E5E8EB)"
                 strokeWidth={1}
               />
             );
           })}
 
-          {/* Data polygon */}
+          {/* Data polygon - filled */}
           <polygon
             points={dataPoints}
-            fill="rgba(49, 130, 246, 0.12)"
+            fill="rgba(49, 130, 246, 0.1)"
             stroke="#3182F6"
             strokeWidth={2}
             strokeLinejoin="round"
@@ -91,7 +92,7 @@ export default function MentorRadar({ scores, onSelectMentor }: Props) {
             return (
               <circle
                 key={i}
-                cx={x} cy={y} r={4}
+                cx={x} cy={y} r={3.5}
                 fill="#3182F6"
                 stroke="#fff"
                 strokeWidth={2}
@@ -99,35 +100,31 @@ export default function MentorRadar({ scores, onSelectMentor }: Props) {
             );
           })}
 
-          {/* Labels (clickable) */}
-          {MENTORS.map((m, i) => {
+          {/* Labels */}
+          {ATTRIBUTE_LABELS.map((attr, i) => {
             const [x, y] = polarToXY(i * angleStep, LABEL_RADIUS);
             const score = values[i];
             return (
-              <g
-                key={m.id}
-                onClick={() => onSelectMentor(m.id)}
-                style={{ cursor: 'pointer' }}
-              >
+              <g key={attr.key}>
                 <text
-                  x={x} y={y - 6}
+                  x={x} y={y - 5}
                   textAnchor="middle"
-                  style={{ fontSize: 18 }}
+                  style={{ fontSize: 15 }}
                 >
-                  {m.icon}
+                  {attr.icon}
                 </text>
                 <text
-                  x={x} y={y + 10}
+                  x={x} y={y + 9}
                   textAnchor="middle"
-                  fill="var(--text-secondary, #8B95A1)"
-                  style={{ fontSize: 9, fontWeight: 600 }}
+                  fill="var(--text-primary, #191F28)"
+                  style={{ fontSize: 10, fontWeight: 600 }}
                 >
-                  {m.nameKr}
+                  {attr.label}
                 </text>
                 <text
                   x={x} y={y + 21}
                   textAnchor="middle"
-                  fill={m.color}
+                  fill={score >= 4 ? '#16A34A' : score <= 2 ? '#EF4452' : '#8B95A1'}
                   style={{ fontSize: 10, fontWeight: 700 }}
                 >
                   {score}/5
@@ -138,8 +135,23 @@ export default function MentorRadar({ scores, onSelectMentor }: Props) {
         </svg>
       </div>
 
-      <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 4 }}>
-        각 관점을 탭하면 상세 분석을 볼 수 있어요 · AI 참고 점수이며 투자 권유가 아닙니다
+      {/* Score detail list */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
+        {ATTRIBUTE_LABELS.map((attr, i) => {
+          const score = values[i];
+          const color = score >= 4 ? '#16A34A' : score <= 2 ? '#EF4452' : 'var(--text-secondary, #8B95A1)';
+          return (
+            <div key={attr.key} className="flex items-center" style={{ gap: 6, fontSize: 11 }}>
+              <span>{attr.icon}</span>
+              <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>{attr.label}</span>
+              <span style={{ marginLeft: 'auto', fontWeight: 700, color }}>{score}/5</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 8 }}>
+        기술 지표 기반 자동 산출 · 투자 권유가 아닌 참고 자료입니다
       </div>
     </div>
   );

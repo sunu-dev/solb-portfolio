@@ -16,7 +16,7 @@ import { logApiCall } from '@/lib/apiLogger';
 import { supabase } from '@/lib/supabase';
 import { MENTORS, MENTOR_MAP } from '@/config/mentors';
 import type { Mentor } from '@/config/mentors';
-import { calcMentorScores } from '@/utils/mentorScores';
+import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
 
 const AI_STEPS = [
@@ -523,9 +523,9 @@ export default function AnalysisPanel() {
                     레이더 차트 + 멘토 분석 섹션
                     ============================================ */}
                 <div style={{ marginBottom: 24 }}>
-                  {/* Radar chart */}
+                  {/* Radar chart — 종목 속성 6축 */}
                   <MentorRadar
-                    scores={calcMentorScores({
+                    scores={calcStockAttributes({
                       symbol: symbol || '',
                       price,
                       change,
@@ -540,13 +540,6 @@ export default function AnalysisPanel() {
                       shares: stockData?.shares,
                       targetReturn: stockData?.targetReturn,
                     })}
-                    onSelectMentor={(id) => {
-                      const m = MENTOR_MAP[id];
-                      if (m) {
-                        if (selectedMentor?.id === id) { setSelectedMentor(null); setMentorReport(null); }
-                        else { setSelectedMentor(m); setMentorReport(null); }
-                      }
-                    }}
                   />
 
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 12 }}>
@@ -652,9 +645,6 @@ export default function AnalysisPanel() {
                               {selectedMentor.tagline}
                             </div>
                           </div>
-                        </div>
-                        <div style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--text-secondary, #4E5968)', marginTop: 10, padding: '8px 12px', borderRadius: 8, background: 'var(--surface, #fff)', borderLeft: `3px solid ${selectedMentor.color}40` }}>
-                          &ldquo;{selectedMentor.famousQuote}&rdquo;
                         </div>
                         <div className="flex flex-wrap" style={{ gap: 4, marginTop: 8 }}>
                           {selectedMentor.keywords.map(kw => (
