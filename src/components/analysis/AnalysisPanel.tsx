@@ -13,6 +13,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
 import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { supabase } from '@/lib/supabase';
 import { MENTORS } from '@/config/mentors';
 import type { Mentor } from '@/config/mentors';
 
@@ -386,6 +387,7 @@ export default function AnalysisPanel() {
                         }
                       } catch { /* use existing price */ }
 
+                      const { data: { session } } = await supabase.auth.getSession();
                       const resp = await fetch('/api/ai-analysis', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -406,6 +408,7 @@ export default function AnalysisPanel() {
                           macdStatus: analysis?.macdStatus?.status,
                           volRatio: analysis?.volRatio,
                           recentNews: newsText,
+                          userId: session?.user?.id,
                         }),
                       });
                       const data = await resp.json();
@@ -547,6 +550,7 @@ export default function AnalysisPanel() {
 
                             setMentorLoading(true);
                             try {
+                              const { data: { session: sess } } = await supabase.auth.getSession();
                               const resp = await fetch('/api/ai-analysis', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -559,6 +563,7 @@ export default function AnalysisPanel() {
                                   bollingerStatus: analysis?.bollingerStatus?.status,
                                   macdStatus: analysis?.macdStatus?.status, volRatio: analysis?.volRatio,
                                   mentorId: m.id,
+                                  userId: sess?.user?.id,
                                 }),
                               });
                               const data = await resp.json();
