@@ -375,32 +375,55 @@ export function useMacroData() {
 
   const fetchMacro = useCallback(async () => {
     if (!apiKey) return;
-    const ps = MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(ind =>
-      fetchStockQuote(ind.symbol!, apiKey).then(d => {
-        if (d?.c) updateMacroEntry(ind.label, { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
-      })
-    );
-    await Promise.all(ps);
-    // Try Yahoo Finance for more recent USD/KRW rate with change data
+
+    // Use batch API (server-side, fast) instead of individual client calls
+    const macroSymbols = MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(i => i.symbol!);
+    let ok = false;
+
     try {
-      const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
-      const d = await r.json();
-      if (d?.c) {
-        updateMacroEntry('USD/KRW', { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+      const r = await fetch('/api/quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbols: macroSymbols, apiKey, macro: true }),
+      });
+      if (r.ok) {
+        const json = await r.json();
+        if (json.quotes) {
+          for (const ind of MACRO_IND.filter(i => i.type === 'stock' && i.symbol)) {
+            const d = json.quotes[ind.symbol!];
+            if (d?.c) {
+              updateMacroEntry(ind.label, { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+              ok = true;
+            }
+          }
+        }
+        if (json.usdKrw?.c) {
+          updateMacroEntry('USD/KRW', { value: json.usdKrw.c, change: json.usdKrw.d || 0, changePercent: json.usdKrw.dp || 0 });
+        }
       }
-    } catch {
-      // Fall back to er-api (existing)
+    } catch { /* batch failed */ }
+
+    // Fallback: individual calls if batch returned nothing
+    if (!ok) {
+      await Promise.all(
+        MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(ind =>
+          fetchStockQuote(ind.symbol!, apiKey).then(d => {
+            if (d?.c) updateMacroEntry(ind.label, { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
+          })
+        )
+      );
       try {
-        const r = await fetch(`${CONFIG.ER_API_BASE}/latest/USD`);
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
         const d = await r.json();
-        if (d.rates?.KRW) updateMacroEntry('USD/KRW', { value: d.rates.KRW, change: 0, changePercent: 0 });
+        if (d?.c) updateMacroEntry('USD/KRW', { value: d.c, change: d.d || 0, changePercent: d.dp || 0 });
       } catch { /* silent */ }
     }
-    // KOSPI placeholder if not fetched
+
+    // KOSPI placeholder
     const macroData = usePortfolioStore.getState().macroData;
     if (!macroData['KOSPI']) updateMacroEntry('KOSPI', { value: null, change: 0, changePercent: 0 });
 
-    // Save macro data to localStorage for instant restore on next visit
+    // Save macro cache
     try {
       const freshMacro = usePortfolioStore.getState().macroData;
       const macroCache: Record<string, unknown> = {};

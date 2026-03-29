@@ -129,12 +129,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Alert bell */}
         <button
           onClick={() => {
-            // Desktop: scroll to alert center
+            // Desktop: scroll to alert center in right sidebar
             const el = document.getElementById('solb-alert-center');
             if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-            // Mobile: open sidebar
-            const mobileBtn = document.querySelector('[data-slot="mobile-sidebar-trigger"]') as HTMLElement;
-            if (mobileBtn) mobileBtn.click();
+            // Mobile: open mobile sidebar via custom event
+            window.dispatchEvent(new CustomEvent('open-mobile-sidebar'));
           }}
           className="relative flex items-center justify-center cursor-pointer transition-colors"
           style={{

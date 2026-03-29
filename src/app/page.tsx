@@ -35,6 +35,13 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
+  // Mobile sidebar open via custom event (from header bell icon)
+  useEffect(() => {
+    const handler = () => setShowMobileSidebar(true);
+    window.addEventListener('open-mobile-sidebar', handler);
+    return () => window.removeEventListener('open-mobile-sidebar', handler);
+  }, []);
+
   // Supabase DB 동기화 (로그인 시에만 활성화)
   usePortfolioSync(user);
 
