@@ -300,7 +300,7 @@ export default function PortfolioSection() {
             onClick={() => setCurrency('KRW')}
             className="currency-toggle-btn"
             style={{
-              padding: '4px 12px',
+              padding: '8px 14px',
               fontSize: 12,
               fontWeight: currency === 'KRW' ? 700 : 400,
               color: currency === 'KRW' ? '#fff' : '#8B95A1',
@@ -315,7 +315,7 @@ export default function PortfolioSection() {
             onClick={() => setCurrency('USD')}
             className="currency-toggle-btn"
             style={{
-              padding: '4px 12px',
+              padding: '8px 14px',
               fontSize: 12,
               fontWeight: currency === 'USD' ? 700 : 400,
               color: currency === 'USD' ? '#fff' : '#8B95A1',
@@ -334,7 +334,7 @@ export default function PortfolioSection() {
           <>
             <div
               className={`tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
-              style={{ fontSize: '42px', fontWeight: 800, lineHeight: 1.1 }}
+              style={{ fontSize: 'clamp(28px, 8vw, 42px)', fontWeight: 800, lineHeight: 1.1 }}
             >
               {currency === 'KRW'
                 ? `${isGain ? '+' : '-'}₩${fmtWon(Math.abs(totalPLWon))}`

@@ -146,7 +146,7 @@ export default function RightSidebar() {
           if (searchBtn) searchBtn.click();
         }}
         className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] dark:border-[var(--border-light)] rounded-[12px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors"
-        style={{ marginTop: '20px', padding: '12px 0' }}
+        style={{ marginTop: '20px', padding: '14px 0', minHeight: '44px' }}
       >
         <Plus className="w-3.5 h-3.5" />
         관심 종목 추가
@@ -189,7 +189,7 @@ export default function RightSidebar() {
                   onClick={() => setAlertFilter(tab.id)}
                   className="cursor-pointer transition-colors"
                   style={{
-                    padding: '5px 12px',
+                    padding: '8px 14px',
                     borderRadius: 20,
                     fontSize: 12,
                     fontWeight: isActive ? 600 : 400,
@@ -230,11 +230,11 @@ export default function RightSidebar() {
                     className="cursor-pointer"
                     style={{
                       position: 'absolute',
-                      top: 10,
-                      right: 10,
+                      top: 4,
+                      right: 4,
                       background: 'none',
                       border: 'none',
-                      padding: 4,
+                      padding: 10,
                       color: 'var(--text-tertiary, #B0B8C1)',
                     }}
                   >

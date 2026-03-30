@@ -205,7 +205,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
       {/* SVG Treemap */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        style={{ width: '100%', maxWidth: 400, height: 'auto', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
+        style={{ width: '100%', maxWidth: 'min(400px, 90vw)', height: 'auto', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
       >
         {layout.map((node, i) => {
           const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;

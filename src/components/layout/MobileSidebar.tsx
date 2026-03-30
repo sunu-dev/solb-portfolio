@@ -33,7 +33,7 @@ export default function MobileSidebar({ isOpen, onClose }: Props) {
           left: 0,
           right: 0,
           maxHeight: '80vh',
-          background: 'white',
+          background: 'var(--surface, white)',
           borderRadius: '20px 20px 0 0',
           zIndex: 70,
           overflowY: 'auto',

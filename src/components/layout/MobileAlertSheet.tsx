@@ -130,7 +130,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                   onClick={() => setFilter(tab.id)}
                   className="cursor-pointer"
                   style={{
-                    padding: '6px 14px',
+                    padding: '10px 16px',
                     borderRadius: 20,
                     fontSize: 13,
                     fontWeight: isActive ? 600 : 400,
@@ -169,7 +169,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                   <button
                     onClick={() => dismissAlert(alert.id)}
                     className="cursor-pointer"
-                    style={{ position: 'absolute', top: 10, right: 10, background: 'none', border: 'none', padding: 4, color: 'var(--text-tertiary, #B0B8C1)' }}
+                    style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', padding: 10, color: 'var(--text-tertiary, #B0B8C1)' }}
                   >
                     <X size={12} />
                   </button>

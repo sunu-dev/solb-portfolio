@@ -46,7 +46,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       className="sticky top-0 z-40"
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
-      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px', padding: '0 48px' }}>
+      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
           <div
@@ -179,14 +179,15 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           <button
             data-slot="search-trigger"
             onClick={() => setShowSearch(!showSearch)}
-            className="flex items-center cursor-pointer hover:bg-[#F2F4F6] transition-colors"
+            className="flex items-center cursor-pointer hover:bg-[#F2F4F6] dark:hover:bg-[var(--surface-hover)] transition-colors"
             style={{
               gap: '6px',
-              padding: '6px 14px',
+              padding: '10px 14px',
+              minHeight: '44px',
               borderRadius: '8px',
-              background: '#F8F9FA',
+              background: 'var(--bg-subtle, #F8F9FA)',
               fontSize: '13px',
-              color: '#B0B8C1',
+              color: 'var(--text-tertiary, #B0B8C1)',
             }}
           >
             <span className="hidden md:inline">종목 검색</span>

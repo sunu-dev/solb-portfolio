@@ -24,10 +24,11 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
         bottom: 0,
         left: 0,
         right: 0,
-        background: 'white',
-        borderTop: '1px solid #F2F4F6',
+        background: 'var(--surface, white)',
+        borderTop: '1px solid var(--border-light, #F2F4F6)',
         display: 'flex',
         zIndex: 50,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
       className="lg:hidden mobile-bottom-nav"
     >

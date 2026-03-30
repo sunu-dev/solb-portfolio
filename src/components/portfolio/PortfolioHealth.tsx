@@ -114,7 +114,7 @@ function ScoreRing({ score }: { score: number }) {
   return (
     <div style={{ position: 'relative', width: 100, height: 100 }}>
       <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="#F2F4F6" strokeWidth="8" />
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border-light, #F2F4F6)" strokeWidth="8" />
         <circle
           cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="8"
           strokeLinecap="round"

@@ -50,7 +50,7 @@ export default function MentorRadar({ scores }: Props) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ maxWidth: '85vw', height: 'auto' }}>
           {/* Grid */}
           {gridLines.map((points, i) => (
             <polygon
