@@ -433,12 +433,13 @@ export default function PortfolioSection() {
             </div>
           </>
         ) : (
-          <>
-            <div className="text-[32px] font-bold" style={{ color: 'var(--text-primary, #191F28)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <img src="/empty-pine.svg" alt="" style={{ width: 120, height: 'auto', opacity: 0.8 }} />
+            <div style={{ fontSize: 'clamp(20px, 6vw, 28px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
               종목을 추가해보세요
             </div>
-            <div className="text-[13px] text-[#8B95A1] mt-2">매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
-          </>
+            <div className="text-[13px] text-[#8B95A1]">매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
+          </div>
         )}
       </div>
 

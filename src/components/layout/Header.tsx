@@ -49,17 +49,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
-          <div
-            className="flex items-center justify-center"
-            style={{
-              width: '24px',
-              height: '24px',
-              borderRadius: '6px',
-              background: 'var(--brand-gradient, #3182F6)',
-            }}
-          >
-            <span style={{ color: '#fff', fontSize: '14px', fontWeight: 800 }}>S</span>
-          </div>
+          <img src="/logo-solb.svg" alt="SOLB" style={{ width: 28, height: 28 }} />
           <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.01em' }}>
             <span style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>SOLB</span>
             <span className="hidden md:inline" style={{ color: 'var(--text-primary, #191F28)' }}> PORTFOLIO</span>

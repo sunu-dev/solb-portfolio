@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
           flexDirection: 'column',
           justifyContent: 'center',
           padding: '60px',
-          background: 'linear-gradient(135deg, #1A1D2E 0%, #2D3250 100%)',
+          background: 'linear-gradient(135deg, #0F2419 0%, #0F1B3D 50%, #1A1D2E 100%)',
           color: 'white',
           fontFamily: 'sans-serif',
         }}
@@ -28,11 +28,13 @@ export async function GET(req: NextRequest) {
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 10, background: '#3182F6',
+            width: 40, height: 40, borderRadius: 10,
+            background: 'linear-gradient(135deg, #1B6B3A, #3182F6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 22, fontWeight: 800,
           }}>S</div>
-          <span style={{ fontSize: 24, fontWeight: 700 }}>SOLB PORTFOLIO</span>
+          <span style={{ fontSize: 24, fontWeight: 700 }}>SOLB</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>폭풍우에도 흔들리지 않는 내 투자 비서</span>
         </div>
 
         {/* Return */}

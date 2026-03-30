@@ -23,8 +23,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
   const [added, setAdded] = useState<Set<string>>(new Set());
   const { addStock } = usePortfolioStore();
 
+  const TOTAL_STEPS = 4;
   const handleNext = useCallback(() => {
-    if (step < 2) {
+    if (step < TOTAL_STEPS - 1) {
       setStep((s) => s + 1);
     } else {
       onComplete();
@@ -47,7 +48,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
     >
       {/* Step indicator */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '48px' }}>
-        {[0, 1, 2].map((i) => (
+        {Array.from({ length: TOTAL_STEPS }, (_, i) => (
           <div
             key={i}
             style={{
@@ -64,6 +65,50 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
       {/* Content */}
       <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
         {step === 0 && (
+          <>
+            <img src="/logo-solb.svg" alt="SOLB" style={{ width: 64, height: 64, margin: '0 auto 20px' }} />
+            <h1
+              style={{
+                fontSize: '24px',
+                fontWeight: 700,
+                color: 'var(--text-primary, #191F28)',
+                marginBottom: '16px',
+                lineHeight: 1.4,
+              }}
+            >
+              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SOLB</span>에 오신 걸 환영해요
+            </h1>
+            <p
+              style={{
+                fontSize: '15px',
+                color: 'var(--text-secondary, #8B95A1)',
+                lineHeight: 1.7,
+                marginBottom: '32px',
+              }}
+            >
+              화투에서 <strong style={{ color: '#1B6B3A' }}>솔(松)</strong>은 소나무,{' '}
+              <strong style={{ color: '#3182F6' }}>비(雨)</strong>는 폭풍우.<br />
+              소나무는 사계절 흔들리지 않는 유일한 나무예요.
+            </p>
+            <div
+              style={{
+                padding: '16px 20px',
+                borderRadius: 12,
+                background: 'var(--bg-subtle, #F8F9FA)',
+                fontSize: '14px',
+                color: 'var(--text-primary, #191F28)',
+                fontWeight: 600,
+                lineHeight: 1.6,
+                marginBottom: '32px',
+                borderLeft: '3px solid #1B6B3A',
+              }}
+            >
+              폭풍우에도 흔들리지 않는<br />내 투자 비서, SOLB.
+            </div>
+          </>
+        )}
+
+        {step === 1 && (
           <>
             <div style={{ fontSize: '48px', marginBottom: '24px' }}>&#x1F44B;</div>
             <h1
@@ -85,14 +130,14 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 marginBottom: '48px',
               }}
             >
-              SOLB PORTFOLIO는 주식 초보자를 위한
+              6가지 투자 관점으로 내 종목을
               <br />
-              투자 비서예요.
+              쉽게 읽어드릴게요.
             </p>
           </>
         )}
 
-        {step === 1 && (
+        {step === 2 && (
           <>
             <div style={{ fontSize: '48px', marginBottom: '24px' }}>&#x1F4CA;</div>
             <h1
@@ -167,7 +212,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
           </>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <>
             <div style={{ fontSize: '48px', marginBottom: '24px' }}>&#x1F389;</div>
             <h1
