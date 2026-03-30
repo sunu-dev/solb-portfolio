@@ -110,6 +110,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             WebkitTapHighlightColor: 'transparent',
             outline: 'none',
           }}
+          aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
           {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
@@ -168,6 +169,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         <div className="relative">
           <button
             data-slot="search-trigger"
+            aria-label="종목 검색"
             onClick={() => setShowSearch(!showSearch)}
             className="flex items-center cursor-pointer hover:bg-[#F2F4F6] dark:hover:bg-[var(--surface-hover)] transition-colors"
             style={{

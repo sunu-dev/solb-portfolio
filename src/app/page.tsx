@@ -11,6 +11,7 @@ import { useNotification } from '@/hooks/useNotification';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
+import BadgeSection from '@/components/portfolio/BadgeSection';
 import BottomTicker from '@/components/layout/BottomTicker';
 import MobileNav from '@/components/layout/MobileNav';
 import MobileSidebar from '@/components/layout/MobileSidebar';
@@ -162,6 +163,7 @@ export default function Home() {
         {/* Right sidebar - always visible on desktop */}
         <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 24px 80px 24px', position: 'sticky', top: 48, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
           <RightSidebar />
+          <BadgeSection />
         </aside>
       </div>
 

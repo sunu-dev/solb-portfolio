@@ -1,12 +1,18 @@
 {
-  "name": "SOLB PORTFOLIO",
+  "name": "SOLB — 폭풍우에도 흔들리지 않는 내 투자 비서",
   "short_name": "SOLB",
-  "description": "내 주식, 쉽게 읽어주는 투자 비서",
+  "description": "내 주식을 쉽게 읽어주는 AI 투자 비서. 6가지 관점의 종목 분석.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#3182F6",
   "icons": [
+    {
+      "src": "/logo-solb.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",

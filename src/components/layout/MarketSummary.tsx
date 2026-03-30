@@ -13,7 +13,7 @@ export default function MarketSummary() {
   // No data yet
   if (!sp?.value && !nasdaq?.value) {
     return (
-      <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
+      <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
       <div
         className="flex items-center mx-auto market-summary-bar"
         style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px' }}
@@ -48,7 +48,7 @@ export default function MarketSummary() {
   const isDown = (v: number) => v < 0;
 
   return (
-    <div className="bg-white" style={{ borderBottom: '1px solid #F2F4F6' }}>
+    <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
     <div
       className="flex items-center mx-auto market-summary-bar"
       style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px', overflow: 'hidden' }}

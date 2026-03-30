@@ -31,6 +31,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
       className="lg:hidden mobile-bottom-nav"
+      aria-label="하단 내비게이션"
     >
       {TABS.map((tab) => {
         const isActive = tab.id !== 'more' && currentSection === tab.id;

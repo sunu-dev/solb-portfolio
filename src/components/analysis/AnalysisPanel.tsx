@@ -15,6 +15,7 @@ import { X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { supabase } from '@/lib/supabase';
 import { MENTORS, MENTOR_MAP } from '@/config/mentors';
+import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
@@ -146,6 +147,7 @@ export default function AnalysisPanel() {
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [mentorReport, setMentorReport] = useState<any>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
+  const [aiRemaining, setAiRemaining] = useState<number | null>(null);
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -417,6 +419,7 @@ export default function AnalysisPanel() {
                       const data = await resp.json();
                       if (data.success) {
                         setAiReport(data.report);
+                        if (data.remaining !== undefined) setAiRemaining(data.remaining);
                         if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
                         logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
                       }
@@ -439,6 +442,9 @@ export default function AnalysisPanel() {
                   }}
                 >
                   <span>📊</span> AI 분석 리포트 {showAIReport ? '닫기' : '보기'}
+                  {aiRemaining !== null && !showAIReport && (
+                    <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
+                  )}
                 </button>
 
                 {/* AI Analysis Report — Gemini API */}
@@ -514,9 +520,7 @@ export default function AnalysisPanel() {
                       </div>
                     )}
 
-                    <div style={{ fontSize: 11, color: '#B0B8C1', lineHeight: 1.6, textAlign: 'center', paddingTop: 12, borderTop: '1px solid #F2F4F6' }}>
-                      이 분석은 AI(Gemini)가 생성한 참고 자료이며, 투자 권유가 아닙니다.
-                    </div>
+                    <Disclaimer />
                   </div>
                 )}
 
@@ -588,6 +592,7 @@ export default function AnalysisPanel() {
                               const data = await resp.json();
                               if (data.success) {
                                 setMentorReport(data.report);
+                                if (data.remaining !== undefined) setAiRemaining(data.remaining);
                                 mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
                                 logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
                               }
@@ -1209,7 +1214,7 @@ export default function AnalysisPanel() {
 
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid #F2F4F6', marginTop: 16 }}>
-                  ⚠️ 이 분석은 참고 자료이며, 투자 권유가 아닙니다. 투자 판단의 책임은 본인에게 있습니다.
+                  ⚠️ AI가 생성한 참고 자료이며, 투자 자문이 아닙니다. 투자 판단의 책임은 이용자에게 있습니다.
                 </div>
               </>
             )}

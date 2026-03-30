@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import RightSidebar from './RightSidebar';
+import BadgeSection from '@/components/portfolio/BadgeSection';
 
 interface Props {
   isOpen: boolean;
@@ -45,8 +46,9 @@ export default function MobileSidebar({ isOpen, onClose }: Props) {
         }}
         className="mobile-sidebar-sheet"
       >
-        <div style={{ width: 40, height: 4, background: '#E5E8EB', borderRadius: 2, margin: '0 auto 20px' }} />
+        <div style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto 20px' }} />
         <RightSidebar />
+        <BadgeSection />
       </div>
     </>
   );

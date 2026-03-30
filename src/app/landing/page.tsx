@@ -10,7 +10,7 @@ export default function LandingPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: '#FFFFFF',
+        background: 'var(--bg, #FFFFFF)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -38,7 +38,7 @@ export default function LandingPage() {
           style={{
             fontSize: 36,
             fontWeight: 800,
-            color: '#191F28',
+            color: 'var(--text-primary, #191F28)',
             lineHeight: 1.35,
             marginBottom: 16,
             letterSpacing: '-0.02em',
