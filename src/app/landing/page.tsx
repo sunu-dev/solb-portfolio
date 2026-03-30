@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'SOLB PORTFOLIO - 내 주식, 쉽게 읽어주는 투자 비서',
-  description: '주식 초보자를 위한 AI 포트폴리오 대시보드. 실시간 가격, AI 분석, 스마트 알림.',
+  title: 'SOLB — 폭풍우에도 흔들리지 않는 내 투자 비서',
+  description: '내 주식을 쉽게 읽어주는 AI 투자 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.',
 };
 
 export default function LandingPage() {
@@ -44,9 +44,9 @@ export default function LandingPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          내 주식, 쉽게 읽어주는
+          폭풍우에도 흔들리지 않는
           <br />
-          투자 비서
+          내 투자 비서
         </h1>
 
         <p

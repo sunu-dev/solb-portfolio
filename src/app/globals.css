@@ -15,6 +15,12 @@
   --surface: #FFFFFF;
   --surface-hover: #F9FAFB;
 
+  /* Brand — 솔(松) + 비(雨) */
+  --brand-sol: #1B6B3A;
+  --brand-rain: #3182F6;
+  --brand-gold: #D4A853;
+  --brand-gradient: linear-gradient(135deg, #1B6B3A, #3182F6);
+
   /* Accent */
   --accent: oklch(0.97 0 0);
   --accent-blue: #3182F6;

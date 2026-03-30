@@ -55,14 +55,14 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               width: '24px',
               height: '24px',
               borderRadius: '6px',
-              background: '#3182F6',
+              background: 'var(--brand-gradient, #3182F6)',
             }}
           >
             <span style={{ color: '#fff', fontSize: '14px', fontWeight: 800 }}>S</span>
           </div>
           <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            <span style={{ color: '#3182F6' }}>SOLB</span>
-            <span className="hidden md:inline" style={{ color: '#191F28' }}> PORTFOLIO</span>
+            <span style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>SOLB</span>
+            <span className="hidden md:inline" style={{ color: 'var(--text-primary, #191F28)' }}> PORTFOLIO</span>
           </span>
         </div>
 

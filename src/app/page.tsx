@@ -123,7 +123,10 @@ export default function Home() {
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
-        <div className="text-[#B0B8C1] text-[13px]">불러오는 중...</div>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>SOLB</div>
+          <div className="text-[#B0B8C1] text-[12px]">폭풍우에도 흔들리지 않는 내 투자 비서</div>
+        </div>
       </div>
     );
   }
