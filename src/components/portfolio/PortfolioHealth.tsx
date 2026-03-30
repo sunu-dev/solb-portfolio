@@ -175,8 +175,8 @@ export default function PortfolioHealth({ stocks }: Props) {
 
       <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         <style>{`
-          @media (max-width: 380px) {
-            .health-layout { flex-direction: column !important; }
+          @media (max-width: 768px) {
+            .health-layout { flex-direction: column !important; align-items: center !important; }
             .health-layout > div:first-child { margin-bottom: 8px; }
           }
         `}</style>

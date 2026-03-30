@@ -309,7 +309,8 @@ export default function AnalysisPanel() {
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1" style={{ overflowY: 'auto', padding: 24 }}>
+          <div className="flex-1 analysis-body" style={{ overflowY: 'auto', padding: 24 }}>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } }`}</style>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
@@ -328,7 +329,7 @@ export default function AnalysisPanel() {
               <>
                 {/* Price hero */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#191F28' }}>
+                  <div style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                     ${price ? price.toFixed(2) : '--'}
                   </div>
                   <div style={{ fontSize: 14, color: '#8B95A1', marginTop: 4 }}>

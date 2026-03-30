@@ -136,7 +136,8 @@ export default function MentorRadar({ scores }: Props) {
       </div>
 
       {/* Score detail list */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', marginTop: 8 }}>
+      <div className="radar-score-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px 12px', marginTop: 8 }}>
+        <style>{`@media (max-width: 400px) { .radar-score-grid { grid-template-columns: 1fr 1fr !important; } }`}</style>
         {ATTRIBUTE_LABELS.map((attr, i) => {
           const score = values[i];
           const color = score >= 4 ? '#16A34A' : score <= 2 ? '#EF4452' : 'var(--text-secondary, #8B95A1)';

@@ -54,6 +54,9 @@ export default function MarketSummary() {
       style={{ maxWidth: '1400px', padding: '14px 48px', gap: '8px', overflow: 'hidden' }}
     >
       <style>{`
+        @media (max-width: 1024px) {
+          .market-summary-bar { padding: 10px 24px !important; }
+        }
         @media (max-width: 768px) {
           .market-summary-bar { padding: 8px 16px !important; }
           .market-summary-text { font-size: 12px !important; }

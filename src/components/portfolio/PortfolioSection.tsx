@@ -343,7 +343,7 @@ export default function PortfolioSection() {
             </div>
             <div
               className={`${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
-              style={{ fontSize: '20px', fontWeight: 600, marginTop: '6px' }}
+              style={{ fontSize: 'clamp(16px, 4.5vw, 20px)', fontWeight: 600, marginTop: '6px' }}
             >
               ({isGain ? '+' : ''}{totalPLPercent.toFixed(2)}%)
             </div>
