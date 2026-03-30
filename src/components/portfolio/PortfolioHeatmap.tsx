@@ -169,7 +169,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
   if (nodes.length === 0) return null;
 
   const WIDTH = 100; // SVG viewBox percentage
-  const HEIGHT = 60;
+  const HEIGHT = 100; // 정사각형
   const layout = squarify(nodes, { x: 0, y: 0, w: WIDTH, h: HEIGHT });
 
   return (
@@ -205,14 +205,14 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
       {/* SVG Treemap */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        style={{ width: '100%', height: 'auto', borderRadius: 12, overflow: 'hidden' }}
+        style={{ width: '100%', maxWidth: 400, height: 'auto', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
       >
         {layout.map((node, i) => {
           const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
           const color = pnlColor(pct);
           const textColor = Math.abs(pct) >= 2 ? '#FFFFFF' : '#191F28';
-          const showDetail = node.w > 15 && node.h > 12;
-          const showLabel = node.w > 8 && node.h > 6;
+          const showDetail = node.w > 15 && node.h > 18;
+          const showLabel = node.w > 8 && node.h > 10;
 
           return (
             <g key={node.symbol}>
