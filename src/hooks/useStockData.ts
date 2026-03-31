@@ -85,16 +85,13 @@ export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null>
   return null;
 }
 
-// --- Search stocks ---
-export async function searchStocks(query: string, apiKey: string): Promise<{ symbol: string; description: string }[]> {
+// --- Search stocks (server-side API route) ---
+export async function searchStocks(query: string, _apiKey?: string): Promise<{ symbol: string; description: string }[]> {
   try {
-    const r = await fetch(`${CONFIG.FINNHUB_BASE}/search?q=${encodeURIComponent(query)}&token=${apiKey}`);
+    const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     const d = await r.json();
     if (d.result?.length) {
-      return d.result.slice(0, 5).map((item: { symbol: string; description: string }) => ({
-        symbol: item.symbol,
-        description: item.description,
-      }));
+      return d.result;
     }
   } catch (e) {
     console.error('searchStocks error:', e);

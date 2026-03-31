@@ -385,7 +385,10 @@ export default function AnalysisPanel() {
                       const { data: { session } } = await supabase.auth.getSession();
                       const resp = await fetch('/api/ai-analysis', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+                        },
                         body: JSON.stringify({
                           symbol,
                           koreanName: kr,
@@ -403,7 +406,6 @@ export default function AnalysisPanel() {
                           macdStatus: analysis?.macdStatus?.status,
                           volRatio: analysis?.volRatio,
                           recentNews: newsText,
-                          userId: session?.user?.id,
                         }),
                       });
                       const data = await resp.json();
@@ -566,7 +568,10 @@ export default function AnalysisPanel() {
                               const { data: { session: sess } } = await supabase.auth.getSession();
                               const resp = await fetch('/api/ai-analysis', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  ...(sess?.access_token ? { 'Authorization': `Bearer ${sess.access_token}` } : {}),
+                                },
                                 body: JSON.stringify({
                                   symbol, koreanName: kr, price, change, changePercent: cp,
                                   avgCost: stockData?.avgCost, shares: stockData?.shares,
@@ -576,7 +581,6 @@ export default function AnalysisPanel() {
                                   bollingerStatus: analysis?.bollingerStatus?.status,
                                   macdStatus: analysis?.macdStatus?.status, volRatio: analysis?.volRatio,
                                   mentorId: m.id,
-                                  userId: sess?.user?.id,
                                 }),
                               });
                               const data = await resp.json();

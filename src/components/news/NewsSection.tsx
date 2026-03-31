@@ -7,10 +7,15 @@ import type { NewsTag } from '@/config/constants';
 import { ExternalLink } from 'lucide-react';
 
 function decodeHtml(text: string) {
-  const el = typeof document !== 'undefined' ? document.createElement('textarea') : null;
-  if (!el) return text;
-  el.innerHTML = text;
-  return el.value;
+  // 안전한 HTML 엔티티 디코딩 (innerHTML XSS 방지)
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
 }
 
 const NEWS_TABS = [

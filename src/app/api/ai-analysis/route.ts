@@ -89,9 +89,17 @@ export async function POST(req: NextRequest) {
   // Rate limiting
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
-  // Check auth: userId passed from client (or could verify via Supabase)
   const body = await req.json();
-  const userId: string | undefined = body.userId || undefined;
+
+  // Verify auth server-side (don't trust client userId)
+  let userId: string | undefined;
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ') && supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      userId = user?.id;
+    } catch { /* not logged in */ }
+  }
   const isLoggedIn = !!userId;
   const perUserLimit = isLoggedIn ? DAILY_LIMIT_USER : DAILY_LIMIT_GUEST;
 
