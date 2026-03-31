@@ -278,7 +278,7 @@ export default function PortfolioSection() {
       <MorningBriefing />
 
       {/* Hero - centered */}
-      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', padding: '12px 0 24px', borderRadius: 16 }}>
+      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', padding: '16px 20px 24px', borderRadius: 16 }}>
         <style>{`
           .hero-section { text-align: center; }
           @media (min-width: 1024px) { .hero-section { text-align: left; } }
@@ -349,7 +349,7 @@ export default function PortfolioSection() {
                 <span style={{ fontSize: 13, fontWeight: 600, color: todayGain ? '#EF4452' : '#3182F6' }}>
                   오늘 {todayGain ? '▲' : '▼'}{' '}
                   {currency === 'KRW'
-                    ? `${todayGain ? '+' : ''}₩${fmtWonShort(todayChangeWon)}`
+                    ? `${todayGain ? '+' : ''}${fmtWonShort(todayChangeWon)}`
                     : `${todayGain ? '+' : ''}$${todayChange.toFixed(2)}`}
                   {' '}({todayGain ? '+' : ''}{todayChangePct.toFixed(2)}%)
                 </span>
@@ -705,12 +705,12 @@ export default function PortfolioSection() {
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}
                         {stock.shares > 0 && stock.avgCost > 0
-                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? `₩${fmtWonShort(stock.avgCost * usdKrw)}` : `$${stock.avgCost.toFixed(2)}`}`
+                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? `${fmtWonShort(stock.avgCost * usdKrw)}` : `$${stock.avgCost.toFixed(2)}`}`
                           : stock.shares > 0
                             ? ` · ${stock.shares}주`
                             : ''}
                         {!stock.shares && stock.buyBelow
-                          ? ` · 목표 ${currency === 'KRW' ? `₩${fmtWonShort(stock.buyBelow * usdKrw)}` : `$${stock.buyBelow}`}`
+                          ? ` · 목표 ${currency === 'KRW' ? `${fmtWonShort(stock.buyBelow * usdKrw)}` : `$${stock.buyBelow}`}`
                           : ''}
                       </div>
                     </div>
@@ -721,7 +721,7 @@ export default function PortfolioSection() {
                     <div className="text-[15px] font-semibold text-[#191F28] tabular-nums">
                       {price
                         ? currency === 'KRW'
-                          ? `₩${fmtWonShort(priceWon)}`
+                          ? `${fmtWonShort(priceWon)}`
                           : `$${price.toFixed(2)}`
                         : <span className="skeleton-shimmer inline-block" style={{ width: 60, height: 16, borderRadius: 4 }} />}
                     </div>
@@ -729,7 +729,7 @@ export default function PortfolioSection() {
                       {price > 0
                         ? currency === 'KRW'
                           ? `$${price.toFixed(2)}`
-                          : `₩${fmtWonShort(priceWon)}`
+                          : `${fmtWonShort(priceWon)}`
                         : ''}
                     </div>
                   </div>
@@ -742,7 +742,7 @@ export default function PortfolioSection() {
                     <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isStockGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                       {price
                         ? currency === 'KRW'
-                          ? `${change >= 0 ? '+' : ''}₩${fmtWonShort(Math.abs(change * usdKrw))}`
+                          ? `${change >= 0 ? '+' : ''}${fmtWonShort(Math.abs(change * usdKrw))}`
                           : `${change >= 0 ? '+' : ''}$${change.toFixed(2)}`
                         : ''}
                     </div>
@@ -762,7 +762,7 @@ export default function PortfolioSection() {
                         >
                           {/* Korean stocks always show Won; others follow toggle */}
                           {stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ') || currency === 'KRW'
-                            ? `${plGain ? '+' : '-'}₩${fmtWonShort(Math.abs(plWon))}`
+                            ? `${plGain ? '+' : '-'}${fmtWonShort(Math.abs(plWon))}`
                             : `${plGain ? '+' : '-'}$${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                           }
                         </div>
