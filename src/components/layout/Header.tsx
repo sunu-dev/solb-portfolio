@@ -46,7 +46,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       className="sticky top-0 z-40"
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
-      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1400px' }}>
+      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
           <img src="/logo-solb.svg" alt="SOLB" style={{ width: 28, height: 28 }} />
