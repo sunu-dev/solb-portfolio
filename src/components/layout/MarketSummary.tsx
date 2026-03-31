@@ -78,7 +78,7 @@ export default function MarketSummary() {
           const krwWeakening = krwCp > 0;
           return (
             <span className="market-usdkrw">
-              {' '}· $/₩ {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}{' '}
+              {' '}· 환율 {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}원{' '}
               <span style={{ fontWeight: 700, color: krwWeakening ? '#EF4452' : '#3182F6' }}>
                 {krwWeakening ? '▲' : '▼'}{Math.abs(krwCp).toFixed(1)}%
               </span>
