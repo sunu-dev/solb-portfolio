@@ -13,12 +13,8 @@ interface SimulatorProps {
   currency: 'KRW' | 'USD';
 }
 
-function fmtWon(val: number): string {
-  const abs = Math.abs(val);
-  if (abs >= 100000000) return `${(val / 100000000).toFixed(1)}억원`;
-  if (abs >= 10000) return `${(val / 10000).toFixed(0)}만원`;
-  return `${Math.round(val).toLocaleString()}원`;
-}
+import { formatKRW } from '@/utils/formatKRW';
+function fmtWon(val: number): string { return formatKRW(val, { suffix: '원', prefix: false }); }
 
 export default function BuySimulator({
   symbol, currentPrice, avgCost, shares,

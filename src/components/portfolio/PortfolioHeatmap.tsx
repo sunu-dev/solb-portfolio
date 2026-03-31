@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { STOCK_KR } from '@/config/constants';
+import { formatKRW } from '@/utils/formatKRW';
 
 // --- Squarify Algorithm (Bruls et al. 2000, simplified) ---
 interface TreeNode {
@@ -160,7 +161,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
       const todayPct = q?.dp || 0;
       const label = STOCK_KR[stock.symbol] || stock.symbol;
       const valFormatted = currency === 'KRW'
-        ? `₩${Math.round(value * usdKrw).toLocaleString()}`
+        ? formatKRW(Math.round(value * usdKrw))
         : fmtShort(value);
       return { symbol: stock.symbol, value, pnlPct, todayPct, label, valFormatted };
     })
@@ -205,7 +206,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
       {/* SVG Treemap */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        style={{ width: '100%', maxWidth: 'min(400px, 90vw)', height: 'auto', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
+        style={{ width: '100%', maxWidth: 'min(400px, 90vw)', aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
       >
         {layout.map((node, i) => {
           const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
