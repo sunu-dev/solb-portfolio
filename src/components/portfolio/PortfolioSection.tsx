@@ -278,10 +278,9 @@ export default function PortfolioSection() {
       <MorningBriefing />
 
       {/* Hero - centered */}
-      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '12px 16px 24px', borderRadius: 16 }}>
+      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', padding: '12px 0 24px', borderRadius: 16 }}>
         <style>{`
           .hero-section { text-align: center; }
-          @media (min-width: 769px) { .hero-section { margin: 0 -48px !important; padding: 12px 48px 24px !important; } }
           @media (min-width: 1024px) { .hero-section { text-align: left; } }
         `}</style>
 
