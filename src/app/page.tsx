@@ -13,6 +13,7 @@ import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
 import BadgeSection from '@/components/portfolio/BadgeSection';
 import BottomTicker from '@/components/layout/BottomTicker';
+import OfflineNotice from '@/components/common/OfflineNotice';
 import MobileNav from '@/components/layout/MobileNav';
 import MobileSidebar from '@/components/layout/MobileSidebar';
 import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
@@ -149,6 +150,7 @@ export default function Home() {
 
       {/* Market Summary - one line */}
       <MarketSummary />
+      <OfflineNotice />
 
       {/* Main body: content + right sidebar */}
       <div className="flex flex-1 w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', maxWidth: '1400px', margin: '0 auto' }}>

@@ -106,9 +106,14 @@ import InvestmentNotes from '@/components/portfolio/InvestmentNotes';
 
 // AI report cache (module-level, persists across re-renders)
 const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
-// Mentor report cache: keyed by "symbol-mentorId"
 const mentorReportCache: Record<string, { report: any; timestamp: number }> = {};
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// 캐시 초기화 (계정 전환 시 호출)
+export function clearAnalysisCache() {
+  Object.keys(aiReportCache).forEach(k => delete aiReportCache[k]);
+  Object.keys(mentorReportCache).forEach(k => delete mentorReportCache[k]);
+}
 
 type ChartLevel = 'basic' | 'detail';
 

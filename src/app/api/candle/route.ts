@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1y&interval=1d`;
     const resp = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+      signal: AbortSignal.timeout(8000),
     });
     const data = await resp.json();
     const result = data?.chart?.result?.[0];

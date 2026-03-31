@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import { logError } from '@/lib/errorLogger';
+
 export default function Error({
   error,
   reset,
@@ -7,6 +10,9 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    logError('error-boundary', error.message, { digest: error.digest, stack: error.stack?.substring(0, 300) });
+  }, [error]);
   return (
     <div
       style={{
