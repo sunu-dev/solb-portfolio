@@ -74,6 +74,7 @@ export default function MorningBriefing() {
 
   return (
     <div
+      className="card-enter"
       style={{
         padding: '16px 20px',
         borderRadius: 16,

@@ -9,6 +9,7 @@ import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import PortfolioHeatmap from './PortfolioHeatmap';
+import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import LoginStreak from './LoginStreak';
@@ -917,6 +918,7 @@ export default function PortfolioSection() {
                     .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
                   }
                 `}</style>
+                <BenchmarkCompare />
                 <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
                 <PortfolioHealth stocks={investingData} />
               </div>

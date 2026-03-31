@@ -593,6 +593,35 @@ button, a, [role="button"] {
   to { transform: translateY(0); }
 }
 
+/* ==========================================
+   Micro Animations — 주가 변동 시 색상 플래시
+   ========================================== */
+@keyframes priceFlashUp {
+  0% { background-color: rgba(239, 68, 82, 0.15); }
+  100% { background-color: transparent; }
+}
+@keyframes priceFlashDown {
+  0% { background-color: rgba(49, 130, 246, 0.15); }
+  100% { background-color: transparent; }
+}
+.price-flash-up { animation: priceFlashUp 1s ease-out; }
+.price-flash-down { animation: priceFlashDown 1s ease-out; }
+
+/* 숫자 변화 시 부드러운 전환 */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+/* 카드 진입 애니메이션 */
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.card-enter {
+  animation: cardSlideIn 0.4s ease-out;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
