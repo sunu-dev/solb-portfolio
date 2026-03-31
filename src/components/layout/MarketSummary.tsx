@@ -2,6 +2,7 @@
 
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
+import { getMarketStatus } from '@/utils/marketStatus';
 
 export default function MarketSummary() {
   const { macroData } = usePortfolioStore();
@@ -86,9 +87,15 @@ export default function MarketSummary() {
           );
         })()}
       </span>
-      <span className="shrink-0 hidden md:inline" style={{ fontSize: '11px', color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto' }}>
-        15분 지연
-      </span>
+      {(() => {
+        const ms = getMarketStatus();
+        return (
+          <span className="shrink-0 hidden md:inline flex items-center" style={{ fontSize: '11px', marginLeft: 'auto', gap: 6 }}>
+            <span style={{ color: ms.color, fontWeight: 600 }}>{ms.dot} {ms.labelSimple}</span>
+            <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>· {ms.nextEvent} · 15분 지연</span>
+          </span>
+        );
+      })()}
     </div>
     </div>
   );

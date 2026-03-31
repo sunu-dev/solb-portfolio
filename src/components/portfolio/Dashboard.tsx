@@ -69,7 +69,8 @@ export default function Dashboard() {
 
   // 시간대 인사
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? '좋은 아침이에요' : hour < 18 ? '오늘도 수고하셨어요' : '오늘 하루 정리해볼게요';
+  const greeting = hour < 6 ? '늦은 밤이에요' : hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '오늘 하루 정리해볼게요';
+  const greetEmoji = hour < 6 ? '🌙' : hour < 12 ? '☀️' : hour < 18 ? '👋' : '🌆';
 
   // 시장 요약
   const spCp = data.sp?.changePercent || 0;
@@ -102,7 +103,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
         <div className="flex items-center" style={{ gap: 8 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            {greeting} 👋
+            {greeting} {greetEmoji}
           </span>
           {streak > 0 && (
             <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'var(--bg-subtle, #F2F4F6)', padding: '2px 8px', borderRadius: 10 }}>
