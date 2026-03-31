@@ -143,6 +143,7 @@ export default function AnalysisPanel() {
   const [mentorReport, setMentorReport] = useState<any>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
+  const [fundamentals, setFundamentals] = useState<any>(null);
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -167,7 +168,15 @@ export default function AnalysisPanel() {
       } catch { /* fallback to cached */ }
     };
 
-    Promise.all([fetchCandle(), fetchFreshQuote()]).finally(() => setLoading(false));
+    const fetchFundamentals = async () => {
+      try {
+        const r = await fetch(`/api/fundamentals?symbol=${symbol}`);
+        const d = await r.json();
+        if (d?.data) setFundamentals(d.data);
+      } catch { /* silent */ }
+    };
+
+    Promise.all([fetchCandle(), fetchFreshQuote(), fetchFundamentals()]).finally(() => setLoading(false));
   }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -524,6 +533,62 @@ export default function AnalysisPanel() {
                 {/* ============================================
                     레이더 차트 + 멘토 분석 섹션
                     ============================================ */}
+
+                {/* 재무 데이터 */}
+                {fundamentals && (
+                  <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 12, background: 'var(--bg-subtle, #F8F9FA)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 10 }}>
+                      기본 정보
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
+                      {fundamentals.per != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>PER (주가수익비율)</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.per.toFixed(1)}</span>
+                        </div>
+                      )}
+                      {fundamentals.eps != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>EPS (주당순이익)</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.eps.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {fundamentals.marketCap != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>시가총액</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            ${fundamentals.marketCap >= 1e12 ? `${(fundamentals.marketCap / 1e12).toFixed(1)}T` : fundamentals.marketCap >= 1e9 ? `${(fundamentals.marketCap / 1e9).toFixed(1)}B` : `${(fundamentals.marketCap / 1e6).toFixed(0)}M`}
+                          </span>
+                        </div>
+                      )}
+                      {fundamentals.dividendYield != null && fundamentals.dividendYield > 0 && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>배당수익률</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.dividendYield.toFixed(2)}%</span>
+                        </div>
+                      )}
+                      {fundamentals.week52High != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최고</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.week52High.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {fundamentals.week52Low != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최저</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.week52Low.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {fundamentals.sector && (
+                        <div className="flex justify-between" style={{ gridColumn: 'span 2' }}>
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>섹터</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.sector}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ marginBottom: 24 }}>
                   {/* Radar chart — 종목 속성 6축 */}
                   <MentorRadar

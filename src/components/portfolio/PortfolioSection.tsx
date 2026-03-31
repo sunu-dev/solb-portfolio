@@ -12,6 +12,7 @@ import PortfolioHeatmap from './PortfolioHeatmap';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import LoginStreak from './LoginStreak';
+import MorningBriefing from './MorningBriefing';
 import ShareCard from './ShareCard';
 
 const QUICK_ADD_STOCKS = [
@@ -271,6 +272,9 @@ export default function PortfolioSection() {
           </button>
         </div>
       ))}
+
+      {/* Morning Briefing */}
+      <MorningBriefing />
 
       {/* Hero - centered */}
       <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', margin: '0 -16px', padding: '12px 16px 24px', borderRadius: 16 }}>

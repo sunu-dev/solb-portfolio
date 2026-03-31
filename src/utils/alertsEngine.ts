@@ -178,8 +178,8 @@ export function checkAllAlerts(
     if (cross === 'golden') {
       alerts.push(makeAlert(
         stock.symbol, 'golden-cross', 'insight', 3,
-        `${name} 상승 전환 신호 (골든크로스)`,
-        `단기선(5일)이 중기선(20일)을 상향 돌파했어요. 상승 전환 신호예요.`
+        `${name} 평균 가격이 위로 교차했어요`,
+        `단기 평균(5일)이 장기 평균(20일)을 넘었어요. 상승 방향으로 바뀌는 신호일 수 있어요.`
       ));
     }
 
@@ -187,8 +187,8 @@ export function checkAllAlerts(
     if (cross === 'death') {
       alerts.push(makeAlert(
         stock.symbol, 'death-cross', 'risk', 3,
-        `${name} 하락 전환 신호 (데드크로스)`,
-        `단기선(5일)이 중기선(20일)을 하향 돌파했어요. 하락 주의 신호예요.`
+        `${name} 평균 가격이 아래로 교차했어요`,
+        `단기 평균(5일)이 장기 평균(20일)을 내려갔어요. 하락 방향으로 바뀌는 신호일 수 있어요.`
       ));
     }
 
@@ -200,7 +200,7 @@ export function checkAllAlerts(
       // 13. RSI oversold
       if (rsiVal < 30) {
         alerts.push(makeAlert(
-          stock.symbol, 'rsi-oversold', 'opportunity', 3,
+          stock.symbol, 'rsi-oversold', 'insight', 3,
           `${name} RSI ${rsiVal.toFixed(0)} — 많이 떨어진 상태`,
           `RSI가 30 이하로 많이 떨어진 구간이에요. 과매도 구간에 해당해요.`
         ));
@@ -224,9 +224,9 @@ export function checkAllAlerts(
       // 15. Bollinger lower band
       if (price <= lastBB.lower) {
         alerts.push(makeAlert(
-          stock.symbol, 'bb-lower', 'opportunity', 4,
-          `${name} 가격이 평소보다 많이 떨어진 구간 (볼린저 하단)`,
-          `가격이 볼린저밴드 하단($${lastBB.lower.toFixed(2)})을 벗어났어요. 반등 가능성이 있어요.`
+          stock.symbol, 'bb-lower', 'insight', 4,
+          `${name} 가격이 평소 범위 아래로 내려갔어요`,
+          `가격이 평소 움직이는 범위(하단 $${lastBB.lower.toFixed(2)})를 벗어났어요.`
         ));
       }
 
@@ -234,8 +234,8 @@ export function checkAllAlerts(
       if (price >= lastBB.upper) {
         alerts.push(makeAlert(
           stock.symbol, 'bb-upper', 'risk', 4,
-          `${name} 가격이 평소보다 많이 오른 구간 (볼린저 상단)`,
-          `가격이 볼린저밴드 상단($${lastBB.upper.toFixed(2)})을 벗어났어요. 과열 주의예요.`
+          `${name} 가격이 평소 범위 위로 올라갔어요`,
+          `가격이 평소 움직이는 범위(상단 $${lastBB.upper.toFixed(2)})를 벗어났어요. 과열 구간일 수 있어요.`
         ));
       }
     }
