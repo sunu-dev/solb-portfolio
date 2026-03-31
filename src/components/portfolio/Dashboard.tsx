@@ -5,6 +5,8 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import type { QuoteData, MacroEntry } from '@/config/constants';
+import { getGreeting } from '@/config/greetings';
+import { getDailyTerm } from '@/config/dailyTerms';
 
 export default function Dashboard() {
   const {
@@ -67,10 +69,9 @@ export default function Dashboard() {
   const isGain = data.totalPL >= 0;
   const todayGain = data.todayChange >= 0;
 
-  // 시간대 인사
-  const hour = new Date().getHours();
-  const greeting = hour < 6 ? '늦은 밤이에요' : hour < 12 ? '좋은 아침이에요' : hour < 18 ? '좋은 오후예요' : '오늘 하루 정리해볼게요';
-  const greetEmoji = hour < 6 ? '🌙' : hour < 12 ? '☀️' : hour < 18 ? '👋' : '🌆';
+  // 감성 인사 시스템
+  const greetData = getGreeting(data.totalPL < 0);
+  const dailyTerm = getDailyTerm();
 
   // 시장 요약
   const spCp = data.sp?.changePercent || 0;
@@ -99,12 +100,16 @@ export default function Dashboard() {
       }}
     >
       <style>{`@media (min-width: 1024px) { .dashboard-card { text-align: center; } }`}</style>
-      {/* Row 1: 인사 + 출석 + 통화 토글 */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-        <div className="flex items-center" style={{ gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            {greeting} {greetEmoji}
-          </span>
+      {/* Row 1: 감성 인사 (크게) */}
+      <div style={{ marginBottom: 6 }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          {greetData.emoji} {greetData.text}
+        </span>
+      </div>
+
+      {/* Row 2: 출석 + 통화 토글 (작게) */}
+      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+        <div className="flex items-center" style={{ gap: 6 }}>
           {streak > 0 && (
             <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'var(--bg-subtle, #F2F4F6)', padding: '2px 8px', borderRadius: 10 }}>
               🔥 {streak}일 연속
@@ -115,7 +120,7 @@ export default function Dashboard() {
           <button
             onClick={() => setCurrency('KRW')}
             style={{
-              padding: '6px 10px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400,
+              padding: '5px 10px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400,
               color: currency === 'KRW' ? '#fff' : 'var(--text-tertiary, #8B95A1)',
               background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
               border: '1px solid var(--border-light, #E5E8EB)', borderRadius: '6px 0 0 6px', cursor: 'pointer',
@@ -124,7 +129,7 @@ export default function Dashboard() {
           <button
             onClick={() => setCurrency('USD')}
             style={{
-              padding: '6px 10px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400,
+              padding: '5px 10px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400,
               color: currency === 'USD' ? '#fff' : 'var(--text-tertiary, #8B95A1)',
               background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
               border: '1px solid var(--border-light, #E5E8EB)', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: 'pointer',
@@ -204,6 +209,17 @@ export default function Dashboard() {
           )}
         </div>
       )}
+
+      {/* 오늘의 경제 상식 */}
+      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4 }}>💡 오늘의 경제 상식</div>
+        <div style={{ fontSize: 12, color: 'var(--text-primary, #191F28)', fontWeight: 600, marginBottom: 2 }}>
+          {dailyTerm.term} — {dailyTerm.simple}
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
+          {dailyTerm.analogy}
+        </div>
+      </div>
     </div>
   );
 }
