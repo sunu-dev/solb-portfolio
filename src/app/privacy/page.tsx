@@ -4,9 +4,9 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32 }}>개인정보처리방침</h1>
-      <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: 'var(--text-primary, #191F28)' }}>개인정보처리방침</h1>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
 
       <Section title="1. 개인정보처리방침의 목적">
         SOLB(이하 &quot;서비스&quot;)는 개인정보보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하게 처리하기 위해 다음과 같은 처리방침을 두고 있습니다.
@@ -119,8 +119,8 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, color: '#191F28' }}>{title}</h2>
-      <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.8 }}>{children}</div>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, color: 'var(--text-primary, #191F28)' }}>{title}</h2>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.8 }}>{children}</div>
     </div>
   );
 }

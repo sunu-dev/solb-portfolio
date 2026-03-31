@@ -540,7 +540,8 @@ export default function AnalysisPanel() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 10 }}>
                       기본 정보
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
+                    <div className="fundamentals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
+                      <style>{`@media (max-width: 400px) { .fundamentals-grid { grid-template-columns: 1fr !important; } }`}</style>
                       {fundamentals.per != null && (
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>PER (주가수익비율)</span>

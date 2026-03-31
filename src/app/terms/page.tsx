@@ -4,9 +4,9 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32 }}>이용약관</h1>
-      <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: 'var(--text-primary, #191F28)' }}>이용약관</h1>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
 
       <Section title="제1조 (목적)">
         이 약관은 SOLB(이하 &quot;서비스&quot;)가 제공하는 투자 정보 서비스의 이용 조건 및 절차, 서비스와 이용자의 권리·의무 및 책임 사항 등을 규정함을 목적으로 합니다.
@@ -112,8 +112,8 @@ export default function TermsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, color: '#191F28' }}>{title}</h2>
-      <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.8 }}>{children}</div>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10, color: 'var(--text-primary, #191F28)' }}>{title}</h2>
+      <div style={{ fontSize: 14, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.8 }}>{children}</div>
     </div>
   );
 }
