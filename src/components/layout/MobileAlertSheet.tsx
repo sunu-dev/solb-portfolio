@@ -9,7 +9,7 @@ import { X } from 'lucide-react';
 const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
   urgent: { icon: '🚨', label: '긴급', bg: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.08)', color: '#EF4452' },
   risk: { icon: '⚠️', label: '리스크', bg: 'rgba(255,149,0,0.04)', border: '1px solid rgba(255,149,0,0.08)', color: '#FF9500' },
-  opportunity: { icon: '💡', label: '기회', bg: 'rgba(0,198,190,0.04)', border: '1px solid rgba(0,198,190,0.08)', color: '#00C6BE' },
+  opportunity: { icon: '💡', label: '주목', bg: 'rgba(0,198,190,0.04)', border: '1px solid rgba(0,198,190,0.08)', color: '#00C6BE' },
   insight: { icon: '✨', label: '인사이트', bg: 'rgba(49,130,246,0.04)', border: '1px solid rgba(49,130,246,0.08)', color: '#3182F6' },
   celebrate: { icon: '🎉', label: '달성', bg: 'rgba(175,82,222,0.04)', border: '1px solid rgba(175,82,222,0.08)', color: '#AF52DE' },
 };
@@ -19,7 +19,7 @@ type AlertFilter = 'all' | 'risk' | 'opportunity' | 'insight';
 const TABS: { id: AlertFilter; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'risk', label: '리스크' },
-  { id: 'opportunity', label: '기회' },
+  { id: 'opportunity', label: '주목' },
   { id: 'insight', label: '인사이트' },
 ];
 

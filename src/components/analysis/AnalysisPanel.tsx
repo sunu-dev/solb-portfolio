@@ -730,7 +730,7 @@ export default function AnalysisPanel() {
                           )}
 
                           <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 12 }}>
-                            AI가 {selectedMentor.nameKr}의 투자 철학을 기반으로 생성한 참고 자료입니다.
+                            AI가 생성한 참고 자료이며, 투자 자문이 아닙니다. 투자 판단의 책임은 이용자에게 있습니다.
                           </div>
                         </>
                       )}

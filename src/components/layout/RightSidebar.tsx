@@ -24,7 +24,7 @@ const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: stri
   },
   opportunity: {
     icon: '💡',
-    label: '기회',
+    label: '주목',
     bg: 'rgba(0,198,190,0.04)',
     border: '1px solid rgba(0,198,190,0.08)',
     color: '#00C6BE',

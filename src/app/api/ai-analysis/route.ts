@@ -150,13 +150,13 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
 {
   "currentStatus": "${mentor.nameKr}의 관점에서 현재 상태를 2~3문장으로 설명 (이 투자자의 말투로)",
   "mentorScore": 1~5 사이 정수 (이 투자자의 기준으로 이 종목/포트폴리오가 얼마나 좋은지),
-  "mentorVerdict": "${mentor.nameKr}이라면 어떻게 할지 한 줄 요약",
+  "mentorVerdict": "${mentor.nameKr}의 관점에서 이 종목을 어떻게 볼지 한 줄 요약",
   "keyAdvice": [
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 1",
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 2",
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 3"
   ],
-  "quote": "이 투자자의 실제 명언 1개 (영어 원문 + 한국어 번역)",
+  "quote": "이 멘토 철학에 맞는 투자 격언 1개 (출처 없이)",
   "conclusion": {
     "label": "긍정적/관망/주의 중 하나",
     "signal": "positive/neutral/negative",

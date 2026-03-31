@@ -64,7 +64,7 @@ function getAlertBadgeText(alert: Alert): string {
   if (alert.id.includes('target-hit')) return '목표 달성';
   if (alert.id.includes('target-near')) return '목표 근접';
   if (alert.id.includes('below-avgcost')) return '평단 하회';
-  if (alert.id.includes('buy-zone')) return '매수 구간';
+  if (alert.id.includes('buy-zone')) return '관심가 도달';
   if (alert.id.includes('daily-surge')) return '급등';
   if (alert.id.includes('daily-plunge')) return '급락';
   if (alert.id.includes('near-52w-low')) return '52주 저점';
@@ -81,8 +81,8 @@ function getAlertBadgeText(alert: Alert): string {
   }
   if (alert.id.includes('bb-lower')) return 'BB 하단';
   if (alert.id.includes('bb-upper')) return 'BB 상단';
-  if (alert.id.includes('macd-bull')) return 'MACD 매수';
-  if (alert.id.includes('macd-bear')) return 'MACD 매도';
+  if (alert.id.includes('macd-bull')) return 'MACD 상승';
+  if (alert.id.includes('macd-bear')) return 'MACD 하락';
   if (alert.id.includes('target-return')) return '수익 달성';
   return '알림';
 }

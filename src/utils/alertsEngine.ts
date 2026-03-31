@@ -109,8 +109,8 @@ export function checkAllAlerts(
     if (!isInvesting && stock.buyBelow && stock.buyBelow > 0 && price <= stock.buyBelow) {
       alerts.push(makeAlert(
         stock.symbol, 'buy-zone', 'opportunity', 2,
-        `${name} 매수 구간 진입!`,
-        `현재가 $${price.toFixed(2)}이 목표 매수가 $${stock.buyBelow} 이하예요.`
+        `${name} 관심 가격 도달`,
+        `현재가 $${price.toFixed(2)}이 설정 가격 $${stock.buyBelow} 이하예요.`
       ));
     }
 
@@ -202,7 +202,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'rsi-oversold', 'opportunity', 3,
           `${name} RSI ${rsiVal.toFixed(0)} — 많이 떨어진 상태`,
-          `RSI가 30 이하로 많이 떨어진 구간이에요. 반등 가능성을 살펴보세요.`
+          `RSI가 30 이하로 많이 떨어진 구간이에요. 과매도 구간에 해당해요.`
         ));
       }
 
@@ -353,16 +353,16 @@ function checkCompositeAlerts(symbol: string, quote: QuoteData, candle: CandleRa
 
   // 1. RSI 과매도 + 볼린저 하단 + 거래량 증가 = 강한 반등 신호
   if (rsiVal < 30 && lastBB && price <= lastBB.lower * 1.02 && volRatio > 1.3) {
-    alerts.push(makeAlert(symbol, 'composite-strong-bounce', 'opportunity', 2,
-      `${name} 강한 반등 신호 감지!`,
-      `RSI ${rsiVal.toFixed(0)}(과매도) + 볼린저 하단 근접 + 거래량 ${(volRatio * 100).toFixed(0)}% — 여러 지표가 동시에 반등을 가리키고 있어요.`));
+    alerts.push(makeAlert(symbol, 'composite-strong-bounce', 'insight', 2,
+      `${name} 여러 지표가 동시에 변하고 있어요`,
+      `RSI ${rsiVal.toFixed(0)}(과매도 구간) + 볼린저 하단 근접 + 거래량 ${(volRatio * 100).toFixed(0)}% — 주요 지표를 함께 확인해보세요.`));
   }
 
   // 2. 골든크로스 + MACD 상향 + 거래량 증가 = 강한 상승 전환
   if (cross === 'golden' && macdLast > sigLast && volRatio > 1.3) {
     alerts.push(makeAlert(symbol, 'composite-strong-uptrend', 'insight', 2,
-      `${name} 강한 상승 전환 신호!`,
-      `골든크로스 + MACD 상향 교차 + 거래량 증가 — 상승 추세 전환의 강한 신호예요.`));
+      `${name} 상승 방향 지표 동시 변화`,
+      `골든크로스 + MACD 상향 교차 + 거래량 증가 — 여러 지표가 상승 방향으로 전환되고 있어요.`));
   }
 
   // 3. RSI 과매수 + 볼린저 상단 + 거래량 감소 = 조정 가능성
@@ -375,8 +375,8 @@ function checkCompositeAlerts(symbol: string, quote: QuoteData, candle: CandleRa
   // 4. 데드크로스 + MACD 하향 + 거래량 증가 = 강한 하락 전환
   if (cross === 'death' && macdLast < sigLast && volRatio > 1.3) {
     alerts.push(makeAlert(symbol, 'composite-strong-downtrend', 'risk', 2,
-      `${name} 강한 하락 전환 신호`,
-      `데드크로스 + MACD 하향 교차 + 거래량 증가 — 하락 추세 전환에 주의하세요.`));
+      `${name} 하락 방향 지표 동시 변화`,
+      `데드크로스 + MACD 하향 교차 + 거래량 증가 — 여러 지표가 하락 방향으로 전환되고 있어요.`));
   }
 
   // 5. 횡보 + 볼린저 밴드 수축 = 큰 움직임 예고
@@ -386,8 +386,8 @@ function checkCompositeAlerts(symbol: string, quote: QuoteData, candle: CandleRa
     const prevWidth = prevBB ? (prevBB.upper - prevBB.lower) / prevBB.middle : bbWidth;
     if (bbWidth < prevWidth * 0.6 && rsiVal > 40 && rsiVal < 60) {
       alerts.push(makeAlert(symbol, 'composite-squeeze', 'insight', 3,
-        `${name} 변동성 수축 — 큰 움직임 예고`,
-        `볼린저 밴드가 좁아지고 RSI가 중립이에요. 곧 큰 방향이 정해질 수 있어요.`));
+        `${name} 변동성이 줄어들고 있어요`,
+        `볼린저 밴드가 좁아지고 RSI가 중립이에요. 향후 변동폭이 커질 수 있어요.`));
     }
   }
 }
