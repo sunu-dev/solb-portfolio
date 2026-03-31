@@ -88,15 +88,16 @@ export default function Dashboard() {
 
   return (
     <div
-      className="card-enter"
+      className="card-enter dashboard-card"
       style={{
-        padding: '20px',
+        padding: '24px',
         borderRadius: 16,
         background: 'linear-gradient(180deg, var(--bg-subtle, #FAFBFF) 0%, var(--surface, white) 100%)',
         border: '1px solid var(--border-light, #F2F4F6)',
         marginBottom: 16,
       }}
     >
+      <style>{`@media (min-width: 1024px) { .dashboard-card { text-align: center; } }`}</style>
       {/* Row 1: 인사 + 출석 + 통화 토글 */}
       <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
         <div className="flex items-center" style={{ gap: 8 }}>
@@ -148,7 +149,7 @@ export default function Dashboard() {
           </div>
 
           {/* 오늘 변동 */}
-          <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <div className="flex flex-wrap items-center justify-center lg:justify-start" style={{ marginTop: 10, gap: 8 }}>
             <span style={{
               fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
               color: todayGain ? '#EF4452' : '#3182F6',
@@ -159,7 +160,7 @@ export default function Dashboard() {
           </div>
 
           {/* 총 평가/투자/종목 */}
-          <div className="flex items-center flex-wrap" style={{ gap: 16, marginTop: 12, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
+          <div className="flex items-center flex-wrap justify-center lg:justify-start" style={{ gap: 16, marginTop: 12, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
             <span>총 평가 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
             <span style={{ width: 1, height: 12, background: 'var(--border-light, #E5E8EB)' }} />
             <span>총 투자 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
