@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 interface UserMenuProps {
   user: User;
@@ -133,6 +134,47 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             로그아웃
+          </button>
+
+          {/* Account delete */}
+          <button
+            onClick={async () => {
+              if (!confirm('정말 계정을 삭제하시겠어요?\n\n모든 데이터가 영구 삭제되며 복구할 수 없습니다.')) return;
+              if (!confirm('마지막 확인: 계정을 삭제하면 포트폴리오, 분석 기록 등 모든 데이터가 삭제됩니다.')) return;
+              try {
+                // DB 데이터 삭제
+                await supabase.from('user_portfolios').delete().eq('user_id', user.id);
+                await supabase.from('ai_usage').delete().eq('user_id', user.id);
+                // localStorage 초기화
+                localStorage.removeItem('solb-portfolio-storage');
+                localStorage.removeItem('solb_quote_cache');
+                localStorage.removeItem('solb_macro_cache');
+                localStorage.removeItem('solb_streak');
+                localStorage.removeItem('solb_onboarded');
+                // 로그아웃
+                await supabase.auth.signOut();
+                setOpen(false);
+                window.location.reload();
+              } catch {
+                alert('계정 삭제에 실패했어요. 잠시 후 다시 시도해주세요.');
+              }
+            }}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              background: 'none',
+              border: 'none',
+              fontSize: '13px',
+              color: '#EF4452',
+              padding: '10px 16px',
+              cursor: 'pointer',
+              borderTop: '1px solid #F2F4F6',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F0')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+          >
+            계정 삭제
           </button>
         </div>
       )}

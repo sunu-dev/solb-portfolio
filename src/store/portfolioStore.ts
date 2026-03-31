@@ -132,7 +132,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       darkMode: false,
       apiKey: DEFAULT_API_KEY,
       autoRefresh: true,
-      refreshInterval: 10000,
+      refreshInterval: 30000,
       customEvents: [],
       lastUpdate: null,
 
@@ -192,6 +192,11 @@ export const usePortfolioStore = create<PortfolioState>()(
       // --- Portfolio CRUD ---
       addStock: (category, stock) =>
         set((state) => {
+          const total = (state.stocks.investing?.length || 0) + (state.stocks.watching?.length || 0) + (state.stocks.sold?.length || 0);
+          if (total >= 50) {
+            alert('종목은 최대 50개까지 등록할 수 있어요.');
+            return state;
+          }
           const updated = { ...state.stocks };
           updated[category] = [...updated[category], stock];
           return { stocks: updated };
