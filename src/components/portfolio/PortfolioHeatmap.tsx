@@ -169,8 +169,8 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
 
   if (nodes.length === 0) return null;
 
-  const WIDTH = 100; // SVG viewBox percentage
-  const HEIGHT = 100; // 정사각형
+  const WIDTH = 100; // SVG viewBox
+  const HEIGHT = 70; // 4:3에 가까운 비율 (넓적)
   const layout = squarify(nodes, { x: 0, y: 0, w: WIDTH, h: HEIGHT });
 
   return (
@@ -206,7 +206,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
       {/* SVG Treemap */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        style={{ width: '100%', maxWidth: 'min(400px, 90vw)', aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
+        style={{ width: '100%', maxWidth: 'min(500px, 95vw)', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
       >
         {layout.map((node, i) => {
           const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;

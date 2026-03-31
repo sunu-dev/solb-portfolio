@@ -96,6 +96,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Right actions — gap 통일 */}
+        <div className="flex items-center" style={{ gap: 4 }}>
+
         {/* Dark mode toggle */}
         <button
           onClick={(e) => { e.currentTarget.blur(); toggleDarkMode(); }}
@@ -249,6 +252,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             </button>
           </>
         )}
+        </div>{/* end right actions */}
       </div>
     </header>
   );
