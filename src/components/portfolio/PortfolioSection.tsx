@@ -12,8 +12,7 @@ import PortfolioHeatmap from './PortfolioHeatmap';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
-import LoginStreak from './LoginStreak';
-import MorningBriefing from './MorningBriefing';
+import Dashboard from './Dashboard';
 import ShareCard from './ShareCard';
 
 const QUICK_ADD_STOCKS = [
@@ -237,206 +236,19 @@ export default function PortfolioSection() {
 
   return (
     <div>
-      {/* Urgent inline banners */}
-      {urgentAlerts.map(alert => (
-        <div
-          key={alert.id}
-          className="animate-fade-in"
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
-            padding: '12px 16px',
-            marginBottom: 8,
-            borderRadius: 12,
-            background: alert.type === 'celebrate' ? 'rgba(175,82,222,0.06)' : 'rgba(239,68,82,0.06)',
-            border: `1px solid ${alert.type === 'celebrate' ? 'rgba(175,82,222,0.12)' : 'rgba(239,68,82,0.12)'}`,
-          }}
-        >
-          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>
-            {alert.type === 'celebrate' ? '🎉' : alert.type === 'urgent' ? '🚨' : '⚠️'}
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.4 }}>
-              {alert.message}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-              {alert.detail}
-            </div>
+      {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
+      <Dashboard />
+
+      {/* Empty state — 종목이 전혀 없을 때 */}
+      {allStocksList.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <img src="/empty-pine.svg" alt="" style={{ width: 100, height: 'auto', opacity: 0.8, margin: '0 auto 12px' }} />
+          <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
+            종목을 추가해보세요
           </div>
-          <button
-            onClick={() => dismissAlert(alert.id)}
-            className="cursor-pointer"
-            style={{ background: 'none', border: 'none', padding: 4, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}
-          >
-            ✕
-          </button>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
         </div>
-      ))}
-
-      {/* Morning Briefing */}
-      <MorningBriefing />
-
-      {/* Hero - centered */}
-      <div className="hero-section" style={{ position: 'relative', background: 'linear-gradient(180deg, #FAFBFF 0%, transparent 100%)', padding: '16px 20px 24px', borderRadius: 16 }}>
-        <style>{`
-          .hero-section { text-align: center; }
-          @media (min-width: 1024px) { .hero-section { text-align: left; } }
-        `}</style>
-
-        {/* Login Streak */}
-        <LoginStreak />
-
-        {/* "내 수익" label + Currency toggle — 같은 줄 */}
-        <div className="flex items-center justify-between" style={{ marginTop: 8, marginBottom: 12 }}>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary, #8B95A1)', fontWeight: 500, letterSpacing: '0.04em' }}>내 수익</div>
-          <div className="flex items-center">
-          <button
-            onClick={() => setCurrency('KRW')}
-            className="currency-toggle-btn"
-            style={{
-              padding: '8px 14px',
-              fontSize: 12,
-              fontWeight: currency === 'KRW' ? 700 : 400,
-              color: currency === 'KRW' ? '#fff' : '#8B95A1',
-              background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
-              border: '1px solid var(--border-light, #E5E8EB)',
-              borderRadius: '8px 0 0 8px',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >₩</button>
-          <button
-            onClick={() => setCurrency('USD')}
-            className="currency-toggle-btn"
-            style={{
-              padding: '8px 14px',
-              fontSize: 12,
-              fontWeight: currency === 'USD' ? 700 : 400,
-              color: currency === 'USD' ? '#fff' : '#8B95A1',
-              background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
-              border: '1px solid var(--border-light, #E5E8EB)',
-              borderLeft: 'none',
-              borderRadius: '0 8px 8px 0',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >$</button>
-          </div>
-        </div>
-
-        {hasInvestment ? (
-          <>
-            <div
-              className={`tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
-              style={{ fontSize: 'clamp(28px, 8vw, 42px)', fontWeight: 800, lineHeight: 1.1 }}
-            >
-              {currency === 'KRW'
-                ? `${isGain ? '+' : '-'}₩${fmtWon(Math.abs(totalPLWon))}`
-                : `${isGain ? '+' : '-'}$${Math.abs(totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              }
-            </div>
-            <div
-              className={`${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}
-              style={{ fontSize: 'clamp(16px, 4.5vw, 20px)', fontWeight: 600, marginTop: '6px' }}
-            >
-              ({isGain ? '+' : ''}{totalPLPercent.toFixed(2)}%)
-            </div>
-
-            {/* 오늘 변동 */}
-            {holdingCount > 0 && (
-              <div style={{ marginTop: 16, padding: '8px 16px', borderRadius: 10, background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)', display: 'inline-block' }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: todayGain ? '#EF4452' : '#3182F6' }}>
-                  오늘 {todayGain ? '▲' : '▼'}{' '}
-                  {currency === 'KRW'
-                    ? `${todayGain ? '+' : ''}${fmtWonShort(todayChangeWon)}`
-                    : `${todayGain ? '+' : ''}$${todayChange.toFixed(2)}`}
-                  {' '}({todayGain ? '+' : ''}{todayChangePct.toFixed(2)}%)
-                </span>
-              </div>
-            )}
-
-            {/* 총평가/총투자/보유 */}
-            <div className="flex items-center justify-center lg:justify-start flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
-                총 평가{' '}
-                <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>
-                  {currency === 'KRW'
-                    ? `₩${fmtWon(totalValueWon)}`
-                    : `$${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                  }
-                </strong>
-              </div>
-              <div style={{ width: '1px', height: '14px', background: 'var(--border-light, #E5E8EB)' }} />
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
-                총 투자{' '}
-                <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>
-                  {currency === 'KRW'
-                    ? `₩${fmtWon(totalCostWon)}`
-                    : `$${totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-                  }
-                </strong>
-              </div>
-              <div style={{ width: '1px', height: '14px', background: 'var(--border-light, #E5E8EB)' }} />
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
-                종목 <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>{holdingCount}개 보유</strong>
-              </div>
-            </div>
-
-            {/* 인사이트: 승률 + 최고/최저 */}
-            {holdingCount >= 2 && (
-              <div className="justify-center lg:justify-start" style={{ marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', background: 'var(--bg-subtle, #F8F9FA)', padding: '5px 12px', borderRadius: 8 }}>
-                  승률 {holdingCount > 0 ? Math.round((winCount / holdingCount) * 100) : 0}% ({winCount}/{holdingCount})
-                </span>
-                {bestStock.symbol && bestStock.dp > -Infinity && (
-                  <span style={{ fontSize: 12, color: '#EF4452', background: 'rgba(239,68,82,0.06)', padding: '5px 12px', borderRadius: 8 }}>
-                    Best {STOCK_KR[bestStock.symbol] || bestStock.symbol} {bestStock.dp >= 0 ? '+' : ''}{bestStock.dp.toFixed(1)}%
-                  </span>
-                )}
-                {worstStock.symbol && worstStock.dp < Infinity && (
-                  <span style={{ fontSize: 12, color: '#3182F6', background: 'rgba(49,130,246,0.06)', padding: '5px 12px', borderRadius: 8 }}>
-                    Worst {STOCK_KR[worstStock.symbol] || worstStock.symbol} {worstStock.dp >= 0 ? '+' : ''}{worstStock.dp.toFixed(1)}%
-                  </span>
-                )}
-              </div>
-            )}
-          </>
-        ) : allStocksList.length > 0 ? (
-          /* 종목은 있지만 시세 로딩 중 — 스켈레톤 UI */
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <div className="skeleton-shimmer" style={{ width: 280, height: 42, borderRadius: 8 }} />
-              <div className="skeleton-shimmer" style={{ width: 120, height: 24, borderRadius: 6 }} />
-              <div className="skeleton-shimmer" style={{ width: 160, height: 28, borderRadius: 8, marginTop: 8 }} />
-            </div>
-            <style>{`
-              @keyframes shimmer {
-                0% { background-position: -200% 0; }
-                100% { background-position: 200% 0; }
-              }
-              .skeleton-shimmer {
-                background: linear-gradient(90deg, var(--bg-subtle, #F2F4F6) 25%, var(--surface-hover, #E8EBF0) 50%, var(--bg-subtle, #F2F4F6) 75%);
-                background-size: 200% 100%;
-                animation: shimmer 1.5s ease-in-out infinite;
-              }
-            `}</style>
-            <div className="flex items-center justify-center lg:justify-start flex-wrap" style={{ gap: '24px', marginTop: '20px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary, #8B95A1)' }}>
-                시세 데이터를 불러오는 중...
-              </div>
-            </div>
-          </>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-            <img src="/empty-pine.svg" alt="" style={{ width: 120, height: 'auto', opacity: 0.8 }} />
-            <div style={{ fontSize: 'clamp(20px, 6vw, 28px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              종목을 추가해보세요
-            </div>
-            <div className="text-[13px] text-[#8B95A1]">매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Divider + content below — 종목 리스트 먼저 */}
       <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 20 }}>
