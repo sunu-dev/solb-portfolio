@@ -156,7 +156,9 @@ export default function Home() {
       <div className="flex flex-1 w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', maxWidth: '1400px', margin: '0 auto' }}>
         {/* Main content area */}
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
-          <style>{`@media (min-width: 769px) { .main-content { padding: 40px 48px 80px 48px !important; } }`}</style>
+          <style>{`@media (min-width: 769px) { .main-content { padding: 40px 48px 80px 48px !important; } }
+            .main-content > * { max-width: 700px; }
+          `}</style>
           {currentSection === 'portfolio' && <PortfolioSection />}
           {currentSection === 'events' && <EventsSection />}
           {currentSection === 'news' && <NewsSection />}
