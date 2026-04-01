@@ -315,18 +315,19 @@ export default function PortfolioSection() {
             }}
             className="cursor-pointer shrink-0"
             style={{
-              padding: '6px 12px',
+              padding: '6px 14px',
               marginLeft: 8,
-              marginBottom: -1,
+              marginBottom: 4,
               fontSize: 12,
               fontWeight: 600,
-              color: '#3182F6',
-              background: 'none',
+              color: '#fff',
+              background: 'var(--brand-gradient, #1B6B3A)',
               border: 'none',
+              borderRadius: 8,
               whiteSpace: 'nowrap',
             }}
           >
-            + 추가
+            + 종목 추가
           </button>
         </div>
 
