@@ -49,7 +49,8 @@ export default function Dashboard() {
     const totalPL = totalValue - totalCost;
     const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
     const prevValue = totalValue - todayChange;
-    const todayPct = prevValue > 0 ? (todayChange / prevValue) * 100 : 0;
+    const todayPctRaw = prevValue > 0 ? (todayChange / prevValue) * 100 : 0;
+    const todayPct = Math.max(-999, Math.min(999, todayPctRaw)); // 극단값 캡
 
     return {
       totalPL, totalPLPct, totalValue, totalCost, holdingCount,

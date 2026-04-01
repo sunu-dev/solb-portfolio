@@ -16,6 +16,9 @@ interface FormatOptions {
 }
 
 export function formatKRW(val: number, opts?: FormatOptions): string {
+  // NaN/Infinity 방어
+  if (!isFinite(val) || isNaN(val)) return opts?.prefix !== false ? '₩0' : '0';
+
   const prefix = opts?.prefix !== false ? '₩' : '';
   const suffix = opts?.suffix || '';
   const short = opts?.short !== false;

@@ -61,7 +61,7 @@ function clamp(v: number): number {
 
 export function calcStockAttributes(input: ScoreInput): StockAttributes {
   const type = getAssetType(input.symbol);
-  const rsi = input.rsiVal || 50;
+  const rsi = input.rsiVal != null ? input.rsiVal : 50;
   const trendStr = input.trend || '';
   const macd = input.macdStatus || '';
   const vol = input.volRatio || 1;
