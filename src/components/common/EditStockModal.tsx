@@ -282,8 +282,8 @@ export default function EditStockModal() {
           )}
           </>)}
           {mode === 'basic' && (
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0' }}>
-              💡 더 자세한 설정은 &quot;상세&quot; 탭에서 할 수 있어요
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0', lineHeight: 1.6 }}>
+              💡 &quot;상세&quot; 탭에서 목표 수익률, 손절가 등을 설정할 수 있어요
             </div>
           )}
         </div>

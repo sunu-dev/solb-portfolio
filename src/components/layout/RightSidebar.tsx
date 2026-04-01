@@ -50,7 +50,7 @@ type AlertFilter = 'all' | 'risk' | 'opportunity' | 'insight';
 const ALERT_TABS: { id: AlertFilter; label: string }[] = [
   { id: 'all', label: '전체' },
   { id: 'risk', label: '리스크' },
-  { id: 'opportunity', label: '기회' },
+  { id: 'opportunity', label: '주목' },
   { id: 'insight', label: '인사이트' },
 ];
 

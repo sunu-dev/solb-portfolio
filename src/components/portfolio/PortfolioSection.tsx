@@ -246,7 +246,16 @@ export default function PortfolioSection() {
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
             종목을 추가해보세요
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>매수 단가와 수량을 설정하면 수익률을 확인할 수 있어요</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 16 }}>상단 검색에서 관심 있는 종목을 찾아 추가해보세요</div>
+          <button
+            onClick={() => {
+              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+              if (searchBtn) searchBtn.click();
+            }}
+            style={{ padding: '10px 24px', borderRadius: 10, background: '#3182F6', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+          >
+            종목 검색하기
+          </button>
         </div>
       )}
 
