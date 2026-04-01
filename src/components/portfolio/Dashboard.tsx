@@ -99,7 +99,6 @@ export default function Dashboard() {
         marginBottom: 16,
       }}
     >
-      <style>{`@media (min-width: 1024px) { .dashboard-card { text-align: center; } }`}</style>
       {/* Row 1: 감성 인사 (크게) */}
       <div style={{ marginBottom: 6 }}>
         <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
@@ -141,21 +140,23 @@ export default function Dashboard() {
       {/* Row 2: 큰 수익률 숫자 */}
       {data.hasInvestment ? (
         <>
-          <div
-            className="tabular-nums"
-            style={{ fontSize: 'clamp(28px, 8vw, 38px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
-          >
-            {currency === 'KRW'
-              ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
-              : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            }
-          </div>
-          <div style={{ fontSize: 'clamp(14px, 4vw, 18px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6', marginTop: 4 }}>
-            ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
+          <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
+            <span
+              className="tabular-nums"
+              style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
+            >
+              {currency === 'KRW'
+                ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
+                : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              }
+            </span>
+            <span style={{ fontSize: 'clamp(13px, 3.5vw, 16px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6' }}>
+              ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
+            </span>
           </div>
 
           {/* 오늘 변동 */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-start" style={{ marginTop: 10, gap: 8 }}>
+          <div className="flex flex-wrap items-center" style={{ marginTop: 8, gap: 8 }}>
             <span style={{
               fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
               color: todayGain ? '#EF4452' : '#3182F6',
@@ -166,7 +167,7 @@ export default function Dashboard() {
           </div>
 
           {/* 총 평가/투자/종목 */}
-          <div className="flex items-center flex-wrap justify-center lg:justify-start" style={{ gap: 16, marginTop: 12, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
+          <div className="flex items-center flex-wrap" style={{ gap: 12, marginTop: 10, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
             <span>총 평가 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
             <span style={{ width: 1, height: 14, background: 'var(--text-tertiary, #B0B8C1)', opacity: 0.4 }} />
             <span>총 투자 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
