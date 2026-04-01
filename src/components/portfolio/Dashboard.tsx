@@ -48,7 +48,8 @@ export default function Dashboard() {
 
     const totalPL = totalValue - totalCost;
     const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
-    const todayPct = totalValue > 0 ? (todayChange / (totalValue - todayChange)) * 100 : 0;
+    const prevValue = totalValue - todayChange;
+    const todayPct = prevValue > 0 ? (todayChange / prevValue) * 100 : 0;
 
     return {
       totalPL, totalPLPct, totalValue, totalCost, holdingCount,
@@ -86,7 +87,15 @@ export default function Dashboard() {
   const bestKr = STOCK_KR[data.bestSymbol] || data.bestSymbol;
   const worstKr = STOCK_KR[data.worstSymbol] || data.worstSymbol;
 
-  if (!data.hasInvestment && !data.bestSymbol) return null;
+  // 시세 로딩 전이면 간단 표시 (null 반환 대신)
+  if (!data.hasInvestment && !data.bestSymbol) {
+    return (
+      <div className="card-enter" style={{ padding: '20px', borderRadius: 16, background: 'var(--bg-subtle, #FAFBFF)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>{greetData.emoji} {greetData.text}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)' }}>시세 데이터를 불러오는 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -207,11 +216,11 @@ export default function Dashboard() {
         <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-light, #F2F4F6)', fontSize: 12, color: 'var(--text-tertiary, #8B95A1)' }}>
           어제 시장 <strong style={{ color: avgMarket >= 0 ? '#EF4452' : '#3182F6' }}>{marketLabel}</strong>
           {' · '}
-          <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ cursor: 'pointer', color: '#EF4452', fontWeight: 600 }}>
+          <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ cursor: 'pointer', color: '#EF4452', fontWeight: 600, textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
             {bestKr} {data.bestDp >= 0 ? '+' : ''}{data.bestDp.toFixed(1)}%
           </span>
           {' · '}
-          <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ cursor: 'pointer', color: '#3182F6', fontWeight: 600 }}>
+          <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ cursor: 'pointer', color: '#3182F6', fontWeight: 600, textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
             {worstKr} {data.worstDp >= 0 ? '+' : ''}{data.worstDp.toFixed(1)}%
           </span>
         </div>
