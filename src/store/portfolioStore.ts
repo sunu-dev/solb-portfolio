@@ -199,7 +199,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         set((state) => {
           const total = (state.stocks.investing?.length || 0) + (state.stocks.watching?.length || 0) + (state.stocks.sold?.length || 0);
           if (total >= 50) {
-            alert('종목은 최대 50개까지 등록할 수 있어요.');
+            if (typeof window !== 'undefined') alert('종목은 최대 50개까지 등록할 수 있어요.');
             return state;
           }
           const updated = { ...state.stocks };
