@@ -112,7 +112,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
               <button
                 onClick={dismissAllAlerts}
                 className="cursor-pointer"
-                style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '4px 8px' }}
+                style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '8px 12px', minHeight: 36 }}
               >
                 전체 읽음
               </button>
