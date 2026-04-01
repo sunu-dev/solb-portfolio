@@ -127,12 +127,13 @@ export function getGreeting(isLoss: boolean = false): { text: string; emoji: str
 
     // 특별한 날 (가장 높은 우선순위)
     if (c.dates?.includes(dateStr)) score += 100;
-    // 하락장 위로
+    // 하락장 위로 (손실 아닐 때만 제외)
     if (c.isLoss === true && isLoss) score += 50;
-    if (c.isLoss === true && !isLoss) return { g, score: -1 }; // 하락 아닌데 하락 메시지 제외
-    // 주말
+    if (c.isLoss === true && !isLoss) return { g, score: -1 };
+    // 주말 (주말 아닐 때만 제외, 손실 여부와 무관하게 허용)
     if (c.isWeekend === true && isWeekend) score += 30;
     if (c.isWeekend === true && !isWeekend) return { g, score: -1 };
+    // 하락+주말이면 주말 메시지도 후보에 포함 (위로 + 쉬라는 메시지 조합)
     // 시간대
     if (c.hours?.includes(hour)) score += 20;
     // 요일
@@ -148,7 +149,7 @@ export function getGreeting(isLoss: boolean = false): { text: string; emoji: str
   // 상위 점수에서 랜덤 선택
   scored.sort((a, b) => b.score - a.score);
   const topScore = scored[0]?.score || 0;
-  const top = scored.filter(x => x.score >= topScore - 10); // 상위 그룹
+  const top = scored.filter(x => x.score >= topScore - 5); // 상위 그룹 (유사 점수만)
   const pick = top[Math.floor(Math.random() * top.length)];
 
   return pick ? { text: pick.g.text, emoji: pick.g.emoji } : { text: '오늘도 SOLB와 함께해요', emoji: '🌲' };
