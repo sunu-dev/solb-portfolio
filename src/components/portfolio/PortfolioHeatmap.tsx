@@ -169,15 +169,18 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
 
   if (nodes.length === 0) return null;
 
-  const WIDTH = 100; // SVG viewBox
-  const HEIGHT = 100; // 정사각형
-  const layout = squarify(nodes, { x: 0, y: 0, w: WIDTH, h: HEIGHT });
+  const totalVal = nodes.reduce((s, n) => s + n.value, 0);
+  const useBarChart = nodes.length <= 3; // 3개 이하: 바 차트, 4개+: treemap
+
+  const WIDTH = 100;
+  const HEIGHT = useBarChart ? 40 : 100; // 바 차트는 낮게
+  const layout = useBarChart ? [] : squarify(nodes, { x: 0, y: 0, w: WIDTH, h: HEIGHT });
 
   return (
     <div style={{ marginBottom: 32 }}>
       {/* Header + toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>내 포트폴리오 맵</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>내 포트폴리오 맵</div>
         <div style={{ display: 'flex', gap: 4 }}>
           {([
             { id: 'pnl' as const, label: '수익률' },
@@ -191,7 +194,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
                 borderRadius: 6,
                 fontSize: 11,
                 fontWeight: colorMode === opt.id ? 700 : 500,
-                color: colorMode === opt.id ? '#3182F6' : '#8B95A1',
+                color: colorMode === opt.id ? '#3182F6' : 'var(--text-secondary, #8B95A1)',
                 background: colorMode === opt.id ? 'rgba(49,130,246,0.08)' : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
@@ -203,7 +206,45 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
         </div>
       </div>
 
-      {/* SVG Treemap */}
+      {/* 3개 이하: 가로 바 차트 */}
+      {useBarChart && (
+        <div style={{ display: 'flex', gap: 3, borderRadius: 12, overflow: 'hidden', height: 120 }}>
+          {nodes.map(node => {
+            const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
+            const color = pnlColor(pct);
+            const widthPct = totalVal > 0 ? (node.value / totalVal) * 100 : 100 / nodes.length;
+            return (
+              <div
+                key={node.symbol}
+                style={{
+                  width: `${widthPct}%`,
+                  background: color,
+                  borderRadius: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 8,
+                  minWidth: 60,
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>
+                  {node.label.length > 6 ? node.symbol : node.label}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', opacity: 0.9, marginTop: 2 }}>
+                  {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
+                </div>
+                <div style={{ fontSize: 10, color: '#fff', opacity: 0.7, marginTop: 1 }}>
+                  {node.valFormatted}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 4개+: SVG Treemap */}
+      {!useBarChart && (
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         style={{ width: '100%', maxWidth: 'min(400px, 90vw)', aspectRatio: '1 / 1', borderRadius: 12, overflow: 'hidden', margin: '0 auto', display: 'block' }}
@@ -275,6 +316,7 @@ export default function PortfolioHeatmap({ stocks, macroData, usdKrw, currency }
           );
         })}
       </svg>
+      )}
     </div>
   );
 }
