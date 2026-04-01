@@ -71,9 +71,9 @@ export default function Dashboard() {
   const isGain = data.totalPL >= 0;
   const todayGain = data.todayChange >= 0;
 
-  // 감성 인사 시스템
-  const greetData = getGreeting(data.totalPL < 0);
-  const dailyTerm = getDailyTerm();
+  // 감성 인사 + 경제 상식 — 마운트 시 1회만 결정 (리렌더마다 바뀌지 않음)
+  const [greetData] = useState(() => getGreeting(false));
+  const [dailyTerm] = useState(() => getDailyTerm());
 
   // 시장 요약
   const spCp = data.sp?.changePercent || 0;
