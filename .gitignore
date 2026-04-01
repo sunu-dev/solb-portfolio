@@ -43,3 +43,9 @@ next-env.d.ts
 # Environment variables
 .env.local
 .env*.local
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/solb-portfolio.iml
+/.idea/vcs.xml

@@ -68,14 +68,16 @@ async function fetchFromFinnhub(symbol: string, apiKey: string): Promise<QuoteRe
 
 export async function POST(req: NextRequest) {
   try {
-    const { symbols, apiKey, macro } = await req.json() as {
+    const { symbols, macro } = await req.json() as {
       symbols: string[];
-      apiKey: string;
       macro?: boolean;
     };
 
+    // API 키는 서버 환경변수에서 직접 가져옴 (클라이언트 신뢰 안 함)
+    const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
+
     if (!symbols?.length || !apiKey) {
-      return NextResponse.json({ error: 'symbols and apiKey required' }, { status: 400 });
+      return NextResponse.json({ error: 'symbols required' }, { status: 400 });
     }
 
     const syms = symbols.slice(0, 50);
