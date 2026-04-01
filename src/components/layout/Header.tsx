@@ -57,7 +57,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
-        <nav className="hidden md:flex items-center overflow-x-auto scrollbar-hide" style={{ marginLeft: '48px', height: '100%' }}>
+        <nav className="hidden md:flex items-center overflow-x-auto scrollbar-hide" style={{ marginLeft: '24px', height: '100%' }}>
           {NAV_ITEMS.map((item) => {
             const isActive = currentSection === item.section;
             return (
@@ -97,7 +97,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         <div className="flex-1" />
 
         {/* Right actions — gap 통일 */}
-        <div className="flex items-center" style={{ gap: 4 }}>
+        <div className="flex items-center" style={{ gap: 8 }}>
 
         {/* Dark mode toggle */}
         <button

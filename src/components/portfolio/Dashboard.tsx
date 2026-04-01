@@ -109,19 +109,15 @@ export default function Dashboard() {
         marginBottom: 16,
       }}
     >
-      {/* Row 1: 감성 인사 (크게) */}
-      <div style={{ marginBottom: 6 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-          {greetData.emoji} {greetData.text}
-        </span>
-      </div>
-
-      {/* Row 2: 출석 + 통화 토글 (작게) */}
-      <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
-        <div className="flex items-center" style={{ gap: 6 }}>
+      {/* Row 1: 인사 + 출석 + 통화 토글 (한 줄) */}
+      <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 14, gap: 8 }}>
+        <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+            {greetData.emoji} {greetData.text}
+          </span>
           {streak > 0 && (
             <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'var(--bg-subtle, #F2F4F6)', padding: '2px 8px', borderRadius: 10 }}>
-              🔥 {streak}일 연속
+              🔥 {streak}일
             </span>
           )}
         </div>

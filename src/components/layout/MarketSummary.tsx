@@ -94,7 +94,7 @@ export default function MarketSummary() {
       {(() => {
         const ms = getMarketStatus();
         return (
-          <span className="shrink-0 hidden md:inline-flex items-center" style={{ fontSize: '11px', marginLeft: 'auto', gap: 4 }}>
+          <span className="shrink-0 hidden md:inline-flex items-center" style={{ fontSize: '11px', marginLeft: 'auto', gap: 8 }}>
             <span style={{ color: ms.kr.color, fontWeight: 600 }}>🇰🇷{ms.kr.dot}{ms.kr.labelSimple}</span>
             <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>{ms.kr.nextEvent}</span>
             <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>·</span>
