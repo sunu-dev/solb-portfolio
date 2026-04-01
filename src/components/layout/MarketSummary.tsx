@@ -21,7 +21,7 @@ export default function MarketSummary() {
       >
         <div
           className="flex items-center justify-center shrink-0"
-          style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#F8F9FA', fontSize: '10px' }}
+          style={{ width: '20px', height: '20px', borderRadius: '50%', background: 'var(--bg-subtle, #F8F9FA)', fontSize: '10px' }}
         >
           📊
         </div>
@@ -94,7 +94,7 @@ export default function MarketSummary() {
       {(() => {
         const ms = getMarketStatus();
         return (
-          <span className="shrink-0 hidden md:inline flex items-center" style={{ fontSize: '11px', marginLeft: 'auto', gap: 6 }}>
+          <span className="shrink-0 hidden md:inline-flex items-center" style={{ fontSize: '11px', marginLeft: 'auto', gap: 6 }}>
             <span style={{ color: ms.color, fontWeight: 600 }}>{ms.dot} {ms.labelSimple}</span>
             <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>· {ms.nextEvent} · 15분 지연</span>
           </span>

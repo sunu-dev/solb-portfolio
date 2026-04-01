@@ -70,7 +70,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                   padding: '0 24px',
                   fontSize: '14px',
                   fontWeight: isActive ? 600 : 400,
-                  color: isActive ? '#191F28' : '#8B95A1',
+                  color: isActive ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -83,7 +83,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                       left: '24px',
                       right: '24px',
                       height: '2px',
-                      background: '#191F28',
+                      background: 'var(--text-primary, #191F28)',
                       borderRadius: '1px',
                     }}
                   />
@@ -152,7 +152,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                 position: 'absolute',
                 top: 2,
                 right: 2,
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: 700,
                 color: '#fff',
                 background: '#EF4452',

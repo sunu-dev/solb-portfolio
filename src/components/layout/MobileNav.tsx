@@ -52,7 +52,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? '#3182F6' : '#B0B8C1',
+              color: isActive ? '#3182F6' : 'var(--text-tertiary, #B0B8C1)',
               fontSize: 11,
               fontWeight: isActive ? 600 : 400,
               position: 'relative',
