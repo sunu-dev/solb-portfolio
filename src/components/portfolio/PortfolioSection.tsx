@@ -262,8 +262,32 @@ export default function PortfolioSection() {
       {/* 종목 리스트 */}
       <div style={{ marginTop: 8, paddingTop: 12 }}>
 
+        {/* 종목 추가 버튼 (탭 위, 항상 보임) */}
+        <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>내 종목</div>
+          <button
+            onClick={() => {
+              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+              if (searchBtn) searchBtn.click();
+            }}
+            className="cursor-pointer"
+            style={{
+              padding: '8px 16px',
+              minHeight: 36,
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#fff',
+              background: 'var(--brand-gradient, #1B6B3A)',
+              borderRadius: 8,
+              border: 'none',
+            }}
+          >
+            + 종목 추가
+          </button>
+        </div>
+
         {/* Category tabs */}
-        <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '32px' }}>
+        <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '24px' }}>
           {TABS.map((tab, tabIdx) => {
             const isActive = activeTab === tab.id;
             const isFirst = tabIdx === 0;
@@ -306,26 +330,6 @@ export default function PortfolioSection() {
               </button>
             );
           })}
-          {/* + 종목 추가 버튼 */}
-          <button
-            onClick={() => {
-              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
-              if (searchBtn) searchBtn.click();
-            }}
-            className="cursor-pointer"
-            style={{
-              marginLeft: 'auto',
-              padding: '0 16px 14px',
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#3182F6',
-              whiteSpace: 'nowrap',
-              background: 'none',
-              border: 'none',
-            }}
-          >
-            + 종목 추가
-          </button>
         </div>
 
         {/* 지연 시세 안내 */}
