@@ -202,44 +202,49 @@ export default function Dashboard() {
       )}
 
       {/* Row 3: 알림 + 시장 요약 (한 줄씩) */}
-      {(urgentAlerts.length > 0 || data.bestSymbol) && (
-        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-          {/* 긴급 알림 */}
-          {urgentAlerts.map(a => (
-            <div key={a.id} className="flex items-start" style={{ gap: 6, fontSize: 12, color: 'var(--text-secondary, #4E5968)', marginBottom: 4, lineHeight: 1.5 }}>
-              <span style={{ flexShrink: 0 }}>{a.type === 'urgent' ? '🚨' : '⚠️'}</span>
-              <span style={{ flex: 1 }}>{a.message}</span>
-              <button onClick={() => dismissAlert(a.id)} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary, #B0B8C1)', cursor: 'pointer', padding: 2, fontSize: 10 }}>✕</button>
-            </div>
-          ))}
-
-          {/* 시장 + Best/Worst 한 줄 */}
-          {data.bestSymbol && (
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginTop: urgentAlerts.length > 0 ? 6 : 0 }}>
-              어제 시장 <strong style={{ color: avgMarket >= 0 ? '#EF4452' : '#3182F6' }}>{marketLabel}</strong>
-              {' · '}
-              <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ cursor: 'pointer', color: '#EF4452', fontWeight: 600 }}>
-                {bestKr} {data.bestDp >= 0 ? '+' : ''}{data.bestDp.toFixed(1)}%
-              </span>
-              {' · '}
-              <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ cursor: 'pointer', color: '#3182F6', fontWeight: 600 }}>
-                {worstKr} {data.worstDp >= 0 ? '+' : ''}{data.worstDp.toFixed(1)}%
-              </span>
-            </div>
-          )}
+      {/* 시장 + Best/Worst 한 줄 (알림은 사이드바에서만 표시) */}
+      {data.bestSymbol && (
+        <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-light, #F2F4F6)', fontSize: 12, color: 'var(--text-tertiary, #8B95A1)' }}>
+          어제 시장 <strong style={{ color: avgMarket >= 0 ? '#EF4452' : '#3182F6' }}>{marketLabel}</strong>
+          {' · '}
+          <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ cursor: 'pointer', color: '#EF4452', fontWeight: 600 }}>
+            {bestKr} {data.bestDp >= 0 ? '+' : ''}{data.bestDp.toFixed(1)}%
+          </span>
+          {' · '}
+          <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ cursor: 'pointer', color: '#3182F6', fontWeight: 600 }}>
+            {worstKr} {data.worstDp >= 0 ? '+' : ''}{data.worstDp.toFixed(1)}%
+          </span>
         </div>
       )}
 
-      {/* 오늘의 경제 상식 */}
-      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4 }}>💡 모르는 게 당연해요 — 오늘의 경제 상식</div>
-        <div style={{ fontSize: 12, color: 'var(--text-primary, #191F28)', fontWeight: 600, marginBottom: 2 }}>
-          {dailyTerm.term} — {dailyTerm.simple}
+      {/* 오늘의 경제 상식 — 접이식 */}
+      <TermTip term={dailyTerm} />
+    </div>
+  );
+}
+
+function TermTip({ term }: { term: { term: string; simple: string; analogy: string } }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="cursor-pointer"
+        style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}
+      >
+        <span>💡 모르는 게 당연해요 — 오늘의 경제 상식</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10 }}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
+      </button>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-primary, #191F28)', fontWeight: 600, marginBottom: 2 }}>
+            {term.term} — {term.simple}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
+            {term.analogy}
+          </div>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
-          {dailyTerm.analogy}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

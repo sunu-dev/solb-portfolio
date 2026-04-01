@@ -250,8 +250,8 @@ export default function PortfolioSection() {
         </div>
       )}
 
-      {/* Divider + content below — 종목 리스트 먼저 */}
-      <div style={{ marginTop: 16, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 20 }}>
+      {/* 종목 리스트 */}
+      <div style={{ marginTop: 8, paddingTop: 12 }}>
 
         {/* Category tabs */}
         <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ gap: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '32px' }}>
