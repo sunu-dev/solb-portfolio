@@ -69,7 +69,10 @@ export const DAILY_TERMS: DailyTerm[] = [
  * 오늘의 경제 상식 1개 반환 (날짜 기반 고정)
  */
 export function getDailyTerm(): DailyTerm {
-  const today = new Date();
-  const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-  return DAILY_TERMS[dayOfYear % DAILY_TERMS.length];
+  const now = new Date();
+  // KST 기준 날짜로 고정 (타임존 무관)
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const startOfYear = new Date(Date.UTC(kst.getUTCFullYear(), 0, 1));
+  const dayOfYear = Math.floor((kst.getTime() - startOfYear.getTime()) / 86400000);
+  return DAILY_TERMS[Math.abs(dayOfYear) % DAILY_TERMS.length];
 }
