@@ -420,7 +420,7 @@ export default function PortfolioSection() {
             <div
               className="stock-table-header grid items-center"
               style={{
-                gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
+                gridTemplateColumns: 'minmax(160px, 1fr) 90px 90px 120px 120px 60px',
                 padding: '0 0 12px',
                 fontSize: '12px',
                 color: 'var(--text-tertiary, #B0B8C1)',
@@ -490,7 +490,7 @@ export default function PortfolioSection() {
                   onClick={() => setAnalysisSymbol(stock.symbol)}
                   className="stock-row stock-table-row grid items-center cursor-pointer transition-all"
                   style={{
-                    gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
+                    gridTemplateColumns: 'minmax(160px, 1fr) 90px 90px 120px 120px 60px',
                     padding: '14px 0',
                     animationDelay: `${i * 30}ms`,
                     borderTop: '1px solid var(--border-light, #F2F4F6)',
