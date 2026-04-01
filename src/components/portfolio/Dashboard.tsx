@@ -137,44 +137,63 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Row 2: 큰 수익률 숫자 */}
+      {/* Row 2: 수익률 + 요약 — PC 2컬럼, 모바일 세로 스택 */}
       {data.hasInvestment ? (
-        <>
-          <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
-            <span
-              className="tabular-nums"
-              style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
-            >
-              {currency === 'KRW'
-                ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
-                : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              }
-            </span>
-            <span style={{ fontSize: 'clamp(13px, 3.5vw, 16px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6' }}>
-              ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
-            </span>
+        <div className="dashboard-main-grid">
+          <style>{`
+            .dashboard-main-grid { display: flex; flex-direction: column; gap: 8px; }
+            @media (min-width: 768px) {
+              .dashboard-main-grid { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+            }
+          `}</style>
+
+          {/* 왼쪽: 큰 숫자 + 오늘 변동 */}
+          <div>
+            <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
+              <span
+                className="tabular-nums"
+                style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
+              >
+                {currency === 'KRW'
+                  ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
+                  : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                }
+              </span>
+              <span style={{ fontSize: 'clamp(13px, 3.5vw, 16px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6' }}>
+                ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center" style={{ marginTop: 8, gap: 8 }}>
+              <span style={{
+                fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
+                color: todayGain ? '#EF4452' : '#3182F6',
+                background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)',
+              }}>
+                오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
+              </span>
+            </div>
           </div>
 
-          {/* 오늘 변동 */}
-          <div className="flex flex-wrap items-center" style={{ marginTop: 8, gap: 8 }}>
-            <span style={{
-              fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 8,
-              color: todayGain ? '#EF4452' : '#3182F6',
-              background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)',
-            }}>
-              오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
-            </span>
+          {/* 오른쪽: 총 평가/투자/종목 (PC에서만 오른쪽, 모바일은 아래) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
+            <div className="flex items-center justify-between" style={{ gap: 16 }}>
+              <span>총 평가</span>
+              <strong style={{ color: 'var(--text-primary, #191F28)' }}>
+                {currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between" style={{ gap: 16 }}>
+              <span>총 투자</span>
+              <strong style={{ color: 'var(--text-primary, #191F28)' }}>
+                {currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+              </strong>
+            </div>
+            <div className="flex items-center justify-between" style={{ gap: 16 }}>
+              <span>종목</span>
+              <strong style={{ color: 'var(--text-primary, #191F28)' }}>{data.holdingCount}개</strong>
+            </div>
           </div>
-
-          {/* 총 평가/투자/종목 */}
-          <div className="flex items-center flex-wrap" style={{ gap: 12, marginTop: 10, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
-            <span>총 평가 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
-            <span style={{ width: 1, height: 14, background: 'var(--text-tertiary, #B0B8C1)', opacity: 0.4 }} />
-            <span>총 투자 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
-            <span style={{ width: 1, height: 14, background: 'var(--text-tertiary, #B0B8C1)', opacity: 0.4 }} />
-            <span>종목 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{data.holdingCount}개</strong></span>
-          </div>
-        </>
+        </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '16px 0' }}>
           <div className="skeleton-shimmer" style={{ width: 200, height: 36, borderRadius: 8, margin: '0 auto 8px' }} />
