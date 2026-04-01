@@ -47,7 +47,7 @@ interface Props {
 }
 
 export default function MobileAlertSheet({ isOpen, onClose }: Props) {
-  const { alerts, dismissedAlerts, dismissAlert, setAnalysisSymbol } = usePortfolioStore();
+  const { alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, setAnalysisSymbol } = usePortfolioStore();
   const [filter, setFilter] = useState<AlertFilter>('all');
 
   const visibleAlerts = alerts
@@ -107,6 +107,15 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
               }}>
                 {visibleAlerts.length}
               </span>
+            )}
+            {visibleAlerts.length > 0 && (
+              <button
+                onClick={dismissAllAlerts}
+                className="cursor-pointer"
+                style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '4px 8px' }}
+              >
+                전체 읽음
+              </button>
             )}
           </div>
           <button

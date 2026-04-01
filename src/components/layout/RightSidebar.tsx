@@ -73,7 +73,7 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts } = usePortfolioStore();
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
 
   const watchingStocks = stocks.watching || [];
@@ -158,7 +158,18 @@ export default function RightSidebar() {
       <div id="solb-alert-center" style={{ marginTop: '40px' }}>
         {/* Header + badge */}
         <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>SOLB AI</h3>
+          <div className="flex items-center" style={{ gap: 8 }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>SOLB AI</h3>
+            {visibleAlerts.length > 0 && (
+              <button
+                onClick={dismissAllAlerts}
+                className="cursor-pointer"
+                style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '2px 6px' }}
+              >
+                전체 읽음
+              </button>
+            )}
+          </div>
           {visibleAlerts.length > 0 && (
             <span
               style={{

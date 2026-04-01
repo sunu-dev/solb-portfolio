@@ -83,6 +83,7 @@ interface PortfolioState {
   setEditingIdx: (idx: number) => void;
   setAlerts: (alerts: Alert[]) => void;
   dismissAlert: (alertId: string) => void;
+  dismissAllAlerts: () => void;
 
   // Macro & cache
   updateMacroEntry: (key: string, val: MacroEntry | QuoteData) => void;
@@ -160,6 +161,10 @@ export const usePortfolioStore = create<PortfolioState>()(
       dismissAlert: (alertId) =>
         set((state) => ({
           dismissedAlerts: [...state.dismissedAlerts, alertId],
+        })),
+      dismissAllAlerts: () =>
+        set((state) => ({
+          dismissedAlerts: [...state.dismissedAlerts, ...state.alerts.map(a => a.id)],
         })),
 
       // --- Macro & cache ---

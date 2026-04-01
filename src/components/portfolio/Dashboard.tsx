@@ -168,9 +168,9 @@ export default function Dashboard() {
           {/* 총 평가/투자/종목 */}
           <div className="flex items-center flex-wrap justify-center lg:justify-start" style={{ gap: 16, marginTop: 12, fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
             <span>총 평가 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
-            <span style={{ width: 1, height: 12, background: 'var(--border-light, #E5E8EB)' }} />
+            <span style={{ width: 1, height: 14, background: 'var(--text-tertiary, #B0B8C1)', opacity: 0.4 }} />
             <span>총 투자 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}`}</strong></span>
-            <span style={{ width: 1, height: 12, background: 'var(--border-light, #E5E8EB)' }} />
+            <span style={{ width: 1, height: 14, background: 'var(--text-tertiary, #B0B8C1)', opacity: 0.4 }} />
             <span>종목 <strong style={{ color: 'var(--text-primary, #191F28)' }}>{data.holdingCount}개</strong></span>
           </div>
         </>
@@ -212,7 +212,7 @@ export default function Dashboard() {
 
       {/* 오늘의 경제 상식 */}
       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4 }}>💡 오늘의 경제 상식</div>
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4 }}>💡 모르는 게 당연해요 — 오늘의 경제 상식</div>
         <div style={{ fontSize: 12, color: 'var(--text-primary, #191F28)', fontWeight: 600, marginBottom: 2 }}>
           {dailyTerm.term} — {dailyTerm.simple}
         </div>

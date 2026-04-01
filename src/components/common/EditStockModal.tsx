@@ -20,6 +20,7 @@ export default function EditStockModal() {
   const [buyBelow, setBuyBelow] = useState('');
   const [addBuyPrice, setAddBuyPrice] = useState('');
   const [addBuyShares, setAddBuyShares] = useState('');
+  const [mode, setMode] = useState<'basic' | 'detail'>('basic');
 
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
@@ -141,9 +142,27 @@ export default function EditStockModal() {
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>매수 정보와 목표가를 설정하세요</div>
+          {/* 기본/상세 탭 */}
+          <div className="flex" style={{ gap: 4, marginTop: 12 }}>
+            {(['basic', 'detail'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                className="cursor-pointer"
+                style={{
+                  padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: mode === m ? 600 : 400,
+                  background: mode === m ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
+                  color: mode === m ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                  border: 'none',
+                }}
+              >
+                {m === 'basic' ? '기본 (초보자)' : '상세'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 200px))', overflowY: 'auto' }}>
+        <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 250px))', overflowY: 'auto' }}>
           {/* Category selector */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>분류</label>
@@ -197,6 +216,7 @@ export default function EditStockModal() {
             </div>
           </div>
 
+          {mode === 'detail' && (<>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
             <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="0"
@@ -258,6 +278,12 @@ export default function EditStockModal() {
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>매수 목표가 ({unit})</label>
               <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          )}
+          </>)}
+          {mode === 'basic' && (
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0' }}>
+              💡 더 자세한 설정은 &quot;상세&quot; 탭에서 할 수 있어요
             </div>
           )}
         </div>
