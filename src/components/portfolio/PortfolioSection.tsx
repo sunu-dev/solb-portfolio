@@ -306,6 +306,26 @@ export default function PortfolioSection() {
               </button>
             );
           })}
+          {/* + 종목 추가 버튼 */}
+          <button
+            onClick={() => {
+              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+              if (searchBtn) searchBtn.click();
+            }}
+            className="cursor-pointer"
+            style={{
+              marginLeft: 'auto',
+              padding: '0 16px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#3182F6',
+              whiteSpace: 'nowrap',
+              background: 'none',
+              border: 'none',
+            }}
+          >
+            + 종목 추가
+          </button>
         </div>
 
         {/* 지연 시세 안내 */}
