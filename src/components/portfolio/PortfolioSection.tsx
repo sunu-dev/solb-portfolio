@@ -494,7 +494,7 @@ export default function PortfolioSection() {
                     gridTemplateColumns: 'minmax(180px, 1.5fr) 100px 100px 140px 160px auto',
                     padding: '14px 0',
                     animationDelay: `${i * 30}ms`,
-                    borderTop: '1px solid var(--border-light, #F7F8FA)',
+                    borderTop: '1px solid var(--border-light, #F2F4F6)',
                   }}
                 >
                   {/* Name cell */}
@@ -705,7 +705,7 @@ export default function PortfolioSection() {
                       alignItems: 'flex-start',
                       gap: '14px',
                       padding: '14px 4px',
-                      borderTop: idx > 0 ? '1px solid var(--border-light, #F7F8FA)' : 'none',
+                      borderTop: idx > 0 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
                     }}
                   >
                     <span
