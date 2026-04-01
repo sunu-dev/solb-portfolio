@@ -120,7 +120,7 @@ export default function Dashboard() {
             onClick={() => setCurrency('KRW')}
             style={{
               padding: '5px 10px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400,
-              color: currency === 'KRW' ? '#fff' : 'var(--text-tertiary, #8B95A1)',
+              color: currency === 'KRW' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
               background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
               border: '1px solid var(--border-light, #E5E8EB)', borderRadius: '6px 0 0 6px', cursor: 'pointer',
             }}
@@ -129,7 +129,7 @@ export default function Dashboard() {
             onClick={() => setCurrency('USD')}
             style={{
               padding: '5px 10px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400,
-              color: currency === 'USD' ? '#fff' : 'var(--text-tertiary, #8B95A1)',
+              color: currency === 'USD' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
               background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
               border: '1px solid var(--border-light, #E5E8EB)', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: 'pointer',
             }}
@@ -232,7 +232,7 @@ function TermTip({ term }: { term: { term: string; simple: string; analogy: stri
         className="cursor-pointer"
         style={{ background: 'none', border: 'none', padding: 0, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', display: 'flex', alignItems: 'center', gap: 4, width: '100%' }}
       >
-        <span>💡 모르는 게 당연해요 — 오늘의 경제 상식</span>
+        <span>💡 모르는 게 당연해요 — 오늘의 경제 상식 (쉬운 설명)</span>
         <span style={{ marginLeft: 'auto', fontSize: 10 }}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
       {open && (

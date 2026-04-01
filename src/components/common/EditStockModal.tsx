@@ -205,12 +205,12 @@ export default function EditStockModal() {
           {/* Common fields */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit})</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit}) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 종목을 산 가격</span></label>
               <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주)</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 갖고 있는 주식 수</span></label>
               <input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>

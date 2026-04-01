@@ -63,6 +63,10 @@ export default function MarketSummary() {
           .market-summary-text { font-size: 12px !important; }
           .market-usdkrw { display: none !important; }
         }
+        @media (max-width: 400px) {
+          .market-summary-text { font-size: 11px !important; }
+          .market-sentiment { display: none !important; }
+        }
       `}</style>
       <span className="market-summary-text" style={{ fontSize: '13px', color: 'var(--text-primary, #191F28)', fontWeight: 500, lineHeight: 1.5 }}>
         S&P 500{' '}
@@ -73,7 +77,7 @@ export default function MarketSummary() {
         <span className={`font-bold ${isDown(nasdaqCp) ? 'text-[#3182F6]' : 'text-[#EF4452]'}`}>
           {nasdaqCp >= 0 ? '+' : ''}{nasdaqCp.toFixed(2)}%
         </span>
-        {' '}&mdash; {sentiment}
+        <span className="market-sentiment">{' '}&mdash; {sentiment}</span>
         {krwVal > 0 && (() => {
           const krwCp = usdkrw?.changePercent || 0;
           const krwWeakening = krwCp > 0;
