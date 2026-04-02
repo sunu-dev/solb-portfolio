@@ -77,7 +77,7 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
             position: 'absolute',
             right: 0,
             top: 'calc(100% + 8px)',
-            background: '#fff',
+            background: 'var(--surface, #fff)',
             borderRadius: '12px',
             boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
             padding: '8px 0',
@@ -86,10 +86,10 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
           }}
         >
           {/* User info */}
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #F2F4F6' }}>
-            <div style={{ fontSize: '14px', fontWeight: 600, color: '#191F28' }}>{name}</div>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{name}</div>
             {email && (
-              <div style={{ fontSize: '12px', color: '#8B95A1', marginTop: '2px' }}>{email}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary, #8B95A1)', marginTop: '2px' }}>{email}</div>
             )}
           </div>
 
@@ -106,11 +106,11 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
               background: 'none',
               border: 'none',
               fontSize: '13px',
-              color: '#333D4B',
+              color: 'var(--text-primary, #333D4B)',
               padding: '10px 16px',
               cursor: 'pointer',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#F9FAFB')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F9FAFB)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             설정
@@ -126,11 +126,11 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
               background: 'none',
               border: 'none',
               fontSize: '13px',
-              color: '#333D4B',
+              color: 'var(--text-primary, #333D4B)',
               padding: '10px 16px',
               cursor: 'pointer',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#F9FAFB')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F9FAFB)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             로그아웃
@@ -169,9 +169,9 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
               color: '#EF4452',
               padding: '10px 16px',
               cursor: 'pointer',
-              borderTop: '1px solid #F2F4F6',
+              borderTop: '1px solid var(--border-light, #F2F4F6)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF0F0')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #FFF0F0)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             계정 삭제

@@ -49,13 +49,19 @@ export default function NewsSection() {
 
   const activeMarket = currentNewsMarket === 'all' ? 'us' : currentNewsMarket;
 
+  // 캐시 타임스탬프 관리 (30분 stale)
+  const [cacheTimes] = useState<Record<string, number>>({});
+
   const loadNews = useCallback(async (market: string) => {
     const m = market === 'all' ? 'us' : market;
-    if (newsCache[m]) return;
+    const cachedAt = cacheTimes[m] || 0;
+    const isStale = Date.now() - cachedAt > 30 * 60 * 1000;
+    if (newsCache[m] && !isStale) return;
     setLoading(true);
     await fetchNews(m);
+    cacheTimes[m] = Date.now();
     setLoading(false);
-  }, [newsCache, fetchNews]);
+  }, [newsCache, fetchNews, cacheTimes]);
 
   useEffect(() => {
     loadNews(currentNewsMarket);
@@ -76,44 +82,44 @@ export default function NewsSection() {
     <div>
       {/* Page title */}
       <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#191F28', marginBottom: '4px' }}>뉴스</h1>
-        <p style={{ fontSize: '13px', color: '#8B95A1' }}>투자에 영향을 주는 최신 뉴스를 확인하세요</p>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: '4px' }}>뉴스</h1>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary, #8B95A1)' }}>투자에 영향을 주는 최신 뉴스를 확인하세요</p>
       </div>
 
-      {/* News tabs */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0, borderBottom: '1px solid #F2F4F6', marginBottom: '24px' }}>
-        {NEWS_TABS.map((tab, idx) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabClick(tab.id)}
-            style={{
-              position: 'relative',
-              padding: idx === 0 ? '0 20px 14px 0' : '0 20px 14px',
-              fontSize: '15px',
-              fontWeight: currentNewsMarket === tab.id ? 600 : 400,
-              color: currentNewsMarket === tab.id ? '#191F28' : '#8B95A1',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              background: 'none',
-              border: 'none',
-            }}
-          >
-            {tab.label}
-            {currentNewsMarket === tab.id && (
-              <span style={{
-                position: 'absolute',
-                bottom: 0,
-                left: idx === 0 ? 0 : undefined,
-                right: '20px',
-                ...(idx !== 0 ? { left: 0 } : {}),
-                height: '2px',
-                background: '#191F28',
-                borderRadius: '1px',
-                display: 'block',
-              }} />
-            )}
-          </button>
-        ))}
+      {/* News tabs — 가로 스크롤 지원 */}
+      <div className="overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, minWidth: 'max-content' }}>
+          {NEWS_TABS.map((tab, idx) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className="cursor-pointer shrink-0"
+              style={{
+                position: 'relative',
+                padding: idx === 0 ? '0 20px 14px 0' : '0 20px 14px',
+                fontSize: '15px',
+                fontWeight: currentNewsMarket === tab.id ? 600 : 400,
+                color: currentNewsMarket === tab.id ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
+                whiteSpace: 'nowrap',
+                background: 'none',
+                border: 'none',
+              }}
+            >
+              {tab.label}
+              {currentNewsMarket === tab.id && (
+                <span style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: idx === 0 ? 0 : '20px',
+                  right: '20px',
+                  height: '2px',
+                  background: 'var(--text-primary, #191F28)',
+                  borderRadius: '1px',
+                }} />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* News list */}
@@ -246,8 +252,8 @@ function getRelativeTime(dateStr: string): string {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}시간 전`;
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}일 전`;
-    return d.toLocaleDateString('ko-KR');
+    if (days <= 2) return `${days}일 전`;
+    return ''; // 2일 초과 뉴스는 날짜 미표시
   } catch {
     return '';
   }

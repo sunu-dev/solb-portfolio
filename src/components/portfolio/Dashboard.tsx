@@ -109,38 +109,16 @@ export default function Dashboard() {
         marginBottom: 16,
       }}
     >
-      {/* Row 1: 인사 + 출석 + 통화 토글 (한 줄) */}
-      <div className="flex items-center justify-between flex-wrap" style={{ marginBottom: 14, gap: 8 }}>
-        <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            {greetData.emoji} {greetData.text}
+      {/* Row 1: 인사 + 출석 (full-width) */}
+      <div className="flex items-center flex-wrap" style={{ marginBottom: 10, gap: 8 }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          {greetData.emoji} {greetData.text}
+        </span>
+        {streak > 0 && (
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'var(--bg-subtle, #F2F4F6)', padding: '2px 8px', borderRadius: 10 }}>
+            🔥 {streak}일
           </span>
-          {streak > 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'var(--bg-subtle, #F2F4F6)', padding: '2px 8px', borderRadius: 10 }}>
-              🔥 {streak}일
-            </span>
-          )}
-        </div>
-        <div className="flex items-center">
-          <button
-            onClick={() => setCurrency('KRW')}
-            style={{
-              padding: '8px 12px', fontSize: 11, minHeight: 36, fontWeight: currency === 'KRW' ? 700 : 400,
-              color: currency === 'KRW' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
-              background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
-              border: '1px solid var(--border-light, #E5E8EB)', borderRadius: '6px 0 0 6px', cursor: 'pointer',
-            }}
-          >₩</button>
-          <button
-            onClick={() => setCurrency('USD')}
-            style={{
-              padding: '8px 12px', fontSize: 11, minHeight: 36, fontWeight: currency === 'USD' ? 700 : 400,
-              color: currency === 'USD' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
-              background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
-              border: '1px solid var(--border-light, #E5E8EB)', borderLeft: 'none', borderRadius: '0 6px 6px 0', cursor: 'pointer',
-            }}
-          >$</button>
-        </div>
+        )}
       </div>
 
       {/* Row 2: 수익률 + 요약 — PC 2컬럼, 모바일 세로 스택 */}
@@ -153,21 +131,45 @@ export default function Dashboard() {
             }
           `}</style>
 
-          {/* 왼쪽: 큰 숫자 + 오늘 변동 */}
+          {/* 왼쪽: 큰 숫자 + 통화 토글 + 오늘 변동 */}
           <div>
-            <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
-              <span
-                className="tabular-nums"
-                style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
-              >
-                {currency === 'KRW'
-                  ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
-                  : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                }
-              </span>
-              <span style={{ fontSize: 'clamp(13px, 3.5vw, 16px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6' }}>
-                ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
-              </span>
+            <div className="flex items-center justify-between" style={{ gap: 8 }}>
+              <div className="flex items-baseline flex-wrap" style={{ gap: 8, flex: 1, minWidth: 0 }}>
+                <span
+                  className="tabular-nums"
+                  style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 800, lineHeight: 1.1, color: isGain ? '#EF4452' : '#3182F6' }}
+                >
+                  {currency === 'KRW'
+                    ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
+                    : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  }
+                </span>
+                <span style={{ fontSize: 'clamp(13px, 3.5vw, 16px)', fontWeight: 600, color: isGain ? '#EF4452' : '#3182F6' }}>
+                  ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
+                </span>
+              </div>
+              <div className="flex items-center shrink-0">
+                <button
+                  onClick={() => setCurrency('KRW')}
+                  className="cursor-pointer"
+                  style={{
+                    padding: '6px 10px', fontSize: 11, minHeight: 32, fontWeight: currency === 'KRW' ? 700 : 400,
+                    color: currency === 'KRW' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
+                    background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent',
+                    border: '1px solid var(--border-light, #E5E8EB)', borderRadius: '6px 0 0 6px',
+                  }}
+                >₩</button>
+                <button
+                  onClick={() => setCurrency('USD')}
+                  className="cursor-pointer"
+                  style={{
+                    padding: '6px 10px', fontSize: 11, minHeight: 32, fontWeight: currency === 'USD' ? 700 : 400,
+                    color: currency === 'USD' ? 'var(--surface, #fff)' : 'var(--text-tertiary, #8B95A1)',
+                    background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent',
+                    border: '1px solid var(--border-light, #E5E8EB)', borderLeft: 'none', borderRadius: '0 6px 6px 0',
+                  }}
+                >$</button>
+              </div>
             </div>
             <div className="flex flex-wrap items-center" style={{ marginTop: 8, gap: 8 }}>
               <span style={{

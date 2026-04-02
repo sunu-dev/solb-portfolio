@@ -80,9 +80,9 @@ export default function SettingsPanel() {
           right: 0,
           bottom: 0,
           width: 'min(360px, 100vw)',
-          background: 'white',
+          background: 'var(--surface, white)',
           zIndex: 50,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           display: 'flex',
           flexDirection: 'column',
           padding: 0,
@@ -92,14 +92,14 @@ export default function SettingsPanel() {
         <div
           style={{
             padding: '20px 24px',
-            borderBottom: '1px solid #F2F4F6',
+            borderBottom: '1px solid var(--border-light, #F2F4F6)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>설정</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>설정</span>
           <button
             onClick={() => setIsOpen(false)}
             style={{
@@ -114,10 +114,10 @@ export default function SettingsPanel() {
               justifyContent: 'center',
               transition: 'background 0.15s',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#F2F4F6')}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F2F4F6)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <X style={{ width: 20, height: 20, color: '#4E5968' }} />
+            <X style={{ width: 20, height: 20, color: 'var(--text-secondary, #4E5968)' }} />
           </button>
         </div>
 
@@ -126,14 +126,14 @@ export default function SettingsPanel() {
 
           {/* Auto Refresh Toggle Section */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               자동 새로고침
             </div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               활성화 시 주기적으로 시세를 업데이트합니다
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 13, color: '#4E5968' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>
                 {autoRefresh ? '활성' : '비활성'}
               </span>
               <button
@@ -144,7 +144,7 @@ export default function SettingsPanel() {
                   height: 24,
                   borderRadius: 9999,
                   border: 'none',
-                  background: autoRefresh ? '#34C759' : '#E5E8EB',
+                  background: autoRefresh ? '#34C759' : 'var(--border-light, #E5E8EB)',
                   cursor: 'pointer',
                   transition: 'background 0.2s',
                   padding: 0,
@@ -170,10 +170,10 @@ export default function SettingsPanel() {
 
           {/* Refresh Interval Section */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               새로고침 간격
             </div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               자동 새로고침 주기를 설정합니다 (최소 10초)
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -186,14 +186,14 @@ export default function SettingsPanel() {
                   width: 80,
                   padding: '8px 12px',
                   borderRadius: 8,
-                  border: '1px solid #E5E8EB',
+                  border: '1px solid var(--border-light, #E5E8EB)',
                   fontSize: 16,
                   textAlign: 'center',
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
               />
-              <span style={{ fontSize: 13, color: '#4E5968' }}>초</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>초</span>
               <button
                 onClick={handleUpdateInterval}
                 style={{
@@ -218,10 +218,10 @@ export default function SettingsPanel() {
 
           {/* 알림 설정 */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               알림
             </div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               손절가, 목표가 도달 시 브라우저 알림을 받을 수 있어요.
             </div>
             <button
@@ -250,11 +250,11 @@ export default function SettingsPanel() {
           </div>
 
           {/* Danger Zone */}
-          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid #F2F4F6' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#191F28', marginBottom: 8 }}>
+          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               위험 구역
             </div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               이 작업은 되돌릴 수 없습니다
             </div>
             <button
@@ -263,7 +263,7 @@ export default function SettingsPanel() {
                 width: '100%',
                 padding: 12,
                 borderRadius: 10,
-                background: 'white',
+                background: 'var(--surface, white)',
                 color: '#EF4452',
                 fontSize: 14,
                 fontWeight: 600,
@@ -271,8 +271,8 @@ export default function SettingsPanel() {
                 cursor: 'pointer',
                 transition: 'background 0.15s',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#FFF5F5')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'white')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #FFF5F5)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface, white)')}
             >
               전체 데이터 초기화
             </button>

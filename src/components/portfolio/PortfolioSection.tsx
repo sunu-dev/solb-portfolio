@@ -36,6 +36,14 @@ const CAT_BADGES: Record<string, { label: string; bgCls: string; textCls: string
   sold: { label: '매도 완료', bgCls: 'bg-[#F5F5F5]', textCls: 'text-[#8B95A1]' },
 };
 
+const SORT_OPTIONS: { key: 'name' | 'price' | 'change' | 'pnl' | 'goal'; label: string }[] = [
+  { key: 'name', label: '종목명' },
+  { key: 'price', label: '현재가' },
+  { key: 'change', label: '등락률' },
+  { key: 'pnl', label: '수익률' },
+  { key: 'goal', label: '목표' },
+];
+
 // Tag colors for portfolio news
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
   MU: { bg: '#EBF3FF', color: '#3182F6' },
@@ -108,6 +116,7 @@ export default function PortfolioSection() {
   const [newsLoaded, setNewsLoaded] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
 
   // Fetch portfolio-related news — use shorter queries for better results
@@ -239,6 +248,33 @@ export default function PortfolioSection() {
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
+      {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
+      {allStocksList.length > 0 && (
+        <div style={{ display: 'flex', gap: 4, padding: '4px', borderRadius: 12, background: 'var(--bg-subtle, #F2F4F6)', marginBottom: 16 }}>
+          {([['stocks', '종목'], ['analysis', '분석']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setSubTab(key)}
+              className="cursor-pointer"
+              style={{
+                flex: 1,
+                padding: '10px 0',
+                minHeight: 40,
+                fontSize: 14,
+                fontWeight: subTab === key ? 600 : 400,
+                color: subTab === key ? 'var(--surface, #fff)' : 'var(--text-secondary, #8B95A1)',
+                background: subTab === key ? 'var(--text-primary, #191F28)' : 'transparent',
+                border: 'none',
+                borderRadius: 10,
+                transition: 'all 0.2s',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Empty state — 종목이 전혀 없을 때 */}
       {allStocksList.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -259,7 +295,8 @@ export default function PortfolioSection() {
         </div>
       )}
 
-      {/* 종목 리스트 */}
+      {/* ===== 종목 탭 ===== */}
+      {subTab === 'stocks' && (
       <div style={{ marginTop: 8, paddingTop: 12 }}>
 
         {/* Category tabs + 종목 추가 버튼 (같은 줄) */}
@@ -416,6 +453,33 @@ export default function PortfolioSection() {
           </div>
         ) : (
           <div>
+            {/* Sort selector — 모바일 필수, 데스크톱 보조 */}
+            <div className="flex items-center scrollbar-hide" style={{ gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
+              {SORT_OPTIONS.map(opt => {
+                const isActive = sortBy === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSort(opt.key)}
+                    className="cursor-pointer shrink-0"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      fontWeight: isActive ? 600 : 400,
+                      color: isActive ? '#3182F6' : 'var(--text-tertiary, #8B95A1)',
+                      background: isActive ? 'rgba(49,130,246,0.08)' : 'transparent',
+                      border: `1px solid ${isActive ? 'rgba(49,130,246,0.2)' : 'var(--border-light, #E5E8EB)'}`,
+                      borderRadius: 20,
+                      whiteSpace: 'nowrap',
+                      minHeight: 36,
+                    }}
+                  >
+                    {opt.label}{isActive ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Table header */}
             <div
               className="stock-table-header grid items-center"
@@ -698,7 +762,7 @@ export default function PortfolioSection() {
                   <div
                     key={idx}
                     onClick={() => window.open(item.link, '_blank')}
-                    className="cursor-pointer hover:bg-[#F9FAFB] transition-colors rounded-lg"
+                    className="cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors rounded-lg"
                     style={{
                       display: 'flex',
                       alignItems: 'flex-start',
@@ -741,36 +805,52 @@ export default function PortfolioSection() {
           )}
         </div>
 
-        {/* 분석 위젯 — 종목 리스트/뉴스 아래 */}
-        {hasInvestment && (() => {
-          const investingData = investingStocks.map(s => {
-            const q = macroData[s.symbol] as QuoteData | undefined;
-            return {
-              symbol: s.symbol, avgCost: s.avgCost, shares: s.shares,
-              targetReturn: s.targetReturn, currentPrice: q?.c || 0,
-              value: (q?.c || 0) * s.shares,
-            };
-          });
-          return (
-            <div style={{ marginTop: 32, borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 32 }}>
-              {/* 데스크탑 2-column 그리드 */}
-              <div className="portfolio-widgets-grid">
-                <style>{`
-                  .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
-                  @media (min-width: 1024px) {
-                    .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-                  }
-                `}</style>
-                <BenchmarkCompare />
-                <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
-                <PortfolioHealth stocks={investingData} />
-              </div>
-              <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
-              <ShareCard />
-            </div>
-          );
-        })()}
       </div>
+      )}
+
+      {/* ===== 분석 탭 ===== */}
+      {subTab === 'analysis' && allStocksList.length > 0 && (
+        <div style={{ marginTop: 8 }}>
+          {hasInvestment ? (() => {
+            const investingData = investingStocks.map(s => {
+              const q = macroData[s.symbol] as QuoteData | undefined;
+              return {
+                symbol: s.symbol, avgCost: s.avgCost, shares: s.shares,
+                targetReturn: s.targetReturn, currentPrice: q?.c || 0,
+                value: (q?.c || 0) * s.shares,
+              };
+            });
+            return (
+              <>
+                {/* 데스크탑 2-column 그리드 */}
+                <div className="portfolio-widgets-grid">
+                  <style>{`
+                    .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
+                    @media (min-width: 1024px) {
+                      .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                    }
+                  `}</style>
+                  <BenchmarkCompare />
+                  <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
+                  <PortfolioHealth stocks={investingData} />
+                </div>
+                <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
+                <ShareCard />
+              </>
+            );
+          })() : (
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
+                투자 종목을 추가하면
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6 }}>
+                포트폴리오 맵, 건강 점수, 시장 대비 성과,<br/>목표 달성 현황을 여기서 확인할 수 있어요.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Undo 삭제 토스트 */}
       {undoData && (

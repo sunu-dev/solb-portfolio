@@ -70,10 +70,12 @@ function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
   return fallback.slice(0, 15);
 }
 
-export async function fetchKoreanNews(query: string): Promise<NewsItem[] | null> {
+export async function fetchKoreanNews(query: string, locale?: string): Promise<NewsItem[] | null> {
   // Use server-side API route (no CORS issues, cached)
   try {
-    const r = await fetch(`/api/news?q=${encodeURIComponent(query)}`);
+    const params = new URLSearchParams({ q: query });
+    if (locale) params.set('locale', locale);
+    const r = await fetch(`/api/news?${params}`);
     const d = await r.json();
     if (d.items?.length) {
       return d.items;
@@ -416,11 +418,17 @@ export function useNewsData() {
   const { updateNewsCache, getAllSymbols } = usePortfolioStore();
 
   const fetchNews = useCallback(async (market: string) => {
-    const q = market === 'my'
-      ? getAllSymbols().map(s => STOCK_KR[s] || s).join(' ') + ' 주가'
-      : NEWS_QUERIES[market];
-    if (!q) return null;
-    const items = await fetchKoreanNews(q);
+    let q: string;
+    let locale: string | undefined;
+    if (market === 'my') {
+      q = getAllSymbols().map(s => STOCK_KR[s] || s).join(' ') + ' 주가';
+    } else {
+      const entry = NEWS_QUERIES[market];
+      if (!entry) return null;
+      q = entry.q;
+      locale = entry.locale;
+    }
+    const items = await fetchKoreanNews(q, locale);
     if (items?.length) {
       updateNewsCache(market, items);
     }
@@ -439,6 +447,12 @@ export function useAutoRefresh() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const newsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fxTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const newsMarketRef = useRef(currentNewsMarket);
+
+  // Keep the ref in sync without triggering interval recreation
+  useEffect(() => {
+    newsMarketRef.current = currentNewsMarket;
+  }, [currentNewsMarket]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -453,11 +467,11 @@ export function useAutoRefresh() {
       fetchMacro();
     }, refreshInterval);
 
-    // 뉴스: 30분마다
+    // 뉴스: 15분마다
     newsTimerRef.current = setInterval(() => {
-      fetchNews(currentNewsMarket || 'us');
+      fetchNews(newsMarketRef.current || 'us');
       fetchNews('my');
-    }, 30 * 60 * 1000);
+    }, 15 * 60 * 1000);
 
     // 환율: 10분마다
     fxTimerRef.current = setInterval(async () => {
@@ -475,5 +489,5 @@ export function useAutoRefresh() {
       if (newsTimerRef.current) clearInterval(newsTimerRef.current);
       if (fxTimerRef.current) clearInterval(fxTimerRef.current);
     };
-  }, [autoRefresh, refreshInterval, refreshAll, fetchMacro]);
+  }, [autoRefresh, refreshInterval, refreshAll, fetchMacro, fetchNews, updateMacroEntry]);
 }

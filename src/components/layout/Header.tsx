@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { Settings, Bell } from 'lucide-react';
+import { Settings, Bell, Search } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -185,10 +185,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               color: 'var(--text-tertiary, #B0B8C1)',
             }}
           >
+            {/* 모바일: 돋보기 아이콘만, 데스크톱: 텍스트 + kbd */}
+            <Search className="w-[14px] h-[14px] md:hidden" />
             <span className="hidden md:inline">종목 검색</span>
-            <span className="md:hidden">검색</span>
             <kbd
-              className="font-sans"
+              className="font-sans hidden md:inline"
               style={{
                 fontSize: '11px',
                 color: '#B0B8C1',
@@ -214,10 +215,10 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           <UserMenu user={user} onSignOut={onSignOut || (() => {})} />
         ) : (
           <>
-            {/* Settings (only when not logged in) */}
+            {/* Settings — 모바일에서 숨김 (공간 확보) */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
-              className="flex items-center justify-center cursor-pointer transition-colors"
+              className="hidden md:flex items-center justify-center cursor-pointer transition-colors"
               style={{
                 width: '44px',
                 height: '44px',
@@ -225,7 +226,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                 color: '#8B95A1',
                 marginLeft: '4px',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#F8F9FA')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F8F9FA)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <Settings className="w-[18px] h-[18px]" />
@@ -234,18 +235,18 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             {/* Login button */}
             <button
               onClick={onLoginClick}
+              className="shrink-0 cursor-pointer"
               style={{
-                marginLeft: '8px',
+                marginLeft: '4px',
                 fontSize: '13px',
                 fontWeight: 600,
                 color: '#3182F6',
                 background: 'none',
                 border: 'none',
-                cursor: 'pointer',
                 padding: '6px 12px',
                 borderRadius: '8px',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#F0F6FF')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F0F6FF)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               로그인
