@@ -761,7 +761,7 @@ export default function PortfolioSection() {
                 return (
                   <div
                     key={idx}
-                    onClick={() => window.open(item.link, '_blank')}
+                    onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
                     className="cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors rounded-lg"
                     style={{
                       display: 'flex',

@@ -163,7 +163,7 @@ export default function Home() {
         </main>
 
         {/* Right sidebar - always visible on desktop */}
-        <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 20px 80px 20px', position: 'sticky', top: 48, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
+        <aside className="hidden lg:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 20px 80px 20px', position: 'sticky', top: '48px', alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
           <RightSidebar />
           <BadgeSection />
         </aside>

@@ -139,7 +139,7 @@ export default function NewsSection() {
             return (
               <div
                 key={idx}
-                onClick={() => window.open(item.link, '_blank')}
+                onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
                 style={{
                   display: 'flex',
                   alignItems: 'flex-start',

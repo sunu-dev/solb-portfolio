@@ -26,7 +26,7 @@ export default function OfflineNotice() {
     <div
       style={{
         position: 'fixed',
-        top: 48,
+        top: '48px',
         left: 0,
         right: 0,
         zIndex: 45,

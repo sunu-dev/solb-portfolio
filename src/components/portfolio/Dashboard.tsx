@@ -232,7 +232,7 @@ export default function Dashboard() {
 }
 
 function TermTip({ term }: { term: { term: string; simple: string; analogy: string } }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   return (
     <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
       <button

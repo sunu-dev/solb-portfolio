@@ -427,6 +427,10 @@ export default function AnalysisPanel() {
                         setAiReport(data.report);
                         if (data.remaining !== undefined) setAiRemaining(data.remaining);
                         if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
+                        try {
+                          const prev = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
+                          localStorage.setItem('solb_ai_usage', String(prev + 1));
+                        } catch { /* ignore */ }
                         logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
                       }
                       else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
@@ -659,6 +663,10 @@ export default function AnalysisPanel() {
                                 setMentorReport(data.report);
                                 if (data.remaining !== undefined) setAiRemaining(data.remaining);
                                 mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
+                                try {
+                                  const prev = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
+                                  localStorage.setItem('solb_ai_usage', String(prev + 1));
+                                } catch { /* ignore */ }
                                 logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
                               }
                             } catch { /* silent */ }
@@ -1254,7 +1262,7 @@ export default function AnalysisPanel() {
                       return (
                         <div
                           key={idx}
-                          onClick={() => window.open(item.link, '_blank')}
+                          onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
                           className="cursor-pointer"
                           style={{
                             padding: '12px 0',

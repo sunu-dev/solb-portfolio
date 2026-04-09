@@ -151,6 +151,7 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
                 localStorage.removeItem('solb_macro_cache');
                 localStorage.removeItem('solb_streak');
                 localStorage.removeItem('solb_onboarded');
+                localStorage.removeItem('solb_ai_usage');
                 // 로그아웃
                 await supabase.auth.signOut();
                 setOpen(false);

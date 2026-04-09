@@ -29,17 +29,21 @@ export default function BadgeSection() {
       }
     });
 
-    // streak는 localStorage에서 읽기
+    // streak + AI 사용횟수 localStorage에서 읽기
     let streak = 0;
+    let aiUsageCount = 0;
     try {
       const raw = localStorage.getItem('solb_streak');
       if (raw) streak = JSON.parse(raw).count || 0;
+    } catch { /* ignore */ }
+    try {
+      aiUsageCount = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
     } catch { /* ignore */ }
 
     return checkUnlockedBadges({
       totalStocks: allStocks.length,
       streak,
-      aiUsageCount: 0, // 클라이언트에서는 정확히 모름, 서버 기준
+      aiUsageCount,
       mentorUsed: new Set(),
       profitCount,
       allProfit: allProfit && (stocks.investing || []).length > 0,
