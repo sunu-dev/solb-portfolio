@@ -15,6 +15,8 @@ export interface StockItem {
   avgCost: number;
   shares: number;
   targetReturn: number;
+  // 환차익 추적: 매수 시점 USD/KRW 환율 (가중 평균)
+  purchaseRate?: number;
   // Investing-specific
   targetSell?: number;
   stopLoss?: number;
@@ -102,6 +104,7 @@ export interface EventCacheEntry {
   currentChange: number;
   recovered: boolean;
   recoveryDays: number | null;
+  dataSource?: 'actual' | 'precomputed' | 'fetched';
 }
 
 export interface NewsItem {

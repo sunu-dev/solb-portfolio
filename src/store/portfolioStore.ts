@@ -326,6 +326,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
+        eventCache: state.eventCache,
       }),
     }
   )
