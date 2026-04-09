@@ -256,7 +256,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
 ];
 
 export const NEWS_QUERIES: Record<string, { q: string; locale?: string }> = {
-  us: { q: 'stock market NASDAQ S&P500 Wall Street Fed when:2d', locale: 'en' },
+  us: { q: '미국 증시 나스닥 S&P500 뉴욕 연준 when:2d', locale: 'ko' },
   kr: { q: '한국 증시 코스피 코스닥 when:2d', locale: 'ko' },
   hot: { q: '주식 투자 급등 급락 when:2d', locale: 'ko' },
 };
