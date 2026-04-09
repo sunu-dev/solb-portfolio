@@ -21,6 +21,7 @@ function cleanTitle(title: string): string {
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q');
   const locale = req.nextUrl.searchParams.get('locale') || 'ko'; // 'ko' | 'en'
+  const maxHours = parseInt(req.nextUrl.searchParams.get('maxHours') || '12', 10);
   if (!query) {
     return NextResponse.json({ error: 'q parameter required' }, { status: 400 });
   }
@@ -80,18 +81,19 @@ export async function GET(req: NextRequest) {
       return db - da;
     });
 
-    const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
-    const sixHoursAgo   = Date.now() - 6 * 60 * 60 * 1000;
-    const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+    const now = Date.now();
+    const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+    const sixHoursAgo   = now - 6 * 60 * 60 * 1000;
+    const maxAgo        = now - maxHours * 60 * 60 * 1000;
 
-    const fresh3h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
-    const fresh6h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
-    const fresh12h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > twelveHoursAgo).slice(0, 15);
+    const fresh3h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
+    const fresh6h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
+    const freshMax = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > maxAgo).slice(0, 15);
 
-    // 3시간 내 3건 이상이면 그대로, 부족하면 6h → 12h 순으로 확장 (12h 초과는 절대 미표시)
+    // 3h 내 3건 이상 → 3h 기준, 부족하면 6h → 최대(maxHours)h 순으로 확장
     const recent = fresh3h.length >= 3 ? fresh3h
       : fresh6h.length >= 3 ? fresh6h
-      : fresh12h;
+      : freshMax;
 
     return NextResponse.json(
       { items: recent },

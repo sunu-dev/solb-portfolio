@@ -70,11 +70,12 @@ function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
   return fallback.slice(0, 15);
 }
 
-export async function fetchKoreanNews(query: string, locale?: string): Promise<NewsItem[] | null> {
+export async function fetchKoreanNews(query: string, locale?: string, maxHours?: number): Promise<NewsItem[] | null> {
   // Use server-side API route (no CORS issues, cached)
   try {
     const params = new URLSearchParams({ q: query });
     if (locale) params.set('locale', locale);
+    if (maxHours) params.set('maxHours', String(maxHours));
     const r = await fetch(`/api/news?${params}`);
     const d = await r.json();
     if (d.items?.length) {
@@ -420,15 +421,18 @@ export function useNewsData() {
   const fetchNews = useCallback(async (market: string) => {
     let q: string;
     let locale: string | undefined;
+    let maxHours: number | undefined;
     if (market === 'my') {
       q = getAllSymbols().map(s => STOCK_KR[s] || s).join(' ') + ' 주가';
+      maxHours = 24;
     } else {
       const entry = NEWS_QUERIES[market];
       if (!entry) return null;
       q = entry.q;
       locale = entry.locale;
+      maxHours = entry.maxHours;
     }
-    const items = await fetchKoreanNews(q, locale);
+    const items = await fetchKoreanNews(q, locale, maxHours);
     if (items?.length) {
       updateNewsCache(market, items);
     }
