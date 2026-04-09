@@ -56,7 +56,9 @@ export default function NewsSection() {
     const m = market === 'all' ? 'us' : market;
     const cachedAt = cacheTimes[m] || 0;
     const isStale = Date.now() - cachedAt > 30 * 60 * 1000;
-    if (newsCache[m] && !isStale) return;
+    // 빈 배열도 stale 처리 — 빈 결과가 캐시되면 계속 빈 뉴스 표시됨
+    const hasCached = newsCache[m]?.length > 0;
+    if (hasCached && !isStale) return;
     setLoading(true);
     await fetchNews(m);
     cacheTimes[m] = Date.now();

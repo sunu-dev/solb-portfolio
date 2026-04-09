@@ -256,9 +256,9 @@ export const PRESET_EVENTS: PresetEvent[] = [
 ];
 
 export const NEWS_QUERIES: Record<string, { q: string; locale?: string }> = {
-  us: { q: 'stock market NASDAQ S&P500 Wall Street Fed earnings', locale: 'en' },
-  kr: { q: '한국 증시 코스피 코스닥 삼성전자', locale: 'ko' },
-  hot: { q: '주식 투자 핫이슈 전망 급등', locale: 'ko' },
+  us: { q: 'stock market NASDAQ S&P500 Wall Street Fed when:2d', locale: 'en' },
+  kr: { q: '한국 증시 코스피 코스닥 when:2d', locale: 'ko' },
+  hot: { q: '주식 투자 급등 급락 when:2d', locale: 'ko' },
 };
 
 // --- Trend type ---

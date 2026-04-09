@@ -33,8 +33,11 @@ export async function GET(req: NextRequest) {
 
   try {
     const r = await fetch(rssUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SOLBBot/1.0)' },
+      // 실제 브라우저 UA — SOLBBot 등 Bot 문자열은 Google이 차단 or 제한
+      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
       signal: AbortSignal.timeout(8000),
+      // Next.js App Router는 fetch를 무기한 캐싱함 → 강제 최신화
+      cache: 'no-store',
     });
     const text = await r.text();
 
@@ -97,6 +100,10 @@ export async function GET(req: NextRequest) {
     );
   } catch (e) {
     console.error('News fetch error:', e);
-    return NextResponse.json({ items: [] }, { status: 200 });
+    // 에러 시 CDN 캐시 금지 (빈 결과가 캐싱되면 계속 빈 뉴스 표시됨)
+    return NextResponse.json({ items: [] }, {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 }
