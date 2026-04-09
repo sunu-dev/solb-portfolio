@@ -73,28 +73,31 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Sort by date (newest first) then filter recent 24 hours (fallback: 48h)
+    // Sort by date (newest first) then filter: 3h → 6h → 12h fallback
     const sorted = items.sort((a, b) => {
       const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
       const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
       return db - da;
     });
 
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    const twoDaysAgo = Date.now() - 48 * 60 * 60 * 1000;
-    const fresh = sorted
-      .filter(item => item.pubDate && new Date(item.pubDate).getTime() > oneDayAgo)
-      .slice(0, 15);
-    // Fallback: 24h 뉴스 3건 미만이면 48h까지 확장 (그 이상은 절대 미표시)
-    const recent = fresh.length >= 3
-      ? fresh
-      : sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > twoDaysAgo).slice(0, 15);
+    const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
+    const sixHoursAgo   = Date.now() - 6 * 60 * 60 * 1000;
+    const twelveHoursAgo = Date.now() - 12 * 60 * 60 * 1000;
+
+    const fresh3h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
+    const fresh6h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
+    const fresh12h = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > twelveHoursAgo).slice(0, 15);
+
+    // 3시간 내 3건 이상이면 그대로, 부족하면 6h → 12h 순으로 확장 (12h 초과는 절대 미표시)
+    const recent = fresh3h.length >= 3 ? fresh3h
+      : fresh6h.length >= 3 ? fresh6h
+      : fresh12h;
 
     return NextResponse.json(
       { items: recent },
       {
         headers: {
-          'Cache-Control': 's-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 's-maxage=180, stale-while-revalidate=300',
         },
       }
     );
