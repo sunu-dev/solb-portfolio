@@ -25,7 +25,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://finnhub.io https://open.er-api.com https://news.google.com https://generativelanguage.googleapis.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://finnhub.io wss://ws.finnhub.io https://open.er-api.com https://news.google.com https://generativelanguage.googleapis.com",
       "frame-src 'none'",
       "object-src 'none'",
       "base-uri 'self'",

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-// Finnhub API 키를 서버 환경변수에서만 반환 (클라이언트 번들 노출 방지)
+// 서버 전용 키 우선, fallback으로 NEXT_PUBLIC_ 사용 (클라이언트 번들에는 포함 안 됨)
 export async function GET() {
-  const token = process.env.FINNHUB_API_KEY || '';
+  const token = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   return NextResponse.json({ token });
 }
