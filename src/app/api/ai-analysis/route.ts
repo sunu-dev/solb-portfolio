@@ -243,8 +243,18 @@ ${responseFormat}`;
       return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining });
     }
   } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Gemini API error:', errorMessage);
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    // Try to parse JSON error body from API response
+    let parsedCode: unknown = null;
+    let parsedMsg: unknown = null;
+    let parsedStatus: unknown = null;
+    try {
+      const parsed = JSON.parse(errorMessage) as { error?: { code?: unknown; message?: unknown; status?: unknown } };
+      parsedCode = parsed?.error?.code;
+      parsedMsg = parsed?.error?.message;
+      parsedStatus = parsed?.error?.status;
+    } catch { /* not JSON */ }
+    console.error('[SOLB AI] error_code:', parsedCode, '| status:', parsedStatus, '| msg:', parsedMsg || errorMessage);
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   }
 }
