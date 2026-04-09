@@ -127,7 +127,8 @@ export async function POST(req: NextRequest) {
   try {
     const { symbol, koreanName, price, change, changePercent, avgCost, shares, targetReturn,
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
-            recentNews, mentorId } = body;
+            recentNews, mentorId,
+            per, eps, week52High, week52Low, sector } = body;
 
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
@@ -199,6 +200,12 @@ ${targetReturn ? `목표 수익률: ${targetReturn}%` : ''}
 - 볼린저 밴드: ${bollingerStatus || '데이터 없음'}
 - MACD: ${macdStatus || '데이터 없음'}
 - 거래량: 평균 대비 ${volRatio ? (volRatio * 100).toFixed(0) + '%' : '데이터 없음'}
+
+## 기본 지표 (Fundamentals)
+${per != null ? `- PER(주가수익비율): ${per.toFixed(1)}` : '- PER: 데이터 없음'}
+${eps != null ? `- EPS(주당순이익): $${eps.toFixed(2)}` : '- EPS: 데이터 없음'}
+${week52High != null && week52Low != null ? `- 52주 고가/저가: $${week52High} / $${week52Low}` : ''}
+${sector ? `- 섹터: ${sector}` : ''}
 
 ## 최근 뉴스
 ${recentNews || '관련 뉴스 없음'}

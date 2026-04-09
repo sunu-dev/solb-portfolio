@@ -171,7 +171,7 @@ export function useStockData() {
       const r = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: allSyms, apiKey, macro: true }),
+        body: JSON.stringify({ symbols: allSyms, macro: true }),
       });
       if (!r.ok) throw new Error(`batch API ${r.status}`);
       const json = await r.json();
@@ -335,7 +335,7 @@ export function useMacroData() {
       const r = await fetch('/api/quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: macroSymbols, apiKey, macro: true }),
+        body: JSON.stringify({ symbols: macroSymbols, macro: true }),
       });
       if (r.ok) {
         const json = await r.json();

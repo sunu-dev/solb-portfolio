@@ -420,6 +420,11 @@ export default function AnalysisPanel() {
                           macdStatus: analysis?.macdStatus?.status,
                           volRatio: analysis?.volRatio,
                           recentNews: newsText,
+                          per: fundamentals?.per,
+                          eps: fundamentals?.eps,
+                          week52High: fundamentals?.week52High,
+                          week52Low: fundamentals?.week52Low,
+                          sector: fundamentals?.sector,
                         }),
                       });
                       const data = await resp.json();
@@ -656,6 +661,11 @@ export default function AnalysisPanel() {
                                   bollingerStatus: analysis?.bollingerStatus?.status,
                                   macdStatus: analysis?.macdStatus?.status, volRatio: analysis?.volRatio,
                                   mentorId: m.id,
+                                  per: fundamentals?.per,
+                                  eps: fundamentals?.eps,
+                                  week52High: fundamentals?.week52High,
+                                  week52Low: fundamentals?.week52Low,
+                                  sector: fundamentals?.sector,
                                 }),
                               });
                               const data = await resp.json();

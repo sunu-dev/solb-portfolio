@@ -24,7 +24,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
   const unreadCount = alerts.filter(a => !dismissedAlerts.includes(a.id)).length;
   const [showSearch, setShowSearch] = useState(false);
 
-  // Keyboard shortcut for search
+  // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
@@ -37,8 +37,10 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         setShowSearch(false);
       }
     };
+    const openSearch = () => setShowSearch(true);
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('open-search', openSearch);
+    return () => { window.removeEventListener('keydown', handler); window.removeEventListener('open-search', openSearch); };
   }, []);
 
   return (

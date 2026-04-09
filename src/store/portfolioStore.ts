@@ -110,8 +110,6 @@ interface PortfolioState {
   getAllEvents: () => PresetEvent[];
 }
 
-const DEFAULT_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
-
 export const usePortfolioStore = create<PortfolioState>()(
   persist(
     (set, get) => ({
@@ -131,7 +129,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       currency: 'KRW' as 'KRW' | 'USD',
       darkMode: false,
-      apiKey: DEFAULT_API_KEY,
+      apiKey: '',
       autoRefresh: true,
       refreshInterval: 30000,
       customEvents: [],
@@ -249,11 +247,6 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       loadPortfolio: () => {
         const state = get();
-
-        // If persisted apiKey is empty but env var exists, use env var
-        if (!state.apiKey && DEFAULT_API_KEY) {
-          set({ apiKey: DEFAULT_API_KEY });
-        }
 
         const stocks = { ...state.stocks };
         let needsSave = false;

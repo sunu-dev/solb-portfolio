@@ -85,6 +85,14 @@ export default function Home() {
         }
       } catch { /* ignore */ }
 
+      // Finnhub 키를 서버에서 가져와 스토어에 저장 (번들 노출 방지)
+      const { apiKey, setApiKey } = usePortfolioStore.getState();
+      if (!apiKey) {
+        fetch('/api/ws-token').then(r => r.json()).then(({ token }) => {
+          if (token) setApiKey(token);
+        }).catch(() => {});
+      }
+
       Promise.all([fetchMacro(), refreshAll()]);
     };
     const unsub = usePortfolioStore.persist.onFinishHydration(init);

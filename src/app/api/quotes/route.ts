@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       macro?: boolean;
     };
 
-    // API 키는 서버 환경변수에서 직접 가져옴 (클라이언트 신뢰 안 함)
-    const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
+    // API 키는 서버 환경변수에서만 가져옴
+    const apiKey = process.env.FINNHUB_API_KEY || '';
 
     if (!symbols?.length || !apiKey) {
       return NextResponse.json({ error: 'symbols required' }, { status: 400 });

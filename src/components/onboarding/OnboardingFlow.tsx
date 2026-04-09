@@ -200,15 +200,28 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 );
               })}
             </div>
-            <p
+            <button
+              onClick={() => {
+                onComplete();
+                // 온보딩 완료 후 검색창 열기
+                setTimeout(() => window.dispatchEvent(new CustomEvent('open-search')), 300);
+              }}
               style={{
                 fontSize: '13px',
-                color: 'var(--text-tertiary, #B0B8C1)',
+                color: '#3182F6',
                 marginBottom: '48px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                textDecorationStyle: 'dotted',
+                textUnderlineOffset: '3px',
+                padding: '8px 0',
+                minHeight: 36,
               }}
             >
               또는 검색으로 직접 추가
-            </p>
+            </button>
           </>
         )}
 
