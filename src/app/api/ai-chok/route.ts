@@ -62,8 +62,14 @@ export async function POST(req: NextRequest) {
   const today = getTodayKST();
   const limit = isLoggedIn ? DAILY_LIMIT_USER : DAILY_LIMIT_GUEST;
 
-  const body = await req.json() as { portfolioSymbols?: string[]; forceRefresh?: boolean };
-  const { portfolioSymbols = [], forceRefresh = false } = body;
+  const body = await req.json() as {
+    portfolioSymbols?: string[];
+    forceRefresh?: boolean;
+    macroContext?: string;
+    currentEvent?: string;
+    sectorConcentration?: string;
+  };
+  const { portfolioSymbols = [], forceRefresh = false, macroContext, currentEvent, sectorConcentration } = body;
 
   // Try cache first (unless force refresh)
   const cached = await getCachedPicks(userKey, today);
@@ -96,9 +102,12 @@ export async function POST(req: NextRequest) {
   const excludeSymbols = portfolioSymbols.length ? portfolioSymbols.join(', ') : '없음';
 
   const prompt = CHOK_SYSTEM_PROMPT
+    .replace('{MACRO_CONTEXT}', macroContext || '데이터 없음')
+    .replace('{CURRENT_EVENT}', currentEvent || '없음')
+    .replace('{SECTOR_CONCENTRATION}', sectorConcentration || '데이터 없음')
     .replace('{ALLOWED_SYMBOLS}', allowedSymbols)
     .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
-    + `\n\n## 사용자 포트폴리오\n현재 보유/관심 종목: ${excludeSymbols}\n\n위 종목과 겹치지 않게, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
+    + `\n\n위 기준과 시장 컨텍스트를 종합하여, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
