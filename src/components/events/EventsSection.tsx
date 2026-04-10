@@ -24,6 +24,17 @@ function EventTimeline({ event }: { event: PresetEvent }) {
   const pct     = Math.min(Math.round((elapsed / total) * 100), 100);
   const ongoing = !event.endDate;
 
+  // 구간 마커: 90일 초과 → 3개월 단위, 365일 초과 → 6개월 단위
+  const stepDays = total > 365 ? 182 : total > 90 ? 91 : 0;
+  const markers: { pct: number; label: string }[] = [];
+  if (stepDays > 0) {
+    for (let d = stepDays; d < total - stepDays * 0.3; d += stepDays) {
+      const markerPct = Math.round((d / total) * 100);
+      const months    = Math.round(d / 30.5);
+      markers.push({ pct: markerPct, label: `+${months}개월` });
+    }
+  }
+
   return (
     <div style={{ marginTop: 14 }}>
       {ongoing && (
@@ -31,6 +42,8 @@ function EventTimeline({ event }: { event: PresetEvent }) {
           진행중 {elapsed}일째
         </div>
       )}
+
+      {/* Track */}
       <div style={{ position: 'relative', height: 4, borderRadius: 2, background: 'var(--border-light, #F2F4F6)' }}>
         <div style={{
           position: 'absolute', left: 0, top: 0, height: '100%',
@@ -38,6 +51,19 @@ function EventTimeline({ event }: { event: PresetEvent }) {
           background: ongoing ? 'linear-gradient(90deg, #3182F6, #EF4452)' : '#B0B8C1',
           borderRadius: 2, transition: 'width 0.5s ease',
         }} />
+
+        {/* Interval tick marks */}
+        {markers.map((m, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: `${m.pct}%`, top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 2, height: 8,
+            background: m.pct <= pct ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary, #B0B8C1)',
+            borderRadius: 1,
+          }} />
+        ))}
+
+        {/* Current position dot */}
         <div style={{
           position: 'absolute', left: `${pct}%`, top: '50%',
           transform: 'translate(-50%, -50%)',
@@ -47,9 +73,24 @@ function EventTimeline({ event }: { event: PresetEvent }) {
           boxShadow: ongoing ? '0 0 0 3px rgba(239,68,82,0.2)' : 'none',
         }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 6 }}>
-        <span>{fmtDate(event.startDate)}</span>
-        <span>{event.endDate ? fmtDate(event.endDate) : '현재'}</span>
+
+      {/* Labels row */}
+      <div style={{ position: 'relative', height: 18, marginTop: 4 }}>
+        <span style={{ position: 'absolute', left: 0, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
+          {fmtDate(event.startDate)}
+        </span>
+        {markers.map((m, i) => (
+          <span key={i} style={{
+            position: 'absolute', left: `${m.pct}%`,
+            transform: 'translateX(-50%)',
+            fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap',
+          }}>
+            {m.label}
+          </span>
+        ))}
+        <span style={{ position: 'absolute', right: 0, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
+          {event.endDate ? fmtDate(event.endDate) : '현재'}
+        </span>
       </div>
     </div>
   );

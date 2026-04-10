@@ -326,7 +326,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
-        eventCache: state.eventCache,
+        // eventCache는 의도적으로 제외 — basePrices 변경 시 자동 재계산
       }),
     }
   )

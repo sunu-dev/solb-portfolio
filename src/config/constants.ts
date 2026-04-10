@@ -229,7 +229,8 @@ export const PRESET_EVENTS: PresetEvent[] = [
     endDate: null,
     description: '러시아 우크라이나 침공. 에너지/곡물 급등.',
     insight: 'S&P 500은 약 -13% 하락 후 6개월 내 회복을 시작했습니다. 반도체 섹터는 공급망 우려로 변동이 컸지만 장기 상승 추세를 유지했어요.',
-    basePrices: { MU: 89.16, MSFT: 287.93, AVGO: 571.64, AMZN: 3052.03 },
+    // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
+    basePrices: { MU: 89.16, MSFT: 287.93, AVGO: 57.16, AMZN: 152.60 },
     baseMacro: { 'S&P 500': 4348.87, NASDAQ: 13716.72, 'USD/KRW': 1199.50, 'WTI Oil': 92.10, VIX: 28.71 },
     precomputed: {
       MU: { maxDrop: -39.2, recovered: true, recoveryDays: 210 },
@@ -247,7 +248,8 @@ export const PRESET_EVENTS: PresetEvent[] = [
     endDate: '2020-06-08',
     description: 'S&P 500 -34% 급락 후 5개월 만에 회복.',
     insight: '코로나 최저점(3/23)에서 매수한 투자자는 1년 내 +70% 이상 수익을 달성했습니다. 패닉 속 분할 매수 전략이 효과적이었어요.',
-    basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 308.96, AMZN: 2170.22 },
+    // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
+    basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 30.90, AMZN: 108.51 },
     baseMacro: { 'S&P 500': 3373.23, NASDAQ: 9817.18, 'USD/KRW': 1185.50, 'WTI Oil': 53.27, VIX: 14.38 },
     precomputed: {
       MU: { maxDrop: -34.1, recovered: true, recoveryDays: 95 },
