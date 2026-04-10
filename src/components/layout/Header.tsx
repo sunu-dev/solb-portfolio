@@ -49,34 +49,49 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo — [L1] '솔' 타이포 아이콘 + '비서' 텍스트 조합 */}
-        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
+        {/* Logo — [L1] 일체감을 높인 '솔' 아이콘 + '비서' 워드마크 */}
+        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
           <div style={{
             position: 'relative',
-            width: '32px',
-            height: '32px',
-            background: 'linear-gradient(135deg, #1B6B3A 0%, #2D5A27 100%)',
-            borderRadius: '8px',
+            width: '34px',
+            height: '34px',
+            background: 'linear-gradient(135deg, #1B6B3A 0%, #224D2F 100%)',
+            borderRadius: '7px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(27, 107, 58, 0.2)',
-            padding: '2px'
+            boxShadow: '0 2px 10px rgba(27, 107, 58, 0.2)',
+            padding: '3px'
           }}>
-            {/* '솔' Typography - Baemin Style filling the frame */}
+            {/* '솔' Typography - More integrated, chunky block style */}
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', fill: 'white' }}>
-              {/* ㅅ (시옷) */}
-              <path d="M20 32 L50 15 L80 32 L70 32 L50 21 L30 32 Z" />
-              {/* ㅗ (오) */}
-              <path d="M45 35 L55 35 L55 45 L45 45 Z" />
-              <path d="M15 45 L85 45 L85 55 L15 55 Z" />
-              {/* ㄹ (리을) - Classic retro curve style */}
-              <path d="M20 60 L80 60 L80 68 L30 68 L30 73 L80 73 L80 81 L20 81 L20 73 L70 73 L70 68 L20 68 Z" />
+              {/* ㅅ (시옷) - 거대한 지붕처럼 아래를 감싸는 구조 */}
+              <path d="M10 35 L50 12 L90 35 L90 48 L50 25 L10 48 Z" />
+              {/* ㅗ (오) - ㅅ과 거의 맞닿을 듯한 굵은 기둥 */}
+              <path d="M43 42 L57 42 L57 58 L43 58 Z" />
+              <path d="M15 54 L85 54 L85 64 L15 64 Z" />
+              {/* ㄹ (리을) - 하단을 꽉 채우는 묵직한 베이스 */}
+              <path d="M15 68 L85 68 L85 75 L30 75 L30 80 L85 80 L85 90 L15 90 L15 80 L70 80 L70 75 L15 75 Z" />
             </svg>
           </div>
-          <span style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary, #191F28)' }}>
-            비서
-          </span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+            <span style={{ 
+              fontSize: '20px', 
+              fontWeight: 900, 
+              letterSpacing: '-0.06em', 
+              color: 'var(--text-primary, #191F28)',
+              fontFamily: 'Pretendard, sans-serif'
+            }}>
+              비서
+            </span>
+            <span style={{
+              width: '4px',
+              height: '4px',
+              borderRadius: '50%',
+              background: '#1B6B3A',
+              marginLeft: '2px'
+            }} />
+          </div>
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
