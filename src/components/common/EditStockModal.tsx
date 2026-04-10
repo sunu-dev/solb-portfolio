@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
+import type { MacroEntry } from '@/config/constants';
 
 export default function EditStockModal() {
   const {
     stocks, editingCat, editingIdx,
     setEditingCat, setEditingIdx, updateStock, moveStock,
+    macroData,
   } = usePortfolioStore();
 
   const [avgCost, setAvgCost] = useState('');
@@ -18,9 +20,14 @@ export default function EditStockModal() {
   const [buyZones, setBuyZones] = useState('');
   const [weight, setWeight] = useState('');
   const [buyBelow, setBuyBelow] = useState('');
+  const [purchaseRate, setPurchaseRate] = useState('');
   const [addBuyPrice, setAddBuyPrice] = useState('');
   const [addBuyShares, setAddBuyShares] = useState('');
+  const [addBuyRate, setAddBuyRate] = useState('');
   const [mode, setMode] = useState<'basic' | 'detail'>('basic');
+
+  // 현재 USD/KRW 환율 (macroData에서)
+  const currentUsdKrw = Math.round((macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400);
 
   const isOpen = editingCat !== '' && editingIdx >= 0;
   const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
@@ -48,41 +55,54 @@ export default function EditStockModal() {
     setBuyZones(stock.buyZones ? stock.buyZones.join(',') : '');
     setWeight(stock.weight ? String(stock.weight) : '');
     setBuyBelow(stock.buyBelow ? String(stock.buyBelow) : '');
+    // purchaseRate: 저장된 값 우선, 없으면 현재 환율로 초기화 (신규 입력 편의)
+    setPurchaseRate(stock.purchaseRate ? String(stock.purchaseRate) : String(currentUsdKrw));
     setAddBuyPrice('');
     setAddBuyShares('');
-  }, [stock]);
+    setAddBuyRate(String(currentUsdKrw));
+  }, [stock, currentUsdKrw]);
 
   const close = () => {
     setEditingCat('');
     setEditingIdx(-1);
   };
 
-  // Compute new avg cost preview
+  // Compute new avg cost + weighted purchaseRate preview
   const oldCostNum = parseFloat(avgCost) || 0;
   const oldSharesNum = parseInt(shares) || 0;
   const addPriceNum = parseFloat(addBuyPrice) || 0;
   const addSharesNum = parseInt(addBuyShares) || 0;
+  const addRateNum = parseFloat(addBuyRate) || currentUsdKrw;
   const newTotalShares = oldSharesNum + addSharesNum;
   const newAvgCost = newTotalShares > 0
     ? (oldCostNum * oldSharesNum + addPriceNum * addSharesNum) / newTotalShares
     : oldCostNum;
+  const oldRateNum = parseFloat(purchaseRate) || currentUsdKrw;
+  // 가중 평균 환율: (기존수량 × 기존환율 + 추가수량 × 추가환율) / 총수량
+  const newWeightedRate = newTotalShares > 0
+    ? Math.round((oldCostNum * oldSharesNum * oldRateNum + addPriceNum * addSharesNum * addRateNum) /
+        (oldCostNum * oldSharesNum + addPriceNum * addSharesNum || 1))
+    : oldRateNum;
 
   const save = () => {
     if (!editingCat || editingIdx < 0) return;
 
     let finalAvgCost = parseFloat(avgCost) || 0;
     let finalShares = parseInt(shares) || 0;
+    let finalPurchaseRate = parseFloat(purchaseRate) || currentUsdKrw;
 
     // Recalculate if additional buy is provided
     if (addPriceNum > 0 && addSharesNum > 0) {
       finalShares = finalShares + addSharesNum;
       finalAvgCost = (finalAvgCost * (parseInt(shares) || 0) + addPriceNum * addSharesNum) / finalShares;
+      finalPurchaseRate = newWeightedRate;
     }
 
     const data: Record<string, unknown> = {
       avgCost: finalAvgCost,
       shares: finalShares,
       targetReturn: parseFloat(targetReturn) || 0,
+      purchaseRate: finalPurchaseRate,
     };
 
     if (editingCat === 'investing') {
@@ -203,7 +223,7 @@ export default function EditStockModal() {
           </div>
 
           {/* Common fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit}) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 종목을 산 가격</span></label>
               <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
@@ -215,6 +235,34 @@ export default function EditStockModal() {
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
+
+          {/* 매수 환율 — 환차익 추적 */}
+          {!isKR && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>
+                매수 시 환율 (USD/KRW)
+                <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}> — 살 때 달러 환율 (환차익 계산용)</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="number"
+                  value={purchaseRate}
+                  onChange={(e) => setPurchaseRate(e.target.value)}
+                  placeholder={String(currentUsdKrw)}
+                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
+                />
+                {purchaseRate !== String(currentUsdKrw) && (
+                  <button
+                    onClick={() => setPurchaseRate(String(currentUsdKrw))}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                  >현재 환율로</button>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
+                현재 환율: {currentUsdKrw.toLocaleString()}원
+              </div>
+            </div>
+          )}
 
           {mode === 'detail' && (<>
           <div style={{ marginBottom: 16 }}>
@@ -252,7 +300,7 @@ export default function EditStockModal() {
               {/* 추가 매수 */}
               <div style={{ paddingTop: 16, borderTop: '1px solid #F2F4F6' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary, #191F28)' }}>추가 매수 기록</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
                   <div>
                     <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>매수가 ({unit})</label>
                     <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
@@ -264,9 +312,17 @@ export default function EditStockModal() {
                       style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
+                {!isKR && (
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>추가 매수 시 환율 (USD/KRW)</label>
+                    <input type="number" value={addBuyRate} onChange={e => setAddBuyRate(e.target.value)} placeholder={String(currentUsdKrw)}
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                )}
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
-                  <div style={{ fontSize: 12, color: '#3182F6', marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: '#3182F6', marginTop: 4 }}>
                     → 새 평균단가: {unit}{newAvgCost.toFixed(isKR ? 0 : 2)} / 총 {newTotalShares}주
+                    {!isKR && ` / 평균환율 ${newWeightedRate.toLocaleString()}원`}
                   </div>
                 )}
               </div>

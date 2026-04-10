@@ -525,18 +525,34 @@ export default function PortfolioSection() {
                 .filter(a => a.symbol === stock.symbol && !dismissedAlerts.includes(a.id))
                 .sort((a, b) => a.severity - b.severity)[0] || null;
 
-              // P&L calculation
+              // P&L calculation (환차익 포함)
               let plWon = 0;
               let plUsd = 0;
               let plPct = 0;
+              let stockPnLWon = 0;
+              let fxPnLWon = 0;
+              let hasFxData = false;
               let hasPosition = false;
               if (stock.avgCost > 0 && stock.shares > 0 && price > 0) {
                 hasPosition = true;
                 const costUsd = stock.avgCost * stock.shares;
                 const valUsd = price * stock.shares;
                 plUsd = valUsd - costUsd;
-                plWon = plUsd * usdKrw;
-                plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
+                const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
+                if (!isKR && stock.purchaseRate && stock.purchaseRate > 0) {
+                  // 실제 원화 P&L = 현재평가 - 원화매수비용
+                  const purchaseCostKrw = stock.avgCost * stock.shares * stock.purchaseRate;
+                  const currentValueKrw = price * stock.shares * usdKrw;
+                  plWon = currentValueKrw - purchaseCostKrw;
+                  plPct = (plWon / purchaseCostKrw) * 100;
+                  // 분리: 주식 수익 vs 환율 수익
+                  stockPnLWon = plUsd * usdKrw;
+                  fxPnLWon = stock.avgCost * stock.shares * (usdKrw - stock.purchaseRate);
+                  hasFxData = true;
+                } else {
+                  plWon = plUsd * usdKrw;
+                  plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
+                }
               }
               const plGain = plPct >= 0;
 
@@ -668,7 +684,6 @@ export default function PortfolioSection() {
                             color: plGain ? '#EF4452' : '#3182F6',
                           }}
                         >
-                          {/* Korean stocks always show Won; others follow toggle */}
                           {stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ') || currency === 'KRW'
                             ? `${plGain ? '+' : '-'}${fmtWonShort(Math.abs(plWon))}`
                             : `${plGain ? '+' : '-'}$${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -685,6 +700,15 @@ export default function PortfolioSection() {
                         >
                           ({plGain ? '+' : ''}{plPct.toFixed(2)}%)
                         </div>
+                        {/* 환차익 분리 표시 */}
+                        {hasFxData && currency === 'KRW' && (
+                          <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.5 }}>
+                            <div>주식 {stockPnLWon >= 0 ? '+' : ''}{fmtWonShort(stockPnLWon)}</div>
+                            <div style={{ color: fxPnLWon >= 0 ? 'rgba(239,68,82,0.6)' : 'rgba(49,130,246,0.6)' }}>
+                              환율 {fxPnLWon >= 0 ? '+' : ''}{fmtWonShort(fxPnLWon)}
+                            </div>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
