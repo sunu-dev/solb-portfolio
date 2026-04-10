@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
+import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
 
 // ─── clients ────────────────────────────────────────────────────────────────
@@ -135,10 +136,23 @@ async function markSent(userId: string, alerts: TriggeredAlert[]) {
 }
 
 // ─── main handler ────────────────────────────────────────────────────────────
-export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+export async function POST(req: NextRequest) {
+  // QStash 서명 검증
+  if (process.env.QSTASH_CURRENT_SIGNING_KEY) {
+    const receiver = new Receiver({
+      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
+    });
+    const body = await req.text();
+    const signature = req.headers.get('upstash-signature') ?? '';
+    const isValid = await receiver.verify({ signature, body }).catch(() => false);
+    if (!isValid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  } else {
+    // fallback: CRON_SECRET Bearer 인증 (Vercel Pro Cron 또는 수동 테스트용)
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
   }
 
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.SUPABASE_SERVICE_KEY) {

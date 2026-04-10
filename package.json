@@ -13,6 +13,7 @@
     "@google/genai": "^1.46.0",
     "@supabase/supabase-js": "^2.99.3",
     "@types/web-push": "^3.6.4",
+    "@upstash/qstash": "^2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lightweight-charts": "^5.1.0",
