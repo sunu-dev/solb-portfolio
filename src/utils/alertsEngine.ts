@@ -300,20 +300,58 @@ export function checkAllAlerts(
     }
   }
 
-  // 20. Target return achieved
+  // 20. Target return / profit / stop-loss% achieved
+  const usdKrw = Number((macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400);
   for (const stock of investingStocks) {
     const q = macroData[stock.symbol] as QuoteData | undefined;
     const price = q?.c || 0;
-    if (stock.avgCost > 0 && stock.shares > 0 && price > 0 && stock.targetReturn > 0) {
-      const plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
-      if (plPct >= stock.targetReturn) {
-        const name = kr(stock.symbol);
+    if (stock.avgCost <= 0 || stock.shares <= 0 || price <= 0) continue;
+
+    const plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
+    const plUSD = (price - stock.avgCost) * stock.shares;
+    const name = kr(stock.symbol);
+    const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
+
+    // 20a. Target return %
+    if (stock.targetReturn > 0 && plPct >= stock.targetReturn) {
+      alerts.push(makeAlert(
+        stock.symbol, 'target-return', 'celebrate', 2,
+        `${name} 목표 수익률 달성!`,
+        `현재 수익률 ${plPct.toFixed(1)}%로 목표(${stock.targetReturn}%)를 달성했어요!`
+      ));
+    }
+
+    // 20b. Target profit USD
+    if (!isKR && (stock.targetProfitUSD ?? 0) > 0 && plUSD >= (stock.targetProfitUSD ?? 0)) {
+      alerts.push(makeAlert(
+        stock.symbol, 'target-profit-usd', 'celebrate', 2,
+        `${name} 목표 수익금 달성!`,
+        `현재 수익 $${plUSD.toFixed(0)}로 목표($${stock.targetProfitUSD})를 달성했어요!`
+      ));
+    }
+
+    // 20c. Target profit KRW
+    if ((stock.targetProfitKRW ?? 0) > 0) {
+      const plKRW = isKR ? plUSD : plUSD * usdKrw;
+      if (plKRW >= (stock.targetProfitKRW ?? 0)) {
+        const fmtWon = (w: number) => w >= 100_000_000
+          ? `${(w / 100_000_000).toFixed(1)}억원`
+          : `${Math.round(w / 10_000)}만원`;
         alerts.push(makeAlert(
-          stock.symbol, 'target-return', 'celebrate', 2,
-          `${name} 목표 수익률 달성!`,
-          `현재 수익률 ${plPct.toFixed(1)}%로 목표(${stock.targetReturn}%)를 달성했어요!`
+          stock.symbol, 'target-profit-krw', 'celebrate', 2,
+          `${name} 목표 수익금 달성!`,
+          `현재 수익 ₩${fmtWon(plKRW)}으로 목표(₩${fmtWon(stock.targetProfitKRW ?? 0)})를 달성했어요!`
         ));
       }
+    }
+
+    // 20d. Stop loss %
+    if ((stock.stopLossPct ?? 0) > 0 && plPct <= -(stock.stopLossPct ?? 0)) {
+      alerts.push(makeAlert(
+        stock.symbol, 'stoploss-pct', 'urgent', 1,
+        `${name} 손절률 도달!`,
+        `현재 손실 ${plPct.toFixed(1)}%로 손절 기준(-${stock.stopLossPct}%)에 도달했어요.`
+      ));
     }
   }
 

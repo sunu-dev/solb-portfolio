@@ -15,8 +15,11 @@ export default function EditStockModal() {
   const [avgCost, setAvgCost] = useState('');
   const [shares, setShares] = useState('');
   const [targetReturn, setTargetReturn] = useState('');
+  const [targetProfitUSD, setTargetProfitUSD] = useState('');
+  const [targetProfitKRW, setTargetProfitKRW] = useState('');
   const [targetSell, setTargetSell] = useState('');
   const [stopLoss, setStopLoss] = useState('');
+  const [stopLossPct, setStopLossPct] = useState('');
   const [buyZones, setBuyZones] = useState('');
   const [weight, setWeight] = useState('');
   const [buyBelow, setBuyBelow] = useState('');
@@ -50,8 +53,11 @@ export default function EditStockModal() {
     setAvgCost(stock.avgCost ? String(stock.avgCost) : '');
     setShares(stock.shares ? String(stock.shares) : '');
     setTargetReturn(stock.targetReturn ? String(stock.targetReturn) : '');
+    setTargetProfitUSD(stock.targetProfitUSD ? String(stock.targetProfitUSD) : '');
+    setTargetProfitKRW(stock.targetProfitKRW ? String(stock.targetProfitKRW) : '');
     setTargetSell(stock.targetSell ? String(stock.targetSell) : '');
     setStopLoss(stock.stopLoss ? String(stock.stopLoss) : '');
+    setStopLossPct(stock.stopLossPct ? String(stock.stopLossPct) : '');
     setBuyZones(stock.buyZones ? stock.buyZones.join(',') : '');
     setWeight(stock.weight ? String(stock.weight) : '');
     setBuyBelow(stock.buyBelow ? String(stock.buyBelow) : '');
@@ -102,12 +108,15 @@ export default function EditStockModal() {
       avgCost: finalAvgCost,
       shares: finalShares,
       targetReturn: parseFloat(targetReturn) || 0,
+      targetProfitUSD: parseFloat(targetProfitUSD) || 0,
+      targetProfitKRW: parseFloat(targetProfitKRW) || 0,
       purchaseRate: finalPurchaseRate,
     };
 
     if (editingCat === 'investing') {
       data.targetSell = parseFloat(targetSell) || 0;
       data.stopLoss = parseFloat(stopLoss) || 0;
+      data.stopLossPct = parseFloat(stopLossPct) || 0;
       data.buyZones = buyZones.split(',').map(Number).filter(n => n > 0);
       data.weight = parseInt(weight) || 0;
     } else if (editingCat === 'watching') {
@@ -265,25 +274,85 @@ export default function EditStockModal() {
           )}
 
           {mode === 'detail' && (<>
+
+          {/* ── 목표 수익 알림 ── */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>목표 수익률 (%)</label>
-            <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="0"
-              style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+              📈 목표 수익 알림
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 10 }}>
+              설정한 조건 중 하나라도 달성하면 이메일로 알림을 보내드려요
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                  수익률 달성 <span style={{ fontWeight: 400 }}>(%)</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="10"
+                    style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>%</span>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                  목표가 달성 <span style={{ fontWeight: 400 }}>({unit})</span>
+                </label>
+                <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
+                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+              {!isKR && (
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                    수익금 달성 <span style={{ fontWeight: 400 }}>($)</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input type="number" step="0.01" value={targetProfitUSD} onChange={(e) => setTargetProfitUSD(e.target.value)} placeholder="500"
+                      style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>$</span>
+                  </div>
+                </div>
+              )}
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                  수익금 달성 <span style={{ fontWeight: 400 }}>(₩)</span>
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input type="number" value={targetProfitKRW} onChange={(e) => setTargetProfitKRW(e.target.value)} placeholder="1000000"
+                    style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                  <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>₩</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Category-specific fields */}
           {editingCat === 'investing' && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>목표가 ({unit})</label>
-                  <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+              {/* ── 손절 기준 ── */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+                  🛡️ 손절 기준 알림
                 </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>손절가 ({unit})</label>
-                  <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
-                    style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                      손절가 <span style={{ fontWeight: 400 }}>({unit})</span>
+                    </label>
+                    <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
+                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
+                      손절률 <span style={{ fontWeight: 400 }}>(%)</span>
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#EF4452', fontWeight: 700, pointerEvents: 'none' }}>-</span>
+                      <input type="number" value={stopLossPct} onChange={(e) => setStopLossPct(e.target.value)} placeholder="10"
+                        style={{ width: '100%', padding: '10px 30px 10px 26px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>%</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div style={{ marginBottom: 16 }}>

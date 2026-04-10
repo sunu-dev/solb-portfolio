@@ -14,12 +14,15 @@ export interface StockItem {
   symbol: string;
   avgCost: number;
   shares: number;
-  targetReturn: number;
+  targetReturn: number;         // 목표 수익률 (%)
   // 환차익 추적: 매수 시점 USD/KRW 환율 (가중 평균)
   purchaseRate?: number;
   // Investing-specific
-  targetSell?: number;
-  stopLoss?: number;
+  targetSell?: number;          // 목표 매도가 ($)
+  targetProfitUSD?: number;     // 목표 수익금 ($) — e.g. 500 = $500 이익
+  targetProfitKRW?: number;     // 목표 수익금 (₩) — e.g. 1000000 = 100만원 이익
+  stopLoss?: number;            // 손절가 ($)
+  stopLossPct?: number;         // 손절률 (%) — e.g. 10 = -10% 손실 시 알림
   buyZones?: number[];
   weight?: number;
   // Watching-specific
