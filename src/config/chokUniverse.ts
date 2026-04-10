@@ -1,16 +1,16 @@
 // ==========================================
-// JJIM UNIVERSE — AI 찜 종목 유니버스
+// CHOK UNIVERSE — AI 촉 종목 유니버스
 // ==========================================
-// 이 목록에서만 AI가 찜 종목을 선택합니다.
+// 이 목록에서만 AI가 촉 종목을 선택합니다.
 // Hallucination 방지 + 법적 리스크 관리
 
-export interface JjimStock {
+export interface ChokStock {
   symbol: string;
   krName: string;
   sector: string;
 }
 
-export const JJIM_UNIVERSE: JjimStock[] = [
+export const CHOK_UNIVERSE: ChokStock[] = [
   // Tech / 빅테크
   { symbol: 'AAPL',  krName: '애플',           sector: 'tech' },
   { symbol: 'MSFT',  krName: '마이크로소프트',  sector: 'tech' },
@@ -73,6 +73,6 @@ export const JJIM_UNIVERSE: JjimStock[] = [
 ];
 
 // symbol → krName 빠른 조회
-export const JJIM_KR_MAP: Record<string, string> = Object.fromEntries(
-  JJIM_UNIVERSE.map(s => [s.symbol, s.krName])
+export const CHOK_KR_MAP: Record<string, string> = Object.fromEntries(
+  CHOK_UNIVERSE.map(s => [s.symbol, s.krName])
 );

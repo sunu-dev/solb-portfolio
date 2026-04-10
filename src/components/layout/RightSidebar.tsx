@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import { JJIM_KR_MAP } from '@/config/jjimUniverse';
+import { CHOK_KR_MAP } from '@/config/chokUniverse';
 import type { QuoteData } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Plus, X } from 'lucide-react';
 
-interface JjimPick {
+interface ChokPick {
   symbol: string;
   krName: string;
   reason: string;
@@ -83,23 +83,23 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 export default function RightSidebar() {
   const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, getAllSymbols, addStock } = usePortfolioStore();
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
-  const [jjimPick, setJjimPick] = useState<JjimPick | null>(null);
-  const jjimFetchedRef = useRef(false);
+  const [chokPick, setChokPick] = useState<ChokPick | null>(null);
+  const chokFetchedRef = useRef(false);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
   useEffect(() => {
-    if (jjimFetchedRef.current) return;
-    jjimFetchedRef.current = true;
+    if (chokFetchedRef.current) return;
+    chokFetchedRef.current = true;
     const portfolioSymbols = getAllSymbols();
-    fetch('/api/ai-jjim', {
+    fetch('/api/ai-chok', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ portfolioSymbols }),
     })
       .then(r => r.ok ? r.json() : null)
-      .then((data: { picks?: JjimPick[] } | null) => {
-        if (data?.picks?.[0]) setJjimPick(data.picks[0]);
+      .then((data: { picks?: ChokPick[] } | null) => {
+        if (data?.picks?.[0]) setChokPick(data.picks[0]);
       })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -350,14 +350,14 @@ export default function RightSidebar() {
       </div>
 
       {/* ============================================
-          AI 찜 티저 (사이드바 1개 미리보기)
+          AI 촉 티저 (사이드바 1개 미리보기)
           ============================================ */}
-      {jjimPick && (
+      {chokPick && (
         <div style={{ marginTop: 40 }}>
           <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div className="flex items-center" style={{ gap: 6 }}>
-              <span style={{ fontSize: 14 }}>🔖</span>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>AI 찜</h3>
+              <span style={{ fontSize: 14 }}>🎯</span>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>AI 촉</h3>
             </div>
           </div>
 
@@ -373,25 +373,25 @@ export default function RightSidebar() {
             <div className="flex items-center" style={{ gap: 10, marginBottom: 8 }}>
               <div
                 className="rounded-full shrink-0 flex items-center justify-center"
-                style={{ width: 34, height: 34, background: getAvatarColor(jjimPick.symbol) }}
+                style={{ width: 34, height: 34, background: getAvatarColor(chokPick.symbol) }}
               >
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  {jjimPick.symbol.charAt(0)}
+                  {chokPick.symbol.charAt(0)}
                 </span>
               </div>
               <div className="min-w-0">
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                  {jjimPick.symbol}
+                  {chokPick.symbol}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                  {STOCK_KR[jjimPick.symbol] || JJIM_KR_MAP[jjimPick.symbol] || jjimPick.krName}
+                  {STOCK_KR[chokPick.symbol] || CHOK_KR_MAP[chokPick.symbol] || chokPick.krName}
                 </div>
               </div>
             </div>
 
             {/* Reason */}
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.55, marginBottom: 8 }}>
-              {jjimPick.reason}
+              {chokPick.reason}
             </div>
 
             {/* Key metric */}
@@ -407,13 +407,13 @@ export default function RightSidebar() {
                 marginBottom: 12,
               }}
             >
-              {jjimPick.keyMetric}
+              {chokPick.keyMetric}
             </div>
 
             {/* Actions */}
             <div className="flex gap-2">
               <button
-                onClick={() => setAnalysisSymbol(jjimPick.symbol)}
+                onClick={() => setAnalysisSymbol(chokPick.symbol)}
                 className="cursor-pointer transition-opacity hover:opacity-80"
                 style={{
                   flex: 1,
@@ -430,11 +430,11 @@ export default function RightSidebar() {
               </button>
               <button
                 onClick={() => {
-                  if (!watchingSet.has(jjimPick.symbol)) {
-                    addStock('watching', { symbol: jjimPick.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
+                  if (!watchingSet.has(chokPick.symbol)) {
+                    addStock('watching', { symbol: chokPick.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
                   }
                 }}
-                disabled={watchingSet.has(jjimPick.symbol)}
+                disabled={watchingSet.has(chokPick.symbol)}
                 className="cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-60"
                 style={{
                   flex: 1,
@@ -442,12 +442,12 @@ export default function RightSidebar() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  background: watchingSet.has(jjimPick.symbol) ? 'var(--bg-subtle, #F2F4F6)' : 'rgba(49,130,246,0.08)',
-                  color: watchingSet.has(jjimPick.symbol) ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
+                  background: watchingSet.has(chokPick.symbol) ? 'var(--bg-subtle, #F2F4F6)' : 'rgba(49,130,246,0.08)',
+                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
                   border: 'none',
                 }}
               >
-                {watchingSet.has(jjimPick.symbol) ? '✓ 관심' : '+ 관심'}
+                {watchingSet.has(chokPick.symbol) ? '✓ 관심' : '+ 관심'}
               </button>
             </div>
           </div>

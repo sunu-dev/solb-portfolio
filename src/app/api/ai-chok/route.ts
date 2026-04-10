@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
-import { JJIM_UNIVERSE } from '@/config/jjimUniverse';
-import { JJIM_SYSTEM_PROMPT } from '@/config/analysisPrompt';
+import { CHOK_UNIVERSE } from '@/config/chokUniverse';
+import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -21,7 +21,7 @@ async function getCachedPicks(userKey: string, today: string) {
   if (!supabase) return null;
   try {
     const { data } = await supabase
-      .from('ai_jjim_cache')
+      .from('ai_chok_cache')
       .select('picks, use_count')
       .eq('user_key', userKey)
       .eq('date', today)
@@ -33,7 +33,7 @@ async function getCachedPicks(userKey: string, today: string) {
 async function upsertCache(userKey: string, today: string, picks: unknown, useCount: number) {
   if (!supabase) return;
   try {
-    await supabase.from('ai_jjim_cache').upsert(
+    await supabase.from('ai_chok_cache').upsert(
       { user_key: userKey, date: today, picks, use_count: useCount },
       { onConflict: 'user_key,date' }
     );
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
   const currentCount = cached?.use_count || 0;
   if (currentCount >= limit) {
     const msg = isLoggedIn
-      ? `오늘 AI 찜 횟수를 모두 사용했어요 (${limit}회/일). 내일 다시 이용해주세요.`
+      ? `오늘 AI 촉 횟수를 모두 사용했어요 (${limit}회/일). 내일 다시 이용해주세요.`
       : `비로그인 사용자는 하루 ${limit}회까지 이용할 수 있어요. 로그인하면 ${DAILY_LIMIT_USER}회까지 가능해요!`;
     return NextResponse.json({
       error: msg,
@@ -91,14 +91,14 @@ export async function POST(req: NextRequest) {
 
   // Build allowed list
   const excluded = new Set(portfolioSymbols.map(s => s.toUpperCase()));
-  const allowed = JJIM_UNIVERSE.filter(s => !excluded.has(s.symbol));
+  const allowed = CHOK_UNIVERSE.filter(s => !excluded.has(s.symbol));
   const allowedSymbols = allowed.map(s => `${s.symbol}(${s.krName}/${s.sector})`).join(', ');
   const excludeSymbols = portfolioSymbols.length ? portfolioSymbols.join(', ') : '없음';
 
-  const prompt = JJIM_SYSTEM_PROMPT
+  const prompt = CHOK_SYSTEM_PROMPT
     .replace('{ALLOWED_SYMBOLS}', allowedSymbols)
     .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
-    + `\n\n## 사용자 포트폴리오\n현재 보유/관심 종목: ${excludeSymbols}\n\n위 종목과 겹치지 않게, 서로 다른 섹터 3개를 찜해주세요.`;
+    + `\n\n## 사용자 포트폴리오\n현재 보유/관심 종목: ${excludeSymbols}\n\n위 종목과 겹치지 않게, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
 
     // Validate: only universe symbols, not in portfolio
     const validPicks = (parsed.picks || [])
-      .filter(p => JJIM_UNIVERSE.some(u => u.symbol === p.symbol) && !excluded.has(p.symbol))
+      .filter(p => CHOK_UNIVERSE.some(u => u.symbol === p.symbol) && !excluded.has(p.symbol))
       .slice(0, 3);
 
     const result = { picks: validPicks, context: parsed.context || '' };
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       const p = JSON.parse(errorMessage) as { error?: { message?: unknown } };
       parsedMsg = p?.error?.message;
     } catch { /* not JSON */ }
-    console.error('[SOLB JJIM] error:', parsedMsg || errorMessage);
-    return NextResponse.json({ error: 'AI 찜 서비스에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
+    console.error('[SOLB CHOK] error:', parsedMsg || errorMessage);
+    return NextResponse.json({ error: 'AI 촉 서비스에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   }
 }

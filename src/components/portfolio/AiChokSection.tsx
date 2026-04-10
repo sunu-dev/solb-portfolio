@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { getAvatarColor, STOCK_KR } from '@/config/constants';
-import { JJIM_KR_MAP } from '@/config/jjimUniverse';
+import { CHOK_KR_MAP } from '@/config/chokUniverse';
 
-interface JjimPick {
+interface ChokPick {
   symbol: string;
   krName: string;
   sector: string;
@@ -14,8 +14,8 @@ interface JjimPick {
   keyMetric: string;
 }
 
-interface JjimState {
-  picks: JjimPick[];
+interface ChokState {
+  picks: ChokPick[];
   context: string;
   cached: boolean;
   remaining: number;
@@ -54,16 +54,16 @@ function SkeletonCard() {
 }
 
 // ==========================================
-// Jjim card
+// Chok card
 // ==========================================
-function JjimCard({ pick, onAnalyze, onAddWatch, inWatching }: {
-  pick: JjimPick;
+function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
+  pick: ChokPick;
   onAnalyze: () => void;
   onAddWatch: () => void;
   inWatching: boolean;
 }) {
   const avatarColor = getAvatarColor(pick.symbol);
-  const krName = STOCK_KR[pick.symbol] || JJIM_KR_MAP[pick.symbol] || pick.krName || pick.symbol;
+  const krName = STOCK_KR[pick.symbol] || CHOK_KR_MAP[pick.symbol] || pick.krName || pick.symbol;
 
   return (
     <div
@@ -164,9 +164,9 @@ function JjimCard({ pick, onAnalyze, onAddWatch, inWatching }: {
 // ==========================================
 // Main section
 // ==========================================
-export default function AiJjimSection() {
+export default function AiChokSection() {
   const { getAllSymbols, setAnalysisSymbol, addStock, stocks } = usePortfolioStore();
-  const [state, setState] = useState<JjimState | null>(null);
+  const [state, setState] = useState<ChokState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -174,22 +174,22 @@ export default function AiJjimSection() {
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
-  const fetchJjim = async (force = false) => {
+  const fetchChok = async (force = false) => {
     if (force) setRefreshing(true);
     else setLoading(true);
     setError(null);
 
     try {
       const portfolioSymbols = getAllSymbols();
-      const res = await fetch('/api/ai-jjim', {
+      const res = await fetch('/api/ai-chok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ portfolioSymbols, forceRefresh: force }),
       });
-      const data = await res.json() as JjimState & { error?: string; limitReached?: boolean };
+      const data = await res.json() as ChokState & { error?: string; limitReached?: boolean };
 
       if (!res.ok) {
-        setError(data.error || 'AI 찜 서비스에 오류가 발생했어요.');
+        setError(data.error || 'AI 촉 서비스에 오류가 발생했어요.');
         return;
       }
       setState(data);
@@ -204,11 +204,11 @@ export default function AiJjimSection() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    fetchJjim();
+    fetchChok();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddWatch = (pick: JjimPick) => {
+  const handleAddWatch = (pick: ChokPick) => {
     if (watchingSet.has(pick.symbol)) return;
     addStock('watching', {
       symbol: pick.symbol,
@@ -225,9 +225,9 @@ export default function AiJjimSection() {
       <div className="flex items-start justify-between" style={{ marginBottom: 12 }}>
         <div>
           <div className="flex items-center" style={{ gap: 6 }}>
-            <span style={{ fontSize: 16 }}>🔖</span>
+            <span style={{ fontSize: 16 }}>🎯</span>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              AI 찜
+              AI 촉
             </h2>
             {state?.cached && (
               <span
@@ -245,15 +245,15 @@ export default function AiJjimSection() {
             )}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-            AI의 발견이에요 · 투자 판단은 본인이
+            AI의 촉이에요 · 투자 판단은 본인이
           </p>
         </div>
 
         {/* Refresh button */}
-        {state && (state.remaining > 0 || !state.cached) && !loading && (
+        {state && state.remaining > 0 && !loading && (
           <button
-            onClick={() => fetchJjim(true)}
-            disabled={refreshing || state.remaining <= 0}
+            onClick={() => fetchChok(true)}
+            disabled={refreshing}
             className="flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-70 disabled:opacity-40 disabled:cursor-default"
             style={{
               fontSize: 12,
@@ -264,11 +264,8 @@ export default function AiJjimSection() {
               padding: '4px 0',
             }}
           >
-            <RefreshCw
-              size={12}
-              className={refreshing ? 'animate-spin' : ''}
-            />
-            새로 찜 ({state.remaining}회 남음)
+            <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+            새로 촉 받기 ({state.remaining}회 남음)
           </button>
         )}
       </div>
@@ -297,17 +294,9 @@ export default function AiJjimSection() {
             {error}
           </p>
           <button
-            onClick={() => fetchJjim()}
+            onClick={() => fetchChok()}
             className="cursor-pointer"
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#3182F6',
-              background: 'none',
-              border: 'none',
-              padding: 0,
-            }}
+            style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
           >
             다시 시도
           </button>
@@ -323,7 +312,7 @@ export default function AiJjimSection() {
           >
             {state.picks.map(pick => (
               <div key={pick.symbol} style={{ scrollSnapAlign: 'start' }}>
-                <JjimCard
+                <ChokCard
                   pick={pick}
                   onAnalyze={() => setAnalysisSymbol(pick.symbol)}
                   onAddWatch={() => handleAddWatch(pick)}
@@ -349,7 +338,7 @@ export default function AiJjimSection() {
         </>
       )}
 
-      {/* Empty — picks came back empty */}
+      {/* Empty state */}
       {!loading && !error && state && state.picks.length === 0 && (
         <div
           style={{
@@ -359,16 +348,16 @@ export default function AiJjimSection() {
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 6 }}>🔖</div>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>🎯</div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>
-            찜할 종목을 찾지 못했어요.
+            촉이 오는 종목을 찾지 못했어요.
           </p>
           <button
-            onClick={() => fetchJjim(true)}
+            onClick={() => fetchChok(true)}
             className="cursor-pointer"
             style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
           >
-            다시 찜하기
+            다시 촉 받기
           </button>
         </div>
       )}
