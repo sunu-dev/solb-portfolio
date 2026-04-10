@@ -153,14 +153,19 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
   const ongoing = !event.endDate;
   const sv      = getSeverity(entry.maxDrop);
 
-  // Prefer live price for current change; for precomputed-only entries without live price → show maxDrop
-  const cc: number | null = currentPrice && entry.basePrice > 0
-    ? (currentPrice - entry.basePrice) / entry.basePrice * 100
-    : entry.dataSource !== 'precomputed' ? entry.currentChange : null;
+  // 진행중: 실시간 가격 사용 / 종료: fetched 데이터면 종료 시점 변동, precomputed면 null
+  const cc: number | null = ongoing
+    ? (currentPrice && entry.basePrice > 0 ? (currentPrice - entry.basePrice) / entry.basePrice * 100 : null)
+    : (entry.dataSource === 'fetched' ? entry.currentChange : null);
   const ccGain = cc !== null && cc >= 0;
 
-  // Personal P&L from user's avg cost
-  const personalPL = avgCost && currentPrice ? (currentPrice - avgCost) / avgCost * 100 : null;
+  // 종료 이벤트의 종료 시점 가격 (fetched만 신뢰 가능)
+  const endPrice = !ongoing && entry.dataSource === 'fetched' && cc !== null
+    ? entry.basePrice * (1 + cc / 100)
+    : null;
+
+  // 개인 P&L: 진행중 이벤트에서만 의미있음
+  const personalPL = ongoing && avgCost && currentPrice ? (currentPrice - avgCost) / avgCost * 100 : null;
 
   // Impact bar
   const drop    = Math.abs(entry.maxDrop);
@@ -241,18 +246,34 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
 
       {/* 3 micro-stat tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
+        {/* Tile 1: 이벤트 시작가 + 날짜 */}
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
           <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>이벤트 시작가</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', fontVariantNumeric: 'tabular-nums' }}>
             ${entry.basePrice.toFixed(2)}
           </div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
+            {fmtDate(event.startDate)}
+          </div>
         </div>
+
+        {/* Tile 2: 진행중→현재가 / 종료→종료시점가 or 최대하락 */}
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          {cc !== null && currentPrice ? (
+          {ongoing && cc !== null && currentPrice ? (
             <>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>현재가</div>
               <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: ccGain ? '#EF4452' : '#3182F6' }}>
                 ${currentPrice.toFixed(2)}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: ccGain ? '#EF4452' : '#3182F6', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
+              </div>
+            </>
+          ) : !ongoing && endPrice !== null && cc !== null ? (
+            <>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>종료 시점가</div>
+              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: ccGain ? '#EF4452' : '#3182F6' }}>
+                ${endPrice.toFixed(2)}
               </div>
               <div style={{ fontSize: 10, fontWeight: 600, color: ccGain ? '#EF4452' : '#3182F6', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
                 {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
@@ -267,6 +288,7 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
             </>
           )}
         </div>
+
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
           <RecoveryCellContent />
         </div>
