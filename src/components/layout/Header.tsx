@@ -49,49 +49,41 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo — [L1] 일체감을 높인 '솔' 아이콘 + '비서' 워드마크 */}
+        {/* Logo — [L1] '솔' 담배 레트로 타이포 + 배민식 꽉 찬 아이콘 */}
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
           <div style={{
             position: 'relative',
-            width: '34px',
-            height: '34px',
-            background: 'linear-gradient(135deg, #1B6B3A 0%, #224D2F 100%)',
-            borderRadius: '7px',
+            width: '36px',
+            height: '36px',
+            background: 'linear-gradient(135deg, #1B6B3A 0%, #0F3D21 100%)',
+            borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 10px rgba(27, 107, 58, 0.2)',
-            padding: '3px'
+            padding: '1px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
           }}>
-            {/* '솔' Typography - More integrated, chunky block style */}
+            {/* '솔' Typography - Extra Thick & Saturated Style */}
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', fill: 'white' }}>
-              {/* ㅅ (시옷) - 거대한 지붕처럼 아래를 감싸는 구조 */}
-              <path d="M10 35 L50 12 L90 35 L90 48 L50 25 L10 48 Z" />
-              {/* ㅗ (오) - ㅅ과 거의 맞닿을 듯한 굵은 기둥 */}
-              <path d="M43 42 L57 42 L57 58 L43 58 Z" />
-              <path d="M15 54 L85 54 L85 64 L15 64 Z" />
-              {/* ㄹ (리을) - 하단을 꽉 채우는 묵직한 베이스 */}
-              <path d="M15 68 L85 68 L85 75 L30 75 L30 80 L85 80 L85 90 L15 90 L15 80 L70 80 L70 75 L15 75 Z" />
+              {/* ㅅ (시옷) - 프레임 상단을 터질 듯이 채우는 묵직한 획 */}
+              <path d="M5 45 L50 5 L95 45 L80 45 L50 18 L20 45 Z" />
+              {/* ㅗ (오) - ㅅ과 ㄹ을 잇는 단단한 연결 기둥 */}
+              <rect x="42" y="35" width="16" height="18" />
+              <rect x="5" y="48" width="90" height="15" />
+              {/* ㄹ (리을) - 솔 담배 특유의 지그재그를 꽉 채운 형태 */}
+              <path d="M5 68 H95 V78 H22 V82 H95 V95 H5 V85 H78 V80 H5 Z" />
             </svg>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
-            <span style={{ 
-              fontSize: '20px', 
-              fontWeight: 900, 
-              letterSpacing: '-0.06em', 
-              color: 'var(--text-primary, #191F28)',
-              fontFamily: 'Pretendard, sans-serif'
-            }}>
-              비서
-            </span>
-            <span style={{
-              width: '4px',
-              height: '4px',
-              borderRadius: '50%',
-              background: '#1B6B3A',
-              marginLeft: '2px'
-            }} />
-          </div>
+          <span style={{ 
+            fontSize: '22px', 
+            fontWeight: 900, 
+            letterSpacing: '-0.08em', 
+            color: 'var(--text-primary, #191F28)',
+            fontFamily: 'Pretendard, sans-serif',
+            lineHeight: 1
+          }}>
+            비서
+          </span>
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
