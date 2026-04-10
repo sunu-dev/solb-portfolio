@@ -423,7 +423,11 @@ export function useNewsData() {
     let locale: string | undefined;
     let maxHours: number | undefined;
     if (market === 'my') {
-      q = getAllSymbols().map(s => STOCK_KR[s] || s).join(' ') + ' 주가';
+      // 한글명 있는 종목만, 최대 4개 → 쿼리 너무 길면 Google News 결과 없음
+      const krNames = getAllSymbols().map(s => STOCK_KR[s]).filter(Boolean).slice(0, 4);
+      q = krNames.length > 0
+        ? krNames.join(' ') + ' 주가 when:2d'
+        : '미국 증시 나스닥 주가 when:2d';
       maxHours = 24;
     } else {
       const entry = NEWS_QUERIES[market];
