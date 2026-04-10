@@ -121,6 +121,11 @@ export default function BuySimulator({
       {/* 결과 */}
       {newShares > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-light, #F2F4F6)' }} />
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>매수하면?</span>
+            <div style={{ flex: 1, height: 1, background: 'var(--border-light, #F2F4F6)' }} />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <ResultCard label="매수 가능" value={`${newShares}주`} sub={`현재가 $${currentPrice.toFixed(2)}`} />
             <ResultCard

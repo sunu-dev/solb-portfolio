@@ -229,18 +229,30 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
       {/* 3 micro-stat tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>기준가</div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>이벤트 시작가</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', fontVariantNumeric: 'tabular-nums' }}>
             ${entry.basePrice.toFixed(2)}
           </div>
         </div>
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>
-            {cc !== null ? '현재 변동' : '최대 하락'}
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: cc !== null ? (ccGain ? '#EF4452' : '#3182F6') : '#3182F6' }}>
-            {cc !== null ? `${cc >= 0 ? '+' : ''}${cc.toFixed(1)}%` : `${entry.maxDrop.toFixed(1)}%`}
-          </div>
+          {cc !== null && currentPrice ? (
+            <>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>현재가</div>
+              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: ccGain ? '#EF4452' : '#3182F6' }}>
+                ${currentPrice.toFixed(2)}
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: ccGain ? '#EF4452' : '#3182F6', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>최대 하락</div>
+              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#3182F6' }}>
+                {entry.maxDrop.toFixed(1)}%
+              </div>
+            </>
+          )}
         </div>
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
           <RecoveryCellContent />
