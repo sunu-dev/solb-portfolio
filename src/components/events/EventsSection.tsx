@@ -502,6 +502,20 @@ export default function EventsSection() {
             <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6 }}>
               {currentEvent.description}
             </div>
+            {currentEvent.keyFacts && currentEvent.keyFacts.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                {currentEvent.keyFacts.map((fact, i) => (
+                  <span key={i} style={{
+                    fontSize: 11, fontWeight: 600,
+                    padding: '3px 9px', borderRadius: 20,
+                    background: 'var(--bg-subtle, #F2F4F6)',
+                    color: 'var(--text-secondary, #4E5968)',
+                  }}>
+                    {fact}
+                  </span>
+                ))}
+              </div>
+            )}
             <EventTimeline event={currentEvent} />
           </div>
 
