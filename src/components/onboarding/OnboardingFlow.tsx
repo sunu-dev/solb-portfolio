@@ -66,7 +66,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
       <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
         {step === 0 && (
           <>
-            <img src="/logo-solb.svg" alt="솔비서" style={{ width: 64, height: 64, margin: '0 auto 20px' }} />
+            <div style={{ fontSize: '48px', fontWeight: 900, letterSpacing: '-0.04em', margin: '0 auto 20px', lineHeight: 1 }}>
+              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>솔</span><span style={{ color: 'var(--text-primary, #191F28)' }}>비서</span>
+            </div>
             <h1
               style={{
                 fontSize: '24px',
@@ -76,7 +78,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 lineHeight: 1.4,
               }}
             >
-              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>솔비서</span>에 오신 걸 환영해요
+              에 오신 걸 환영해요
             </h1>
             <p
               style={{

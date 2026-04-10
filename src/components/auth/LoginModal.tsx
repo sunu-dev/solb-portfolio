@@ -57,21 +57,8 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
       >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <img src="/logo-solb.svg" alt="" style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} />
-          </div>
-          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.03em' }}>
-            <span style={{ background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>솔비서</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1 }}>
+            <span style={{ background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>솔</span><span style={{ color: '#191F28' }}>비서</span>
           </span>
         </div>
 
