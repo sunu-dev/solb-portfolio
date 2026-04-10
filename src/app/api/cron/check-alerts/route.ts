@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+import webpush from 'web-push';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
 
 // ─── clients ────────────────────────────────────────────────────────────────
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!, // service role — auth.users 접근용
+  process.env.SUPABASE_SERVICE_KEY!,
 );
-const resend = new Resend(process.env.RESEND_API_KEY!);
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SOLB <onboarding@resend.dev>';
+
+webpush.setVapidDetails(
+  process.env.VAPID_EMAIL || 'mailto:admin@solb.kr',
+  process.env.VAPID_PUBLIC_KEY || '',
+  process.env.VAPID_PRIVATE_KEY || '',
+);
 
 // ─── types ──────────────────────────────────────────────────────────────────
 interface TriggeredAlert {
   symbol: string;
-  krName: string;
   alertType: string;
   message: string;
   detail: string;
@@ -30,11 +33,8 @@ function fmtWon(w: number): string {
 
 async function fetchPrice(symbol: string): Promise<number | null> {
   try {
-    const yahooSymbol = symbol.endsWith('.KS') || symbol.endsWith('.KQ')
-      ? symbol
-      : symbol;
     const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?interval=1d&range=1d`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
       { signal: AbortSignal.timeout(5000) }
     );
     if (!res.ok) return null;
@@ -68,101 +68,50 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
   const plUSD = (price - stock.avgCost) * (stock.shares || 1);
   const plKRW = isKR ? plUSD : plUSD * usdKrw;
   const sym = stock.symbol;
+  const cur = isKR ? '₩' : '$';
 
-  // 목표 수익률 %
-  if (stock.targetReturn > 0 && plPct >= stock.targetReturn) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'target-return',
-      emoji: '🎉', message: `목표 수익률 달성!`,
+  if (stock.targetReturn > 0 && plPct >= stock.targetReturn)
+    alerts.push({ symbol: sym, alertType: 'target-return', emoji: '🎉',
+      message: `${sym} 목표 수익률 달성!`,
       detail: `수익률 ${plPct.toFixed(1)}% ≥ 목표 ${stock.targetReturn}%` });
-  }
 
-  // 목표 수익금 $
-  if (!isKR && (stock.targetProfitUSD ?? 0) > 0 && plUSD >= (stock.targetProfitUSD ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'target-profit-usd',
-      emoji: '💵', message: `목표 수익금($) 달성!`,
-      detail: `수익 $${plUSD.toFixed(0)} ≥ 목표 $${stock.targetProfitUSD}` });
-  }
+  if (!isKR && (stock.targetProfitUSD ?? 0) > 0 && plUSD >= (stock.targetProfitUSD ?? 0))
+    alerts.push({ symbol: sym, alertType: 'target-profit-usd', emoji: '💵',
+      message: `${sym} 수익금 $${(stock.targetProfitUSD ?? 0).toLocaleString()} 달성!`,
+      detail: `현재 수익 $${plUSD.toFixed(0)}` });
 
-  // 목표 수익금 ₩
-  if ((stock.targetProfitKRW ?? 0) > 0 && plKRW >= (stock.targetProfitKRW ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'target-profit-krw',
-      emoji: '💰', message: `목표 수익금(₩) 달성!`,
-      detail: `수익 ₩${fmtWon(plKRW)} ≥ 목표 ₩${fmtWon(stock.targetProfitKRW ?? 0)}` });
-  }
+  if ((stock.targetProfitKRW ?? 0) > 0 && plKRW >= (stock.targetProfitKRW ?? 0))
+    alerts.push({ symbol: sym, alertType: 'target-profit-krw', emoji: '💰',
+      message: `${sym} 수익금 ₩${fmtWon(stock.targetProfitKRW ?? 0)} 달성!`,
+      detail: `현재 수익 ₩${fmtWon(plKRW)}` });
 
-  // 목표 매도가
-  if ((stock.targetSell ?? 0) > 0 && price >= (stock.targetSell ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'target-sell',
-      emoji: '🎯', message: `목표가 도달!`,
-      detail: `현재가 ${isKR ? '₩' : '$'}${price.toLocaleString()} ≥ 목표 ${isKR ? '₩' : '$'}${stock.targetSell}` });
-  }
+  if ((stock.targetSell ?? 0) > 0 && price >= (stock.targetSell ?? 0))
+    alerts.push({ symbol: sym, alertType: 'target-sell', emoji: '🎯',
+      message: `${sym} 목표가 도달!`,
+      detail: `현재가 ${cur}${price.toLocaleString()} ≥ 목표 ${cur}${stock.targetSell}` });
 
-  // 손절가
-  if ((stock.stopLoss ?? 0) > 0 && price <= (stock.stopLoss ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'stoploss-price',
-      emoji: '🚨', message: `손절가 도달!`,
-      detail: `현재가 ${isKR ? '₩' : '$'}${price.toLocaleString()} ≤ 손절가 ${isKR ? '₩' : '$'}${stock.stopLoss}` });
-  }
+  if ((stock.stopLoss ?? 0) > 0 && price <= (stock.stopLoss ?? 0))
+    alerts.push({ symbol: sym, alertType: 'stoploss-price', emoji: '🚨',
+      message: `${sym} 손절가 도달!`,
+      detail: `현재가 ${cur}${price.toLocaleString()} ≤ 손절가 ${cur}${stock.stopLoss}` });
 
-  // 손절률 %
-  if ((stock.stopLossPct ?? 0) > 0 && plPct <= -(stock.stopLossPct ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'stoploss-pct',
-      emoji: '🚨', message: `손절률 도달!`,
+  if ((stock.stopLossPct ?? 0) > 0 && plPct <= -(stock.stopLossPct ?? 0))
+    alerts.push({ symbol: sym, alertType: 'stoploss-pct', emoji: '🚨',
+      message: `${sym} 손절률 도달!`,
       detail: `손실 ${plPct.toFixed(1)}% ≤ 기준 -${stock.stopLossPct}%` });
-  }
 
-  // 관심종목 매수 목표가
-  if ((stock.buyBelow ?? 0) > 0 && price <= (stock.buyBelow ?? 0)) {
-    alerts.push({ symbol: sym, krName: sym, alertType: 'buy-zone',
-      emoji: '🛒', message: `관심 매수가 도달!`,
-      detail: `현재가 ${isKR ? '₩' : '$'}${price.toLocaleString()} ≤ 목표 ${isKR ? '₩' : '$'}${stock.buyBelow}` });
-  }
+  if ((stock.buyBelow ?? 0) > 0 && price <= (stock.buyBelow ?? 0))
+    alerts.push({ symbol: sym, alertType: 'buy-zone', emoji: '🛒',
+      message: `${sym} 관심 매수가 도달!`,
+      detail: `현재가 ${cur}${price.toLocaleString()} ≤ 목표 ${cur}${stock.buyBelow}` });
 
   return alerts;
 }
 
-function buildEmailHtml(alerts: TriggeredAlert[], appUrl: string): string {
-  const rows = alerts.map(a => `
-    <tr>
-      <td style="padding:12px 16px; border-bottom:1px solid #F2F4F6;">
-        <span style="font-size:20px;">${a.emoji}</span>
-      </td>
-      <td style="padding:12px 16px; border-bottom:1px solid #F2F4F6;">
-        <div style="font-weight:700;color:#191F28;">${a.symbol}</div>
-        <div style="font-size:13px;color:#4E5968;margin-top:2px;">${a.message}</div>
-        <div style="font-size:12px;color:#8B95A1;margin-top:2px;">${a.detail}</div>
-      </td>
-    </tr>`).join('');
-
-  return `<!DOCTYPE html>
-<html lang="ko">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F9FAFB;font-family:-apple-system,sans-serif;">
-  <div style="max-width:480px;margin:32px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-    <div style="padding:28px 24px 20px;background:linear-gradient(135deg,#191F28 0%,#3182F6 100%);">
-      <div style="font-size:22px;font-weight:800;color:#fff;">SOLB 알림</div>
-      <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-top:4px;">설정한 목표가 ${alerts.length}건 달성됐어요</div>
-    </div>
-    <table style="width:100%;border-collapse:collapse;">${rows}</table>
-    <div style="padding:20px 24px;text-align:center;">
-      <a href="${appUrl}" style="display:inline-block;padding:12px 32px;background:#3182F6;color:#fff;font-weight:700;font-size:14px;border-radius:12px;text-decoration:none;">
-        SOLB에서 확인하기
-      </a>
-    </div>
-    <div style="padding:16px 24px;text-align:center;font-size:11px;color:#B0B8C1;border-top:1px solid #F2F4F6;">
-      이 알림은 투자 권유가 아닙니다. 투자 판단은 본인이 하세요.<br>
-      <a href="${appUrl}/settings" style="color:#B0B8C1;">알림 설정 변경</a>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
-// ─── already-sent dedup (Supabase) ──────────────────────────────────────────
+// ─── dedup ───────────────────────────────────────────────────────────────────
 async function filterUnsent(userId: string, alerts: TriggeredAlert[]): Promise<TriggeredAlert[]> {
   const todayKST = new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
   try {
-    const keys = alerts.map(a => `${a.symbol}:${a.alertType}`);
     const { data } = await supabaseAdmin
       .from('sent_alerts')
       .select('symbol, alert_type')
@@ -187,28 +136,34 @@ async function markSent(userId: string, alerts: TriggeredAlert[]) {
 
 // ─── main handler ────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  // Vercel cron secret 검증
   const authHeader = req.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (!process.env.RESEND_API_KEY || !process.env.SUPABASE_SERVICE_KEY) {
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.SUPABASE_SERVICE_KEY) {
     return NextResponse.json({ error: 'Missing env vars' }, { status: 503 });
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
 
-  // 1. 모든 유저 포트폴리오 조회
-  const { data: portfolios, error: dbErr } = await supabaseAdmin
+  // 1. 푸시 구독이 있는 유저의 포트폴리오만 조회
+  const { data: subs } = await supabaseAdmin
+    .from('push_subscriptions')
+    .select('user_id, subscription');
+
+  if (!subs?.length) return NextResponse.json({ checked: 0, sent: 0 });
+
+  const userIds = subs.map(s => s.user_id as string);
+
+  const { data: portfolios } = await supabaseAdmin
     .from('user_portfolios')
-    .select('user_id, stocks');
+    .select('user_id, stocks')
+    .in('user_id', userIds);
 
-  if (dbErr || !portfolios?.length) {
-    return NextResponse.json({ checked: 0, sent: 0 });
-  }
+  if (!portfolios?.length) return NextResponse.json({ checked: 0, sent: 0 });
 
-  // 2. 필요한 심볼 수집 + 가격 fetch
+  // 2. 심볼 수집 + 가격 fetch
   const symbolSet = new Set<string>();
   for (const row of portfolios) {
     const s = row.stocks as PortfolioStocks;
@@ -227,10 +182,14 @@ export async function GET(req: NextRequest) {
   ]);
 
   let totalSent = 0;
+  const subMap = Object.fromEntries(subs.map(s => [s.user_id as string, s.subscription]));
 
-  // 3. 유저별 알림 체크
+  // 3. 유저별 알림 체크 + 푸시 발송
   for (const row of portfolios) {
     const userId: string = row.user_id;
+    const pushSub = subMap[userId];
+    if (!pushSub) continue;
+
     const s = row.stocks as PortfolioStocks;
     const allStocks = [...(s.investing || []), ...(s.watching || [])];
 
@@ -242,27 +201,35 @@ export async function GET(req: NextRequest) {
     }
     if (!triggered.length) continue;
 
-    // 4. 오늘 이미 보낸 알림 제거
     const unsent = await filterUnsent(userId, triggered);
     if (!unsent.length) continue;
 
-    // 5. 유저 이메일 조회 (service role)
-    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const email = authUser?.user?.email;
-    if (!email) continue;
+    // 가장 중요한 알림 1개로 푸시 (나머지는 body에 요약)
+    const first = unsent[0];
+    const payload = JSON.stringify({
+      title: `${first.emoji} ${first.message}`,
+      body: unsent.length > 1
+        ? `${first.detail} 외 ${unsent.length - 1}건`
+        : first.detail,
+      url: appUrl,
+      tag: `solb-${first.alertType}`,
+    });
 
-    // 6. 이메일 발송
     try {
-      await resend.emails.send({
-        from: FROM_EMAIL,
-        to: email,
-        subject: `[SOLB] ${unsent[0].emoji} ${unsent[0].message} — ${unsent[0].symbol}${unsent.length > 1 ? ` 외 ${unsent.length - 1}건` : ''}`,
-        html: buildEmailHtml(unsent, appUrl),
-      });
+      await webpush.sendNotification(
+        pushSub as webpush.PushSubscription,
+        payload,
+      );
       await markSent(userId, unsent);
       totalSent++;
-    } catch (e) {
-      console.error('[cron/check-alerts] email send failed:', e);
+    } catch (e: unknown) {
+      // 구독 만료(410) 시 자동 삭제
+      const status = (e as { statusCode?: number })?.statusCode;
+      if (status === 410 || status === 404) {
+        await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId);
+      } else {
+        console.error('[cron/check-alerts] push failed:', e);
+      }
     }
   }
 

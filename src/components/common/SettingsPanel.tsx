@@ -11,7 +11,8 @@ export default function SettingsPanel() {
     autoRefresh, setAutoRefresh,
     refreshInterval, setRefreshInterval,
   } = usePortfolioStore();
-  const { requestPermission } = useNotification();
+  const { requestPermission, pushEnabled, unsubscribePush } = useNotification();
+  const [pushLoading, setPushLoading] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
@@ -218,35 +219,59 @@ export default function SettingsPanel() {
 
           {/* 알림 설정 */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
-              알림
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+              🔔 푸시 알림
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
-              손절가, 목표가 도달 시 브라우저 알림을 받을 수 있어요.
+              목표가·수익률 도달 시 앱이 꺼져있어도 알림을 받아요.<br />
+              로그인 후 이용 가능 · iOS는 홈화면 추가 필요
             </div>
-            <button
-              onClick={async () => {
-                const granted = await requestPermission();
-                if (granted) alert('알림이 활성화되었습니다!');
-                else alert('알림 권한이 거부되었습니다. 브라우저 설정에서 변경할 수 있어요.');
-              }}
-              style={{
-                width: '100%',
-                padding: 12,
-                background: '#3182F6',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#1B64DA')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = '#3182F6')}
-            >
-              알림 허용하기
-            </button>
+
+            {pushEnabled ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  flex: 1, padding: '10px 14px', borderRadius: 10,
+                  background: 'rgba(52,199,89,0.08)', border: '1px solid rgba(52,199,89,0.3)',
+                  fontSize: 13, fontWeight: 600, color: '#34C759',
+                }}>
+                  ✓ 푸시 알림 켜짐
+                </div>
+                <button
+                  onClick={async () => {
+                    setPushLoading(true);
+                    await unsubscribePush();
+                    setPushLoading(false);
+                  }}
+                  disabled={pushLoading}
+                  style={{
+                    padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                    color: '#8B95A1', background: 'var(--bg-subtle, #F2F4F6)',
+                    border: 'none', cursor: 'pointer',
+                  }}
+                >
+                  끄기
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={async () => {
+                  setPushLoading(true);
+                  const granted = await requestPermission();
+                  setPushLoading(false);
+                  if (!granted) alert('알림 권한이 거부됐어요. 브라우저 설정에서 허용해주세요.');
+                }}
+                disabled={pushLoading}
+                style={{
+                  width: '100%', padding: 12,
+                  background: pushLoading ? '#8B95A1' : '#3182F6',
+                  color: '#fff', border: 'none', borderRadius: 10,
+                  fontSize: 14, fontWeight: 600, cursor: pushLoading ? 'default' : 'pointer',
+                  transition: 'background 0.15s',
+                }}
+              >
+                {pushLoading ? '처리 중...' : '📱 푸시 알림 켜기'}
+              </button>
+            )}
           </div>
 
           {/* Danger Zone */}
