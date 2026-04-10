@@ -9,7 +9,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_KEY!, // service role — auth.users 접근용
 );
 const resend = new Resend(process.env.RESEND_API_KEY!);
-const FROM_EMAIL = 'SOLB <alerts@solb.kr>';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'SOLB <onboarding@resend.dev>';
 
 // ─── types ──────────────────────────────────────────────────────────────────
 interface TriggeredAlert {
@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Missing env vars' }, { status: 503 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb.kr';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
 
   // 1. 모든 유저 포트폴리오 조회
   const { data: portfolios, error: dbErr } = await supabaseAdmin
