@@ -467,7 +467,7 @@ export default function AnalysisPanel() {
                   <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)' }}>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
                       <span style={{ fontSize: 18 }}>📊</span>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: '#3182F6' }}>SOLB AI 분석</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: '#3182F6' }}>솔비서 AI 분석</span>
                       <span style={{ fontSize: 12, color: '#B0B8C1', marginLeft: 'auto' }}>
                         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
                       </span>

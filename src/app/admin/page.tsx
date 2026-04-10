@@ -115,7 +115,7 @@ export default function AdminPage() {
   // Render admin dashboard
   return (
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '40px 24px', fontFamily: 'Pretendard Variable, sans-serif' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>SOLB 관리자</h1>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>솔비서 관리자</h1>
       <p style={{ fontSize: 14, color: '#8B95A1', marginBottom: 40 }}>서비스 현황을 한눈에 확인하세요.</p>
 
       {/* Summary cards */}

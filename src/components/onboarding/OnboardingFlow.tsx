@@ -66,7 +66,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
       <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
         {step === 0 && (
           <>
-            <img src="/logo-solb.svg" alt="SOLB" style={{ width: 64, height: 64, margin: '0 auto 20px' }} />
+            <img src="/logo-solb.svg" alt="솔비서" style={{ width: 64, height: 64, margin: '0 auto 20px' }} />
             <h1
               style={{
                 fontSize: '24px',
@@ -76,7 +76,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 lineHeight: 1.4,
               }}
             >
-              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>SOLB</span>에 오신 걸 환영해요
+              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>솔비서</span>에 오신 걸 환영해요
             </h1>
             <p
               style={{
@@ -103,7 +103,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 borderLeft: '3px solid #1B6B3A',
               }}
             >
-              폭풍우에도 흔들리지 않는<br />내 투자 비서, SOLB.
+              폭풍우에도 흔들리지 않는<br />내 투자 비서, 솔비서.
             </div>
           </>
         )}

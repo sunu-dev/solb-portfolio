@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'SOLB — 개인정보처리방침',
+  title: '솔비서 — 개인정보처리방침',
 };
 
 export default function PrivacyPage() {
@@ -9,7 +9,7 @@ export default function PrivacyPage() {
       <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
 
       <Section title="1. 개인정보처리방침의 목적">
-        SOLB(이하 &quot;서비스&quot;)는 개인정보보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하게 처리하기 위해 다음과 같은 처리방침을 두고 있습니다.
+        솔비서(이하 &quot;서비스&quot;)는 개인정보보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하게 처리하기 위해 다음과 같은 처리방침을 두고 있습니다.
       </Section>
 
       <Section title="2. 수집하는 개인정보">

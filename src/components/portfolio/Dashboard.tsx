@@ -160,13 +160,13 @@ export default function Dashboard() {
               {greetData.text}
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, maxWidth: '80%' }}>
-              솔비가 당신의 포트폴리오를 든든하게 지켜보고 있어요.
+              솔비서가 당신의 포트폴리오를 든든하게 지켜보고 있어요.
             </p>
           </div>
 
           {/* Icon/Illustration Area */}
           <div style={{ width: 100, height: 100, display: 'flex', alignItems: 'center', justifySelf: 'flex-end', opacity: 0.9 }}>
-            {/* 소나무 아이콘 — '솔비'의 상징 */}
+            {/* 소나무 아이콘 — '솔비서'의 상징 */}
             <div style={{ position: 'relative' }}>
               <img src="/empty-pine.svg" alt="" style={{ width: 80, height: 80, transform: 'scale(1.2)' }} />
               {!isGain && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle, transparent 40%, rgba(255,255,255,0.4) 100%)' }} />}
@@ -282,7 +282,7 @@ function TermTip({ term }: { term: { term: string; simple: string; analogy: stri
           textAlign: 'left'
         }}
       >
-        <span>💡 솔비의 쉬운 지식 가이드: <strong>{term.term}</strong></span>
+        <span>💡 솔비서의 쉬운 지식 가이드: <strong>{term.term}</strong></span>
         <span style={{ marginLeft: 'auto', fontSize: 10 }}>{open ? '간략히 보기 ▲' : '자세히 보기 ▼'}</span>
       </button>
       {open && (

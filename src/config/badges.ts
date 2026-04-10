@@ -17,7 +17,7 @@ export const BADGES: Badge[] = [
   // 피 — 기본 행동
   { id: 'first-stock', name: '첫 종목', hwatu: '피', icon: '🌱', description: '첫 종목을 추가했어요', condition: '종목 1개 추가', color: '#8B95A1' },
   { id: 'three-stocks', name: '세 종목', hwatu: '피', icon: '🌿', description: '3개 종목을 관리하고 있어요', condition: '종목 3개 등록', color: '#8B95A1' },
-  { id: 'first-login', name: '첫 방문', hwatu: '피', icon: '👋', description: 'SOLB에 처음 오셨어요', condition: '첫 로그인', color: '#8B95A1' },
+  { id: 'first-login', name: '첫 방문', hwatu: '피', icon: '👋', description: '솔비서에 처음 오셨어요', condition: '첫 로그인', color: '#8B95A1' },
 
   // 띠 — 꾸준한 성장
   { id: 'streak-7', name: '7일 연속', hwatu: '홍단', icon: '🔥', description: '7일 연속 접속했어요', condition: '7일 연속 로그인', color: '#EF4452' },
@@ -35,7 +35,7 @@ export const BADGES: Badge[] = [
   { id: 'target-hit', name: '목표 달성', hwatu: '광', icon: '🏆', description: '목표 수익률에 도달했어요!', condition: '목표 수익률 100% 달성', color: '#D4A853' },
   { id: 'all-profit', name: '전승', hwatu: '광', icon: '⭐', description: '모든 종목이 수익이에요!', condition: '보유 종목 전체 수익', color: '#D4A853' },
 
-  // 비광 — 전설 (SOLB 최고 뱃지)
+  // 비광 — 전설 (솔비서 최고 뱃지)
   { id: 'rain-light', name: '비광', hwatu: '비광', icon: '🌈', description: '폭풍우에도 흔들리지 않았어요', condition: '하락장(-5%+)에서도 포트폴리오 수익 유지', color: '#1B6B3A' },
 ];
 

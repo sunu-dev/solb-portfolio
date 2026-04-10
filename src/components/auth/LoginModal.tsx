@@ -62,17 +62,16 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: '#3182F6',
+              background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <span style={{ color: '#fff', fontSize: '18px', fontWeight: 800 }}>S</span>
+            <img src="/logo-solb.svg" alt="" style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} />
           </div>
-          <span style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            <span style={{ color: '#3182F6' }}>SOLB</span>
-            <span style={{ color: '#191F28' }}> PORTFOLIO</span>
+          <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.03em' }}>
+            <span style={{ background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>솔비서</span>
           </span>
         </div>
 

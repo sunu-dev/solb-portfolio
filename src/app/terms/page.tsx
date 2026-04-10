@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'SOLB — 이용약관',
+  title: '솔비서 — 이용약관',
 };
 
 export default function TermsPage() {
@@ -9,7 +9,7 @@ export default function TermsPage() {
       <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
 
       <Section title="제1조 (목적)">
-        이 약관은 SOLB(이하 &quot;서비스&quot;)가 제공하는 투자 정보 서비스의 이용 조건 및 절차, 서비스와 이용자의 권리·의무 및 책임 사항 등을 규정함을 목적으로 합니다.
+        이 약관은 솔비서(이하 &quot;서비스&quot;)가 제공하는 투자 정보 서비스의 이용 조건 및 절차, 서비스와 이용자의 권리·의무 및 책임 사항 등을 규정함을 목적으로 합니다.
       </Section>
 
       <Section title="제2조 (서비스의 정의)">
@@ -102,7 +102,7 @@ export default function TermsPage() {
       </Section>
 
       <Section title="제14조 (연락처)">
-        서비스명: SOLB<br />
+        서비스명: 솔비서<br />
         이메일: sunu.develop@gmail.com
       </Section>
     </div>

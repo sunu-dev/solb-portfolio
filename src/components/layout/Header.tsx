@@ -70,8 +70,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text'
-            }}>SOLB</span>
-            <span className="hidden md:inline" style={{ color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500, marginLeft: '4px', fontSize: '14px', letterSpacing: '0.05em' }}>PORTFOLIO</span>
+            }}>솔비서</span>
           </span>
         </div>
 
