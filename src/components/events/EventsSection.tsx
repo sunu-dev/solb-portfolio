@@ -167,6 +167,10 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
   const barW    = Math.min(drop / 50 * 100, 100);
   const barCol  = drop < 10 ? '#34C759' : drop < 30 ? '#FF9500' : '#EF4452';
 
+  // 최저점 가격: 저장된 값 우선, 없으면 basePrice로 계산
+  const maxDropPrice = entry.maxDropPrice ?? (entry.basePrice > 0 ? entry.basePrice * (1 + entry.maxDrop / 100) : null);
+  const maxDropDate  = entry.maxDropDate;
+
   // Recovery cell
   const RecoveryCellContent = () => {
     if (entry.recovered) return (
@@ -217,7 +221,7 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
           </div>
         </div>
         <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 10, background: sv.bg, color: sv.color }}>
-          {sv.label} {entry.maxDrop.toFixed(1)}%
+          최대 하락 {entry.maxDrop.toFixed(1)}%
         </span>
       </div>
 
@@ -225,6 +229,15 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
       <div style={{ height: 6, borderRadius: 3, background: 'var(--border-light, #F2F4F6)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${barW}%`, background: barCol, borderRadius: 3, transition: 'width 0.7s ease' }} />
       </div>
+      {maxDropPrice !== null && (
+        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 5 }}>
+          최저점 <span style={{ fontWeight: 600, color: '#EF4452' }}>${maxDropPrice.toFixed(2)}</span>
+          {maxDropDate && (
+            <span> · {maxDropDate.replace(/-/g, '.').slice(2)}</span>
+          )}
+          <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}> (이벤트 시작가 대비)</span>
+        </div>
+      )}
 
       {/* 3 micro-stat tiles */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
@@ -352,9 +365,12 @@ export default function EventsSection() {
               const lowI  = d.c.indexOf(low);
               const ri    = d.c.findIndex((v, i) => i > lowI && v >= bp);
               const cp    = (macroData[s] as QuoteData)?.c;
+              const lowTs = d.t?.[lowI];
               updateEventCacheEntry(ev.id, s, {
                 basePrice: bp,
                 maxDrop: (low - bp) / bp * 100,
+                maxDropPrice: low,
+                maxDropDate: lowTs ? new Date(lowTs * 1000).toISOString().split('T')[0] : undefined,
                 currentChange: cp ? (cp - bp) / bp * 100 : (last - bp) / bp * 100,
                 recovered: ri !== -1 || (cp ? cp >= bp : last >= bp),
                 recoveryDays: ri !== -1 ? ri : null,
@@ -388,9 +404,12 @@ export default function EventsSection() {
           const last = d.c[d.c.length - 1];
           const lowI = d.c.indexOf(low);
           const ri   = d.c.findIndex((v, i) => i > lowI && v >= bp);
+          const lowTs = d.t?.[lowI];
           updateEventCacheEntry(ev.id, s, {
             basePrice: bp,
             maxDrop: (low - bp) / bp * 100,
+            maxDropPrice: low,
+            maxDropDate: lowTs ? new Date(lowTs * 1000).toISOString().split('T')[0] : undefined,
             currentChange: (last - bp) / bp * 100,
             recovered: ri !== -1,
             recoveryDays: ri !== -1 ? ri : null,

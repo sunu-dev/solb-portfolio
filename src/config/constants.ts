@@ -104,6 +104,8 @@ export interface PresetEvent {
 export interface EventCacheEntry {
   basePrice: number;
   maxDrop: number;
+  maxDropPrice?: number;
+  maxDropDate?: string;
   currentChange: number;
   recovered: boolean;
   recoveryDays: number | null;
