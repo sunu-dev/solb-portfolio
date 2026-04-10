@@ -49,12 +49,29 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo */}
-        <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
-          <img src="/logo-solb.svg" alt="SOLB" style={{ width: 28, height: 28 }} />
-          <span style={{ fontSize: '16px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            <span style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>SOLB</span>
-            <span className="hidden md:inline" style={{ color: 'var(--text-primary, #191F28)' }}> PORTFOLIO</span>
+        {/* Logo — [L1] 아내분을 위한 세련된 브랜드 아이덴티티 */}
+        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
+          <div style={{
+            position: 'relative',
+            width: '32px',
+            height: '32px',
+            background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(27, 107, 58, 0.2)'
+          }}>
+            <img src="/logo-solb.svg" alt="" style={{ width: 20, height: 20, filter: 'brightness(0) invert(1)' }} />
+          </div>
+          <span style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.03em', display: 'flex', alignItems: 'center' }}>
+            <span style={{
+              background: 'linear-gradient(135deg, #1B6B3A 0%, #3182F6 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>SOLB</span>
+            <span className="hidden md:inline" style={{ color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500, marginLeft: '4px', fontSize: '14px', letterSpacing: '0.05em' }}>PORTFOLIO</span>
           </span>
         </div>
 
