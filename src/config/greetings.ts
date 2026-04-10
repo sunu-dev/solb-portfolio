@@ -96,17 +96,21 @@ const GREETINGS: Greeting[] = [
   { text: '폭풍우가 지나면 무지개가 와요. 함께할게요', emoji: '🌈', condition: { isLoss: true } },
   { text: '잃어도 괜찮아요. 배우는 과정이에요', emoji: '💙', condition: { isLoss: true } },
   { text: '나만 떨어지는 게 아니에요. 시장은 파도가 있어요', emoji: '🌊', condition: { isLoss: true } },
-  { text: '장기적으로 보면 괜찮아질 거예요. SOLB가 응원해요', emoji: '🍀', condition: { isLoss: true } },
+  { text: '장기적으로 보면 괜찮아질 거예요. 솔비가 응원해요', emoji: '🍀', condition: { isLoss: true } },
   { text: '오늘은 좀 쉬어도 돼요. 내일은 내일의 시장이 있어요', emoji: '🛋️', condition: { isLoss: true } },
   { text: '하락장은 경험치예요. 다음엔 더 강해질 거예요', emoji: '💪', condition: { isLoss: true } },
+  { text: '속상해하지 마요. 어려운 투자는 솔비가 다 도와줄게요', emoji: '🫂', condition: { isLoss: true } },
+  { text: '지치지 마세요. 당신의 곁엔 항상 솔비가 있어요', emoji: '🌲', condition: { isLoss: true } },
 
   // ===== 기본 (조건 없음) =====
-  { text: '오늘도 SOLB와 함께해요', emoji: '🌲', condition: {} },
-  { text: '당신의 투자를 응원해요', emoji: '✨', condition: {} },
-  { text: '작은 한 걸음이 큰 차이를 만들어요', emoji: '👣', condition: {} },
-  { text: '궁금한 건 멘토에게 물어보세요', emoji: '💬', condition: {} },
-  { text: '투자는 마라톤이에요. 천천히 가도 괜찮아요', emoji: '🏃', condition: {} },
-  { text: '오늘 배운 것 하나가 내일의 수익이 돼요', emoji: '📝', condition: {} },
+  { text: '오늘도 솔비와 함께해요', emoji: '🌲', condition: {} },
+  { text: '당신의 모든 내일을 응원해요', emoji: '✨', condition: {} },
+  { text: '작은 한 걸음이 큰 차이를 만들어요. 천천히 가요', emoji: '👣', condition: {} },
+  { text: '궁금한 건 언제든 물어보세요. 제가 다 읽어드릴게요', emoji: '💬', condition: {} },
+  { text: '투자는 마라톤이에요. 당신의 페이스가 가장 중요해요', emoji: '🏃', condition: {} },
+  { text: '오늘 배운 것 하나가 소중한 자산이 될 거예요', emoji: '📝', condition: {} },
+  { text: '어려운 차트도, 복잡한 뉴스도 제가 쉽게 알려드릴게요', emoji: '📖', condition: {} },
+  { text: '당신이 투자를 즐겼으면 좋겠어요. 그게 제 마음이에요', emoji: '🧡', condition: {} },
 ];
 
 /**
