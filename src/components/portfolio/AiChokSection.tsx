@@ -67,6 +67,7 @@ interface ChokState {
   context: string;
   cached: boolean;
   remaining: number;
+  sessionLabel?: string;
 }
 
 // ==========================================
@@ -295,7 +296,7 @@ export default function AiChokSection() {
                   borderRadius: 4,
                 }}
               >
-                오늘 기준
+                {state.sessionLabel || '오늘 기준'}
               </span>
             )}
           </div>
