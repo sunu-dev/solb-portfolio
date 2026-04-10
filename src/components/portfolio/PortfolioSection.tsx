@@ -13,6 +13,7 @@ import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
+import AiJjimSection from './AiJjimSection';
 import ShareCard from './ShareCard';
 
 const QUICK_ADD_STOCKS = [
@@ -247,6 +248,9 @@ export default function PortfolioSection() {
     <div>
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
+
+      {/* AI 찜 — 관심 가져볼 만한 종목 */}
+      <AiJjimSection />
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (
