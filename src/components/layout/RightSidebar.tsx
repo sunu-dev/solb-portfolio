@@ -83,27 +83,10 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 export default function RightSidebar() {
   const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, getAllSymbols, addStock } = usePortfolioStore();
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
-  const [chokPick, setChokPick] = useState<ChokPick | null>(null);
-  const chokFetchedRef = useRef(false);
+  // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
+  const [chokPick] = useState<ChokPick | null>(null);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
-
-  useEffect(() => {
-    if (chokFetchedRef.current) return;
-    chokFetchedRef.current = true;
-    const portfolioSymbols = getAllSymbols();
-    fetch('/api/ai-chok', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ portfolioSymbols }),
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then((data: { picks?: ChokPick[] } | null) => {
-        if (data?.picks?.[0]) setChokPick(data.picks[0]);
-      })
-      .catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const watchingStocks = stocks.watching || [];
 

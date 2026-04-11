@@ -160,6 +160,14 @@ export async function POST(req: NextRequest) {
       await Promise.all([
         upsertCache(userKey, date, session, result, newCount),
         recordGeminiKeyUsage(keyIndex),
+        // ai_usage 기록 (어드민 per-user 추적용)
+        Promise.resolve(supabase?.from('ai_usage').insert({
+          ip: ip,
+          user_id: userId || null,
+          date: date,
+          symbol: null,
+          mentor_id: 'ai-chok',
+        })).catch(() => {}),
       ]);
 
       return NextResponse.json({

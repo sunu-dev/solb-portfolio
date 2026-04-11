@@ -16,6 +16,7 @@ interface Stats {
   todayActiveUsers: number;
   totalAiCalls: number;
   todayAiCalls: number;
+  todayChokCalls: number;
   topStocks: { symbol: string; count: number }[];
   recentLogs: { action: string; symbol: string; created_at: string }[];
   geminiUsage: GeminiKeyUsage[];
@@ -89,20 +90,23 @@ export default function AdminPage() {
         { data: recentLogs },
         { data: geminiRaw },
         { data: userUsageRaw },
+        { count: todayChokCalls },
       ] = await Promise.all([
         supabase.from('user_portfolios').select('*', { count: 'exact', head: true }),
-        // ai_usage: 오늘 AI 분석 횟수 (서버 사이드 정확한 소스)
-        supabase.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today),
+        // ai_usage: 오늘 AI 분석 횟수 (mentor_id != 'ai-chok')
+        supabase.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today).neq('mentor_id', 'ai-chok'),
         // ai_usage: 전체 누적 AI 분석 횟수
-        supabase.from('ai_usage').select('*', { count: 'exact', head: true }),
-        // 오늘 활성 유저: ai_usage 기준
+        supabase.from('ai_usage').select('*', { count: 'exact', head: true }).neq('mentor_id', 'ai-chok'),
+        // 오늘 활성 유저: ai_usage 기준 (전체)
         supabase.from('ai_usage').select('user_id').eq('date', today),
-        // 인기 종목: ai_usage 기준
-        supabase.from('ai_usage').select('symbol').not('symbol', 'is', null),
+        // 인기 종목: ai_usage 기준 (ai-analysis만)
+        supabase.from('ai_usage').select('symbol').not('symbol', 'is', null).neq('mentor_id', 'ai-chok'),
         // 최근 활동: api_logs (login, stock_add 등 다양한 액션 포함)
         supabase.from('api_logs').select('action, symbol, created_at').order('created_at', { ascending: false }).limit(20),
         supabase.from('gemini_key_usage').select('key_index').eq('date', today),
         supabase.from('ai_usage').select('user_id').eq('date', today).not('user_id', 'is', null),
+        // ai-chok 오늘 호출 횟수
+        supabase.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today).eq('mentor_id', 'ai-chok'),
       ]);
 
       // 오늘 AI 사용한 유니크 유저 수
@@ -131,6 +135,7 @@ export default function AdminPage() {
         todayActiveUsers: uniqueActiveUsers,
         totalAiCalls: totalAiCalls || 0,
         todayAiCalls: todayAiCalls || 0,
+        todayChokCalls: todayChokCalls || 0,
         topStocks,
         recentLogs: recentLogs || [],
         geminiUsage,
@@ -193,11 +198,14 @@ export default function AdminPage() {
       )}
 
       {/* 요약 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
         <StatCard label="총 가입자" value={stats.totalUsers} unit="명" color="#3182F6" />
-        <StatCard label="오늘 활성 유저" value={stats.todayActiveUsers} unit="명" color="#00C6BE" />
-        <StatCard label="총 AI 분석" value={stats.totalAiCalls} unit="회" color="#AF52DE" />
-        <StatCard label="오늘 AI 분석" value={stats.todayAiCalls} unit="회" color="#FF9500" />
+        <StatCard label="총 AI 분석 누적" value={stats.totalAiCalls} unit="회" color="#AF52DE" />
+        <StatCard label="오늘 활성 유저 (AI 사용)" value={stats.todayActiveUsers} unit="명" color="#00C6BE" />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 32 }}>
+        <StatCard label="오늘 AI 분석 (클릭)" value={stats.todayAiCalls} unit="회" color="#FF9500" />
+        <StatCard label="오늘 AI 촉 (자동)" value={stats.todayChokCalls} unit="회" color="#34C759" />
       </div>
 
       {/* Gemini 쿼터 + 한도 설정 */}
