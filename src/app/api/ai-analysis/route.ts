@@ -4,7 +4,10 @@ import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
 import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_KEYS = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_2,
+].filter(Boolean) as string[];
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 const DAILY_LIMIT_GUEST = parseInt(process.env.AI_DAILY_LIMIT_GUEST || '3', 10);
 const DAILY_LIMIT_USER = parseInt(process.env.AI_DAILY_LIMIT_USER || '10', 10);
@@ -66,6 +69,16 @@ async function recordUsage(ip: string, symbol: string, mentorId?: string, userId
   } catch { /* silent */ }
 }
 
+async function recordGeminiKeyUsage(keyIndex: number) {
+  if (!supabase) return;
+  try {
+    await supabase.from('gemini_key_usage').insert({
+      key_index: keyIndex,
+      date: getTodayKST(),
+    });
+  } catch { /* silent */ }
+}
+
 async function sendSlackAlert(totalCount: number) {
   if (!SLACK_WEBHOOK_URL) return;
   try {
@@ -82,7 +95,7 @@ async function sendSlackAlert(totalCount: number) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!GEMINI_API_KEY) {
+  if (!GEMINI_KEYS.length) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
   }
 
@@ -212,39 +225,47 @@ ${recentNews || '관련 뉴스 없음'}
 
 ${responseFormat}`;
 
-    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.3,
-      },
-    });
+    // 키 로테이션: 실패 시 다른 키로 재시도
+    const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
+    let lastError: unknown;
+    for (const apiKey of shuffledKeys) {
+      const keyIndex = GEMINI_KEYS.indexOf(apiKey);
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: { responseMimeType: 'application/json', temperature: 0.3 },
+        });
 
-    const text = response.text || '';
+        const text = response.text || '';
 
-    // Record usage after successful Gemini call
-    await recordUsage(ip, symbol, mentorId, userId);
-    const newTotal = totalCount + 1;
-    const remaining = perUserLimit - userCount - 1;
+        // 성공: 사용량 기록 (병렬)
+        await Promise.all([
+          recordUsage(ip, symbol, mentorId, userId),
+          recordGeminiKeyUsage(keyIndex),
+        ]);
+        const newTotal = totalCount + 1;
+        const remaining = perUserLimit - userCount - 1;
 
-    // Slack alerts at 80% and 100%
-    if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
-      sendSlackAlert(newTotal); // fire and forget
+        if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
+          sendSlackAlert(newTotal);
+        }
+
+        try {
+          const parsed = JSON.parse(text);
+          return NextResponse.json({ success: true, report: parsed, remaining });
+        } catch {
+          return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining });
+        }
+      } catch (e) {
+        lastError = e;
+        continue;
+      }
     }
 
-    // Parse JSON from response
-    try {
-      const parsed = JSON.parse(text);
-      return NextResponse.json({ success: true, report: parsed, remaining });
-    } catch {
-      // If JSON parsing fails, return raw text
-      return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining });
-    }
-  } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : String(e);
-    // Try to parse JSON error body from API response
+    // 모든 키 실패
+    const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
     let parsedCode: unknown = null;
     let parsedMsg: unknown = null;
     let parsedStatus: unknown = null;
@@ -254,7 +275,10 @@ ${responseFormat}`;
       parsedMsg = parsed?.error?.message;
       parsedStatus = parsed?.error?.status;
     } catch { /* not JSON */ }
-    console.error('[솔비서 AI] error_code:', parsedCode, '| status:', parsedStatus, '| msg:', parsedMsg || errorMessage);
+    console.error('[솔비서 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', parsedMsg || errorMessage);
+    return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
+  } catch (e: unknown) {
+    console.error('[솔비서 AI] unexpected error:', e);
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   }
 }

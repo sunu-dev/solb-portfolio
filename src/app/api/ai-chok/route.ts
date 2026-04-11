@@ -10,9 +10,13 @@ const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY_2,
 ].filter(Boolean) as string[];
 
-function pickGeminiKey(): string {
-  if (!GEMINI_KEYS.length) return '';
-  return GEMINI_KEYS[Math.floor(Math.random() * GEMINI_KEYS.length)];
+async function recordGeminiKeyUsage(keyIndex: number) {
+  if (!supabase) return;
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = kst.toISOString().split('T')[0];
+  try {
+    await supabase.from('gemini_key_usage').insert({ key_index: keyIndex, date: today });
+  } catch { /* silent */ }
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -152,7 +156,11 @@ export async function POST(req: NextRequest) {
 
       const result = { picks: validPicks, context: parsed.context || '' };
       const newCount = currentCount + 1;
-      await upsertCache(userKey, date, session, result, newCount);
+      const keyIndex = GEMINI_KEYS.indexOf(apiKey);
+      await Promise.all([
+        upsertCache(userKey, date, session, result, newCount),
+        recordGeminiKeyUsage(keyIndex),
+      ]);
 
       return NextResponse.json({
         ...result,
