@@ -34,8 +34,10 @@ export default function Dashboard() {
     let totalCostKrw = 0;
     let totalValueKrw = 0;
     let hasFxData = false;
+    let hasPortfolioStocks = false;
 
     investing.forEach(s => {
+      if (s.avgCost > 0 && s.shares > 0) hasPortfolioStocks = true;
       const q = macroData[s.symbol] as QuoteData | undefined;
       if (!q?.c) return;
       const dp = q.dp || 0;
@@ -71,7 +73,8 @@ export default function Dashboard() {
       todayChangeWon: todayChange * usdKrw,
       usdKrw,
       bestSymbol, bestDp, worstSymbol, worstDp,
-      hasInvestment: totalCost > 0,
+      hasInvestment: hasPortfolioStocks,
+      quotesLoaded: totalCost > 0,
       sp: macroData['S&P 500'] as MacroEntry | undefined,
       nasdaq: macroData['NASDAQ'] as MacroEntry | undefined,
     };
@@ -188,6 +191,12 @@ export default function Dashboard() {
             {/* P&L Display */}
             <div style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4, fontWeight: 500 }}>전체 수익 현황</div>
+              {!data.quotesLoaded ? (
+                <div>
+                  <div className="skeleton-shimmer" style={{ width: 180, height: 36, borderRadius: 8, marginBottom: 8 }} />
+                  <div className="skeleton-shimmer" style={{ width: 100, height: 20, borderRadius: 6 }} />
+                </div>
+              ) : (
               <div className="flex items-baseline gap-2">
                 <span className="tabular-nums" style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 800, color: isGain ? '#EF4452' : '#3182F6', letterSpacing: '-0.02em' }}>
                   {currency === 'KRW'
@@ -199,20 +208,30 @@ export default function Dashboard() {
                   ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
                 </span>
               </div>
-              <div className="flex items-center gap-2 mt-4">
-                <span style={{
-                  fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
-                  color: todayGain ? '#EF4452' : '#3182F6',
-                  background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)',
-                }}>
-                  오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
-                </span>
-              </div>
+              )}
+              {data.quotesLoaded && (
+                <div className="flex items-center gap-2 mt-4">
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
+                    color: todayGain ? '#EF4452' : '#3182F6',
+                    background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)',
+                  }}>
+                    오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Sub Stats List */}
             <div className="flex flex-col justify-center gap-3">
-              {[
+              {!data.quotesLoaded ? (
+                [0,1,2].map(i => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="skeleton-shimmer" style={{ width: 48, height: 14, borderRadius: 4 }} />
+                    <div className="skeleton-shimmer" style={{ width: 80, height: 14, borderRadius: 4 }} />
+                  </div>
+                ))
+              ) : [
                 { label: '총 평가', value: currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
                 { label: '총 투자', value: currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
                 { label: '보유 종목', value: `${data.holdingCount}개` },
@@ -225,9 +244,8 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <div className="skeleton-shimmer" style={{ width: 240, height: 40, borderRadius: 12, margin: '0 auto 12px' }} />
-            <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)' }}>포트폴리오 정보를 가져오는 중이에요...</div>
+          <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--text-tertiary, #B0B8C1)', fontSize: 13 }}>
+            종목을 추가하면 수익 현황이 여기에 표시돼요.
           </div>
         )}
 
