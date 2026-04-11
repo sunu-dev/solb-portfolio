@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 const ADMIN_EMAILS = ['sunu.dev@gmail.com'];
+const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 const GEMINI_RPD_PER_KEY = 500;
 
 interface GeminiKeyUsage { key_index: number; count: number }
@@ -69,7 +70,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) { setError('로그인이 필요합니다.'); return; }
-    if (!ADMIN_EMAILS.includes(user.email || '')) { setError(`관리자 권한이 없습니다. (id: ${user.id} / email: ${user.email} / provider: ${user.app_metadata?.provider})`); return; }
+    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
+    if (!isAdmin) { setError('관리자 권한이 없습니다.'); return; }
     fetchStats();
   }, [user, loading]);
 
