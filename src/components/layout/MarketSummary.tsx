@@ -3,6 +3,7 @@
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
+import { isTodayHoliday, getUpcomingHolidays } from '@/config/marketHolidays';
 
 export default function MarketSummary() {
   const { macroData } = usePortfolioStore();
@@ -29,6 +30,12 @@ export default function MarketSummary() {
   const spCp = sp?.changePercent || 0;
   const nasdaqCp = nasdaq?.changePercent || 0;
   const krwVal = usdkrw?.value || 0;
+
+  const ms = getMarketStatus();
+  const isUSPreMarket = ms.us.labelSimple === '프리장';
+  const krHoliday = isTodayHoliday('KR');
+  const usHoliday = isTodayHoliday('US');
+  const upcoming = getUpcomingHolidays(3);
 
   const avgChange = (spCp + nasdaqCp) / 2;
   let sentiment = '보합세';
@@ -57,6 +64,36 @@ export default function MarketSummary() {
           }
         `}</style>
 
+        {/* 휴장 뱃지 */}
+        {(krHoliday || usHoliday) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px',
+            borderRadius: '100px', background: 'rgba(239,68,82,0.08)',
+            border: '1px solid rgba(239,68,82,0.15)', whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            <span style={{ fontSize: '10px' }}>🚫</span>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: '#EF4452' }}>
+              {krHoliday && usHoliday ? `KR·US 휴장 — ${krHoliday.label}` :
+               krHoliday ? `KR 휴장 — ${krHoliday.label}` :
+               `US 휴장 — ${usHoliday!.label}`}
+            </span>
+          </div>
+        )}
+
+        {/* 다가오는 휴장 (오늘 아닌 경우) */}
+        {!krHoliday && !usHoliday && upcoming.length > 0 && (
+          <div className="hidden lg:flex" style={{
+            alignItems: 'center', gap: '4px', padding: '3px 8px',
+            borderRadius: '100px', background: 'var(--bg-subtle, #F8F9FA)',
+            border: '1px solid var(--border-light, #F2F4F6)', whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            <span style={{ fontSize: '10px' }}>📅</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>
+              {upcoming[0].date.slice(5).replace('-', '/')} {upcoming[0].label} ({upcoming[0].market}) 휴장
+            </span>
+          </div>
+        )}
+
         {/* Indices Chips */}
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
           {/* S&P 500 Chip */}
@@ -69,6 +106,7 @@ export default function MarketSummary() {
             <span className="market-summary-text" style={{ fontSize: '13px', fontWeight: 700, color: spCp >= 0 ? '#EF4452' : '#3182F6' }}>
               {spCp >= 0 ? '+' : ''}{spCp.toFixed(2)}%
             </span>
+            {isUSPreMarket && <span style={{ fontSize: '10px', color: '#B0B8C1' }}>전일</span>}
           </div>
 
           {/* NASDAQ Chip */}
@@ -81,6 +119,7 @@ export default function MarketSummary() {
             <span className="market-summary-text" style={{ fontSize: '13px', fontWeight: 700, color: nasdaqCp >= 0 ? '#EF4452' : '#3182F6' }}>
               {nasdaqCp >= 0 ? '+' : ''}{nasdaqCp.toFixed(2)}%
             </span>
+            {isUSPreMarket && <span style={{ fontSize: '10px', color: '#B0B8C1' }}>전일</span>}
           </div>
 
           {/* 환율 Chip */}
@@ -111,27 +150,26 @@ export default function MarketSummary() {
         </div>
 
         {/* Market Status (Right) */}
-        {(() => {
-          const ms = getMarketStatus();
-          return (
-            <div className="flex items-center gap-3 shrink-0 ml-auto" style={{ fontSize: '11px', fontWeight: 500 }}>
-              <div className="flex items-center gap-1.5">
-                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: ms.kr.color }} />
-                <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>KR</span>
-                <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>{ms.kr.nextEvent}</span>
-              </div>
-              <div style={{ width: '1px', height: '10px', background: 'var(--border-light, #F2F4F6)' }} />
-              <div className="flex items-center gap-1.5">
-                <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: ms.us.color }} />
-                <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>US</span>
-                <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>{ms.us.nextEvent}</span>
-              </div>
-              <div className="hidden lg:flex items-center gap-1.5" style={{ color: 'var(--text-tertiary, #B0B8C1)', fontSize: '10px' }}>
-                <span>15분 지연</span>
-              </div>
-            </div>
-          );
-        })()}
+        <div className="flex items-center gap-3 shrink-0 ml-auto" style={{ fontSize: '11px', fontWeight: 500 }}>
+          <div className="flex items-center gap-1.5">
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: krHoliday ? '#8B95A1' : ms.kr.color }} />
+            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>KR</span>
+            <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>
+              {krHoliday ? '휴장' : ms.kr.nextEvent}
+            </span>
+          </div>
+          <div style={{ width: '1px', height: '10px', background: 'var(--border-light, #F2F4F6)' }} />
+          <div className="flex items-center gap-1.5">
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: usHoliday ? '#8B95A1' : ms.us.color }} />
+            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>US</span>
+            <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>
+              {usHoliday ? '휴장' : isUSPreMarket ? `프리장 · ${ms.us.nextEvent}` : ms.us.nextEvent}
+            </span>
+          </div>
+          <div className="hidden lg:flex items-center gap-1.5" style={{ color: 'var(--text-tertiary, #B0B8C1)', fontSize: '10px' }}>
+            <span>15분 지연</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -139,7 +139,7 @@ export function useStockData() {
       if (cached) {
         const { data, ts } = JSON.parse(cached);
         // Always restore from cache if less than 30 minutes old
-        if (Date.now() - ts < 30 * 60 * 1000) {
+        if (Date.now() - ts < 5 * 60 * 1000) {
           for (const [sym, quote] of Object.entries(data)) {
             if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
           }
@@ -152,7 +152,7 @@ export function useStockData() {
       const macroCached = localStorage.getItem('solb_macro_cache');
       if (macroCached) {
         const { data, ts } = JSON.parse(macroCached);
-        if (Date.now() - ts < 30 * 60 * 1000) {
+        if (Date.now() - ts < 5 * 60 * 1000) {
           for (const [key, val] of Object.entries(data)) {
             if (val) updateMacroEntry(key, val as QuoteData);
           }

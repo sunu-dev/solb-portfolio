@@ -62,11 +62,12 @@ export default function Home() {
 
       // Instantly restore cached macro + quote data from localStorage
       const { updateMacroEntry } = usePortfolioStore.getState();
+      const CACHE_TTL = 5 * 60 * 1000;
       try {
         const macroCached = localStorage.getItem('solb_macro_cache');
         if (macroCached) {
           const { data, ts } = JSON.parse(macroCached);
-          if (Date.now() - ts < 30 * 60 * 1000) {
+          if (Date.now() - ts < CACHE_TTL) {
             for (const [key, val] of Object.entries(data)) {
               if (val) updateMacroEntry(key, val as MacroEntry);
             }
@@ -77,7 +78,7 @@ export default function Home() {
         const quoteCached = localStorage.getItem('solb_quote_cache');
         if (quoteCached) {
           const { data, ts } = JSON.parse(quoteCached);
-          if (Date.now() - ts < 30 * 60 * 1000) {
+          if (Date.now() - ts < CACHE_TTL) {
             for (const [sym, quote] of Object.entries(data)) {
               if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
             }
@@ -88,12 +89,16 @@ export default function Home() {
       // Finnhub 키를 서버에서 가져와 스토어에 저장 (번들 노출 방지)
       const { apiKey, setApiKey } = usePortfolioStore.getState();
       if (!apiKey) {
+        // apiKey 없으면 먼저 토큰 받고 나서 fetch (신규 유저 첫 로드 버그 방지)
         fetch('/api/ws-token').then(r => r.json()).then(({ token }) => {
-          if (token) setApiKey(token);
+          if (token) {
+            setApiKey(token);
+            Promise.all([fetchMacro(), refreshAll()]);
+          }
         }).catch(() => {});
+      } else {
+        Promise.all([fetchMacro(), refreshAll()]);
       }
-
-      Promise.all([fetchMacro(), refreshAll()]);
     };
     const unsub = usePortfolioStore.persist.onFinishHydration(init);
     if (usePortfolioStore.persist.hasHydrated()) init();

@@ -73,20 +73,28 @@ function getUSStatus(kstTime: number, dst: boolean): MarketStatus {
   // 본장 (자정 넘김)
   if (kstTime >= marketOpen || kstTime < marketClose) {
     const closeHour = dst ? '05:00' : '06:00';
-    return { status: 'open', labelSimple: '열림', color: '#16A34A', dot: '🟢', nextEvent: `${closeHour} 마감` };
+    return { status: 'open', labelSimple: '본장', color: '#16A34A', dot: '🟢', nextEvent: `${closeHour} 마감` };
   }
-  // 애프터
+  // 애프터마켓
   if (kstTime >= marketClose && kstTime < afterClose) {
-    return { status: 'extended', labelSimple: '연장 거래', color: '#F59E0B', dot: '🟡', nextEvent: '곧 종료' };
+    return { status: 'extended', labelSimple: '애프터', color: '#F59E0B', dot: '🟡', nextEvent: '곧 종료' };
   }
   // 프리마켓
   if (kstTime >= preOpen && kstTime < marketOpen) {
     const openHour = dst ? '22:30' : '23:30';
-    return { status: 'preparing', labelSimple: '준비 중', color: '#F59E0B', dot: '🟡', nextEvent: `${openHour} 개장` };
+    return { status: 'preparing', labelSimple: '프리장', color: '#F59E0B', dot: '🟡', nextEvent: `${openHour} 개장` };
   }
   // 닫힘
   const openHour = dst ? '22:30' : '23:30';
   return { status: 'closed', labelSimple: '닫힘', color: '#8B95A1', dot: '⚪', nextEvent: `${openHour} 개장` };
+}
+
+export function isUSPreMarket(): boolean {
+  const now = new Date();
+  if (now.getDay() === 0 || now.getDay() === 6) return false;
+  const kstTime = now.getHours() * 60 + now.getMinutes();
+  const dst = isDST();
+  return getUSStatus(kstTime, dst).labelSimple === '프리장';
 }
 
 export function getMarketStatus(): DualMarketStatus {
