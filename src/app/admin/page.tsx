@@ -69,7 +69,7 @@ export default function AdminPage() {
   useEffect(() => {
     if (loading) return;
     if (!user) { setError('로그인이 필요합니다.'); return; }
-    if (!ADMIN_EMAILS.includes(user.email || '')) { setError('관리자 권한이 없습니다.'); return; }
+    if (!ADMIN_EMAILS.includes(user.email || '')) { setError(`관리자 권한이 없습니다. (현재 로그인: ${user.email})`); return; }
     fetchStats();
   }, [user, loading]);
 
