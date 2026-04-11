@@ -21,7 +21,7 @@ function cleanTitle(title: string): string {
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q');
   const locale = req.nextUrl.searchParams.get('locale') || 'ko'; // 'ko' | 'en'
-  const maxHours = parseInt(req.nextUrl.searchParams.get('maxHours') || '12', 10);
+  const maxHours = parseInt(req.nextUrl.searchParams.get('maxHours') || '24', 10);
   if (!query) {
     return NextResponse.json({ error: 'q parameter required' }, { status: 400 });
   }

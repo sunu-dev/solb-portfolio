@@ -120,35 +120,45 @@ export default function PortfolioSection() {
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
 
-  // Fetch portfolio-related news — use shorter queries for better results
+  // Fetch portfolio-related news — 종목별 병렬 개별 검색 (AND 쿼리 문제 해결)
   useEffect(() => {
     const investingSymbols = (stocks.investing || []).map(s => s.symbol);
     if (!investingSymbols.length) return;
-    // Use stocks that have Korean names for better search results
-    const krNames = investingSymbols
-      .map(s => STOCK_KR[s])
-      .filter(Boolean)
-      .slice(0, 3);
-    // Fallback: if no Korean names, use "미국 주식" as generic query
-    const query = krNames.length > 0 ? krNames.join(' ') + ' 주가' : '미국 주식 증시';
-    fetchKoreanNews(query).then(items => {
-      if (items) {
-        const tagged = items.slice(0, 5).map(item => {
-          let tag = investingSymbols[0];
-          for (const sym of investingSymbols) {
-            const kr = STOCK_KR[sym] || sym;
-            if (item.title.includes(kr) || item.title.includes(sym)) {
-              tag = sym;
-              break;
+
+    const targets = investingSymbols
+      .map(s => ({ sym: s, kr: STOCK_KR[s] }))
+      .filter(t => t.kr)
+      .slice(0, 4);
+
+    const queries = targets.length > 0
+      ? targets.map(t => `${t.kr} 주가`)
+      : ['미국 주식 증시'];
+
+    // 종목별 개별 검색 후 병합 — 48시간 window
+    Promise.all(queries.map(q => fetchKoreanNews(q, undefined, 48).catch(() => null)))
+      .then(results => {
+        const seen = new Set<string>();
+        const merged: (NewsItem & { tag: string })[] = [];
+        results.forEach((items, i) => {
+          if (!items) return;
+          const sym = targets[i]?.sym || investingSymbols[0];
+          items.slice(0, 3).forEach(item => {
+            if (seen.has(item.title)) return;
+            seen.add(item.title);
+            let tag = sym;
+            for (const { sym: s, kr } of targets) {
+              if (kr && (item.title.includes(kr) || item.title.includes(s))) { tag = s; break; }
             }
-          }
-          return { ...item, tag };
+            merged.push({ ...item, tag });
+          });
         });
-        setPortfolioNews(tagged);
-      }
-      setNewsLoaded(true);
-    }).catch(() => setNewsLoaded(true));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+        // 최신순 정렬 후 상위 5개
+        merged.sort((a, b) => new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime());
+        if (merged.length) setPortfolioNews(merged.slice(0, 5));
+        setNewsLoaded(true);
+      })
+      .catch(() => setNewsLoaded(true));
+  }, [stocks.investing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // USD/KRW rate
   const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
