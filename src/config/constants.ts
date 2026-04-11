@@ -303,9 +303,9 @@ export const PRESET_EVENTS: PresetEvent[] = [
 ];
 
 export const NEWS_QUERIES: Record<string, { q: string; locale?: string; maxHours?: number }> = {
-  us:  { q: '미국 증시 나스닥 S&P500 뉴욕 연준 when:2d',  locale: 'ko', maxHours: 12 },
-  kr:  { q: '한국 증시 코스피 코스닥 when:2d',              locale: 'ko', maxHours: 24 },
-  hot: { q: '주식 투자 급등 급락 when:2d',                  locale: 'ko', maxHours: 24 },
+  us:  { q: '미국 증시 나스닥',   locale: 'ko', maxHours: 24 },
+  kr:  { q: '코스피 코스닥 증시', locale: 'ko', maxHours: 24 },
+  hot: { q: '주식 급등 테마주',   locale: 'ko', maxHours: 24 },
 };
 
 // --- Trend type ---
