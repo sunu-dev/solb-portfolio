@@ -20,17 +20,20 @@ function cleanTitle(title: string): string {
 
 export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q');
+  const topic = req.nextUrl.searchParams.get('topic'); // e.g. 'BUSINESS'
   const locale = req.nextUrl.searchParams.get('locale') || 'ko'; // 'ko' | 'en'
   const maxHours = parseInt(req.nextUrl.searchParams.get('maxHours') || '24', 10);
-  if (!query) {
-    return NextResponse.json({ error: 'q parameter required' }, { status: 400 });
+  if (!query && !topic) {
+    return NextResponse.json({ error: 'q or topic parameter required' }, { status: 400 });
   }
 
   const isEn = locale === 'en';
   const hl = isEn ? 'en' : 'ko';
   const gl = isEn ? 'US' : 'KR';
   const ceid = isEn ? 'US:en' : 'KR:ko';
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
+  const rssUrl = topic
+    ? `https://news.google.com/rss/headlines/section/topic/${encodeURIComponent(topic)}?hl=${hl}&gl=${gl}&ceid=${ceid}`
+    : `https://news.google.com/rss/search?q=${encodeURIComponent(query!)}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
 
   try {
     const r = await fetch(rssUrl, {
@@ -74,26 +77,32 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Sort by date (newest first) then filter: 3h → 6h → 12h fallback
+    // Sort by date (newest first)
     const sorted = items.sort((a, b) => {
       const da = a.pubDate ? new Date(a.pubDate).getTime() : 0;
       const db = b.pubDate ? new Date(b.pubDate).getTime() : 0;
       return db - da;
     });
 
-    const now = Date.now();
-    const threeHoursAgo = now - 3 * 60 * 60 * 1000;
-    const sixHoursAgo   = now - 6 * 60 * 60 * 1000;
-    const maxAgo        = now - maxHours * 60 * 60 * 1000;
+    let recent: NewsItem[];
+    if (topic) {
+      // 토픽 모드: Google이 이미 인기순 정렬 → 상위 15건 그대로 반환
+      recent = sorted.slice(0, 15);
+    } else {
+      // 검색 모드: 3h → 6h → maxHours 순 fallback
+      const now = Date.now();
+      const threeHoursAgo = now - 3 * 60 * 60 * 1000;
+      const sixHoursAgo   = now - 6 * 60 * 60 * 1000;
+      const maxAgo        = now - maxHours * 60 * 60 * 1000;
 
-    const fresh3h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
-    const fresh6h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
-    const freshMax = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > maxAgo).slice(0, 15);
+      const fresh3h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
+      const fresh6h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
+      const freshMax = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > maxAgo).slice(0, 15);
 
-    // 3h 내 3건 이상 → 3h 기준, 부족하면 6h → 최대(maxHours)h 순으로 확장
-    const recent = fresh3h.length >= 3 ? fresh3h
-      : fresh6h.length >= 3 ? fresh6h
-      : freshMax;
+      recent = fresh3h.length >= 3 ? fresh3h
+        : fresh6h.length >= 3 ? fresh6h
+        : freshMax;
+    }
 
     return NextResponse.json(
       { items: recent },

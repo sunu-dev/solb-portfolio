@@ -71,20 +71,22 @@ function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
 }
 
 export async function fetchKoreanNews(query: string, locale?: string, maxHours?: number): Promise<NewsItem[] | null> {
-  // Use server-side API route (no CORS issues, cached)
+  return fetchNewsAPI({ q: query, locale, maxHours });
+}
+
+async function fetchNewsAPI({ q, topic, locale, maxHours }: { q?: string; topic?: string; locale?: string; maxHours?: number }): Promise<NewsItem[] | null> {
   try {
-    const params = new URLSearchParams({ q: query });
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (topic) params.set('topic', topic);
     if (locale) params.set('locale', locale);
     if (maxHours) params.set('maxHours', String(maxHours));
     const r = await fetch(`/api/news?${params}`);
     const d = await r.json();
-    if (d.items?.length) {
-      return d.items;
-    }
+    if (d.items?.length) return d.items;
   } catch (e) {
     console.error('News fetch failed:', e);
   }
-
   return null;
 }
 
@@ -423,24 +425,19 @@ export function useNewsData() {
   const { updateNewsCache, getAllSymbols } = usePortfolioStore();
 
   const fetchNews = useCallback(async (market: string) => {
-    let q: string;
-    let locale: string | undefined;
-    let maxHours: number | undefined;
+    let items: NewsItem[] | null;
     if (market === 'my') {
       // 한글명 있는 종목만, 최대 4개 → 쿼리 너무 길면 Google News 결과 없음
       const krNames = getAllSymbols().map(s => STOCK_KR[s]).filter(Boolean).slice(0, 4);
-      q = krNames.length > 0
+      const q = krNames.length > 0
         ? krNames.join(' ') + ' 주가'
         : '미국 증시 나스닥';
-      maxHours = 24;
+      items = await fetchKoreanNews(q, 'ko', 24);
     } else {
       const entry = NEWS_QUERIES[market];
       if (!entry) return null;
-      q = entry.q;
-      locale = entry.locale;
-      maxHours = entry.maxHours;
+      items = await fetchNewsAPI({ q: entry.q, topic: entry.topic, locale: entry.locale, maxHours: entry.maxHours });
     }
-    const items = await fetchKoreanNews(q, locale, maxHours);
     if (items?.length) {
       updateNewsCache(market, items);
     }

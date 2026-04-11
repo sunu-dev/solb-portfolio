@@ -302,10 +302,10 @@ export const PRESET_EVENTS: PresetEvent[] = [
   },
 ];
 
-export const NEWS_QUERIES: Record<string, { q: string; locale?: string; maxHours?: number }> = {
+export const NEWS_QUERIES: Record<string, { q?: string; topic?: string; locale?: string; maxHours?: number }> = {
   us:  { q: '미국 증시 나스닥',   locale: 'ko', maxHours: 24 },
   kr:  { q: '코스피 코스닥 증시', locale: 'ko', maxHours: 24 },
-  hot: { q: '급등주',              locale: 'ko', maxHours: 48 },
+  hot: { topic: 'BUSINESS',        locale: 'ko' }, // Google News 비즈니스 상위 기사
 };
 
 // --- Trend type ---
