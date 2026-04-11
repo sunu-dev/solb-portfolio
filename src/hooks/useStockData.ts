@@ -129,6 +129,8 @@ export function useStockData() {
   } = usePortfolioStore();
 
   const fetchAllQuotes = useCallback(async () => {
+    // getState()로 항상 최신 apiKey 읽기 — stale closure 방지
+    const apiKey = usePortfolioStore.getState().apiKey;
     if (!apiKey) return;
     const syms = getAllSymbols();
 
@@ -247,6 +249,7 @@ export function useStockData() {
   }, [apiKey, getAllSymbols, updateMacroEntry, setLastUpdate]);
 
   const fetchAllCandles = useCallback(async () => {
+    const apiKey = usePortfolioStore.getState().apiKey;
     if (!apiKey) return;
     const syms = getAllSymbols();
 
@@ -326,6 +329,7 @@ export function useMacroData() {
   const { apiKey, updateMacroEntry } = usePortfolioStore();
 
   const fetchMacro = useCallback(async () => {
+    const apiKey = usePortfolioStore.getState().apiKey;
     if (!apiKey) return;
 
     // Use batch API (server-side, fast) instead of individual client calls

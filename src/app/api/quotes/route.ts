@@ -87,6 +87,8 @@ export async function POST(req: NextRequest) {
     const indexSymbols = syms.filter(s => s.startsWith('^') || YAHOO_INDEX_MAP[s]);
     const stockSymbols = syms.filter(s => !s.startsWith('^') && !YAHOO_INDEX_MAP[s]);
 
+    let usdKrw: { c: number; d: number; dp: number } | null = null;
+
     await Promise.all([
       // Index quotes via Yahoo Finance (Finnhub free tier doesn't support indices)
       ...indexSymbols.map(async (symbol) => {
@@ -96,16 +98,11 @@ export async function POST(req: NextRequest) {
       ...stockSymbols.map(async (symbol) => {
         results[symbol] = await fetchFromFinnhub(symbol, apiKey);
       }),
+      // USD/KRW 병렬 처리 (기존 순차 제거)
+      ...(macro ? [fetchFromYahoo('USDKRW=X').then(q => {
+        if (q) usdKrw = { c: q.c, d: q.d, dp: q.dp };
+      })] : []),
     ]);
-
-    // USD/KRW if macro requested
-    let usdKrw = null;
-    if (macro) {
-      const q = await fetchFromYahoo('USDKRW=X');
-      if (q) {
-        usdKrw = { c: q.c, d: q.d, dp: q.dp };
-      }
-    }
 
     return NextResponse.json(
       { quotes: results, usdKrw },
