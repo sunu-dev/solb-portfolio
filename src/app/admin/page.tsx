@@ -82,7 +82,7 @@ export default function AdminPage() {
 
       const [
         { count: totalUsers },
-        { data: todayLogs, count: todayAiCalls },
+        { count: todayAiCalls },
         { count: totalAiCalls },
         { data: activeLogs },
         { data: stockLogs },
@@ -91,17 +91,22 @@ export default function AdminPage() {
         { data: userUsageRaw },
       ] = await Promise.all([
         supabase.from('user_portfolios').select('*', { count: 'exact', head: true }),
-        supabase.from('api_logs').select('*', { count: 'exact' }).eq('action', 'ai_analysis').gte('created_at', today + 'T00:00:00'),
-        supabase.from('api_logs').select('*', { count: 'exact', head: true }).eq('action', 'ai_analysis'),
-        supabase.from('api_logs').select('user_id').gte('created_at', today + 'T00:00:00'),
-        supabase.from('api_logs').select('symbol').eq('action', 'ai_analysis').not('symbol', 'is', null),
+        // ai_usage: 오늘 AI 분석 횟수 (서버 사이드 정확한 소스)
+        supabase.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today),
+        // ai_usage: 전체 누적 AI 분석 횟수
+        supabase.from('ai_usage').select('*', { count: 'exact', head: true }),
+        // 오늘 활성 유저: ai_usage 기준
+        supabase.from('ai_usage').select('user_id').eq('date', today),
+        // 인기 종목: ai_usage 기준
+        supabase.from('ai_usage').select('symbol').not('symbol', 'is', null),
+        // 최근 활동: api_logs (login, stock_add 등 다양한 액션 포함)
         supabase.from('api_logs').select('action, symbol, created_at').order('created_at', { ascending: false }).limit(20),
         supabase.from('gemini_key_usage').select('key_index').eq('date', today),
         supabase.from('ai_usage').select('user_id').eq('date', today).not('user_id', 'is', null),
       ]);
 
-      // 오늘 활성 유저
-      const uniqueActiveUsers = new Set((activeLogs || []).map(l => l.user_id)).size;
+      // 오늘 AI 사용한 유니크 유저 수
+      const uniqueActiveUsers = new Set((activeLogs || []).map(l => l.user_id).filter(Boolean)).size;
 
       // 인기 종목
       const stockCounts: Record<string, number> = {};
@@ -120,8 +125,6 @@ export default function AdminPage() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
         .map(([user_id, count]) => ({ user_id, count }));
-
-      void todayLogs;
 
       setStats({
         totalUsers: totalUsers || 0,
