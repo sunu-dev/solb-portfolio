@@ -1,27 +1,51 @@
 {
-  "name": "SOLB — 폭풍우에도 흔들리지 않는 내 투자 비서",
-  "short_name": "SOLB",
-  "description": "내 주식을 쉽게 읽어주는 AI 투자 비서. 6가지 관점의 종목 분석.",
+  "name": "솔비서 — 내 AI 투자 비서",
+  "short_name": "솔비서",
+  "description": "내 주식을 쉽게 읽어주는 AI 투자 정보 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#FFFFFF",
   "theme_color": "#3182F6",
+  "lang": "ko",
+  "categories": ["finance", "utilities"],
   "icons": [
     {
-      "src": "/logo-solb.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "내 포트폴리오",
+      "url": "/?section=portfolio",
+      "description": "내 주식 포트폴리오 확인"
+    },
+    {
+      "name": "뉴스",
+      "url": "/?section=news",
+      "description": "최신 투자 뉴스"
     }
   ]
 }
