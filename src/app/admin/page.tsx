@@ -62,11 +62,14 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
+type AdminTab = 'stats' | 'codes' | 'config';
+
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<AdminTab>('stats');
 
   useEffect(() => {
     if (loading) return;
@@ -168,7 +171,7 @@ export default function AdminPage() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', fontFamily: 'Pretendard Variable, sans-serif' }}>
 
       {/* 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 4 }}>솔비서 관리자</h1>
           <p style={{ fontSize: 13, color: '#8B95A1' }}>{getTodayKST()} 기준 · KST</p>
@@ -182,6 +185,22 @@ export default function AdminPage() {
         </button>
       </div>
 
+      {/* 탭 */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #F2F4F6', marginBottom: 32, gap: 0 }}>
+        {([['stats', '📊 통계'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
+          <button key={id} onClick={() => setActiveTab(id)} style={{
+            padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
+            color: activeTab === id ? '#191F28' : '#8B95A1',
+            background: 'none', border: 'none', borderBottom: activeTab === id ? '2px solid #191F28' : '2px solid transparent',
+            cursor: 'pointer', marginBottom: -1,
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {activeTab === 'codes' && <CodesPanel session={user} />}
+      {activeTab === 'config' && <ConfigPanel session={user} />}
+
+      {activeTab === 'stats' && <>
       {/* 쿼터 경고 배너 */}
       {quotaWarnPct >= 70 && (
         <div style={{
@@ -303,6 +322,275 @@ export default function AdminPage() {
         )}
       </div>
 
+      </>}  {/* activeTab === 'stats' */}
+    </div>
+  );
+}
+
+// ── 코드 관리 패널 ────────────────────────────────────────────────────────────
+
+function CodesPanel({ session: _session }: { session: unknown }) {
+  const [type, setType] = useState('invite');
+  const [count, setCount] = useState(10);
+  const [maxUses, setMaxUses] = useState(1);
+  const [expiresAt, setExpiresAt] = useState('');
+  const [description, setDescription] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [codes, setCodes] = useState<{ code: string; type: string; use_count: number; max_uses: number; is_active: boolean; created_at: string }[]>([]);
+  const [loadingCodes, setLoadingCodes] = useState(false);
+  const [filterType, setFilterType] = useState('invite');
+  const [copied, setCopied] = useState('');
+
+  const getToken = async () => {
+    const { supabase: sb } = await import('@/lib/supabase');
+    return (await sb.auth.getSession()).data.session?.access_token ?? '';
+  };
+
+  const loadCodes = async (t: string) => {
+    setLoadingCodes(true);
+    const token = await getToken();
+    const res = await fetch(`/api/codes/generate?type=${t}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setCodes(data.codes || []);
+    setLoadingCodes(false);
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    const token = await getToken();
+    const res = await fetch('/api/codes/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ type, count, max_uses: maxUses, expires_at: expiresAt || null, description }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`✅ ${data.codes.length}개 코드 생성 완료`);
+      loadCodes(type);
+    } else {
+      alert('오류: ' + data.error);
+    }
+    setGenerating(false);
+  };
+
+  const toggleCode = async (code: string, isActive: boolean) => {
+    const token = await getToken();
+    await fetch('/api/codes/generate', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ code, is_active: !isActive }),
+    });
+    loadCodes(filterType);
+  };
+
+  const copyAll = () => {
+    const active = codes.filter(c => c.is_active && c.use_count < c.max_uses);
+    navigator.clipboard.writeText(active.map(c => c.code).join('\n'));
+    setCopied('all');
+    setTimeout(() => setCopied(''), 2000);
+  };
+
+  return (
+    <div>
+      {/* 코드 생성 */}
+      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>코드 생성</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>타입</label>
+            <select value={type} onChange={e => setType(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13 }}>
+              <option value="invite">invite — 베타 초대</option>
+              <option value="referral">referral — 리퍼럴</option>
+              <option value="discount">discount — 할인</option>
+              <option value="promo">promo — 프로모션</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>생성 수량</label>
+            <input type="number" value={count} min={1} max={100} onChange={e => setCount(Number(e.target.value))}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>1코드 최대 사용</label>
+            <input type="number" value={maxUses} min={1} onChange={e => setMaxUses(Number(e.target.value))}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>만료일 (선택)</label>
+            <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="메모 (선택)"
+          style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
+        <button onClick={handleGenerate} disabled={generating}
+          style={{ padding: '10px 24px', background: generating ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer' }}>
+          {generating ? '생성 중...' : `코드 ${count}개 생성`}
+        </button>
+      </div>
+
+      {/* 코드 목록 */}
+      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {['invite', 'referral', 'discount', 'promo'].map(t => (
+              <button key={t} onClick={() => { setFilterType(t); loadCodes(t); }}
+                style={{ padding: '6px 14px', background: filterType === t ? '#191F28' : '#F2F4F6', color: filterType === t ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                {t}
+              </button>
+            ))}
+          </div>
+          <button onClick={copyAll}
+            style={{ padding: '6px 14px', background: copied === 'all' ? '#20C997' : '#F2F4F6', color: copied === 'all' ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            {copied === 'all' ? '복사됨 ✓' : '미사용 전체 복사'}
+          </button>
+        </div>
+
+        {loadingCodes ? (
+          <div style={{ textAlign: 'center', padding: 24, color: '#8B95A1', fontSize: 13 }}>불러오는 중...</div>
+        ) : codes.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 24, color: '#B0B8C1', fontSize: 13 }}>코드를 먼저 생성하거나 타입을 선택해주세요</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {codes.map(c => (
+              <div key={c.code} style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px', background: '#F8F9FA', borderRadius: 10,
+                border: '1px solid #F2F4F6', opacity: c.is_active ? 1 : 0.4,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>{c.code}</span>
+                  <span style={{ fontSize: 11, color: '#8B95A1' }}>{c.use_count}/{c.max_uses}회</span>
+                  {c.use_count >= c.max_uses && <span style={{ fontSize: 11, color: '#B0B8C1', background: '#F2F4F6', padding: '2px 6px', borderRadius: 4 }}>소진</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+                    {new Date(c.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  </span>
+                  <button onClick={() => { navigator.clipboard.writeText(c.code); setCopied(c.code); setTimeout(() => setCopied(''), 1500); }}
+                    style={{ padding: '4px 10px', background: copied === c.code ? '#20C997' : '#F2F4F6', color: copied === c.code ? '#fff' : '#4E5968', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                    {copied === c.code ? '✓' : '복사'}
+                  </button>
+                  <button onClick={() => toggleCode(c.code, c.is_active)}
+                    style={{ padding: '4px 10px', background: c.is_active ? 'rgba(239,68,82,0.08)' : 'rgba(32,201,151,0.08)', color: c.is_active ? '#EF4452' : '#20C997', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                    {c.is_active ? '비활성화' : '활성화'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── 서비스 설정 패널 ──────────────────────────────────────────────────────────
+
+function ConfigPanel({ session: _session }: { session: unknown }) {
+  const [config, setConfig] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const getToken = async () => {
+    const { supabase: sb } = await import('@/lib/supabase');
+    return (await sb.auth.getSession()).data.session?.access_token ?? '';
+  };
+
+  useEffect(() => {
+    fetch('/api/config').then(r => r.json()).then(({ config: c }) => setConfig(c || {}));
+  }, []);
+
+  const update = (key: string, value: string) => setConfig(prev => ({ ...prev, [key]: value }));
+
+  const save = async () => {
+    setSaving(true);
+    const token = await getToken();
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ updates: config }),
+    });
+    const data = await res.json();
+    if (data.success) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    else alert('저장 실패: ' + data.error);
+    setSaving(false);
+  };
+
+  const modeLabels: Record<string, string> = {
+    beta: '🔒 베타',
+    waitlist: '📋 대기자',
+    open: '🌐 오픈',
+    maintenance: '🛠 점검',
+  };
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 28 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 24 }}>서비스 설정</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#191F28', display: 'block', marginBottom: 8 }}>서비스 모드</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {Object.entries(modeLabels).map(([val, label]) => (
+              <button key={val} onClick={() => update('service_mode', val)}
+                style={{ padding: '8px 20px', background: config.service_mode === val ? '#191F28' : '#F2F4F6', color: config.service_mode === val ? '#fff' : '#4E5968', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: '#8B95A1', marginTop: 6 }}>
+            현재: <strong>{config.service_mode || '불러오는 중'}</strong>
+            {config.service_mode === 'beta' && ' — 초대 코드 있는 사용자만 접근 가능'}
+            {config.service_mode === 'open' && ' — 누구나 즉시 가입 가능'}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F8F9FA', borderRadius: 12 }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600 }}>초대 코드 필수</div>
+            <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2 }}>OFF 시 코드 없이 바로 가입 가능</div>
+          </div>
+          <button onClick={() => update('invite_required', config.invite_required === 'true' ? 'false' : 'true')}
+            style={{ width: 48, height: 26, background: config.invite_required === 'true' ? '#3182F6' : '#E5E8EB', border: 'none', borderRadius: 13, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+            <span style={{ position: 'absolute', top: 3, left: config.invite_required === 'true' ? 24 : 3, width: 20, height: 20, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 최대 인원 (0=무제한)</label>
+            <input type="number" value={config.beta_max_users || ''} onChange={e => update('beta_max_users', e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 자동 종료 날짜</label>
+            <input type="date" value={config.beta_end_date || ''} onChange={e => update('beta_end_date', e.target.value)}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+          </div>
+        </div>
+
+        <div>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#191F28', display: 'block', marginBottom: 8 }}>AI 분석 일일 한도</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {([['ai_beta_limit', '베타 유저'], ['ai_daily_limit', '일반 유저'], ['ai_admin_limit', '관리자 (0=무제한)']] as [string, string][]).map(([key, label]) => (
+              <div key={key}>
+                <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>{label}</label>
+                <input type="number" value={config[key] || ''} onChange={e => update(key, e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={save} disabled={saving}
+          style={{ padding: '12px 32px', background: saved ? '#20C997' : saving ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start', transition: 'background 0.2s' }}>
+          {saved ? '저장됨 ✓' : saving ? '저장 중...' : '설정 저장'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -49,41 +49,52 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo — [L1] '솔' 담배 레트로 타이포 + 배민식 꽉 찬 아이콘 */}
-        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
+        {/* Logo — [L1] 나노바나나 스타일의 말랑하고 꽉 찬 '솔' 아이콘 */}
+        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
           <div style={{
             position: 'relative',
-            width: '36px',
-            height: '36px',
-            background: 'linear-gradient(135deg, #1B6B3A 0%, #0F3D21 100%)',
-            borderRadius: '6px',
+            width: '34px',
+            height: '34px',
+            background: 'linear-gradient(135deg, #1B6B3A 0%, #2D5A27 100%)',
+            borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+            padding: '4px',
+            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
           }}>
-            {/* '솔' Typography - Extra Thick & Saturated Style */}
-            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', fill: 'white' }}>
-              {/* ㅅ (시옷) - 프레임 상단을 터질 듯이 채우는 묵직한 획 */}
-              <path d="M5 45 L50 5 L95 45 L80 45 L50 18 L20 45 Z" />
-              {/* ㅗ (오) - ㅅ과 ㄹ을 잇는 단단한 연결 기둥 */}
-              <rect x="42" y="35" width="16" height="18" />
-              <rect x="5" y="48" width="90" height="15" />
-              {/* ㄹ (리을) - 솔 담배 특유의 지그재그를 꽉 채운 형태 */}
-              <path d="M5 68 H95 V78 H22 V82 H95 V95 H5 V85 H78 V80 H5 Z" />
+            {/* '솔' Typography - Nano Banana Style (Chunky & Rounded) */}
+            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
+              {/* ㅅ (시옷) - 포동포동한 산 모양 */}
+              <path d="M22 42 Q50 12 78 42" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
+              {/* ㅗ (오) - 짧고 굵은 연결 */}
+              <line x1="50" y1="38" x2="50" y2="52" stroke="white" strokeWidth="20" strokeLinecap="round" />
+              <line x1="22" y1="58" x2="78" y2="58" stroke="white" strokeWidth="20" strokeLinecap="round" />
+              {/* ㄹ (리을) - 둥글둥글하게 꽉 찬 지그재그 */}
+              <path d="M25 75 H75 V82 H25 V88 H75" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <span style={{ 
-            fontSize: '22px', 
-            fontWeight: 900, 
-            letterSpacing: '-0.08em', 
-            color: 'var(--text-primary, #191F28)',
-            fontFamily: 'Pretendard, sans-serif',
-            lineHeight: 1
-          }}>
-            비서
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <span style={{ 
+              fontSize: '20px', 
+              fontWeight: 900, 
+              letterSpacing: '-0.05em', 
+              color: 'var(--text-primary, #191F28)',
+              fontFamily: 'Pretendard, sans-serif',
+              lineHeight: 1
+            }}>
+              비서
+            </span>
+            <span style={{ 
+              fontSize: '9px', 
+              fontWeight: 800, 
+              color: '#1B6B3A', 
+              letterSpacing: '0.05em',
+              marginTop: '2px'
+            }}>
+              YOUR ASSISTANT
+            </span>
+          </div>
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}

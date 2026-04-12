@@ -26,6 +26,7 @@ import SettingsPanel from '@/components/common/SettingsPanel';
 // ToastAlert removed — alerts now shown in sidebar notification center
 import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 
 export default function Home() {
@@ -38,6 +39,8 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileAlerts, setShowMobileAlerts] = useState(false);
+  const [serviceMode, setServiceMode] = useState<string>('open'); // 기본값 open → 로드 후 업데이트
+  const [needsInvite, setNeedsInvite] = useState(false);
 
   // Mobile alert sheet open via custom event (from header bell icon)
   useEffect(() => {
@@ -105,6 +108,41 @@ export default function Home() {
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 서비스 모드 + 초대코드 게이트 확인
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(({ config }) => {
+        setServiceMode(config?.service_mode ?? 'open');
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!user || authLoading) return;
+    const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
+    const isAdmin = ADMIN_IDS.includes(user.id);
+    if (isAdmin) { setNeedsInvite(false); return; }
+
+    // 초대코드 필수 모드이면 사용 이력 확인
+    if (serviceMode === 'beta') {
+      fetch('/api/config')
+        .then(r => r.json())
+        .then(async ({ config }) => {
+          if (config?.invite_required !== 'true') return;
+          // user_portfolios에 invited_by_code 있으면 통과
+          const { supabase: sb } = await import('@/lib/supabase');
+          const { data } = await sb
+            .from('user_portfolios')
+            .select('invited_by_code')
+            .eq('user_id', user.id)
+            .single();
+          if (!data?.invited_by_code) setNeedsInvite(true);
+        })
+        .catch(() => {});
+    }
+  }, [user, authLoading, serviceMode]);
+
   // Log login event
   useEffect(() => {
     if (user && !authLoading) {
@@ -134,6 +172,11 @@ export default function Home() {
 
   useAutoRefresh();
   useRealtimePrice();
+
+  // 초대코드 게이트 — 로그인은 됐지만 코드 미입력
+  if (user && needsInvite) {
+    return <InviteGate user={user} onVerified={() => setNeedsInvite(false)} />;
+  }
 
   if (!hydrated) {
     return (
