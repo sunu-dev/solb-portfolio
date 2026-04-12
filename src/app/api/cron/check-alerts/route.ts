@@ -62,11 +62,11 @@ async function fetchUsdKrw(): Promise<number> {
 
 function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): TriggeredAlert[] {
   const alerts: TriggeredAlert[] = [];
-  if (stock.avgCost <= 0 || price <= 0) return alerts;
+  if (stock.avgCost <= 0 || stock.shares <= 0 || price <= 0) return alerts;
 
   const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
   const plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
-  const plUSD = (price - stock.avgCost) * (stock.shares || 1);
+  const plUSD = (price - stock.avgCost) * stock.shares;
   const plKRW = isKR ? plUSD : plUSD * usdKrw;
   const sym = stock.symbol;
   const cur = isKR ? '₩' : '$';

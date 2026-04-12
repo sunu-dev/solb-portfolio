@@ -11,6 +11,13 @@ interface Props {
 type Step = 'upload' | 'loading' | 'review' | 'done';
 type TargetCat = 'investing' | 'watching';
 
+// 편집 가능한 OCR 데이터
+interface EditableStock extends OcrStock {
+  editAvgCost: string;
+  editShares: string;
+  isComplete: boolean;
+}
+
 export default function OcrImportModal({ onClose }: Props) {
   const addStock = usePortfolioStore(s => s.addStock);
   const stocks = usePortfolioStore(s => s.stocks);
@@ -18,15 +25,15 @@ export default function OcrImportModal({ onClose }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [source, setSource] = useState('');
-  const [ocrStocks, setOcrStocks] = useState<OcrStock[]>([]);
+  const [ocrStocks, setOcrStocks] = useState<EditableStock[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState('');
   const [applied, setApplied] = useState(0);
+  const [appliedWatching, setAppliedWatching] = useState(0);
   const [skippedDup, setSkippedDup] = useState(0);
   const [targetCat, setTargetCat] = useState<TargetCat>('investing');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // 기존 포트폴리오의 심볼 Set
   const existingSymbols = new Set([
     ...(stocks.investing || []).map(s => s.symbol.toUpperCase()),
     ...(stocks.watching || []).map(s => s.symbol.toUpperCase()),
@@ -53,13 +60,18 @@ export default function OcrImportModal({ onClose }: Props) {
         return;
       }
 
-      setOcrStocks(data.stocks);
+      // EditableStock으로 변환
+      const editable: EditableStock[] = (data.stocks as OcrStock[]).map(s => ({
+        ...s,
+        editAvgCost: s.avgCost !== null ? String(s.avgCost) : '',
+        editShares: s.shares !== null ? String(s.shares) : '',
+        isComplete: s.avgCost !== null && s.avgCost > 0 && s.shares !== null && s.shares > 0,
+      }));
+
+      setOcrStocks(editable);
       setSource(data.source);
-      // 중복이 아닌 것만 기본 선택
       const nonDupIndices = new Set(
-        (data.stocks as OcrStock[])
-          .map((_: OcrStock, i: number) => i)
-          .filter((i: number) => !isDuplicate(data.stocks[i].symbol))
+        editable.map((_, i) => i).filter(i => !isDuplicate(editable[i].symbol))
       );
       setSelected(nonDupIndices);
       setStep('review');
@@ -92,25 +104,48 @@ export default function OcrImportModal({ onClose }: Props) {
     });
   };
 
+  const updateField = (i: number, field: 'editAvgCost' | 'editShares', value: string) => {
+    setOcrStocks(prev => {
+      const next = [...prev];
+      next[i] = { ...next[i], [field]: value };
+      const cost = parseFloat(field === 'editAvgCost' ? value : next[i].editAvgCost) || 0;
+      const shares = parseInt(field === 'editShares' ? value : next[i].editShares) || 0;
+      next[i].isComplete = cost > 0 && shares > 0;
+      return next;
+    });
+  };
+
   const applyToPortfolio = () => {
-    let count = 0;
+    let investCount = 0;
+    let watchCount = 0;
     let dupCount = 0;
+
     ocrStocks.forEach((s, i) => {
       if (!selected.has(i)) return;
-      if (isDuplicate(s.symbol)) {
-        dupCount++;
-        return;
-      }
-      addStock(targetCat, {
+      if (isDuplicate(s.symbol)) { dupCount++; return; }
+
+      const finalAvgCost = parseFloat(s.editAvgCost) || 0;
+      const finalShares = parseInt(s.editShares) || 0;
+      const hasPosition = finalAvgCost > 0 && finalShares > 0;
+
+      // 완전한 데이터 → 선택한 카테고리, 불완전 → 관심종목
+      const cat = hasPosition ? targetCat : 'watching';
+
+      addStock(cat, {
         symbol: s.symbol.toUpperCase(),
-        avgCost: s.avgCost ?? 0,
-        shares: s.shares ?? 0,
-        targetReturn: 10,
+        avgCost: finalAvgCost,
+        shares: finalShares,
+        targetReturn: hasPosition ? 10 : 0,
         purchaseRate: s.currency === 'USD' ? undefined : 0,
+        buyBelow: !hasPosition ? 0 : undefined,
       });
-      count++;
+
+      if (cat === 'investing') investCount++;
+      else watchCount++;
     });
-    setApplied(count);
+
+    setApplied(investCount);
+    setAppliedWatching(watchCount);
     setSkippedDup(dupCount);
     setStep('done');
   };
@@ -126,6 +161,10 @@ export default function OcrImportModal({ onClose }: Props) {
   };
 
   const selectableCount = Array.from(selected).filter(i => !isDuplicate(ocrStocks[i]?.symbol)).length;
+  const incompleteSelected = Array.from(selected).filter(i => {
+    const s = ocrStocks[i];
+    return s && !isDuplicate(s.symbol) && !s.isComplete;
+  }).length;
 
   return (
     <div
@@ -245,52 +284,103 @@ export default function OcrImportModal({ onClose }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {ocrStocks.map((s, i) => {
                   const dup = isDuplicate(s.symbol);
+                  const incomplete = !s.isComplete && !dup;
+                  const isSelected = selected.has(i);
+
                   return (
                     <div
                       key={i}
-                      onClick={() => !dup && toggleSelect(i)}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
                         padding: '12px 14px', borderRadius: 12,
-                        border: `1.5px solid ${dup ? '#E5E8EB' : selected.has(i) ? '#3182F6' : '#E5E8EB'}`,
-                        background: dup ? '#F8F9FA' : selected.has(i) ? 'rgba(49,130,246,0.04)' : '#fff',
-                        cursor: dup ? 'default' : 'pointer', transition: 'all 0.15s',
+                        border: `1.5px solid ${dup ? '#E5E8EB' : incomplete && isSelected ? '#FF9500' : isSelected ? '#3182F6' : '#E5E8EB'}`,
+                        background: dup ? '#F8F9FA' : incomplete && isSelected ? 'rgba(255,149,0,0.04)' : isSelected ? 'rgba(49,130,246,0.04)' : '#fff',
                         opacity: dup ? 0.6 : 1,
+                        transition: 'all 0.15s',
                       }}
                     >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 6,
-                        background: dup ? '#E5E8EB' : selected.has(i) ? '#3182F6' : '#F2F4F6',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      }}>
-                        {dup ? <span style={{ color: '#8B95A1', fontSize: 10, lineHeight: 1 }}>—</span>
-                          : selected.has(i) && <span style={{ color: '#fff', fontSize: 12, lineHeight: 1 }}>✓</span>}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: dup ? '#8B95A1' : '#191F28' }}>
-                          {s.name || s.symbol}
-                          <span style={{ fontSize: 11, color: '#8B95A1', marginLeft: 6, fontWeight: 400 }}>{s.symbol}</span>
-                          {dup && <span style={{ fontSize: 10, color: '#FF9500', marginLeft: 6, fontWeight: 600 }}>이미 보유</span>}
+                      {/* 상단: 체크 + 종목명 */}
+                      <div
+                        onClick={() => !dup && toggleSelect(i)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: dup ? 'default' : 'pointer' }}
+                      >
+                        <div style={{
+                          width: 20, height: 20, borderRadius: 6,
+                          background: dup ? '#E5E8EB' : isSelected ? '#3182F6' : '#F2F4F6',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          {dup ? <span style={{ color: '#8B95A1', fontSize: 10 }}>—</span>
+                            : isSelected && <span style={{ color: '#fff', fontSize: 12, lineHeight: 1 }}>✓</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: '#4E5968', marginTop: 2 }}>
-                          {s.avgCost !== null
-                            ? `평단 ${s.currency === 'KRW' ? s.avgCost.toLocaleString() + '원' : '$' + s.avgCost.toLocaleString()}`
-                            : '평단 미확인'}
-                          {' · '}
-                          {s.shares !== null ? `${s.shares.toLocaleString()}주` : '수량 미확인'}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: dup ? '#8B95A1' : '#191F28', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {s.name || s.symbol}
+                            <span style={{ fontSize: 11, color: '#8B95A1', fontWeight: 400 }}>{s.symbol}</span>
+                            {dup && <span style={{ fontSize: 10, color: '#FF9500', fontWeight: 600 }}>이미 보유</span>}
+                            {incomplete && isSelected && <span style={{ fontSize: 10, color: '#FF9500', fontWeight: 600 }}>정보 부족</span>}
+                          </div>
                         </div>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: s.currency === 'USD' ? 'rgba(49,130,246,0.1)' : 'rgba(0,198,190,0.1)', color: s.currency === 'USD' ? '#3182F6' : '#00C6BE', fontWeight: 600 }}>
+                          {s.currency}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: s.currency === 'USD' ? 'rgba(49,130,246,0.1)' : 'rgba(0,198,190,0.1)', color: s.currency === 'USD' ? '#3182F6' : '#00C6BE', fontWeight: 600 }}>
-                        {s.currency}
-                      </span>
+
+                      {/* 하단: 데이터 (완전하면 텍스트, 불완전하면 입력 필드) */}
+                      {!dup && (
+                        <div style={{ marginTop: 8, marginLeft: 32 }}>
+                          {s.isComplete ? (
+                            <div style={{ fontSize: 12, color: '#4E5968' }}>
+                              평단 {s.currency === 'KRW' ? `${Number(s.editAvgCost).toLocaleString()}원` : `$${Number(s.editAvgCost).toLocaleString()}`}
+                              {' · '}
+                              {Number(s.editShares).toLocaleString()}주
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: 10, color: '#8B95A1', display: 'block', marginBottom: 2 }}>평균매수가</label>
+                                <input
+                                  type="number"
+                                  placeholder={s.currency === 'KRW' ? '0' : '0.00'}
+                                  value={s.editAvgCost}
+                                  onClick={e => e.stopPropagation()}
+                                  onChange={e => updateField(i, 'editAvgCost', e.target.value)}
+                                  style={{
+                                    width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
+                                    border: `1px solid ${s.editAvgCost ? '#E5E8EB' : '#FF9500'}`,
+                                    borderRadius: 8, outline: 'none', boxSizing: 'border-box',
+                                    background: '#fff',
+                                  }}
+                                />
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <label style={{ fontSize: 10, color: '#8B95A1', display: 'block', marginBottom: 2 }}>보유수량</label>
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={s.editShares}
+                                  onClick={e => e.stopPropagation()}
+                                  onChange={e => updateField(i, 'editShares', e.target.value)}
+                                  style={{
+                                    width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
+                                    border: `1px solid ${s.editShares ? '#E5E8EB' : '#FF9500'}`,
+                                    borderRadius: 8, outline: 'none', boxSizing: 'border-box',
+                                    background: '#fff',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
 
-              {ocrStocks.some(s => s.avgCost === null || s.shares === null) && (
-                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,149,0,0.08)', borderRadius: 10, fontSize: 12, color: '#FF9500' }}>
-                  일부 종목의 값을 인식하지 못했어요. 적용 후 직접 수정할 수 있습니다.
+              {/* 불완전 종목 안내 */}
+              {incompleteSelected > 0 && (
+                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,149,0,0.08)', borderRadius: 10, fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
+                  {incompleteSelected}개 종목의 평단/수량이 비어있어요.
+                  값을 입력하지 않으면 <strong>관심 종목</strong>으로 추가됩니다.
                 </div>
               )}
 
@@ -314,11 +404,13 @@ export default function OcrImportModal({ onClose }: Props) {
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>
-                {applied}개 종목 추가 완료
+                {applied + appliedWatching}개 종목 추가 완료
               </div>
-              <div style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24 }}>
-                {skippedDup > 0 && <>{skippedDup}개 중복 종목 건너뜀<br /></>}
-                포트폴리오에서 평단/수량을 확인하고<br />필요하면 수정해주세요.
+              <div style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24, lineHeight: 1.8 }}>
+                {applied > 0 && <>투자 중 {applied}개<br /></>}
+                {appliedWatching > 0 && <>관심 종목 {appliedWatching}개 (정보 미입력)<br /></>}
+                {skippedDup > 0 && <>중복 {skippedDup}개 건너뜀<br /></>}
+                포트폴리오에서 확인하고 필요하면 수정해주세요.
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}>
