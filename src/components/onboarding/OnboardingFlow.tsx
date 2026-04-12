@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { StockItem } from '@/config/constants';
 import { logApiCall } from '@/lib/apiLogger';
+import OcrImportModal from '@/components/portfolio/OcrImportModal';
 
 interface OnboardingFlowProps {
   userName: string;
@@ -21,6 +22,7 @@ const POPULAR_STOCKS = [
 export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(0);
   const [added, setAdded] = useState<Set<string>>(new Set());
+  const [showOcr, setShowOcr] = useState(false);
   const { addStock } = usePortfolioStore();
 
   const TOTAL_STEPS = 4;
@@ -141,6 +143,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
 
         {step === 2 && (
           <>
+            {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
             <div style={{ fontSize: '48px', marginBottom: '24px' }}>&#x1F4CA;</div>
             <h1
               style={{
@@ -153,6 +156,21 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             >
               관심 있는 종목을 추가해보세요
             </h1>
+
+            {/* OCR 가져오기 */}
+            <button
+              onClick={() => setShowOcr(true)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', maxWidth: 320, padding: '14px 20px', marginBottom: 24,
+                borderRadius: 14, background: 'var(--text-primary, #191F28)', color: '#fff',
+                fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>📸</span>
+              증권앱 스크린샷으로 한번에 가져오기
+            </button>
+
             <p
               style={{
                 fontSize: '15px',
@@ -161,7 +179,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 marginBottom: '28px',
               }}
             >
-              인기 종목
+              또는 인기 종목 추가
             </p>
             <div
               style={{

@@ -5,8 +5,28 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { searchStocks } from '@/hooks/useStockData';
 import { STOCK_KR } from '@/config/constants';
 import type { StockItem } from '@/config/constants';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+
+const RECENT_KEY = 'solb_recent_searches';
+const MAX_RECENT = 5;
+
+function getRecent(): { symbol: string; description: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveRecent(item: { symbol: string; description: string }) {
+  const list = getRecent().filter(r => r.symbol !== item.symbol);
+  list.unshift(item);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
+}
+
+function removeRecent(symbol: string) {
+  const list = getRecent().filter(r => r.symbol !== symbol);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+}
 
 interface SearchBarProps {
   onClose?: () => void;
@@ -18,22 +38,21 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const [results, setResults] = useState<{ symbol: string; description: string }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [recent, setRecent] = useState<{ symbol: string; description: string }[]>([]);
+  const [showRecent, setShowRecent] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus on mount
   useEffect(() => {
     inputRef.current?.focus();
+    setRecent(getRecent());
   }, []);
 
-  // Close on click outside
   useEffect(() => {
     if (!onClose) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('[data-search-panel]')) {
-        onClose();
-      }
+      if (!target.closest('[data-search-panel]')) onClose();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -41,10 +60,15 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
-    if (value.length < 1) { setShowResults(false); setResults([]); return; }
+    if (value.length < 1) {
+      setShowResults(false);
+      setResults([]);
+      setShowRecent(true);
+      return;
+    }
+    setShowRecent(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      // Search both US (Finnhub) and KR (local API) stocks
       const [usItems, krItems] = await Promise.all([
         searchStocks(value, apiKey),
         fetch('/api/kr-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: value }) })
@@ -68,7 +92,10 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     }
     if (name && !STOCK_KR[sym]) STOCK_KR[sym] = name;
 
-    // Determine target category
+    // 최근 검색에 저장
+    saveRecent({ symbol: sym, description: name });
+    setRecent(getRecent());
+
     let targetCat: 'investing' | 'watching' | 'sold' = 'watching';
     if (currentTab === 'investing') targetCat = 'investing';
     else if (currentTab === 'sold') targetCat = 'sold';
@@ -79,8 +106,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     addStock(targetCat, ns);
     logApiCall('stock_add', sym);
 
-    // 추가 직후 편집 모달 열어서 매수 정보 입력 유도
-    const newIdx = (stocks[targetCat] || []).length; // 방금 추가된 종목의 인덱스
+    const newIdx = (stocks[targetCat] || []).length;
     setEditingCat(targetCat);
     setEditingIdx(newIdx);
 
@@ -89,12 +115,10 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     setResults([]);
     try {
       if (sym.endsWith('.KS') || sym.endsWith('.KQ')) {
-        // Korean stock — use our API route
         const r = await fetch(`/api/kr-quote?symbol=${sym}`);
         const d = await r.json();
         if (d?.c) updateMacroEntry(sym, d);
       } else {
-        // US stock — use Finnhub
         const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`);
         const d = await r.json();
         if (d?.c) updateMacroEntry(sym, d);
@@ -102,6 +126,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     } catch { /* silent */ }
     if (onClose) onClose();
   }, [apiKey, stocks, currentTab, addStock, updateMacroEntry, onClose]);
+
+  const handleRemoveRecent = (e: React.MouseEvent, symbol: string) => {
+    e.stopPropagation();
+    removeRecent(symbol);
+    setRecent(getRecent());
+  };
+
+  const showRecentList = showRecent && query.length === 0 && recent.length > 0;
 
   return (
     <div
@@ -118,14 +150,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       <div style={{ position: 'relative' }}>
         <Search
           style={{
-            position: 'absolute',
-            left: 16,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            width: 18,
-            height: 18,
-            color: 'var(--text-tertiary, #B0B8C1)',
-            pointerEvents: 'none',
+            position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
+            width: 18, height: 18, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none',
           }}
         />
         <input
@@ -133,22 +159,54 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          onBlur={() => setTimeout(() => setShowResults(false), 400)}
-          onFocus={() => results.length > 0 && setShowResults(true)}
+          onBlur={() => setTimeout(() => { setShowResults(false); setShowRecent(false); }, 400)}
+          onFocus={() => {
+            if (results.length > 0) setShowResults(true);
+            else if (query.length === 0) setShowRecent(true);
+          }}
           onKeyDown={(e) => { if (e.key === 'Escape' && onClose) onClose(); }}
           placeholder="종목명 또는 심볼 검색"
           style={{
-            width: '100%',
-            padding: '14px 16px 14px 44px',
-            fontSize: 16,
-            border: 'none',
-            outline: 'none',
-            background: 'var(--surface, white)',
-            color: 'var(--text-primary, #191F28)',
-            boxSizing: 'border-box',
+            width: '100%', padding: '14px 16px 14px 44px', fontSize: 16,
+            border: 'none', outline: 'none', background: 'var(--surface, white)',
+            color: 'var(--text-primary, #191F28)', boxSizing: 'border-box',
           }}
         />
       </div>
+
+      {/* 최근 검색 */}
+      {showRecentList && (
+        <div style={{ borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+          <div style={{ padding: '10px 20px 6px', fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)' }}>
+            최근 검색
+          </div>
+          {recent.map((item) => (
+            <button
+              key={item.symbol}
+              onClick={() => handleAdd(item.symbol, item.description)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '10px 20px', border: 'none', cursor: 'pointer',
+                background: 'var(--surface, white)', textAlign: 'left', boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Clock style={{ width: 14, height: 14, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{item.symbol}</span>
+                  <span style={{ fontSize: 12, color: '#8B95A1', marginLeft: 8 }}>{item.description}</span>
+                </div>
+              </div>
+              <div
+                onClick={(e) => handleRemoveRecent(e, item.symbol)}
+                style={{ padding: 4, cursor: 'pointer', flexShrink: 0 }}
+              >
+                <X style={{ width: 12, height: 12, color: '#B0B8C1' }} />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Results */}
       {showResults && results.length > 0 && (
@@ -160,36 +218,21 @@ export default function SearchBar({ onClose }: SearchBarProps) {
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%',
-                padding: '14px 20px',
-                borderTop: '1px solid #F7F8FA',
-                border: 'none',
-                borderTopStyle: 'solid',
-                borderTopWidth: 1,
-                borderTopColor: '#F7F8FA',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', padding: '14px 20px',
+                borderTop: '1px solid #F7F8FA', border: 'none',
+                borderTopStyle: 'solid', borderTopWidth: 1, borderTopColor: '#F7F8FA',
                 cursor: 'pointer',
                 background: hoveredIdx === idx ? 'var(--surface-hover, #F9FAFB)' : 'var(--surface, white)',
-                textAlign: 'left',
-                boxSizing: 'border-box',
-                transition: 'background 0.15s',
+                textAlign: 'left', boxSizing: 'border-box', transition: 'background 0.15s',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: '50%',
-                    background: 'var(--bg-subtle, #F2F4F6)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: 'var(--bg-subtle, #F2F4F6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #4E5968)' }}>
                     {item.symbol.charAt(0)}
                   </span>

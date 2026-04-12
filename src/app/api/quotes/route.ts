@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerApi } from '@/lib/serverLogger';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
@@ -103,6 +104,13 @@ export async function POST(req: NextRequest) {
         if (q) usdKrw = { c: q.c, d: q.d, dp: q.dp };
       })] : []),
     ]);
+
+    // API 호출 로깅 (비동기, 응답 차단하지 않음)
+    logServerApi('api_quotes', {
+      finnhub_count: stockSymbols.length,
+      yahoo_count: indexSymbols.length + (macro ? 1 : 0),
+      total: syms.length,
+    });
 
     return NextResponse.json(
       { quotes: results, usdKrw },

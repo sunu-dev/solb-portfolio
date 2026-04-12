@@ -42,6 +42,7 @@ export default function EditStockModal() {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      setSaved(false);
     } else {
       document.body.style.overflow = '';
     }
@@ -90,6 +91,8 @@ export default function EditStockModal() {
         (oldCostNum * oldSharesNum + addPriceNum * addSharesNum || 1))
     : oldRateNum;
 
+  const [saved, setSaved] = useState(false);
+
   const save = () => {
     if (!editingCat || editingIdx < 0) return;
 
@@ -124,7 +127,8 @@ export default function EditStockModal() {
     }
 
     updateStock(editingCat as 'investing' | 'watching' | 'sold', editingIdx, data);
-    close();
+    setSaved(true);
+    setTimeout(() => close(), 600);
   };
 
   if (!isOpen) return null;
@@ -420,8 +424,9 @@ export default function EditStockModal() {
             취소
           </button>
           <button onClick={save}
-            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer' }}>
-            저장
+            disabled={saved}
+            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#FFFFFF', background: saved ? '#20C997' : '#3182F6', border: 'none', cursor: saved ? 'default' : 'pointer', transition: 'background 0.2s' }}>
+            {saved ? '저장됨 ✓' : '저장'}
           </button>
         </div>
       </div>

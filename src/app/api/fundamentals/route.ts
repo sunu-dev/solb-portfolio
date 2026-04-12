@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerApi } from '@/lib/serverLogger';
 
 const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
 
@@ -76,6 +77,8 @@ export async function GET(req: NextRequest) {
       sector,
       industry,
     };
+
+    logServerApi('api_fundamentals', { symbol });
 
     return NextResponse.json(
       { data: result },

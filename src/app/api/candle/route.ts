@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerApi } from '@/lib/serverLogger';
 
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get('symbol');
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    logServerApi('api_candle', { symbol, points: t.length });
     return NextResponse.json({ s: 'ok', t, o, h, l, c, v });
   } catch (e) {
     console.error('Candle fetch error:', e);

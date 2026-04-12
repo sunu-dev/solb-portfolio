@@ -15,6 +15,7 @@ import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import AiChokSection from './AiChokSection';
 import ShareCard from './ShareCard';
+import OcrImportModal from './OcrImportModal';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -119,6 +120,7 @@ export default function PortfolioSection() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
+  const [showOcr, setShowOcr] = useState(false);
 
   // Fetch portfolio-related news — 종목별 병렬 개별 검색 (AND 쿼리 문제 해결)
   useEffect(() => {
@@ -256,6 +258,8 @@ export default function PortfolioSection() {
 
   return (
     <div>
+      {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
@@ -296,16 +300,24 @@ export default function PortfolioSection() {
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
             종목을 추가해보세요
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 16 }}>상단 검색에서 관심 있는 종목을 찾아 추가해보세요</div>
-          <button
-            onClick={() => {
-              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
-              if (searchBtn) searchBtn.click();
-            }}
-            style={{ padding: '10px 24px', borderRadius: 10, background: '#3182F6', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
-          >
-            종목 검색하기
-          </button>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+            <button
+              onClick={() => setShowOcr(true)}
+              style={{ padding: '12px 28px', borderRadius: 12, background: '#191F28', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+            >
+              <span style={{ fontSize: 16 }}>📸</span> 증권앱에서 가져오기
+            </button>
+            <button
+              onClick={() => {
+                const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                if (searchBtn) searchBtn.click();
+              }}
+              style={{ padding: '10px 24px', borderRadius: 10, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+            >
+              직접 종목 검색하기
+            </button>
+          </div>
         </div>
       )}
 
@@ -359,27 +371,26 @@ export default function PortfolioSection() {
             );
           })}
           </div>
-          <button
-            onClick={() => {
-              const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
-              if (searchBtn) searchBtn.click();
-            }}
-            className="cursor-pointer shrink-0"
-            style={{
-              padding: '6px 14px',
-              marginLeft: 8,
-              marginBottom: 4,
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#fff',
-              background: 'var(--brand-gradient, #1B6B3A)',
-              border: 'none',
-              borderRadius: 8,
-              whiteSpace: 'nowrap',
-            }}
-          >
-            + 종목 추가
-          </button>
+          <div style={{ display: 'flex', gap: 6, marginLeft: 8, marginBottom: 4 }}>
+            <button
+              onClick={() => setShowOcr(true)}
+              className="cursor-pointer shrink-0"
+              style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: '#4E5968', background: '#F2F4F6', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
+              title="MTS 스크린샷으로 한번에 가져오기"
+            >
+              📸
+            </button>
+            <button
+              onClick={() => {
+                const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                if (searchBtn) searchBtn.click();
+              }}
+              className="cursor-pointer shrink-0"
+              style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--brand-gradient, #1B6B3A)', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
+            >
+              + 종목 추가
+            </button>
+          </div>
         </div>
 
         {/* 지연 시세 안내 */}

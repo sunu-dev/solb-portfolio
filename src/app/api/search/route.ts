@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerApi } from '@/lib/serverLogger';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -26,6 +27,8 @@ export async function GET(req: NextRequest) {
         symbol: item.symbol,
         description: item.description,
       }));
+
+    logServerApi('api_search', { query, result_count: results.length });
 
     return NextResponse.json({ result: results }, {
       headers: { 'Cache-Control': 's-maxage=60, stale-while-revalidate=120' },

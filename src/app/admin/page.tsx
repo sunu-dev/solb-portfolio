@@ -62,7 +62,7 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-type AdminTab = 'stats' | 'codes' | 'config';
+type AdminTab = 'stats' | 'growth' | 'codes' | 'config';
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -187,7 +187,7 @@ export default function AdminPage() {
 
       {/* 탭 */}
       <div style={{ display: 'flex', borderBottom: '1px solid #F2F4F6', marginBottom: 32, gap: 0 }}>
-        {([['stats', '📊 통계'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
+        {([['stats', '📊 통계'], ['growth', '📈 성장'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{
             padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
             color: activeTab === id ? '#191F28' : '#8B95A1',
@@ -197,6 +197,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {activeTab === 'growth' && <GrowthPanel session={user} />}
       {activeTab === 'codes' && <CodesPanel session={user} />}
       {activeTab === 'config' && <ConfigPanel session={user} />}
 
@@ -590,6 +591,186 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
           style={{ padding: '12px 32px', background: saved ? '#20C997' : saving ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start', transition: 'background 0.2s' }}>
           {saved ? '저장됨 ✓' : saving ? '저장 중...' : '설정 저장'}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 성장 패널 ─────────────────────────────────────────────────────────────────
+
+interface GrowthData {
+  dateList: string[];
+  signupByDate: { date: string; count: number }[];
+  dauByDate: { date: string; count: number }[];
+  aiByDate: { date: string; count: number }[];
+  actionCount: Record<string, number>;
+  d7Retention: number | null;
+  d1Retention: number | null;
+  peakDau: number;
+  todayDau: number;
+  totalUsers: number;
+  totalAiUsage: number;
+  checks: { id: string; label: string; target: number; current: number; unit: string; done: boolean }[];
+  readinessPct: number;
+}
+
+function MiniBarChart({ data, color }: { data: { date: string; count: number }[]; color: string }) {
+  const maxVal = Math.max(...data.map(d => d.count), 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 56 }}>
+      {data.map(d => {
+        const pct = maxVal > 0 ? (d.count / maxVal) * 100 : 0;
+        const barH = Math.max(pct * 0.48, pct > 0 ? 3 : 0);
+        return (
+          <div key={d.date} title={`${d.date}: ${d.count}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+            <div style={{ width: '100%', height: barH, background: color, borderRadius: '3px 3px 0 0' }} />
+            <span style={{ fontSize: 9, color: '#B0B8C1', whiteSpace: 'nowrap' }}>{d.date.slice(5)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GrowthPanel({ session: _session }: { session: unknown }) {
+  const [data, setData] = useState<GrowthData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [days, setDays] = useState(14);
+
+  const getToken = async () => {
+    const { supabase: sb } = await import('@/lib/supabase');
+    return (await sb.auth.getSession()).data.session?.access_token ?? '';
+  };
+
+  const load = async (d: number) => {
+    setLoading(true);
+    const token = await getToken();
+    const res = await fetch(`/api/admin/growth?days=${d}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    setData(json);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(days); }, [days]);
+
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>성장 데이터 불러오는 중...</div>;
+  if (!data) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>불러오기 실패</div>;
+
+  const aiRate = data.totalUsers > 0 ? Math.round((data.totalAiUsage / data.totalUsers) * 100) : 0;
+
+  return (
+    <div>
+      {/* 기간 선택 */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {[7, 14, 30].map(d => (
+          <button key={d} onClick={() => setDays(d)}
+            style={{ padding: '6px 16px', background: days === d ? '#191F28' : '#F2F4F6', color: days === d ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            최근 {d}일
+          </button>
+        ))}
+      </div>
+
+      {/* 앱스토어 준비도 */}
+      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>앱스토어 출시 준비도</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 80, height: 8, background: '#F2F4F6', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${data.readinessPct}%`, height: '100%', background: data.readinessPct >= 80 ? '#20C997' : data.readinessPct >= 60 ? '#FF9500' : '#3182F6', borderRadius: 4 }} />
+            </div>
+            <span style={{ fontSize: 16, fontWeight: 700, color: data.readinessPct >= 80 ? '#20C997' : '#191F28' }}>{data.readinessPct}%</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {data.checks.map(c => (
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : '#F8F9FA', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : '#F2F4F6'}` }}>
+              <span style={{ fontSize: 16 }}>{c.done ? '✅' : '⬜'}</span>
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.done ? '#20C997' : '#191F28' }}>{c.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: c.done ? '#20C997' : '#8B95A1' }}>
+                {c.current}{c.unit} / {c.target}{c.unit}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 핵심 지표 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+        {[
+          { label: '총 가입자', value: data.totalUsers, unit: '명', color: '#3182F6' },
+          { label: '오늘 DAU', value: data.todayDau, unit: '명', color: '#00C6BE' },
+          { label: '최고 DAU', value: data.peakDau, unit: '명', color: '#FF9500' },
+        ].map(c => (
+          <div key={c.label} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: c.color }}>
+              {c.value.toLocaleString()}
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{c.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+        {[
+          { label: 'D1 리텐션', value: data.d1Retention, unit: '%', color: '#AF52DE' },
+          { label: 'D7 리텐션', value: data.d7Retention, unit: '%', color: '#AF52DE' },
+          { label: 'AI 사용률', value: aiRate, unit: '%', color: '#34C759' },
+        ].map(c => (
+          <div key={c.label} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: c.value === null ? '#B0B8C1' : c.color }}>
+              {c.value === null ? '—' : c.value}
+              {c.value !== null && <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{c.unit}</span>}
+            </div>
+            {c.value === null && <div style={{ fontSize: 11, color: '#B0B8C1' }}>코호트 데이터 부족</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* 일별 차트 3종 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+        {[
+          { title: '일별 신규 가입', data: data.signupByDate, color: '#3182F6' },
+          { title: '일별 DAU', data: data.dauByDate, color: '#00C6BE' },
+          { title: '일별 AI 사용', data: data.aiByDate, color: '#AF52DE' },
+        ].map(chart => (
+          <div key={chart.title} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#191F28', marginBottom: 12 }}>{chart.title}</div>
+            <MiniBarChart data={chart.data} color={chart.color} />
+            <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 8, textAlign: 'right' }}>
+              합계 {chart.data.reduce((s, d) => s + d.count, 0).toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 기능별 사용량 */}
+      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>기능별 사용량 (최근 {days}일)</h3>
+        {Object.keys(data.actionCount).length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+            {Object.entries(data.actionCount)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 12)
+              .map(([action, count]) => {
+                const maxCount = Math.max(...Object.values(data.actionCount));
+                const pct = Math.round((count / maxCount) * 100);
+                return (
+                  <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 12, color: '#4E5968', width: 120, flexShrink: 0, fontFamily: 'monospace' }}>{action}</span>
+                    <div style={{ flex: 1, height: 6, background: '#F2F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: '#3182F6', borderRadius: 3 }} />
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#191F28', width: 36, textAlign: 'right' }}>{count}</span>
+                  </div>
+                );
+              })}
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, color: '#B0B8C1', textAlign: 'center', padding: '20px 0' }}>데이터 없음</div>
+        )}
       </div>
     </div>
   );

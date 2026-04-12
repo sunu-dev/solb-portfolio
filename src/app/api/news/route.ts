@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logServerApi } from '@/lib/serverLogger';
 
 interface NewsItem {
   title: string;
@@ -103,6 +104,8 @@ export async function GET(req: NextRequest) {
         : fresh6h.length >= 3 ? fresh6h
         : freshMax;
     }
+
+    logServerApi('api_news', { query: query || topic, result_count: recent.length });
 
     return NextResponse.json(
       { items: recent },
