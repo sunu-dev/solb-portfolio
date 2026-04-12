@@ -6,7 +6,7 @@ const ADMIN_EMAILS = ['sunu.develop@gmail.com'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
 );
 
 function generateCode(prefix: string): string {
