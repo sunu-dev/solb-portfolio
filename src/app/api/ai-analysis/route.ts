@@ -264,15 +264,17 @@ ${recentNews || '관련 뉴스 없음'}
 
 ${responseFormat}`;
 
-    // 키 로테이션: 실패 시 다른 키로 재시도
+    // 키 × 모델 로테이션: 2.5-flash 실패 시 2.0-flash로 fallback
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
-    for (const apiKey of shuffledKeys) {
+    for (const model of MODELS) {
+      for (const apiKey of shuffledKeys) {
       const keyIndex = GEMINI_KEYS.indexOf(apiKey);
       try {
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model,
           contents: prompt,
           config: { responseMimeType: 'application/json', temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
         });
@@ -301,9 +303,10 @@ ${responseFormat}`;
         lastError = e;
         continue;
       }
-    }
+      } // end keys loop
+    } // end models loop
 
-    // 모든 키 실패
+    // 모든 키/모델 실패
     const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
     let parsedCode: unknown = null;
     let parsedMsg: unknown = null;
