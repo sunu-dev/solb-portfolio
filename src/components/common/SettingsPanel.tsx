@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNotification } from '@/hooks/useNotification';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
+import InviteSection from './InviteSection';
 
 export default function SettingsPanel() {
   const {
@@ -274,8 +275,19 @@ export default function SettingsPanel() {
             )}
           </div>
 
+          {/* 친구 초대 */}
+          <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+              친구 초대
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
+              초대 코드를 공유해 친구를 주비 베타에 초대하세요
+            </div>
+            <InviteSection />
+          </div>
+
           {/* Danger Zone */}
-          <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+          <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               위험 구역
             </div>
