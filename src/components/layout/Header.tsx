@@ -64,8 +64,8 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             boxShadow: '0 4px 12px rgba(49, 130, 246, 0.15)'
           }}>
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              <polyline points="12,78 35,48 55,62 80,22" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="63,16 80,22 74,38" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="10,78 28,52 48,60 68,32 84,18" stroke="#FF4444" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="68,10 84,18 76,32" stroke="#FF4444" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

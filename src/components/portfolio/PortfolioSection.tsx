@@ -308,8 +308,8 @@ export default function PortfolioSection() {
             opacity: 0.8
           }}>
             <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
-              <polyline points="12,78 35,48 55,62 80,22" stroke="#B0B8C1" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="63,16 80,22 74,38" stroke="#B0B8C1" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="10,78 28,52 48,60 68,32 84,18" stroke="#D1D5DB" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="68,10 84,18 76,32" stroke="#D1D5DB" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
