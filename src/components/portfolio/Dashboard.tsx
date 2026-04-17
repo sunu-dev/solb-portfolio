@@ -161,10 +161,35 @@ export default function Dashboard() {
 
           {/* Icon/Illustration Area */}
           <div style={{ width: 100, height: 100, display: 'flex', alignItems: 'center', justifySelf: 'flex-end', opacity: 0.9 }}>
-            {/* 소나무 아이콘 — '주비'의 상징 */}
-            <div style={{ position: 'relative' }}>
-              <img src="/empty-pine.svg" alt="" style={{ width: 80, height: 80, transform: 'scale(1.2)' }} />
-              {!isGain && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'radial-gradient(circle, transparent 40%, rgba(255,255,255,0.4) 100%)' }} />}
+            {/* '주비' 캐릭터 아이콘 — 스마트 비서의 상징 */}
+            <div style={{ 
+              position: 'relative',
+              width: 80,
+              height: 80,
+              background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
+              borderRadius: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 8px 24px rgba(49, 130, 246, 0.2)',
+              transform: 'rotate(-5deg)'
+            }}>
+              <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
+                <path d="M25 35 H75 M50 35 L25 60 M50 35 L75 60" stroke="white" strokeWidth="18" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="20" y1="80" x2="80" y2="80" stroke="white" strokeWidth="18" strokeLinecap="round" />
+                <line x1="50" y1="80" x2="50" y2="92" stroke="white" strokeWidth="18" strokeLinecap="round" />
+              </svg>
+              {!isGain && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: -5, 
+                  right: -5, 
+                  fontSize: 24,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+                }}>
+                  ☁️
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -77,7 +77,7 @@ const GREETINGS: Greeting[] = [
   // ===== 겨울 (12~2월) =====
   { text: '추운 날씨에 감기 조심하세요! 건강이 최고 자산', emoji: '🧣', condition: { months: [12,1,2] } },
   { text: '따뜻한 차 한 잔과 함께 포트폴리오 체크', emoji: '🍵', condition: { months: [12,1,2] } },
-  { text: '겨울을 견디는 소나무처럼, 묵묵히 함께할게요', emoji: '🌲', condition: { months: [12,1,2] } },
+  { text: '겨울을 이겨내는 투자자처럼, 묵묵히 함께할게요', emoji: '📈', condition: { months: [12,1,2] } },
   { text: '추운 겨울이지만, 마음만은 따뜻하게', emoji: '❄️', condition: { months: [12,1] } },
 
   // ===== 특별한 날 =====
@@ -92,7 +92,7 @@ const GREETINGS: Greeting[] = [
   { text: '스승의 날이에요. 주비도 좋은 스승이 되고 싶어요', emoji: '🌹', condition: { dates: ['05-15'] } },
 
   // ===== 하락장 위로 =====
-  { text: '힘든 하루였죠. 괜찮아요, 소나무도 겨울을 견뎌요', emoji: '🌲', condition: { isLoss: true } },
+  { text: '힘든 하루였죠. 괜찮아요, 시장은 다시 회복될 거예요', emoji: '📈', condition: { isLoss: true } },
   { text: '폭풍우가 지나면 무지개가 와요. 함께할게요', emoji: '🌈', condition: { isLoss: true } },
   { text: '잃어도 괜찮아요. 배우는 과정이에요', emoji: '💙', condition: { isLoss: true } },
   { text: '나만 떨어지는 게 아니에요. 시장은 파도가 있어요', emoji: '🌊', condition: { isLoss: true } },
@@ -100,10 +100,10 @@ const GREETINGS: Greeting[] = [
   { text: '오늘은 좀 쉬어도 돼요. 내일은 내일의 시장이 있어요', emoji: '🛋️', condition: { isLoss: true } },
   { text: '하락장은 경험치예요. 다음엔 더 강해질 거예요', emoji: '💪', condition: { isLoss: true } },
   { text: '속상해하지 마요. 어려운 투자는 주비가 다 도와줄게요', emoji: '🫂', condition: { isLoss: true } },
-  { text: '지치지 마세요. 당신의 곁엔 항상 주비가 있어요', emoji: '🌲', condition: { isLoss: true } },
+  { text: '지치지 마세요. 당신의 곁엔 항상 주비가 있어요', emoji: '✨', condition: { isLoss: true } },
 
   // ===== 기본 (조건 없음) =====
-  { text: '오늘도 주비와 함께해요', emoji: '🌲', condition: {} },
+  { text: '오늘도 주비와 함께해요', emoji: '✨', condition: {} },
   { text: '당신의 모든 내일을 응원해요', emoji: '✨', condition: {} },
   { text: '작은 한 걸음이 큰 차이를 만들어요. 천천히 가요', emoji: '👣', condition: {} },
   { text: '궁금한 건 언제든 물어보세요. 제가 다 읽어드릴게요', emoji: '💬', condition: {} },
@@ -171,5 +171,5 @@ export function getGreeting(isLoss: boolean = false): { text: string; emoji: str
   const top = scored.filter(x => x.score >= topScore - 5); // 상위 그룹 (유사 점수만)
   const pick = top[Math.floor(Math.random() * top.length)];
 
-  return pick ? { text: pick.g.text, emoji: pick.g.emoji } : { text: '오늘도 주비와 함께해요', emoji: '🌲' };
+  return pick ? { text: pick.g.text, emoji: pick.g.emoji } : { text: '오늘도 주비와 함께해요', emoji: '✨' };
 }

@@ -49,29 +49,29 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo — [L1] 나노바나나 스타일의 말랑하고 꽉 찬 '솔' 아이콘 */}
+        {/* Logo — [L1] 나노바나나 스타일의 말랑하고 꽉 찬 '주' 아이콘 */}
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
           <div style={{
             position: 'relative',
             width: '34px',
             height: '34px',
-            background: 'linear-gradient(135deg, #1B6B3A 0%, #2D5A27 100%)',
+            background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
             borderRadius: '10px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '4px',
-            boxShadow: '0 4px 12px rgba(27, 107, 58, 0.15)'
+            boxShadow: '0 4px 12px rgba(49, 130, 246, 0.15)'
           }}>
-            {/* '솔' Typography - Nano Banana Style (Chunky & Rounded) */}
+            {/* '주' Typography - Nano Banana Style (Chunky & Rounded) */}
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              {/* ㅅ (시옷) - 포동포동한 산 모양 */}
-              <path d="M22 42 Q50 12 78 42" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
-              {/* ㅗ (오) - 짧고 굵은 연결 */}
-              <line x1="50" y1="38" x2="50" y2="52" stroke="white" strokeWidth="20" strokeLinecap="round" />
-              <line x1="22" y1="58" x2="78" y2="58" stroke="white" strokeWidth="20" strokeLinecap="round" />
-              {/* ㄹ (리을) - 둥글둥글하게 꽉 찬 지그재그 */}
-              <path d="M25 75 H75 V82 H25 V88 H75" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              {/* ㅈ (지읒) - 둥근 꺾쇠 형태 */}
+              <path d="M25 35 H75" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
+              <path d="M50 35 L25 60" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
+              <path d="M50 35 L75 60" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
+              {/* ㅜ (우) - 하단 받침 */}
+              <line x1="20" y1="80" x2="80" y2="80" stroke="white" strokeWidth="20" strokeLinecap="round" />
+              <line x1="50" y1="80" x2="50" y2="92" stroke="white" strokeWidth="20" strokeLinecap="round" />
             </svg>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -83,16 +83,16 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               fontFamily: 'Pretendard, sans-serif',
               lineHeight: 1
             }}>
-              비서
+              주비
             </span>
             <span style={{ 
               fontSize: '9px', 
               fontWeight: 800, 
-              color: '#1B6B3A', 
+              color: '#3182F6', 
               letterSpacing: '0.05em',
               marginTop: '2px'
             }}>
-              YOUR ASSISTANT
+              SMART INVESTING
             </span>
           </div>
         </div>

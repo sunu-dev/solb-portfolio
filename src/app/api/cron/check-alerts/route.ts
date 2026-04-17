@@ -4,17 +4,21 @@ import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
 
-// ─── clients ────────────────────────────────────────────────────────────────
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!,
-);
+// ─── clients (lazy — avoid module-level crash during build) ─────────────────
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+  );
+}
 
-webpush.setVapidDetails(
-  process.env.VAPID_EMAIL || 'mailto:admin@solb.kr',
-  process.env.VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || '',
-);
+function initWebPush() {
+  webpush.setVapidDetails(
+    process.env.VAPID_EMAIL || 'mailto:admin@solb.kr',
+    process.env.VAPID_PUBLIC_KEY || '',
+    process.env.VAPID_PRIVATE_KEY || '',
+  );
+}
 
 // ─── types ──────────────────────────────────────────────────────────────────
 interface TriggeredAlert {
@@ -113,7 +117,7 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
 async function filterUnsent(userId: string, alerts: TriggeredAlert[]): Promise<TriggeredAlert[]> {
   const todayKST = new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
   try {
-    const { data } = await supabaseAdmin
+    const { data } = await getSupabaseAdmin()
       .from('sent_alerts')
       .select('symbol, alert_type')
       .eq('user_id', userId)
@@ -128,7 +132,7 @@ async function markSent(userId: string, alerts: TriggeredAlert[]) {
   if (!alerts.length) return;
   const todayKST = new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
   try {
-    await supabaseAdmin.from('sent_alerts').upsert(
+    await getSupabaseAdmin().from('sent_alerts').upsert(
       alerts.map(a => ({ user_id: userId, symbol: a.symbol, alert_type: a.alertType, sent_date: todayKST })),
       { onConflict: 'user_id,symbol,alert_type,sent_date', ignoreDuplicates: true }
     );
@@ -162,7 +166,10 @@ export async function POST(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
 
   // 1. 푸시 구독이 있는 유저의 포트폴리오만 조회
-  const { data: subs } = await supabaseAdmin
+  initWebPush();
+  const db = getSupabaseAdmin();
+
+  const { data: subs } = await db
     .from('push_subscriptions')
     .select('user_id, subscription');
 
@@ -170,7 +177,7 @@ export async function POST(req: NextRequest) {
 
   const userIds = subs.map(s => s.user_id as string);
 
-  const { data: portfolios } = await supabaseAdmin
+  const { data: portfolios } = await db
     .from('user_portfolios')
     .select('user_id, stocks')
     .in('user_id', userIds);
@@ -240,7 +247,7 @@ export async function POST(req: NextRequest) {
       // 구독 만료(410) 시 자동 삭제
       const status = (e as { statusCode?: number })?.statusCode;
       if (status === 410 || status === 404) {
-        await supabaseAdmin.from('push_subscriptions').delete().eq('user_id', userId);
+        await db.from('push_subscriptions').delete().eq('user_id', userId);
       } else {
         console.error('[cron/check-alerts] push failed:', e);
       }

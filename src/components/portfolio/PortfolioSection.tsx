@@ -295,12 +295,27 @@ export default function PortfolioSection() {
 
       {/* Empty state — 종목이 전혀 없을 때 */}
       {allStocksList.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <img src="/empty-pine.svg" alt="" style={{ width: 100, height: 'auto', opacity: 0.8, margin: '0 auto 12px' }} />
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div style={{ 
+            width: 80, 
+            height: 80, 
+            margin: '0 auto 24px',
+            background: 'var(--bg-subtle, #F2F4F6)',
+            borderRadius: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: 0.8
+          }}>
+            <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
+              <path d="M25 35 H75 M50 35 L25 60 M50 35 L75 60" stroke="#B0B8C1" strokeWidth="18" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <line x1="20" y1="80" x2="80" y2="80" stroke="#B0B8C1" strokeWidth="18" strokeLinecap="round" />
+              <line x1="50" y1="80" x2="50" y2="92" stroke="#B0B8C1" strokeWidth="18" strokeLinecap="round" />
+            </svg>
+          </div>
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
             종목을 추가해보세요
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요</div>
+          </div>          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
             <button
               onClick={() => setShowOcr(true)}
