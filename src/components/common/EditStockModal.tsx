@@ -174,25 +174,29 @@ export default function EditStockModal() {
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>매수 정보와 목표가를 설정하세요</div>
-          {/* 기본/상세 탭 */}
-          <div className="flex" style={{ gap: 4, marginTop: 12 }}>
-            {(['basic', 'detail'] as const).map(m => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className="cursor-pointer"
-                style={{
-                  padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: mode === m ? 600 : 400,
-                  background: mode === m ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                  color: mode === m ? '#fff' : 'var(--text-secondary, #8B95A1)',
-                  border: 'none',
-                }}
-              >
-                {m === 'basic' ? '기본 (초보자)' : '상세'}
-              </button>
-            ))}
+          <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+            {editingCat === 'watching' ? '목표 매수가를 설정하세요' : '매수 정보와 목표가를 설정하세요'}
           </div>
+          {/* 기본/상세 탭 — 관심종목에서는 숨김 */}
+          {editingCat !== 'watching' && (
+            <div className="flex" style={{ gap: 4, marginTop: 12 }}>
+              {(['basic', 'detail'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className="cursor-pointer"
+                  style={{
+                    padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: mode === m ? 600 : 400,
+                    background: mode === m ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
+                    color: mode === m ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                    border: 'none',
+                  }}
+                >
+                  {m === 'basic' ? '기본 (초보자)' : '상세'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 250px))', overflowY: 'auto' }}>
@@ -235,7 +239,23 @@ export default function EditStockModal() {
             </div>
           </div>
 
-          {/* Common fields */}
+          {/* 관심종목: buyBelow만 노출 */}
+          {editingCat === 'watching' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>
+                목표 매수가 ({unit})
+                <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}> — 이 가격 이하면 알림</span>
+              </label>
+              <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', padding: '12px 16px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 18, outline: 'none', boxSizing: 'border-box' }} />
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 8, lineHeight: 1.6 }}>
+                💡 관심만 등록할 경우 비워두세요. 실제 매수 후엔 &quot;투자 중&quot;으로 이동하세요.
+              </div>
+            </div>
+          )}
+
+          {/* 투자 중 / 매도 완료: 평균 매수 단가 + 수량 + 환율 */}
+          {editingCat !== 'watching' && (<>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit}) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 종목을 산 가격</span></label>
@@ -276,8 +296,9 @@ export default function EditStockModal() {
               </div>
             </div>
           )}
+          </>)}
 
-          {mode === 'detail' && (<>
+          {mode === 'detail' && editingCat !== 'watching' && (<>
 
           {/* ── 목표 수익 알림 ── */}
           <div style={{ marginBottom: 16 }}>
@@ -402,15 +423,8 @@ export default function EditStockModal() {
             </>
           )}
 
-          {editingCat === 'watching' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>매수 목표가 ({unit})</label>
-              <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-          )}
           </>)}
-          {mode === 'basic' && (
+          {mode === 'basic' && editingCat !== 'watching' && (
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0', lineHeight: 1.6 }}>
               💡 &quot;상세&quot; 탭에서 목표 수익률, 손절가 등을 설정할 수 있어요
             </div>

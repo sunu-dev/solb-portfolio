@@ -58,6 +58,15 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
+  // 한국어 이름 → 티커 역방향 맵 (로컬 즉시 매칭용)
+  const krToTicker = useCallback(() => {
+    const map: { symbol: string; description: string }[] = [];
+    for (const [sym, name] of Object.entries(STOCK_KR)) {
+      map.push({ symbol: sym, description: name });
+    }
+    return map;
+  }, []);
+
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
     if (value.length < 1) {
@@ -69,6 +78,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     setShowRecent(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      const q = value.trim().toLowerCase();
+      const hasKorean = /[가-힣]/.test(q);
+
+      // 한국어 입력 시 로컬 STOCK_KR에서 먼저 부분 매칭
+      const localMatches = hasKorean
+        ? krToTicker().filter(({ description }) => description.toLowerCase().includes(q))
+        : [];
+
       const [usItems, krItems] = await Promise.all([
         searchStocks(value, apiKey),
         fetch('/api/kr-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: value }) })
@@ -76,11 +93,20 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           .then(d => (d.results || []).map((r: { symbol: string; name: string }) => ({ symbol: r.symbol, description: `${r.name} (KRX)` })))
           .catch(() => []),
       ]);
-      const combined = [...krItems, ...usItems];
+
+      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거
+      const seen = new Set<string>();
+      const combined: { symbol: string; description: string }[] = [];
+      for (const item of [...localMatches, ...krItems, ...usItems]) {
+        if (!seen.has(item.symbol)) {
+          seen.add(item.symbol);
+          combined.push(item);
+        }
+      }
       setResults(combined.slice(0, 8));
       setShowResults(combined.length > 0);
     }, 300);
-  }, [apiKey]);
+  }, [apiKey, krToTicker]);
 
   const handleAdd = useCallback(async (symbol: string, name: string) => {
     const sym = symbol.toUpperCase();
