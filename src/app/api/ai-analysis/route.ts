@@ -196,7 +196,8 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 2",
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 3"
   ],
-  "newsContext": "최근 뉴스를 ${mentor.nameKr}의 관점에서 해석. 뉴스가 없으면 '최근 24시간 내 관련 뉴스가 없어요'라고만 말하세요.",
+  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "${mentor.nameKr} 관점에서 이 뉴스가 종목에 미칠 영향 1문장"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "newsContext": "뉴스 없을 때만: '최근 24시간 내 관련 뉴스가 없어요'",
   "scenarios": {
     "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로.",
     "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로."
@@ -219,7 +220,8 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
     { "name": "거래량", "value": "수준과 해석", "signal": "positive/negative/neutral" }
   ],
   "historicalNote": "과거 유사 상황에서의 통계적 경향을 1~2문장으로",
-  "newsContext": "최근 뉴스가 이 종목에 미칠 수 있는 영향을 1~2문장으로. 뉴스가 없으면 '최근 24시간 내 관련 뉴스가 없어요'라고만 말하세요.",
+  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "이 뉴스가 종목에 미칠 영향 1문장. 초보자 눈높이로"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "newsContext": "뉴스 없을 때만: '최근 24시간 내 관련 뉴스가 없어요'",
   "scenarios": {
     "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게.",
     "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게."
@@ -264,8 +266,8 @@ ${recentNews || '관련 뉴스 없음'}
 
 ${responseFormat}`;
 
-    // 키 × 모델 로테이션: 2.5-flash 실패 시 2.0-flash로 fallback
-    const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+    // 키 × 모델 로테이션: 2.5-flash 실패 시 1.5-flash로 fallback (2.0-flash 2026-06-01 종료)
+    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
     for (const model of MODELS) {

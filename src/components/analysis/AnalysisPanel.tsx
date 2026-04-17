@@ -528,12 +528,24 @@ export default function AnalysisPanel() {
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.historicalNote}</div>
                           </div>
                         )}
-                        {aiReport.newsContext && (
+                        {aiReport.newsAnalysis && aiReport.newsAnalysis.length > 0 ? (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📰 뉴스 기반 분석</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {aiReport.newsAnalysis.map((item: { headline: string; impact: string }, i: number) => (
+                                <div key={i} style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 10, padding: '10px 14px' }}>
+                                  <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 4, lineHeight: 1.5 }}>{item.headline}</div>
+                                  <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>→ {item.impact}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : aiReport.newsContext ? (
                           <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📰 뉴스 영향</div>
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.newsContext}</div>
                           </div>
-                        )}
+                        ) : null}
                         {aiReport.scenarios && (
                           <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>🔭 이런 상황이 올 수 있어요</div>
