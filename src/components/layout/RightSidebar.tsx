@@ -108,11 +108,13 @@ export default function RightSidebar() {
       <div className="mt-6">
         {watchingStocks.map((stock, idx) => {
           const q = macroData[stock.symbol] as QuoteData | undefined;
-          const price = q?.c || 0;
-          const dp = q?.dp || 0;
+          const price = q?.c ?? 0;
+          const dp = q?.dp ?? 0;
           const isGain = dp >= 0;
+          const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
           const kr = STOCK_KR[stock.symbol] || stock.symbol;
           const avatarColor = getAvatarColor(stock.symbol);
+          const hasData = price > 0;
 
           return (
             <button
@@ -139,12 +141,21 @@ export default function RightSidebar() {
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
-                  {price ? `$${price.toFixed(2)}` : '--'}
-                </div>
-                <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                  {price ? `${isGain ? '▲' : '▼'} ${isGain ? '+' : ''}${dp.toFixed(2)}%` : '--'}
-                </div>
+                {hasData ? (
+                  <>
+                    <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
+                      {isKR ? `${Math.round(price).toLocaleString()}원` : `$${price.toFixed(2)}`}
+                    </div>
+                    <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
+                      {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="skeleton-shimmer" style={{ width: 56, height: 14, marginBottom: 4, marginLeft: 'auto' }} />
+                    <div className="skeleton-shimmer" style={{ width: 40, height: 11, marginLeft: 'auto' }} />
+                  </>
+                )}
               </div>
             </button>
           );

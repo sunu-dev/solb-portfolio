@@ -10,7 +10,7 @@ import { getDailyTerm } from '@/config/dailyTerms';
 
 export default function Dashboard() {
   const {
-    stocks, macroData, alerts, dismissedAlerts, dismissAlert,
+    stocks, macroData, alerts, dismissedAlerts,
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
   } = usePortfolioStore();
 
@@ -80,18 +80,6 @@ export default function Dashboard() {
     };
   }, [stocks, macroData]);
 
-  const urgentAlerts = alerts.filter(a => a.severity <= 2 && !dismissedAlerts.includes(a.id)).slice(0, 2);
-
-  // 인라인 배너 5초 후 자동 dismiss
-  const autoTimersRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    urgentAlerts.forEach(a => {
-      if (autoTimersRef.current.has(a.id)) return;
-      autoTimersRef.current.add(a.id);
-      setTimeout(() => dismissAlert(a.id), 5000);
-    });
-  }, [urgentAlerts, dismissAlert]);
-
   const isGain = data.totalPL >= 0;
   const todayGain = data.todayChange >= 0;
   const significantLoss = data.totalPLPct < -5;
@@ -134,29 +122,6 @@ export default function Dashboard() {
             onClick={() => setNetworkError(null)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#FF9500', padding: '0 4px' }}
           >✕</button>
-        </div>
-      )}
-
-      {/* 긴급 알림 (severity ≤ 2) */}
-      {urgentAlerts.length > 0 && (
-        <div style={{ padding: '8px 16px 0' }}>
-          {urgentAlerts.map(a => (
-            <div
-              key={a.id}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                fontSize: 11, padding: '6px 10px', borderRadius: 8, marginBottom: 4,
-                background: a.severity === 1 ? 'rgba(239,68,82,0.07)' : 'rgba(255,149,0,0.07)',
-                color: a.severity === 1 ? '#EF4452' : '#FF9500',
-              }}
-            >
-              <span>⚠️ {a.message}</span>
-              <button
-                onClick={() => dismissAlert(a.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', padding: '0 4px' }}
-              >✕</button>
-            </div>
-          ))}
         </div>
       )}
 

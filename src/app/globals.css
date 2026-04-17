@@ -622,6 +622,22 @@ button, a, [role="button"] {
   animation: cardSlideIn 0.4s ease-out;
 }
 
+/* 스켈레톤 shimmer */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #F2F4F6 25%, #E8EAED 50%, #F2F4F6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+.dark .skeleton-shimmer {
+  background: linear-gradient(90deg, #2D3748 25%, #3A4557 50%, #2D3748 75%);
+  background-size: 200% 100%;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
