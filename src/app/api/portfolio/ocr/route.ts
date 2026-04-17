@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
           config: {
             responseMimeType: 'application/json',
             temperature: 0.1,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         });
 
