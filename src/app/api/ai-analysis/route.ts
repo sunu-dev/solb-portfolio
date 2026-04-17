@@ -196,6 +196,11 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 2",
     "${mentor.nameKr}의 철학에 기반한 구체적 조언 3"
   ],
+  "newsContext": "최근 뉴스를 ${mentor.nameKr}의 관점에서 해석. 뉴스가 없으면 '최근 24시간 내 관련 뉴스가 없어요'라고만 말하세요.",
+  "scenarios": {
+    "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로.",
+    "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로."
+  },
   "quote": "이 멘토 철학에 맞는 투자 격언 1개 (출처 없이)",
   "conclusion": {
     "label": "긍정적/관망/주의 중 하나",
@@ -215,6 +220,10 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
   ],
   "historicalNote": "과거 유사 상황에서의 통계적 경향을 1~2문장으로",
   "newsContext": "최근 뉴스가 이 종목에 미칠 수 있는 영향을 1~2문장으로. 뉴스가 없으면 '최근 24시간 내 관련 뉴스가 없어요'라고만 말하세요.",
+  "scenarios": {
+    "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게.",
+    "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게."
+  },
   "conclusion": {
     "label": "긍정적/관망/주의 중 하나",
     "signal": "positive/neutral/negative",

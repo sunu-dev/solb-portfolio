@@ -377,15 +377,19 @@ export default function AnalysisPanel() {
                       const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
                       const freshNews = await fetchKoreanNews(freshQuery);
                       if (freshNews?.length) setTickerNews(freshNews.slice(0, 6));
-                      // 3시간 이내 뉴스만 필터링
-                      const threeHoursAgo = Date.now() - 3 * 60 * 60 * 1000;
+                      // 24시간 이내 뉴스 필터링 + 날짜 레이블
+                      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
                       const recentOnly = (freshNews || tickerNews).filter(n => {
                         if (!n.pubDate) return false;
-                        return new Date(n.pubDate).getTime() > threeHoursAgo;
+                        return new Date(n.pubDate).getTime() > oneDayAgo;
                       });
                       const newsText = recentOnly.length > 0
-                        ? recentOnly.slice(0, 3).map(n => n.title).join('\n')
-                        : '최근 3시간 내 관련 뉴스 없음';
+                        ? recentOnly.slice(0, 5).map(n => {
+                            const hoursAgo = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 3600000);
+                            const label = hoursAgo < 1 ? '방금 전' : `${hoursAgo}시간 전`;
+                            return `[${label}] ${n.title}`;
+                          }).join('\n')
+                        : '최근 24시간 내 관련 뉴스 없음';
                       // 최신 가격을 새로 가져옴
                       let latestPrice = price;
                       let latestChange = change;
@@ -471,7 +475,7 @@ export default function AnalysisPanel() {
                     gap: 8,
                   }}
                 >
-                  <span>📊</span> AI 분석 리포트 {showAIReport ? '닫기' : '보기'}
+                  <span>🤖</span> {showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}
                   {aiRemaining !== null && !showAIReport && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
@@ -528,6 +532,21 @@ export default function AnalysisPanel() {
                           <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📰 뉴스 영향</div>
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.newsContext}</div>
+                          </div>
+                        )}
+                        {aiReport.scenarios && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>🔭 이런 상황이 올 수 있어요</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <div style={{ background: '#EDFCF2', borderRadius: 10, padding: '12px 14px' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', marginBottom: 4 }}>📈 상승한다면</div>
+                                <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>{aiReport.scenarios.bull}</div>
+                              </div>
+                              <div style={{ background: '#FFF0F0', borderRadius: 10, padding: '12px 14px' }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4452', marginBottom: 4 }}>📉 하락한다면</div>
+                                <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>{aiReport.scenarios.bear}</div>
+                              </div>
+                            </div>
                           </div>
                         )}
                         {aiReport.conclusion && (
