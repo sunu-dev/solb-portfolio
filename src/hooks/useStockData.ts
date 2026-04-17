@@ -127,7 +127,7 @@ export function useStockData() {
   const {
     apiKey, getAllSymbols, updateMacroEntry,
     updateCandleCache, updateRawCandles, setLastUpdate,
-    stocks, setAlerts,
+    stocks, setAlerts, setNetworkError,
   } = usePortfolioStore();
 
   const fetchAllQuotes = useCallback(async () => {
@@ -247,8 +247,16 @@ export function useStockData() {
       localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));
     } catch { /* storage full */ }
 
+    // 데이터 수신 여부 확인 후 에러 상태 설정
+    const received = Object.values(usePortfolioStore.getState().macroData).some(v => (v as QuoteData)?.c);
+    if (!received) {
+      setNetworkError('시세 데이터를 불러오지 못했어요. 잠시 후 새로고침 해주세요.');
+    } else {
+      setNetworkError(null);
+    }
+
     setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
-  }, [apiKey, getAllSymbols, updateMacroEntry, setLastUpdate]);
+  }, [apiKey, getAllSymbols, updateMacroEntry, setLastUpdate, setNetworkError]);
 
   const fetchAllCandles = useCallback(async () => {
     const apiKey = usePortfolioStore.getState().apiKey;

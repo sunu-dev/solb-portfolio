@@ -11,7 +11,7 @@ import { getDailyTerm } from '@/config/dailyTerms';
 export default function Dashboard() {
   const {
     stocks, macroData, alerts, dismissedAlerts, dismissAlert,
-    setAnalysisSymbol, currency, setCurrency,
+    setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
   } = usePortfolioStore();
 
   // 출석 데이터
@@ -121,6 +121,22 @@ export default function Dashboard() {
 
   return (
     <div className="card-enter overflow-hidden" style={{ borderRadius: 24, background: 'var(--surface, white)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.03)' }}>
+      {/* 네트워크 에러 배너 */}
+      {networkError && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 16px', fontSize: 12, fontWeight: 500,
+          background: 'rgba(255,149,0,0.08)', color: '#FF9500',
+          borderBottom: '1px solid rgba(255,149,0,0.12)',
+        }}>
+          <span>⚠️ {networkError}</span>
+          <button
+            onClick={() => setNetworkError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#FF9500', padding: '0 4px' }}
+          >✕</button>
+        </div>
+      )}
+
       {/* 긴급 알림 (severity ≤ 2) */}
       {urgentAlerts.length > 0 && (
         <div style={{ padding: '8px 16px 0' }}>

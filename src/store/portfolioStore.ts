@@ -63,6 +63,9 @@ interface PortfolioState {
   alerts: Alert[];
   dismissedAlerts: string[]; // alert IDs dismissed in this session
 
+  // Network error (not persisted)
+  networkError: string | null;
+
   // Edit modal state
   editingCat: StockCategoryKey | '';
   editingIdx: number;
@@ -84,6 +87,7 @@ interface PortfolioState {
   setAlerts: (alerts: Alert[]) => void;
   dismissAlert: (alertId: string) => void;
   dismissAllAlerts: () => void;
+  setNetworkError: (err: string | null) => void;
 
   // Macro & cache
   updateMacroEntry: (key: string, val: MacroEntry | QuoteData) => void;
@@ -137,6 +141,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       alerts: [],
       dismissedAlerts: [],
+      networkError: null,
 
       editingCat: '',
       editingIdx: -1,
@@ -156,6 +161,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       setEditingCat: (cat) => set({ editingCat: cat }),
       setEditingIdx: (idx) => set({ editingIdx: idx }),
       setAlerts: (alerts) => set({ alerts }),
+      setNetworkError: (err) => set({ networkError: err }),
       dismissAlert: (alertId) =>
         set((state) => ({
           dismissedAlerts: [...state.dismissedAlerts, alertId],
