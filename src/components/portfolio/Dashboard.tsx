@@ -175,8 +175,8 @@ export default function Dashboard() {
               transform: 'rotate(-5deg)'
             }}>
               <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
-                <circle cx="50" cy="50" r="32" stroke="white" strokeWidth="8" fill="none" opacity="0.3" />
-                <path d="M30 68 L50 30 L70 68" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="12,78 35,48 55,62 80,22" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <polyline points="63,16 80,22 74,38" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               {!isGain && (
                 <div style={{ 
