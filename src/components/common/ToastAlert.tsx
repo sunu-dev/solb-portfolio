@@ -81,6 +81,7 @@ export default function ToastAlert() {
 
   return (
     <div
+      onClick={handleDismiss}
       style={{
         position: 'fixed',
         top: visible ? '60px' : '0px',
@@ -99,6 +100,7 @@ export default function ToastAlert() {
         alignItems: 'flex-start',
         gap: '12px',
         borderLeft: `3px solid ${accentColor}`,
+        cursor: 'pointer',
       }}
     >
       <span style={{ fontSize: '18px', flexShrink: 0, marginTop: '1px' }}>{icon}</span>

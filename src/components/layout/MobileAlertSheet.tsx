@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { X } from 'lucide-react';
+import BottomSheet from '@/components/common/BottomSheet';
 
 const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
   urgent: { icon: '🚨', label: '긴급', bg: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.08)', color: '#EF4452' },
@@ -56,46 +57,9 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
 
   const filteredAlerts = filterAlerts(visibleAlerts, filter);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 60 }}
-        onClick={onClose}
-      />
-
-      {/* Sheet */}
-      <div
-        className="mobile-sidebar-sheet"
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          maxHeight: '75vh',
-          background: 'var(--surface, white)',
-          borderRadius: '20px 20px 0 0',
-          zIndex: 70,
-          overflowY: 'auto',
-          padding: '16px 20px',
-          paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 0px))',
-          animation: 'slideUp 0.3s ease-out',
-        }}
-      >
-        {/* Drag handle */}
-        <div style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto 16px' }} />
-
+    <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="75vh">
+      <div style={{ padding: '0 20px' }}>
         {/* Header */}
         <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
           <div className="flex items-center" style={{ gap: 8 }}>
@@ -174,7 +138,6 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                     position: 'relative',
                   }}
                 >
-                  {/* Dismiss */}
                   <button
                     onClick={() => dismissAlert(alert.id)}
                     className="cursor-pointer"
@@ -183,7 +146,6 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                     <X size={12} />
                   </button>
 
-                  {/* Header */}
                   <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
                     <span style={{
                       fontSize: 11, fontWeight: 600, color: style.color,
@@ -199,17 +161,14 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                     </span>
                   </div>
 
-                  {/* Message */}
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.5, marginBottom: 2 }}>
                     {alert.message}
                   </div>
 
-                  {/* Detail */}
                   <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
                     {alert.detail}
                   </div>
 
-                  {/* Action */}
                   {alert.symbol && alert.symbol !== 'PORTFOLIO' && (
                     <div
                       onClick={() => { setAnalysisSymbol(alert.symbol); onClose(); }}
@@ -235,6 +194,6 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
           </div>
         )}
       </div>
-    </>
+    </BottomSheet>
   );
 }

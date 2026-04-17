@@ -205,7 +205,7 @@ export default function Dashboard() {
                   }
                 </span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? '#EF4452' : '#3182F6' }}>
-                  ({isGain ? '+' : ''}{data.totalPLPct.toFixed(2)}%)
+                  ({isGain ? '+' : '-'}{Math.abs(data.totalPLPct).toFixed(2)}%)
                 </span>
               </div>
               )}
