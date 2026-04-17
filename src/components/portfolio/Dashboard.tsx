@@ -81,6 +81,17 @@ export default function Dashboard() {
   }, [stocks, macroData]);
 
   const urgentAlerts = alerts.filter(a => a.severity <= 2 && !dismissedAlerts.includes(a.id)).slice(0, 2);
+
+  // 인라인 배너 5초 후 자동 dismiss
+  const autoTimersRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    urgentAlerts.forEach(a => {
+      if (autoTimersRef.current.has(a.id)) return;
+      autoTimersRef.current.add(a.id);
+      setTimeout(() => dismissAlert(a.id), 5000);
+    });
+  }, [urgentAlerts, dismissAlert]);
+
   const isGain = data.totalPL >= 0;
   const todayGain = data.todayChange >= 0;
   const significantLoss = data.totalPLPct < -5;
