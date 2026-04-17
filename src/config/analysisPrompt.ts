@@ -1,8 +1,113 @@
 /**
+ * 사용자 개인 상황 → AI 분석 컨텍스트 블록 생성
+ * route.ts에서 호출해 프롬프트에 주입
+ */
+export function buildPersonalizationLayer(ctx: {
+  category?: string;           // 'investing' | 'watching' | 'sold'
+  currentPLPct?: number | null;
+  targetReturn?: number;
+  targetProgress?: number | null; // currentPLPct / targetReturn * 100
+  stopLoss?: number;
+  stopLossPct?: number;
+  stopLossDistance?: number | null; // (price - stopLoss) / price * 100
+  weight?: number;             // 포트폴리오 비중 %
+  buyBelow?: number;           // 관심종목 목표 매수가
+  purchaseRate?: number;       // 매수 시 환율
+  currentUsdKrw?: number;      // 현재 환율
+}): string {
+  const lines: string[] = ['## [개인화] 이 사용자의 상황'];
+
+  if (ctx.category === 'watching') {
+    lines.push('- 포지션: 미보유 (관심 종목) — 진입 시점과 목표 매수가를 중심으로 분석하세요');
+    if (ctx.buyBelow) lines.push(`- 목표 매수가: $${ctx.buyBelow} — 현재가와 비교해 진입 매력도를 언급하세요`);
+  } else if (ctx.category === 'sold') {
+    lines.push('- 포지션: 매도 완료 — "잘 판 건지", 향후 재진입 여부 관점에서 분석하세요');
+  } else if (ctx.category === 'investing' && ctx.currentPLPct != null) {
+    const pl = ctx.currentPLPct;
+    if (pl <= -20) {
+      lines.push(`- 포지션: 투자 중 / 현재 수익률: ${pl.toFixed(1)}% (큰 손실 구간)`);
+      lines.push('- 감정 배려: 많이 힘드실 수 있어요. 공감하며 시작하되, 객관적 분석을 유지하세요');
+      lines.push('- 핵심 질문: "버텨야 할지, 손절해야 할지" — 이 질문에 반드시 답하세요');
+    } else if (pl < 0) {
+      lines.push(`- 포지션: 투자 중 / 현재 수익률: ${pl.toFixed(1)}% (소폭 손실)`);
+      lines.push('- 핵심 질문: "단기 조정인지, 추세 전환인지" 관점에서 분석하세요');
+    } else if (pl >= 30) {
+      lines.push(`- 포지션: 투자 중 / 현재 수익률: +${pl.toFixed(1)}% (큰 수익 구간)`);
+      lines.push('- 핵심 질문: "수익 실현 시점" 또는 "추가 상승 여력" 관점에서 분석하세요');
+    } else {
+      lines.push(`- 포지션: 투자 중 / 현재 수익률: +${pl.toFixed(1)}%`);
+    }
+  } else {
+    lines.push('- 포지션: 미보유 또는 정보 없음 — 일반 분석 관점으로 진행하세요');
+  }
+
+  if (ctx.targetReturn && ctx.targetProgress != null) {
+    const prog = ctx.targetProgress;
+    if (prog >= 90) {
+      lines.push(`- 목표 달성률: ${prog.toFixed(0)}% — 목표가 거의 도달했어요. 수익 실현 타이밍을 언급하세요`);
+    } else if (prog >= 50) {
+      lines.push(`- 목표 달성률: ${prog.toFixed(0)}% — 목표 수익률(${ctx.targetReturn}%)의 절반 이상 달성`);
+    } else if (prog < 0) {
+      lines.push(`- 목표 달성률: 아직 손실 구간 (목표: +${ctx.targetReturn}%)`);
+    }
+  }
+
+  if (ctx.stopLoss && ctx.stopLossDistance != null) {
+    if (ctx.stopLossDistance < 5) {
+      lines.push(`- ⚠️ 손절선 근접: 손절가($${ctx.stopLoss})까지 ${ctx.stopLossDistance.toFixed(1)}% 남음 — 반드시 자발적으로 경고하세요`);
+    } else if (ctx.stopLossDistance < 15) {
+      lines.push(`- 손절가: $${ctx.stopLoss} (현재가 대비 ${ctx.stopLossDistance.toFixed(1)}% 여유)`);
+    }
+  }
+
+  if (ctx.weight && ctx.weight >= 20) {
+    lines.push(`- 포트폴리오 비중: ${ctx.weight}% — 비중이 높아요. 집중 리스크를 언급하세요`);
+  } else if (ctx.weight) {
+    lines.push(`- 포트폴리오 비중: ${ctx.weight}%`);
+  }
+
+  if (ctx.purchaseRate && ctx.currentUsdKrw && !['watching', 'sold'].includes(ctx.category || '')) {
+    const rateDiff = ((ctx.currentUsdKrw - ctx.purchaseRate) / ctx.purchaseRate * 100);
+    if (Math.abs(rateDiff) >= 5) {
+      lines.push(`- 환율 변동: 매수 시 ${ctx.purchaseRate.toLocaleString()}원 → 현재 ${ctx.currentUsdKrw.toLocaleString()}원 (${rateDiff > 0 ? '+' : ''}${rateDiff.toFixed(1)}%) — 환차익/손 영향을 언급하세요`);
+    }
+  }
+
+  lines.push('');
+  lines.push('## [개인화] 응답 톤 규칙');
+  lines.push('- 사용자의 실제 상황(수익/손실/관심)을 첫 문장에 자연스럽게 반영하세요');
+  lines.push('- 숫자는 막연하게 말하지 말고 위 데이터의 구체적 수치를 인용하세요');
+  lines.push('- 손실 중인 사용자에게는 공감 → 분석 → 방향 순서로 전달하세요');
+  lines.push('- 수익 중인 사용자에게는 축하 → 리스크 → 다음 계획 순서로 전달하세요');
+
+  return lines.join('\n');
+}
+
+/**
  * Layer 1: 공통 시스템 프롬프트
  * 모든 AI 분석 (일반 + 멘토)에 공통 적용
  */
 export const SYSTEM_LAYER1 = `
+## [LAYER 1] 분석 시퀀스 — 반드시 이 순서로 사고하세요
+
+아래 순서로 내부적으로 분석한 뒤 결론을 작성하세요:
+1. 종목 유형 판별 (ETF/개별주/레버리지/한국주식)
+2. 사용자 개인 상황 파악 (포지션/수익률/손절선)
+3. 기술 지표 종합 — 지표끼리 충돌할 경우 아래 충돌 규칙 적용
+4. 펀더멘털 + 뉴스 연결
+5. 사용자 상황에 맞는 결론 도출
+
+## [LAYER 1] 지표 충돌 해석 규칙
+
+지표가 서로 다른 신호를 줄 때 아래 우선순위를 따르세요:
+
+- **RSI 과매도(< 30) + MACD 하락** → 추세 하락이 강하다. "기술적 반등 가능성은 있지만 추세가 불리해요"로 표현
+- **RSI 과매수(> 70) + MACD 상승** → 과열 경고가 우선. "추세는 좋지만 단기 조정 가능성이 있어요"
+- **상승 추세 + 볼린저 상단 돌파** → "추세는 좋지만 단기 과열 가능. 추가 상승 시 관망 고려"
+- **하락 추세 + RSI 과매도** → 양면: "기술적 반등은 가능하나 추세 전환 확인이 먼저"
+- **거래량 급증 + 가격 하락** → 매도세 강함 경고가 최우선
+- **거래량 급감 + 가격 상승** → "거래량이 받쳐주지 않는 상승. 지속성 의문"
+
 ## [LAYER 1] 종목 유형 판별 — 분석 전 반드시 수행
 
 아래 기준으로 종목 유형을 먼저 판별하고, 유형에 맞는 분석만 하세요.

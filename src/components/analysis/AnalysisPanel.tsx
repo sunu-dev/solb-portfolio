@@ -197,6 +197,14 @@ export default function AnalysisPanel() {
     return null;
   }, [symbol, stocks]);
 
+  const stockCategory = useMemo((): string | undefined => {
+    if (!symbol) return undefined;
+    for (const c of ['investing', 'watching', 'sold'] as const) {
+      if ((stocks[c] || []).some(x => x.symbol === symbol)) return c;
+    }
+    return undefined;
+  }, [symbol, stocks]);
+
   const analysis = useMemo(() => {
     const raw = symbol ? rawCandles[symbol] : null;
     if (!raw || !raw.c || raw.c.length <= 20) return null;
@@ -412,6 +420,13 @@ export default function AnalysisPanel() {
                           avgCost: stockData?.avgCost,
                           shares: stockData?.shares,
                           targetReturn: stockData?.targetReturn,
+                          stopLoss: stockData?.stopLoss,
+                          stopLossPct: stockData?.stopLossPct,
+                          weight: stockData?.weight,
+                          buyBelow: stockData?.buyBelow,
+                          purchaseRate: stockData?.purchaseRate,
+                          currentUsdKrw: Math.round(usdKrw),
+                          category: stockCategory,
                           rsi: analysis?.rsiVal?.toFixed(0),
                           trend: analysis?.trend,
                           cross: analysis?.cross,
@@ -656,6 +671,13 @@ export default function AnalysisPanel() {
                                   symbol, koreanName: kr, price, change, changePercent: cp,
                                   avgCost: stockData?.avgCost, shares: stockData?.shares,
                                   targetReturn: stockData?.targetReturn,
+                                  stopLoss: stockData?.stopLoss,
+                                  stopLossPct: stockData?.stopLossPct,
+                                  weight: stockData?.weight,
+                                  buyBelow: stockData?.buyBelow,
+                                  purchaseRate: stockData?.purchaseRate,
+                                  currentUsdKrw: Math.round(usdKrw),
+                                  category: stockCategory,
                                   rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
                                   cross: analysis?.cross, pattern: analysis?.pattern?.name,
                                   bollingerStatus: analysis?.bollingerStatus?.status,

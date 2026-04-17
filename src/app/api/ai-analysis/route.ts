@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
-import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
+import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer } from '@/config/analysisPrompt';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -141,7 +141,33 @@ export async function POST(req: NextRequest) {
     const { symbol, koreanName, price, change, changePercent, avgCost, shares, targetReturn,
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
             recentNews, mentorId,
-            per, eps, week52High, week52Low, sector } = body;
+            per, eps, week52High, week52Low, sector,
+            stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category } = body;
+
+    // 개인화 계산
+    const currentPLPct = (avgCost && price && avgCost > 0)
+      ? ((price - avgCost) / avgCost * 100)
+      : null;
+    const targetProgress = (targetReturn && currentPLPct != null)
+      ? (currentPLPct / targetReturn * 100)
+      : null;
+    const stopLossDistance = (stopLoss && price && stopLoss > 0)
+      ? ((price - stopLoss) / price * 100)
+      : null;
+
+    const personalizationBlock = buildPersonalizationLayer({
+      category,
+      currentPLPct,
+      targetReturn,
+      targetProgress,
+      stopLoss,
+      stopLossPct,
+      stopLossDistance,
+      weight,
+      buyBelow,
+      purchaseRate,
+      currentUsdKrw,
+    });
 
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
@@ -198,12 +224,16 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
 
     const prompt = `${baseRules}
 
+${personalizationBlock}
+
 ## 분석 대상
 종목: ${symbol} (${koreanName || symbol})
 현재가: $${price}
 오늘 등락: ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}% ($${change?.toFixed(2)})
-${avgCost ? `평균 매수가: $${avgCost} (${shares}주 보유)` : '미보유'}
-${targetReturn ? `목표 수익률: ${targetReturn}%` : ''}
+${avgCost ? `평균 매수가: $${avgCost} (${shares}주 보유, 현재 수익률 ${currentPLPct != null ? (currentPLPct >= 0 ? '+' : '') + currentPLPct.toFixed(1) + '%' : '계산 불가'})` : '미보유'}
+${targetReturn ? `목표 수익률: ${targetReturn}% (달성률: ${targetProgress != null ? targetProgress.toFixed(0) + '%' : '-'})` : ''}
+${stopLoss ? `손절가: $${stopLoss}${stopLossDistance != null ? ` (현재가 대비 ${stopLossDistance.toFixed(1)}% 여유)` : ''}` : ''}
+${weight ? `포트폴리오 비중: ${weight}%` : ''}
 
 ## 기술적 지표
 - RSI: ${rsi || '데이터 없음'}${rsi ? (rsi < 30 ? ' (과매도 구간)' : rsi > 70 ? ' (과매수 구간)' : ' (적정)') : ''}
