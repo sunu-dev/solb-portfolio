@@ -266,8 +266,8 @@ ${recentNews || '관련 뉴스 없음'}
 
 ${responseFormat}`;
 
-    // 키 × 모델 로테이션: 2.5-flash 실패 시 1.5-flash로 fallback (2.0-flash 2026-06-01 종료)
-    const MODELS = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    // 키 × 모델 로테이션: 2.5-flash 실패 시 2.5-flash-lite로 fallback
+    const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
     for (const model of MODELS) {
