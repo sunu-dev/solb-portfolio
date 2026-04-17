@@ -64,31 +64,23 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             boxShadow: '0 4px 12px rgba(49, 130, 246, 0.15)'
           }}>
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              <polyline points="10,78 28,52 48,60 68,32 84,18" stroke="#FF4444" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <polyline points="68,10 84,18 76,32" stroke="#FF4444" strokeWidth="13" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <polyline points="10,80 28,54 48,62 68,34 86,20" stroke="#FF4444" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="86" cy="20" r="8" fill="#FF4444" />
             </svg>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <span style={{ 
-              fontSize: '20px', 
-              fontWeight: 900, 
-              letterSpacing: '-0.05em', 
-              color: 'var(--text-primary, #191F28)',
-              fontFamily: 'Pretendard, sans-serif',
-              lineHeight: 1
-            }}>
-              주비
-            </span>
-            <span style={{ 
-              fontSize: '9px', 
-              fontWeight: 800, 
-              color: '#3182F6', 
-              letterSpacing: '0.05em',
-              marginTop: '2px'
-            }}>
-              SMART INVESTING
-            </span>
-          </div>
+          <span style={{
+            fontSize: '22px',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            fontFamily: 'Pretendard, sans-serif',
+            lineHeight: 1,
+            background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            주비
+          </span>
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
