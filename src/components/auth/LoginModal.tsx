@@ -74,7 +74,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         >
           내 주식, 쉽게 읽어주는
           <br />
-          투자 비서
+          주식 비서
         </p>
 
         {/* Google Button */}

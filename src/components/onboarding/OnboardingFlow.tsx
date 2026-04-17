@@ -107,7 +107,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 borderLeft: '3px solid #1B6B3A',
               }}
             >
-              폭풍우에도 흔들리지 않는<br />내 투자 비서, 주비.
+              폭풍우에도 흔들리지 않는<br />내 주식 비서, 주비.
             </div>
           </>
         )}

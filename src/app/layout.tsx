@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: '주비 — 폭풍우에도 흔들리지 않는 내 투자 비서',
+  title: '주비 — 폭풍우에도 흔들리지 않는 내 주식 비서',
   description: '내 주식을 쉽게 읽어주는 AI 투자 정보 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.',
 };
 

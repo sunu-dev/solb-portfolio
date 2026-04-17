@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
             fontSize: 22, fontWeight: 800,
           }}>S</div>
           <span style={{ fontSize: 24, fontWeight: 700 }}>주비</span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>폭풍우에도 흔들리지 않는 내 투자 비서</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>폭풍우에도 흔들리지 않는 내 주식 비서</span>
         </div>
 
         {/* Return */}
