@@ -22,8 +22,8 @@ export function formatKRW(val: number, opts?: FormatOptions): string {
   const sign = val < 0 ? '-' : '';
   const abs = Math.abs(val);
 
-  // 1억 이상 → 억 축약
-  if (short && abs >= 100_000_000) {
+  // 10억 이상 → 억 축약
+  if (short && abs >= 1_000_000_000) {
     const v = Math.abs(val / 100_000_000);
     const formatted = v >= 10 ? Math.round(v).toLocaleString() : v.toFixed(1);
     return `${sign}${prefix}${formatted}억${suffix}`;

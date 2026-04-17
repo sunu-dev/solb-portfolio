@@ -124,26 +124,41 @@ export function getGreeting(isLoss: boolean = false): { text: string; emoji: str
   const dateStr = `${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const isWeekend = day === 0 || day === 6;
 
-  // 조건 매칭 점수 계산
+  // 조건 매칭 점수 계산 — 명시된 조건은 반드시 일치해야 후보에 포함 (AND 로직)
   const scored = GREETINGS.map(g => {
     let score = 0;
     const c = g.condition || {};
 
-    // 특별한 날 (가장 높은 우선순위)
-    if (c.dates?.includes(dateStr)) score += 100;
-    // 하락장 위로 (손실 아닐 때만 제외)
-    if (c.isLoss === true && isLoss) score += 50;
-    if (c.isLoss === true && !isLoss) return { g, score: -1 };
-    // 주말 (주말 아닐 때만 제외, 손실 여부와 무관하게 허용)
-    if (c.isWeekend === true && isWeekend) score += 30;
-    if (c.isWeekend === true && !isWeekend) return { g, score: -1 };
-    // 하락+주말이면 주말 메시지도 후보에 포함 (위로 + 쉬라는 메시지 조합)
-    // 시간대
-    if (c.hours?.includes(hour)) score += 20;
-    // 요일
-    if (c.days?.includes(day)) score += 15;
-    // 계절
-    if (c.months?.includes(month)) score += 10;
+    // 특별한 날 — 명시됐는데 불일치 → 제외
+    if (c.dates) {
+      if (!c.dates.includes(dateStr)) return { g, score: -1 };
+      score += 100;
+    }
+    // 하락장 — 명시됐는데 불일치 → 제외
+    if (c.isLoss === true) {
+      if (!isLoss) return { g, score: -1 };
+      score += 50;
+    }
+    // 주말 — 명시됐는데 불일치 → 제외
+    if (c.isWeekend === true) {
+      if (!isWeekend) return { g, score: -1 };
+      score += 30;
+    }
+    // 시간대 — 명시됐는데 불일치 → 제외
+    if (c.hours) {
+      if (!c.hours.includes(hour)) return { g, score: -1 };
+      score += 20;
+    }
+    // 요일 — 명시됐는데 불일치 → 제외
+    if (c.days) {
+      if (!c.days.includes(day)) return { g, score: -1 };
+      score += 15;
+    }
+    // 계절 — 명시됐는데 불일치 → 제외
+    if (c.months) {
+      if (!c.months.includes(month)) return { g, score: -1 };
+      score += 10;
+    }
     // 조건 없으면 기본 (낮은 점수)
     if (!c.dates && !c.isLoss && !c.isWeekend && !c.hours && !c.days && !c.months) score += 1;
 
