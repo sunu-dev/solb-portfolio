@@ -63,15 +63,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             padding: '4px',
             boxShadow: '0 4px 12px rgba(49, 130, 246, 0.15)'
           }}>
-            {/* '주' Typography - Nano Banana Style (Chunky & Rounded) */}
             <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              {/* ㅈ (지읒) - 둥근 꺾쇠 형태 */}
-              <path d="M25 35 H75" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
-              <path d="M50 35 L25 60" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
-              <path d="M50 35 L75 60" stroke="white" strokeWidth="20" fill="none" strokeLinecap="round" />
-              {/* ㅜ (우) - 하단 받침 */}
-              <line x1="20" y1="80" x2="80" y2="80" stroke="white" strokeWidth="20" strokeLinecap="round" />
-              <line x1="50" y1="80" x2="50" y2="92" stroke="white" strokeWidth="20" strokeLinecap="round" />
+              <circle cx="50" cy="50" r="32" stroke="white" strokeWidth="8" fill="none" opacity="0.3" />
+              <path d="M30 68 L50 30 L70 68" stroke="white" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>

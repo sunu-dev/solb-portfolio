@@ -308,9 +308,8 @@ export default function PortfolioSection() {
             opacity: 0.8
           }}>
             <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
-              <path d="M25 35 H75 M50 35 L25 60 M50 35 L75 60" stroke="#B0B8C1" strokeWidth="18" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="20" y1="80" x2="80" y2="80" stroke="#B0B8C1" strokeWidth="18" strokeLinecap="round" />
-              <line x1="50" y1="80" x2="50" y2="92" stroke="#B0B8C1" strokeWidth="18" strokeLinecap="round" />
+              <circle cx="50" cy="50" r="32" stroke="#B0B8C1" strokeWidth="8" fill="none" opacity="0.5" />
+              <path d="M30 68 L50 30 L70 68" stroke="#B0B8C1" strokeWidth="16" fill="none" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
