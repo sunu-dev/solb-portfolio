@@ -306,19 +306,27 @@ ${responseFormat}`;
       } // end keys loop
     } // end models loop
 
-    // 모든 키/모델 실패
+    // 모든 키/모델 실패 — 에러 유형 구분
     const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
     let parsedCode: unknown = null;
-    let parsedMsg: unknown = null;
     let parsedStatus: unknown = null;
     try {
       const parsed = JSON.parse(errorMessage) as { error?: { code?: unknown; message?: unknown; status?: unknown } };
       parsedCode = parsed?.error?.code;
-      parsedMsg = parsed?.error?.message;
       parsedStatus = parsed?.error?.status;
     } catch { /* not JSON */ }
-    console.error('[주비 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', parsedMsg || errorMessage);
-    return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
+    console.error('[주비 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', errorMessage);
+
+    const isQuotaExhausted = parsedCode === 429 || String(parsedStatus) === 'RESOURCE_EXHAUSTED';
+    const isServerBusy = parsedCode === 503 || String(parsedStatus) === 'UNAVAILABLE';
+
+    const userMsg = isQuotaExhausted
+      ? '오늘 AI 분석 한도를 모두 소진했어요. 내일 다시 이용해주세요.'
+      : isServerBusy
+        ? 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.'
+        : 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.';
+
+    return NextResponse.json({ error: userMsg }, { status: 500 });
   } catch (e: unknown) {
     console.error('[주비 AI] unexpected error:', e);
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
