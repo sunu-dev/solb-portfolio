@@ -83,8 +83,8 @@ async function sendSlackAlert(totalCount: number) {
   if (!SLACK_WEBHOOK_URL) return;
   try {
     const msg = totalCount >= DAILY_LIMIT_TOTAL
-      ? `🚨 *솔비서 AI 일일 한도 도달!*\n오늘 사용량: ${totalCount}/${DAILY_LIMIT_TOTAL}회\n유료 전환을 검토하세요.`
-      : `⚠️ *솔비서 AI 사용량 경고*\n오늘 사용량: ${totalCount}/${DAILY_LIMIT_TOTAL}회 (${Math.round(totalCount / DAILY_LIMIT_TOTAL * 100)}%)`;
+      ? `🚨 *주비 AI 일일 한도 도달!*\n오늘 사용량: ${totalCount}/${DAILY_LIMIT_TOTAL}회\n유료 전환을 검토하세요.`
+      : `⚠️ *주비 AI 사용량 경고*\n오늘 사용량: ${totalCount}/${DAILY_LIMIT_TOTAL}회 (${Math.round(totalCount / DAILY_LIMIT_TOTAL * 100)}%)`;
 
     await fetch(SLACK_WEBHOOK_URL, {
       method: 'POST',
@@ -155,7 +155,7 @@ ${mentor.systemPrompt}
 ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
       : `${SYSTEM_LAYER1}
 
-당신은 한국인 주식 초보자를 위한 투자 분석 비서 "솔비서 AI"입니다.
+당신은 한국인 주식 초보자를 위한 투자 분석 비서 "주비 AI"입니다.
 친절하고 쉽게 설명하되, 정확한 정보만 제공하세요.
 전문 용어는 반드시 괄호 안에 쉬운 설명을 추가하세요.`;
 
@@ -275,10 +275,10 @@ ${responseFormat}`;
       parsedMsg = parsed?.error?.message;
       parsedStatus = parsed?.error?.status;
     } catch { /* not JSON */ }
-    console.error('[솔비서 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', parsedMsg || errorMessage);
+    console.error('[주비 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', parsedMsg || errorMessage);
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   } catch (e: unknown) {
-    console.error('[솔비서 AI] unexpected error:', e);
+    console.error('[주비 AI] unexpected error:', e);
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   }
 }

@@ -23,14 +23,14 @@ const GREETINGS: Greeting[] = [
   { text: '새벽 공기처럼 차분하게, 오늘의 시장을 봐요', emoji: '🌙', condition: { hours: [0,1,2,3,4,5] } },
   { text: '밤늦게까지 투자 공부 중이시네요. 대단해요', emoji: '✨', condition: { hours: [0,1,2,3,4,5] } },
   { text: '지금 미국은 한창 거래 중이에요', emoji: '🌃', condition: { hours: [0,1,2,3,4] } },
-  { text: '잠이 안 오시나요? 솔비서가 함께할게요', emoji: '🌙', condition: { hours: [0,1,2,3] } },
+  { text: '잠이 안 오시나요? 주비가 함께할게요', emoji: '🌙', condition: { hours: [0,1,2,3] } },
 
   // ===== 아침 (6~11시) =====
   { text: '좋은 아침이에요! 오늘도 좋은 하루 되세요', emoji: '☀️', condition: { hours: [6,7,8,9,10,11] } },
   { text: '상쾌한 아침, 포트폴리오도 체크하고 출발해요', emoji: '🌅', condition: { hours: [6,7,8] } },
   { text: '커피 한 잔과 함께 오늘의 시장을 확인해보세요', emoji: '☕', condition: { hours: [7,8,9] } },
   { text: '출근길에 잠깐! 어제 내 종목은 어땠을까요', emoji: '🚇', condition: { hours: [7,8,9], days: [1,2,3,4,5] } },
-  { text: '하루의 시작, 솔비서와 함께해요', emoji: '🌤️', condition: { hours: [6,7,8,9,10,11] } },
+  { text: '하루의 시작, 주비와 함께해요', emoji: '🌤️', condition: { hours: [6,7,8,9,10,11] } },
 
   // ===== 오후 (12~17시) =====
   { text: '점심 드셨어요? 오늘도 수고하고 계시네요', emoji: '🍚', condition: { hours: [12,13] } },
@@ -56,7 +56,7 @@ const GREETINGS: Greeting[] = [
 
   // ===== 주말 =====
   { text: '주말이에요. 편하게 쉬세요. 시장도 쉬고 있어요', emoji: '😴', condition: { isWeekend: true } },
-  { text: '주말엔 투자 공부 한 스푼? 솔비서가 도와줄게요', emoji: '📚', condition: { isWeekend: true } },
+  { text: '주말엔 투자 공부 한 스푼? 주비가 도와줄게요', emoji: '📚', condition: { isWeekend: true } },
   { text: '쉬는 날, 지난 한 주를 돌아보기 좋은 시간이에요', emoji: '🧘', condition: { isWeekend: true } },
 
   // ===== 봄 (3~5월) =====
@@ -89,21 +89,21 @@ const GREETINGS: Greeting[] = [
   { text: '한 해의 마지막 날이에요. 올해도 수고하셨어요', emoji: '🎊', condition: { dates: ['12-31'] } },
   { text: '즐거운 추석 보내세요! 가족과 행복한 시간', emoji: '🌕', condition: { dates: ['09-16', '09-17', '09-18'] } },
   { text: '광복절이에요. 감사한 마음으로', emoji: '🇰🇷', condition: { dates: ['08-15'] } },
-  { text: '스승의 날이에요. 솔비서도 좋은 스승이 되고 싶어요', emoji: '🌹', condition: { dates: ['05-15'] } },
+  { text: '스승의 날이에요. 주비도 좋은 스승이 되고 싶어요', emoji: '🌹', condition: { dates: ['05-15'] } },
 
   // ===== 하락장 위로 =====
   { text: '힘든 하루였죠. 괜찮아요, 소나무도 겨울을 견뎌요', emoji: '🌲', condition: { isLoss: true } },
   { text: '폭풍우가 지나면 무지개가 와요. 함께할게요', emoji: '🌈', condition: { isLoss: true } },
   { text: '잃어도 괜찮아요. 배우는 과정이에요', emoji: '💙', condition: { isLoss: true } },
   { text: '나만 떨어지는 게 아니에요. 시장은 파도가 있어요', emoji: '🌊', condition: { isLoss: true } },
-  { text: '장기적으로 보면 괜찮아질 거예요. 솔비서가 응원해요', emoji: '🍀', condition: { isLoss: true } },
+  { text: '장기적으로 보면 괜찮아질 거예요. 주비가 응원해요', emoji: '🍀', condition: { isLoss: true } },
   { text: '오늘은 좀 쉬어도 돼요. 내일은 내일의 시장이 있어요', emoji: '🛋️', condition: { isLoss: true } },
   { text: '하락장은 경험치예요. 다음엔 더 강해질 거예요', emoji: '💪', condition: { isLoss: true } },
-  { text: '속상해하지 마요. 어려운 투자는 솔비서가 다 도와줄게요', emoji: '🫂', condition: { isLoss: true } },
-  { text: '지치지 마세요. 당신의 곁엔 항상 솔비서가 있어요', emoji: '🌲', condition: { isLoss: true } },
+  { text: '속상해하지 마요. 어려운 투자는 주비가 다 도와줄게요', emoji: '🫂', condition: { isLoss: true } },
+  { text: '지치지 마세요. 당신의 곁엔 항상 주비가 있어요', emoji: '🌲', condition: { isLoss: true } },
 
   // ===== 기본 (조건 없음) =====
-  { text: '오늘도 솔비서와 함께해요', emoji: '🌲', condition: {} },
+  { text: '오늘도 주비와 함께해요', emoji: '🌲', condition: {} },
   { text: '당신의 모든 내일을 응원해요', emoji: '✨', condition: {} },
   { text: '작은 한 걸음이 큰 차이를 만들어요. 천천히 가요', emoji: '👣', condition: {} },
   { text: '궁금한 건 언제든 물어보세요. 제가 다 읽어드릴게요', emoji: '💬', condition: {} },
@@ -171,5 +171,5 @@ export function getGreeting(isLoss: boolean = false): { text: string; emoji: str
   const top = scored.filter(x => x.score >= topScore - 5); // 상위 그룹 (유사 점수만)
   const pick = top[Math.floor(Math.random() * top.length)];
 
-  return pick ? { text: pick.g.text, emoji: pick.g.emoji } : { text: '오늘도 솔비서와 함께해요', emoji: '🌲' };
+  return pick ? { text: pick.g.text, emoji: pick.g.emoji } : { text: '오늘도 주비와 함께해요', emoji: '🌲' };
 }

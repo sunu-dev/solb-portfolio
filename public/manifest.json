@@ -1,6 +1,6 @@
 {
-  "name": "솔비서 — 내 AI 투자 비서",
-  "short_name": "솔비서",
+  "name": "주비 — 내 AI 투자 비서",
+  "short_name": "주비",
   "description": "내 주식을 쉽게 읽어주는 AI 투자 정보 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.",
   "start_url": "/",
   "scope": "/",

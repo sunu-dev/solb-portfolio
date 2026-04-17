@@ -182,7 +182,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>솔비서</div>
+          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>주비</div>
           <div className="text-[#B0B8C1] text-[12px]">폭풍우에도 흔들리지 않는 내 투자 비서</div>
         </div>
       </div>

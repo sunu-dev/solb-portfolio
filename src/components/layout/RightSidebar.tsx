@@ -165,13 +165,13 @@ export default function RightSidebar() {
       </button>
 
       {/* ============================================
-          솔비서 AI 알림센터
+          주비 AI 알림센터
           ============================================ */}
       <div id="solb-alert-center" style={{ marginTop: '40px' }}>
         {/* Header + badge */}
         <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
           <div className="flex items-center" style={{ gap: 8 }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>솔비서 AI</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>주비 AI</h3>
             {visibleAlerts.length > 0 && (
               <button
                 onClick={dismissAllAlerts}

@@ -83,7 +83,7 @@ export const SYSTEM_LAYER1 = `
  * AI 촉 시스템 프롬프트
  * 자본시장법 위반 없이 관심 종목을 제안
  */
-export const CHOK_SYSTEM_PROMPT = `당신은 솔비서 AI 촉 서비스입니다. 아래 투자 기준과 시장 컨텍스트를 분석하여 관심 가져볼 종목을 골라줍니다.
+export const CHOK_SYSTEM_PROMPT = `당신은 주비 AI 촉 서비스입니다. 아래 투자 기준과 시장 컨텍스트를 분석하여 관심 가져볼 종목을 골라줍니다.
 
 ## 현재 시장 컨텍스트
 {MACRO_CONTEXT}

@@ -60,7 +60,7 @@ export default function ShareCard() {
 
   const appUrl = 'https://solb-portfolio.vercel.app';
   const ogImageUrl = `${appUrl}/api/og?return=${totalPLPct.toFixed(1)}&winRate=${winRate}&holdings=${holdingCount}`;
-  const shareText = `솔비서 포트폴리오\n${dateStr}\n수익률 ${isGain ? '+' : ''}${totalPLPct.toFixed(1)}% | 승률 ${winRate}% | ${holdingCount}종목`;
+  const shareText = `주비 포트폴리오\n${dateStr}\n수익률 ${isGain ? '+' : ''}${totalPLPct.toFixed(1)}% | 승률 ${winRate}% | ${holdingCount}종목`;
 
   // 카카오톡 공유
   const handleKakaoShare = () => {
@@ -68,7 +68,7 @@ export default function ShareCard() {
     window.Kakao.Share.sendDefault({
       objectType: 'feed',
       content: {
-        title: '솔비서 포트폴리오',
+        title: '주비 포트폴리오',
         description: `수익률 ${isGain ? '+' : ''}${totalPLPct.toFixed(1)}% | 승률 ${winRate}% | ${holdingCount}종목`,
         imageUrl: ogImageUrl,
         link: { mobileWebUrl: appUrl, webUrl: appUrl },
@@ -82,7 +82,7 @@ export default function ShareCard() {
   // 일반 공유 (Web Share API / 클립보드)
   const handleGeneralShare = async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: '솔비서 포트폴리오', text: shareText, url: appUrl }); }
+      try { await navigator.share({ title: '주비 포트폴리오', text: shareText, url: appUrl }); }
       catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(shareText + '\n\n' + appUrl);
@@ -124,7 +124,7 @@ export default function ShareCard() {
           <div style={{ width: 24, height: 24, borderRadius: 6, background: '#3182F6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ fontSize: 13, fontWeight: 800 }}>S</span>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>솔비서 포트폴리오</span>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>주비 포트폴리오</span>
         </div>
 
         <div style={{ marginBottom: 20 }}>

@@ -63,7 +63,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
           <div className="flex items-center" style={{ gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>솔비서 AI 알림</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>주비 AI 알림</span>
             {visibleAlerts.length > 0 && (
               <span style={{
                 fontSize: 11, fontWeight: 600, color: '#fff', background: '#EF4452',

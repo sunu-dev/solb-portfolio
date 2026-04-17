@@ -135,7 +135,7 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
 function getSuccessMessage(type: string, rewards: Record<string, unknown>): string {
   switch (type) {
     case 'invite':
-      return '초대 코드가 확인됐어요! 솔비서 베타에 오신 걸 환영해요 🎉';
+      return '초대 코드가 확인됐어요! 주비 베타에 오신 걸 환영해요 🎉';
     case 'referral': {
       const r = rewards as { referee?: { amount: number } };
       const bonus = r.referee?.amount ?? 0;

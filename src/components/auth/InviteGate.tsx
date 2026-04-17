@@ -70,7 +70,7 @@ export default function InviteGate({ user, onVerified }: Props) {
         {/* 로고 */}
         <div style={{ fontSize: 40, marginBottom: 16 }}>🌊</div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>
-          솔비서 베타
+          주비 베타
         </h1>
         <p style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.6, marginBottom: 32 }}>
           현재 베타 테스터만 이용 가능해요.<br />
@@ -143,7 +143,7 @@ export default function InviteGate({ user, onVerified }: Props) {
             초대 코드가 없으신가요?
           </p>
           <a
-            href="https://open.kakao.com/o/솔비서오픈채팅"
+            href="https://open.kakao.com/o/주비오픈채팅"
             target="_blank"
             rel="noopener noreferrer"
             style={{ fontSize: 13, color: '#3182F6', fontWeight: 600, textDecoration: 'none' }}

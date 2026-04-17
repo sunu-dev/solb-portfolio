@@ -173,7 +173,7 @@ export default function AdminPage() {
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 4 }}>솔비서 관리자</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 4 }}>주비 관리자</h1>
           <p style={{ fontSize: 13, color: '#8B95A1' }}>{getTodayKST()} 기준 · KST</p>
         </div>
         <button
