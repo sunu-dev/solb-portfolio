@@ -108,6 +108,7 @@ interface PortfolioState {
 
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
+  resetPortfolio: () => void;
 
   // Helpers
   getAllSymbols: () => string[];
@@ -304,6 +305,18 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       // --- Sync ---
       setStocksFromDB: (stocks) => set({ stocks }),
+
+      resetPortfolio: () => set({
+        stocks: { investing: [], watching: [], sold: [] },
+        macroData: {},
+        candleCache: {},
+        rawCandles: {},
+        newsCache: {},
+        eventCache: {},
+        alerts: [],
+        dismissedAlerts: [],
+        lastUpdate: null,
+      }),
 
       // --- Helpers ---
       getAllSymbols: () => {

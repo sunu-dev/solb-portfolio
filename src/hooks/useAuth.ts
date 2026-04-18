@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { usePortfolioStore } from '@/store/portfolioStore';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -49,6 +50,7 @@ export function useAuth() {
     await supabase.auth.signOut();
     const keys = ['solb-portfolio-storage','solb_quote_cache','solb_macro_cache','solb_streak','solb_onboarded','solb_ai_usage'];
     keys.forEach(k => localStorage.removeItem(k));
+    usePortfolioStore.getState().resetPortfolio();
     setUser(null);
     setSession(null);
   }, []);
