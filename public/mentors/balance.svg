@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#EDE9FE"/>
+
+  <!-- Tentacles (behind body) -->
+  <!-- Bottom 4 -->
+  <path d="M86 126 Q72 148 68 166" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M94 132 Q87 156 86 172" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M106 132 Q113 156 114 172" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M114 126 Q128 148 132 166" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <!-- Side 2 -->
+  <path d="M78 108 Q52 110 36 124" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M122 108 Q148 110 164 124" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <!-- Upper 2 -->
+  <path d="M80 93 Q56 76 46 56" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <path d="M120 93 Q144 76 154 56" stroke="#7C3AED" stroke-width="9" fill="none" stroke-linecap="round"/>
+
+  <!-- Body dome -->
+  <ellipse cx="100" cy="100" rx="36" ry="40" fill="#8B5CF6"/>
+
+  <!-- Face -->
+  <circle cx="88" cy="94" r="8" fill="white"/>
+  <circle cx="112" cy="94" r="8" fill="white"/>
+  <circle cx="89" cy="95" r="5" fill="#4C1D95"/>
+  <circle cx="113" cy="95" r="5" fill="#4C1D95"/>
+  <circle cx="88" cy="93" r="1.5" fill="white"/>
+  <circle cx="112" cy="93" r="1.5" fill="white"/>
+  <path d="M91 106 Q100 113 109 106" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <!-- Coins at tentacle ends -->
+  <circle cx="68" cy="166" r="8" fill="#FCD34D" stroke="#F59E0B" stroke-width="2"/>
+  <circle cx="132" cy="166" r="8" fill="#FCD34D" stroke="#F59E0B" stroke-width="2"/>
+  <circle cx="36" cy="124" r="8" fill="#FCD34D" stroke="#F59E0B" stroke-width="2"/>
+  <circle cx="164" cy="124" r="8" fill="#FCD34D" stroke="#F59E0B" stroke-width="2"/>
+
+  <!-- Mini chart at upper tentacle ends -->
+  <rect x="37" y="46" width="18" height="14" rx="3" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <polyline points="40,56 44,50 48,53 53,46" stroke="#059669" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+  <rect x="145" y="46" width="18" height="14" rx="3" fill="white" stroke="#7C3AED" stroke-width="1.5"/>
+  <polyline points="148,56 152,50 156,53 161,46" stroke="#059669" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+</svg>

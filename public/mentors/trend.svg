@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#FEF3C7"/>
+
+  <!-- Chart line in background -->
+  <polyline points="25,155 50,130 72,140 95,105 118,118 142,78 170,82"
+            stroke="#F59E0B" stroke-width="2.5" fill="none" opacity="0.25" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Chart upward arrow -->
+  <polyline points="148,75 156,58 164,75" stroke="#059669" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="156" y1="58" x2="156" y2="82" stroke="#059669" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Wings (4 translucent ovals) -->
+  <!-- Upper left -->
+  <ellipse cx="71" cy="86" rx="30" ry="14" fill="rgba(147,197,253,0.45)" stroke="#93C5FD" stroke-width="1.5" transform="rotate(-22 71 86)"/>
+  <!-- Upper right -->
+  <ellipse cx="129" cy="86" rx="30" ry="14" fill="rgba(147,197,253,0.45)" stroke="#93C5FD" stroke-width="1.5" transform="rotate(22 129 86)"/>
+  <!-- Lower left -->
+  <ellipse cx="70" cy="108" rx="24" ry="11" fill="rgba(110,231,183,0.4)" stroke="#6EE7B7" stroke-width="1.5" transform="rotate(-16 70 108)"/>
+  <!-- Lower right -->
+  <ellipse cx="130" cy="108" rx="24" ry="11" fill="rgba(110,231,183,0.4)" stroke="#6EE7B7" stroke-width="1.5" transform="rotate(16 130 108)"/>
+
+  <!-- Tail -->
+  <path d="M100 150 Q100 165 96 172" stroke="#D97706" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+  <!-- Body segments -->
+  <ellipse cx="100" cy="130" rx="7" ry="8" fill="#D97706"/>
+  <ellipse cx="100" cy="118" rx="8" ry="9" fill="#F59E0B"/>
+  <ellipse cx="100" cy="106" rx="8.5" ry="9" fill="#D97706"/>
+
+  <!-- Thorax -->
+  <ellipse cx="100" cy="96" rx="9" ry="10" fill="#F59E0B"/>
+
+  <!-- Head -->
+  <circle cx="100" cy="83" r="14" fill="#FBBF24"/>
+
+  <!-- Big compound eyes -->
+  <circle cx="89" cy="81" r="10" fill="#1F2937"/>
+  <circle cx="111" cy="81" r="10" fill="#1F2937"/>
+  <!-- Eye shine (blue iridescent) -->
+  <circle cx="86" cy="78" r="4" fill="#60A5FA"/>
+  <circle cx="108" cy="78" r="4" fill="#60A5FA"/>
+  <circle cx="85" cy="77" r="1.5" fill="white"/>
+  <circle cx="107" cy="77" r="1.5" fill="white"/>
+
+  <!-- Antennae -->
+  <line x1="92" y1="72" x2="86" y2="60" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="86" cy="60" r="2" fill="#D97706"/>
+  <line x1="108" y1="72" x2="114" y2="60" stroke="#D97706" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="114" cy="60" r="2" fill="#D97706"/>
+</svg>

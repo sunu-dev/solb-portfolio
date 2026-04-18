@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="horn" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="35%" stop-color="#60A5FA"/>
+      <stop offset="65%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#FCD34D"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#FCE7F3"/>
+
+  <!-- Sparkles -->
+  <circle cx="42" cy="55" r="3" fill="#EC4899" opacity="0.7"/>
+  <circle cx="158" cy="62" r="2.5" fill="#A78BFA" opacity="0.7"/>
+  <circle cx="50" cy="135" r="2" fill="#FCD34D" opacity="0.7"/>
+  <path d="M155 45 L157 38 L159 45 L166 47 L159 49 L157 56 L155 49 L148 47 Z" fill="#FCD34D" opacity="0.8"/>
+  <path d="M38 82 L39 78 L40 82 L44 83 L40 84 L39 88 L38 84 L34 83 Z" fill="#EC4899" opacity="0.6"/>
+
+  <!-- Rocket flame -->
+  <path d="M100 178 L90 158 L100 150 L110 158 Z" fill="url(#flame)"/>
+  <path d="M100 172 L95 158 L100 152 L105 158 Z" fill="#FEF3C7"/>
+
+  <!-- Rocket body -->
+  <rect x="88" y="118" width="24" height="40" rx="5" fill="#EC4899"/>
+  <!-- Rocket window -->
+  <circle cx="100" cy="136" r="6" fill="white" opacity="0.4"/>
+  <!-- Rocket fins -->
+  <path d="M88 148 L78 164 L88 156 Z" fill="#BE185D"/>
+  <path d="M112 148 L122 164 L112 156 Z" fill="#BE185D"/>
+
+  <!-- Unicorn body -->
+  <ellipse cx="100" cy="110" rx="26" ry="18" fill="white"/>
+
+  <!-- Head -->
+  <circle cx="100" cy="84" r="22" fill="white"/>
+
+  <!-- Horn -->
+  <path d="M100 64 L94 42 L106 42 Z" fill="url(#horn)"/>
+
+  <!-- Mane strands -->
+  <path d="M80 72 Q70 82 72 96" stroke="#EC4899" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M78 78 Q66 90 68 104" stroke="#8B5CF6" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M80 85 Q70 96 73 108" stroke="#FCD34D" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Eye -->
+  <circle cx="108" cy="82" r="5" fill="#1F2937"/>
+  <circle cx="107" cy="81" r="1.5" fill="white"/>
+
+  <!-- Nostril -->
+  <ellipse cx="114" cy="90" rx="2.5" ry="2" fill="#F9A8D4"/>
+
+  <!-- Cheek blush -->
+  <circle cx="112" cy="86" r="5" fill="#FCA5A5" opacity="0.4"/>
+</svg>

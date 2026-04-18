@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Background -->
+  <circle cx="100" cy="100" r="100" fill="#E0E7FF"/>
+
+  <!-- Shadow -->
+  <ellipse cx="102" cy="166" rx="36" ry="5" fill="rgba(99,102,241,0.18)"/>
+
+  <!-- Tail -->
+  <path d="M130 138 Q148 142 150 134 Q152 127 145 126" stroke="#4D7C0F" stroke-width="7" fill="none" stroke-linecap="round"/>
+
+  <!-- Back legs -->
+  <ellipse cx="74" cy="152" rx="14" ry="9" fill="#65A30D" transform="rotate(-25 74 152)"/>
+  <ellipse cx="130" cy="152" rx="14" ry="9" fill="#65A30D" transform="rotate(25 130 152)"/>
+
+  <!-- Shell outer -->
+  <ellipse cx="100" cy="122" rx="42" ry="34" fill="#4D7C0F"/>
+  <!-- Shell inner -->
+  <ellipse cx="100" cy="121" rx="37" ry="29" fill="#65A30D"/>
+
+  <!-- Hex pattern on shell -->
+  <!-- Center hex -->
+  <polygon points="100,107 109,112 109,122 100,127 91,122 91,112" fill="#4D7C0F"/>
+  <!-- Ring 1 -->
+  <polygon points="100,94 109,99 109,109 100,114 91,109 91,99" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+  <polygon points="118,103 127,108 127,118 118,123 109,118 109,108" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+  <polygon points="82,103 91,108 91,118 82,123 73,118 73,108" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+  <polygon points="118,121 127,126 127,136 118,141 109,136 109,126" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+  <polygon points="82,121 91,126 91,136 82,141 73,136 73,126" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+  <polygon points="100,130 109,135 109,145 100,150 91,145 91,135" fill="none" stroke="#4D7C0F" stroke-width="1.8"/>
+
+  <!-- Front legs -->
+  <ellipse cx="72" cy="130" rx="10" ry="13" fill="#65A30D" transform="rotate(-30 72 130)"/>
+  <ellipse cx="131" cy="130" rx="10" ry="13" fill="#65A30D" transform="rotate(30 131 130)"/>
+
+  <!-- Head -->
+  <circle cx="100" cy="90" r="18" fill="#65A30D"/>
+
+  <!-- Eyes -->
+  <circle cx="93" cy="86" r="4.5" fill="white"/>
+  <circle cx="94" cy="87" r="2.8" fill="#1F2937"/>
+  <circle cx="93" cy="85.5" r="1" fill="white"/>
+  <circle cx="107" cy="86" r="4.5" fill="white"/>
+  <circle cx="108" cy="87" r="2.8" fill="#1F2937"/>
+  <circle cx="107" cy="85.5" r="1" fill="white"/>
+
+  <!-- Smile -->
+  <path d="M94 95 Q100 101 106 95" stroke="#4D7C0F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+
+  <!-- Tiny index chart above head (slow steady line) -->
+  <rect x="82" y="64" width="36" height="18" rx="4" fill="white" opacity="0.8"/>
+  <polyline points="86,78 92,76 98,74 104,72 110,70 114,69" stroke="#6366F1" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

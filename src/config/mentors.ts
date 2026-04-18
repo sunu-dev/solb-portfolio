@@ -2,6 +2,7 @@ export interface Mentor {
   id: string;
   nameKr: string;
   character: string;
+  characterImage: string;
   icon: string;
   color: string;
   risk: number;
@@ -16,6 +17,7 @@ export const MENTORS: Mentor[] = [
     id: 'safe',
     nameKr: '안정추구',
     character: '코끼리',
+    characterImage: '/mentors/safe.svg',
     icon: '🛡️',
     color: '#059669',
     risk: 1,
@@ -55,6 +57,7 @@ export const MENTORS: Mentor[] = [
     id: 'value',
     nameKr: '가치발굴',
     character: '부엉이',
+    characterImage: '/mentors/value.svg',
     icon: '🏰',
     color: '#1B4332',
     risk: 2,
@@ -94,6 +97,7 @@ PER/EPS 펀더멘털 > 52주 저점 근접도 > RSI (과매도만 관심) > MACD
     id: 'balance',
     nameKr: '균형설계',
     character: '문어',
+    characterImage: '/mentors/balance.svg',
     icon: '⚖️',
     color: '#7C3AED',
     risk: 3,
@@ -132,6 +136,7 @@ PER/EPS 펀더멘털 > 52주 저점 근접도 > RSI (과매도만 관심) > MACD
     id: 'growth',
     nameKr: '성장탐색',
     character: '유니콘',
+    characterImage: '/mentors/growth.svg',
     icon: '🚀',
     color: '#EC4899',
     risk: 4,
@@ -170,6 +175,7 @@ PER/EPS 펀더멘털 > 52주 저점 근접도 > RSI (과매도만 관심) > MACD
     id: 'trend',
     nameKr: '추세읽기',
     character: '잠자리',
+    characterImage: '/mentors/trend.svg',
     icon: '⚡',
     color: '#F59E0B',
     risk: 5,
@@ -211,6 +217,7 @@ PER/EPS 펀더멘털 > 52주 저점 근접도 > RSI (과매도만 관심) > MACD
     id: 'simple',
     nameKr: '심플투자',
     character: '거북이',
+    characterImage: '/mentors/simple.svg',
     icon: '🧭',
     color: '#6366F1',
     risk: 2,
