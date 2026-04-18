@@ -159,38 +159,6 @@ export default function Dashboard() {
             </p>
           </div>
 
-          {/* Icon/Illustration Area */}
-          <div style={{ width: 100, height: 100, display: 'flex', alignItems: 'center', justifySelf: 'flex-end', opacity: 0.9 }}>
-            {/* '주비' 캐릭터 아이콘 — 스마트 비서의 상징 */}
-            <div style={{ 
-              position: 'relative',
-              width: 80,
-              height: 80,
-              background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
-              borderRadius: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 8px 24px rgba(49, 130, 246, 0.2)',
-              transform: 'rotate(-5deg)'
-            }}>
-              <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
-                <polyline points="10,80 28,54 48,62 68,34 86,20" stroke="#FF4444" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="86" cy="20" r="8" fill="#FF4444" />
-              </svg>
-              {!isGain && (
-                <div style={{ 
-                  position: 'absolute', 
-                  top: -5, 
-                  right: -5, 
-                  fontSize: 24,
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                }}>
-                  ☁️
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Currency Switch — Floating */}
