@@ -47,6 +47,8 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    const keys = ['solb-portfolio-storage','solb_quote_cache','solb_macro_cache','solb_streak','solb_onboarded','solb_ai_usage'];
+    keys.forEach(k => localStorage.removeItem(k));
     setUser(null);
     setSession(null);
   }, []);

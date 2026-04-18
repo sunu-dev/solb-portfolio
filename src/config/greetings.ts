@@ -55,7 +55,7 @@ const GREETINGS: Greeting[] = [
   { text: '불금! 오늘은 좀 쉬어도 괜찮아요', emoji: '🍻', condition: { days: [5], hours: [18,19,20,21,22,23] } },
 
   // ===== 주말 =====
-  { text: '주말이에요. 편하게 쉬세요. 시장도 쉬고 있어요', emoji: '😴', condition: { isWeekend: true } },
+  { text: '주말엔 시장도 쉬어요', emoji: '😴', condition: { isWeekend: true } },
   { text: '주말엔 투자 공부 한 스푼? 주비가 도와줄게요', emoji: '📚', condition: { isWeekend: true } },
   { text: '쉬는 날, 지난 한 주를 돌아보기 좋은 시간이에요', emoji: '🧘', condition: { isWeekend: true } },
 

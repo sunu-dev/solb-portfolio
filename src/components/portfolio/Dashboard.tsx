@@ -141,30 +141,30 @@ export default function Dashboard() {
         {/* Hero Content */}
         <div className="flex items-start justify-between">
           <div style={{ flex: 1, zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? '#3182F6' : '#EF4452', background: 'white', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                {isGain ? '✨ 순항 중' : '☁️ 잠시 흐림'}
-              </span>
-              {streak > 0 && !significantLoss && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '4px 10px', borderRadius: 20 }}>
-                  🔥 {streak}일째 함께해요
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? '#3182F6' : '#EF4452', background: 'white', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  {isGain ? '✨ 순항 중' : '☁️ 잠시 흐림'}
                 </span>
-              )}
+                {streak > 0 && !significantLoss && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '4px 10px', borderRadius: 20 }}>
+                    🔥 {streak}일째
+                  </span>
+                )}
+              </div>
+              {/* Currency Switch — 배지와 같은 행 오른쪽 */}
+              <div style={{ display: 'flex', background: 'white', borderRadius: 8, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', flexShrink: 0 }}>
+                <button onClick={() => setCurrency('KRW')} style={{ padding: '5px 10px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400, color: currency === 'KRW' ? 'white' : '#8B95A1', background: currency === 'KRW' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>₩</button>
+                <button onClick={() => setCurrency('USD')} style={{ padding: '5px 10px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400, color: currency === 'USD' ? 'white' : '#8B95A1', background: currency === 'USD' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>$</button>
+              </div>
             </div>
-            <h1 style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0 }}>
+            <h1 style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0, wordBreak: 'keep-all' }}>
               {greetData.text}
             </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, maxWidth: '80%' }}>
-              주비가 당신의 포트폴리오를 든든하게 지켜보고 있어요.
+            <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, wordBreak: 'keep-all' }}>
+              주비도 함께 지켜보고 있어요 🐘
             </p>
           </div>
-
-        </div>
-
-        {/* Currency Switch — Floating */}
-        <div style={{ position: 'absolute', bottom: 16, right: 16, display: 'flex', background: 'white', borderRadius: 8, padding: 2, boxShadow: '0 4px 12px rgba(0,0,0,0.08)', zIndex: 2 }}>
-          <button onClick={() => setCurrency('KRW')} style={{ padding: '6px 12px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400, color: currency === 'KRW' ? 'white' : '#8B95A1', background: currency === 'KRW' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>₩</button>
-          <button onClick={() => setCurrency('USD')} style={{ padding: '6px 12px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400, color: currency === 'USD' ? 'white' : '#8B95A1', background: currency === 'USD' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>$</button>
         </div>
       </div>
 

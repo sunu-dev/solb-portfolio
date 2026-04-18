@@ -49,6 +49,13 @@ export default function Home() {
     return () => window.removeEventListener('open-mobile-alerts', handler);
   }, []);
 
+  // 비로그인 종목 추가 시도 → 로그인 모달
+  useEffect(() => {
+    const handler = () => setShowLogin(true);
+    window.addEventListener('open-login', handler);
+    return () => window.removeEventListener('open-login', handler);
+  }, []);
+
   // Supabase DB 동기화 (로그인 시에만 활성화)
   usePortfolioSync(user);
 

@@ -37,6 +37,8 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
 
   const handleSignOut = useCallback(() => {
     setOpen(false);
+    const ok = window.confirm('로그아웃하면 로컬 데이터가 초기화됩니다.\n데이터는 계정에 안전하게 저장되어 있어 다시 로그인하면 복원돼요.');
+    if (!ok) return;
     onSignOut();
   }, [onSignOut]);
 

@@ -7,6 +7,7 @@ import { STOCK_KR } from '@/config/constants';
 import type { StockItem } from '@/config/constants';
 import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { useAuth } from '@/hooks/useAuth';
 
 const RECENT_KEY = 'solb_recent_searches';
 const MAX_RECENT = 5;
@@ -33,6 +34,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar({ onClose }: SearchBarProps) {
+  const { user } = useAuth();
   const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx } = usePortfolioStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ symbol: string; description: string }[]>([]);
@@ -109,6 +111,11 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   }, [apiKey, krToTicker]);
 
   const handleAdd = useCallback(async (symbol: string, name: string) => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-login'));
+      if (onClose) onClose();
+      return;
+    }
     const sym = symbol.toUpperCase();
     for (const c of ['investing', 'watching', 'sold'] as const) {
       if ((stocks[c] || []).some(s => s.symbol === sym)) {
