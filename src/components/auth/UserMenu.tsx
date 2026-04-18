@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { usePortfolioStore } from '@/store/portfolioStore';
 
 interface UserMenuProps {
   user: User;
@@ -11,7 +12,9 @@ interface UserMenuProps {
 
 export default function UserMenu({ user, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { resetPortfolio } = usePortfolioStore();
 
   // Close on outside click
   useEffect(() => {
@@ -140,26 +143,36 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
 
           {/* Account delete */}
           <button
+            disabled={deletingAccount}
             onClick={async () => {
-              if (!confirm('정말 계정을 삭제하시겠어요?\n\n모든 데이터가 영구 삭제되며 복구할 수 없습니다.')) return;
-              if (!confirm('마지막 확인: 계정을 삭제하면 포트폴리오, 분석 기록 등 모든 데이터가 삭제됩니다.')) return;
+              if (!confirm('정말 계정을 삭제하시겠어요?\n\n포트폴리오, 분석 기록 등 모든 데이터가 영구 삭제되며 복구할 수 없습니다.')) return;
+              if (!confirm('마지막 확인: 계정 삭제 후에는 되돌릴 수 없어요. 계속하시겠어요?')) return;
+              setDeletingAccount(true);
+              setOpen(false);
               try {
-                // DB 데이터 삭제
-                await supabase.from('user_portfolios').delete().eq('user_id', user.id);
-                await supabase.from('ai_usage').delete().eq('user_id', user.id);
-                // localStorage 초기화
-                localStorage.removeItem('solb-portfolio-storage');
-                localStorage.removeItem('solb_quote_cache');
-                localStorage.removeItem('solb_macro_cache');
-                localStorage.removeItem('solb_streak');
-                localStorage.removeItem('solb_onboarded');
-                localStorage.removeItem('solb_ai_usage');
-                // 로그아웃
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+                if (!token) throw new Error('no session');
+
+                const res = await fetch('/api/account/delete', {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (!res.ok) {
+                  const d = await res.json() as { error?: string };
+                  throw new Error(d.error || '삭제 실패');
+                }
+
+                // 로컬 상태 초기화
+                const keys = ['solb-portfolio-storage','solb_quote_cache','solb_macro_cache','solb_streak','solb_onboarded','solb_ai_usage'];
+                keys.forEach(k => localStorage.removeItem(k));
+                resetPortfolio();
                 await supabase.auth.signOut();
-                setOpen(false);
                 window.location.reload();
-              } catch {
-                alert('계정 삭제에 실패했어요. 잠시 후 다시 시도해주세요.');
+              } catch (e) {
+                const msg = e instanceof Error ? e.message : '알 수 없는 오류';
+                alert(`계정 삭제에 실패했어요: ${msg}`);
+                setDeletingAccount(false);
               }
             }}
             style={{
@@ -177,7 +190,7 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #FFF0F0)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            계정 삭제
+            {deletingAccount ? '삭제 중...' : '계정 삭제'}
           </button>
         </div>
       )}

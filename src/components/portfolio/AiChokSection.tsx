@@ -218,6 +218,8 @@ export default function AiChokSection() {
   const [state, setState] = useState<ChokState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+  const [loginForMore, setLoginForMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fetchedRef = useRef(false);
 
@@ -242,12 +244,16 @@ export default function AiChokSection() {
           sectorConcentration: buildSectorConcentration(stocks),
         }),
       });
-      const data = await res.json() as ChokState & { error?: string; limitReached?: boolean };
+      const data = await res.json() as ChokState & { error?: string; limitReached?: boolean; loginForMore?: boolean };
 
       if (!res.ok) {
         setError(data.error || 'AI 촉 서비스에 오류가 발생했어요.');
+        setLimitReached(!!data.limitReached);
+        setLoginForMore(!!data.loginForMore);
         return;
       }
+      setLimitReached(false);
+      setLoginForMore(false);
       setState(data);
     } catch {
       setError('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
@@ -341,21 +347,37 @@ export default function AiChokSection() {
           style={{
             padding: '20px 16px',
             borderRadius: 12,
-            background: 'var(--bg-subtle, #F2F4F6)',
+            background: limitReached ? 'rgba(49,130,246,0.04)' : 'var(--bg-subtle, #F2F4F6)',
+            border: limitReached ? '1px solid rgba(49,130,246,0.12)' : 'none',
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 8 }}>😔</div>
+          <div style={{ fontSize: 20, marginBottom: 8 }}>{limitReached ? '🎯' : '😔'}</div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
             {error}
           </p>
-          <button
-            onClick={() => fetchChok()}
-            className="cursor-pointer"
-            style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
-          >
-            다시 시도
-          </button>
+          {loginForMore ? (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
+              style={{
+                marginTop: 14, padding: '8px 20px', borderRadius: 8,
+                background: '#3182F6', color: '#fff', border: 'none',
+                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              로그인하고 더 받기
+            </button>
+          ) : (
+            !limitReached && (
+              <button
+                onClick={() => fetchChok()}
+                className="cursor-pointer"
+                style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
+              >
+                다시 시도
+              </button>
+            )
+          )}
         </div>
       )}
 

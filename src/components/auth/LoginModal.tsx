@@ -168,10 +168,21 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         </button>
 
         {/* Bottom note */}
-        <p style={{ fontSize: '12px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '12px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6 }}>
           로그인하면 어디서든 내 포트폴리오를
           <br />
           확인할 수 있어요.
+        </p>
+
+        {/* 개인정보 동의 */}
+        <p style={{ fontSize: '11px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
+          로그인 시{' '}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#8B95A1', textDecoration: 'underline' }}>개인정보처리방침</a>
+          {' '}및{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#8B95A1', textDecoration: 'underline' }}>이용약관</a>
+          에 동의하는 것으로 간주합니다.
+          <br />
+          본 서비스는 투자 참고용이며, 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
         </p>
       </div>
     </div>

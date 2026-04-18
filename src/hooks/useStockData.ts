@@ -241,7 +241,7 @@ export function useStockData() {
     try {
       const freshMacro = usePortfolioStore.getState().macroData;
       const macroCache: Record<string, unknown> = {};
-      for (const key of ['S&P 500', 'NASDAQ', 'WTI', 'VIX', 'USD/KRW']) {
+      for (const key of ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW']) {
         if (freshMacro[key]) macroCache[key] = freshMacro[key];
       }
       localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));
@@ -393,7 +393,7 @@ export function useMacroData() {
     try {
       const freshMacro = usePortfolioStore.getState().macroData;
       const macroCache: Record<string, unknown> = {};
-      for (const key of ['S&P 500', 'NASDAQ', 'WTI', 'VIX', 'USD/KRW']) {
+      for (const key of ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW']) {
         if (freshMacro[key]) macroCache[key] = freshMacro[key];
       }
       localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));

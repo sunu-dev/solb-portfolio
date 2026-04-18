@@ -232,9 +232,11 @@ export const DEFAULT_STOCKS: PortfolioStocks = {
 export const MACRO_IND: MacroIndicator[] = [
   { label: 'S&P 500', symbol: '^GSPC', type: 'stock' },
   { label: 'NASDAQ', symbol: '^IXIC', type: 'stock' },
-  { label: 'KOSPI', symbol: '^KS11', type: 'kospi' },
+  { label: '다우존스', symbol: '^DJI', type: 'stock' },
+  { label: '코스피', symbol: '^KS11', type: 'kospi' },
+  { label: '코스닥', symbol: '^KQ11', type: 'kospi' },
   { label: 'USD/KRW', type: 'forex' },
-  { label: 'WTI Oil', symbol: 'USOIL', type: 'stock' },
+  { label: 'WTI', symbol: 'USOIL', type: 'stock' },
   { label: 'VIX', symbol: '^VIX', type: 'stock' },
 ];
 

@@ -141,7 +141,7 @@ export default function MarketSummary() {
           }
           .marquee-track {
             display: flex;
-            animation: marquee-scroll 18s linear infinite;
+            animation: marquee-scroll 12s linear infinite;
           }
           .marquee-track:hover {
             animation-play-state: paused;
