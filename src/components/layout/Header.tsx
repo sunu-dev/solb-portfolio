@@ -51,19 +51,20 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
-          {/* J 차트 로고 — 빨간 배경 + 흰색 상승 J 곡선 */}
+          {/* J 로고 — 짧은 상단 가로획 + 수직 하강 + 우상향 훅 + 상승 ▲ */}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="24" height="24" rx="6" fill="#EF4452"/>
-            {/* J shape: 수직 하강 후 우상향 회복 = 상승곡선 */}
+            {/* J: 짧은 가로획(왼쪽으로만) + 수직 하강 + 우상향 훅 */}
             <path
-              d="M 9 3 L 9 15 Q 9 21 13 21 Q 18 20 21 8"
+              d="M 7 5 L 12 5 L 12 16 C 12 21 20 21 20 12"
               stroke="white"
-              strokeWidth="2.5"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
             />
-            <circle cx="21" cy="8" r="2" fill="white"/>
+            {/* 상승 삼각형 ▲ — 훅 끝점에 */}
+            <polygon points="20,8 22.5,13 17.5,13" fill="white"/>
           </svg>
           <span style={{
             fontSize: '18px',

@@ -60,14 +60,14 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="24" height="24" rx="6" fill="#EF4452"/>
             <path
-              d="M 9 3 L 9 15 Q 9 21 13 21 Q 18 20 21 8"
+              d="M 7 5 L 12 5 L 12 16 C 12 21 20 21 20 12"
               stroke="white"
-              strokeWidth="2.5"
+              strokeWidth="2.2"
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
             />
-            <circle cx="21" cy="8" r="2" fill="white"/>
+            <polygon points="20,8 22.5,13 17.5,13" fill="white"/>
           </svg>
           <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
             background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
