@@ -19,10 +19,17 @@ const POPULAR_STOCKS = [
   { symbol: 'TSLA', label: 'TSLA' },
 ];
 
+const SAMPLE_PORTFOLIO = [
+  { symbol: '005930.KS', avgCost: 71000, shares: 10 },
+  { symbol: 'AAPL',      avgCost: 178,   shares: 5  },
+  { symbol: 'SPY',       avgCost: 480,   shares: 3  },
+];
+
 export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState(0);
   const [added, setAdded] = useState<Set<string>>(new Set());
   const [showOcr, setShowOcr] = useState(false);
+  const [sampleLoaded, setSampleLoaded] = useState(false);
   const { addStock } = usePortfolioStore();
 
   const TOTAL_STEPS = 4;
@@ -68,6 +75,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
       <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
         {step === 0 && (
           <>
+            <img src="/mentors/safe.svg" alt="코끼리" style={{ width: 110, height: 110, margin: '0 auto 16px', display: 'block' }} />
             <div style={{ fontSize: '48px', fontWeight: 900, letterSpacing: '-0.04em', margin: '0 auto 20px', lineHeight: 1 }}>
               <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>솔</span><span style={{ color: 'var(--text-primary, #191F28)' }}>비서</span>
             </div>
@@ -156,6 +164,29 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             >
               관심 있는 종목을 추가해보세요
             </h1>
+
+            {/* 샘플 포트폴리오 체험 */}
+            <button
+              onClick={() => {
+                if (sampleLoaded) { onComplete(); return; }
+                SAMPLE_PORTFOLIO.forEach(s => {
+                  const ns: StockItem = { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: 0, buyBelow: 0 };
+                  addStock('investing', ns);
+                });
+                setSampleLoaded(true);
+                logApiCall('onboarding_sample_portfolio');
+                onComplete();
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                width: '100%', maxWidth: 320, padding: '14px 20px', marginBottom: 12,
+                borderRadius: 14, background: '#059669', color: '#fff',
+                fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🐘</span>
+              샘플 포트폴리오로 먼저 구경하기
+            </button>
 
             {/* OCR 가져오기 */}
             <button

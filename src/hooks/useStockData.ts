@@ -435,11 +435,19 @@ export function useNewsData() {
   const fetchNews = useCallback(async (market: string) => {
     let items: NewsItem[] | null;
     if (market === 'my') {
-      // 한글명 있는 종목만, 최대 4개 → 쿼리 너무 길면 Google News 결과 없음
-      const krNames = getAllSymbols().map(s => STOCK_KR[s]).filter(Boolean).slice(0, 4);
-      const q = krNames.length > 0
-        ? krNames.join(' ') + ' 주가'
-        : '미국 증시 나스닥';
+      const allSymbols = getAllSymbols();
+      const krNames = allSymbols.map(s => STOCK_KR[s]).filter(Boolean).slice(0, 3);
+      const usSymbols = allSymbols.filter(s => !s.includes('.KS') && !s.includes('.KQ')).slice(0, 3);
+      let q: string;
+      if (krNames.length > 0 && usSymbols.length > 0) {
+        q = [...krNames, ...usSymbols].join(' ') + ' 주가';
+      } else if (krNames.length > 0) {
+        q = krNames.join(' ') + ' 주가';
+      } else if (usSymbols.length > 0) {
+        q = usSymbols.join(' ') + ' 주식';
+      } else {
+        q = '미국 증시 나스닥 코스피';
+      }
       items = await fetchKoreanNews(q, 'ko', 24);
     } else {
       const entry = NEWS_QUERIES[market];

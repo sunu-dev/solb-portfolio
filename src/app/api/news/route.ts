@@ -85,24 +85,46 @@ export async function GET(req: NextRequest) {
       return db - da;
     });
 
+    const pickRecent = (sorted: NewsItem[]): NewsItem[] => {
+      const now = Date.now();
+      const h3  = now - 3 * 60 * 60 * 1000;
+      const h6  = now - 6 * 60 * 60 * 1000;
+      const hMax = now - maxHours * 60 * 60 * 1000;
+      const f3  = sorted.filter(i => i.pubDate && new Date(i.pubDate).getTime() > h3).slice(0, 15);
+      const f6  = sorted.filter(i => i.pubDate && new Date(i.pubDate).getTime() > h6).slice(0, 15);
+      const fMax = sorted.filter(i => i.pubDate && new Date(i.pubDate).getTime() > hMax).slice(0, 15);
+      return f3.length >= 3 ? f3 : f6.length >= 3 ? f6 : fMax;
+    };
+
     let recent: NewsItem[];
     if (topic) {
-      // 토픽 모드: Google이 이미 인기순 정렬 → 상위 15건 그대로 반환
       recent = sorted.slice(0, 15);
     } else {
-      // 검색 모드: 3h → 6h → maxHours 순 fallback
-      const now = Date.now();
-      const threeHoursAgo = now - 3 * 60 * 60 * 1000;
-      const sixHoursAgo   = now - 6 * 60 * 60 * 1000;
-      const maxAgo        = now - maxHours * 60 * 60 * 1000;
+      recent = pickRecent(sorted);
 
-      const fresh3h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > threeHoursAgo).slice(0, 15);
-      const fresh6h  = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > sixHoursAgo).slice(0, 15);
-      const freshMax = sorted.filter(item => item.pubDate && new Date(item.pubDate).getTime() > maxAgo).slice(0, 15);
-
-      recent = fresh3h.length >= 3 ? fresh3h
-        : fresh6h.length >= 3 ? fresh6h
-        : freshMax;
+      // KR 리전이 0건이면 gl=US 로 재시도 (Google News KR 간헐적 차단 대응)
+      if (recent.length === 0 && !isEn) {
+        const fallbackUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query!)}&hl=ko&gl=US&ceid=US:ko`;
+        try {
+          const r2 = await fetch(fallbackUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
+            signal: AbortSignal.timeout(6000),
+            cache: 'no-store',
+          });
+          const text2 = await r2.text();
+          const items2: NewsItem[] = [];
+          let m2;
+          const re2 = /<item>([\s\S]*?)<\/item>/g;
+          while ((m2 = re2.exec(text2)) !== null) {
+            const xml = m2[1];
+            const getTag = (tag: string) => { const m = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`)); return m ? m[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : ''; };
+            const rawTitle = getTag('title');
+            items2.push({ title: cleanTitle(rawTitle), link: getTag('link'), pubDate: getTag('pubDate'), source: getTag('source') || extractSource(rawTitle), description: getTag('description').replace(/<[^>]*>/g, '').substring(0, 150).trim() });
+          }
+          const sorted2 = items2.sort((a, b) => (b.pubDate ? new Date(b.pubDate).getTime() : 0) - (a.pubDate ? new Date(a.pubDate).getTime() : 0));
+          recent = pickRecent(sorted2);
+        } catch { /* 재시도 실패 시 빈 결과 유지 */ }
+      }
     }
 
     logServerApi('api_news', { query: query || topic, result_count: recent.length });
