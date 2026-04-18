@@ -1,12 +1,68 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
 import { isTodayHoliday, getUpcomingHolidays } from '@/config/marketHolidays';
 
 type MarketKey = 'KR' | 'US';
+
+type TickerItem = { label: string; displayVal: string; cp: number; isUSDKRW: boolean };
+
+// ─── RAF 기반 마퀴 — 재렌더링에도 위치 유지 ────────────────────────────────
+const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem[] }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef(0);
+  const rafRef = useRef<number>(0);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    const speed = 0.5; // px/frame @ 60fps ≈ 30px/s
+
+    const tick = () => {
+      const track = trackRef.current;
+      if (track && !pausedRef.current) {
+        posRef.current -= speed;
+        const halfWidth = track.scrollWidth / 2;
+        if (halfWidth > 0 && Math.abs(posRef.current) >= halfWidth) {
+          posRef.current += halfWidth;
+        }
+        track.style.transform = `translateX(${posRef.current}px)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []); // 한 번만 — 데이터 업데이트에도 루프 재시작 없음
+
+  return (
+    <div
+      ref={trackRef}
+      style={{ display: 'flex', willChange: 'transform' }}
+      onMouseEnter={() => { pausedRef.current = true; }}
+      onMouseLeave={() => { pausedRef.current = false; }}
+    >
+      {[...items, ...items].map((item, idx) => (
+        <div key={idx} style={{
+          display: 'flex', alignItems: 'center', gap: '5px',
+          padding: '3px 14px 3px 0', whiteSpace: 'nowrap', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1' }}>{item.label}</span>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#191F28' }}>{item.displayVal}</span>
+          <span style={{
+            fontSize: '12px', fontWeight: 700,
+            color: item.cp >= 0 ? '#EF4452' : '#3182F6',
+          }}>
+            {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}%
+          </span>
+          <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
+        </div>
+      ))}
+    </div>
+  );
+});
 
 function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnType<typeof getMarketStatus>; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -72,6 +128,8 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
   );
 }
 
+const TICKER_LABELS = ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW'];
+
 export default function MarketSummary() {
   const { macroData } = usePortfolioStore();
   const [activeMarket, setActiveMarket] = useState<MarketKey | null>(null);
@@ -80,24 +138,24 @@ export default function MarketSummary() {
   const sp = macroData['S&P 500'] as MacroEntry | undefined;
   const nasdaq = macroData['NASDAQ'] as MacroEntry | undefined;
 
-  const TICKER_LABELS = ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW'];
-
-  const tickerItems = TICKER_LABELS.map(label => {
-    const entry = macroData[label] as MacroEntry | undefined;
-    if (!entry?.value) return null;
-    const cp = entry.changePercent || 0;
-    const val = entry.value;
-    const isUSDKRW = label === 'USD/KRW';
-    const isVIX = label === 'VIX';
-    const displayVal = isUSDKRW
-      ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : isVIX
-      ? val.toFixed(2)
-      : val >= 1000
-      ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : val.toFixed(2);
-    return { label, displayVal, cp, isUSDKRW };
-  }).filter(Boolean) as { label: string; displayVal: string; cp: number; isUSDKRW: boolean }[];
+  const tickerItems = useMemo(() => {
+    return TICKER_LABELS.map(label => {
+      const entry = macroData[label] as MacroEntry | undefined;
+      if (!entry?.value) return null;
+      const cp = entry.changePercent || 0;
+      const val = entry.value;
+      const isUSDKRW = label === 'USD/KRW';
+      const isVIX = label === 'VIX';
+      const displayVal = isUSDKRW
+        ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+        : isVIX
+        ? val.toFixed(2)
+        : val >= 1000
+        ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+        : val.toFixed(2);
+      return { label, displayVal, cp, isUSDKRW };
+    }).filter(Boolean) as TickerItem[];
+  }, [macroData]);
 
   // No data yet
   if (!sp?.value && !nasdaq?.value) {
@@ -120,7 +178,6 @@ export default function MarketSummary() {
   const usHoliday = isTodayHoliday('US');
   const upcoming = getUpcomingHolidays(3);
 
-
   return (
     <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)', position: 'relative', zIndex: 10 }}>
       <div
@@ -134,17 +191,6 @@ export default function MarketSummary() {
           @media (max-width: 768px) {
             .market-summary-bar { padding: 6px 16px !important; }
             .market-status-next { display: none !important; }
-          }
-          @keyframes marquee-scroll {
-            0%   { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .marquee-track {
-            display: flex;
-            animation: marquee-scroll 12s linear infinite;
-          }
-          .marquee-track:hover {
-            animation-play-state: paused;
           }
         `}</style>
 
@@ -181,26 +227,7 @@ export default function MarketSummary() {
         {/* Indices Marquee Ticker */}
         {tickerItems.length > 0 && (
           <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-            <div className="marquee-track">
-              {[...tickerItems, ...tickerItems].map((item, idx) => (
-                <div key={idx} style={{
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  padding: '3px 14px 3px 0', whiteSpace: 'nowrap', flexShrink: 0,
-                }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1' }}>{item.label}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#191F28' }}>{item.displayVal}</span>
-                  <span style={{
-                    fontSize: '12px', fontWeight: 700,
-                    color: item.isUSDKRW
-                      ? (item.cp > 0 ? '#EF4452' : '#3182F6')
-                      : (item.cp >= 0 ? '#EF4452' : '#3182F6'),
-                  }}>
-                    {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}%
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
-                </div>
-              ))}
-            </div>
+            <MarqueeTicker items={tickerItems} />
           </div>
         )}
 
