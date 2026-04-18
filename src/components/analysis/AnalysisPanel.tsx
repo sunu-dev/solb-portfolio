@@ -749,9 +749,12 @@ export default function AnalysisPanel() {
                             flexShrink: 0,
                           }}
                         >
-                          <span style={{ fontSize: 24 }}>{m.icon}</span>
+                          <img src={m.characterImage} alt={m.character} style={{ width: 52, height: 52, borderRadius: '50%' }} />
                           <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
                             {m.nameKr}
+                          </span>
+                          <span style={{ fontSize: 10, color: isActive ? m.color : 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
+                            {m.character}
                           </span>
                           <span style={{ fontSize: 8, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap', letterSpacing: 1 }}>
                             {'★'.repeat(m.risk)}{'☆'.repeat(5 - m.risk)}
@@ -773,11 +776,14 @@ export default function AnalysisPanel() {
                       {/* Profile card */}
                       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${selectedMentor.color}15` }}>
                         <div className="flex items-start" style={{ gap: 12 }}>
-                          <span style={{ fontSize: 32, lineHeight: 1 }}>{selectedMentor.icon}</span>
+                          <img src={selectedMentor.characterImage} alt={selectedMentor.character} style={{ width: 64, height: 64, borderRadius: '50%', flexShrink: 0 }} />
                           <div style={{ flex: 1 }}>
                             <div className="flex items-center" style={{ gap: 8 }}>
                               <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
                                 {selectedMentor.nameKr}
+                              </span>
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+                                {selectedMentor.character}
                               </span>
                               <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 1 }}>
                                 리스크 {'★'.repeat(selectedMentor.risk)}{'☆'.repeat(5 - selectedMentor.risk)}
