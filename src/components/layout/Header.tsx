@@ -49,12 +49,31 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo — [L1] 나노바나나 스타일의 말랑하고 꽉 찬 '주' 아이콘 */}
-        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
+        {/* Logo */}
+        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
+          {/* J 차트 로고 */}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="jubi-g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stopColor="#3182F6"/>
+                <stop offset="100%" stopColor="#1B64DA"/>
+              </linearGradient>
+            </defs>
+            {/* 차트 라인이 J를 그리는 형태 — 상단 가로(차트 지그재그) → 수직 하강 → 하단 훅 */}
+            <path
+              d="M 2 8 L 5 6 L 8 8 L 12 5 L 16 7 L 16 18 Q 16 22 11 22 Q 6 22 6 18"
+              stroke="url(#jubi-g)"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+            <circle cx="6" cy="18" r="1.6" fill="url(#jubi-g)"/>
+          </svg>
           <span style={{
-            fontSize: '22px',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
+            fontSize: '18px',
+            fontWeight: 800,
+            letterSpacing: '-0.03em',
             fontFamily: 'Pretendard, sans-serif',
             lineHeight: 1,
             background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
