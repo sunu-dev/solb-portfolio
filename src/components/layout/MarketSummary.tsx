@@ -79,7 +79,25 @@ export default function MarketSummary() {
 
   const sp = macroData['S&P 500'] as MacroEntry | undefined;
   const nasdaq = macroData['NASDAQ'] as MacroEntry | undefined;
-  const usdkrw = macroData['USD/KRW'] as MacroEntry | undefined;
+
+  const TICKER_LABELS = ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW'];
+
+  const tickerItems = TICKER_LABELS.map(label => {
+    const entry = macroData[label] as MacroEntry | undefined;
+    if (!entry?.value) return null;
+    const cp = entry.changePercent || 0;
+    const val = entry.value;
+    const isUSDKRW = label === 'USD/KRW';
+    const isVIX = label === 'VIX';
+    const displayVal = isUSDKRW
+      ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : isVIX
+      ? val.toFixed(2)
+      : val >= 1000
+      ? val.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : val.toFixed(2);
+    return { label, displayVal, cp, isUSDKRW };
+  }).filter(Boolean) as { label: string; displayVal: string; cp: number; isUSDKRW: boolean }[];
 
   // No data yet
   if (!sp?.value && !nasdaq?.value) {
@@ -96,22 +114,12 @@ export default function MarketSummary() {
     );
   }
 
-  const spCp = sp?.changePercent || 0;
-  const nasdaqCp = nasdaq?.changePercent || 0;
-  const krwVal = usdkrw?.value || 0;
-
   const ms = getMarketStatus();
   const isUSPreMarket = ms.us.labelSimple === '프리장';
   const krHoliday = isTodayHoliday('KR');
   const usHoliday = isTodayHoliday('US');
   const upcoming = getUpcomingHolidays(3);
 
-  const avgChange = (spCp + nasdaqCp) / 2;
-  let sentiment = '보합세';
-  if (avgChange < -1) sentiment = '하락세';
-  else if (avgChange < 0) sentiment = '소폭 하락';
-  else if (avgChange > 1) sentiment = '상승세';
-  else if (avgChange > 0) sentiment = '소폭 상승';
 
   return (
     <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)', position: 'relative', zIndex: 10 }}>
@@ -125,11 +133,18 @@ export default function MarketSummary() {
           }
           @media (max-width: 768px) {
             .market-summary-bar { padding: 6px 16px !important; }
-            .market-sentiment-label { display: none !important; }
             .market-status-next { display: none !important; }
           }
-          @media (max-width: 480px) {
-            .market-usdkrw-chip { display: none !important; }
+          @keyframes marquee-scroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .marquee-track {
+            display: flex;
+            animation: marquee-scroll 35s linear infinite;
+          }
+          .marquee-track:hover {
+            animation-play-state: paused;
           }
         `}</style>
 
@@ -163,60 +178,31 @@ export default function MarketSummary() {
           </div>
         )}
 
-        {/* Indices Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
-          {/* S&P 500 Chip */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px',
-            borderRadius: '100px', background: spCp >= 0 ? 'rgba(239, 68, 82, 0.06)' : 'rgba(49, 130, 246, 0.06)',
-            whiteSpace: 'nowrap'
-          }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>S&P 500</span>
-            <span className="market-summary-text" style={{ fontSize: '13px', fontWeight: 700, color: spCp >= 0 ? '#EF4452' : '#3182F6' }}>
-              {spCp >= 0 ? '+' : ''}{spCp.toFixed(2)}%
-            </span>
-            {isUSPreMarket && <span style={{ fontSize: '10px', color: '#B0B8C1' }}>전일</span>}
+        {/* Indices Marquee Ticker */}
+        {tickerItems.length > 0 && (
+          <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
+            <div className="marquee-track">
+              {[...tickerItems, ...tickerItems].map((item, idx) => (
+                <div key={idx} style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  padding: '3px 14px 3px 0', whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1' }}>{item.label}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#191F28' }}>{item.displayVal}</span>
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700,
+                    color: item.isUSDKRW
+                      ? (item.cp > 0 ? '#EF4452' : '#3182F6')
+                      : (item.cp >= 0 ? '#EF4452' : '#3182F6'),
+                  }}>
+                    {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}%
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* NASDAQ Chip */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px',
-            borderRadius: '100px', background: nasdaqCp >= 0 ? 'rgba(239, 68, 82, 0.06)' : 'rgba(49, 130, 246, 0.06)',
-            whiteSpace: 'nowrap'
-          }}>
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>나스닥</span>
-            <span className="market-summary-text" style={{ fontSize: '13px', fontWeight: 700, color: nasdaqCp >= 0 ? '#EF4452' : '#3182F6' }}>
-              {nasdaqCp >= 0 ? '+' : ''}{nasdaqCp.toFixed(2)}%
-            </span>
-            {isUSPreMarket && <span style={{ fontSize: '10px', color: '#B0B8C1' }}>전일</span>}
-          </div>
-
-          {/* 환율 Chip */}
-          {krwVal > 0 && (() => {
-            const krwCp = usdkrw?.changePercent || 0;
-            const krwWeakening = krwCp > 0;
-            return (
-              <div className="market-usdkrw-chip" style={{
-                display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px',
-                borderRadius: '100px', background: 'var(--bg-subtle, #F8F9FA)',
-                whiteSpace: 'nowrap', border: '1px solid var(--border-light, #F2F4F6)'
-              }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>환율</span>
-                <span className="market-usdkrw" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                  {krwVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                </span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: krwWeakening ? '#EF4452' : '#3182F6' }}>
-                  {krwWeakening ? '▲' : '▼'}{Math.abs(krwCp).toFixed(1)}%
-                </span>
-              </div>
-            );
-          })()}
-
-          {/* Sentiment Text */}
-          <span className="market-sentiment market-sentiment-label" style={{ fontSize: '12px', color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500, whiteSpace: 'nowrap', marginLeft: '4px' }}>
-            &mdash; {sentiment}
-          </span>
-        </div>
+        )}
 
         {/* Market Status (Right) */}
         <div ref={marketStatusRef} className="flex items-center gap-3 shrink-0 ml-auto" style={{ fontSize: '11px', fontWeight: 500, position: 'relative' }}>
