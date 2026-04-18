@@ -57,22 +57,17 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
       >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="jubi-modal-g" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#3182F6"/>
-                <stop offset="100%" stopColor="#1B64DA"/>
-              </linearGradient>
-            </defs>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="24" height="24" rx="6" fill="#EF4452"/>
             <path
-              d="M 2 8 L 5 6 L 8 8 L 12 5 L 16 7 L 16 18 Q 16 22 11 22 Q 6 22 6 18"
-              stroke="url(#jubi-modal-g)"
-              strokeWidth="2.2"
+              d="M 9 3 L 9 15 Q 9 21 13 21 Q 18 20 21 8"
+              stroke="white"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
             />
-            <circle cx="6" cy="18" r="1.6" fill="url(#jubi-modal-g)"/>
+            <circle cx="21" cy="8" r="2" fill="white"/>
           </svg>
           <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
             background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
