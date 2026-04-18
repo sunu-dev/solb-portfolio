@@ -51,23 +51,6 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
         {/* Logo — [L1] 나노바나나 스타일의 말랑하고 꽉 찬 '주' 아이콘 */}
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '10px' }}>
-          <div style={{
-            position: 'relative',
-            width: '34px',
-            height: '34px',
-            background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px',
-            boxShadow: '0 4px 12px rgba(49, 130, 246, 0.15)'
-          }}>
-            <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-              <polyline points="10,80 28,54 48,62 68,34 86,20" stroke="#FF4444" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="86" cy="20" r="8" fill="#FF4444" />
-            </svg>
-          </div>
           <span style={{
             fontSize: '22px',
             fontWeight: 700,

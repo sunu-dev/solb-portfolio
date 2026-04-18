@@ -117,7 +117,7 @@ export default function MarketSummary() {
     <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)', position: 'relative', zIndex: 10 }}>
       <div
         className="flex items-center mx-auto market-summary-bar"
-        style={{ maxWidth: '1200px', padding: '10px 48px', gap: '12px', overflow: 'hidden' }}
+        style={{ maxWidth: '1200px', padding: '10px 48px', gap: '12px' }}
       >
         <style>{`
           @media (max-width: 1024px) {
@@ -226,7 +226,7 @@ export default function MarketSummary() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'KR' ? { background: '#F2F4F6' } : {}) }}
           >
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: krHoliday ? '#8B95A1' : ms.kr.color }} />
-            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>KR</span>
+            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>국내장</span>
             <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>
               {krHoliday ? '휴장' : ms.kr.nextEvent}
             </span>
@@ -238,7 +238,7 @@ export default function MarketSummary() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'US' ? { background: '#F2F4F6' } : {}) }}
           >
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: usHoliday ? '#8B95A1' : ms.us.color }} />
-            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>US</span>
+            <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>미장</span>
             <span className="market-status-next" style={{ color: 'var(--text-tertiary, #B0B8C1)' }}>
               {usHoliday ? '휴장' : isUSPreMarket ? `프리장 · ${ms.us.nextEvent}` : ms.us.nextEvent}
             </span>
