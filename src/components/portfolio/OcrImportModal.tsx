@@ -65,7 +65,7 @@ export default function OcrImportModal({ onClose }: Props) {
         ...s,
         editAvgCost: s.avgCost !== null ? String(s.avgCost) : '',
         editShares: s.shares !== null ? String(s.shares) : '',
-        isComplete: s.avgCost !== null && s.avgCost > 0 && s.shares !== null && s.shares > 0,
+        isComplete: s.shares !== null && s.shares > 0, // 수량만 있으면 complete
       }));
 
       setOcrStocks(editable);
@@ -109,8 +109,8 @@ export default function OcrImportModal({ onClose }: Props) {
       const next = [...prev];
       next[i] = { ...next[i], [field]: value };
       const cost = parseFloat(field === 'editAvgCost' ? value : next[i].editAvgCost) || 0;
-      const shares = parseInt(field === 'editShares' ? value : next[i].editShares) || 0;
-      next[i].isComplete = cost > 0 && shares > 0;
+      const shares = parseFloat(field === 'editShares' ? value : next[i].editShares) || 0;
+      next[i].isComplete = shares > 0; // 평단 없어도 수량만 있으면 complete
       return next;
     });
   };
@@ -125,19 +125,19 @@ export default function OcrImportModal({ onClose }: Props) {
       if (isDuplicate(s.symbol)) { dupCount++; return; }
 
       const finalAvgCost = parseFloat(s.editAvgCost) || 0;
-      const finalShares = parseInt(s.editShares) || 0;
-      const hasPosition = finalAvgCost > 0 && finalShares > 0;
+      const finalShares = parseFloat(s.editShares) || 0;
+      const hasShares = finalShares > 0;
 
-      // 완전한 데이터 → 선택한 카테고리, 불완전 → 관심종목
-      const cat = hasPosition ? targetCat : 'watching';
+      // 수량만 있어도 선택 카테고리로 추가 (평단 없으면 0으로)
+      const cat = hasShares ? targetCat : 'watching';
 
       addStock(cat, {
         symbol: s.symbol.toUpperCase(),
         avgCost: finalAvgCost,
         shares: finalShares,
-        targetReturn: hasPosition ? 10 : 0,
+        targetReturn: hasShares ? 10 : 0,
         purchaseRate: s.currency === 'USD' ? undefined : 0,
-        buyBelow: !hasPosition ? 0 : undefined,
+        buyBelow: !hasShares ? 0 : undefined,
       });
 
       if (cat === 'investing') investCount++;
@@ -202,7 +202,7 @@ export default function OcrImportModal({ onClose }: Props) {
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📸</div>
                 <div style={{ fontSize: 15, fontWeight: 600, color: '#191F28', marginBottom: 6 }}>보유종목 화면 스크린샷</div>
                 <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
-                  클릭하거나 파일을 드래그해서 업로드<br />JPG · PNG · WEBP · 최대 10MB
+                  캡처해서 간단하게 첨부만하세요<br />JPG · PNG · WEBP · 최대 10MB
                 </div>
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
@@ -329,9 +329,11 @@ export default function OcrImportModal({ onClose }: Props) {
                         <div style={{ marginTop: 8, marginLeft: 32 }}>
                           {s.isComplete ? (
                             <div style={{ fontSize: 12, color: '#4E5968' }}>
-                              평단 {s.currency === 'KRW' ? `${Number(s.editAvgCost).toLocaleString()}원` : `$${Number(s.editAvgCost).toLocaleString()}`}
-                              {' · '}
-                              {Number(s.editShares).toLocaleString()}주
+                              {Number(s.editAvgCost) > 0
+                                ? <>평단 {s.currency === 'KRW' ? `${Number(s.editAvgCost).toLocaleString()}원` : `$${Number(s.editAvgCost).toFixed(2)}`} · </>
+                                : <span style={{ color: '#FF9500' }}>평단 미입력 · </span>
+                              }
+                              {Number(s.editShares)}주
                             </div>
                           ) : (
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
