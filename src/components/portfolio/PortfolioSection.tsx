@@ -760,20 +760,38 @@ export default function PortfolioSection() {
                   {/* Goal progress cell */}
                   <div className="text-right pr-1 hide-mobile">
                     {hasGoal ? (
-                      <div className="flex items-center justify-end" style={{ gap: '8px' }}>
-                        <div style={{ width: '100px', height: '6px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: '3px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              borderRadius: '3px',
-                              background: goalPct >= 0 ? '#EF4452' : '#3182F6',
-                              width: `${Math.min(Math.max(goalPct / stock.targetReturn * 100, 0), 100)}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="tabular-nums" style={{ fontSize: '12px', color: '#8B95A1', whiteSpace: 'nowrap' }}>
-                          {plPct.toFixed(1)}/{stock.targetReturn}%
-                        </span>
+                      <div className="flex items-center justify-end" style={{ gap: '6px' }}>
+                        {goalPct >= stock.targetReturn ? (
+                          // 목표 초과 달성: 바 없이 텍스트만
+                          <>
+                            <span style={{ fontSize: '11px', color: '#6B48FF', fontWeight: 700 }}>✓</span>
+                            <span className="tabular-nums" style={{ fontSize: '12px', color: '#6B48FF', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                              {plPct.toFixed(1)}/{stock.targetReturn}%
+                            </span>
+                          </>
+                        ) : goalPct < 0 ? (
+                          // 마이너스: 바 없이 텍스트만
+                          <span className="tabular-nums" style={{ fontSize: '12px', color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
+                            {plPct.toFixed(1)}/{stock.targetReturn}%
+                          </span>
+                        ) : (
+                          // 진행 중: 진행 바 + 텍스트
+                          <>
+                            <div style={{ width: '60px', height: '4px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  height: '100%',
+                                  borderRadius: '2px',
+                                  background: '#3182F6',
+                                  width: `${Math.min(goalPct / stock.targetReturn * 100, 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="tabular-nums" style={{ fontSize: '12px', color: '#8B95A1', whiteSpace: 'nowrap' }}>
+                              {plPct.toFixed(1)}/{stock.targetReturn}%
+                            </span>
+                          </>
+                        )}
                       </div>
                     ) : (
                       <span className="text-[11px] text-[#B0B8C1]">-</span>
