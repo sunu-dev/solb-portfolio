@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Copy, Check, Share2, Users } from 'lucide-react';
+import { Copy, Check, Users } from 'lucide-react';
 
 interface InviteData {
   code: string;
@@ -12,14 +12,47 @@ interface InviteData {
   uses: { used_by: string; used_at: string }[];
 }
 
+const CACHE_KEY = 'solb_invite_cache';
+const APP_URL = 'https://solb-portfolio.vercel.app';
+
+declare global {
+  interface Window { Kakao: any; }
+}
+
 export default function InviteSection() {
   const [data, setData] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [kakaoReady, setKakaoReady] = useState(false);
+
+  // 카카오 SDK 초기화
+  useEffect(() => {
+    const init = () => {
+      const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+      if (window.Kakao && key && !window.Kakao.isInitialized()) {
+        window.Kakao.init(key);
+        setKakaoReady(true);
+      } else if (window.Kakao?.isInitialized()) {
+        setKakaoReady(true);
+      }
+    };
+    if (window.Kakao) { init(); return; }
+    const timer = setInterval(() => { if (window.Kakao) { init(); clearInterval(timer); } }, 500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     (async () => {
+      // 캐시된 데이터 즉시 표시
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          setData(JSON.parse(cached));
+          setLoading(false);
+        }
+      } catch { /* ignore */ }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setLoading(false); return; }
       setLoggedIn(true);
@@ -27,12 +60,18 @@ export default function InviteSection() {
       const res = await fetch('/api/codes/my-invite', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-      if (res.ok) setData(await res.json());
-      setLoading(false);
+      if (res.ok) {
+        const fresh = await res.json();
+        setData(fresh);
+        setLoading(false);
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(fresh)); } catch { /* ignore */ }
+      } else {
+        setLoading(false);
+      }
     })();
   }, []);
 
-  const shareUrl = data ? `${typeof window !== 'undefined' ? window.location.origin : ''}/?code=${data.code}` : '';
+  const shareUrl = data ? `${APP_URL}/?code=${data.code}` : '';
 
   const handleCopy = async () => {
     if (!data) return;
@@ -41,7 +80,23 @@ export default function InviteSection() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleShare = async () => {
+  const handleKakaoShare = () => {
+    if (!data || !window.Kakao?.Share) return;
+    window.Kakao.Share.sendDefault({
+      objectType: 'feed',
+      content: {
+        title: '주비 베타에 초대합니다 🎉',
+        description: `초대 코드: ${data.code}\nAI 주식 비서를 함께 써봐요`,
+        imageUrl: `${APP_URL}/og.png`,
+        link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
+      },
+      buttons: [
+        { title: '코드로 입장하기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } },
+      ],
+    });
+  };
+
+  const handleOtherShare = async () => {
     if (!data) return;
     if (navigator.share) {
       await navigator.share({
@@ -56,7 +111,8 @@ export default function InviteSection() {
     }
   };
 
-  if (!loggedIn) {
+  if (!loggedIn && !data) {
+    if (loading) return <div className="skeleton-shimmer" style={{ height: 140, borderRadius: 12 }} />;
     return (
       <div style={{ padding: '14px 16px', background: '#F2F4F6', borderRadius: 12, fontSize: 13, color: '#8B95A1', textAlign: 'center' }}>
         로그인 후 초대 코드를 발급받을 수 있어요
@@ -64,8 +120,8 @@ export default function InviteSection() {
     );
   }
 
-  if (loading) {
-    return <div className="skeleton-shimmer" style={{ height: 120, borderRadius: 12 }} />;
+  if (loading && !data) {
+    return <div className="skeleton-shimmer" style={{ height: 140, borderRadius: 12 }} />;
   }
 
   if (!data) return null;
@@ -87,7 +143,6 @@ export default function InviteSection() {
           {data.code}
         </div>
 
-        {/* 사용 현황 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: data.max_uses ? 10 : 0 }}>
           <Users style={{ width: 14, height: 14, opacity: 0.8 }} />
           <span style={{ fontSize: 13, opacity: 0.9 }}>
@@ -96,7 +151,6 @@ export default function InviteSection() {
           </span>
         </div>
 
-        {/* 진행 바 (제한 있는 경우만) */}
         {data.max_uses !== null && (
           <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: '#fff', borderRadius: 2, transition: 'width 0.4s' }} />
@@ -105,7 +159,8 @@ export default function InviteSection() {
       </div>
 
       {/* 버튼 */}
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        {/* 코드 복사 */}
         <button
           onClick={handleCopy}
           style={{
@@ -119,19 +174,40 @@ export default function InviteSection() {
           {copied ? <Check style={{ width: 14, height: 14 }} /> : <Copy style={{ width: 14, height: 14 }} />}
           {copied ? '복사됨!' : '코드 복사'}
         </button>
+
+        {/* 카카오톡 공유 */}
         <button
-          onClick={handleShare}
+          onClick={kakaoReady ? handleKakaoShare : handleOtherShare}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '11px 0', borderRadius: 10, border: 'none',
-            background: '#3182F6', color: '#fff',
+            background: '#FEE500', color: '#191F28',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}
         >
-          <Share2 style={{ width: 14, height: 14 }} />
-          공유하기
+          {/* Kakao icon */}
+          <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+            <path fillRule="evenodd" clipRule="evenodd"
+              d="M9 0.6C4.029 0.6 0 3.726 0 7.554c0 2.467 1.639 4.632 4.104 5.862l-1.04 3.822c-.092.337.293.605.584.407l4.574-3.03c.257.02.517.03.778.03 4.971 0 9-3.126 9-6.954C18 3.726 13.971 0.6 9 0.6z"
+              fill="#191F28"
+            />
+          </svg>
+          카카오톡 공유
         </button>
       </div>
+
+      {/* 다른 방법으로 공유 */}
+      <button
+        onClick={handleOtherShare}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          padding: '9px 0', borderRadius: 10, border: '1px solid #E5E8EB',
+          background: 'transparent', color: 'var(--text-secondary, #8B95A1)',
+          fontSize: 12, fontWeight: 500, cursor: 'pointer',
+        }}
+      >
+        링크로 공유하기
+      </button>
 
       {/* 사용 이력 */}
       {data.uses.length > 0 && (
