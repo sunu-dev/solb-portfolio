@@ -81,19 +81,28 @@ export default function InviteSection() {
   };
 
   const handleKakaoShare = () => {
-    if (!data || !window.Kakao?.Share) return;
-    window.Kakao.Share.sendDefault({
-      objectType: 'feed',
-      content: {
-        title: '주비 베타에 초대합니다 🎉',
-        description: `초대 코드: ${data.code}\nAI 주식 비서를 함께 써봐요`,
-        imageUrl: `${APP_URL}/og.png`,
-        link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
-      },
-      buttons: [
-        { title: '코드로 입장하기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } },
-      ],
-    });
+    if (!data) return;
+    if (!window.Kakao?.Share) {
+      // SDK 미로드 시 링크 복사 fallback
+      handleOtherShare();
+      return;
+    }
+    try {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: '주비 베타에 초대합니다 🎉',
+          description: `초대 코드: ${data.code}\nAI 주식 비서를 함께 써봐요`,
+          imageUrl: `${APP_URL}/icon-512.png`,
+          link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
+        },
+        buttons: [
+          { title: '코드로 입장하기', link: { mobileWebUrl: shareUrl, webUrl: shareUrl } },
+        ],
+      });
+    } catch {
+      handleOtherShare();
+    }
   };
 
   const handleOtherShare = async () => {
@@ -177,7 +186,7 @@ export default function InviteSection() {
 
         {/* 카카오톡 공유 */}
         <button
-          onClick={kakaoReady ? handleKakaoShare : handleOtherShare}
+          onClick={handleKakaoShare}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '11px 0', borderRadius: 10, border: 'none',
