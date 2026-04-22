@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem } from '@/config/constants';
+import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem, CandleRaw } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
@@ -45,6 +45,41 @@ const SORT_OPTIONS: { key: 'name' | 'price' | 'change' | 'pnl' | 'goal'; label: 
   { key: 'pnl', label: '수익률' },
   { key: 'goal', label: '목표' },
 ];
+
+type PeriodKey = '1d' | '1w' | '1m' | '3m' | '1y';
+const PERIOD_OPTIONS: { key: PeriodKey; label: string; days: number }[] = [
+  { key: '1d', label: '오늘',  days: 0  },
+  { key: '1w', label: '1주',  days: 7  },
+  { key: '1m', label: '1달',  days: 31 },
+  { key: '3m', label: '3달',  days: 92 },
+  { key: '1y', label: '1년',  days: 365 },
+];
+
+function getPeriodReturn(
+  symbol: string,
+  period: PeriodKey,
+  currentPrice: number,
+  prevClose: number | undefined,
+  rawCandles: Record<string, CandleRaw>,
+): number | null {
+  if (!currentPrice) return null;
+  if (period === '1d') {
+    if (!prevClose || prevClose === currentPrice) return null;
+    return ((currentPrice - prevClose) / prevClose) * 100;
+  }
+  const candles = rawCandles[symbol];
+  if (!candles?.t?.length || !candles?.c?.length) return null;
+  const days = PERIOD_OPTIONS.find(p => p.key === period)!.days;
+  const targetTs = Date.now() / 1000 - days * 86400;
+  let idx = -1;
+  for (let i = candles.t.length - 1; i >= 0; i--) {
+    if (candles.t[i] <= targetTs) { idx = i; break; }
+  }
+  if (idx < 0) return null;
+  const histPrice = candles.c[idx];
+  if (!histPrice) return null;
+  return ((currentPrice - histPrice) / histPrice) * 100;
+}
 
 // Tag colors for portfolio news
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
@@ -112,6 +147,7 @@ export default function PortfolioSection() {
     alerts, dismissedAlerts, dismissAlert,
     currency, setCurrency,
     lastUpdate,
+    rawCandles,
   } = usePortfolioStore();
 
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
@@ -121,6 +157,7 @@ export default function PortfolioSection() {
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
+  const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
 
   // Fetch portfolio-related news — 종목별 병렬 개별 검색 (AND 쿼리 문제 해결)
   useEffect(() => {
@@ -492,6 +529,35 @@ export default function PortfolioSection() {
           </div>
         ) : (
           <div>
+            {/* 기간 탭 — 수익률 비교 */}
+            <div className="flex items-center scrollbar-hide" style={{ gap: 4, marginBottom: 10, overflowX: 'auto', paddingBottom: 2 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginRight: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>기간</span>
+              {PERIOD_OPTIONS.map(opt => {
+                const isActive = periodTab === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setPeriodTab(opt.key)}
+                    className="cursor-pointer shrink-0"
+                    style={{
+                      padding: '5px 11px',
+                      fontSize: 12,
+                      fontWeight: isActive ? 700 : 400,
+                      color: isActive ? '#fff' : 'var(--text-tertiary, #8B95A1)',
+                      background: isActive ? 'var(--text-primary, #191F28)' : 'transparent',
+                      border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #E5E8EB)'}`,
+                      borderRadius: 20,
+                      whiteSpace: 'nowrap',
+                      minHeight: 32,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Sort selector — 모바일 필수, 데스크톱 보조 */}
             <div className="flex items-center scrollbar-hide" style={{ gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
               {SORT_OPTIONS.map(opt => {
@@ -537,7 +603,7 @@ export default function PortfolioSection() {
                 현재가 {sortBy === 'price' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
               </span>
               <span onClick={() => handleSort('change')} className="text-right" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
-                오늘 등락 {sortBy === 'change' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                {PERIOD_OPTIONS.find(p => p.key === periodTab)?.label ?? '오늘'} 등락 {sortBy === 'change' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
               </span>
               <span onClick={() => handleSort('pnl')} className="text-right hide-mobile" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
                 내 수익 {sortBy === 'pnl' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
@@ -697,19 +763,30 @@ export default function PortfolioSection() {
                     </div>
                   </div>
 
-                  {/* Today change cell */}
-                  <div className="text-right">
-                    <div className={`text-[13px] font-semibold tabular-nums ${isStockGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                      {price ? `${isStockGain ? '▲' : '▼'} ${isStockGain ? '+' : ''}${dp.toFixed(2)}%` : '--'}
-                    </div>
-                    <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isStockGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                      {price
-                        ? currency === 'KRW'
-                          ? `${change >= 0 ? '+' : ''}${fmtWonShort(Math.abs(change * usdKrw))}`
-                          : `${change >= 0 ? '+' : ''}$${change.toFixed(2)}`
-                        : ''}
-                    </div>
-                  </div>
+                  {/* Period return cell */}
+                  {(() => {
+                    const periodPct = periodTab === '1d'
+                      ? (price ? dp : null)
+                      : getPeriodReturn(stock.symbol, periodTab, price, d?.pc, rawCandles);
+                    const isUp = (periodPct ?? 0) >= 0;
+                    return (
+                      <div className="text-right">
+                        <div className={`text-[13px] font-semibold tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
+                          {periodPct != null
+                            ? `${isUp ? '▲' : '▼'} ${isUp ? '+' : ''}${periodPct.toFixed(2)}%`
+                            : price ? <span style={{ color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 400 }}>—</span> : '--'}
+                        </div>
+                        {/* 오늘만 절대값 표시 */}
+                        {periodTab === '1d' && price > 0 && (
+                          <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
+                            {currency === 'KRW'
+                              ? `${change >= 0 ? '+' : ''}${fmtWonShort(Math.abs(change * usdKrw))}`
+                              : `${change >= 0 ? '+' : ''}$${change.toFixed(2)}`}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* P&L cell */}
                   <div className="text-right hide-mobile">
