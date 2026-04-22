@@ -142,12 +142,15 @@ export async function POST(req: NextRequest) {
     try {
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.0-flash',
         contents: prompt,
-        config: { responseMimeType: 'application/json', temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } },
+        config: { responseMimeType: 'application/json', temperature: 0.8 },
       });
 
-      const text = response.text || '';
+      const raw = response.text || '';
+      // 마크다운 코드 블록 래핑 제거 (```json ... ```)
+      const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+      if (!text) throw new Error('empty response from Gemini');
       const parsed = JSON.parse(text) as { picks: Array<{ symbol: string }>; context: string };
 
       const validPicks = (parsed.picks || [])
@@ -178,6 +181,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (e) {
       lastError = e;
+      console.error('[SOLB CHOK] key failed:', lastError instanceof Error ? lastError.message : String(lastError));
       continue; // 다음 키로 재시도
     }
   }
