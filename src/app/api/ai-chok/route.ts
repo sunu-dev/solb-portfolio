@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
 
-// ─── Gemini 키 로테이션 ───────────────────────────────────────────────────────
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
   process.env.GEMINI_API_KEY_2,
