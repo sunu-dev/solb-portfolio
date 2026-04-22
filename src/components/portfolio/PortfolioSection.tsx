@@ -444,11 +444,42 @@ export default function PortfolioSection() {
           </div>
         </div>
 
-        {/* 지연 시세 안내 */}
+        {/* 기간 탭 + 지연 시세 — 종목 있을 때만 */}
         {displayList.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 8, fontSize: 11, color: '#B0B8C1' }}>
-            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#B0B8C1', display: 'inline-block' }} />
-            15분 지연 시세{lastUpdate && ` · ${lastUpdate} 갱신`}
+          <div className="flex items-center justify-between" style={{ marginBottom: 12, gap: 8 }}>
+            {/* 기간 탭 */}
+            <div className="flex items-center scrollbar-hide" style={{ gap: 4, overflowX: 'auto', flexShrink: 0 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginRight: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>기간</span>
+              {PERIOD_OPTIONS.map(opt => {
+                const isActive = periodTab === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => setPeriodTab(opt.key)}
+                    className="cursor-pointer shrink-0"
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: 12,
+                      fontWeight: isActive ? 700 : 400,
+                      color: isActive ? '#fff' : 'var(--text-tertiary, #8B95A1)',
+                      background: isActive ? 'var(--text-primary, #191F28)' : 'transparent',
+                      border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #E5E8EB)'}`,
+                      borderRadius: 20,
+                      whiteSpace: 'nowrap',
+                      minHeight: 30,
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {/* 지연 시세 안내 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#B0B8C1', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#B0B8C1', display: 'inline-block' }} />
+              15분 지연{lastUpdate && ` · ${lastUpdate}`}
+            </div>
           </div>
         )}
 
@@ -529,35 +560,6 @@ export default function PortfolioSection() {
           </div>
         ) : (
           <div>
-            {/* 기간 탭 — 수익률 비교 */}
-            <div className="flex items-center scrollbar-hide" style={{ gap: 4, marginBottom: 10, overflowX: 'auto', paddingBottom: 2 }}>
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginRight: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>기간</span>
-              {PERIOD_OPTIONS.map(opt => {
-                const isActive = periodTab === opt.key;
-                return (
-                  <button
-                    key={opt.key}
-                    onClick={() => setPeriodTab(opt.key)}
-                    className="cursor-pointer shrink-0"
-                    style={{
-                      padding: '5px 11px',
-                      fontSize: 12,
-                      fontWeight: isActive ? 700 : 400,
-                      color: isActive ? '#fff' : 'var(--text-tertiary, #8B95A1)',
-                      background: isActive ? 'var(--text-primary, #191F28)' : 'transparent',
-                      border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #E5E8EB)'}`,
-                      borderRadius: 20,
-                      whiteSpace: 'nowrap',
-                      minHeight: 32,
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-
             {/* Sort selector — 모바일 필수, 데스크톱 보조 */}
             <div className="flex items-center scrollbar-hide" style={{ gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 }}>
               {SORT_OPTIONS.map(opt => {
