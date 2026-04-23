@@ -11,6 +11,7 @@ import type {
 } from '@/config/constants';
 import { DEFAULT_STOCKS, STOCK_KR, PRESET_EVENTS } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
+import { recordDismissal } from '@/utils/alertLearning';
 
 // --- Utility functions ---
 export function tsToDate(ts: number): string {
@@ -168,15 +169,19 @@ export const usePortfolioStore = create<PortfolioState>()(
       setEditingIdx: (idx) => set({ editingIdx: idx }),
       setAlerts: (alerts) => set({ alerts }),
       setNetworkError: (err) => set({ networkError: err }),
-      dismissAlert: (alertId) =>
+      dismissAlert: (alertId) => {
+        recordDismissal(alertId);
         set((state) => ({
           dismissedAlerts: [...state.dismissedAlerts, alertId],
-        })),
+        }));
+      },
       dismissAllAlerts: () =>
         set((state) => {
           // 아직 해제되지 않은 알림 ID만 batch로 저장
           const existing = new Set(state.dismissedAlerts);
           const newlyDismissed = state.alerts.map(a => a.id).filter(id => !existing.has(id));
+          // 학습: 각 타입별 해제 기록
+          newlyDismissed.forEach(id => recordDismissal(id));
           return {
             dismissedAlerts: [...state.dismissedAlerts, ...newlyDismissed],
             lastDismissBatch: newlyDismissed,

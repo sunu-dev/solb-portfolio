@@ -8,6 +8,7 @@ import type { QuoteData } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Plus, X } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
+import { isAlertSuppressed } from '@/utils/alertLearning';
 
 interface ChokPick {
   symbol: string;
@@ -94,6 +95,8 @@ export default function RightSidebar() {
 
   const visibleAlerts = alerts
     .filter(a => !dismissedAlerts.includes(a.id))
+    // 학습: 반복 해제된 타입 자동 숨김 (단 urgent는 항상 표시)
+    .filter(a => a.severity === 1 || !isAlertSuppressed(a.id))
     .sort((a, b) => a.severity - b.severity);
 
   const filteredAlerts = filterAlerts(visibleAlerts, alertFilter);

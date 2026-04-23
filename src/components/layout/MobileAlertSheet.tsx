@@ -7,6 +7,7 @@ import type { Alert } from '@/utils/alertsEngine';
 import { X } from 'lucide-react';
 import BottomSheet from '@/components/common/BottomSheet';
 import UndoToast from '@/components/common/UndoToast';
+import { isAlertSuppressed } from '@/utils/alertLearning';
 
 const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
   urgent: { icon: '🚨', label: '긴급', bg: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.08)', color: '#EF4452' },
@@ -55,6 +56,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
 
   const visibleAlerts = alerts
     .filter(a => !dismissedAlerts.includes(a.id))
+    .filter(a => a.severity === 1 || !isAlertSuppressed(a.id))
     .sort((a, b) => a.severity - b.severity);
 
   const filteredAlerts = filterAlerts(visibleAlerts, filter);

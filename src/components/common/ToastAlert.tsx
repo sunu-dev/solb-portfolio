@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { Alert } from '@/utils/alertsEngine';
+import { isAlertSuppressed } from '@/utils/alertLearning';
 
 const TOAST_ICON: Record<Alert['type'], string> = {
   urgent: '🚨',
@@ -40,7 +41,9 @@ export default function ToastAlert() {
       a =>
         a.severity <= 1 &&
         !dismissedAlerts.includes(a.id) &&
-        !shownIdsRef.current.has(a.id)
+        !shownIdsRef.current.has(a.id) &&
+        // 학습: 반복 해제된 타입 토스트 스킵 (방해 민감도 높음)
+        !isAlertSuppressed(a.id)
     );
 
     if (newAlert) {
