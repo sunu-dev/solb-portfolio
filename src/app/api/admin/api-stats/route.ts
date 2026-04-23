@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getClaudeUsageToday, getProviderStatus } from '@/lib/aiProvider';
 
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 const ADMIN_EMAILS = ['sunu.develop@gmail.com'];
@@ -116,6 +117,10 @@ export async function GET(req: NextRequest) {
       };
     }).reverse();
 
+    // Claude fallback 사용량
+    const providerStatus = getProviderStatus();
+    const claudeUsage = await getClaudeUsageToday();
+
     return NextResponse.json({
       hours,
       total,
@@ -126,6 +131,16 @@ export async function GET(req: NextRequest) {
       topUsers,
       errorDist,
       timeline,
+      provider: {
+        gemini: { keys: providerStatus.geminiKeys },
+        claude: {
+          available: providerStatus.claudeAvailable,
+          used: claudeUsage.used,
+          limit: claudeUsage.limit,
+          remaining: claudeUsage.remaining,
+          estimatedCostUsd: claudeUsage.estimatedCostUsd,
+        },
+      },
     }, {
       headers: { 'Cache-Control': 'no-store' },
     });

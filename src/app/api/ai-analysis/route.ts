@@ -5,6 +5,7 @@ import { MENTOR_MAP } from '@/config/mentors';
 import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
+import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -326,8 +327,42 @@ ${responseFormat}`;
       } // end keys loop
     } // end models loop
 
-    // 모든 키/모델 실패 — 에러 유형 구분
+    // 모든 키/모델 실패 — Claude Haiku fallback 시도 (일일 상한 내)
     const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+    console.warn('[주비 AI] all Gemini failed, trying Claude fallback:', errorMessage.slice(0, 120));
+
+    try {
+      const aiRes = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096 });
+      // aiProvider 내부가 Gemini 먼저 재시도 후 Claude — 방금 전 실패했으니 Claude로 갈 확률 높음
+      try {
+        const parsed = JSON.parse(aiRes.text);
+        await Promise.all([
+          recordUsage(ip, symbol, mentorId, userId),
+        ]);
+        const newTotal = totalCount + 1;
+        const remaining = perUserLimit - userCount - 1;
+        if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
+          sendSlackAlert(newTotal);
+        }
+        await gate.finalize(200, `fallback_${aiRes.provider}`);
+        return NextResponse.json({ success: true, report: parsed, remaining, provider: aiRes.provider });
+      } catch {
+        // fallback 응답도 파싱 실패
+        await gate.finalize(200, 'fallback_parse_fail');
+        return NextResponse.json({
+          success: true,
+          report: { currentStatus: aiRes.text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: aiRes.text } },
+          remaining: perUserLimit - userCount - 1,
+          provider: aiRes.provider,
+        });
+      }
+    } catch (fallbackErr) {
+      if (fallbackErr instanceof AiProviderError) {
+        console.error('[주비 AI] all providers failed:', fallbackErr.causes);
+      }
+    }
+
+    // Gemini + Claude 모두 실패 — 최종 에러 분류
     let parsedCode: unknown = null;
     let parsedStatus: unknown = null;
     try {

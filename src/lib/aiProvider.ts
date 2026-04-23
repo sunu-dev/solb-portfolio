@@ -13,6 +13,7 @@
 
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 
 // ─── 설정 ────────────────────────────────────────────────────────────────────
 const GEMINI_KEYS = [
@@ -22,6 +23,47 @@ const GEMINI_KEYS = [
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 const claudeClient = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
+
+// Claude 일일 호출 상한 (비용 가드)
+// 기본 500회/일 ≈ Haiku 4.5 $2.5/일 ≈ 월 $75
+const CLAUDE_DAILY_LIMIT = parseInt(process.env.CLAUDE_DAILY_LIMIT || '500', 10);
+
+// Supabase (호출 수 카운트용)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+/**
+ * 오늘 Claude 호출 수 조회 (api_calls 테이블 기반)
+ * error_code = 'claude_fallback' 로 마킹된 호출만 카운트
+ */
+async function getTodayClaudeCount(): Promise<number> {
+  if (!supabase) return 0;
+  try {
+    const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count } = await supabase
+      .from('api_calls')
+      .select('*', { count: 'exact', head: true })
+      .eq('error_code', 'claude_fallback')
+      .gte('created_at', sinceIso);
+    return count || 0;
+  } catch { return 0; }
+}
+
+/**
+ * Claude 호출 마킹 (api_calls 테이블에 카운트용 레코드 insert)
+ */
+async function markClaudeCall() {
+  if (!supabase) return;
+  try {
+    await supabase.from('api_calls').insert({
+      endpoint: '_claude_fallback',
+      user_key: 'system',
+      status: 200,
+      error_code: 'claude_fallback',
+    });
+  } catch { /* silent */ }
+}
 
 // ─── 타입 ────────────────────────────────────────────────────────────────────
 export interface AiJsonOptions {
@@ -177,14 +219,26 @@ export async function callAiJson(opts: AiJsonOptions): Promise<AiJsonResult> {
     causes.push({ provider: 'gemini', message: 'no keys configured' });
   }
 
-  // 2. Claude fallback 시도
+  // 2. Claude fallback 시도 — 일일 상한 체크 후
   if (claudeClient) {
-    try {
-      return await callClaude(opts);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      causes.push({ provider: 'claude', message: msg.slice(0, 200) });
-      console.error('[AI] claude fallback also failed:', msg.slice(0, 120));
+    const todayCount = await getTodayClaudeCount();
+    if (todayCount >= CLAUDE_DAILY_LIMIT) {
+      causes.push({
+        provider: 'claude',
+        message: `daily budget guard: ${todayCount}/${CLAUDE_DAILY_LIMIT} reached`,
+      });
+      console.warn(`[AI] Claude daily limit reached: ${todayCount}/${CLAUDE_DAILY_LIMIT}`);
+    } else {
+      try {
+        const result = await callClaude(opts);
+        // 성공 시 카운트 마킹 (비동기, 실패해도 OK)
+        markClaudeCall().catch(() => {});
+        return result;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        causes.push({ provider: 'claude', message: msg.slice(0, 200) });
+        console.error('[AI] claude fallback also failed:', msg.slice(0, 120));
+      }
     }
   } else {
     causes.push({ provider: 'claude', message: 'ANTHROPIC_API_KEY not set' });
@@ -210,5 +264,19 @@ export function getProviderStatus() {
   return {
     geminiKeys: GEMINI_KEYS.length,
     claudeAvailable: !!claudeClient,
+    claudeDailyLimit: CLAUDE_DAILY_LIMIT,
+  };
+}
+
+/**
+ * 오늘의 Claude 사용량 조회 (admin용)
+ */
+export async function getClaudeUsageToday() {
+  const used = await getTodayClaudeCount();
+  return {
+    used,
+    limit: CLAUDE_DAILY_LIMIT,
+    remaining: Math.max(0, CLAUDE_DAILY_LIMIT - used),
+    estimatedCostUsd: (used * 0.005).toFixed(3),
   };
 }

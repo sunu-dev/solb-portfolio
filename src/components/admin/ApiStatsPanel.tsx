@@ -28,6 +28,17 @@ interface TimeBucket {
   errors: number;
 }
 
+interface ProviderInfo {
+  gemini: { keys: number };
+  claude: {
+    available: boolean;
+    used: number;
+    limit: number;
+    remaining: number;
+    estimatedCostUsd: string;
+  };
+}
+
 interface ApiStats {
   hours: number;
   total: number;
@@ -38,6 +49,7 @@ interface ApiStats {
   topUsers: TopUser[];
   errorDist: ErrorDist[];
   timeline: TimeBucket[];
+  provider?: ProviderInfo;
 }
 
 export default function ApiStatsPanel() {
@@ -100,6 +112,65 @@ export default function ApiStatsPanel() {
           </button>
         ))}
       </div>
+
+      {/* AI Provider 상태 */}
+      {stats.provider && (
+        <Section title="AI Provider 상태">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            {/* Gemini */}
+            <div style={{ padding: 14, background: '#fff', border: '1px solid #F2F4F6', borderRadius: 12 }}>
+              <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>🟢 Gemini (primary)</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>
+                {stats.provider.gemini.keys > 0 ? `${stats.provider.gemini.keys}개 키 활성` : '키 없음'}
+              </div>
+              <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 4 }}>
+                Flash Lite: $0.10/1M in, $0.40/1M out
+              </div>
+            </div>
+
+            {/* Claude */}
+            <div style={{
+              padding: 14,
+              background: stats.provider.claude.available ? '#fff' : '#F8F9FA',
+              border: `1px solid ${stats.provider.claude.available ? '#F2F4F6' : '#E5E8EB'}`,
+              borderRadius: 12,
+              opacity: stats.provider.claude.available ? 1 : 0.6,
+            }}>
+              <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
+                🟣 Claude Haiku (fallback)
+              </div>
+              {stats.provider.claude.available ? (
+                <>
+                  <div style={{
+                    fontSize: 16, fontWeight: 700,
+                    color: stats.provider.claude.remaining < 50 ? '#EF4452' : stats.provider.claude.used > 0 ? '#FF9500' : '#191F28',
+                  }}>
+                    {stats.provider.claude.used} / {stats.provider.claude.limit} 회
+                  </div>
+                  <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 4 }}>
+                    예상 비용 ${stats.provider.claude.estimatedCostUsd} / 오늘
+                  </div>
+                  {/* 진행 바 */}
+                  <div style={{ marginTop: 8, height: 4, background: '#F2F4F6', borderRadius: 2, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min(100, (stats.provider.claude.used / stats.provider.claude.limit) * 100)}%`,
+                        background: stats.provider.claude.used / stats.provider.claude.limit > 0.8 ? '#EF4452' : stats.provider.claude.used > 0 ? '#FF9500' : '#20C997',
+                        transition: 'width 0.3s',
+                      }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 13, color: '#8B95A1' }}>
+                  비활성 (ANTHROPIC_API_KEY 설정 필요)
+                </div>
+              )}
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* 총괄 카드 3개 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
