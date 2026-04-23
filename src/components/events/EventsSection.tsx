@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore, fmtDate } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { PresetEvent, QuoteData, EventCacheEntry } from '@/config/constants';
-import { Plus, CheckCircle2, Clock, XCircle, Info } from 'lucide-react';
+import { Plus, CheckCircle2, Clock, XCircle, Info, X } from 'lucide-react';
+import UndoToast from '@/components/common/UndoToast';
 
 // ─── Severity helper ────────────────────────────────────────────────────────
 function getSeverity(maxDrop: number) {
@@ -315,11 +316,12 @@ export default function EventsSection() {
     getAllEvents, getAllSymbols, stocks,
     macroData, eventCache,
     updateEventCache, updateEventCacheEntry,
-    addCustomEvent,
+    addCustomEvent, deleteCustomEvent, restoreCustomEvent,
   } = usePortfolioStore();
 
   const [loadingSyms, setLoadingSyms] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
+  const [undoToast, setUndoToast] = useState<{ event: PresetEvent } | null>(null);
 
   const events      = getAllEvents();
   const currentEvent = events.find(e => e.id === currentEventId) || events[0];
@@ -479,18 +481,64 @@ export default function EventsSection() {
 
       {/* Event pill tabs */}
       <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
-        {events.map(ev => (
-          <button key={ev.id} onClick={() => setCurrentEventId(ev.id)} style={{
-            flexShrink: 0, padding: '8px 16px', borderRadius: 20,
-            fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer',
-            transition: 'all 0.15s',
-            border: currentEventId === ev.id ? '1px solid var(--text-primary, #191F28)' : '1px solid var(--border-strong, #E5E8EB)',
-            background: currentEventId === ev.id ? 'var(--text-primary, #191F28)' : 'var(--surface, #FFFFFF)',
-            color: currentEventId === ev.id ? '#FFFFFF' : 'var(--text-secondary, #4E5968)',
-          }}>
-            {ev.emoji} {ev.name}
-          </button>
-        ))}
+        {events.map(ev => {
+          const isActive = currentEventId === ev.id;
+          const isCustom = ev.id.startsWith('c-');
+          return (
+            <div
+              key={ev.id}
+              style={{
+                flexShrink: 0,
+                display: 'inline-flex',
+                alignItems: 'stretch',
+                borderRadius: 20,
+                overflow: 'hidden',
+                border: isActive ? '1px solid var(--text-primary, #191F28)' : '1px solid var(--border-strong, #E5E8EB)',
+                background: isActive ? 'var(--text-primary, #191F28)' : 'var(--surface, #FFFFFF)',
+                transition: 'all 0.15s',
+              }}
+            >
+              <button
+                onClick={() => setCurrentEventId(ev.id)}
+                style={{
+                  padding: isCustom ? '8px 4px 8px 14px' : '8px 16px',
+                  fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer',
+                  background: 'transparent', border: 'none',
+                  color: isActive ? '#FFFFFF' : 'var(--text-secondary, #4E5968)',
+                }}
+              >
+                {ev.emoji} {ev.name}
+              </button>
+              {isCustom && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const removed = deleteCustomEvent(ev.id);
+                    if (!removed) return;
+                    // 현재 선택된 이벤트를 삭제한 경우 첫 프리셋으로 이동
+                    if (isActive) {
+                      const firstPreset = events.find(x => !x.id.startsWith('c-') && x.id !== ev.id);
+                      if (firstPreset) setCurrentEventId(firstPreset.id);
+                    }
+                    setUndoToast({ event: removed });
+                  }}
+                  aria-label={`${ev.name} 삭제`}
+                  title="삭제"
+                  className="cursor-pointer"
+                  style={{
+                    padding: '0 10px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'transparent', border: 'none',
+                    color: isActive ? 'rgba(255,255,255,0.6)' : 'var(--text-tertiary, #B0B8C1)',
+                    borderLeft: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-light, #F2F4F6)',
+                  }}
+                >
+                  <X style={{ width: 13, height: 13 }} />
+                </button>
+              )}
+            </div>
+          );
+        })}
         <button onClick={() => setShowAddModal(true)} style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
           padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 500,
@@ -614,6 +662,19 @@ export default function EventsSection() {
       )}
 
       {showAddModal && <AddEventModal onClose={() => setShowAddModal(false)} onSave={handleSaveEvent} />}
+
+      {/* 커스텀 이벤트 삭제 Undo 토스트 */}
+      {undoToast && (
+        <UndoToast
+          message={`${undoToast.event.emoji} ${undoToast.event.name} 삭제됨`}
+          onUndo={() => {
+            restoreCustomEvent(undoToast.event);
+            setCurrentEventId(undoToast.event.id);
+            setUndoToast(null);
+          }}
+          onDismiss={() => setUndoToast(null)}
+        />
+      )}
     </div>
   );
 }

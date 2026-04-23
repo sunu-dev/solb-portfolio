@@ -107,6 +107,8 @@ interface PortfolioState {
   loadPortfolio: () => void;
   savePortfolio: () => void;
   addCustomEvent: (event: PresetEvent) => void;
+  deleteCustomEvent: (id: string) => PresetEvent | null; // 삭제된 이벤트 반환 (Undo용)
+  restoreCustomEvent: (event: PresetEvent) => void;
 
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
@@ -318,6 +320,25 @@ export const usePortfolioStore = create<PortfolioState>()(
       },
 
       addCustomEvent: (event) =>
+        set((state) => ({
+          customEvents: [...state.customEvents, event],
+        })),
+
+      deleteCustomEvent: (id) => {
+        const state = get();
+        const removed = state.customEvents.find(e => e.id === id) || null;
+        if (!removed) return null;
+        // 캐시도 함께 제거 (되돌릴 땐 어차피 재계산)
+        const nextCache = { ...state.eventCache };
+        delete nextCache[id];
+        set({
+          customEvents: state.customEvents.filter(e => e.id !== id),
+          eventCache: nextCache,
+        });
+        return removed;
+      },
+
+      restoreCustomEvent: (event) =>
         set((state) => ({
           customEvents: [...state.customEvents, event],
         })),
