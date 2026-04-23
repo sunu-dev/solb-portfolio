@@ -159,6 +159,20 @@ export default function PortfolioSection() {
   const [showOcr, setShowOcr] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
 
+  // Dashboard 건강점수 pill 클릭 → 분석 탭 전환 + 스크롤
+  useEffect(() => {
+    const handler = () => {
+      setSubTab('analysis');
+      // 다음 프레임에 PortfolioHealth 위치로 스크롤
+      requestAnimationFrame(() => {
+        const health = document.querySelector('[data-slot="portfolio-health"]');
+        if (health) health.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('solb-goto-analysis', handler);
+    return () => window.removeEventListener('solb-goto-analysis', handler);
+  }, []);
+
   // Fetch portfolio-related news — 종목별 병렬 개별 검색 (AND 쿼리 문제 해결)
   useEffect(() => {
     const investingSymbols = (stocks.investing || []).map(s => s.symbol);

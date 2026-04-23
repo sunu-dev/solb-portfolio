@@ -7,6 +7,7 @@ import { formatKRW } from '@/utils/formatKRW';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
+import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
 
 export default function Dashboard() {
   const {
@@ -106,6 +107,23 @@ export default function Dashboard() {
 
   const bestKr = STOCK_KR[data.bestSymbol] || data.bestSymbol;
   const worstKr = STOCK_KR[data.worstSymbol] || data.worstSymbol;
+
+  // 포트폴리오 건강 점수
+  const health = useMemo(() => {
+    if (!data.hasInvestment) return null;
+    const investingStocks = (stocks.investing || []).map(s => {
+      const q = macroData[s.symbol] as QuoteData | undefined;
+      return {
+        symbol: s.symbol,
+        avgCost: s.avgCost,
+        shares: s.shares,
+        targetReturn: s.targetReturn,
+        currentPrice: q?.c || 0,
+        value: (q?.c || 0) * s.shares,
+      };
+    });
+    return calcHealthScore(investingStocks);
+  }, [data.hasInvestment, stocks.investing, macroData]);
 
   return (
     <div className="card-enter overflow-hidden" style={{ borderRadius: 24, background: 'var(--surface, white)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.03)' }}>
@@ -264,6 +282,74 @@ export default function Dashboard() {
             <span>상승 1위: <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ color: 'var(--color-gain, #EF4452)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{bestKr}</span></span>
             <span>하락 1위: <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ color: 'var(--color-loss, #3182F6)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{worstKr}</span></span>
           </div>
+        )}
+
+        {/* 건강점수 미니 — 투자 중 종목 있을 때만 */}
+        {health && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('solb-goto-analysis'))}
+            aria-label={`포트폴리오 건강점수 ${health.total}점 (${getHealthLabel(health.total)}) · 분석 탭으로 이동`}
+            className="cursor-pointer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              marginTop: 12,
+              padding: '12px 14px',
+              borderRadius: 12,
+              background: 'var(--bg-subtle, #F8F9FA)',
+              border: 'none',
+              textAlign: 'left',
+              transition: 'background 0.15s',
+              minHeight: 44,
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover, #F2F4F6)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
+          >
+            {/* 점수 숫자 */}
+            <div style={{
+              display: 'flex', alignItems: 'baseline', gap: 2,
+              color: getHealthColor(health.total),
+              fontWeight: 800,
+            }}>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>{health.total}</span>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>/100</span>
+            </div>
+
+            {/* 라벨 뱃지 */}
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              padding: '3px 8px', borderRadius: 20,
+              color: getHealthColor(health.total),
+              background: health.total >= 80 ? 'var(--color-success-bg)'
+                : health.total >= 60 ? 'var(--color-info-bg)'
+                : health.total >= 40 ? 'var(--color-warning-bg)'
+                : 'var(--color-danger-bg)',
+            }}>
+              {getHealthLabel(health.total)}
+            </span>
+
+            {/* 약점 1개 요약 */}
+            <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {(() => {
+                // 가장 낮은 점수 메트릭 1개 선택
+                const metrics = [
+                  { key: '집중도', ratio: health.concentration.score / 30 },
+                  { key: '섹터 분산', ratio: health.diversification.score / 25 },
+                  { key: '목표 설정', ratio: health.goalSetting.score / 25 },
+                  { key: '손익 밸런스', ratio: health.profitBalance.score / 20 },
+                ].sort((a, b) => a.ratio - b.ratio);
+                const weakest = metrics[0];
+                if (weakest.ratio < 0.5) return `${weakest.key} 보완 필요`;
+                if (health.total >= 80) return '전체 균형이 좋아요';
+                return '자세히 보기';
+              })()}
+            </span>
+
+            {/* 화살표 */}
+            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}>›</span>
+          </button>
         )}
 
         {/* Term Tip — 접이식 오늘의 지식 */}
