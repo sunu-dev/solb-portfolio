@@ -44,7 +44,21 @@
   --color-loss: #3182F6;
   --color-gain-bg: rgba(239, 68, 82, 0.06);
   --color-loss-bg: rgba(49, 130, 246, 0.06);
+
+  /* Semantic */
+  --color-danger: #EF4452;
+  --color-danger-bg: rgba(239, 68, 82, 0.08);
   --color-warning: #FF9500;
+  --color-warning-bg: rgba(255, 149, 0, 0.08);
+  --color-success: #00C6BE;
+  --color-success-bg: rgba(0, 198, 190, 0.08);
+  --color-info: #3182F6;
+  --color-info-bg: rgba(49, 130, 246, 0.08);
+  --color-purple: #AF52DE;
+  --color-purple-bg: rgba(175, 82, 222, 0.08);
+
+  /* Inverse (배경 대비 텍스트) */
+  --text-inverse: #FFFFFF;
 
   /* Radius */
   --radius-sm: 8px;
@@ -291,6 +305,20 @@ body {
   --border-row: #1E2030;
   --color-gain: #EF4452;
   --color-loss: #3182F6;
+  --color-gain-bg: rgba(239, 68, 82, 0.15);
+  --color-loss-bg: rgba(49, 130, 246, 0.15);
+  --color-danger: #EF4452;
+  --color-danger-bg: rgba(239, 68, 82, 0.15);
+  --color-warning: #FF9500;
+  --color-warning-bg: rgba(255, 149, 0, 0.15);
+  --color-success: #00C6BE;
+  --color-success-bg: rgba(0, 198, 190, 0.15);
+  --color-info: #3182F6;
+  --color-info-bg: rgba(49, 130, 246, 0.15);
+  --color-purple: #AF52DE;
+  --color-purple-bg: rgba(175, 82, 222, 0.15);
+  --text-inverse: #191F28;
+  --border-strong: #2A2D3D;
   --card-bg: #1A1D2E;
 
   /* shadcn dark tokens */
