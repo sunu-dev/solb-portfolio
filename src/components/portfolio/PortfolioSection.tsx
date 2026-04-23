@@ -20,6 +20,7 @@ import InvestmentJournal from './InvestmentJournal';
 import PortfolioDNA from './PortfolioDNA';
 import MonthlyReplay from './MonthlyReplay';
 import YearAgoCard from './YearAgoCard';
+import StockPulse from './StockPulse';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -1002,6 +1003,7 @@ export default function PortfolioSection() {
               <>
                 <MonthlyReplay />
                 <YearAgoCard />
+                <StockPulse />
                 {/* 데스크탑 2-column 그리드 */}
                 <div className="portfolio-widgets-grid">
                   <style>{`
