@@ -21,6 +21,7 @@ import PortfolioDNA from './PortfolioDNA';
 import MonthlyReplay from './MonthlyReplay';
 import YearAgoCard from './YearAgoCard';
 import StockPulse from './StockPulse';
+import ConversationalTimeline from './ConversationalTimeline';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -1001,6 +1002,7 @@ export default function PortfolioSection() {
             });
             return (
               <>
+                <ConversationalTimeline />
                 <MonthlyReplay />
                 <YearAgoCard />
                 <StockPulse />
