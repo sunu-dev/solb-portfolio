@@ -320,9 +320,6 @@ export default function PortfolioSection() {
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
-      {/* AI 촉 — 촉이 오는 종목 */}
-      <AiChokSection />
-
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (
         <div style={{ display: 'flex', gap: 4, padding: '4px', borderRadius: 12, background: 'var(--bg-subtle, #F2F4F6)', marginBottom: 16 }}>
@@ -928,8 +925,13 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {/* AI 촉 — 종목 리스트 다음 위치로 이동 */}
+        <div style={{ marginTop: '40px' }}>
+          <AiChokSection />
+        </div>
+
         {/* 내 종목 뉴스 — 항상 표시 */}
-        <div style={{ marginTop: '48px', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: '40px' }}>
+        <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: '40px' }}>
           <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             내 종목 뉴스
           </div>
