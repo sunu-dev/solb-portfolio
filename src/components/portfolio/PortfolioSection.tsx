@@ -18,6 +18,7 @@ import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
 import InvestmentJournal from './InvestmentJournal';
 import PortfolioDNA from './PortfolioDNA';
+import MonthlyReplay from './MonthlyReplay';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -998,6 +999,7 @@ export default function PortfolioSection() {
             });
             return (
               <>
+                <MonthlyReplay />
                 {/* 데스크탑 2-column 그리드 */}
                 <div className="portfolio-widgets-grid">
                   <style>{`
