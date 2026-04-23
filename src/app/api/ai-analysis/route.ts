@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
 import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
+import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -103,6 +104,14 @@ export async function POST(req: NextRequest) {
   // Sliding-window rate limit (시간당 버스트 차단) — 기존 일일 limit과 별개
   const gate = await enforceRateLimit(req, '/api/ai-analysis', POLICIES.aiAnalysis);
   if (!gate.ok) return gate.response;
+
+  // Circuit breaker — Gemini 장애 감지 시 503
+  const circuit = await checkCircuit('/api/ai-analysis', CIRCUIT_POLICIES.aiStrict);
+  if (circuit.open) {
+    console.warn('[CIRCUIT OPEN] /api/ai-analysis:', circuit.reason);
+    await gate.finalize(503, 'circuit_open');
+    return circuitOpenResponse(circuit, '/api/ai-analysis');
+  }
 
   // Rate limiting
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';

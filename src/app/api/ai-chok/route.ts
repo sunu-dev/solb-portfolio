@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
+import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -77,6 +78,14 @@ export async function POST(req: NextRequest) {
   // Rate limit gate — 시간당 로그인 15회 / 비로그인 3회
   const gate = await enforceRateLimit(req, '/api/ai-chok', POLICIES.aiAnalysis);
   if (!gate.ok) return gate.response;
+
+  // Circuit breaker — Gemini 장애 감지 시 503 + Retry-After
+  const circuit = await checkCircuit('/api/ai-chok', CIRCUIT_POLICIES.aiStrict);
+  if (circuit.open) {
+    console.warn('[CIRCUIT OPEN] /api/ai-chok:', circuit.reason);
+    await gate.finalize(503, 'circuit_open');
+    return circuitOpenResponse(circuit, '/api/ai-chok');
+  }
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 

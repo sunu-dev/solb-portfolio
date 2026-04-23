@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
+import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -106,10 +107,18 @@ export async function POST(req: NextRequest) {
   const gate = await enforceRateLimit(req, '/api/portfolio/ocr', POLICIES.ocr);
   if (!gate.ok) return gate.response;
 
-  // 모든 에러 exit에서 자동 finalize
+  // Circuit breaker — Gemini 장애 감지 시 503
+  const circuit = await checkCircuit('/api/portfolio/ocr', CIRCUIT_POLICIES.aiStrict);
+  if (circuit.open) {
+    console.warn('[CIRCUIT OPEN] /api/portfolio/ocr:', circuit.reason);
+    await gate.finalize(503, 'circuit_open');
+    return circuitOpenResponse(circuit, '/api/portfolio/ocr');
+  }
+
+  // 모든 에러 exit에서 자동 finalize (내부는 errJson 호출)
   const fail = async (code: OcrErrorCode, error: string, hint: string, status: number) => {
     await gate.finalize(status, code);
-    return await fail(code, error, hint, status);
+    return errJson(code, error, hint, status);
   };
 
   try {
