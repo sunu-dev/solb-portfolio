@@ -111,16 +111,17 @@ export default function Dashboard() {
     <div className="card-enter overflow-hidden" style={{ borderRadius: 24, background: 'var(--surface, white)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.03)' }}>
       {/* 네트워크 에러 배너 */}
       {networkError && (
-        <div style={{
+        <div role="alert" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '8px 16px', fontSize: 12, fontWeight: 500,
-          background: 'rgba(255,149,0,0.08)', color: '#FF9500',
+          background: 'var(--color-warning-bg, rgba(255,149,0,0.08))', color: 'var(--color-warning, #FF9500)',
           borderBottom: '1px solid rgba(255,149,0,0.12)',
         }}>
           <span>⚠️ {networkError}</span>
           <button
             onClick={() => setNetworkError(null)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#FF9500', padding: '0 4px' }}
+            aria-label="오류 메시지 닫기"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--color-warning, #FF9500)', padding: '0 8px', minHeight: 24 }}
           >✕</button>
         </div>
       )}
@@ -130,32 +131,42 @@ export default function Dashboard() {
         position: 'relative',
         padding: '32px 24px 24px',
         background: isGain
-          ? 'linear-gradient(135deg, #F0F7FF 0%, #F5F3FF 100%)'
-          : 'linear-gradient(135deg, #FFF5F5 0%, #FFF9F0 100%)',
+          ? 'var(--dashboard-hero-gain)'
+          : 'var(--dashboard-hero-loss)',
         overflow: 'hidden'
       }}>
         {/* Decorative Circles */}
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'white', opacity: 0.3, filter: 'blur(30px)' }} />
-        <div style={{ position: 'absolute', bottom: -20, left: '20%', width: 80, height: 80, borderRadius: '50%', background: isGain ? '#3182F6' : '#EF4452', opacity: 0.05, filter: 'blur(20px)' }} />
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'var(--surface, white)', opacity: 0.3, filter: 'blur(30px)' }} />
+        <div style={{ position: 'absolute', bottom: -20, left: '20%', width: 80, height: 80, borderRadius: '50%', background: isGain ? 'var(--color-loss, #3182F6)' : 'var(--color-gain, #EF4452)', opacity: 0.05, filter: 'blur(20px)' }} />
 
         {/* Hero Content */}
         <div className="flex items-start justify-between">
           <div style={{ flex: 1, zIndex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? '#3182F6' : '#EF4452', background: 'white', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? 'var(--color-loss, #3182F6)' : 'var(--color-gain, #EF4452)', background: 'var(--surface, white)', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                   {isGain ? '✨ 순항 중' : '☁️ 잠시 흐림'}
                 </span>
                 {streak > 0 && !significantLoss && (
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#FF9500', background: 'rgba(255,149,0,0.1)', padding: '4px 10px', borderRadius: 20 }}>
+                  <span aria-label={`연속 출석 ${streak}일차`} style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-warning, #FF9500)', background: 'var(--color-warning-bg, rgba(255,149,0,0.1))', padding: '4px 10px', borderRadius: 20 }}>
                     🔥 {streak}일째
                   </span>
                 )}
               </div>
               {/* Currency Switch — 배지와 같은 행 오른쪽 */}
-              <div style={{ display: 'flex', background: 'white', borderRadius: 8, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', flexShrink: 0 }}>
-                <button onClick={() => setCurrency('KRW')} style={{ padding: '5px 10px', fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400, color: currency === 'KRW' ? 'white' : '#8B95A1', background: currency === 'KRW' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>₩</button>
-                <button onClick={() => setCurrency('USD')} style={{ padding: '5px 10px', fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400, color: currency === 'USD' ? 'white' : '#8B95A1', background: currency === 'USD' ? '#191F28' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}>$</button>
+              <div role="group" aria-label="통화 단위 전환" style={{ display: 'flex', background: 'var(--surface, white)', borderRadius: 8, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', flexShrink: 0 }}>
+                <button
+                  onClick={() => setCurrency('KRW')}
+                  aria-label="원화로 보기"
+                  aria-pressed={currency === 'KRW'}
+                  style={{ padding: '6px 12px', minHeight: 32, fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400, color: currency === 'KRW' ? 'var(--text-inverse, white)' : 'var(--text-secondary, #8B95A1)', background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                >₩</button>
+                <button
+                  onClick={() => setCurrency('USD')}
+                  aria-label="달러로 보기"
+                  aria-pressed={currency === 'USD'}
+                  style={{ padding: '6px 12px', minHeight: 32, fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400, color: currency === 'USD' ? 'var(--text-inverse, white)' : 'var(--text-secondary, #8B95A1)', background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}
+                >$</button>
               </div>
             </div>
             <h1 style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0, wordBreak: 'keep-all' }}>
@@ -182,13 +193,13 @@ export default function Dashboard() {
                 </div>
               ) : (
               <div className="flex items-baseline gap-2">
-                <span className="tabular-nums" style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 800, color: isGain ? '#EF4452' : '#3182F6', letterSpacing: '-0.02em' }}>
+                <span className="tabular-nums" style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em' }}>
                   {currency === 'KRW'
                     ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
                     : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   }
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? '#EF4452' : '#3182F6' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)' }}>
                   ({isGain ? '+' : '-'}{Math.abs(data.totalPLPct).toFixed(2)}%)
                 </span>
               </div>
@@ -197,8 +208,8 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2 mt-4">
                   <span style={{
                     fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
-                    color: todayGain ? '#EF4452' : '#3182F6',
-                    background: todayGain ? 'rgba(239,68,82,0.06)' : 'rgba(49,130,246,0.06)',
+                    color: todayGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
+                    background: todayGain ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))',
                   }}>
                     오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
                   </span>
@@ -248,10 +259,10 @@ export default function Dashboard() {
             gap: '8px'
           }}>
             <span style={{ color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 600 }}>시장 현황</span>
-            <strong style={{ color: avgMarket >= 0 ? '#EF4452' : '#3182F6' }}>{marketLabel}</strong>
-            <span style={{ width: 1, height: 10, background: '#E5E8EB', margin: '0 4px' }} />
-            <span>상승 1위: <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ color: '#EF4452', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{bestKr}</span></span>
-            <span>하락 1위: <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ color: '#3182F6', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{worstKr}</span></span>
+            <strong style={{ color: avgMarket >= 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)' }}>{marketLabel}</strong>
+            <span style={{ width: 1, height: 10, background: 'var(--border-strong, #E5E8EB)', margin: '0 4px' }} />
+            <span>상승 1위: <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ color: 'var(--color-gain, #EF4452)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{bestKr}</span></span>
+            <span>하락 1위: <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ color: 'var(--color-loss, #3182F6)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{worstKr}</span></span>
           </div>
         )}
 
@@ -288,7 +299,7 @@ function TermTip({ term }: { term: { term: string; simple: string; analogy: stri
         <span style={{ marginLeft: 'auto', fontSize: 10 }}>{open ? '간략히 보기 ▲' : '자세히 보기 ▼'}</span>
       </button>
       {open && (
-        <div style={{ marginTop: 8, padding: '12px', borderRadius: 12, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.08)', animation: 'slideDown 0.3s ease' }}>
+        <div style={{ marginTop: 8, padding: '12px', borderRadius: 12, background: 'var(--color-info-bg, rgba(49,130,246,0.04))', border: '1px solid rgba(49,130,246,0.08)', animation: 'slideDown 0.3s ease' }}>
           <div style={{ fontSize: 13, color: 'var(--text-primary, #191F28)', fontWeight: 700, marginBottom: 4 }}>
             {term.term} — {term.simple}
           </div>

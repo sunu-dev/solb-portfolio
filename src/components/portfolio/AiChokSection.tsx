@@ -162,7 +162,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
           fontSize: 11,
           fontWeight: 600,
           color: '#3182F6',
-          background: 'rgba(49,130,246,0.08)',
+          background: 'var(--color-info-bg, rgba(49,130,246,0.08))',
           padding: '3px 8px',
           borderRadius: 6,
         }}
@@ -198,7 +198,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
             borderRadius: 8,
             fontSize: 11,
             fontWeight: 600,
-            background: inWatching ? 'var(--bg-subtle, #F2F4F6)' : 'rgba(49,130,246,0.08)',
+            background: inWatching ? 'var(--bg-subtle, #F2F4F6)' : 'var(--color-info-bg, rgba(49,130,246,0.08))',
             color: inWatching ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
             border: 'none',
           }}
@@ -347,7 +347,7 @@ export default function AiChokSection() {
           style={{
             padding: '20px 16px',
             borderRadius: 12,
-            background: limitReached ? 'rgba(49,130,246,0.04)' : 'var(--bg-subtle, #F2F4F6)',
+            background: limitReached ? 'var(--color-info-bg, rgba(49,130,246,0.04))' : 'var(--bg-subtle, #F2F4F6)',
             border: limitReached ? '1px solid rgba(49,130,246,0.12)' : 'none',
             textAlign: 'center',
           }}

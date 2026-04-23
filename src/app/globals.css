@@ -60,6 +60,10 @@
   /* Inverse (배경 대비 텍스트) */
   --text-inverse: #FFFFFF;
 
+  /* Dashboard hero gradients */
+  --dashboard-hero-gain: linear-gradient(135deg, #F0F7FF 0%, #F5F3FF 100%);
+  --dashboard-hero-loss: linear-gradient(135deg, #FFF5F5 0%, #FFF9F0 100%);
+
   /* Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -320,6 +324,10 @@ body {
   --text-inverse: #191F28;
   --border-strong: #2A2D3D;
   --card-bg: #1A1D2E;
+
+  /* Dashboard hero — 다크에서는 surface 톤으로 낮춤 */
+  --dashboard-hero-gain: linear-gradient(135deg, rgba(49,130,246,0.12) 0%, rgba(175,82,222,0.10) 100%);
+  --dashboard-hero-loss: linear-gradient(135deg, rgba(239,68,82,0.12) 0%, rgba(255,149,0,0.10) 100%);
 
   /* shadcn dark tokens */
   --background: oklch(0.145 0 0);
