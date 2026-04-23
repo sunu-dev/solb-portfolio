@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import ApiStatsPanel from '@/components/admin/ApiStatsPanel';
 
 const ADMIN_EMAILS = ['sunu.dev@gmail.com'];
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
@@ -62,7 +63,7 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-type AdminTab = 'stats' | 'growth' | 'codes' | 'config';
+type AdminTab = 'stats' | 'growth' | 'api' | 'codes' | 'config';
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -187,7 +188,7 @@ export default function AdminPage() {
 
       {/* 탭 */}
       <div style={{ display: 'flex', borderBottom: '1px solid #F2F4F6', marginBottom: 32, gap: 0 }}>
-        {([['stats', '📊 통계'], ['growth', '📈 성장'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
+        {([['stats', '📊 통계'], ['growth', '📈 성장'], ['api', '🛡️ API 관측'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{
             padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
             color: activeTab === id ? '#191F28' : '#8B95A1',
@@ -198,6 +199,7 @@ export default function AdminPage() {
       </div>
 
       {activeTab === 'growth' && <GrowthPanel session={user} />}
+      {activeTab === 'api' && <ApiStatsPanel />}
       {activeTab === 'codes' && <CodesPanel session={user} />}
       {activeTab === 'config' && <ConfigPanel session={user} />}
 
