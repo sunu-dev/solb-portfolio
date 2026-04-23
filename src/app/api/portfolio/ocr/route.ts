@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
+import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -101,25 +102,35 @@ function errJson(code: OcrErrorCode, error: string, hint: string, status: number
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit 게이트 (OCR은 이미지 토큰 비용이 가장 큼 → 시간당 로그인 5회)
+  const gate = await enforceRateLimit(req, '/api/portfolio/ocr', POLICIES.ocr);
+  if (!gate.ok) return gate.response;
+
+  // 모든 에러 exit에서 자동 finalize
+  const fail = async (code: OcrErrorCode, error: string, hint: string, status: number) => {
+    await gate.finalize(status, code);
+    return await fail(code, error, hint, status);
+  };
+
   try {
     const formData = await req.formData();
     const file = formData.get('image') as File | null;
 
     if (!file) {
-      return errJson('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 선택하거나 드래그해서 올려주세요.', 400);
+      return await fail('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 선택하거나 드래그해서 올려주세요.', 400);
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      return errJson('too_large', '파일이 너무 커요.', `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`, 400);
+      return await fail('too_large', '파일이 너무 커요.', `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`, 400);
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      return errJson('bad_type', '지원하지 않는 이미지 형식이에요.', 'JPG, PNG, WEBP로 변환 후 다시 시도해주세요.', 400);
+      return await fail('bad_type', '지원하지 않는 이미지 형식이에요.', 'JPG, PNG, WEBP로 변환 후 다시 시도해주세요.', 400);
     }
 
     if (!GEMINI_KEYS.length) {
-      return errJson('service_down', 'AI 분석 서비스가 준비 중이에요.', '잠시 후 다시 시도해주세요.', 503);
+      return await fail('service_down', 'AI 분석 서비스가 준비 중이에요.', '잠시 후 다시 시도해주세요.', 503);
     }
 
     const bytes = await file.arrayBuffer();
@@ -163,30 +174,31 @@ export async function POST(req: NextRequest) {
         const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
         if (!text) {
-          return errJson('parse_failed', 'AI가 이미지를 읽지 못했어요.', '이미지가 흐릿하거나 글자가 너무 작은지 확인 후 고화질로 다시 캡처해주세요.', 422);
+          return await fail('parse_failed', 'AI가 이미지를 읽지 못했어요.', '이미지가 흐릿하거나 글자가 너무 작은지 확인 후 고화질로 다시 캡처해주세요.', 422);
         }
 
         let result: OcrResult;
         try {
           result = JSON.parse(text);
         } catch {
-          return errJson('parse_failed', '이미지에서 종목 정보를 찾지 못했어요.', '보유종목 목록이 선명하게 보이도록 캡처 후 다시 시도해주세요.', 422);
+          return await fail('parse_failed', '이미지에서 종목 정보를 찾지 못했어요.', '보유종목 목록이 선명하게 보이도록 캡처 후 다시 시도해주세요.', 422);
         }
 
         if (!result.stocks || result.stocks.length === 0) {
-          return errJson('image_empty', '보유 종목을 인식하지 못했어요.', '증권앱의 "보유종목" 또는 "계좌" 화면을 전체 캡처해주세요. 종목명과 수량이 모두 보여야 해요.', 422);
+          return await fail('image_empty', '보유 종목을 인식하지 못했어요.', '증권앱의 "보유종목" 또는 "계좌" 화면을 전체 캡처해주세요. 종목명과 수량이 모두 보여야 해요.', 422);
         }
 
         const valid = result.stocks.filter(s => s.symbol && (s.avgCost !== null || s.shares !== null));
 
         if (valid.length === 0) {
-          return errJson('image_empty', '인식된 종목이 있지만 정보가 부족해요.', '종목명·보유수량이 잘리지 않도록 전체 화면을 캡처해주세요.', 422);
+          return await fail('image_empty', '인식된 종목이 있지만 정보가 부족해요.', '종목명·보유수량이 잘리지 않도록 전체 화면을 캡처해주세요.', 422);
         }
 
         // 성공: 사용량 기록 (병렬)
         await Promise.all([
           recordOcrUsage(ip, valid.length, result.source || 'unknown'),
           recordGeminiKeyUsage(keyIndex),
+          gate.finalize(200),
         ]);
 
         return NextResponse.json({
@@ -210,12 +222,12 @@ export async function POST(req: NextRequest) {
     console.error('[SOLB OCR] all keys failed:', errMsg.slice(0, 300));
 
     if (rateLimitHit) {
-      return errJson('rate_limit', 'AI 분석 사용량을 초과했어요.', '오늘 할당량이 모두 소진됐어요. 내일 다시 시도하거나 종목을 직접 추가해주세요.', 429);
+      return await fail('rate_limit', 'AI 분석 사용량을 초과했어요.', '오늘 할당량이 모두 소진됐어요. 내일 다시 시도하거나 종목을 직접 추가해주세요.', 429);
     }
-    return errJson('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요. 계속 실패하면 다른 스크린샷으로 시도해보세요.', 500);
+    return await fail('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요. 계속 실패하면 다른 스크린샷으로 시도해보세요.', 500);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[SOLB OCR] unexpected:', msg.slice(0, 300));
-    return errJson('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요.', 500);
+    return await fail('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요.', 500);
   }
 }

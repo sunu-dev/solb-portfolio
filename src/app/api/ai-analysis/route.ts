@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
 import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer } from '@/config/analysisPrompt';
+import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -99,6 +100,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
   }
 
+  // Sliding-window rate limit (시간당 버스트 차단) — 기존 일일 limit과 별개
+  const gate = await enforceRateLimit(req, '/api/ai-analysis', POLICIES.aiAnalysis);
+  if (!gate.ok) return gate.response;
+
   // Rate limiting
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
@@ -119,6 +124,7 @@ export async function POST(req: NextRequest) {
   const { userCount, totalCount } = await getUsage(ip, userId);
 
   if (totalCount >= DAILY_LIMIT_TOTAL) {
+    await gate.finalize(429, 'daily_total_limit');
     return NextResponse.json({
       error: '오늘 AI 분석 서비스 이용량이 초과되었어요. 내일 다시 이용해주세요.',
       limitReached: true,
@@ -129,6 +135,7 @@ export async function POST(req: NextRequest) {
     const msg = isLoggedIn
       ? `오늘 AI 분석 횟수를 모두 사용했어요 (${perUserLimit}회/일). 내일 다시 이용해주세요.`
       : `비로그인 사용자는 하루 ${perUserLimit}회까지 이용할 수 있어요. 로그인하면 ${DAILY_LIMIT_USER}회까지 사용 가능해요!`;
+    await gate.finalize(429, 'daily_user_limit');
     return NextResponse.json({
       error: msg,
       limitReached: true,
@@ -297,8 +304,10 @@ ${responseFormat}`;
 
         try {
           const parsed = JSON.parse(text);
+          await gate.finalize(200);
           return NextResponse.json({ success: true, report: parsed, remaining });
         } catch {
+          await gate.finalize(200, 'parse_fallback');
           return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining });
         }
       } catch (e) {
@@ -328,9 +337,12 @@ ${responseFormat}`;
         ? 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.'
         : 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.';
 
+    const finalCode = isQuotaExhausted ? 'gemini_quota' : isServerBusy ? 'gemini_busy' : 'gemini_failed';
+    await gate.finalize(500, finalCode);
     return NextResponse.json({ error: userMsg }, { status: 500 });
   } catch (e: unknown) {
     console.error('[주비 AI] unexpected error:', e);
+    await gate.finalize(500, 'unexpected');
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
   }
 }
