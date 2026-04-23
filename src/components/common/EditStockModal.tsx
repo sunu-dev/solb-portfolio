@@ -3,7 +3,16 @@
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import type { MacroEntry } from '@/config/constants';
+import type { MacroEntry, StockNote } from '@/config/constants';
+
+// 메모 감정 태그 (InvestmentNotes와 동일 세트 사용)
+const MEMO_TAGS = [
+  { emoji: '🤔', label: '분석 후' },
+  { emoji: '😤', label: '충동' },
+  { emoji: '🎯', label: '목표 달성' },
+  { emoji: '📰', label: '뉴스 보고' },
+  { emoji: '💡', label: '인사이트' },
+];
 
 export default function EditStockModal() {
   const {
@@ -28,6 +37,12 @@ export default function EditStockModal() {
   const [addBuyShares, setAddBuyShares] = useState('');
   const [addBuyRate, setAddBuyRate] = useState('');
   const [mode, setMode] = useState<'basic' | 'detail'>('basic');
+
+  // 메모 프롬프트 상태 (저장 직후 변경 감지 시 활성화)
+  const [memoContext, setMemoContext] = useState<string | null>(null);
+  const [memoText, setMemoText] = useState('');
+  const [memoEmoji, setMemoEmoji] = useState('🤔');
+  const [pendingSaveContext, setPendingSaveContext] = useState<{ cat: 'investing' | 'watching' | 'sold'; idx: number } | null>(null);
 
   // 현재 USD/KRW 환율 (macroData에서)
   const currentUsdKrw = Math.round((macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400);
@@ -94,7 +109,7 @@ export default function EditStockModal() {
   const [saved, setSaved] = useState(false);
 
   const save = () => {
-    if (!editingCat || editingIdx < 0) return;
+    if (!editingCat || editingIdx < 0 || !stock) return;
 
     let finalAvgCost = parseFloat(avgCost) || 0;
     let finalShares = parseInt(shares) || 0;
@@ -126,9 +141,54 @@ export default function EditStockModal() {
       data.buyBelow = parseFloat(buyBelow) || 0;
     }
 
-    updateStock(editingCat as 'investing' | 'watching' | 'sold', editingIdx, data);
+    const catKey = editingCat as 'investing' | 'watching' | 'sold';
+    updateStock(catKey, editingIdx, data);
     setSaved(true);
-    setTimeout(() => close(), 600);
+
+    // 변경 감지: 메모 프롬프트 트리거
+    const sharesDelta = finalShares - (stock.shares || 0);
+    const avgCostChanged = Math.abs(finalAvgCost - (stock.avgCost || 0)) > 0.01;
+    let context: string | null = null;
+
+    if (addPriceNum > 0 && addSharesNum > 0) {
+      context = `${addSharesNum}주 추가 매수`;
+    } else if (sharesDelta !== 0) {
+      context = sharesDelta > 0 ? `+${sharesDelta}주 매수` : `${Math.abs(sharesDelta)}주 매도`;
+    } else if (avgCostChanged) {
+      context = '평단 수정';
+    }
+
+    if (context) {
+      setMemoContext(context);
+      setMemoText('');
+      setMemoEmoji('🤔');
+      setPendingSaveContext({ cat: catKey, idx: editingIdx });
+      // 메모 입력 대기 — close 안 함
+    } else {
+      setTimeout(() => close(), 600);
+    }
+  };
+
+  // 메모 저장 (스킵/작성 공통)
+  const saveMemoAndClose = (noteText?: string) => {
+    if (!pendingSaveContext) {
+      close();
+      return;
+    }
+    const { cat, idx } = pendingSaveContext;
+    const currentStock = stocks[cat]?.[idx];
+    if (noteText && noteText.trim() && currentStock) {
+      const newNote: StockNote = {
+        text: `[${memoContext}] ${noteText.trim()}`,
+        emoji: memoEmoji,
+        date: new Date().toISOString() + '_' + Date.now(),
+      };
+      const updated = [...(currentStock.notes || []), newNote];
+      updateStock(cat, idx, { notes: updated });
+    }
+    setMemoContext(null);
+    setPendingSaveContext(null);
+    close();
   };
 
   if (!isOpen) return null;
@@ -430,6 +490,92 @@ export default function EditStockModal() {
             </div>
           )}
         </div>
+
+        {/* Memo prompt — 저장 후 변경 감지 시 노출 */}
+        {memoContext && (
+          <div
+            role="dialog"
+            aria-label="투자 메모 남기기"
+            style={{
+              padding: '18px 24px',
+              borderTop: '1px solid var(--border-light, #F2F4F6)',
+              background: 'var(--color-info-bg, rgba(49,130,246,0.06))',
+              animation: 'memo-slide-in 0.3s ease-out',
+            }}
+          >
+            <style>{`
+              @keyframes memo-slide-in {
+                from { opacity: 0; transform: translateY(-8px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 15 }}>✅</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                저장 완료 · 왜 이 결정을 했나요?
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 12, lineHeight: 1.5 }}>
+              한 줄만 남겨도 나중에 복기에 큰 도움이 돼요 ({memoContext})
+            </div>
+
+            {/* 감정 태그 */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+              {MEMO_TAGS.map(tag => {
+                const active = memoEmoji === tag.emoji;
+                return (
+                  <button
+                    key={tag.emoji}
+                    onClick={() => setMemoEmoji(tag.emoji)}
+                    style={{
+                      padding: '4px 9px', borderRadius: 14,
+                      fontSize: 11,
+                      background: active ? 'var(--color-info, #3182F6)' : 'var(--surface, #FFFFFF)',
+                      color: active ? '#fff' : 'var(--text-secondary, #4E5968)',
+                      border: `1px solid ${active ? 'var(--color-info, #3182F6)' : 'var(--border-light, #F2F4F6)'}`,
+                      cursor: 'pointer',
+                      fontWeight: active ? 700 : 400,
+                    }}
+                  >
+                    {tag.emoji} {tag.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 메모 입력 */}
+            <textarea
+              value={memoText}
+              onChange={e => setMemoText(e.target.value)}
+              placeholder="예: 실적 발표 전 분할 매수 · 목표가 도달해서 일부 익절 · 뉴스 보고 추가매수"
+              autoFocus
+              style={{
+                width: '100%', minHeight: 60, padding: '10px 12px',
+                borderRadius: 10, border: '1px solid var(--border-light, #F2F4F6)',
+                background: 'var(--surface, #FFFFFF)', fontSize: 13,
+                color: 'var(--text-primary, #191F28)', outline: 'none',
+                resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5,
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                onClick={() => saveMemoAndClose()}
+                style={{ flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)', cursor: 'pointer' }}
+              >
+                다음에
+              </button>
+              <button
+                onClick={() => saveMemoAndClose(memoText)}
+                disabled={!memoText.trim()}
+                style={{ flex: 2, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#fff', background: memoText.trim() ? 'var(--color-info, #3182F6)' : 'var(--text-tertiary, #B0B8C1)', border: 'none', cursor: memoText.trim() ? 'pointer' : 'default' }}
+              >
+                메모 남기기
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid #F2F4F6', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
