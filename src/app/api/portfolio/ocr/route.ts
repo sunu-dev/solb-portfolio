@@ -91,22 +91,35 @@ export interface OcrResult {
   source: string;
 }
 
+// 에러 코드 정의 (클라이언트가 UI 분기에 사용)
+type OcrErrorCode =
+  | 'no_file' | 'too_large' | 'bad_type' | 'service_down'
+  | 'rate_limit' | 'parse_failed' | 'image_empty' | 'unknown';
+
+function errJson(code: OcrErrorCode, error: string, hint: string, status: number) {
+  return NextResponse.json({ error, code, hint }, { status });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('image') as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: '이미지 파일이 없습니다.' }, { status: 400 });
+      return errJson('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 선택하거나 드래그해서 올려주세요.', 400);
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: '파일 크기는 10MB 이하여야 합니다.' }, { status: 400 });
+      return errJson('too_large', '파일이 너무 커요.', `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`, 400);
     }
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'JPG, PNG, WEBP 이미지만 지원합니다.' }, { status: 400 });
+      return errJson('bad_type', '지원하지 않는 이미지 형식이에요.', 'JPG, PNG, WEBP로 변환 후 다시 시도해주세요.', 400);
+    }
+
+    if (!GEMINI_KEYS.length) {
+      return errJson('service_down', 'AI 분석 서비스가 준비 중이에요.', '잠시 후 다시 시도해주세요.', 503);
     }
 
     const bytes = await file.arrayBuffer();
@@ -116,6 +129,7 @@ export async function POST(req: NextRequest) {
     // 키 로테이션: 실패 시 다른 키로 재시도
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
+    let rateLimitHit = false;
 
     for (const apiKey of shuffledKeys) {
       const keyIndex = GEMINI_KEYS.indexOf(apiKey);
@@ -145,20 +159,29 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const text = response.text || '{}';
+        const raw = response.text || '';
+        const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+        if (!text) {
+          return errJson('parse_failed', 'AI가 이미지를 읽지 못했어요.', '이미지가 흐릿하거나 글자가 너무 작은지 확인 후 고화질로 다시 캡처해주세요.', 422);
+        }
 
         let result: OcrResult;
         try {
           result = JSON.parse(text);
         } catch {
-          return NextResponse.json({ error: '이미지에서 종목 정보를 찾지 못했어요.' }, { status: 422 });
+          return errJson('parse_failed', '이미지에서 종목 정보를 찾지 못했어요.', '보유종목 목록이 선명하게 보이도록 캡처 후 다시 시도해주세요.', 422);
         }
 
         if (!result.stocks || result.stocks.length === 0) {
-          return NextResponse.json({ error: '보유 종목이 없거나 인식하지 못했어요. 보유종목 화면을 캡처해주세요.' }, { status: 422 });
+          return errJson('image_empty', '보유 종목을 인식하지 못했어요.', '증권앱의 "보유종목" 또는 "계좌" 화면을 전체 캡처해주세요. 종목명과 수량이 모두 보여야 해요.', 422);
         }
 
         const valid = result.stocks.filter(s => s.symbol && (s.avgCost !== null || s.shares !== null));
+
+        if (valid.length === 0) {
+          return errJson('image_empty', '인식된 종목이 있지만 정보가 부족해요.', '종목명·보유수량이 잘리지 않도록 전체 화면을 캡처해주세요.', 422);
+        }
 
         // 성공: 사용량 기록 (병렬)
         await Promise.all([
@@ -173,14 +196,26 @@ export async function POST(req: NextRequest) {
         });
       } catch (e) {
         lastError = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        // Gemini rate limit / quota 감지
+        if (/429|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(msg)) {
+          rateLimitHit = true;
+        }
+        console.error('[SOLB OCR] key failed:', msg.slice(0, 200));
         continue;
       }
     }
 
-    console.error('OCR all keys failed:', lastError);
-    return NextResponse.json({ error: '분석 중 오류가 발생했어요. 다시 시도해주세요.' }, { status: 500 });
+    const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+    console.error('[SOLB OCR] all keys failed:', errMsg.slice(0, 300));
+
+    if (rateLimitHit) {
+      return errJson('rate_limit', 'AI 분석 사용량을 초과했어요.', '오늘 할당량이 모두 소진됐어요. 내일 다시 시도하거나 종목을 직접 추가해주세요.', 429);
+    }
+    return errJson('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요. 계속 실패하면 다른 스크린샷으로 시도해보세요.', 500);
   } catch (e) {
-    console.error('OCR error:', e);
-    return NextResponse.json({ error: '분석 중 오류가 발생했어요. 다시 시도해주세요.' }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[SOLB OCR] unexpected:', msg.slice(0, 300));
+    return errJson('unknown', '분석 중 오류가 발생했어요.', '잠시 후 다시 시도해주세요.', 500);
   }
 }

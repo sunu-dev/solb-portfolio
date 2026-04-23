@@ -8,8 +8,15 @@ interface Props {
   onClose: () => void;
 }
 
-type Step = 'upload' | 'loading' | 'review' | 'done';
+type Step = 'upload' | 'loading' | 'review' | 'done' | 'error';
 type TargetCat = 'investing' | 'watching';
+
+interface OcrError {
+  title: string;
+  hint: string;
+  code?: string;
+  canRetry: boolean;
+}
 
 // 편집 가능한 OCR 데이터
 interface EditableStock extends OcrStock {
@@ -27,7 +34,8 @@ export default function OcrImportModal({ onClose }: Props) {
   const [source, setSource] = useState('');
   const [ocrStocks, setOcrStocks] = useState<EditableStock[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [error, setError] = useState('');
+  const [errorDetail, setErrorDetail] = useState<OcrError | null>(null);
+  const [lastFile, setLastFile] = useState<File | null>(null);
   const [applied, setApplied] = useState(0);
   const [appliedWatching, setAppliedWatching] = useState(0);
   const [skippedDup, setSkippedDup] = useState(0);
@@ -43,7 +51,8 @@ export default function OcrImportModal({ onClose }: Props) {
   const isDuplicate = (symbol: string) => existingSymbols.has(symbol.toUpperCase());
 
   const processFile = async (file: File) => {
-    setError('');
+    setErrorDetail(null);
+    setLastFile(file);
     setPreview(URL.createObjectURL(file));
     setStep('loading');
 
@@ -55,8 +64,15 @@ export default function OcrImportModal({ onClose }: Props) {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || '분석 실패');
-        setStep('upload');
+        const code = data.code as string | undefined;
+        setErrorDetail({
+          title: data.error || '분석에 실패했어요.',
+          hint: data.hint || '잠시 후 다시 시도해주세요.',
+          code,
+          // rate_limit·service_down은 재시도 무의미, 나머지는 재시도 가능
+          canRetry: code !== 'rate_limit' && code !== 'service_down' && code !== 'too_large' && code !== 'bad_type',
+        });
+        setStep('error');
         return;
       }
 
@@ -76,17 +92,47 @@ export default function OcrImportModal({ onClose }: Props) {
       setSelected(nonDupIndices);
       setStep('review');
     } catch {
-      setError('네트워크 오류가 발생했어요.');
-      setStep('upload');
+      setErrorDetail({
+        title: '네트워크 연결에 문제가 있어요.',
+        hint: '인터넷 연결을 확인하고 다시 시도해주세요.',
+        code: 'network',
+        canRetry: true,
+      });
+      setStep('error');
     }
   };
 
   const handleFile = (file: File) => {
+    // 사전 검증: 타입·크기 API 호출 전 차단
     if (!file.type.startsWith('image/')) {
-      setError('이미지 파일만 업로드 가능합니다.');
+      setErrorDetail({
+        title: '이미지 파일만 올릴 수 있어요.',
+        hint: 'JPG, PNG, WEBP 형식으로 저장한 후 다시 시도해주세요.',
+        code: 'bad_type',
+        canRetry: false,
+      });
+      setStep('error');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorDetail({
+        title: '파일이 너무 커요.',
+        hint: `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`,
+        code: 'too_large',
+        canRetry: false,
+      });
+      setStep('error');
       return;
     }
     processFile(file);
+  };
+
+  const retryLast = () => {
+    if (lastFile) {
+      processFile(lastFile);
+    } else {
+      fileRef.current?.click();
+    }
   };
 
   const onDrop = useCallback((e: React.DragEvent) => {
@@ -155,7 +201,8 @@ export default function OcrImportModal({ onClose }: Props) {
     setPreview(null);
     setOcrStocks([]);
     setSelected(new Set());
-    setError('');
+    setErrorDetail(null);
+    setLastFile(null);
     setSkippedDup(0);
     if (fileRef.current) fileRef.current.value = '';
   };
@@ -207,10 +254,6 @@ export default function OcrImportModal({ onClose }: Props) {
                 <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               </div>
-
-              {error && (
-                <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(239,68,82,0.08)', borderRadius: 10, fontSize: 13, color: '#EF4452' }}>{error}</div>
-              )}
 
               <div style={{ marginTop: 20, padding: '14px 16px', background: '#F8F9FA', borderRadius: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 8 }}>지원 증권사</div>
@@ -397,6 +440,70 @@ export default function OcrImportModal({ onClose }: Props) {
                 >
                   {selectableCount}개 포트폴리오에 추가
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP: error — 구조화된 에러 안내 */}
+          {step === 'error' && errorDetail && (
+            <div style={{ padding: '8px 0' }}>
+              {preview && (
+                <img
+                  src={preview}
+                  alt="업로드 이미지 미리보기"
+                  style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, marginBottom: 16, border: '1px solid #F2F4F6', opacity: 0.55 }}
+                />
+              )}
+
+              <div
+                style={{
+                  padding: '20px 18px',
+                  borderRadius: 14,
+                  background: errorDetail.code === 'rate_limit' ? 'rgba(255,149,0,0.06)' : 'rgba(239,68,82,0.05)',
+                  border: `1px solid ${errorDetail.code === 'rate_limit' ? 'rgba(255,149,0,0.18)' : 'rgba(239,68,82,0.15)'}`,
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{ fontSize: 32, marginBottom: 10 }}>
+                  {errorDetail.code === 'rate_limit' ? '⏳'
+                    : errorDetail.code === 'image_empty' || errorDetail.code === 'parse_failed' ? '🔍'
+                    : errorDetail.code === 'too_large' || errorDetail.code === 'bad_type' ? '📁'
+                    : errorDetail.code === 'network' ? '📡'
+                    : '😔'}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 8, lineHeight: 1.4 }}>
+                  {errorDetail.title}
+                </div>
+                <div style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+                  {errorDetail.hint}
+                </div>
+              </div>
+
+              {/* 캡처 가이드 — 인식 실패류에만 노출 */}
+              {(errorDetail.code === 'image_empty' || errorDetail.code === 'parse_failed') && (
+                <div style={{ marginTop: 12, padding: '12px 14px', background: '#F8F9FA', borderRadius: 10, fontSize: 12, color: '#4E5968', lineHeight: 1.8 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 4, color: '#191F28' }}>💡 캡처 팁</div>
+                  <div>· "보유종목" 또는 "계좌" 화면 전체를 캡처해주세요</div>
+                  <div>· 종목명·수량·평단가가 한 화면에 모두 보여야 해요</div>
+                  <div>· 글자가 선명하도록 확대해서 캡처하면 정확해요</div>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                <button
+                  onClick={reset}
+                  style={{ flex: 1, padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}
+                >
+                  다른 이미지 선택
+                </button>
+                {errorDetail.canRetry && (
+                  <button
+                    onClick={retryLast}
+                    style={{ flex: 1, padding: '12px 0', background: '#3182F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+                  >
+                    다시 시도
+                  </button>
+                )}
               </div>
             </div>
           )}
