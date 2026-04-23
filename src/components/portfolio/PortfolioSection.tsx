@@ -17,6 +17,7 @@ import AiChokSection from './AiChokSection';
 import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
 import InvestmentJournal from './InvestmentJournal';
+import PortfolioDNA from './PortfolioDNA';
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -1008,6 +1009,7 @@ export default function PortfolioSection() {
                   <BenchmarkCompare />
                   <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
                   <PortfolioHealth stocks={investingData} />
+                  <PortfolioDNA />
                 </div>
                 <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
                 <InvestmentJournal />
