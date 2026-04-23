@@ -8,6 +8,7 @@ import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
 import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
+import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
 
 export default function Dashboard() {
   const {
@@ -24,6 +25,14 @@ export default function Dashboard() {
       if (raw) setStreak(JSON.parse(raw).count || 0);
     } catch { /* ignore */ }
   }, []);
+
+  // 미장 개장/마감 상태 — 1분마다 업데이트
+  const [marketState, setMarketState] = useState(() => getMarketStatus());
+  useEffect(() => {
+    const id = setInterval(() => setMarketState(getMarketStatus()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const marketCountdown = getMarketLabel(marketState);
 
   const data = useMemo(() => {
     const investing = stocks.investing || [];
@@ -245,6 +254,51 @@ export default function Dashboard() {
             <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, wordBreak: 'keep-all' }}>
               주비도 함께 지켜보고 있어요 🐘
             </p>
+
+            {/* 미장 개장/마감 카운트다운 pill */}
+            <div
+              aria-label={marketCountdown.text}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                marginTop: 10,
+                padding: '5px 12px', borderRadius: 20,
+                fontSize: 11, fontWeight: 600,
+                background: marketCountdown.accent === 'live'
+                  ? 'var(--color-success-bg, rgba(0,198,190,0.10))'
+                  : marketCountdown.accent === 'soon'
+                    ? 'var(--color-warning-bg, rgba(255,149,0,0.08))'
+                    : 'var(--surface, rgba(255,255,255,0.6))',
+                color: marketCountdown.accent === 'live'
+                  ? 'var(--color-success, #00C6BE)'
+                  : marketCountdown.accent === 'soon'
+                    ? 'var(--color-warning, #FF9500)'
+                    : 'var(--text-secondary, #4E5968)',
+                border: marketCountdown.accent === 'live'
+                  ? '1px solid rgba(0,198,190,0.25)'
+                  : marketCountdown.accent === 'soon'
+                    ? '1px solid rgba(255,149,0,0.2)'
+                    : '1px solid var(--border-light, #F2F4F6)',
+              }}
+            >
+              <span>{marketCountdown.emoji}</span>
+              <span>{marketCountdown.text}</span>
+              {marketCountdown.accent === 'live' && (
+                <span
+                  style={{
+                    display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                    background: 'var(--color-success, #00C6BE)',
+                    animation: 'pulse-dot 1.5s ease-in-out infinite',
+                    marginLeft: 2,
+                  }}
+                />
+              )}
+            </div>
+            <style>{`
+              @keyframes pulse-dot {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50%      { opacity: 0.4; transform: scale(1.3); }
+              }
+            `}</style>
           </div>
         </div>
       </div>
