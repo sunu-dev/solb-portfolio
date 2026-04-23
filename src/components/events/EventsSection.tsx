@@ -6,6 +6,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { PresetEvent, QuoteData, EventCacheEntry } from '@/config/constants';
 import { Plus, CheckCircle2, Clock, XCircle, Info, X } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
+import EmptyState from '@/components/common/EmptyState';
 
 // ─── Severity helper ────────────────────────────────────────────────────────
 function getSeverity(maxDrop: number) {
@@ -592,9 +593,19 @@ export default function EventsSection() {
           {/* Stock Impact Cards */}
           <div style={{ padding: '16px 16px 8px' }}>
             {syms.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary, #B0B8C1)', fontSize: 14 }}>
-                포트폴리오에 종목을 추가하면 이벤트 영향을 분석해드려요
-              </div>
+              <EmptyState
+                variant="compact"
+                icon="📊"
+                title="분석할 종목이 없어요"
+                description="포트폴리오에 종목을 추가하면 이 이벤트가 내 종목에 얼마나 영향을 줬는지 분석해드려요."
+                primaryAction={{
+                  label: '종목 추가하기',
+                  onClick: () => {
+                    const btn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                    if (btn) btn.click();
+                  },
+                }}
+              />
             ) : syms.map(s => {
               const ed        = eventData[s] as EventCacheEntry | undefined;
               const isLoading = loadingSyms.has(s) || (!ed && loadingSyms.size > 0);

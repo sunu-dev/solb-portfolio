@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNewsData } from '@/hooks/useStockData';
 import type { NewsTag } from '@/config/constants';
-import { ExternalLink } from 'lucide-react';
+import EmptyState from '@/components/common/EmptyState';
 
 function decodeHtml(text: string) {
   // 안전한 HTML 엔티티 디코딩 (innerHTML XSS 방지)
@@ -42,8 +42,25 @@ function getNewsTag(title: string): NewsTag & { type: string } {
   return { label: '뉴스', bg: '#F0F4FF', color: '#3182F6', type: 'us' };
 }
 
+// News skeleton item — 로딩 중 표시
+function NewsSkeleton() {
+  return (
+    <div style={{ display: 'flex', gap: 16, padding: '20px 0', borderBottom: '1px solid #F7F8FA' }}>
+      <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#E5E8EB', marginTop: 8, flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div className="skeleton-shimmer" style={{ height: 16, borderRadius: 4, marginBottom: 8, width: '85%' }} />
+        <div className="skeleton-shimmer" style={{ height: 14, borderRadius: 4, marginBottom: 10, width: '65%' }} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <div className="skeleton-shimmer" style={{ height: 16, width: 48, borderRadius: 4 }} />
+          <div className="skeleton-shimmer" style={{ height: 14, width: 70, borderRadius: 4 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function NewsSection() {
-  const { currentNewsMarket, setCurrentNewsMarket, newsCache } = usePortfolioStore();
+  const { currentNewsMarket, setCurrentNewsMarket, newsCache, stocks } = usePortfolioStore();
   const { fetchNews } = useNewsData();
   const [loading, setLoading] = useState(false);
 
@@ -126,8 +143,8 @@ export default function NewsSection() {
 
       {/* News list */}
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '160px', fontSize: '13px', color: '#8B95A1' }}>
-          뉴스를 불러오는 중...
+        <div>
+          {[0, 1, 2, 3, 4].map(i => <NewsSkeleton key={i} />)}
         </div>
       ) : items.length > 0 ? (
         <div>
@@ -215,30 +232,63 @@ export default function NewsSection() {
             );
           })}
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '160px' }}>
-          <div style={{ fontSize: '32px', marginBottom: '8px' }}>📰</div>
-          <div style={{ fontSize: '13px', color: '#8B95A1' }}>뉴스를 불러올 수 없어요</div>
-          <button
-            onClick={() => {
-              setLoading(true);
-              fetchNews(activeMarket).finally(() => setLoading(false));
+      ) : (() => {
+        // 탭별 맞춤 빈 상태
+        const investingCount = (stocks.investing || []).length;
+        const watchingCount = (stocks.watching || []).length;
+
+        // 내 종목 탭 — 투자 중 종목 없으면 가이드
+        if (currentNewsMarket === 'all' && investingCount === 0) {
+          return (
+            <EmptyState
+              icon="📰"
+              title="투자 중 종목이 없어요"
+              description="포트폴리오에 종목을 추가하면 관련 뉴스를 모아서 보여드려요."
+              primaryAction={{
+                label: '종목 추가하기',
+                onClick: () => {
+                  const btn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                  if (btn) btn.click();
+                },
+              }}
+            />
+          );
+        }
+
+        // 관심 종목 탭 — 관심 종목 없으면 가이드
+        if (currentNewsMarket === 'my' && watchingCount === 0) {
+          return (
+            <EmptyState
+              icon="⭐"
+              title="관심 종목이 없어요"
+              description="관심 가는 종목을 추가하면 해당 종목 관련 뉴스를 볼 수 있어요."
+              primaryAction={{
+                label: '관심 종목 추가',
+                onClick: () => {
+                  const btn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                  if (btn) btn.click();
+                },
+              }}
+            />
+          );
+        }
+
+        // 일반 시장 탭 — 뉴스 fetch 실패/미수신
+        return (
+          <EmptyState
+            icon="📰"
+            title="뉴스를 불러올 수 없어요"
+            description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해주세요."
+            primaryAction={{
+              label: '다시 시도',
+              onClick: () => {
+                setLoading(true);
+                fetchNews(activeMarket).finally(() => setLoading(false));
+              },
             }}
-            style={{
-              marginTop: '8px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#3182F6',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'none',
-            }}
-          >
-            다시 시도
-          </button>
-        </div>
-      )}
+          />
+        );
+      })()}
     </div>
   );
 }
