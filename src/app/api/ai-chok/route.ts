@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
+import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -73,6 +74,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'AI 서비스가 준비 중이에요.' }, { status: 503 });
   }
 
+  // Rate limit gate — 시간당 로그인 15회 / 비로그인 3회
+  const gate = await enforceRateLimit(req, '/api/ai-chok', POLICIES.aiAnalysis);
+  if (!gate.ok) return gate.response;
+
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   let userId: string | undefined;
@@ -102,6 +107,7 @@ export async function POST(req: NextRequest) {
 
   // 캐시 히트
   if (!forceRefresh && cached?.picks) {
+    await gate.finalize(200);
     return NextResponse.json({
       picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
       context: (cached.picks as { context: string }).context ?? '',
@@ -118,6 +124,7 @@ export async function POST(req: NextRequest) {
     const msg = isLoggedIn
       ? `이번 세션 AI 촉 횟수를 모두 사용했어요 (${limit}회). ${nextSession} 이후 새 촉이 준비돼요!`
       : `비로그인 사용자는 세션당 ${limit}회까지 이용할 수 있어요. 로그인하면 ${SESSION_LIMIT}회까지 가능해요!`;
+    await gate.finalize(429, 'session_limit');
     return NextResponse.json({ error: msg, limitReached: true, loginForMore: !isLoggedIn }, { status: 429 });
   }
 
@@ -172,6 +179,7 @@ export async function POST(req: NextRequest) {
         })).catch(() => {}),
       ]);
 
+      await gate.finalize(200);
       return NextResponse.json({
         ...result,
         cached: false,
@@ -187,5 +195,7 @@ export async function POST(req: NextRequest) {
 
   const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
   console.error('[SOLB CHOK] all keys failed:', errorMessage);
+  const isQuota = /429|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(errorMessage);
+  await gate.finalize(500, isQuota ? 'gemini_quota' : 'gemini_failed');
   return NextResponse.json({ error: 'AI 촉 서비스에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
 }
