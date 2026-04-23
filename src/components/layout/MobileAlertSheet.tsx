@@ -6,6 +6,7 @@ import { STOCK_KR } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { X } from 'lucide-react';
 import BottomSheet from '@/components/common/BottomSheet';
+import UndoToast from '@/components/common/UndoToast';
 
 const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
   urgent: { icon: '🚨', label: '긴급', bg: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.08)', color: '#EF4452' },
@@ -48,8 +49,9 @@ interface Props {
 }
 
 export default function MobileAlertSheet({ isOpen, onClose }: Props) {
-  const { alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, setAnalysisSymbol } = usePortfolioStore();
+  const { alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, setAnalysisSymbol } = usePortfolioStore();
   const [filter, setFilter] = useState<AlertFilter>('all');
+  const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
 
   const visibleAlerts = alerts
     .filter(a => !dismissedAlerts.includes(a.id))
@@ -58,6 +60,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
   const filteredAlerts = filterAlerts(visibleAlerts, filter);
 
   return (
+    <>
     <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="75vh">
       <div style={{ padding: '0 20px' }}>
         {/* Header */}
@@ -74,7 +77,11 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
             )}
             {visibleAlerts.length > 0 && (
               <button
-                onClick={dismissAllAlerts}
+                onClick={() => {
+                  const count = visibleAlerts.length;
+                  dismissAllAlerts();
+                  setUndoToast({ count });
+                }}
                 className="cursor-pointer"
                 style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '8px 12px', minHeight: 36 }}
               >
@@ -195,5 +202,19 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
         )}
       </div>
     </BottomSheet>
+
+    {/* 전체 읽음 Undo 토스트 — 바텀시트 위에 표시 */}
+    {undoToast && (
+      <UndoToast
+        message={`${undoToast.count}개 알림 읽음 처리됨`}
+        onUndo={() => {
+          undoDismissAll();
+          setUndoToast(null);
+        }}
+        onDismiss={() => setUndoToast(null)}
+        bottom={110}
+      />
+    )}
+    </>
   );
 }

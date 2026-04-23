@@ -7,6 +7,7 @@ import { CHOK_KR_MAP } from '@/config/chokUniverse';
 import type { QuoteData } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Plus, X } from 'lucide-react';
+import UndoToast from '@/components/common/UndoToast';
 
 interface ChokPick {
   symbol: string;
@@ -81,7 +82,8 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, getAllSymbols, addStock } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, getAllSymbols, addStock } = usePortfolioStore();
+  const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
   const [chokPick] = useState<ChokPick | null>(null);
@@ -185,7 +187,11 @@ export default function RightSidebar() {
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>주비 AI</h3>
             {visibleAlerts.length > 0 && (
               <button
-                onClick={dismissAllAlerts}
+                onClick={() => {
+                  const count = visibleAlerts.length;
+                  dismissAllAlerts();
+                  setUndoToast({ count });
+                }}
                 className="cursor-pointer"
                 style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '2px 6px' }}
               >
@@ -450,6 +456,18 @@ export default function RightSidebar() {
             AI의 발견이에요 · 투자 판단은 본인이
           </p>
         </div>
+      )}
+
+      {/* 전체 읽음 Undo 토스트 */}
+      {undoToast && (
+        <UndoToast
+          message={`${undoToast.count}개 알림 읽음 처리됨`}
+          onUndo={() => {
+            undoDismissAll();
+            setUndoToast(null);
+          }}
+          onDismiss={() => setUndoToast(null)}
+        />
       )}
     </div>
   );

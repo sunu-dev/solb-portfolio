@@ -62,6 +62,7 @@ interface PortfolioState {
   // Alerts
   alerts: Alert[];
   dismissedAlerts: string[]; // alert IDs dismissed in this session
+  lastDismissBatch: string[]; // 마지막 '전체 읽음'으로 해제된 ID들 (Undo용, 비영속)
 
   // Network error (not persisted)
   networkError: string | null;
@@ -87,6 +88,7 @@ interface PortfolioState {
   setAlerts: (alerts: Alert[]) => void;
   dismissAlert: (alertId: string) => void;
   dismissAllAlerts: () => void;
+  undoDismissAll: () => void;
   setNetworkError: (err: string | null) => void;
 
   // Macro & cache
@@ -142,6 +144,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       alerts: [],
       dismissedAlerts: [],
+      lastDismissBatch: [],
       networkError: null,
 
       editingCat: '',
@@ -168,9 +171,25 @@ export const usePortfolioStore = create<PortfolioState>()(
           dismissedAlerts: [...state.dismissedAlerts, alertId],
         })),
       dismissAllAlerts: () =>
-        set((state) => ({
-          dismissedAlerts: [...state.dismissedAlerts, ...state.alerts.map(a => a.id)],
-        })),
+        set((state) => {
+          // 아직 해제되지 않은 알림 ID만 batch로 저장
+          const existing = new Set(state.dismissedAlerts);
+          const newlyDismissed = state.alerts.map(a => a.id).filter(id => !existing.has(id));
+          return {
+            dismissedAlerts: [...state.dismissedAlerts, ...newlyDismissed],
+            lastDismissBatch: newlyDismissed,
+          };
+        }),
+
+      undoDismissAll: () =>
+        set((state) => {
+          if (!state.lastDismissBatch.length) return state;
+          const batch = new Set(state.lastDismissBatch);
+          return {
+            dismissedAlerts: state.dismissedAlerts.filter(id => !batch.has(id)),
+            lastDismissBatch: [],
+          };
+        }),
 
       // --- Macro & cache ---
       updateMacroEntry: (key, val) =>
@@ -315,6 +334,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         eventCache: {},
         alerts: [],
         dismissedAlerts: [],
+        lastDismissBatch: [],
         lastUpdate: null,
       }),
 
