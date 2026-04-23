@@ -13,6 +13,7 @@ export default function Dashboard() {
   const {
     stocks, macroData, alerts, dismissedAlerts,
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
+    rawCandles,
   } = usePortfolioStore();
 
   // 출석 데이터
@@ -107,6 +108,57 @@ export default function Dashboard() {
 
   const bestKr = STOCK_KR[data.bestSymbol] || data.bestSymbol;
   const worstKr = STOCK_KR[data.worstSymbol] || data.worstSymbol;
+
+  // 기간별 포트폴리오 비교 (retrospective: 현재 보유 수량 × N일 전 종가)
+  // 주의: 과거 매매 이력 반영 안 함 (근사치), 실제 스냅샷 저장 전까지는 참고용
+  const periodCompare = useMemo(() => {
+    if (!data.hasInvestment) return null;
+    const investing = stocks.investing || [];
+
+    const priceAtDaysAgo = (symbol: string, days: number): number | null => {
+      const c = rawCandles[symbol];
+      if (!c?.t?.length || !c?.c?.length) return null;
+      const targetTs = Date.now() / 1000 - days * 86400;
+      for (let i = c.t.length - 1; i >= 0; i--) {
+        if (c.t[i] <= targetTs) return c.c[i] || null;
+      }
+      return null;
+    };
+
+    const computePastTotal = (days: number): number | null => {
+      let total = 0;
+      let coverage = 0;
+      for (const s of investing) {
+        if (s.avgCost <= 0 || s.shares <= 0) continue;
+        const price = priceAtDaysAgo(s.symbol, days);
+        if (price != null) {
+          total += price * s.shares;
+          coverage++;
+        }
+      }
+      // 커버리지가 50% 미만이면 신뢰 불가
+      const totalStocks = investing.filter(s => s.avgCost > 0 && s.shares > 0).length;
+      if (totalStocks === 0 || coverage / totalStocks < 0.5) return null;
+      return total;
+    };
+
+    const current = data.totalValue;
+    const pastWeek  = computePastTotal(7);
+    const pastMonth = computePastTotal(31);
+
+    const fmt = (curr: number, past: number | null) => {
+      if (past == null || past === 0) return null;
+      const delta = curr - past;
+      const pct = (delta / past) * 100;
+      return { delta, pct };
+    };
+
+    return {
+      today: { delta: data.todayChange, pct: data.todayPct, deltaKrw: data.todayChangeWon },
+      week:  fmt(current, pastWeek),
+      month: fmt(current, pastMonth),
+    };
+  }, [data.hasInvestment, data.totalValue, data.todayChange, data.todayPct, data.todayChangeWon, stocks.investing, rawCandles]);
 
   // 포트폴리오 건강 점수
   const health = useMemo(() => {
@@ -222,15 +274,49 @@ export default function Dashboard() {
                 </span>
               </div>
               )}
-              {data.quotesLoaded && (
-                <div className="flex items-center gap-2 mt-4">
-                  <span style={{
-                    fontSize: 12, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
-                    color: todayGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
-                    background: todayGain ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))',
-                  }}>
-                    오늘 {todayGain ? '▲' : '▼'} {currency === 'KRW' ? formatKRW(Math.round(data.todayChangeWon)) : `$${data.todayChange.toFixed(2)}`} ({todayGain ? '+' : ''}{data.todayPct.toFixed(2)}%)
-                  </span>
+              {data.quotesLoaded && periodCompare && (
+                <div
+                  className="flex items-center mt-4 scrollbar-hide"
+                  style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}
+                  aria-label="기간별 수익 비교"
+                >
+                  {([
+                    { key: 'today', label: '오늘', data: periodCompare.today },
+                    { key: 'week',  label: '이번주', data: periodCompare.week },
+                    { key: 'month', label: '이번달', data: periodCompare.month },
+                  ] as const).map(({ key, label, data: d }) => {
+                    if (!d) {
+                      return (
+                        <span key={key} style={{
+                          fontSize: 11, fontWeight: 500, padding: '4px 9px', borderRadius: 8,
+                          color: 'var(--text-tertiary, #B0B8C1)',
+                          background: 'var(--bg-subtle, #F2F4F6)',
+                          whiteSpace: 'nowrap', flexShrink: 0,
+                        }}>
+                          {label} —
+                        </span>
+                      );
+                    }
+                    const isUp = d.pct >= 0;
+                    // week/month는 delta (USD) 계산값, today는 deltaKrw 포함
+                    const dollarDelta = 'deltaKrw' in d ? d.delta : d.delta;
+                    const krwDelta = 'deltaKrw' in d ? d.deltaKrw : d.delta * data.usdKrw;
+                    return (
+                      <span key={key} style={{
+                        fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
+                        color: isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
+                        background: isUp ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))',
+                        whiteSpace: 'nowrap', flexShrink: 0,
+                      }}>
+                        <span style={{ fontWeight: 500, opacity: 0.8, marginRight: 4 }}>{label}</span>
+                        {isUp ? '▲' : '▼'}{' '}
+                        {currency === 'KRW'
+                          ? formatKRW(Math.round(Math.abs(krwDelta)))
+                          : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
+                        <span style={{ marginLeft: 4, opacity: 0.85 }}>({isUp ? '+' : ''}{d.pct.toFixed(2)}%)</span>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
