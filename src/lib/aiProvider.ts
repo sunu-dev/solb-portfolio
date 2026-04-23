@@ -22,7 +22,11 @@ const GEMINI_KEYS = [
 ].filter(Boolean) as string[];
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
-const claudeClient = ANTHROPIC_API_KEY ? new Anthropic({ apiKey: ANTHROPIC_API_KEY }) : null;
+// 명시적으로 비활성화 가능 (ENABLE_CLAUDE_FALLBACK=true 여야만 활성)
+const CLAUDE_ENABLED = process.env.ENABLE_CLAUDE_FALLBACK === 'true';
+const claudeClient = CLAUDE_ENABLED && ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: ANTHROPIC_API_KEY })
+  : null;
 
 // Claude 일일 호출 상한 (비용 가드)
 // 기본 500회/일 ≈ Haiku 4.5 $2.5/일 ≈ 월 $75
