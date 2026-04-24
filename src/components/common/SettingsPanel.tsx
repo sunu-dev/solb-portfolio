@@ -7,11 +7,14 @@ import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import InviteSection from './InviteSection';
 import { getSuppressedTypes, getSuppressedCategories, resetAlertLearning } from '@/utils/alertLearning';
+import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
+import { INVESTOR_TYPES } from '@/config/investorTypes';
 
 export default function SettingsPanel() {
   const {
     autoRefresh, setAutoRefresh,
     refreshInterval, setRefreshInterval,
+    investorType, setInvestorType,
   } = usePortfolioStore();
   const { requestPermission, pushEnabled, unsubscribePush } = useNotification();
   const [pushLoading, setPushLoading] = useState(false);
@@ -227,6 +230,20 @@ export default function SettingsPanel() {
                 적용
               </button>
             </div>
+          </div>
+
+          {/* 내 투자 유형 — AI 개인화 baseline */}
+          <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+              🎯 내 투자 유형
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+              AI 촉·분석이 이 유형에 맞춰 톤과 추천 기준을 조정해요.<br />
+              현재: <strong style={{ color: INVESTOR_TYPES[investorType].accentColor }}>
+                {INVESTOR_TYPES[investorType].emoji} {INVESTOR_TYPES[investorType].nameKr}
+              </strong>
+            </div>
+            <InvestorTypePicker currentType={investorType} onSelect={setInvestorType} />
           </div>
 
           {/* 알림 설정 */}

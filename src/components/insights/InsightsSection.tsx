@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import AiChokSection from '@/components/portfolio/AiChokSection';
 import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
@@ -8,6 +8,8 @@ import ConversationalTimeline from '@/components/portfolio/ConversationalTimelin
 import MonthlyReplay from '@/components/portfolio/MonthlyReplay';
 import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import EmptyState from '@/components/common/EmptyState';
+import InvestorTypeQuiz from './InvestorTypeQuiz';
+import { INVESTOR_TYPES } from '@/config/investorTypes';
 
 /**
  * AI 인사이트 탭
@@ -30,9 +32,12 @@ interface SectionRef {
 }
 
 export default function InsightsSection() {
-  const { stocks } = usePortfolioStore();
+  const { stocks, investorType, investorTypeSetAt, setInvestorType } = usePortfolioStore();
+  const [showQuiz, setShowQuiz] = useState(false);
   const investingCount = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0).length;
   const hasAnyStock = (stocks.investing?.length || 0) + (stocks.watching?.length || 0) > 0;
+  const hasTypeSet = !!investorTypeSetAt;
+  const typeMeta = INVESTOR_TYPES[investorType];
 
   const chokRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -71,6 +76,88 @@ export default function InsightsSection() {
           주비 AI가 읽어주는 오늘의 포트폴리오 이야기
         </p>
       </div>
+
+      {/* 유형 미설정 → 부드러운 유도 배너 */}
+      {hasAnyStock && !hasTypeSet && (
+        <button
+          onClick={() => setShowQuiz(true)}
+          style={{
+            width: '100%', marginBottom: 16,
+            padding: '14px 16px',
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.08)) 0%, rgba(175,82,222,0.06) 100%)',
+            border: '1px solid rgba(49,130,246,0.18)',
+            textAlign: 'left', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 24 }}>🎯</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+              내 투자 유형 알아보기
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+              1분 퀴즈로 나에게 맞춘 AI를 받아보세요
+            </div>
+          </div>
+          <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
+        </button>
+      )}
+
+      {/* 유형 설정 완료 → 작은 뱃지 */}
+      {hasAnyStock && hasTypeSet && (
+        <button
+          onClick={() => setShowQuiz(true)}
+          aria-label={`현재 투자 유형: ${typeMeta.nameKr}. 변경하려면 클릭`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            marginBottom: 14,
+            padding: '6px 12px', borderRadius: 20,
+            background: 'var(--bg-subtle, #F8F9FA)',
+            border: `1px solid ${typeMeta.accentColor}33`,
+            cursor: 'pointer',
+          }}
+        >
+          <span style={{ fontSize: 14 }}>{typeMeta.emoji}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: typeMeta.accentColor }}>
+            {typeMeta.nameKr}
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)' }}>변경 ›</span>
+        </button>
+      )}
+
+      {/* 퀴즈 모달 */}
+      {showQuiz && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="투자자 유형 퀴즈"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowQuiz(false); }}
+        >
+          <div
+            style={{
+              background: 'var(--surface, #FFFFFF)', borderRadius: 20,
+              maxHeight: '92vh', overflow: 'auto',
+              padding: '28px 24px 24px', width: '100%', maxWidth: 480,
+            }}
+          >
+            <InvestorTypeQuiz
+              onComplete={(type) => {
+                setInvestorType(type);
+                setShowQuiz(false);
+              }}
+              onSkip={() => setShowQuiz(false)}
+              onClose={() => setShowQuiz(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 종목 없을 때 */}
       {!hasAnyStock ? (

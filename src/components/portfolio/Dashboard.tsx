@@ -9,13 +9,17 @@ import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
 import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
 import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
+import { INVESTOR_TYPES } from '@/config/investorTypes';
 
 export default function Dashboard() {
   const {
     stocks, macroData, alerts, dismissedAlerts,
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
     rawCandles, recordDailySnapshot,
+    investorType, investorTypeSetAt, setCurrentSection,
   } = usePortfolioStore();
+  const typeMeta = INVESTOR_TYPES[investorType];
+  const hasTypeSet = !!investorTypeSetAt;
 
   // 일일 스냅샷 자동 기록 — 시세 로드 후 1회 (하루 1번 내부 체크)
   useEffect(() => {
@@ -237,6 +241,25 @@ export default function Dashboard() {
                   <span aria-label={`연속 출석 ${streak}일차`} style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-warning, #FF9500)', background: 'var(--color-warning-bg, rgba(255,149,0,0.1))', padding: '4px 10px', borderRadius: 20 }}>
                     🔥 {streak}일째
                   </span>
+                )}
+                {hasTypeSet && (
+                  <button
+                    onClick={() => setCurrentSection('insights')}
+                    aria-label={`내 투자 유형: ${typeMeta.nameKr} · AI 인사이트로 이동`}
+                    className="cursor-pointer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: 11, fontWeight: 700,
+                      color: typeMeta.accentColor,
+                      background: 'var(--surface, rgba(255,255,255,0.85))',
+                      padding: '3px 10px', borderRadius: 20,
+                      border: `1px solid ${typeMeta.accentColor}33`,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>{typeMeta.emoji}</span>
+                    <span>{typeMeta.nameKr}</span>
+                  </button>
                 )}
               </div>
               {/* Currency Switch — 배지와 같은 행 오른쪽 */}

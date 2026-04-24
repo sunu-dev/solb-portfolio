@@ -14,6 +14,8 @@ import type { Alert } from '@/utils/alertsEngine';
 import { recordDismissal } from '@/utils/alertLearning';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 import { getTodayKST, needsNewSnapshot, prune } from '@/utils/dailySnapshot';
+import type { InvestorType } from '@/config/investorTypes';
+import { DEFAULT_INVESTOR_TYPE } from '@/config/investorTypes';
 
 // --- Utility functions ---
 export function tsToDate(ts: number): string {
@@ -64,6 +66,10 @@ interface PortfolioState {
 
   // Daily snapshots (과거의 나 비교용)
   dailySnapshots: DailySnapshot[];
+
+  // 투자자 유형 (AI 개인화 baseline)
+  investorType: InvestorType;
+  investorTypeSetAt: string | null; // 최초 설정 시각 (ISO), null = 미설정
 
   // Alerts
   alerts: Alert[];
@@ -121,6 +127,9 @@ interface PortfolioState {
   // Snapshots
   recordDailySnapshot: () => void;
 
+  // Investor type
+  setInvestorType: (type: InvestorType) => void;
+
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
   resetPortfolio: () => void;
@@ -155,6 +164,8 @@ export const usePortfolioStore = create<PortfolioState>()(
       customEvents: [],
       lastUpdate: null,
       dailySnapshots: [],
+      investorType: DEFAULT_INVESTOR_TYPE,
+      investorTypeSetAt: null,
 
       alerts: [],
       dismissedAlerts: [],
@@ -362,6 +373,11 @@ export const usePortfolioStore = create<PortfolioState>()(
           customEvents: [...state.customEvents, event],
         })),
 
+      setInvestorType: (type) => set({
+        investorType: type,
+        investorTypeSetAt: get().investorTypeSetAt || new Date().toISOString(),
+      }),
+
       recordDailySnapshot: () => {
         const state = get();
         if (!needsNewSnapshot(state.dailySnapshots)) return;
@@ -441,6 +457,8 @@ export const usePortfolioStore = create<PortfolioState>()(
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
         dailySnapshots: state.dailySnapshots,
+        investorType: state.investorType,
+        investorTypeSetAt: state.investorTypeSetAt,
         // eventCache는 의도적으로 제외 — basePrices 변경 시 자동 재계산
       }),
     }
