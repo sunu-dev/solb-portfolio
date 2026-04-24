@@ -5,9 +5,12 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import type { QuoteData } from '@/config/constants';
+import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 
 export default function MorningBriefing() {
-  const { stocks, macroData, alerts, dismissedAlerts, setAnalysisSymbol } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol } = usePortfolioStore();
+  // suppress/dismiss 반영된 활성 알림 — 6곳 필터 통합
+  const activeAlerts = useActiveAlerts();
 
   const briefing = useMemo(() => {
     const investing = stocks.investing || [];
@@ -43,8 +46,8 @@ export default function MorningBriefing() {
       }
     });
 
-    // 주목할 알림
-    const activeAlerts = alerts.filter(a => !dismissedAlerts.includes(a.id)).slice(0, 2);
+    // 주목할 알림 — 상위 2개
+    const topAlerts = activeAlerts.slice(0, 2);
 
     return {
       marketSentiment,
@@ -57,9 +60,9 @@ export default function MorningBriefing() {
       totalPL,
       totalPLWon: totalPL * usdKrw,
       stockCount: investing.length,
-      activeAlerts,
+      topAlerts,
     };
-  }, [stocks, macroData, alerts, dismissedAlerts]);
+  }, [stocks, macroData, activeAlerts]);
 
   if (!briefing) return null;
   if (!briefing.bestSymbol) return null; // 시세 아직 안 옴
@@ -120,7 +123,7 @@ export default function MorningBriefing() {
         padding: '10px 14px',
         borderRadius: 10,
         background: isProfit ? 'rgba(239,68,82,0.04)' : 'rgba(49,130,246,0.04)',
-        marginBottom: briefing.activeAlerts.length > 0 ? 10 : 0,
+        marginBottom: briefing.topAlerts.length > 0 ? 10 : 0,
       }}>
         <span style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>전체 손익</span>
         <span style={{
@@ -134,9 +137,9 @@ export default function MorningBriefing() {
       </div>
 
       {/* 주목할 알림 (최대 2개) */}
-      {briefing.activeAlerts.length > 0 && (
+      {briefing.topAlerts.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {briefing.activeAlerts.map(a => (
+          {briefing.topAlerts.map(a => (
             <div
               key={a.id}
               style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'flex', gap: 6, alignItems: 'center' }}

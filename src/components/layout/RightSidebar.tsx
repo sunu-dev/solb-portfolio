@@ -183,7 +183,13 @@ export default function RightSidebar() {
       {/* ============================================
           주비 AI 알림센터
           ============================================ */}
-      <div id="solb-alert-center" style={{ marginTop: '40px' }}>
+      <section
+        id="solb-alert-center"
+        role="region"
+        aria-live="polite"
+        aria-label={`주비 AI 알림 ${visibleAlerts.length}개`}
+        style={{ marginTop: '40px' }}
+      >
         {/* Header + badge */}
         <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
           <div className="flex items-center" style={{ gap: 8 }}>
@@ -196,6 +202,7 @@ export default function RightSidebar() {
                   setUndoToast({ count });
                 }}
                 className="cursor-pointer"
+                aria-label={`${visibleAlerts.length}개 알림 모두 읽음 처리`}
                 style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '2px 6px' }}
               >
                 전체 읽음
@@ -222,13 +229,16 @@ export default function RightSidebar() {
 
         {/* Filter tabs */}
         {visibleAlerts.length > 0 && (
-          <div className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 12, overflowX: 'auto' }}>
+          <div role="tablist" aria-label="알림 카테고리 필터" className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 12, overflowX: 'auto' }}>
             {ALERT_TABS.map(tab => {
               const isActive = alertFilter === tab.id;
               const count = filterAlerts(visibleAlerts, tab.id).length;
               return (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={`${tab.label} 필터${count > 0 ? ` (${count}개)` : ''}`}
                   onClick={() => setAlertFilter(tab.id)}
                   className="cursor-pointer transition-colors"
                   style={{
@@ -271,6 +281,7 @@ export default function RightSidebar() {
                   <button
                     onClick={() => dismissAlert(alert.id)}
                     className="cursor-pointer"
+                    aria-label="알림 닫기"
                     style={{
                       position: 'absolute',
                       top: 4,
@@ -350,7 +361,7 @@ export default function RightSidebar() {
             </div>
           </div>
         )}
-      </div>
+      </section>
 
       {/* ============================================
           AI 촉 티저 (사이드바 1개 미리보기)

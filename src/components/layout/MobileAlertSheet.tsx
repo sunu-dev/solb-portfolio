@@ -64,7 +64,12 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
   return (
     <>
     <BottomSheet isOpen={isOpen} onClose={onClose} maxHeight="75vh">
-      <div style={{ padding: '0 20px' }}>
+      <div
+        role="region"
+        aria-live="polite"
+        aria-label={`주비 AI 알림 ${visibleAlerts.length}개`}
+        style={{ padding: '0 20px' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
           <div className="flex items-center" style={{ gap: 8 }}>
@@ -102,13 +107,16 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
 
         {/* Filter tabs */}
         {visibleAlerts.length > 0 && (
-          <div className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 14, overflowX: 'auto' }}>
+          <div role="tablist" aria-label="알림 카테고리 필터" className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 14, overflowX: 'auto' }}>
             {TABS.map(tab => {
               const isActive = filter === tab.id;
               const count = filterAlerts(visibleAlerts, tab.id).length;
               return (
                 <button
                   key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-label={`${tab.label} 필터${count > 0 ? ` (${count}개)` : ''}`}
                   onClick={() => setFilter(tab.id)}
                   className="cursor-pointer"
                   style={{
@@ -150,6 +158,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                   <button
                     onClick={() => dismissAlert(alert.id)}
                     className="cursor-pointer"
+                    aria-label="알림 닫기"
                     style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', padding: 10, color: 'var(--text-tertiary, #B0B8C1)' }}
                   >
                     <X size={12} />

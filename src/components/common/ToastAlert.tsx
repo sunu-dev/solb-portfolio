@@ -84,10 +84,13 @@ export default function ToastAlert() {
 
   return (
     <div
+      role="alert"
+      aria-live="assertive"
+      aria-label={`긴급 알림: ${currentToast.message}`}
       onClick={handleDismiss}
       style={{
         position: 'fixed',
-        top: visible ? '60px' : '0px',
+        top: visible ? 'calc(60px + env(safe-area-inset-top, 0px))' : '0px',
         left: '50%',
         transform: 'translateX(-50%)',
         background: 'var(--surface, white)',
@@ -117,6 +120,7 @@ export default function ToastAlert() {
       </div>
       <button
         onClick={handleDismiss}
+        aria-label="알림 닫기"
         style={{
           background: 'none',
           border: 'none',
@@ -126,6 +130,8 @@ export default function ToastAlert() {
           padding: '0 0 0 8px',
           flexShrink: 0,
           lineHeight: 1,
+          minWidth: 32,
+          minHeight: 32,
         }}
       >
         ✕

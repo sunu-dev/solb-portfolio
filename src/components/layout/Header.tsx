@@ -6,6 +6,7 @@ import { Settings, Bell, Search } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
+import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
 
 const NAV_ITEMS: { label: string; section: MainSection }[] = [
   { label: '포트폴리오', section: 'portfolio' },
@@ -20,8 +21,8 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
-  const { currentSection, setCurrentSection, darkMode, toggleDarkMode, alerts, dismissedAlerts } = usePortfolioStore();
-  const unreadCount = alerts.filter(a => !dismissedAlerts.includes(a.id)).length;
+  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore();
+  const unreadCount = useUnreadAlertCount();
   const [showSearch, setShowSearch] = useState(false);
 
   // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)

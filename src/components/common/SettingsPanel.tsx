@@ -6,6 +6,7 @@ import { useNotification } from '@/hooks/useNotification';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import InviteSection from './InviteSection';
+import { getSuppressedTypes, resetAlertLearning } from '@/utils/alertLearning';
 
 export default function SettingsPanel() {
   const {
@@ -17,6 +18,12 @@ export default function SettingsPanel() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
+  const [suppressedTypes, setSuppressedTypes] = useState<Array<{ type: string; count: number }>>([]);
+
+  // 모달 열릴 때마다 현재 suppress 상태 새로고침
+  useEffect(() => {
+    if (isOpen) setSuppressedTypes(getSuppressedTypes());
+  }, [isOpen]);
 
   // Listen for toggle event from Header
   useEffect(() => {
@@ -272,6 +279,66 @@ export default function SettingsPanel() {
               >
                 {pushLoading ? '처리 중...' : '📱 푸시 알림 켜기'}
               </button>
+            )}
+          </div>
+
+          {/* 알림 학습 */}
+          <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+              🧠 알림 학습
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+              자주 닫으신 알림 타입은 자동으로 덜 보여드려요.<br />
+              최근 7일 내 3회 이상 해제된 타입이 숨김 대상입니다.
+            </div>
+
+            {suppressedTypes.length === 0 ? (
+              <div style={{
+                padding: '14px 16px', borderRadius: 10,
+                background: 'var(--bg-subtle, #F2F4F6)',
+                fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)',
+              }}>
+                아직 학습된 내용이 없어요. 알림을 자연스럽게 관리해보세요.
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                  {suppressedTypes.map(t => (
+                    <div
+                      key={t.type}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px', borderRadius: 10,
+                        background: 'var(--color-warning-bg, rgba(255,149,0,0.06))',
+                        border: '1px solid rgba(255,149,0,0.15)',
+                      }}
+                    >
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                        {t.type}
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--color-warning, #FF9500)', fontWeight: 700 }}>
+                        {t.count}회 해제 · 숨김 중
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    resetAlertLearning();
+                    setSuppressedTypes([]);
+                  }}
+                  style={{
+                    width: '100%', padding: '10px 0', borderRadius: 10,
+                    fontSize: 13, fontWeight: 600,
+                    color: 'var(--text-secondary, #4E5968)',
+                    background: 'var(--surface, #FFFFFF)',
+                    border: '1px solid var(--border-strong, #E5E8EB)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  학습 기록 모두 초기화
+                </button>
+              </>
             )}
           </div>
 
