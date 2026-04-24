@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import AiChokSection from '@/components/portfolio/AiChokSection';
 import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
@@ -10,18 +11,54 @@ import EmptyState from '@/components/common/EmptyState';
 
 /**
  * AI 인사이트 탭
- * - AI 생성 콘텐츠 허브 (촉·DNA·내러티브·회고)
- * - 바텀 네비 전용 탭, 포트폴리오/분석 탭에서 흩어진 AI 섹션들을 한 곳에 집중
+ * - AI 생성 콘텐츠 허브
+ * - 배치 순서: 오늘 소식 → 일상 감정 → 장기 회고
+ *   1. AI 촉 (오늘의 발견)
+ *   2. 주비의 이야기 (오늘 상태 내러티브)
+ *   3. Throwback (과거의 나 — 어제~1년)
+ *   4. Monthly Replay (한 달 요약)
+ *   5. Portfolio DNA (내 투자 캐릭터)
+ * - 상단 mini-nav로 섹션 간 빠른 이동
+ * - Stagger fade-in 애니메이션
  */
+
+interface SectionRef {
+  id: string;
+  label: string;
+  emoji: string;
+  element: React.RefObject<HTMLDivElement | null>;
+}
+
 export default function InsightsSection() {
   const { stocks } = usePortfolioStore();
   const investingCount = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0).length;
   const hasAnyStock = (stocks.investing?.length || 0) + (stocks.watching?.length || 0) > 0;
 
+  const chokRef = useRef<HTMLDivElement>(null);
+  const storyRef = useRef<HTMLDivElement>(null);
+  const throwbackRef = useRef<HTMLDivElement>(null);
+  const replayRef = useRef<HTMLDivElement>(null);
+  const dnaRef = useRef<HTMLDivElement>(null);
+
+  const sections: SectionRef[] = [
+    { id: 'chok',      label: '촉',       emoji: '🎯', element: chokRef },
+    { id: 'story',     label: '이야기',   emoji: '💬', element: storyRef },
+    { id: 'throwback', label: '회고',     emoji: '🕰️', element: throwbackRef },
+    { id: 'replay',    label: '월간',     emoji: '📅', element: replayRef },
+    { id: 'dna',       label: 'DNA',      emoji: '🧬', element: dnaRef },
+  ];
+
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (ref.current) {
+      const offsetTop = ref.current.getBoundingClientRect().top + window.scrollY - 80; // 헤더 여유
+      window.scrollTo({ top: offsetTop, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div>
       {/* 페이지 타이틀 */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 16 }}>
         <h1
           style={{
             fontSize: 22, fontWeight: 800, color: 'var(--text-primary, #191F28)',
@@ -51,20 +88,90 @@ export default function InsightsSection() {
         />
       ) : (
         <>
-          {/* 1. AI 촉 — 가장 시그니처 */}
-          <AiChokSection />
+          {/* Mini-nav — 섹션 빠른 이동 */}
+          {investingCount > 0 && (
+            <div
+              role="navigation"
+              aria-label="인사이트 섹션 바로가기"
+              className="flex scrollbar-hide"
+              style={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 5,
+                gap: 6,
+                padding: '10px 2px',
+                marginBottom: 12,
+                overflowX: 'auto',
+                background: 'var(--bg, #FFFFFF)',
+                borderBottom: '1px solid var(--border-light, #F2F4F6)',
+              }}
+            >
+              {sections.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => scrollToSection(s.element)}
+                  aria-label={`${s.label} 섹션으로 이동`}
+                  className="cursor-pointer shrink-0"
+                  style={{
+                    padding: '6px 12px', borderRadius: 20,
+                    fontSize: 12, fontWeight: 600,
+                    color: 'var(--text-secondary, #4E5968)',
+                    background: 'var(--bg-subtle, #F2F4F6)',
+                    border: 'none', whiteSpace: 'nowrap',
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    minHeight: 32,
+                  }}
+                >
+                  <span>{s.emoji}</span>
+                  <span>{s.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
-          {/* 2. 포트폴리오 DNA — 내 투자 캐릭터 (투자 중 종목 있을 때만) */}
-          {investingCount > 0 && <PortfolioDNA />}
+          <style>{`
+            @keyframes insight-fade-in {
+              from { opacity: 0; transform: translateY(8px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            .insight-stagger {
+              opacity: 0;
+              animation: insight-fade-in 0.4s ease-out forwards;
+            }
+          `}</style>
 
-          {/* 3. 주비의 이야기 — 채팅형 내러티브 */}
-          {investingCount > 0 && <ConversationalTimeline />}
+          {/* 1. AI 촉 — 오늘의 발견 */}
+          <div ref={chokRef} className="insight-stagger" style={{ animationDelay: '0s' }}>
+            <AiChokSection />
+          </div>
 
-          {/* 4. 월간 회고 */}
-          {investingCount > 0 && <MonthlyReplay />}
+          {/* 2. 주비의 이야기 — 오늘 상태 내러티브 */}
+          {investingCount > 0 && (
+            <div ref={storyRef} className="insight-stagger" style={{ animationDelay: '0.1s' }}>
+              <ConversationalTimeline />
+            </div>
+          )}
 
-          {/* 5. 과거의 나와 비교 (어제~1년 전) */}
-          {investingCount > 0 && <ThrowbackCard />}
+          {/* 3. Throwback — 과거의 나 (어제~1년) */}
+          {investingCount > 0 && (
+            <div ref={throwbackRef} className="insight-stagger" style={{ animationDelay: '0.2s' }}>
+              <ThrowbackCard />
+            </div>
+          )}
+
+          {/* 4. Monthly Replay — 한 달 요약 */}
+          {investingCount > 0 && (
+            <div ref={replayRef} className="insight-stagger" style={{ animationDelay: '0.3s' }}>
+              <MonthlyReplay />
+            </div>
+          )}
+
+          {/* 5. Portfolio DNA — 내 투자 캐릭터 (가장 안쪽) */}
+          {investingCount > 0 && (
+            <div ref={dnaRef} className="insight-stagger" style={{ animationDelay: '0.4s' }}>
+              <PortfolioDNA />
+            </div>
+          )}
         </>
       )}
     </div>
