@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
@@ -30,6 +30,7 @@ interface Message {
 
 export default function ConversationalTimeline() {
   const { stocks, macroData, rawCandles, currency, setAnalysisSymbol } = usePortfolioStore();
+  const [isOpen, setIsOpen] = useState(false);
 
   const messages = useMemo<Message[]>(() => {
     const out: Message[] = [];
@@ -208,39 +209,102 @@ export default function ConversationalTimeline() {
 
   if (messages.length === 0) return null;
 
+  // 미리보기 — 가장 우선순위 높은 메시지 한 줄 (alert > summary > 첫 story)
+  const previewMsg =
+    messages.find(m => m.type === 'alert')
+    ?? messages.find(m => m.type === 'summary')
+    ?? messages.find(m => m.type === 'story')
+    ?? messages[0];
+  const previewText = previewMsg.text.length > 36
+    ? previewMsg.text.slice(0, 36) + '…'
+    : previewMsg.text;
+
   return (
     <div
       style={{
         marginBottom: 32,
-        padding: '20px',
+        padding: isOpen ? '20px' : '14px 18px',
         borderRadius: 16,
         background: 'var(--surface, #FFFFFF)',
         border: '1px solid var(--border-light, #F2F4F6)',
+        transition: 'padding 0.2s ease',
       }}
     >
-      {/* 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+      {/* 헤더 — 클릭하여 토글 */}
+      <button
+        onClick={() => setIsOpen(o => !o)}
+        aria-expanded={isOpen}
+        aria-controls="zubi-story-list"
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          padding: 0,
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          marginBottom: isOpen ? 16 : 0,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', flexShrink: 0 }}>
             💬 주비의 이야기
           </span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-            {messages.length}개 메시지
+          <span style={{
+            fontSize: 11, fontWeight: 600,
+            color: 'var(--text-tertiary, #B0B8C1)',
+            background: 'var(--bg-subtle, #F2F4F6)',
+            padding: '2px 8px', borderRadius: 10,
+            flexShrink: 0,
+          }}>
+            {messages.length}
           </span>
+          {!isOpen && (
+            <span style={{
+              fontSize: 12,
+              color: 'var(--text-secondary, #8B95A1)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+            }}>
+              {previewText}
+            </span>
+          )}
         </div>
-      </div>
+        <span
+          aria-hidden
+          style={{
+            fontSize: 12,
+            color: 'var(--text-tertiary, #B0B8C1)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+            flexShrink: 0,
+          }}
+        >
+          ▼
+        </span>
+      </button>
 
       {/* 메시지 리스트 */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {messages.map((m, i) => (
-          <ChatBubble
-            key={m.id}
-            message={m}
-            index={i}
-            onSymbolClick={m.symbol ? () => setAnalysisSymbol(m.symbol!) : undefined}
-          />
-        ))}
-      </div>
+      {isOpen && (
+        <div
+          id="zubi-story-list"
+          style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        >
+          {messages.map((m, i) => (
+            <ChatBubble
+              key={m.id}
+              message={m}
+              index={i}
+              onSymbolClick={m.symbol ? () => setAnalysisSymbol(m.symbol!) : undefined}
+            />
+          ))}
+        </div>
+      )}
 
       <style>{`
         @keyframes bubble-in {
