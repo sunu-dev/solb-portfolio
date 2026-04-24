@@ -1,9 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { isAlertSuppressed } from '@/utils/alertLearning';
 import { isAlertSnoozed } from '@/utils/alertSnooze';
+import { getMarketStatus } from '@/utils/marketHours';
+import { sortWithSessionWeight } from '@/utils/alertWeighting';
 import type { Alert } from '@/utils/alertsEngine';
 
 interface Options {
@@ -26,25 +28,30 @@ interface Options {
 export function useActiveAlerts(opts: Options = {}): Alert[] {
   const alerts = usePortfolioStore(s => s.alerts);
   const dismissedAlerts = usePortfolioStore(s => s.dismissedAlerts);
-  // snooze 상태 변경 시 재평가 트리거
   const snoozeTick = usePortfolioStore(s => s.snoozeTick);
 
+  // 시간대 재평가 — 5분마다 업데이트 (장마감 직후 등 전환 반영)
+  const [marketStatus, setMarketStatus] = useState(() => getMarketStatus());
+  useEffect(() => {
+    const id = setInterval(() => setMarketStatus(getMarketStatus()), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+
   return useMemo(() => {
-    return alerts
+    const filtered = alerts
       .filter(a => !dismissedAlerts.includes(a.id))
-      // Snooze: 일시 숨김 (urgent도 적용 — 유저가 명시적으로 snooze 했으므로)
       .filter(a => !isAlertSnoozed(a.id))
       .filter(a => {
-        // 학습 suppress: urgent(severity 1)는 항상 노출
         if (opts.ignoreSuppression) return true;
         if (a.severity === 1) return true;
         return !isAlertSuppressed(a.id);
       })
       .filter(a => opts.maxSeverity == null || a.severity <= opts.maxSeverity)
-      .filter(a => opts.symbol == null || a.symbol === opts.symbol)
-      .sort((a, b) => a.severity - b.severity);
+      .filter(a => opts.symbol == null || a.symbol === opts.symbol);
+    // 시간대 컨텍스트 기반 재정렬 (가격 기반 알림은 미장 외 시간엔 뒤로)
+    return sortWithSessionWeight(filtered, marketStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [alerts, dismissedAlerts, snoozeTick, opts.ignoreSuppression, opts.maxSeverity, opts.symbol]);
+  }, [alerts, dismissedAlerts, snoozeTick, marketStatus, opts.ignoreSuppression, opts.maxSeverity, opts.symbol]);
 }
 
 /**

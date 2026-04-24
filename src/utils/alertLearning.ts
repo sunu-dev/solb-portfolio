@@ -1,20 +1,80 @@
 /**
- * 알림 학습 — 유저가 반복 해제하는 알림 타입 추적 + 자동 suppress
+ * 알림 학습 — 유저가 반복 해제하는 알림 타입/카테고리 추적 + 자동 suppress
  *
- * 로직:
- * 1. dismissAlert 호출 시 alertId에서 "type" 추출 (e.g., 'rsi-oversold', 'golden-cross')
- * 2. localStorage에 {type, timestamp} 기록 (14일 보존)
- * 3. 같은 타입 7일 내 3회+ 해제되면 해당 타입 새 알림 자동 숨김
+ * 로직 (2계층):
+ * 1. 타입 레벨: 'rsi-oversold' 같은 정확한 타입 (7일 3회+ → suppress)
+ * 2. 카테고리 레벨: 'rsi' 같은 상위 개념 (7일 5회+ → 카테고리 전체 suppress)
+ *    - 예: rsi-oversold 3회 + rsi-overbought 2회 = 카테고리 rsi 5회 → RSI 계열 전부 숨김
  */
 
 const STORAGE_KEY = 'solb_alert_dismissals';
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const EXPIRY_MS = 14 * 24 * 60 * 60 * 1000;
 const SUPPRESS_THRESHOLD = 3;
+const CATEGORY_SUPPRESS_THRESHOLD = 5;
 
 interface DismissalRecord {
   type: string;
   ts: number;
+}
+
+/**
+ * 타입 → 카테고리 매핑 (유사 지표 묶음)
+ */
+const TYPE_TO_CATEGORY: Record<string, string> = {
+  // RSI 계열
+  'rsi-oversold': 'rsi',
+  'rsi-overbought': 'rsi',
+  // MACD 계열
+  'macd-bull': 'macd',
+  'macd-bear': 'macd',
+  // 볼린저 밴드 계열
+  'bb-lower': 'bollinger',
+  'bb-upper': 'bollinger',
+  // 이동평균 계열
+  'golden-cross': 'moving-avg',
+  'death-cross': 'moving-avg',
+  // 52주 고/저
+  'near-52w-high': '52w',
+  'near-52w-low': '52w',
+  // 일간 변동
+  'daily-surge': 'daily',
+  'daily-plunge': 'daily',
+  // 손절 계열
+  'stoploss-hit': 'stoploss',
+  'stoploss-near': 'stoploss',
+  'stoploss-pct': 'stoploss',
+  // 목표 계열
+  'target-hit': 'target',
+  'target-near': 'target',
+  'target-return': 'target',
+  'target-profit-usd': 'target',
+  'target-profit-krw': 'target',
+  // 복합 지표
+  'composite-strong-bounce': 'composite',
+  'composite-strong-uptrend': 'composite',
+  'composite-overheated': 'composite',
+  'composite-strong-downtrend': 'composite',
+  'composite-squeeze': 'composite',
+};
+
+/**
+ * 카테고리 한글 라벨 (Settings UI용)
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  'rsi': 'RSI 지표 전체',
+  'macd': 'MACD 지표 전체',
+  'bollinger': '볼린저 밴드 전체',
+  'moving-avg': '이동평균 교차 전체',
+  '52w': '52주 고/저 근접 전체',
+  'daily': '일간 급등락 전체',
+  'stoploss': '손절 관련 전체',
+  'target': '목표 관련 전체',
+  'composite': '복합 지표 전체',
+};
+
+export function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] || category;
 }
 
 /**
@@ -71,18 +131,26 @@ export function recordDismissal(alertId: string) {
 }
 
 /**
- * 해당 alertId의 타입이 최근 7일간 임계치 이상 해제됐는지 체크.
- * true면 UI에서 숨김 대상.
+ * 해당 alertId가 suppress 대상인지 체크 (타입 OR 카테고리 레벨)
+ * - 타입: 7일 3회+
+ * - 카테고리: 7일 5회+ (타입 합산)
  */
 export function isAlertSuppressed(alertId: string): boolean {
   const type = extractAlertType(alertId);
   if (!type) return false;
+  const category = TYPE_TO_CATEGORY[type];
   const cutoff = Date.now() - WEEK_MS;
   const records = loadDismissals();
-  let count = 0;
+
+  let typeCount = 0;
+  let categoryCount = 0;
   for (const r of records) {
-    if (r.type === type && r.ts > cutoff) count++;
-    if (count >= SUPPRESS_THRESHOLD) return true;
+    if (r.ts <= cutoff) continue;
+    if (r.type === type) typeCount++;
+    if (category && TYPE_TO_CATEGORY[r.type] === category) categoryCount++;
+    // 조기 종료
+    if (typeCount >= SUPPRESS_THRESHOLD) return true;
+    if (categoryCount >= CATEGORY_SUPPRESS_THRESHOLD) return true;
   }
   return false;
 }
@@ -100,6 +168,24 @@ export function getSuppressedTypes(): Array<{ type: string; count: number }> {
   return Object.entries(counts)
     .filter(([, c]) => c >= SUPPRESS_THRESHOLD)
     .map(([type, count]) => ({ type, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * 현재 suppress 상태인 카테고리 목록 (타입 합산 기준)
+ */
+export function getSuppressedCategories(): Array<{ category: string; label: string; count: number }> {
+  const cutoff = Date.now() - WEEK_MS;
+  const records = loadDismissals();
+  const counts: Record<string, number> = {};
+  for (const r of records) {
+    if (r.ts <= cutoff) continue;
+    const cat = TYPE_TO_CATEGORY[r.type];
+    if (cat) counts[cat] = (counts[cat] || 0) + 1;
+  }
+  return Object.entries(counts)
+    .filter(([, c]) => c >= CATEGORY_SUPPRESS_THRESHOLD)
+    .map(([category, count]) => ({ category, label: getCategoryLabel(category), count }))
     .sort((a, b) => b.count - a.count);
 }
 

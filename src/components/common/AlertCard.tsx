@@ -1,11 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { X, HelpCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, HelpCircle, Clock, Share2 } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { snoozeAlert, getSnoozeLabel, type SnoozeDuration } from '@/utils/alertSnooze';
 import { getAlertExplanation } from '@/utils/alertGlossary';
+
+declare global {
+  interface Window {
+    Kakao: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+}
 
 interface Style {
   icon: string;
@@ -46,9 +52,62 @@ interface Props {
 export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compact = false }: Props) {
   const [showSnooze, setShowSnooze] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [kakaoReady, setKakaoReady] = useState(false);
   const style = ALERT_STYLE[alert.type];
   const explanation = getAlertExplanation(alert.id);
   const hasAction = alert.symbol && alert.symbol !== 'PORTFOLIO';
+
+  // 카카오 SDK 준비 상태
+  useEffect(() => {
+    const check = () => {
+      const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+      if (window.Kakao && key) {
+        if (!window.Kakao.isInitialized()) window.Kakao.init(key);
+        setKakaoReady(true);
+      }
+    };
+    if (window.Kakao) { check(); return; }
+    const t = setInterval(() => { if (window.Kakao) { check(); clearInterval(t); } }, 500);
+    return () => clearInterval(t);
+  }, []);
+
+  const handleShare = async () => {
+    const symbol = alert.symbol && alert.symbol !== 'PORTFOLIO' ? alert.symbol : '';
+    const kr = symbol ? STOCK_KR[symbol] || symbol : '';
+    const appUrl = 'https://solb-portfolio.vercel.app';
+    const title = kr ? `${kr} — ${style.icon} ${alert.message}` : `${style.icon} ${alert.message}`;
+    const shareText = `${title}\n${alert.detail}\n\n주비 포트폴리오에서 공유`;
+
+    // 카카오 우선
+    if (kakaoReady && window.Kakao?.Share) {
+      window.Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title,
+          description: alert.detail,
+          imageUrl: `${appUrl}/icon-512.png`,
+          link: { mobileWebUrl: appUrl, webUrl: appUrl },
+        },
+        buttons: [{ title: '주비에서 보기', link: { mobileWebUrl: appUrl, webUrl: appUrl } }],
+      });
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+      return;
+    }
+    // Web Share API fallback
+    if (navigator.share) {
+      try { await navigator.share({ title: '주비 알림', text: shareText, url: appUrl }); }
+      catch { /* cancelled */ }
+      return;
+    }
+    // 클립보드 fallback
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n${appUrl}`);
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    } catch { /* silent */ }
+  };
 
   return (
     <div
@@ -73,6 +132,20 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
             <HelpCircle size={13} />
           </button>
         )}
+        <button
+          onClick={handleShare}
+          className="cursor-pointer"
+          aria-label="카카오톡으로 공유"
+          title={shared ? '복사됨' : '공유'}
+          style={{
+            background: 'none', border: 'none', padding: 6,
+            color: shared ? 'var(--color-success, #00C6BE)' : 'var(--text-tertiary, #B0B8C1)',
+            minWidth: 28, minHeight: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'color 0.2s',
+          }}
+        >
+          <Share2 size={13} />
+        </button>
         {onSnooze && (
           <button
             onClick={() => setShowSnooze(v => !v)}
@@ -94,8 +167,8 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
         </button>
       </div>
 
-      {/* 본문 */}
-      <div style={{ paddingRight: explanation ? 90 : onSnooze ? 60 : 30 }}>
+      {/* 본문 — 우측 여유: help(28)+share(28)+snooze(28)+X(28) = 최대 112 */}
+      <div style={{ paddingRight: (explanation ? 28 : 0) + 28 + (onSnooze ? 28 : 0) + 28 + 8 }}>
         {!compact && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11 }}>{style.icon}</span>

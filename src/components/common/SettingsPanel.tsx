@@ -6,7 +6,7 @@ import { useNotification } from '@/hooks/useNotification';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import InviteSection from './InviteSection';
-import { getSuppressedTypes, resetAlertLearning } from '@/utils/alertLearning';
+import { getSuppressedTypes, getSuppressedCategories, resetAlertLearning } from '@/utils/alertLearning';
 
 export default function SettingsPanel() {
   const {
@@ -19,10 +19,14 @@ export default function SettingsPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
   const [suppressedTypes, setSuppressedTypes] = useState<Array<{ type: string; count: number }>>([]);
+  const [suppressedCategories, setSuppressedCategories] = useState<Array<{ category: string; label: string; count: number }>>([]);
 
   // 모달 열릴 때마다 현재 suppress 상태 새로고침
   useEffect(() => {
-    if (isOpen) setSuppressedTypes(getSuppressedTypes());
+    if (isOpen) {
+      setSuppressedTypes(getSuppressedTypes());
+      setSuppressedCategories(getSuppressedCategories());
+    }
   }, [isOpen]);
 
   // Listen for toggle event from Header
@@ -292,7 +296,7 @@ export default function SettingsPanel() {
               최근 7일 내 3회 이상 해제된 타입이 숨김 대상입니다.
             </div>
 
-            {suppressedTypes.length === 0 ? (
+            {suppressedTypes.length === 0 && suppressedCategories.length === 0 ? (
               <div style={{
                 padding: '14px 16px', borderRadius: 10,
                 background: 'var(--bg-subtle, #F2F4F6)',
@@ -302,30 +306,69 @@ export default function SettingsPanel() {
               </div>
             ) : (
               <>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                  {suppressedTypes.map(t => (
-                    <div
-                      key={t.type}
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '10px 14px', borderRadius: 10,
-                        background: 'var(--color-warning-bg, rgba(255,149,0,0.06))',
-                        border: '1px solid rgba(255,149,0,0.15)',
-                      }}
-                    >
-                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                        {t.type}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--color-warning, #FF9500)', fontWeight: 700 }}>
-                        {t.count}회 해제 · 숨김 중
-                      </span>
+                {/* 카테고리 레벨 — 상위 개념 (예: RSI 전체) */}
+                {suppressedCategories.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 6 }}>
+                      지표 카테고리 전체 숨김
                     </div>
-                  ))}
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+                      {suppressedCategories.map(c => (
+                        <div
+                          key={c.category}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '10px 14px', borderRadius: 10,
+                            background: 'var(--color-danger-bg, rgba(239,68,82,0.06))',
+                            border: '1px solid rgba(239,68,82,0.18)',
+                          }}
+                        >
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                            🎯 {c.label}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--color-danger, #EF4452)', fontWeight: 700 }}>
+                            {c.count}회 해제
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* 타입 레벨 — 개별 지표 */}
+                {suppressedTypes.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 6 }}>
+                      개별 알림 타입
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                      {suppressedTypes.map(t => (
+                        <div
+                          key={t.type}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '10px 14px', borderRadius: 10,
+                            background: 'var(--color-warning-bg, rgba(255,149,0,0.06))',
+                            border: '1px solid rgba(255,149,0,0.15)',
+                          }}
+                        >
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {t.type}
+                          </span>
+                          <span style={{ fontSize: 11, color: 'var(--color-warning, #FF9500)', fontWeight: 700 }}>
+                            {t.count}회 해제
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 <button
                   onClick={() => {
                     resetAlertLearning();
                     setSuppressedTypes([]);
+                    setSuppressedCategories([]);
                   }}
                   style={{
                     width: '100%', padding: '10px 0', borderRadius: 10,
