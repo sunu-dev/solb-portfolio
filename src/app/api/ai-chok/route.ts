@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
-import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
+import { CHOK_SYSTEM_PROMPT, buildUserTypeContext } from '@/config/analysisPrompt';
+import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError, getProviderStatus } from '@/lib/aiProvider';
@@ -96,10 +97,13 @@ export async function POST(req: NextRequest) {
     macroContext?: string;
     currentEvent?: string;
     sectorConcentration?: string;
+    investorType?: InvestorType;
   };
-  const { portfolioSymbols = [], forceRefresh = false, macroContext, currentEvent, sectorConcentration } = body;
+  const { portfolioSymbols = [], forceRefresh = false, macroContext, currentEvent, sectorConcentration, investorType = DEFAULT_INVESTOR_TYPE } = body;
 
-  const cached = await getCachedPicks(userKey, date, session);
+  // 캐시 키에 investorType 포함 (같은 유저라도 유형 바뀌면 다른 캐시)
+  const userKeyWithType = `${userKey}:${investorType}`;
+  const cached = await getCachedPicks(userKeyWithType, date, session);
 
   // 캐시 히트
   if (!forceRefresh && cached?.picks) {
@@ -131,6 +135,7 @@ export async function POST(req: NextRequest) {
   const excludeSymbols = portfolioSymbols.length ? portfolioSymbols.join(', ') : '없음';
 
   const prompt = CHOK_SYSTEM_PROMPT
+    .replace('{USER_TYPE_CONTEXT}', buildUserTypeContext(investorType))
     .replace('{MACRO_CONTEXT}', macroContext || '데이터 없음')
     .replace('{CURRENT_EVENT}', currentEvent || '없음')
     .replace('{SECTOR_CONCENTRATION}', sectorConcentration || '데이터 없음')
@@ -150,7 +155,7 @@ export async function POST(req: NextRequest) {
     const newCount = currentCount + 1;
 
     await Promise.all([
-      upsertCache(userKey, date, session, result, newCount),
+      upsertCache(userKeyWithType, date, session, result, newCount),
       // ai_usage 기록 (어드민 per-user 추적용)
       Promise.resolve(supabase?.from('ai_usage').insert({
         ip: ip,

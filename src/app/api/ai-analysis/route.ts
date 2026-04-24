@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
-import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer } from '@/config/analysisPrompt';
+import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer, buildUserTypeContext } from '@/config/analysisPrompt';
+import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
@@ -159,7 +160,8 @@ export async function POST(req: NextRequest) {
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
             recentNews, mentorId,
             per, eps, week52High, week52Low, sector,
-            stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category } = body;
+            stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category,
+            investorType = DEFAULT_INVESTOR_TYPE } = body as typeof body & { investorType?: InvestorType };
 
     // 개인화 계산
     const currentPLPct = (avgCost && price && avgCost > 0)
@@ -189,14 +191,18 @@ export async function POST(req: NextRequest) {
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
 
+    // 유저 투자 유형 블록 (LAYER 0)
+    const userTypeContext = buildUserTypeContext(investorType);
+    const layer1WithType = SYSTEM_LAYER1.replace('{USER_TYPE_CONTEXT}', userTypeContext);
+
     // Layer 1 (공통) + Layer 2 (멘토/일반) 조합
     const baseRules = mentor
-      ? `${SYSTEM_LAYER1}
+      ? `${layer1WithType}
 
 ${mentor.systemPrompt}
 
 ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
-      : `${SYSTEM_LAYER1}
+      : `${layer1WithType}
 
 당신은 한국인 주식 초보자를 위한 투자 분석 비서 "주비 AI"입니다.
 친절하고 쉽게 설명하되, 정확한 정보만 제공하세요.

@@ -128,6 +128,7 @@ export default function AnalysisPanel() {
     stocks,
     apiKey,
     currency,
+    investorType,
   } = usePortfolioStore();
 
   const { fetchCandle, rawCandle } = useCandleData(analysisSymbol);
@@ -444,6 +445,7 @@ export default function AnalysisPanel() {
                           week52High: fundamentals?.week52High,
                           week52Low: fundamentals?.week52Low,
                           sector: fundamentals?.sector,
+                          investorType,
                         }),
                       });
                       const data = await resp.json();
@@ -719,6 +721,7 @@ export default function AnalysisPanel() {
                                   week52High: fundamentals?.week52High,
                                   week52Low: fundamentals?.week52Low,
                                   sector: fundamentals?.sector,
+                                  investorType,
                                 }),
                               });
                               const data = await resp.json();

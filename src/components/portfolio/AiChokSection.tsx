@@ -214,7 +214,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
 // Main section
 // ==========================================
 export default function AiChokSection() {
-  const { getAllSymbols, setAnalysisSymbol, addStock, stocks, macroData, currentEventId, getAllEvents } = usePortfolioStore();
+  const { getAllSymbols, setAnalysisSymbol, addStock, stocks, macroData, currentEventId, getAllEvents, investorType } = usePortfolioStore();
   const [state, setState] = useState<ChokState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,6 +242,7 @@ export default function AiChokSection() {
           macroContext: buildMacroContext(macroData),
           currentEvent: currentEvent ? `${currentEvent.emoji} ${currentEvent.name}` : '없음',
           sectorConcentration: buildSectorConcentration(stocks),
+          investorType,
         }),
       });
       const data = await res.json() as ChokState & { error?: string; limitReached?: boolean; loginForMore?: boolean };
@@ -269,6 +270,16 @@ export default function AiChokSection() {
     fetchChok();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 투자자 유형 변경 시 자동 재조회 (캐시는 유형별 분리돼 있으므로 서버에서도 다른 결과)
+  const prevTypeRef = useRef(investorType);
+  useEffect(() => {
+    if (prevTypeRef.current !== investorType && fetchedRef.current) {
+      prevTypeRef.current = investorType;
+      fetchChok(); // force=false — 유형별 캐시 우선
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [investorType]);
 
   const handleAddWatch = (pick: ChokPick) => {
     if (watchingSet.has(pick.symbol)) return;
