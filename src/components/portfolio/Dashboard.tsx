@@ -14,8 +14,15 @@ export default function Dashboard() {
   const {
     stocks, macroData, alerts, dismissedAlerts,
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
-    rawCandles,
+    rawCandles, recordDailySnapshot,
   } = usePortfolioStore();
+
+  // 일일 스냅샷 자동 기록 — 시세 로드 후 1회 (하루 1번 내부 체크)
+  useEffect(() => {
+    if (Object.keys(macroData).length > 3) {
+      recordDailySnapshot();
+    }
+  }, [macroData, recordDailySnapshot]);
 
   // 출석 데이터
   const [streak, setStreak] = useState(0);

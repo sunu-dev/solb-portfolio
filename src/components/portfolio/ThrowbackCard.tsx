@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 
 type PeriodKey = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 interface Period {
@@ -30,7 +31,7 @@ const PERIODS: Period[] = [
  * - 실제 매매 이력 미반영 근사치 (Phase 1)
  */
 export default function ThrowbackCard() {
-  const { stocks, macroData, rawCandles, currency } = usePortfolioStore();
+  const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('1d');
 
   // 공통: 특정 일수 전 가격 조회
@@ -46,7 +47,8 @@ export default function ThrowbackCard() {
     return null;
   };
 
-  // 각 기간별 retrospective 데이터 계산 (탭 preview용 모두, 표시는 선택된 것만)
+  // 각 기간별 데이터 계산
+  // 우선순위: ① Daily Snapshot (실제 과거 보유) → ② Retrospective (현재 보유 × 과거 종가)
   const allData = useMemo(() => {
     const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
     if (investing.length === 0) return null;
@@ -59,8 +61,7 @@ export default function ThrowbackCard() {
       deltaAbs: number;
       deltaPct: number;
     }
-
-    const result: Record<PeriodKey, {
+    interface Data {
       perfs: PerfEntry[];
       totalDelta: number;
       totalPct: number;
@@ -68,9 +69,60 @@ export default function ThrowbackCard() {
       best: PerfEntry | null;
       worst: PerfEntry | null;
       coverage: number;
-    } | null> = { '1d': null, '1w': null, '1m': null, '3m': null, '6m': null, '1y': null };
+      source: 'snapshot' | 'retrospective';
+    }
+
+    const result: Record<PeriodKey, Data | null> = {
+      '1d': null, '1w': null, '1m': null, '3m': null, '6m': null, '1y': null,
+    };
 
     for (const period of PERIODS) {
+      // ① 스냅샷 우선 조회 (±3일 허용)
+      const targetDate = getDateDaysAgo(period.days);
+      const snap = findSnapshotNearDate(dailySnapshots, targetDate, 3);
+
+      if (snap && snap.stocks.length > 0) {
+        const perfs: PerfEntry[] = [];
+        let totalNow = 0;
+        let totalPast = 0;
+        for (const snapStock of snap.stocks) {
+          const q = macroData[snapStock.symbol] as QuoteData | undefined;
+          const now = q?.c || 0;
+          if (!now) continue;
+          totalNow += now * snapStock.shares;
+          totalPast += snapStock.currentPrice * snapStock.shares;
+          const deltaAbs = (now - snapStock.currentPrice) * snapStock.shares;
+          const deltaPct = snapStock.currentPrice > 0
+            ? ((now - snapStock.currentPrice) / snapStock.currentPrice) * 100 : 0;
+          perfs.push({
+            symbol: snapStock.symbol,
+            shares: snapStock.shares,
+            priceNow: now,
+            pricePast: snapStock.currentPrice,
+            deltaAbs, deltaPct,
+          });
+        }
+
+        if (perfs.length > 0) {
+          const sorted = [...perfs].sort((a, b) => b.deltaPct - a.deltaPct);
+          const totalDelta = totalNow - totalPast;
+          const totalPct = totalPast > 0 ? (totalDelta / totalPast) * 100 : 0;
+          const d = new Date(snap.date);
+          const label = period.key === '1d'
+            ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (어제 실제)`
+            : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (실제)`;
+          result[period.key] = {
+            perfs, totalDelta, totalPct,
+            dateLabel: label,
+            best: sorted[0], worst: sorted[sorted.length - 1],
+            coverage: 1,
+            source: 'snapshot',
+          };
+          continue;
+        }
+      }
+
+      // ② Retrospective fallback
       const perfs: PerfEntry[] = [];
       let hypotheticalNow = 0;
       let hypotheticalPast = 0;
@@ -89,36 +141,36 @@ export default function ThrowbackCard() {
         const deltaAbs = (now - past.price) * s.shares;
         const deltaPct = ((now - past.price) / past.price) * 100;
         perfs.push({
-          symbol: s.symbol,
-          shares: s.shares,
-          priceNow: now,
-          pricePast: past.price,
-          deltaAbs,
-          deltaPct,
+          symbol: s.symbol, shares: s.shares,
+          priceNow: now, pricePast: past.price,
+          deltaAbs, deltaPct,
         });
       }
 
       if (perfs.length === 0) continue;
       const coverage = perfs.length / investing.length;
-      if (coverage < 0.4) continue; // 커버리지 낮으면 신뢰 불가
+      if (coverage < 0.4) continue;
 
       const sorted = [...perfs].sort((a, b) => b.deltaPct - a.deltaPct);
-      const best = sorted[0];
-      const worst = sorted[sorted.length - 1];
       const totalDelta = hypotheticalNow - hypotheticalPast;
       const totalPct = hypotheticalPast > 0 ? (totalDelta / hypotheticalPast) * 100 : 0;
 
       const d = new Date((earliestTs ?? Date.now() / 1000) * 1000);
       const dateLabel = period.key === '1d'
-        ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (어제)`
-        : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+        ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (어제 · 근사)`
+        : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (근사)`;
 
-      result[period.key] = { perfs, totalDelta, totalPct, dateLabel, best, worst, coverage };
+      result[period.key] = {
+        perfs, totalDelta, totalPct, dateLabel,
+        best: sorted[0], worst: sorted[sorted.length - 1],
+        coverage,
+        source: 'retrospective',
+      };
     }
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stocks.investing, macroData, rawCandles]);
+  }, [stocks.investing, macroData, rawCandles, dailySnapshots]);
 
   if (!allData) return null;
 
@@ -230,11 +282,14 @@ function ActiveBody({
     best: { symbol: string; deltaPct: number } | null;
     worst: { symbol: string; deltaPct: number } | null;
     coverage: number;
+    source: 'snapshot' | 'retrospective';
   };
   selfLabel: string;
   formatMoney: (usd: number) => string;
 }) {
   const isGain = data.totalDelta >= 0;
+  const isSnapshot = data.source === 'snapshot';
+
   return (
     <>
       {/* 시나리오 카드 */}
@@ -247,14 +302,32 @@ function ActiveBody({
           marginBottom: 12,
         }}
       >
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>
-          {data.dateLabel}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+            {data.dateLabel}
+          </span>
+          <span
+            aria-label={isSnapshot ? '실제 스냅샷 기반' : '근사 계산'}
+            style={{
+              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
+              background: isSnapshot
+                ? 'var(--color-success-bg, rgba(0,198,190,0.08))'
+                : 'var(--color-warning-bg, rgba(255,149,0,0.08))',
+              color: isSnapshot
+                ? 'var(--color-success, #00C6BE)'
+                : 'var(--color-warning, #FF9500)',
+            }}
+          >
+            {isSnapshot ? '✓ 실제' : '≈ 근사'}
+          </span>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
           {selfLabel}
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 8 }}>
-          만약 이 날 지금의 포트폴리오를 같은 수량으로 샀다면
+          {isSnapshot
+            ? '그날 실제 보유하던 종목의 그때 가격 vs 현재 가격'
+            : '만약 이 날 지금의 포트폴리오를 같은 수량으로 샀다면'}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span style={{
@@ -273,7 +346,7 @@ function ActiveBody({
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 6 }}>
           {data.perfs.length}개 종목 기준
           {data.coverage < 1 && ` · 일부 종목 제외`}
-          {' · 매매 이력 미반영 근사치'}
+          {!isSnapshot && ' · 매매 이력 미반영'}
         </div>
       </div>
 

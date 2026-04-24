@@ -12,6 +12,8 @@ import type {
 import { DEFAULT_STOCKS, STOCK_KR, PRESET_EVENTS } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { recordDismissal } from '@/utils/alertLearning';
+import type { DailySnapshot } from '@/utils/dailySnapshot';
+import { getTodayKST, needsNewSnapshot, prune } from '@/utils/dailySnapshot';
 
 // --- Utility functions ---
 export function tsToDate(ts: number): string {
@@ -59,6 +61,9 @@ interface PortfolioState {
   refreshInterval: number;
   customEvents: PresetEvent[];
   lastUpdate: string | null;
+
+  // Daily snapshots (과거의 나 비교용)
+  dailySnapshots: DailySnapshot[];
 
   // Alerts
   alerts: Alert[];
@@ -113,6 +118,9 @@ interface PortfolioState {
   deleteCustomEvent: (id: string) => PresetEvent | null; // 삭제된 이벤트 반환 (Undo용)
   restoreCustomEvent: (event: PresetEvent) => void;
 
+  // Snapshots
+  recordDailySnapshot: () => void;
+
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
   resetPortfolio: () => void;
@@ -146,6 +154,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       refreshInterval: 30000,
       customEvents: [],
       lastUpdate: null,
+      dailySnapshots: [],
 
       alerts: [],
       dismissedAlerts: [],
@@ -353,6 +362,41 @@ export const usePortfolioStore = create<PortfolioState>()(
           customEvents: [...state.customEvents, event],
         })),
 
+      recordDailySnapshot: () => {
+        const state = get();
+        if (!needsNewSnapshot(state.dailySnapshots)) return;
+
+        const investing = state.stocks.investing || [];
+        const stocksSnap = investing
+          .filter(s => s.avgCost > 0 && s.shares > 0)
+          .map(s => {
+            const q = state.macroData[s.symbol] as { c?: number } | undefined;
+            const currentPrice = q?.c || 0;
+            return {
+              symbol: s.symbol,
+              avgCost: s.avgCost,
+              shares: s.shares,
+              currentPrice,
+              purchaseRate: s.purchaseRate,
+            };
+          })
+          .filter(s => s.currentPrice > 0); // 시세 없으면 제외
+
+        if (stocksSnap.length === 0) return; // 의미 있는 데이터만 저장
+
+        const totalValue = stocksSnap.reduce((sum, s) => sum + s.currentPrice * s.shares, 0);
+        const totalCost = stocksSnap.reduce((sum, s) => sum + s.avgCost * s.shares, 0);
+
+        const snap: DailySnapshot = {
+          date: getTodayKST(),
+          totalValue,
+          totalCost,
+          stocks: stocksSnap,
+        };
+
+        set({ dailySnapshots: prune([...state.dailySnapshots, snap], 365) });
+      },
+
       // --- Sync ---
       setStocksFromDB: (stocks) => set({ stocks }),
 
@@ -396,6 +440,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
+        dailySnapshots: state.dailySnapshots,
         // eventCache는 의도적으로 제외 — basePrices 변경 시 자동 재계산
       }),
     }
