@@ -12,13 +12,20 @@ interface Props {
 
 export default function UndoToast({ message, onUndo, onDismiss, durationMs = 5000, bottom = 80 }: Props) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  // 최신 콜백 참조 ref — 부모 리렌더로 onDismiss/onUndo가 새 인스턴스가 돼도
+  // useEffect 의존성에서 제외해야 타이머가 리셋되지 않음
+  const onDismissRef = useRef(onDismiss);
+  const onUndoRef = useRef(onUndo);
+  useEffect(() => { onDismissRef.current = onDismiss; }, [onDismiss]);
+  useEffect(() => { onUndoRef.current = onUndo; }, [onUndo]);
 
   useEffect(() => {
-    timerRef.current = setTimeout(onDismiss, durationMs);
+    timerRef.current = setTimeout(() => onDismissRef.current(), durationMs);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [durationMs, onDismiss]);
+    // durationMs만 의존 — 콜백은 ref로 최신값 참조
+  }, [durationMs]);
 
   return (
     <div
@@ -47,8 +54,9 @@ export default function UndoToast({ message, onUndo, onDismiss, durationMs = 500
       <button
         onClick={() => {
           if (timerRef.current) clearTimeout(timerRef.current);
-          onUndo();
+          onUndoRef.current();
         }}
+        aria-label="방금 해제한 알림 되돌리기"
         style={{
           background: 'none',
           border: 'none',
