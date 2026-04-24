@@ -30,7 +30,7 @@ export function delay(ms: number): Promise<void> {
 
 // --- Store types ---
 
-export type MainSection = 'portfolio' | 'events' | 'news';
+export type MainSection = 'portfolio' | 'events' | 'news' | 'insights';
 
 // Categories that hold actual stock arrays (excludes 'all')
 type StockCategoryKey = 'investing' | 'watching' | 'sold';

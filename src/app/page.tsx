@@ -20,6 +20,7 @@ import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
 import EventsSection from '@/components/events/EventsSection';
 import NewsSection from '@/components/news/NewsSection';
+import InsightsSection from '@/components/insights/InsightsSection';
 import AnalysisPanel from '@/components/analysis/AnalysisPanel';
 import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
@@ -221,6 +222,7 @@ export default function Home() {
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
           <style>{`@media (min-width: 769px) { .main-content { padding: 32px 32px 80px 32px !important; } }`}</style>
           {currentSection === 'portfolio' && <PortfolioSection />}
+          {currentSection === 'insights' && <InsightsSection />}
           {currentSection === 'events' && <EventsSection />}
           {currentSection === 'news' && <NewsSection />}
         </main>

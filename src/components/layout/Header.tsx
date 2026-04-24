@@ -10,6 +10,7 @@ import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
 
 const NAV_ITEMS: { label: string; section: MainSection }[] = [
   { label: '포트폴리오', section: 'portfolio' },
+  { label: 'AI 인사이트', section: 'insights' },
   { label: '뉴스', section: 'news' },
   { label: '이벤트 분석', section: 'events' },
 ];

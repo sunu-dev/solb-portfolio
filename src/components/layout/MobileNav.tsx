@@ -1,13 +1,14 @@
 'use client';
 
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { BarChart3, Newspaper, CalendarDays, Menu } from 'lucide-react';
+import { BarChart3, Newspaper, CalendarDays, Menu, Sparkles } from 'lucide-react';
 
 const TABS: { id: MainSection | 'more'; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'portfolio', label: '포트폴리오', Icon: BarChart3 },
-  { id: 'news', label: '뉴스', Icon: Newspaper },
-  { id: 'events', label: '이벤트', Icon: CalendarDays },
-  { id: 'more', label: '더보기', Icon: Menu },
+  { id: 'insights',  label: '인사이트', Icon: Sparkles },
+  { id: 'news',      label: '뉴스', Icon: Newspaper },
+  { id: 'events',    label: '이벤트', Icon: CalendarDays },
+  { id: 'more',      label: '더보기', Icon: Menu },
 ];
 
 interface MobileNavProps {

@@ -13,16 +13,13 @@ import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
-import AiChokSection from './AiChokSection';
+// AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
 import InvestmentJournal from './InvestmentJournal';
-import PortfolioDNA from './PortfolioDNA';
-import MonthlyReplay from './MonthlyReplay';
-import YearAgoCard from './YearAgoCard';
 import StockPulse from './StockPulse';
-import ConversationalTimeline from './ConversationalTimeline';
 import PortfolioValueChart from './PortfolioValueChart';
+// PortfolioDNA, MonthlyReplay, YearAgoCard, ConversationalTimeline → AI 인사이트 탭으로 이동
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -162,7 +159,6 @@ export default function PortfolioSection() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
-  const [analysisTab, setAnalysisTab] = useState<'now' | 'story'>('now');
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
@@ -927,10 +923,34 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* AI 촉 — 종목 리스트 다음 위치로 이동 */}
-        <div style={{ marginTop: '40px' }}>
-          <AiChokSection />
-        </div>
+        {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
+        {displayList.length > 0 && (
+          <button
+            onClick={() => {
+              const { setCurrentSection } = usePortfolioStore.getState();
+              setCurrentSection('insights');
+            }}
+            style={{
+              width: '100%', marginTop: 32, padding: '14px 18px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              borderRadius: 14,
+              background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.06)) 0%, rgba(175,82,222,0.05) 100%)',
+              border: '1px solid var(--border-light, #F2F4F6)',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 22 }}>🤖</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                AI 촉 · 포트폴리오 DNA · 월간 회고
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+                주비 AI가 오늘 당신의 포트폴리오를 읽어드려요
+              </div>
+            </div>
+            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
+          </button>
+        )}
 
         {/* 내 종목 뉴스 — 항상 표시 */}
         <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: '40px' }}>
@@ -1006,75 +1026,23 @@ export default function PortfolioSection() {
             });
             return (
               <>
-                {/* 분석 서브-서브탭 */}
-                <div
-                  role="tablist"
-                  className="flex scrollbar-hide"
-                  style={{
-                    gap: 4, padding: 4, borderRadius: 12,
-                    background: 'var(--bg-subtle, #F2F4F6)',
-                    marginBottom: 20,
-                  }}
-                >
-                  {([
-                    ['now',   '📊 현황'],
-                    ['story', '📖 이야기'],
-                  ] as const).map(([key, label]) => {
-                    const active = analysisTab === key;
-                    return (
-                      <button
-                        key={key}
-                        role="tab"
-                        aria-selected={active}
-                        onClick={() => setAnalysisTab(key)}
-                        style={{
-                          flex: 1,
-                          padding: '10px 0', minHeight: 40,
-                          fontSize: 13, fontWeight: active ? 700 : 500,
-                          color: active ? '#fff' : 'var(--text-secondary, #8B95A1)',
-                          background: active ? 'var(--text-primary, #191F28)' : 'transparent',
-                          border: 'none', borderRadius: 10, cursor: 'pointer',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+                <PortfolioValueChart />
+                {/* 데스크탑 2-column 그리드 */}
+                <div className="portfolio-widgets-grid">
+                  <style>{`
+                    .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
+                    @media (min-width: 1024px) {
+                      .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                    }
+                  `}</style>
+                  <BenchmarkCompare />
+                  <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
+                  <PortfolioHealth stocks={investingData} />
                 </div>
-
-                {/* 현황 탭 — 숫자·지표 중심 */}
-                {analysisTab === 'now' && (
-                  <>
-                    <PortfolioValueChart />
-                    {/* 데스크탑 2-column 그리드 */}
-                    <div className="portfolio-widgets-grid">
-                      <style>{`
-                        .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
-                        @media (min-width: 1024px) {
-                          .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-                        }
-                      `}</style>
-                      <BenchmarkCompare />
-                      <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
-                      <PortfolioHealth stocks={investingData} />
-                      <PortfolioDNA />
-                    </div>
-                    <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
-                    <ShareCard />
-                  </>
-                )}
-
-                {/* 이야기 탭 — 서사·감정 중심 */}
-                {analysisTab === 'story' && (
-                  <>
-                    <ConversationalTimeline />
-                    <MonthlyReplay />
-                    <YearAgoCard />
-                    <StockPulse />
-                    <InvestmentJournal />
-                  </>
-                )}
+                <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
+                <StockPulse />
+                <InvestmentJournal />
+                <ShareCard />
               </>
             );
           })() : (
