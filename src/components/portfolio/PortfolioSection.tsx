@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
+// 내 종목 뉴스는 뉴스 탭으로 이동 — import 제거
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { StockCategory, QuoteData, MacroEntry, NewsItem, StockItem, CandleRaw } from '@/config/constants';
+import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
@@ -85,20 +85,6 @@ function getPeriodReturn(
   return ((currentPrice - histPrice) / histPrice) * 100;
 }
 
-// Tag colors for portfolio news
-const TAG_COLORS: Record<string, { bg: string; color: string }> = {
-  MU: { bg: '#EBF3FF', color: '#3182F6' },
-  MSFT: { bg: '#F0FAF0', color: '#20C997' },
-  ASTX: { bg: '#F3F0FF', color: '#6366F1' },
-  BEX: { bg: '#FFF0F5', color: '#EC4899' },
-  AVGO: { bg: '#FFF0F0', color: '#EF4444' },
-  AMZN: { bg: '#FFF8E1', color: '#FF9900' },
-};
-
-function getTagColor(symbol: string) {
-  return TAG_COLORS[symbol] || { bg: '#F2F4F6', color: '#8B95A1' };
-}
-
 const ALERT_BADGE_COLORS: Record<Alert['type'], { bg: string; color: string; dot: string }> = {
   urgent: { bg: 'rgba(239,68,82,0.08)', color: '#EF4452', dot: '🔴' },
   risk: { bg: 'rgba(255,149,0,0.08)', color: '#FF9500', dot: '🟡' },
@@ -154,8 +140,6 @@ export default function PortfolioSection() {
     rawCandles,
   } = usePortfolioStore();
 
-  const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
-  const [newsLoaded, setNewsLoaded] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
@@ -177,45 +161,7 @@ export default function PortfolioSection() {
     return () => window.removeEventListener('solb-goto-analysis', handler);
   }, []);
 
-  // Fetch portfolio-related news — 종목별 병렬 개별 검색 (AND 쿼리 문제 해결)
-  useEffect(() => {
-    const investingSymbols = (stocks.investing || []).map(s => s.symbol);
-    if (!investingSymbols.length) return;
-
-    const targets = investingSymbols
-      .map(s => ({ sym: s, kr: STOCK_KR[s] }))
-      .filter(t => t.kr)
-      .slice(0, 4);
-
-    const queries = targets.length > 0
-      ? targets.map(t => `${t.kr} 주가`)
-      : ['미국 주식 증시'];
-
-    // 종목별 개별 검색 후 병합 — 48시간 window
-    Promise.all(queries.map(q => fetchKoreanNews(q, undefined, 48).catch(() => null)))
-      .then(results => {
-        const seen = new Set<string>();
-        const merged: (NewsItem & { tag: string })[] = [];
-        results.forEach((items, i) => {
-          if (!items) return;
-          const sym = targets[i]?.sym || investingSymbols[0];
-          items.slice(0, 3).forEach(item => {
-            if (seen.has(item.title)) return;
-            seen.add(item.title);
-            let tag = sym;
-            for (const { sym: s, kr } of targets) {
-              if (kr && (item.title.includes(kr) || item.title.includes(s))) { tag = s; break; }
-            }
-            merged.push({ ...item, tag });
-          });
-        });
-        // 최신순 정렬 후 상위 5개
-        merged.sort((a, b) => new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime());
-        if (merged.length) setPortfolioNews(merged.slice(0, 5));
-        setNewsLoaded(true);
-      })
-      .catch(() => setNewsLoaded(true));
-  }, [stocks.investing]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 내 종목 뉴스 fetch 로직은 NewsSection으로 이전 — 제거
 
   // USD/KRW rate
   const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
@@ -952,62 +898,36 @@ export default function PortfolioSection() {
           </button>
         )}
 
-        {/* 내 종목 뉴스 — 항상 표시 */}
-        <div style={{ marginTop: '32px', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: '40px' }}>
-          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            내 종목 뉴스
-          </div>
-          {portfolioNews.length > 0 ? (
-            <div>
-              {portfolioNews.map((item, idx) => {
-                const tagColor = getTagColor(item.tag);
-                const relTime = item.pubDate ? getRelativeTime(item.pubDate) : '';
-                return (
-                  <div
-                    key={idx}
-                    onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
-                    className="cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors rounded-lg"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '14px',
-                      padding: '14px 4px',
-                      borderTop: idx > 0 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: '4px',
-                        whiteSpace: 'nowrap',
-                        flexShrink: 0,
-                        marginTop: '2px',
-                        background: tagColor.bg,
-                        color: tagColor.color,
-                      }}
-                    >
-                      {item.tag}
-                    </span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: 500, lineHeight: 1.5, marginBottom: '4px', color: 'var(--text-primary, #191F28)' }}>
-                        {item.title}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
-                        {item.source}{item.source && relTime ? ' · ' : ''}{relTime}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* 내 종목 뉴스는 '뉴스' 탭으로 이동 — 여기서는 간단한 링크만 */}
+        {investingStocks.length > 0 && (
+          <button
+            onClick={() => {
+              const { setCurrentSection, setCurrentNewsMarket } = usePortfolioStore.getState();
+              setCurrentNewsMarket('all');
+              setCurrentSection('news');
+            }}
+            aria-label="뉴스 탭으로 이동해 내 종목 뉴스 보기"
+            style={{
+              width: '100%', marginTop: 24, padding: '14px 16px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              borderRadius: 14,
+              background: 'var(--bg-subtle, #F8F9FA)',
+              border: '1px solid var(--border-light, #F2F4F6)',
+              cursor: 'pointer', textAlign: 'left',
+            }}
+          >
+            <span style={{ fontSize: 22 }}>📰</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                내 종목 뉴스 보기
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+                뉴스 탭에서 보유 종목 관련 기사를 확인하세요
+              </div>
             </div>
-          ) : (
-            <div style={{ fontSize: '13px', color: '#B0B8C1', padding: '20px 0' }}>
-              {newsLoaded ? '관련 뉴스가 없습니다' : '뉴스를 불러오는 중...'}
-            </div>
-          )}
-        </div>
+            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
+          </button>
+        )}
 
       </div>
       )}
@@ -1096,20 +1016,3 @@ export default function PortfolioSection() {
   );
 }
 
-function getRelativeTime(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return '방금';
-    if (mins < 60) return `${mins}분 전`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}시간 전`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}일 전`;
-    return d.toLocaleDateString('ko-KR');
-  } catch {
-    return '';
-  }
-}

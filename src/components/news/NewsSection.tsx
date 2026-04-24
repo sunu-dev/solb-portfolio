@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { useNewsData } from '@/hooks/useStockData';
-import type { NewsTag } from '@/config/constants';
+import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
+import { STOCK_KR } from '@/config/constants';
+import type { NewsTag, NewsItem } from '@/config/constants';
 import EmptyState from '@/components/common/EmptyState';
 
 function decodeHtml(text: string) {
@@ -64,6 +65,10 @@ export default function NewsSection() {
   const { fetchNews } = useNewsData();
   const [loading, setLoading] = useState(false);
 
+  // '내 종목'(all) 탭 전용 — 보유 종목 기반 병렬 검색 결과
+  const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
+  const [portfolioNewsLoaded, setPortfolioNewsLoaded] = useState(false);
+
   const activeMarket = currentNewsMarket === 'all' ? 'us' : currentNewsMarket;
 
   // 캐시 타임스탬프 관리 (30분 stale)
@@ -73,7 +78,6 @@ export default function NewsSection() {
     const m = market === 'all' ? 'us' : market;
     const cachedAt = cacheTimes[m] || 0;
     const isStale = Date.now() - cachedAt > 30 * 60 * 1000;
-    // 빈 배열도 stale 처리 — 빈 결과가 캐시되면 계속 빈 뉴스 표시됨
     const hasCached = newsCache[m]?.length > 0;
     if (hasCached && !isStale) return;
     setLoading(true);
@@ -82,12 +86,63 @@ export default function NewsSection() {
     setLoading(false);
   }, [newsCache, fetchNews, cacheTimes]);
 
+  // 내 종목 탭 전용: 보유 종목별 병렬 뉴스 검색
   useEffect(() => {
+    if (currentNewsMarket !== 'all') return;
+    const investingSymbols = (stocks.investing || []).map(s => s.symbol);
+    if (!investingSymbols.length) {
+      setPortfolioNews([]);
+      setPortfolioNewsLoaded(true);
+      return;
+    }
+
+    const targets = investingSymbols
+      .map(s => ({ sym: s, kr: STOCK_KR[s] }))
+      .filter(t => t.kr)
+      .slice(0, 5);
+
+    const queries = targets.length > 0
+      ? targets.map(t => `${t.kr} 주가`)
+      : ['미국 주식 증시'];
+
+    setLoading(true);
+    Promise.all(queries.map(q => fetchKoreanNews(q, undefined, 48).catch(() => null)))
+      .then(results => {
+        const seen = new Set<string>();
+        const merged: (NewsItem & { tag: string })[] = [];
+        results.forEach((items, i) => {
+          if (!items) return;
+          const sym = targets[i]?.sym || investingSymbols[0];
+          items.slice(0, 4).forEach(item => {
+            if (seen.has(item.title)) return;
+            seen.add(item.title);
+            let tag = sym;
+            for (const { sym: s, kr } of targets) {
+              if (kr && (item.title.includes(kr) || item.title.includes(s))) { tag = s; break; }
+            }
+            merged.push({ ...item, tag });
+          });
+        });
+        merged.sort((a, b) => new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime());
+        setPortfolioNews(merged.slice(0, 20));
+        setPortfolioNewsLoaded(true);
+        setLoading(false);
+      })
+      .catch(() => {
+        setPortfolioNewsLoaded(true);
+        setLoading(false);
+      });
+  }, [currentNewsMarket, stocks.investing]);
+
+  // 그 외 탭: 기존 로직
+  useEffect(() => {
+    if (currentNewsMarket === 'all') return;
     loadNews(currentNewsMarket);
   }, [currentNewsMarket]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabClick = (market: string) => {
     setCurrentNewsMarket(market);
+    if (market === 'all') return; // useEffect가 처리
     const m = market === 'all' ? 'us' : market;
     if (!newsCache[m]) {
       setLoading(true);
@@ -95,7 +150,9 @@ export default function NewsSection() {
     }
   };
 
-  const items = newsCache[activeMarket] || [];
+  // '내 종목' 탭이면 portfolioNews 사용, 아니면 newsCache
+  const items: (NewsItem & { tag?: string })[] =
+    currentNewsMarket === 'all' ? portfolioNews : (newsCache[activeMarket] || []);
 
   return (
     <div>
@@ -150,7 +207,10 @@ export default function NewsSection() {
         <div>
           {items.slice(0, 20).map((item, idx) => {
             const relTime = item.pubDate ? getRelativeTime(item.pubDate) : '';
-            const tag = getNewsTag(item.title);
+            // 내 종목 탭: 종목 심볼 뱃지 우선, 없으면 키워드 기반
+            const tag = item.tag
+              ? { label: item.tag, bg: '#F0F4FF', color: '#3182F6' }
+              : getNewsTag(item.title);
             const isLast = idx === Math.min(items.length, 20) - 1;
 
             return (
