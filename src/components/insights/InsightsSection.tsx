@@ -5,7 +5,7 @@ import AiChokSection from '@/components/portfolio/AiChokSection';
 import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
 import ConversationalTimeline from '@/components/portfolio/ConversationalTimeline';
 import MonthlyReplay from '@/components/portfolio/MonthlyReplay';
-import YearAgoCard from '@/components/portfolio/YearAgoCard';
+import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import EmptyState from '@/components/common/EmptyState';
 
 /**
@@ -63,8 +63,8 @@ export default function InsightsSection() {
           {/* 4. 월간 회고 */}
           {investingCount > 0 && <MonthlyReplay />}
 
-          {/* 5. 1년 전 오늘 */}
-          {investingCount > 0 && <YearAgoCard />}
+          {/* 5. 과거의 나와 비교 (어제~1년 전) */}
+          {investingCount > 0 && <ThrowbackCard />}
         </>
       )}
     </div>

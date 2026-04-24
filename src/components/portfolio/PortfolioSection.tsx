@@ -19,7 +19,7 @@ import OcrImportModal from './OcrImportModal';
 import InvestmentJournal from './InvestmentJournal';
 import StockPulse from './StockPulse';
 import PortfolioValueChart from './PortfolioValueChart';
-// PortfolioDNA, MonthlyReplay, YearAgoCard, ConversationalTimeline → AI 인사이트 탭으로 이동
+// PortfolioDNA, MonthlyReplay, ThrowbackCard, ConversationalTimeline → AI 인사이트 탭으로 이동
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
