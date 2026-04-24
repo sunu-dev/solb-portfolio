@@ -63,18 +63,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'AI 서비스가 준비 중이에요.' }, { status: 503 });
   }
 
-  // Rate limit gate — 시간당 로그인 15회 / 비로그인 3회
-  const gate = await enforceRateLimit(req, '/api/ai-chok', POLICIES.aiAnalysis);
-  if (!gate.ok) return gate.response;
-
-  // Circuit breaker — Gemini 장애 감지 시 503 + Retry-After
-  const circuit = await checkCircuit('/api/ai-chok', CIRCUIT_POLICIES.aiStrict);
-  if (circuit.open) {
-    console.warn('[CIRCUIT OPEN] /api/ai-chok:', circuit.reason);
-    await gate.finalize(503, 'circuit_open');
-    return circuitOpenResponse(circuit, '/api/ai-chok');
-  }
-
+  // ── 1. 인증/요청 파싱 (캐시 키 빌드 위해 우선 처리) ─────────────
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
   let userId: string | undefined;
@@ -105,9 +94,9 @@ export async function POST(req: NextRequest) {
   const userKeyWithType = `${userKey}:${investorType}`;
   const cached = await getCachedPicks(userKeyWithType, date, session);
 
-  // 캐시 히트
+  // ── 2. 캐시 히트 → 레이트 리밋 소비 없이 즉시 반환 ──────────────
+  // (탭 재진입/페이지 새로고침으로 인한 정상 트래픽이 시간당 한도를 깎지 않도록)
   if (!forceRefresh && cached?.picks) {
-    await gate.finalize(200);
     return NextResponse.json({
       picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
       context: (cached.picks as { context: string }).context ?? '',
@@ -117,7 +106,18 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 레이트 리밋
+  // ── 3. 여기부터는 실제 AI 호출 경로 → 레이트/서킷/세션 한도 체크 ─
+  const gate = await enforceRateLimit(req, '/api/ai-chok', POLICIES.aiAnalysis);
+  if (!gate.ok) return gate.response;
+
+  const circuit = await checkCircuit('/api/ai-chok', CIRCUIT_POLICIES.aiStrict);
+  if (circuit.open) {
+    console.warn('[CIRCUIT OPEN] /api/ai-chok:', circuit.reason);
+    await gate.finalize(503, 'circuit_open');
+    return circuitOpenResponse(circuit, '/api/ai-chok');
+  }
+
+  // 세션 한도 (실제 AI 호출 횟수 기준)
   const currentCount = cached?.use_count || 0;
   if (currentCount >= limit) {
     const nextSession = session === 'day' ? '오후 10시 30분(미장 개장)' : '오전 9시';
