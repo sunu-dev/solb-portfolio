@@ -64,6 +64,7 @@ interface PortfolioState {
   alerts: Alert[];
   dismissedAlerts: string[]; // alert IDs dismissed in this session
   lastDismissBatch: string[]; // 마지막 '전체 읽음'으로 해제된 ID들 (Undo용, 비영속)
+  snoozeTick: number; // snooze 상태 변경 시 증가 (localStorage 기반 snooze 리렌더 트리거)
 
   // Network error (not persisted)
   networkError: string | null;
@@ -90,6 +91,7 @@ interface PortfolioState {
   dismissAlert: (alertId: string) => void;
   dismissAllAlerts: () => void;
   undoDismissAll: () => void;
+  bumpSnoozeTick: () => void;
   setNetworkError: (err: string | null) => void;
 
   // Macro & cache
@@ -148,6 +150,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       alerts: [],
       dismissedAlerts: [],
       lastDismissBatch: [],
+      snoozeTick: 0,
       networkError: null,
 
       editingCat: '',
@@ -197,6 +200,8 @@ export const usePortfolioStore = create<PortfolioState>()(
             lastDismissBatch: [],
           };
         }),
+
+      bumpSnoozeTick: () => set((state) => ({ snoozeTick: state.snoozeTick + 1 })),
 
       // --- Macro & cache ---
       updateMacroEntry: (key, val) =>

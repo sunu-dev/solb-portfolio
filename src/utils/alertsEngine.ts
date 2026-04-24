@@ -361,8 +361,12 @@ export function checkAllAlerts(
     return b.timestamp - a.timestamp;
   });
 
-  // Return top 10
-  return alerts.slice(0, 10);
+  // 동적 임계치: severity 1~2 (urgent/risk)는 모두 보장, 나머지는 한도 내 top N
+  // 총 상한 25개 — 이보다 많이 나오면 UI 폭주 가능
+  const urgentAndRisk = alerts.filter(a => a.severity <= 2);
+  const lower = alerts.filter(a => a.severity > 2);
+  const lowerBudget = Math.max(0, 25 - urgentAndRisk.length);
+  return [...urgentAndRisk, ...lower.slice(0, lowerBudget)];
 }
 
 // ==========================================

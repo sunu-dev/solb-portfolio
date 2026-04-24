@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { isAlertSuppressed } from '@/utils/alertLearning';
+import { isAlertSnoozed } from '@/utils/alertSnooze';
 import type { Alert } from '@/utils/alertsEngine';
 
 interface Options {
@@ -25,10 +26,14 @@ interface Options {
 export function useActiveAlerts(opts: Options = {}): Alert[] {
   const alerts = usePortfolioStore(s => s.alerts);
   const dismissedAlerts = usePortfolioStore(s => s.dismissedAlerts);
+  // snooze 상태 변경 시 재평가 트리거
+  const snoozeTick = usePortfolioStore(s => s.snoozeTick);
 
   return useMemo(() => {
     return alerts
       .filter(a => !dismissedAlerts.includes(a.id))
+      // Snooze: 일시 숨김 (urgent도 적용 — 유저가 명시적으로 snooze 했으므로)
+      .filter(a => !isAlertSnoozed(a.id))
       .filter(a => {
         // 학습 suppress: urgent(severity 1)는 항상 노출
         if (opts.ignoreSuppression) return true;
@@ -38,7 +43,8 @@ export function useActiveAlerts(opts: Options = {}): Alert[] {
       .filter(a => opts.maxSeverity == null || a.severity <= opts.maxSeverity)
       .filter(a => opts.symbol == null || a.symbol === opts.symbol)
       .sort((a, b) => a.severity - b.severity);
-  }, [alerts, dismissedAlerts, opts.ignoreSuppression, opts.maxSeverity, opts.symbol]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alerts, dismissedAlerts, snoozeTick, opts.ignoreSuppression, opts.maxSeverity, opts.symbol]);
 }
 
 /**

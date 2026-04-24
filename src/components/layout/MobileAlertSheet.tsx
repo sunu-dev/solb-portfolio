@@ -8,14 +8,7 @@ import { X } from 'lucide-react';
 import BottomSheet from '@/components/common/BottomSheet';
 import UndoToast from '@/components/common/UndoToast';
 import { isAlertSuppressed } from '@/utils/alertLearning';
-
-const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
-  urgent: { icon: '🚨', label: '긴급', bg: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.08)', color: '#EF4452' },
-  risk: { icon: '⚠️', label: '리스크', bg: 'rgba(255,149,0,0.04)', border: '1px solid rgba(255,149,0,0.08)', color: '#FF9500' },
-  opportunity: { icon: '💡', label: '주목', bg: 'rgba(0,198,190,0.04)', border: '1px solid rgba(0,198,190,0.08)', color: '#00C6BE' },
-  insight: { icon: '✨', label: '인사이트', bg: 'rgba(49,130,246,0.04)', border: '1px solid rgba(49,130,246,0.08)', color: '#3182F6' },
-  celebrate: { icon: '🎉', label: '달성', bg: 'rgba(175,82,222,0.04)', border: '1px solid rgba(175,82,222,0.08)', color: '#AF52DE' },
-};
+import AlertGroup from '@/components/common/AlertGroup';
 
 type AlertFilter = 'all' | 'risk' | 'opportunity' | 'insight';
 
@@ -25,16 +18,6 @@ const TABS: { id: AlertFilter; label: string }[] = [
   { id: 'opportunity', label: '주목' },
   { id: 'insight', label: '인사이트' },
 ];
-
-function getRelativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '방금';
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
-}
 
 function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
   if (filter === 'all') return alerts;
@@ -50,7 +33,7 @@ interface Props {
 }
 
 export default function MobileAlertSheet({ isOpen, onClose }: Props) {
-  const { alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, setAnalysisSymbol } = usePortfolioStore();
+  const { alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, setAnalysisSymbol } = usePortfolioStore();
   const [filter, setFilter] = useState<AlertFilter>('all');
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
 
@@ -139,67 +122,12 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
 
         {/* Alert list */}
         {filteredAlerts.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filteredAlerts.map(alert => {
-              const style = ALERT_STYLE[alert.type];
-              const kr = alert.symbol && alert.symbol !== 'PORTFOLIO' ? (STOCK_KR[alert.symbol] || alert.symbol) : null;
-
-              return (
-                <div
-                  key={alert.id}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background: style.bg,
-                    border: style.border,
-                    position: 'relative',
-                  }}
-                >
-                  <button
-                    onClick={() => dismissAlert(alert.id)}
-                    className="cursor-pointer"
-                    aria-label="알림 닫기"
-                    style={{ position: 'absolute', top: 4, right: 4, background: 'none', border: 'none', padding: 10, color: 'var(--text-tertiary, #B0B8C1)' }}
-                  >
-                    <X size={12} />
-                  </button>
-
-                  <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
-                    <span style={{
-                      fontSize: 11, fontWeight: 600, color: style.color,
-                      background: style.bg, padding: '1px 6px', borderRadius: 4, border: style.border,
-                    }}>
-                      {style.icon} {style.label}
-                    </span>
-                    {kr && (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>{kr}</span>
-                    )}
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto', paddingRight: 16 }}>
-                      {getRelativeTime(alert.timestamp)}
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.5, marginBottom: 2 }}>
-                    {alert.message}
-                  </div>
-
-                  <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-                    {alert.detail}
-                  </div>
-
-                  {alert.symbol && alert.symbol !== 'PORTFOLIO' && (
-                    <div
-                      onClick={() => { setAnalysisSymbol(alert.symbol); onClose(); }}
-                      className="cursor-pointer"
-                      style={{ fontSize: 12, fontWeight: 600, marginTop: 8, color: style.color }}
-                    >
-                      분석 보기 ›
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <AlertGroup
+            alerts={filteredAlerts}
+            onDismiss={dismissAlert}
+            onSnooze={() => bumpSnoozeTick()}
+            onAnalyze={(symbol) => { setAnalysisSymbol(symbol); onClose(); }}
+          />
         ) : (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>

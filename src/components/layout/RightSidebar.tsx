@@ -6,9 +6,10 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
 import type { QuoteData } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import { isAlertSuppressed } from '@/utils/alertLearning';
+import AlertGroup from '@/components/common/AlertGroup';
 
 interface ChokPick {
   symbol: string;
@@ -16,44 +17,6 @@ interface ChokPick {
   reason: string;
   keyMetric: string;
 }
-
-const ALERT_STYLE: Record<Alert['type'], { icon: string; label: string; bg: string; border: string; color: string }> = {
-  urgent: {
-    icon: '🚨',
-    label: '긴급',
-    bg: 'rgba(239,68,82,0.04)',
-    border: '1px solid rgba(239,68,82,0.08)',
-    color: '#EF4452',
-  },
-  risk: {
-    icon: '⚠️',
-    label: '리스크',
-    bg: 'rgba(255,149,0,0.04)',
-    border: '1px solid rgba(255,149,0,0.08)',
-    color: '#FF9500',
-  },
-  opportunity: {
-    icon: '💡',
-    label: '주목',
-    bg: 'rgba(0,198,190,0.04)',
-    border: '1px solid rgba(0,198,190,0.08)',
-    color: '#00C6BE',
-  },
-  insight: {
-    icon: '✨',
-    label: '인사이트',
-    bg: 'rgba(49,130,246,0.04)',
-    border: '1px solid rgba(49,130,246,0.08)',
-    color: '#3182F6',
-  },
-  celebrate: {
-    icon: '🎉',
-    label: '달성',
-    bg: 'rgba(175,82,222,0.04)',
-    border: '1px solid rgba(175,82,222,0.08)',
-    color: '#AF52DE',
-  },
-};
 
 type AlertFilter = 'all' | 'risk' | 'opportunity' | 'insight';
 
@@ -64,16 +27,6 @@ const ALERT_TABS: { id: AlertFilter; label: string }[] = [
   { id: 'insight', label: '인사이트' },
 ];
 
-function getRelativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return '방금';
-  if (mins < 60) return `${mins}분 전`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}시간 전`;
-  return `${Math.floor(hours / 24)}일 전`;
-}
-
 function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
   if (filter === 'all') return alerts;
   if (filter === 'risk') return alerts.filter(a => a.type === 'urgent' || a.type === 'risk');
@@ -83,7 +36,7 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, getAllSymbols, addStock } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
@@ -261,87 +214,12 @@ export default function RightSidebar() {
 
         {/* Alert list */}
         {filteredAlerts.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filteredAlerts.map((alert) => {
-              const style = ALERT_STYLE[alert.type];
-              const kr = alert.symbol && alert.symbol !== 'PORTFOLIO' ? (STOCK_KR[alert.symbol] || alert.symbol) : null;
-
-              return (
-                <div
-                  key={alert.id}
-                  style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    background: style.bg,
-                    border: style.border,
-                    position: 'relative',
-                  }}
-                >
-                  {/* Dismiss button */}
-                  <button
-                    onClick={() => dismissAlert(alert.id)}
-                    className="cursor-pointer"
-                    aria-label="알림 닫기"
-                    style={{
-                      position: 'absolute',
-                      top: 4,
-                      right: 4,
-                      background: 'none',
-                      border: 'none',
-                      padding: 10,
-                      color: 'var(--text-tertiary, #B0B8C1)',
-                    }}
-                  >
-                    <X size={12} />
-                  </button>
-
-                  {/* Header: type badge + time */}
-                  <div className="flex items-center" style={{ gap: 6, marginBottom: 6 }}>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: style.color,
-                      background: style.bg,
-                      padding: '1px 6px',
-                      borderRadius: 4,
-                      border: style.border,
-                    }}>
-                      {style.icon} {style.label}
-                    </span>
-                    {kr && (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>
-                        {kr}
-                      </span>
-                    )}
-                    <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto', paddingRight: 16 }}>
-                      {getRelativeTime(alert.timestamp)}
-                    </span>
-                  </div>
-
-                  {/* Message */}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.5, marginBottom: 2 }}>
-                    {alert.message}
-                  </div>
-
-                  {/* Detail */}
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-                    {alert.detail}
-                  </div>
-
-                  {/* Action link */}
-                  {alert.symbol && alert.symbol !== 'PORTFOLIO' && (
-                    <div
-                      onClick={() => setAnalysisSymbol(alert.symbol)}
-                      className="cursor-pointer"
-                      style={{ fontSize: 11, fontWeight: 600, marginTop: 8, color: style.color }}
-                    >
-                      분석 보기 ›
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <AlertGroup
+            alerts={filteredAlerts}
+            onDismiss={dismissAlert}
+            onSnooze={() => bumpSnoozeTick()}
+            onAnalyze={setAnalysisSymbol}
+          />
         ) : (
           <div
             style={{
