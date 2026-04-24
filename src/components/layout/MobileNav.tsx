@@ -5,7 +5,7 @@ import { BarChart3, Newspaper, CalendarDays, Menu, Sparkles } from 'lucide-react
 
 const TABS: { id: MainSection | 'more'; label: string; Icon: typeof BarChart3 }[] = [
   { id: 'portfolio', label: '포트폴리오', Icon: BarChart3 },
-  { id: 'insights',  label: '인사이트', Icon: Sparkles },
+  { id: 'insights',  label: 'AI 인사이트', Icon: Sparkles },
   { id: 'news',      label: '뉴스', Icon: Newspaper },
   { id: 'events',    label: '이벤트', Icon: CalendarDays },
   { id: 'more',      label: '더보기', Icon: Menu },
@@ -54,8 +54,9 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               border: 'none',
               cursor: 'pointer',
               color: isActive ? '#3182F6' : 'var(--text-tertiary, #B0B8C1)',
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: isActive ? 600 : 400,
+              letterSpacing: '-0.3px',
               position: 'relative',
               paddingTop: 10,
               paddingBottom: 6,
@@ -74,7 +75,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               }} />
             )}
             <tab.Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
-            <span>{tab.label}</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{tab.label}</span>
           </button>
         );
       })}
