@@ -22,7 +22,11 @@ import OcrImportModal from './OcrImportModal';
 import InvestmentJournal from './InvestmentJournal';
 import StockPulse from './StockPulse';
 import PortfolioValueChart from './PortfolioValueChart';
-// PortfolioDNA, MonthlyReplay, ThrowbackCard, ConversationalTimeline → AI 인사이트 탭으로 이동
+import PortfolioDNA from './PortfolioDNA';
+import ThrowbackCard from './ThrowbackCard';
+import TradePatternMirror from './TradePatternMirror';
+import MonthlyReplay from './MonthlyReplay';
+// ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
@@ -988,6 +992,16 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {/* 월간 회고 — 시간 적응형 시즌 카드 (UX 전문가 결론)
+            진행 중(1~25일): "이번 달 페이스" 차분 톤
+            마감 임박(26~말일): "○월 마감 임박 D-N" 긴장감
+            확정(다음 달 1~5일): "○월 회고" 컬러풀 + 공유 강조 */}
+        {investingStocks.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <MonthlyReplay />
+          </div>
+        )}
+
         {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
         {displayList.length > 0 && (
           <button
@@ -1007,7 +1021,7 @@ export default function PortfolioSection() {
             <span style={{ fontSize: 22 }}>🤖</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                AI 촉 · 포트폴리오 DNA · 월간 회고
+                AI 촉 · 주비의 이야기 · 숨은 종목
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
                 주비 AI가 오늘 당신의 포트폴리오를 읽어드려요
@@ -1086,6 +1100,10 @@ export default function PortfolioSection() {
                   <PortfolioHealth stocks={investingData} />
                 </div>
                 <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
+                {/* IA 재정비 — AI 인사이트 탭에서 이동된 회고/통계 컴포넌트 */}
+                <ThrowbackCard />
+                <TradePatternMirror />
+                <PortfolioDNA />
                 <StockPulse />
                 <InvestmentJournal />
                 <ShareCard />

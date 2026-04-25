@@ -169,7 +169,27 @@ export default function MonthlyReplay() {
 
   const usdKrw = 1400; // 간단히 — macroData에서 가져와도 됨
   const isGain = replay.totalAbsReturn >= 0;
-  const monthLabel = new Date().toLocaleDateString('ko-KR', { month: 'long' });
+
+  // 시간 적응형 phase (UX 전문가 결론)
+  // 1~25일: progress (잠정값, 회색 톤) / 26~말일: closing (긴장감) / 다음 달 1~5일: recap (확정, 공유 강조)
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const isLastWeek = dayOfMonth >= lastDayOfMonth - 4;
+  const isFirstWeek = dayOfMonth <= 5;
+  // 다음 달 1~5일이면 "지난달 회고", 26~말일이면 "이번달 마감 임박", 그 외 "이번달 페이스"
+  const phase: 'progress' | 'closing' | 'recap' = isFirstWeek ? 'recap' : isLastWeek ? 'closing' : 'progress';
+
+  // 라벨 — phase에 따라 다름
+  const monthLabel = phase === 'recap'
+    ? new Date(today.getFullYear(), today.getMonth() - 1, 1).toLocaleDateString('ko-KR', { month: 'long' })
+    : today.toLocaleDateString('ko-KR', { month: 'long' });
+  const phaseLabel = phase === 'recap'
+    ? `${monthLabel} 회고`
+    : phase === 'closing'
+    ? `${monthLabel} 마감 임박 (D-${lastDayOfMonth - dayOfMonth})`
+    : `${monthLabel} 페이스 (${dayOfMonth}일째)`;
+  const isHighlight = phase !== 'progress'; // closing/recap만 컬러풀 톤
 
   const formatMoney = (usd: number) => {
     if (currency === 'KRW') return formatKRW(Math.round(usd * usdKrw));
@@ -182,20 +202,26 @@ export default function MonthlyReplay() {
         marginBottom: 32,
         padding: '20px',
         borderRadius: 16,
-        background: isGain
-          ? 'linear-gradient(135deg, var(--color-gain-bg, rgba(239,68,82,0.06)) 0%, var(--color-purple-bg, rgba(175,82,222,0.05)) 100%)'
-          : 'linear-gradient(135deg, var(--color-loss-bg, rgba(49,130,246,0.06)) 0%, var(--color-purple-bg, rgba(175,82,222,0.05)) 100%)',
-        border: '1px solid var(--border-light, #F2F4F6)',
+        // phase별 톤: progress(차분 회색) / closing/recap(컬러풀)
+        background: isHighlight
+          ? (isGain
+            ? 'linear-gradient(135deg, var(--color-gain-bg, rgba(239,68,82,0.06)) 0%, var(--color-purple-bg, rgba(175,82,222,0.05)) 100%)'
+            : 'linear-gradient(135deg, var(--color-loss-bg, rgba(49,130,246,0.06)) 0%, var(--color-purple-bg, rgba(175,82,222,0.05)) 100%)')
+          : 'var(--bg-subtle, #F8F9FA)',
+        border: isHighlight
+          ? '1px solid var(--border-light, #F2F4F6)'
+          : '1px solid var(--border-light, #F2F4F6)',
+        opacity: isHighlight ? 1 : 0.92,
       }}
     >
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            MONTHLY REPLAY
+            {phase === 'recap' ? 'MONTHLY REPLAY' : phase === 'closing' ? 'CLOSING SOON' : 'MONTHLY PACE'}
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
-            {monthLabel}의 당신
+            {phaseLabel}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>

@@ -3,11 +3,7 @@
 import { useRef, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import AiChokSection from '@/components/portfolio/AiChokSection';
-import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
 import ConversationalTimeline from '@/components/portfolio/ConversationalTimeline';
-import MonthlyReplay from '@/components/portfolio/MonthlyReplay';
-import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
-import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
 import CohortReference from '@/components/portfolio/CohortReference';
 import { inferInvestorBehavior } from '@/utils/investorBehavior';
 import EmptyState from '@/components/common/EmptyState';
@@ -15,16 +11,20 @@ import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 
 /**
- * AI 인사이트 탭
- * - AI 생성 콘텐츠 허브
- * - 배치 순서: 오늘 소식 → 일상 감정 → 장기 회고
- *   1. AI 촉 (오늘의 발견)
+ * AI 인사이트 탭 — IA 재정비 (전문가 회의 결과 적용)
+ *
+ * 발견/AI 카테고리만 잔여:
+ *   1. AI 촉 (실제 Gemini 호출 — 오늘의 종목 발견)
  *   2. 주비의 이야기 (오늘 상태 내러티브)
- *   3. Throwback (과거의 나 — 어제~1년)
- *   4. Monthly Replay (한 달 요약)
- *   5. Portfolio DNA (내 투자 캐릭터)
- * - 상단 mini-nav로 섹션 간 빠른 이동
- * - Stagger fade-in 애니메이션
+ *   3. 숨은 종목 (유형별 큐레이션 + 섹터 비교)
+ *
+ * 분석 탭(종목 → 분석 서브탭)으로 이동된 회고/통계 컴포넌트:
+ *   - ThrowbackCard (과거 비교 — 분석 카테고리)
+ *   - TradePatternMirror (메모 통계 — 분석 카테고리)
+ *   - PortfolioDNA (캐릭터 분류 — Health와 함께)
+ *
+ * 종목 탭 시즌 카드로 이동:
+ *   - MonthlyReplay (월말~월초만 강조, 시간 적응형)
  */
 
 interface SectionRef {
@@ -50,20 +50,12 @@ export default function InsightsSection() {
 
   const chokRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
-  const throwbackRef = useRef<HTMLDivElement>(null);
-  const mirrorRef = useRef<HTMLDivElement>(null);
   const cohortRef = useRef<HTMLDivElement>(null);
-  const replayRef = useRef<HTMLDivElement>(null);
-  const dnaRef = useRef<HTMLDivElement>(null);
 
   const sections: SectionRef[] = [
-    { id: 'chok',      label: '촉',       emoji: '🎯', element: chokRef },
-    { id: 'story',     label: '이야기',   emoji: '💬', element: storyRef },
-    { id: 'throwback', label: '회고',     emoji: '🕰️', element: throwbackRef },
-    { id: 'mirror',    label: '거울',     emoji: '🪞', element: mirrorRef },
-    { id: 'cohort',    label: '숨은 종목', emoji: '🌐', element: cohortRef },
-    { id: 'replay',    label: '월간',     emoji: '📅', element: replayRef },
-    { id: 'dna',       label: 'DNA',      emoji: '🧬', element: dnaRef },
+    { id: 'chok',   label: '촉',       emoji: '🎯', element: chokRef },
+    { id: 'story',  label: '이야기',   emoji: '💬', element: storyRef },
+    { id: 'cohort', label: '숨은 종목', emoji: '🌐', element: cohortRef },
   ];
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -297,39 +289,11 @@ export default function InsightsSection() {
             </div>
           )}
 
-          {/* 3. Throwback — 과거의 나 (어제~1년) */}
-          {investingCount > 0 && (
-            <div ref={throwbackRef} className="insight-stagger" style={{ animationDelay: '0.2s' }}>
-              <ThrowbackCard />
-            </div>
-          )}
-
-          {/* 4. 결정 거울 — 매수 메모 → 결과 회고 */}
-          {hasAnyStock && (
-            <div ref={mirrorRef} className="insight-stagger" style={{ animationDelay: '0.3s' }}>
-              <TradePatternMirror />
-            </div>
-          )}
-
-          {/* 5. 숨은 종목 — 같은 유형 투자자가 자주 보는 (큐레이션, 추천 아님)
+          {/* 3. 숨은 종목 — 같은 유형 투자자가 자주 보는 (큐레이션, 추천 아님)
               유형 미설정 시에도 placeholder 노출(미니 nav 클릭 작동) */}
           {hasAnyStock && (
-            <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.4s' }}>
+            <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.2s' }}>
               <CohortReference onStartQuiz={() => setShowQuiz(true)} />
-            </div>
-          )}
-
-          {/* 6. Monthly Replay — 한 달 요약 */}
-          {investingCount > 0 && (
-            <div ref={replayRef} className="insight-stagger" style={{ animationDelay: '0.5s' }}>
-              <MonthlyReplay />
-            </div>
-          )}
-
-          {/* 7. Portfolio DNA — 내 투자 캐릭터 (가장 안쪽) */}
-          {investingCount > 0 && (
-            <div ref={dnaRef} className="insight-stagger" style={{ animationDelay: '0.6s' }}>
-              <PortfolioDNA />
             </div>
           )}
         </>
