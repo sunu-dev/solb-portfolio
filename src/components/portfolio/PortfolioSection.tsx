@@ -965,13 +965,25 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 한눈에 — 비중 + 손익 분포 (트리맵에서 교체).
-            전문가 결론: 트리맵은 500종목 시장 도구. 5~20종목 포트폴리오엔
-            가로 스택 바 + 손익 분포 막대(56px)가 정직한 인코딩. */}
+        {/* 포트폴리오 맵 — NASDAQ 스타일 미니 히트맵 */}
         {investingStocks.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <PortfolioCompactBar
+            <div style={{
+              fontSize: 12, fontWeight: 700,
+              color: 'var(--text-tertiary, #B0B8C1)',
+              marginBottom: 8, letterSpacing: 0.4,
+            }}>
+              포트폴리오 맵
+            </div>
+            <PortfolioHeatmap
+              variant="compact"
+              stocks={investingStocks}
+              macroData={macroData}
+              usdKrw={usdKrw}
+              currency={currency}
+              rawCandles={rawCandles}
               onExpand={() => setSubTab('analysis')}
+              onCellClick={(sym) => setAnalysisSymbol(sym)}
             />
           </div>
         )}

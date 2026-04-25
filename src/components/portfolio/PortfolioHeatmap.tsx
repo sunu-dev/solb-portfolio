@@ -1,34 +1,58 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { STOCK_KR } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+import { getSector } from '@/utils/portfolioHealth';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 
-// ─── 상수 ──────────────────────────────────────────────────────────────────
+/**
+ * 포트폴리오 히트맵 — Finviz/NASDAQ 스타일.
+ *
+ * 핵심 디자인 결정 (전문가 회의 후):
+ * 1. HTML overlay 방식 — SVG <text> 안에서는 viewBox가 CSS px을 user units로
+ *    해석해 폰트 cap이 작동 안 함. 셀(div)과 라벨(div) 모두 HTML로 → 정확한 px 사이즈.
+ * 2. 섹터 그룹핑 (2단 squarify) — Finviz의 본질. IT/헬스/금융 섹터로 1차 분할,
+ *    각 섹터 안에서 종목으로 2차 분할. 섹터 갭 3px, 종목 갭 1px.
+ * 3. 직각 모서리(0px), 모노스페이스 폐기, 회사명 셀에서 제거.
+ * 4. 폰트 고정 크기 (Finviz 14/11/9px 3단), 셀 크기에 따라 표시/숨김만.
+ * 5. 색 채도 -25%, 0% 셀은 푸른 회색 (#3a3e4a) — 장시간 응시 피로 최소화.
+ */
+
 const OTHERS_SYMBOL = '__OTHERS__';
-const COMPACT_TOP_N = 6;   // 모바일 4:3 — 6개까지 비례, 나머지는 "기타"
-const FULL_TOP_N = 10;     // 분석 탭 1:1 — 10개까지
+const COMPACT_TOP_N = 8;
+const FULL_TOP_N = 16;
 
 // ─── Squarify (Bruls et al. 2000) ──────────────────────────────────────────
-interface TreeNode {
+interface Rect { x: number; y: number; w: number; h: number; }
+
+interface Node {
   symbol: string;
-  value: number;        // 평가금액 (USD)
-  pnlPct: number;       // 누적 수익률 %
-  todayPct: number;     // 오늘 등락률 %
-  label: string;        // 한글 회사명
-  valFormatted: string; // 표시용 평가금액 (KRW or short USD)
+  value: number;
+  pnlPct: number;
+  todayPct: number;
+  label: string;
+  valFormatted: string;
   avgCost: number;
   shares: number;
   currentPrice: number;
-  profit: number;       // USD 손익
+  profit: number;
   profitFmt: string;
-  childrenSymbols?: string[]; // OTHERS 노드일 때만: 묶인 종목 심볼 리스트
+  childrenSymbols?: string[];
+  sector: string;
 }
 
-interface Rect { x: number; y: number; w: number; h: number; }
-type LayoutNode = TreeNode & Rect;
+interface SectorGroup {
+  sector: string;
+  value: number;
+  nodes: Node[];
+}
+
+interface LayoutNode extends Node, Rect {}
+interface LayoutSector extends SectorGroup, Rect {
+  cellLayout: LayoutNode[];
+}
 
 function worstAspectRatio(row: number[], length: number): number {
   if (row.length === 0) return Infinity;
@@ -40,40 +64,33 @@ function worstAspectRatio(row: number[], length: number): number {
   return Math.max((l2 * maxVal) / s2, s2 / (l2 * minVal));
 }
 
-function squarify(nodes: TreeNode[], rect: Rect): LayoutNode[] {
-  if (nodes.length === 0) return [];
-  const total = nodes.reduce((s, n) => s + n.value, 0);
+function squarify<T extends { value: number }>(items: T[], rect: Rect): Array<T & Rect> {
+  if (items.length === 0) return [];
+  const total = items.reduce((s, n) => s + n.value, 0);
   if (total <= 0) return [];
 
-  const sorted = [...nodes].sort((a, b) => b.value - a.value);
-
-  // 매우 작은 비중(<1%)도 보이도록 최소 1% 바닥 — 0.17% 같은 종목이 사라지지 않게
-  // (큰 종목엔 영향 미미, 작은 종목은 1% 최소 보장)
+  const sorted = [...items].sort((a, b) => b.value - a.value);
   const FLOOR = 0.01;
   const adjusted = sorted.map(n => Math.max(n.value, total * FLOOR));
   const adjustedTotal = adjusted.reduce((s, v) => s + v, 0);
-
   const area = rect.w * rect.h;
   const scaled = sorted.map((n, i) => ({
     ...n,
     scaledValue: (adjusted[i] / adjustedTotal) * area,
   }));
 
-  const result: LayoutNode[] = [];
+  const result: Array<T & Rect> = [];
   let remaining = [...scaled];
   let currentRect = { ...rect };
 
   while (remaining.length > 0) {
-    // 자투리 사각형이 0차원이면 종료(나머지 노드 손실 방지 — 이미 최소 비중 적용으로 발생 가능성 낮음)
     if (currentRect.w <= 0.01 || currentRect.h <= 0.01) break;
-
     const isWide = currentRect.w >= currentRect.h;
     const sideLength = isWide ? currentRect.h : currentRect.w;
     if (sideLength <= 0.01) break;
 
     const row: typeof scaled = [remaining[0]];
     remaining = remaining.slice(1);
-
     let rowArea = row[0].scaledValue;
     let prevWorst = worstAspectRatio([row[0].scaledValue], sideLength);
 
@@ -85,20 +102,20 @@ function squarify(nodes: TreeNode[], rect: Rect): LayoutNode[] {
         remaining = remaining.slice(1);
         rowArea += candidate;
         prevWorst = newWorst;
-      } else {
-        break;
-      }
+      } else break;
     }
 
     const rowLength = rowArea / sideLength;
     let offset = 0;
     for (const item of row) {
       const itemLength = item.scaledValue / rowLength;
-      if (isWide) {
-        result.push({ ...item, x: currentRect.x, y: currentRect.y + offset, w: rowLength, h: itemLength });
-      } else {
-        result.push({ ...item, x: currentRect.x + offset, y: currentRect.y, w: itemLength, h: rowLength });
-      }
+      const cellRect = isWide
+        ? { x: currentRect.x, y: currentRect.y + offset, w: rowLength, h: itemLength }
+        : { x: currentRect.x + offset, y: currentRect.y, w: itemLength, h: rowLength };
+      // strip scaledValue to avoid leaking it
+      const { scaledValue: _sv, ...rest } = item;
+      void _sv;
+      result.push({ ...(rest as unknown as T), ...cellRect });
       offset += itemLength;
     }
 
@@ -111,42 +128,33 @@ function squarify(nodes: TreeNode[], rect: Rect): LayoutNode[] {
   return result;
 }
 
-// ─── 색 스케일 (piecewise, Finviz 스타일) ──────────────────────────────────
-// 한국식: 빨강=수익, 파랑=손실. 0 근처는 차콜 회색(다크 배경에서도 보이게 #2D2D2D).
-//
-// 오늘 모드(zScoreColor): 종목별 변동성 베이스라인 대비 σ 단위로 색 강도 결정
-// 누적 모드(pnlColor): 절대 % 기반 piecewise (누적 수익률은 정규분포 가정 약함)
-
-/**
- * z-score 기반 색 — "오늘" 모드 한정.
- * 같은 1% 변동도 안정주(σ=1%)에서는 1σ → 진한 색, 변동주(σ=4%)에서는 0.25σ → 흐린 색.
- */
-function zScoreColor(z: number): string {
-  if (z >= 3)    return '#B71C1C'; // 극단치 +
-  if (z >= 2.2) return '#D32F2F';
-  if (z >= 1.5) return '#E84549';
-  if (z >= 0.7) return '#C95C5F';
-  if (z >= 0.2) return '#7A4347';
-  if (z > -0.2) return '#2D2D2D'; // 평소 범위
-  if (z > -0.7) return '#3F5777';
-  if (z > -1.5) return '#3071C7';
-  if (z > -2.2) return '#1B64DA';
-  if (z > -3)   return '#1454C4';
-  return '#0D47A1'; // 극단치 -
+// ─── 색 (Finviz 톤다운, 채도 -25%) ────────────────────────────────────────
+function pnlColor(pct: number): string {
+  if (pct >= 7)    return '#a01818';
+  if (pct >= 5)   return '#b62828';
+  if (pct >= 3)   return '#c83a3a';
+  if (pct >= 1.5) return '#a45050';
+  if (pct >= 0.3) return '#7d4044';
+  if (pct > -0.3) return '#3a3e4a';
+  if (pct > -1.5) return '#3e5572';
+  if (pct > -3)   return '#2e63b0';
+  if (pct > -5)   return '#1d56b8';
+  if (pct > -7)   return '#13449e';
+  return '#0c3680';
 }
 
-function pnlColor(pct: number): string {
-  if (pct >= 7)    return '#B71C1C';
-  if (pct >= 5)   return '#D32F2F';
-  if (pct >= 3)   return '#E84549';
-  if (pct >= 1.5) return '#C95C5F';
-  if (pct >= 0.3) return '#7A4347';
-  if (pct > -0.3) return '#2D2D2D';
-  if (pct > -1.5) return '#3F5777';
-  if (pct > -3)   return '#3071C7';
-  if (pct > -5)   return '#1B64DA';
-  if (pct > -7)   return '#1454C4';
-  return '#0D47A1';
+function zScoreColor(z: number): string {
+  if (z >= 3)    return '#a01818';
+  if (z >= 2.2) return '#b62828';
+  if (z >= 1.5) return '#c83a3a';
+  if (z >= 0.7) return '#a45050';
+  if (z >= 0.2) return '#7d4044';
+  if (z > -0.2) return '#3a3e4a';
+  if (z > -0.7) return '#3e5572';
+  if (z > -1.5) return '#2e63b0';
+  if (z > -2.2) return '#1d56b8';
+  if (z > -3)   return '#13449e';
+  return '#0c3680';
 }
 
 function textOn(pct: number): string {
@@ -166,30 +174,24 @@ interface HeatmapProps {
   macroData: Record<string, QuoteData | unknown>;
   usdKrw: number;
   currency: 'KRW' | 'USD';
-  /** compact: 메인 탭용 가로형(5:2), full: 분석 탭용 정사각 */
   variant?: 'full' | 'compact';
-  /** compact일 때 우상단 "확대 →" 버튼 핸들러 */
   onExpand?: () => void;
-  /** 셀 클릭 시 분석 패널 열기 */
   onCellClick?: (symbol: string) => void;
-  /** "오늘" 모드 z-score 색 매핑용 — 가용 시 종목별 변동성 정규화 */
   rawCandles?: Record<string, CandleRaw>;
 }
 
 export default function PortfolioHeatmap({
   stocks, macroData, usdKrw, currency,
-  variant = 'full',
-  onExpand,
-  onCellClick,
-  rawCandles,
+  variant = 'full', onExpand, onCellClick, rawCandles,
 }: HeatmapProps) {
   const [colorMode, setColorMode] = useState<'pnl' | 'today'>('pnl');
-  const [hovered, setHovered] = useState<{ node: TreeNode; x: number; y: number } | null>(null);
+  const [hovered, setHovered] = useState<{ node: LayoutNode; x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isCompact = variant === 'compact';
 
-  const allNodes: TreeNode[] = useMemo(() => stocks
+  // 1. Build all nodes
+  const allNodes: Node[] = useMemo(() => stocks
     .map(stock => {
       const q = macroData[stock.symbol] as QuoteData | undefined;
       const price = q?.c || 0;
@@ -209,22 +211,20 @@ export default function PortfolioHeatmap({
         symbol: stock.symbol, value, pnlPct, todayPct, label, valFormatted,
         avgCost: stock.avgCost, shares: stock.shares, currentPrice: price,
         profit, profitFmt,
+        sector: getSector(stock.symbol),
       };
     })
-    .filter(Boolean) as TreeNode[],
+    .filter(Boolean) as Node[],
   [stocks, macroData, currency, usdKrw]);
 
-  // Top-N + "기타" 그룹핑 — 작은 종목이 슬라이버로 사라지지 않게
+  // 2. Top-N + "기타" 그룹핑
   const topN = isCompact ? COMPACT_TOP_N : FULL_TOP_N;
-  const nodes: TreeNode[] = useMemo(() => {
+  const visibleNodes: Node[] = useMemo(() => {
     if (allNodes.length <= topN) return allNodes;
-
     const sorted = [...allNodes].sort((a, b) => b.value - a.value);
-    const keep = sorted.slice(0, topN - 1); // "기타" 자리 1개 예약
+    const keep = sorted.slice(0, topN - 1);
     const rest = sorted.slice(topN - 1);
-
-    if (rest.length <= 1) return sorted; // 남은 게 1개면 그냥 표시
-
+    if (rest.length <= 1) return sorted;
     const restValue = rest.reduce((s, n) => s + n.value, 0);
     const wPnl = rest.reduce((s, n) => s + n.pnlPct * n.value, 0) / (restValue || 1);
     const wToday = rest.reduce((s, n) => s + n.todayPct * n.value, 0) / (restValue || 1);
@@ -235,441 +235,464 @@ export default function PortfolioHeatmap({
     const profitFmt = currency === 'KRW'
       ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
       : fmtShort(Math.abs(restProfit));
-
-    const others: TreeNode = {
-      symbol: OTHERS_SYMBOL,
-      value: restValue,
-      pnlPct: wPnl,
-      todayPct: wToday,
-      label: `기타 ${rest.length}개`,
-      valFormatted,
-      avgCost: 0,
-      shares: rest.reduce((s, n) => s + n.shares, 0),
-      currentPrice: 0,
-      profit: restProfit,
-      profitFmt,
+    return [...keep, {
+      symbol: OTHERS_SYMBOL, value: restValue, pnlPct: wPnl, todayPct: wToday,
+      label: `기타 ${rest.length}개`, valFormatted,
+      avgCost: 0, shares: rest.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
+      profit: restProfit, profitFmt,
       childrenSymbols: rest.map(n => n.symbol),
-    };
-    return [...keep, others];
+      sector: '기타',
+    }];
   }, [allNodes, topN, currency, usdKrw]);
 
-  if (nodes.length === 0) return null;
+  // 3. 섹터 그룹핑 — full 모드에서만 (compact는 종목 적어 의미 약함)
+  const useSectors = !isCompact && visibleNodes.length >= 4;
 
-  const totalVal = nodes.reduce((s, n) => s + n.value, 0);
-  const VB_W = 100;
-  // compact: 5:3 (메인 탭 trigger card, 4:3보다 납작 → 첫 화면 점유 최소화)
-  // full: 1:1 (분석 탭 풀스크린)
-  const VB_H = isCompact ? 60 : 100;
-  const layout = squarify(nodes, { x: 0, y: 0, w: VB_W, h: VB_H });
-  const useStackBar = isCompact && nodes.length <= 3; // ≤3 종목은 트리맵 부적합 → 스택 바
+  // 4. Layout 계산 (CSS % 기준)
+  const VB = 100;
+  const layout = useMemo(() => {
+    if (visibleNodes.length === 0) return { sectors: [] as LayoutSector[], flat: [] as LayoutNode[] };
 
-  const handleMouseMove = (node: TreeNode) => (e: React.MouseEvent) => {
+    if (!useSectors) {
+      // 단일 squarify
+      const flat = squarify(visibleNodes, { x: 0, y: 0, w: VB, h: VB });
+      return { sectors: [], flat };
+    }
+
+    // 2단 squarify: 섹터 → 종목
+    const bySector = new Map<string, Node[]>();
+    for (const n of visibleNodes) {
+      const arr = bySector.get(n.sector) || [];
+      arr.push(n);
+      bySector.set(n.sector, arr);
+    }
+    const sectorGroups: SectorGroup[] = Array.from(bySector.entries()).map(([sector, nodes]) => ({
+      sector,
+      value: nodes.reduce((s, n) => s + n.value, 0),
+      nodes,
+    }));
+
+    const sectorLayouts = squarify(sectorGroups, { x: 0, y: 0, w: VB, h: VB });
+    const SECTOR_GAP = 0.5; // 섹터 박스 안쪽 inset (%)
+    const SECTOR_HEADER = 2.5; // 섹터 헤더 영역 (%)
+
+    const sectors: LayoutSector[] = sectorLayouts.map(s => {
+      const innerRect: Rect = {
+        x: s.x + SECTOR_GAP,
+        y: s.y + SECTOR_GAP + SECTOR_HEADER,
+        w: Math.max(s.w - SECTOR_GAP * 2, 0.5),
+        h: Math.max(s.h - SECTOR_GAP * 2 - SECTOR_HEADER, 0.5),
+      };
+      const cellLayout = squarify(s.nodes, innerRect);
+      return { ...s, cellLayout };
+    });
+
+    return { sectors, flat: [] as LayoutNode[] };
+  }, [visibleNodes, useSectors]);
+
+  if (allNodes.length === 0) return null;
+
+  const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
+
+  // 5. 컨테이너 크기 결정
+  const containerStyle: React.CSSProperties = isCompact ? {
+    maxWidth: 480,
+    aspectRatio: '5 / 3',
+    margin: '0 auto',
+  } : {
+    aspectRatio: '1 / 1',
+    maxWidth: 'min(700px, 100%)',
+    margin: '0 auto',
+  };
+
+  // 6. 호버 핸들러
+  const handleMouseMove = (node: LayoutNode) => (e: React.MouseEvent) => {
     if (isCompact) return;
     const rect = containerRef.current?.getBoundingClientRect();
-    setHovered({
-      node,
-      x: e.clientX - (rect?.left ?? 0),
-      y: e.clientY - (rect?.top ?? 0),
-    });
+    setHovered({ node, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
   };
 
   return (
     <div ref={containerRef} style={{ marginBottom: isCompact ? 0 : 24, position: 'relative' }}>
-      {/* Header — full 모드만 */}
+      {/* Header */}
       {!isCompact && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 10,
+        }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             내 포트폴리오 맵
           </div>
-          <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 6, background: 'var(--bg-subtle, #F2F4F6)' }}>
-            {([
-              { id: 'pnl' as const,   label: '수익률' },
-              { id: 'today' as const, label: '오늘' },
-            ]).map(opt => (
+          <div style={{
+            display: 'flex', gap: 2, padding: 2, borderRadius: 6,
+            background: 'var(--bg-subtle, #F2F4F6)',
+          }}>
+            {(['pnl', 'today'] as const).map(opt => (
               <button
-                key={opt.id}
-                onClick={() => setColorMode(opt.id)}
+                key={opt}
+                onClick={() => setColorMode(opt)}
                 style={{
-                  padding: '4px 10px',
-                  borderRadius: 4,
-                  fontSize: 11,
-                  fontWeight: colorMode === opt.id ? 700 : 500,
-                  color: colorMode === opt.id ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
-                  background: colorMode === opt.id ? '#FFFFFF' : 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                  padding: '4px 10px', borderRadius: 4, fontSize: 11,
+                  fontWeight: colorMode === opt ? 700 : 500,
+                  color: colorMode === opt ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
+                  background: colorMode === opt ? '#FFFFFF' : 'transparent',
+                  border: 'none', cursor: 'pointer',
                 }}
               >
-                {opt.label}
+                {opt === 'pnl' ? '수익률' : '오늘'}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* 다크 컨테이너 — compact: max 480×288 (5:3), 광고판화 차단 */}
-      <div
-        style={{
-          background: '#0A0A0A',
-          padding: 1,
-          borderRadius: isCompact ? 8 : 4,
-          position: 'relative',
-          overflow: 'hidden',
-          ...(isCompact ? {
-            maxWidth: 480,
-            maxHeight: 288,
-            margin: '0 auto',
-          } : {}),
-        }}
-      >
-        {/* P4 — ≤3 종목은 트리맵 부적합(거의 단조로운 직사각형) → 수평 스택 바 */}
-        {useStackBar ? (
+      {/* Heatmap container (다크 배경) */}
+      <div style={{
+        background: '#0d0e10',
+        position: 'relative',
+        overflow: 'hidden',
+        ...containerStyle,
+      }}>
+        {/* Compact 모드에서 토글 + 확대 버튼 (상단 absolute) */}
+        {isCompact && (
           <div style={{
-            display: 'flex',
-            width: '100%',
-            height: 88,
-            gap: 1,
+            position: 'absolute',
+            top: 4, right: 4,
+            display: 'flex', alignItems: 'center', gap: 4,
+            zIndex: 10,
           }}>
-            {nodes.map(node => {
-              const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
-              let color: string;
-              if (colorMode === 'today' && rawCandles?.[node.symbol]) {
-                const baseline = computeVolBaseline(rawCandles[node.symbol]);
-                const z = computeZScore(node.todayPct, baseline);
-                color = z !== null ? zScoreColor(z) : pnlColor(pct);
-              } else {
-                color = pnlColor(pct);
-              }
-              const widthPct = (node.value / totalVal) * 100;
-              const textColor = textOn(pct);
-              const clickable = !!onCellClick;
-              return (
+            <div style={{
+              display: 'flex', gap: 1, padding: 1, borderRadius: 4,
+              background: 'rgba(255,255,255,0.08)',
+              backdropFilter: 'blur(6px)',
+            }}>
+              {(['pnl', 'today'] as const).map(opt => (
                 <button
-                  key={node.symbol}
-                  onClick={clickable ? () => onCellClick!(node.symbol) : undefined}
+                  key={opt}
+                  onClick={() => setColorMode(opt)}
                   style={{
-                    width: `${widthPct}%`,
-                    minWidth: 36,
-                    height: '100%',
-                    background: color,
-                    border: 'none',
-                    cursor: clickable ? 'pointer' : 'default',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '6px 4px',
-                    color: textColor,
-                    fontFamily: "'SF Mono', 'JetBrains Mono', 'Menlo', monospace",
+                    padding: '2px 7px', borderRadius: 3, fontSize: 9,
+                    fontWeight: 600, lineHeight: 1.2,
+                    color: colorMode === opt ? '#0d0e10' : 'rgba(255,255,255,0.65)',
+                    background: colorMode === opt ? 'rgba(255,255,255,0.92)' : 'transparent',
+                    border: 'none', cursor: 'pointer',
+                    fontFamily: '-apple-system, sans-serif',
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                    {node.symbol}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.92, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
-                    {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
-                  </div>
-                  <div style={{ fontSize: 9, opacity: 0.62, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
-                    {widthPct.toFixed(0)}%
-                  </div>
+                  {opt === 'pnl' ? '수익률' : '오늘'}
                 </button>
-              );
-            })}
-          </div>
-        ) : (
-        <svg
-          viewBox={`0 0 ${VB_W} ${VB_H}`}
-          preserveAspectRatio="none"
-          style={{
-            width: '100%',
-            display: 'block',
-            aspectRatio: `${VB_W} / ${VB_H}`,
-          }}
-        >
-          {layout.map(node => {
-            const isOthers = node.symbol === OTHERS_SYMBOL;
-            const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
-            // P3 — "오늘" 모드 + rawCandles 가용 시 z-score 색.
-            let color: string;
-            if (colorMode === 'today' && !isOthers && rawCandles?.[node.symbol]) {
-              const baseline = computeVolBaseline(rawCandles[node.symbol]);
-              const z = computeZScore(node.todayPct, baseline);
-              color = z !== null ? zScoreColor(z) : pnlColor(pct);
-            } else {
-              color = pnlColor(pct);
-            }
-            const textColor = textOn(pct);
-            const cellArea = node.w * node.h;
-            const minDim = Math.min(node.w, node.h);
-
-            // Progressive disclosure (viewBox 기준 — 셀이 너무 작으면 라벨 자체 숨김)
-            const showTicker  = minDim >= 7;
-            const showPercent = minDim >= 12;
-            const showValue   = !isCompact && minDim >= 16 && cellArea >= 260;
-
-            // P4 — 폰트 cap 대폭 축소 (전문가 회의 결론: Finviz 13~14px 천장 매칭)
-            // SVG fontSize(viewBox) = fallback. CSS clamp(absolute px) = 모던 브라우저 1순위.
-            // compact 480px 컨테이너 기준 viewBox unit 4.8px → cap 3.0 = 14.4px.
-            const fontMul = isCompact ? 0.18 : 0.20;
-            const tickerSize = Math.min(Math.max(minDim * fontMul, 1.6), isCompact ? 3.0 : 5.0);
-            const pctSize    = tickerSize * 0.72;
-            const valSize    = tickerSize * 0.55;
-            // CSS clamp — 절대 px cap (브라우저가 viewBox 스케일링 무시)
-            const tickerCss = isCompact ? 'clamp(10px, 1.3vw, 13px)' : 'clamp(11px, 1.4vw, 16px)';
-            const pctCss    = isCompact ? 'clamp(8px,  1.0vw, 11px)' : 'clamp(9px,  1.2vw, 13px)';
-            const valCss    = isCompact ? 'clamp(7px,  0.9vw, 10px)' : 'clamp(8px,  1.0vw, 11px)';
-
-            const cx = node.x + node.w / 2;
-            const cy = node.y + node.h / 2;
-
-            const yTicker  = showPercent ? cy - tickerSize * 0.55 : cy;
-            const yPercent = cy + pctSize * 0.4;
-            const yValue   = cy + pctSize * 0.4 + pctSize * 1.05;
-
-            const clickable = !!onCellClick && !isOthers;
-            const tickerLabel = isOthers ? '기타' : node.symbol;
-
-            return (
-              <g
-                key={node.symbol}
-                onMouseMove={handleMouseMove(node)}
-                onMouseLeave={() => setHovered(null)}
-                onClick={clickable ? () => onCellClick!(node.symbol) : undefined}
-                style={{ cursor: clickable ? 'pointer' : 'default' }}
+              ))}
+            </div>
+            {onExpand && (
+              <button
+                onClick={onExpand}
+                style={{
+                  padding: '3px 7px', borderRadius: 3,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  color: '#FFFFFF', fontSize: 9, fontWeight: 600, lineHeight: 1.2,
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(6px)',
+                  fontFamily: '-apple-system, sans-serif',
+                }}
               >
-                <rect
-                  x={node.x + 0.15}
-                  y={node.y + 0.15}
-                  width={Math.max(node.w - 0.3, 0)}
-                  height={Math.max(node.h - 0.3, 0)}
-                  rx={0.6}
-                  fill={color}
-                  // "기타" 셀은 살짝 어둡게 + 점선 느낌 — 별도 셀임을 시각화
-                  opacity={isOthers ? 0.78 : 1}
-                  stroke={isOthers ? 'rgba(255,255,255,0.18)' : 'none'}
-                  strokeWidth={isOthers ? 0.3 : 0}
-                  strokeDasharray={isOthers ? '0.8 0.8' : undefined}
-                />
-                {showTicker && (
-                  <text
-                    x={cx} y={yTicker}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={textColor}
-                    fontSize={tickerSize}
-                    fontWeight={700}
-                    fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
-                    style={{ pointerEvents: 'none', letterSpacing: '-0.02em', fontSize: tickerCss }}
-                  >
-                    {tickerLabel}
-                  </text>
-                )}
-                {showPercent && (
-                  <text
-                    x={cx} y={yPercent}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={textColor}
-                    fontSize={pctSize}
-                    fontWeight={600}
-                    fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
-                    opacity={0.92}
-                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums', fontSize: pctCss }}
-                  >
-                    {isOthers
-                      ? `${node.childrenSymbols?.length || 0}개`
-                      : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`}
-                  </text>
-                )}
-                {showValue && !isOthers && (
-                  <text
-                    x={cx} y={yValue}
-                    textAnchor="middle"
-                    dominantBaseline="central"
-                    fill={textColor}
-                    fontSize={valSize}
-                    fontWeight={500}
-                    fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
-                    opacity={0.62}
-                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums', fontSize: valCss }}
-                  >
-                    {node.valFormatted}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-        )}
-
-        {/* 확대 버튼 — compact만 */}
-        {isCompact && onExpand && (
-          <button
-            onClick={onExpand}
-            aria-label="포트폴리오 맵 크게 보기"
-            style={{
-              position: 'absolute',
-              top: 6, right: 6,
-              padding: '4px 8px',
-              borderRadius: 4,
-              background: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              color: '#FFFFFF',
-              fontSize: 10,
-              fontWeight: 600,
-              cursor: 'pointer',
-              backdropFilter: 'blur(6px)',
-              WebkitBackdropFilter: 'blur(6px)',
-              fontFamily: '-apple-system, sans-serif',
-            }}
-          >
-            확대 →
-          </button>
-        )}
-
-        {/* 호버 툴팁 — full만 */}
-        {hovered && !isCompact && containerRef.current && (
-          <div
-            role="tooltip"
-            style={{
-              position: 'absolute',
-              top: Math.min(hovered.y + 14, containerRef.current.clientHeight - 200),
-              left: Math.min(hovered.x + 14, containerRef.current.clientWidth - 230),
-              minWidth: 210,
-              padding: '10px 12px',
-              borderRadius: 6,
-              background: '#1A1A1A',
-              border: '1px solid #2F2F2F',
-              color: '#FFFFFF',
-              fontSize: 11,
-              fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-              pointerEvents: 'none',
-              zIndex: 10,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            }}
-          >
-            {hovered.node.symbol === OTHERS_SYMBOL ? (
-              <>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
-                  {hovered.node.label}
-                  <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>
-                    (가중 평균)
-                  </span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'auto 1fr',
-                  gap: '3px 14px',
-                  fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
-                  fontVariantNumeric: 'tabular-nums',
-                  fontSize: 10.5,
-                  marginBottom: 8,
-                }}>
-                  <span style={{ opacity: 0.5 }}>합산 비중</span>
-                  <span style={{ textAlign: 'right' }}>{((hovered.node.value / totalVal) * 100).toFixed(1)}%</span>
-                  <span style={{ opacity: 0.5 }}>합산 평가</span>
-                  <span style={{ textAlign: 'right' }}>{hovered.node.valFormatted}</span>
-                  <span style={{ opacity: 0.5 }}>가중 수익률</span>
-                  <span style={{
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color: hovered.node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1',
-                  }}>
-                    {hovered.node.pnlPct >= 0 ? '+' : ''}{hovered.node.pnlPct.toFixed(2)}%
-                  </span>
-                  <span style={{ opacity: 0.5 }}>합산 손익</span>
-                  <span style={{
-                    textAlign: 'right',
-                    color: hovered.node.profit >= 0 ? '#FF6B6B' : '#5B8DF1',
-                  }}>
-                    {hovered.node.profit >= 0 ? '+' : '-'}{hovered.node.profitFmt}
-                  </span>
-                </div>
-                <div style={{ fontSize: 10, opacity: 0.55, marginBottom: 4 }}>포함 종목</div>
-                <div style={{
-                  fontSize: 10,
-                  fontFamily: "'SF Mono', monospace",
-                  opacity: 0.85,
-                  lineHeight: 1.5,
-                  wordBreak: 'break-all',
-                }}>
-                  {hovered.node.childrenSymbols?.join(' · ')}
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontFamily: "'SF Mono', monospace" }}>{hovered.node.symbol}</span>
-                  <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10 }}>{hovered.node.label}</span>
-                </div>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'auto 1fr',
-                  gap: '3px 14px',
-                  fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
-                  fontVariantNumeric: 'tabular-nums',
-                  fontSize: 10.5,
-                }}>
-                  <span style={{ opacity: 0.5 }}>비중</span>
-                  <span style={{ textAlign: 'right' }}>{((hovered.node.value / totalVal) * 100).toFixed(1)}%</span>
-                  <span style={{ opacity: 0.5 }}>평균단가</span>
-                  <span style={{ textAlign: 'right' }}>${hovered.node.avgCost.toFixed(2)}</span>
-                  <span style={{ opacity: 0.5 }}>현재가</span>
-                  <span style={{ textAlign: 'right' }}>${hovered.node.currentPrice.toFixed(2)}</span>
-                  <span style={{ opacity: 0.5 }}>평가금액</span>
-                  <span style={{ textAlign: 'right' }}>{hovered.node.valFormatted}</span>
-                  <span style={{ opacity: 0.5 }}>수익률</span>
-                  <span style={{
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color: hovered.node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1',
-                  }}>
-                    {hovered.node.pnlPct >= 0 ? '+' : ''}{hovered.node.pnlPct.toFixed(2)}%
-                  </span>
-                  <span style={{ opacity: 0.5 }}>손익</span>
-                  <span style={{
-                    textAlign: 'right',
-                    color: hovered.node.profit >= 0 ? '#FF6B6B' : '#5B8DF1',
-                  }}>
-                    {hovered.node.profit >= 0 ? '+' : '-'}{hovered.node.profitFmt}
-                  </span>
-                  <span style={{ opacity: 0.5 }}>오늘</span>
-                  <span style={{
-                    textAlign: 'right',
-                    color: hovered.node.todayPct >= 0 ? '#FF6B6B' : '#5B8DF1',
-                  }}>
-                    {hovered.node.todayPct >= 0 ? '+' : ''}{hovered.node.todayPct.toFixed(2)}%
-                  </span>
-                </div>
-              </>
+                확대 →
+              </button>
             )}
           </div>
         )}
+
+        {/* 섹터 그룹 렌더링 (full 모드) */}
+        {useSectors && layout.sectors.map(sector => (
+          <div key={sector.sector}
+            style={{
+              position: 'absolute',
+              left: `${sector.x}%`, top: `${sector.y}%`,
+              width: `${sector.w}%`, height: `${sector.h}%`,
+            }}>
+            {/* 섹터 헤더 라벨 */}
+            <div style={{
+              position: 'absolute', top: 0, left: 4, right: 4,
+              fontSize: 9, fontWeight: 700, letterSpacing: 0.6,
+              color: 'rgba(255,255,255,0.45)',
+              textTransform: 'uppercase',
+              lineHeight: 1.6, height: 14,
+              fontFamily: '-apple-system, sans-serif',
+              whiteSpace: 'nowrap', overflow: 'hidden',
+            }}>
+              {sector.sector}
+            </div>
+            {/* 섹터 안 종목 셀 */}
+            {sector.cellLayout.map(node => (
+              <Cell
+                key={node.symbol}
+                node={node}
+                colorMode={colorMode}
+                rawCandles={rawCandles}
+                isCompact={isCompact}
+                onClick={onCellClick}
+                onMouseMove={handleMouseMove(node)}
+                onMouseLeave={() => setHovered(null)}
+                relative
+                parentRect={sector}
+              />
+            ))}
+          </div>
+        ))}
+
+        {/* 평면 squarify (compact 또는 sectors 미사용) */}
+        {!useSectors && layout.flat.map(node => (
+          <Cell
+            key={node.symbol}
+            node={node}
+            colorMode={colorMode}
+            rawCandles={rawCandles}
+            isCompact={isCompact}
+            onClick={onCellClick}
+            onMouseMove={handleMouseMove(node)}
+            onMouseLeave={() => setHovered(null)}
+          />
+        ))}
+
+        {/* 호버 툴팁 */}
+        {hovered && !isCompact && containerRef.current && (
+          <Tooltip
+            node={hovered.node}
+            x={hovered.x} y={hovered.y}
+            totalVal={totalVal}
+            containerWidth={containerRef.current.clientWidth}
+            containerHeight={containerRef.current.clientHeight}
+          />
+        )}
       </div>
 
-      {/* Footer — full 모드만 (범례) */}
+      {/* Footer 범례 — full 모드 */}
       {!isCompact && (
         <div style={{
-          marginTop: 8,
-          fontSize: 10,
+          marginTop: 8, fontSize: 10,
           color: 'var(--text-tertiary, #B0B8C1)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 8,
+          gap: 8, fontFamily: '-apple-system, sans-serif',
         }}>
-          <span style={{ fontFamily: '-apple-system, sans-serif' }}>
-            면적 = 평가금액 · 색 = {colorMode === 'pnl' ? '누적 수익률' : (rawCandles ? '오늘 등락 (변동성 정규화)' : '오늘 등락률')}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'SF Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>
+          <span>면적 = 평가금액 · 색 = {colorMode === 'pnl' ? '누적 수익률' : '오늘 등락률'}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5,
+            fontFamily: "'SF Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>
             <span>−7%</span>
             <div style={{
               width: 90, height: 6, borderRadius: 1,
-              background: 'linear-gradient(to right, #0D47A1 0%, #1B64DA 18%, #3071C7 32%, #2D2D2D 48%, #2D2D2D 52%, #C95C5F 68%, #D32F2F 82%, #B71C1C 100%)',
+              background: 'linear-gradient(to right, #0c3680 0%, #2e63b0 25%, #3a3e4a 48%, #3a3e4a 52%, #c83a3a 75%, #a01818 100%)',
             }} />
             <span>+7%</span>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Sub: 셀 (HTML) ─────────────────────────────────────────────────────────
+function Cell({
+  node, colorMode, rawCandles, isCompact, onClick, onMouseMove, onMouseLeave,
+  relative = false, parentRect,
+}: {
+  node: LayoutNode;
+  colorMode: 'pnl' | 'today';
+  rawCandles?: Record<string, CandleRaw>;
+  isCompact: boolean;
+  onClick?: (symbol: string) => void;
+  onMouseMove?: (e: React.MouseEvent) => void;
+  onMouseLeave?: () => void;
+  relative?: boolean;
+  parentRect?: Rect;
+}) {
+  const isOthers = node.symbol === OTHERS_SYMBOL;
+  const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
+
+  // z-score 색 (오늘 모드 + 캔들 가용 시)
+  let bg: string;
+  if (colorMode === 'today' && !isOthers && rawCandles?.[node.symbol]) {
+    const baseline = computeVolBaseline(rawCandles[node.symbol]);
+    const z = computeZScore(node.todayPct, baseline);
+    bg = z !== null ? zScoreColor(z) : pnlColor(pct);
+  } else {
+    bg = pnlColor(pct);
+  }
+
+  // 위치 계산 — sector 안의 셀이면 parentRect 기준 상대값으로 변환
+  const left = relative && parentRect ? `${((node.x - parentRect.x) / parentRect.w) * 100}%` : `${node.x}%`;
+  const top = relative && parentRect ? `${((node.y - parentRect.y) / parentRect.h) * 100}%` : `${node.y}%`;
+  const width = relative && parentRect ? `${(node.w / parentRect.w) * 100}%` : `${node.w}%`;
+  const height = relative && parentRect ? `${(node.h / parentRect.h) * 100}%` : `${node.h}%`;
+
+  const textColor = textOn(pct);
+  const clickable = !!onClick && !isOthers;
+  const tickerLabel = isOthers ? `기타 ${node.childrenSymbols?.length || 0}` : node.symbol;
+  const pctLabel = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+
+  return (
+    <div
+      onClick={clickable ? () => onClick!(node.symbol) : undefined}
+      onMouseMove={onMouseMove}
+      onMouseLeave={onMouseLeave}
+      style={{
+        position: 'absolute',
+        left, top, width, height,
+        // 1px gap via inset (배경이 비치게)
+        padding: 1,
+        boxSizing: 'border-box',
+      }}
+    >
+      <div style={{
+        width: '100%', height: '100%',
+        background: bg,
+        opacity: isOthers ? 0.85 : 1,
+        cursor: clickable ? 'pointer' : 'default',
+        color: textColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px 4px',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        // Container queries로 크기에 따라 라벨 자동 표시/숨김
+        containerType: 'size',
+      } as React.CSSProperties}>
+        <CellLabel
+          ticker={tickerLabel}
+          pct={pctLabel}
+          isCompact={isCompact}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Sub: 셀 라벨 (container queries로 자동 표시/숨김) ──────────────────────
+function CellLabel({
+  ticker, pct, isCompact,
+}: {
+  ticker: string; pct: string; isCompact: boolean;
+}) {
+  // CSS @container 쿼리로 셀 크기에 따라 라벨 자동 노출
+  // 작은 셀(< 30px height)은 티커만, 더 작으면(< 18px) 색만
+  const tickerFs = isCompact ? '11px' : '13px';
+  const pctFs = isCompact ? '9px' : '11px';
+
+  return (
+    <>
+      <style>{`
+        .heatmap-label-ticker {
+          font-size: ${tickerFs};
+          font-weight: 700;
+          font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+          letter-spacing: -0.01em;
+          line-height: 1.1;
+          text-align: center;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+        .heatmap-label-pct {
+          font-size: ${pctFs};
+          font-weight: 500;
+          font-feature-settings: "tnum";
+          line-height: 1.2;
+          margin-top: 1px;
+          text-align: center;
+          opacity: 0.92;
+          white-space: nowrap;
+          overflow: hidden;
+        }
+        @container (max-height: 28px) { .heatmap-label-pct { display: none; } }
+        @container (max-height: 18px) { .heatmap-label-ticker { display: none; } }
+        @container (max-width: 32px)  { .heatmap-label-pct { display: none; } }
+        @container (max-width: 22px)  { .heatmap-label-ticker { display: none; } }
+      `}</style>
+      <div className="heatmap-label-ticker">{ticker}</div>
+      <div className="heatmap-label-pct">{pct}</div>
+    </>
+  );
+}
+
+// ─── Sub: 호버 툴팁 ─────────────────────────────────────────────────────────
+function Tooltip({
+  node, x, y, totalVal, containerWidth, containerHeight,
+}: {
+  node: LayoutNode;
+  x: number; y: number;
+  totalVal: number;
+  containerWidth: number;
+  containerHeight: number;
+}) {
+  const isOthers = node.symbol === OTHERS_SYMBOL;
+  const top = Math.min(y + 14, containerHeight - 200);
+  const left = Math.min(x + 14, containerWidth - 230);
+
+  return (
+    <div role="tooltip" style={{
+      position: 'absolute', top, left,
+      minWidth: 210, padding: '10px 12px',
+      borderRadius: 6,
+      background: '#1A1A1A',
+      border: '1px solid #2F2F2F',
+      color: '#FFFFFF', fontSize: 11,
+      fontFamily: '-apple-system, sans-serif',
+      pointerEvents: 'none', zIndex: 10,
+      boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+    }}>
+      {isOthers ? (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
+            {node.label}
+            <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>(가중 평균)</span>
+          </div>
+          <Row label="합산 비중" value={`${((node.value / totalVal) * 100).toFixed(1)}%`} />
+          <Row label="합산 평가" value={node.valFormatted} />
+          <Row label="가중 수익률" value={`${node.pnlPct >= 0 ? '+' : ''}${node.pnlPct.toFixed(2)}%`}
+               color={node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1'} bold />
+          <Row label="합산 손익"
+               value={`${node.profit >= 0 ? '+' : '-'}${node.profitFmt}`}
+               color={node.profit >= 0 ? '#FF6B6B' : '#5B8DF1'} />
+          <div style={{ fontSize: 10, opacity: 0.55, marginTop: 6, marginBottom: 2 }}>포함 종목</div>
+          <div style={{
+            fontSize: 10, fontFamily: "'SF Mono', monospace", opacity: 0.85,
+            lineHeight: 1.5, wordBreak: 'break-all',
+          }}>
+            {node.childrenSymbols?.join(' · ')}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6,
+            display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontFamily: "'SF Mono', monospace" }}>{node.symbol}</span>
+            <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10 }}>{node.label}</span>
+          </div>
+          <Row label="비중" value={`${((node.value / totalVal) * 100).toFixed(1)}%`} />
+          <Row label="평균단가" value={`$${node.avgCost.toFixed(2)}`} />
+          <Row label="현재가" value={`$${node.currentPrice.toFixed(2)}`} />
+          <Row label="평가금액" value={node.valFormatted} />
+          <Row label="수익률" value={`${node.pnlPct >= 0 ? '+' : ''}${node.pnlPct.toFixed(2)}%`}
+               color={node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1'} bold />
+          <Row label="손익"
+               value={`${node.profit >= 0 ? '+' : '-'}${node.profitFmt}`}
+               color={node.profit >= 0 ? '#FF6B6B' : '#5B8DF1'} />
+          <Row label="오늘" value={`${node.todayPct >= 0 ? '+' : ''}${node.todayPct.toFixed(2)}%`}
+               color={node.todayPct >= 0 ? '#FF6B6B' : '#5B8DF1'} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, value, color, bold }: { label: string; value: string; color?: string; bold?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12,
+      fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
+      fontVariantNumeric: 'tabular-nums', fontSize: 10.5, marginBottom: 1,
+    }}>
+      <span style={{ opacity: 0.5 }}>{label}</span>
+      <span style={{ color: color || undefined, fontWeight: bold ? 700 : 400 }}>{value}</span>
     </div>
   );
 }
