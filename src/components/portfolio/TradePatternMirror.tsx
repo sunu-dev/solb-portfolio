@@ -91,29 +91,58 @@ export default function TradePatternMirror() {
     const buys = decisions.filter(d => d.action === 'buy').length;
     const sells = decisions.filter(d => d.action === 'sell').length;
 
-    // 감정 태그별 그룹 + 평균 outcome
-    const byEmoji: Record<string, { count: number; outcomes: number[] }> = {};
+    // 시간 가중치 — EWMA 스타일: 최근 90일 가중치 1.0, 그 이전 지수 감쇠
+    // weight = exp(-max(0, daysAgo - 90) / 180)
+    // 90일 이내: 1.0, 270일: ~0.37, 450일: ~0.14, 1년+: 무게 ↓
+    const now = Date.now();
+    const timeWeight = (date: Date): number => {
+      const daysAgo = (now - date.getTime()) / (1000 * 86400);
+      if (daysAgo <= 90) return 1.0;
+      return Math.exp(-(daysAgo - 90) / 180);
+    };
+
+    // 감정 태그별 그룹 + 시간 가중 평균 outcome
+    const byEmoji: Record<string, { count: number; outcomes: number[]; weights: number[] }> = {};
     for (const d of decisions) {
       const key = d.emoji;
-      if (!byEmoji[key]) byEmoji[key] = { count: 0, outcomes: [] };
+      if (!byEmoji[key]) byEmoji[key] = { count: 0, outcomes: [], weights: [] };
       byEmoji[key].count++;
-      if (d.outcomePct !== undefined) byEmoji[key].outcomes.push(d.outcomePct);
+      if (d.outcomePct !== undefined) {
+        byEmoji[key].outcomes.push(d.outcomePct);
+        byEmoji[key].weights.push(timeWeight(d.date));
+      }
     }
 
-    const emojiStats = Object.entries(byEmoji).map(([emoji, { count, outcomes }]) => ({
-      emoji,
-      label: EMOJI_LABELS[emoji] || '기타',
-      count,
-      avgOutcome: outcomes.length > 0
-        ? outcomes.reduce((s, n) => s + n, 0) / outcomes.length
-        : null,
-    })).sort((a, b) => b.count - a.count);
+    const emojiStats = Object.entries(byEmoji).map(([emoji, { count, outcomes, weights }]) => {
+      let avgOutcome: number | null = null;
+      if (outcomes.length > 0) {
+        const totalW = weights.reduce((s, w) => s + w, 0);
+        if (totalW > 0) {
+          avgOutcome = outcomes.reduce((s, o, i) => s + o * weights[i], 0) / totalW;
+        }
+      }
+      return {
+        emoji,
+        label: EMOJI_LABELS[emoji] || '기타',
+        count,
+        avgOutcome,
+      };
+    }).sort((a, b) => b.count - a.count);
 
     const withOutcome = decisions.filter(d => d.outcomePct !== undefined);
     const sortedByOutcome = [...withOutcome].sort((a, b) => (b.outcomePct! - a.outcomePct!));
-    const avgOutcome = withOutcome.length > 0
-      ? withOutcome.reduce((s, d) => s + d.outcomePct!, 0) / withOutcome.length
-      : null;
+    // 전체 평균도 시간 가중치 적용
+    let avgOutcome: number | null = null;
+    if (withOutcome.length > 0) {
+      const totalW = withOutcome.reduce((s, d) => s + timeWeight(d.date), 0);
+      if (totalW > 0) {
+        avgOutcome = withOutcome.reduce((s, d) => s + d.outcomePct! * timeWeight(d.date), 0) / totalW;
+      }
+    }
+
+    // 신뢰도 — 표본 크기 기반 (저/중/고)
+    const confidence: 'low' | 'medium' | 'high' =
+      total < 5 ? 'low' : total < 15 ? 'medium' : 'high';
 
     // best/worst 분리 — 결정 1건이면 부호에 따라 한쪽에만 들어감
     let best: Decision | null = null;
@@ -134,6 +163,7 @@ export default function TradePatternMirror() {
       worst,
       avgOutcome,
       withOutcomeCount: withOutcome.length,
+      confidence,
     };
   }, [stocks.investing, stocks.sold, macroData, rawCandles]);
 
@@ -180,7 +210,7 @@ export default function TradePatternMirror() {
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
         <span style={{ fontSize: 18 }}>🪞</span>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
             DECISION MIRROR
           </div>
@@ -188,6 +218,30 @@ export default function TradePatternMirror() {
             나의 결정 거울
           </div>
         </div>
+        {/* 신뢰도 라벨 — 표본 크기 기반 */}
+        <span
+          aria-label={`신뢰도 ${stats.confidence === 'low' ? '낮음' : stats.confidence === 'medium' ? '보통' : '높음'}`}
+          title={`결정 ${stats.total}건 — ${stats.confidence === 'low' ? '5건 미만 (저)' : stats.confidence === 'medium' ? '5~14건 (중)' : '15건 이상 (고)'}`}
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            padding: '3px 8px',
+            borderRadius: 10,
+            fontFamily: "'SF Mono', monospace",
+            background: stats.confidence === 'low'
+              ? 'var(--color-warning-bg, rgba(255,149,0,0.08))'
+              : stats.confidence === 'medium'
+              ? 'var(--bg-subtle, #F2F4F6)'
+              : 'var(--color-success-bg, rgba(0,198,190,0.08))',
+            color: stats.confidence === 'low'
+              ? 'var(--color-warning, #FF9500)'
+              : stats.confidence === 'medium'
+              ? 'var(--text-secondary, #4E5968)'
+              : 'var(--color-success, #00C6BE)',
+          }}
+        >
+          신뢰도 {stats.confidence === 'low' ? '저' : stats.confidence === 'medium' ? '중' : '고'}
+        </span>
       </div>
 
       {/* 헤드라인 한 줄 */}
