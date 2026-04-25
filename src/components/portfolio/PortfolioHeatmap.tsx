@@ -25,13 +25,17 @@ const COMPACT_TOP_N = 8;
 const FULL_TOP_N = 16;
 // 비중 < 1.5% 종목은 자동으로 "기타" 묶음 — 글씨 들어갈 만큼은 보장
 const MIN_VISIBLE_WEIGHT = 0.015;
+// "기타" 셀이 너무 작으면 thin strip 문제. 레이아웃 전용 최소 4% 부스팅
+// (툴팁은 실제값 표시 — node.realValue 사용)
+const MIN_OTHERS_LAYOUT_RATIO = 0.04;
 
 // ─── Squarify (Bruls et al. 2000) ──────────────────────────────────────────
 interface Rect { x: number; y: number; w: number; h: number; }
 
 interface Node {
   symbol: string;
-  value: number;
+  value: number;            // 레이아웃용 (squarify에 사용)
+  realValue?: number;       // 실제 평가금액 (OTHERS 부스팅 시 layout != real)
   pnlPct: number;
   todayPct: number;
   label: string;
@@ -261,8 +265,19 @@ export default function PortfolioHeatmap({
       ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
       : fmtShort(Math.abs(restProfit));
 
+    // 핵심: "기타" 셀이 너무 작으면 thin strip 문제 → 레이아웃 전용 최소 4% 부스팅
+    // 실제 비중은 node.realValue로 보존, 툴팁/라벨에서 정직하게 표시
+    const keptValue = kept.reduce((s, n) => s + n.value, 0);
+    const minLayoutValue = keptValue > 0
+      ? keptValue * MIN_OTHERS_LAYOUT_RATIO / (1 - MIN_OTHERS_LAYOUT_RATIO)
+      : 0;
+    const layoutValue = Math.max(restValue, minLayoutValue);
+
     return [...kept, {
-      symbol: OTHERS_SYMBOL, value: restValue, pnlPct: wPnl, todayPct: wToday,
+      symbol: OTHERS_SYMBOL,
+      value: layoutValue,        // squarify가 이 값으로 면적 결정
+      realValue: restValue,       // 툴팁/실제 비중 표시용
+      pnlPct: wPnl, todayPct: wToday,
       label: `기타 ${hidden.length}개`, valFormatted,
       avgCost: 0, shares: hidden.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
       profit: restProfit, profitFmt,
@@ -675,7 +690,7 @@ function Tooltip({
             {node.label}
             <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>(가중 평균)</span>
           </div>
-          <Row label="합산 비중" value={`${((node.value / totalVal) * 100).toFixed(1)}%`} />
+          <Row label="합산 비중" value={`${(((node.realValue ?? node.value) / totalVal) * 100).toFixed(1)}%`} />
           <Row label="합산 평가" value={node.valFormatted} />
           <Row label="가중 수익률" value={`${node.pnlPct >= 0 ? '+' : ''}${node.pnlPct.toFixed(2)}%`}
                color={node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1'} bold />
