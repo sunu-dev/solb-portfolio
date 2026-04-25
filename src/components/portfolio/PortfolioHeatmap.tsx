@@ -294,10 +294,10 @@ export default function PortfolioHeatmap({
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
 
-  // 5. 컨테이너 크기 결정 — compact는 풀 너비 배너(고정 높이), full은 정사각
+  // 5. 컨테이너 크기 결정 — compact는 풀 너비 + 높이 280
   const containerStyle: React.CSSProperties = isCompact ? {
     width: '100%',
-    height: 220,
+    height: 280,
     margin: 0,
   } : {
     aspectRatio: '1 / 1',
@@ -574,8 +574,8 @@ function CellLabel({
 }: {
   ticker: string; pct: string; isCompact: boolean;
 }) {
-  // 티커는 셀 크기 무관하게 ALWAYS 표시 (사용자 요구).
-  // 셀 크기에 따라 폰트만 단계적으로 축소. % 는 작은 셀에서 숨김.
+  // 티커 폰트는 셀 크기 무관 고정 (사용자 요구).
+  // 작은 셀에서는 % 만 숨김, 티커는 그대로. 너무 좁으면 ellipsis로 자연스럽게 잘림.
   const tickerFs = isCompact ? '11px' : '13px';
   const pctFs = isCompact ? '9px' : '11px';
 
@@ -605,23 +605,9 @@ function CellLabel({
           white-space: nowrap;
           overflow: hidden;
         }
-        /* 작은 셀에서 티커는 안 사라지고 폰트만 축소 */
-        @container (max-height: 30px) {
-          .heatmap-label-ticker { font-size: 9px; }
-          .heatmap-label-pct { display: none; }
-        }
-        @container (max-height: 20px) {
-          .heatmap-label-ticker { font-size: 8px; line-height: 1; }
-        }
-        @container (max-height: 14px) {
-          .heatmap-label-ticker { font-size: 7px; letter-spacing: -0.04em; }
-        }
-        @container (max-width: 36px) { .heatmap-label-pct { display: none; } }
-        @container (max-width: 26px) { .heatmap-label-ticker { font-size: 8px; }
-        }
-        @container (max-width: 18px) {
-          .heatmap-label-ticker { font-size: 7px; letter-spacing: -0.05em; }
-        }
+        /* 작은 셀: 티커 폰트 고정, % 만 숨김 (사용자 요구) */
+        @container (max-height: 28px) { .heatmap-label-pct { display: none; } }
+        @container (max-width: 40px)  { .heatmap-label-pct { display: none; } }
       `}</style>
       <div className="heatmap-label-ticker">{ticker}</div>
       <div className="heatmap-label-pct">{pct}</div>
