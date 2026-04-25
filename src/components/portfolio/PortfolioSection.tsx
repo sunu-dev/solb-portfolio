@@ -26,6 +26,11 @@ import PortfolioDNA from './PortfolioDNA';
 import ThrowbackCard from './ThrowbackCard';
 import TradePatternMirror from './TradePatternMirror';
 import MonthlyReplay from './MonthlyReplay';
+import MonthlyChapter from './MonthlyChapter';
+import MonthlyWrapped from './MonthlyWrapped';
+import ChapterShelf from './ChapterShelf';
+import ChapterKeywordPrompt from './ChapterKeywordPrompt';
+import { autoArchiveLastMonth } from '@/utils/chapterArchive';
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
 const QUICK_ADD_STOCKS = [
@@ -150,9 +155,33 @@ export default function PortfolioSection() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
+  const [wrappedOpen, setWrappedOpen] = useState(false);
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
+
+  // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
+  useEffect(() => {
+    if (!stocks.investing?.length) return;
+    autoArchiveLastMonth({
+      stocks, macroData, rawCandles, snapshots: usePortfolioStore.getState().dailySnapshots,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // D-3 푸시 클릭 → ?openWrapped=1 → Wrapped 모달 자동 오픈 (Phase 6)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('openWrapped') === '1') {
+      setWrappedOpen(true);
+      // URL 정리 — 모달 닫고 새로고침해도 다시 안 열리게
+      params.delete('openWrapped');
+      const newQuery = params.toString();
+      const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, []);
 
   // Dashboard 건강점수 pill 클릭 → 분석 탭 전환 + 스크롤
   useEffect(() => {
@@ -330,6 +359,9 @@ export default function PortfolioSection() {
   return (
     <div>
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+
+      {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
+      <ChapterKeywordPrompt />
 
       {/* 오늘 아침 브리핑 — 하루 첫 방문 시 자동 펼침, "확인했어요"로 그날 닫기 */}
       <MorningBriefing />
@@ -969,15 +1001,17 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 월간 회고 — 시간 적응형 시즌 카드 (위치: 종목 리스트 바로 아래)
-            진행 중(1~25일): "이번 달 페이스" 차분 톤
-            마감 임박(26~말일): "○월 마감 임박 D-N" 긴장감
-            확정(다음 달 1~5일): "○월 회고" 컬러풀 + 공유 강조 */}
+        {/* 월간 챕터 척추 카드 — 30일 시즌으로 작동하는 투자 일지 (Phase 1+2)
+            매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
+            클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
         {investingStocks.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <MonthlyReplay />
+            <MonthlyChapter onOpenWrapped={() => setWrappedOpen(true)} />
           </div>
         )}
+
+        {/* Phase 3: Wrapped 풀스크린 모달 */}
+        <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
 
         {/* 포트폴리오 맵 — NASDAQ 스타일 미니 히트맵 */}
         {investingStocks.length > 0 && (
@@ -1104,6 +1138,10 @@ export default function PortfolioSection() {
                 <ThrowbackCard />
                 <TradePatternMirror />
                 <PortfolioDNA />
+                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4) */}
+                <div style={{ marginTop: 24 }}>
+                  <ChapterShelf onSelect={() => setWrappedOpen(true)} />
+                </div>
                 <StockPulse />
                 <InvestmentJournal />
                 <ShareCard />
