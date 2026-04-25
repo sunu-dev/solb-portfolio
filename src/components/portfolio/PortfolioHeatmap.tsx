@@ -39,16 +39,30 @@ function squarify(nodes: TreeNode[], rect: Rect): LayoutNode[] {
   if (total <= 0) return [];
 
   const sorted = [...nodes].sort((a, b) => b.value - a.value);
+
+  // 매우 작은 비중(<1%)도 보이도록 최소 1% 바닥 — 0.17% 같은 종목이 사라지지 않게
+  // (큰 종목엔 영향 미미, 작은 종목은 1% 최소 보장)
+  const FLOOR = 0.01;
+  const adjusted = sorted.map(n => Math.max(n.value, total * FLOOR));
+  const adjustedTotal = adjusted.reduce((s, v) => s + v, 0);
+
   const area = rect.w * rect.h;
-  const scaled = sorted.map(n => ({ ...n, scaledValue: (n.value / total) * area }));
+  const scaled = sorted.map((n, i) => ({
+    ...n,
+    scaledValue: (adjusted[i] / adjustedTotal) * area,
+  }));
 
   const result: LayoutNode[] = [];
   let remaining = [...scaled];
   let currentRect = { ...rect };
 
   while (remaining.length > 0) {
+    // 자투리 사각형이 0차원이면 종료(나머지 노드 손실 방지 — 이미 최소 비중 적용으로 발생 가능성 낮음)
+    if (currentRect.w <= 0.01 || currentRect.h <= 0.01) break;
+
     const isWide = currentRect.w >= currentRect.h;
     const sideLength = isWide ? currentRect.h : currentRect.w;
+    if (sideLength <= 0.01) break;
 
     const row: typeof scaled = [remaining[0]];
     remaining = remaining.slice(1);

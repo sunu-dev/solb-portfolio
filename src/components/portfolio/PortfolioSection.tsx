@@ -404,21 +404,6 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 미니 히트맵 — 첫인상을 프로 도구로. 분석 탭의 풀 히트맵을 압축 표시 */}
-        {investingStocks.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <PortfolioHeatmap
-              variant="compact"
-              stocks={investingStocks}
-              macroData={macroData}
-              usdKrw={usdKrw}
-              currency={currency}
-              onExpand={() => setSubTab('analysis')}
-              onCellClick={(sym) => setAnalysisSymbol(sym)}
-            />
-          </div>
-        )}
-
         {/* Category tabs + 종목 추가 버튼 (같은 줄) */}
         <div className="flex items-center" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '20px' }}>
           <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ flex: 1, gap: 0 }}>
@@ -948,6 +933,28 @@ export default function PortfolioSection() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* 미니 히트맵 — 종목 리스트 시각 요약(분석 탭 풀 히트맵 압축) */}
+        {investingStocks.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600,
+              color: 'var(--text-tertiary, #B0B8C1)',
+              marginBottom: 8, letterSpacing: 0.3,
+            }}>
+              포트폴리오 맵
+            </div>
+            <PortfolioHeatmap
+              variant="compact"
+              stocks={investingStocks}
+              macroData={macroData}
+              usdKrw={usdKrw}
+              currency={currency}
+              onExpand={() => setSubTab('analysis')}
+              onCellClick={(sym) => setAnalysisSymbol(sym)}
+            />
           </div>
         )}
 
