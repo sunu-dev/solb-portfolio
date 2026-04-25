@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { STOCK_KR } from '@/config/constants';
 import type { QuoteData } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+
+// ─── 상수 ──────────────────────────────────────────────────────────────────
+const OTHERS_SYMBOL = '__OTHERS__';
+const COMPACT_TOP_N = 6;   // 모바일 4:3 — 6개까지 비례, 나머지는 "기타"
+const FULL_TOP_N = 10;     // 분석 탭 1:1 — 10개까지
 
 // ─── Squarify (Bruls et al. 2000) ──────────────────────────────────────────
 interface TreeNode {
@@ -18,6 +23,7 @@ interface TreeNode {
   currentPrice: number;
   profit: number;       // USD 손익
   profitFmt: string;
+  childrenSymbols?: string[]; // OTHERS 노드일 때만: 묶인 종목 심볼 리스트
 }
 
 interface Rect { x: number; y: number; w: number; h: number; }
@@ -157,7 +163,7 @@ export default function PortfolioHeatmap({
 
   const isCompact = variant === 'compact';
 
-  const nodes: TreeNode[] = stocks
+  const allNodes: TreeNode[] = useMemo(() => stocks
     .map(stock => {
       const q = macroData[stock.symbol] as QuoteData | undefined;
       const price = q?.c || 0;
@@ -179,13 +185,55 @@ export default function PortfolioHeatmap({
         profit, profitFmt,
       };
     })
-    .filter(Boolean) as TreeNode[];
+    .filter(Boolean) as TreeNode[],
+  [stocks, macroData, currency, usdKrw]);
+
+  // Top-N + "기타" 그룹핑 — 작은 종목이 슬라이버로 사라지지 않게
+  const topN = isCompact ? COMPACT_TOP_N : FULL_TOP_N;
+  const nodes: TreeNode[] = useMemo(() => {
+    if (allNodes.length <= topN) return allNodes;
+
+    const sorted = [...allNodes].sort((a, b) => b.value - a.value);
+    const keep = sorted.slice(0, topN - 1); // "기타" 자리 1개 예약
+    const rest = sorted.slice(topN - 1);
+
+    if (rest.length <= 1) return sorted; // 남은 게 1개면 그냥 표시
+
+    const restValue = rest.reduce((s, n) => s + n.value, 0);
+    const wPnl = rest.reduce((s, n) => s + n.pnlPct * n.value, 0) / (restValue || 1);
+    const wToday = rest.reduce((s, n) => s + n.todayPct * n.value, 0) / (restValue || 1);
+    const restProfit = rest.reduce((s, n) => s + n.profit, 0);
+    const valFormatted = currency === 'KRW'
+      ? formatKRW(Math.round(restValue * usdKrw))
+      : fmtShort(restValue);
+    const profitFmt = currency === 'KRW'
+      ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
+      : fmtShort(Math.abs(restProfit));
+
+    const others: TreeNode = {
+      symbol: OTHERS_SYMBOL,
+      value: restValue,
+      pnlPct: wPnl,
+      todayPct: wToday,
+      label: `기타 ${rest.length}개`,
+      valFormatted,
+      avgCost: 0,
+      shares: rest.reduce((s, n) => s + n.shares, 0),
+      currentPrice: 0,
+      profit: restProfit,
+      profitFmt,
+      childrenSymbols: rest.map(n => n.symbol),
+    };
+    return [...keep, others];
+  }, [allNodes, topN, currency, usdKrw]);
 
   if (nodes.length === 0) return null;
 
   const totalVal = nodes.reduce((s, n) => s + n.value, 0);
   const VB_W = 100;
-  const VB_H = isCompact ? 40 : 100;
+  // compact: 4:3 (모바일에서도 셀이 정사각에 가깝게 수렴)
+  // full: 1:1 (분석 탭 풀스크린)
+  const VB_H = isCompact ? 75 : 100;
   const layout = squarify(nodes, { x: 0, y: 0, w: VB_W, h: VB_H });
 
   const handleMouseMove = (node: TreeNode) => (e: React.MouseEvent) => {
@@ -253,21 +301,23 @@ export default function PortfolioHeatmap({
           }}
         >
           {layout.map(node => {
+            const isOthers = node.symbol === OTHERS_SYMBOL;
             const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
             const color = pnlColor(pct);
             const textColor = textOn(pct);
             const cellArea = node.w * node.h;
             const minDim = Math.min(node.w, node.h);
 
-            // Progressive disclosure (compact는 더 빠르게 라벨 사라짐)
-            const showAnyLabel = minDim >= (isCompact ? 4 : 5);
-            const showPercent  = !isCompact && minDim >= 9  && cellArea >= 80;
-            const showValue    = !isCompact && minDim >= 13 && cellArea >= 220;
+            // Progressive disclosure — % 가시성 강화 (4:3에서 셀이 더 정사각이라 임계 완화)
+            // ≥12 viewBox: 티커 + % / ≥7: 티커만 / 그 외: 색만
+            const showTicker  = minDim >= 7;
+            const showPercent = minDim >= 12;
+            const showValue   = !isCompact && minDim >= 16 && cellArea >= 260;
 
-            // 면적 기반 폰트 자동 스케일 (viewBox 단위)
-            const fontMul = isCompact ? 0.34 : 0.26;
-            const tickerSize = Math.min(Math.max(minDim * fontMul, 1.6), isCompact ? 6 : 7);
-            const pctSize    = tickerSize * 0.7;
+            // 면적 기반 폰트 자동 스케일
+            const fontMul = isCompact ? 0.30 : 0.24;
+            const tickerSize = Math.min(Math.max(minDim * fontMul, 1.8), isCompact ? 6.5 : 7);
+            const pctSize    = tickerSize * 0.72;
             const valSize    = tickerSize * 0.55;
 
             const cx = node.x + node.w / 2;
@@ -277,7 +327,8 @@ export default function PortfolioHeatmap({
             const yPercent = cy + pctSize * 0.4;
             const yValue   = cy + pctSize * 0.4 + pctSize * 1.05;
 
-            const clickable = !!onCellClick;
+            const clickable = !!onCellClick && !isOthers;
+            const tickerLabel = isOthers ? '기타' : node.symbol;
 
             return (
               <g
@@ -294,8 +345,13 @@ export default function PortfolioHeatmap({
                   height={Math.max(node.h - 0.3, 0)}
                   rx={0.6}
                   fill={color}
+                  // "기타" 셀은 살짝 어둡게 + 점선 느낌 — 별도 셀임을 시각화
+                  opacity={isOthers ? 0.78 : 1}
+                  stroke={isOthers ? 'rgba(255,255,255,0.18)' : 'none'}
+                  strokeWidth={isOthers ? 0.3 : 0}
+                  strokeDasharray={isOthers ? '0.8 0.8' : undefined}
                 />
-                {showAnyLabel && (
+                {showTicker && (
                   <text
                     x={cx} y={yTicker}
                     textAnchor="middle"
@@ -306,7 +362,7 @@ export default function PortfolioHeatmap({
                     fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
                     style={{ pointerEvents: 'none', letterSpacing: '-0.02em' }}
                   >
-                    {node.symbol}
+                    {tickerLabel}
                   </text>
                 )}
                 {showPercent && (
@@ -321,10 +377,12 @@ export default function PortfolioHeatmap({
                     opacity={0.92}
                     style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
                   >
-                    {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+                    {isOthers
+                      ? `${node.childrenSymbols?.length || 0}개`
+                      : `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`}
                   </text>
                 )}
-                {showValue && (
+                {showValue && !isOthers && (
                   <text
                     x={cx} y={yValue}
                     textAnchor="middle"
@@ -390,49 +448,101 @@ export default function PortfolioHeatmap({
               boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-              <span style={{ fontFamily: "'SF Mono', monospace" }}>{hovered.node.symbol}</span>
-              <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10 }}>{hovered.node.label}</span>
-            </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              gap: '3px 14px',
-              fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
-              fontVariantNumeric: 'tabular-nums',
-              fontSize: 10.5,
-            }}>
-              <span style={{ opacity: 0.5 }}>비중</span>
-              <span style={{ textAlign: 'right' }}>{((hovered.node.value / totalVal) * 100).toFixed(1)}%</span>
-              <span style={{ opacity: 0.5 }}>평균단가</span>
-              <span style={{ textAlign: 'right' }}>${hovered.node.avgCost.toFixed(2)}</span>
-              <span style={{ opacity: 0.5 }}>현재가</span>
-              <span style={{ textAlign: 'right' }}>${hovered.node.currentPrice.toFixed(2)}</span>
-              <span style={{ opacity: 0.5 }}>평가금액</span>
-              <span style={{ textAlign: 'right' }}>{hovered.node.valFormatted}</span>
-              <span style={{ opacity: 0.5 }}>수익률</span>
-              <span style={{
-                textAlign: 'right',
-                fontWeight: 700,
-                color: hovered.node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1',
-              }}>
-                {hovered.node.pnlPct >= 0 ? '+' : ''}{hovered.node.pnlPct.toFixed(2)}%
-              </span>
-              <span style={{ opacity: 0.5 }}>손익</span>
-              <span style={{
-                textAlign: 'right',
-                color: hovered.node.profit >= 0 ? '#FF6B6B' : '#5B8DF1',
-              }}>
-                {hovered.node.profit >= 0 ? '+' : '-'}{hovered.node.profitFmt}
-              </span>
-              <span style={{ opacity: 0.5 }}>오늘</span>
-              <span style={{
-                textAlign: 'right',
-                color: hovered.node.todayPct >= 0 ? '#FF6B6B' : '#5B8DF1',
-              }}>
-                {hovered.node.todayPct >= 0 ? '+' : ''}{hovered.node.todayPct.toFixed(2)}%
-              </span>
-            </div>
+            {hovered.node.symbol === OTHERS_SYMBOL ? (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
+                  {hovered.node.label}
+                  <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>
+                    (가중 평균)
+                  </span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: '3px 14px',
+                  fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: 10.5,
+                  marginBottom: 8,
+                }}>
+                  <span style={{ opacity: 0.5 }}>합산 비중</span>
+                  <span style={{ textAlign: 'right' }}>{((hovered.node.value / totalVal) * 100).toFixed(1)}%</span>
+                  <span style={{ opacity: 0.5 }}>합산 평가</span>
+                  <span style={{ textAlign: 'right' }}>{hovered.node.valFormatted}</span>
+                  <span style={{ opacity: 0.5 }}>가중 수익률</span>
+                  <span style={{
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: hovered.node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1',
+                  }}>
+                    {hovered.node.pnlPct >= 0 ? '+' : ''}{hovered.node.pnlPct.toFixed(2)}%
+                  </span>
+                  <span style={{ opacity: 0.5 }}>합산 손익</span>
+                  <span style={{
+                    textAlign: 'right',
+                    color: hovered.node.profit >= 0 ? '#FF6B6B' : '#5B8DF1',
+                  }}>
+                    {hovered.node.profit >= 0 ? '+' : '-'}{hovered.node.profitFmt}
+                  </span>
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.55, marginBottom: 4 }}>포함 종목</div>
+                <div style={{
+                  fontSize: 10,
+                  fontFamily: "'SF Mono', monospace",
+                  opacity: 0.85,
+                  lineHeight: 1.5,
+                  wordBreak: 'break-all',
+                }}>
+                  {hovered.node.childrenSymbols?.join(' · ')}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontFamily: "'SF Mono', monospace" }}>{hovered.node.symbol}</span>
+                  <span style={{ opacity: 0.55, fontWeight: 400, fontSize: 10 }}>{hovered.node.label}</span>
+                </div>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  gap: '3px 14px',
+                  fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
+                  fontVariantNumeric: 'tabular-nums',
+                  fontSize: 10.5,
+                }}>
+                  <span style={{ opacity: 0.5 }}>비중</span>
+                  <span style={{ textAlign: 'right' }}>{((hovered.node.value / totalVal) * 100).toFixed(1)}%</span>
+                  <span style={{ opacity: 0.5 }}>평균단가</span>
+                  <span style={{ textAlign: 'right' }}>${hovered.node.avgCost.toFixed(2)}</span>
+                  <span style={{ opacity: 0.5 }}>현재가</span>
+                  <span style={{ textAlign: 'right' }}>${hovered.node.currentPrice.toFixed(2)}</span>
+                  <span style={{ opacity: 0.5 }}>평가금액</span>
+                  <span style={{ textAlign: 'right' }}>{hovered.node.valFormatted}</span>
+                  <span style={{ opacity: 0.5 }}>수익률</span>
+                  <span style={{
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    color: hovered.node.pnlPct >= 0 ? '#FF6B6B' : '#5B8DF1',
+                  }}>
+                    {hovered.node.pnlPct >= 0 ? '+' : ''}{hovered.node.pnlPct.toFixed(2)}%
+                  </span>
+                  <span style={{ opacity: 0.5 }}>손익</span>
+                  <span style={{
+                    textAlign: 'right',
+                    color: hovered.node.profit >= 0 ? '#FF6B6B' : '#5B8DF1',
+                  }}>
+                    {hovered.node.profit >= 0 ? '+' : '-'}{hovered.node.profitFmt}
+                  </span>
+                  <span style={{ opacity: 0.5 }}>오늘</span>
+                  <span style={{
+                    textAlign: 'right',
+                    color: hovered.node.todayPct >= 0 ? '#FF6B6B' : '#5B8DF1',
+                  }}>
+                    {hovered.node.todayPct >= 0 ? '+' : ''}{hovered.node.todayPct.toFixed(2)}%
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
