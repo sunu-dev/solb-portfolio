@@ -250,9 +250,26 @@ export default function PortfolioHeatmap({
       hidden = belowThreshold;
     }
 
-    // Step 3: hidden 있으면 "기타" 단일 셀로 묶음
+    // Step 3: hidden 처리
     if (hidden.length === 0) return kept;
 
+    // hidden.length === 1: "기타" 묶음 대신 원래 티커 표시 (사용자 요구)
+    // 단 셀 면적은 부스팅 (thin strip 방지)
+    const keptValue = kept.reduce((s, n) => s + n.value, 0);
+    const minLayoutValue = keptValue > 0
+      ? keptValue * MIN_OTHERS_LAYOUT_RATIO / (1 - MIN_OTHERS_LAYOUT_RATIO)
+      : 0;
+
+    if (hidden.length === 1) {
+      const single = hidden[0];
+      return [...kept, {
+        ...single,
+        value: Math.max(single.value, minLayoutValue),  // 레이아웃 부스팅
+        realValue: single.value,                          // 툴팁용 실제값
+      }];
+    }
+
+    // hidden.length ≥ 2: "기타 N개" 묶음 셀
     const restValue = hidden.reduce((s, n) => s + n.value, 0);
     if (restValue <= 0) return kept;
     const wPnl = hidden.reduce((s, n) => s + n.pnlPct * n.value, 0) / restValue;
@@ -264,19 +281,12 @@ export default function PortfolioHeatmap({
     const profitFmt = currency === 'KRW'
       ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
       : fmtShort(Math.abs(restProfit));
-
-    // 핵심: "기타" 셀이 너무 작으면 thin strip 문제 → 레이아웃 전용 최소 4% 부스팅
-    // 실제 비중은 node.realValue로 보존, 툴팁/라벨에서 정직하게 표시
-    const keptValue = kept.reduce((s, n) => s + n.value, 0);
-    const minLayoutValue = keptValue > 0
-      ? keptValue * MIN_OTHERS_LAYOUT_RATIO / (1 - MIN_OTHERS_LAYOUT_RATIO)
-      : 0;
     const layoutValue = Math.max(restValue, minLayoutValue);
 
     return [...kept, {
       symbol: OTHERS_SYMBOL,
-      value: layoutValue,        // squarify가 이 값으로 면적 결정
-      realValue: restValue,       // 툴팁/실제 비중 표시용
+      value: layoutValue,
+      realValue: restValue,
       pnlPct: wPnl, todayPct: wToday,
       label: `기타 ${hidden.length}개`, valFormatted,
       avgCost: 0, shares: hidden.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
@@ -389,11 +399,30 @@ export default function PortfolioHeatmap({
         </div>
       )}
 
+      {/* 글로벌 호버 효과 + 폰트 강화 */}
+      <style>{`
+        .solb-heatmap-cell-inner:hover {
+          filter: brightness(1.08) saturate(1.1);
+        }
+        .solb-heatmap-cell:hover {
+          z-index: 2;
+        }
+        .solb-heatmap-cell-inner > * {
+          position: relative;
+        }
+        .solb-heatmap-cell-inner > div:first-child,
+        .solb-heatmap-cell-inner > div:nth-child(2) {
+          /* 그라데이션과 inner border는 absolute, 라벨만 z-index 위로 */
+          position: absolute;
+        }
+      `}</style>
+
       {/* Heatmap container (다크 배경) */}
       <div style={{
         background: '#0d0e10',
         position: 'relative',
         overflow: 'hidden',
+        borderRadius: 4,
         ...containerStyle,
       }}>
         {/* Compact 모드에서 토글 + 확대 버튼 (상단 absolute) */}
@@ -577,18 +606,19 @@ function Cell({
       onClick={clickable ? () => onClick!(node.symbol) : undefined}
       onMouseMove={onMouseMove}
       onMouseLeave={onMouseLeave}
+      className="solb-heatmap-cell"
       style={{
         position: 'absolute',
         left, top, width, height,
-        // 1px gap via inset (배경이 비치게)
         padding: 1,
         boxSizing: 'border-box',
       }}
     >
-      <div style={{
+      <div className="solb-heatmap-cell-inner" style={{
+        position: 'relative',
         width: '100%', height: '100%',
         background: bg,
-        opacity: isOthers ? 0.85 : 1,
+        opacity: isOthers ? 0.88 : 1,
         cursor: clickable ? 'pointer' : 'default',
         color: textColor,
         display: 'flex',
@@ -600,7 +630,22 @@ function Cell({
         overflow: 'hidden',
         // Container queries로 크기에 따라 라벨 자동 표시/숨김
         containerType: 'size',
+        transition: 'filter 0.18s ease, background-color 0.35s ease, opacity 0.25s ease',
       } as React.CSSProperties}>
+        {/* 미세한 입체감 그라데이션 — 위 하이라이트 + 아래 섀도우 */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 28%, transparent 70%, rgba(0,0,0,0.12) 100%)',
+          pointerEvents: 'none',
+        }} />
+        {/* 셀 안 미세 inner border (깊이) */}
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
+          pointerEvents: 'none',
+        }} />
         <CellLabel
           ticker={tickerLabel}
           pct={pctLabel}
