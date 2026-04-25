@@ -5,6 +5,7 @@
 import type { PortfolioStocks, QuoteData, CandleRaw } from '@/config/constants';
 import { STOCK_KR } from '@/config/constants';
 import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/utils/technical';
+import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 
 export interface Alert {
   id: string;           // unique: "symbol-type-condition"
@@ -156,6 +157,38 @@ export function checkAllAlerts(
           `현재가 $${price.toFixed(2)}이 52주 최고가 $${high52.toFixed(2)}에 가까워요.`
         ));
       }
+    }
+  }
+
+  // --- Z-score adaptive alerts (P3) ---
+  // 종목별 변동성 베이스라인 대비 이례적 일일 변동 감지.
+  // 절대값 기반 RSI/52주 알림이 놓치는 "이 종목엔 이상한 움직임" 잡아냄.
+  // 안정주 1.5σ도 신호로 / 변동주 3% 변동도 노이즈면 무시.
+  for (const stock of allStocks) {
+    const candle = rawCandles[stock.symbol];
+    const q = macroData[stock.symbol] as QuoteData | undefined;
+    if (!candle?.c?.length || !q?.c || q.dp == null) continue;
+
+    const baseline = computeVolBaseline(candle);
+    const z = computeZScore(q.dp, baseline);
+    if (z === null) continue; // 표본 < 20 → 신뢰 불가
+
+    const name = kr(stock.symbol);
+    const absZ = Math.abs(z);
+
+    // |z| ≥ 2.5: 이례적 (99% 이상치) — severity 2
+    // |z| ≥ 3.0: 극단치 — severity 1
+    if (absZ >= 2.5) {
+      const isUp = z > 0;
+      const emoji = isUp ? '🔥' : '🧊';
+      const direction = isUp ? '급등' : '급락';
+      const severity = absZ >= 3 ? 1 : 2;
+      const alertType: Alert['type'] = isUp ? 'opportunity' : 'risk';
+      alerts.push(makeAlert(
+        stock.symbol, 'zscore-extreme', alertType, severity,
+        `${name} ${emoji} 평소 ${absZ.toFixed(1)}σ ${direction}`,
+        `오늘 ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}% — 30일 변동성(σ ${baseline.stdReturn.toFixed(1)}%) 대비 ${absZ.toFixed(1)}배. 평소와 다른 움직임이에요.`
+      ));
     }
   }
 

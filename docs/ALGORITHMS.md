@@ -366,12 +366,21 @@
   - 신호 강도 라벨: "(극단치 — 3σ)", "(평소 대비 이례적)", "(평소보다 큰 움직임)"
   - z 신뢰 불가 시 절대값 fallback (3% = 약 1σ 가정)
 
-### ⚠️ P2 잔여 + P3 (향후)
-- [ ] **AlertsEngine 적응적 임계값** — z-score 기반 큰 움직임 감지 추가
+### P3 (이번 세션) ✅ 일부 완료
+- [x] **AlertsEngine z-score 적응형 알림**
+  - `|z| ≥ 2.5` 이례적(severity 2), `≥ 3` 극단치(severity 1)
+  - "{종목} 🔥 평소 2.7σ 급등" — 30일 변동성 대비 명시
+  - 절대값 기반 RSI/52주 알림이 놓치는 "이 종목엔 이상한 움직임" 잡아냄
+
+### ⚠️ P3 잔여 + 향후
 - [ ] **AI 프롬프트 시그널 우선순위 점수화**
   - `priority = 0.35·|z| + 0.25·weight + 0.20·goal_proximity + 0.20·user_memo_recency`
-  - 상위 3종목 상세, 나머지 한 줄
+  - AI 촉/분석 컨텍스트에 상위 3종목 상세, 나머지 한 줄
   - 시계열 사전 추출 ("20일선 위 12거래일째")
+- [ ] **InvestorTypes 행동 보정** (퀴즈+행동 데이터 결합)
+- [ ] **PortfolioDNA realized vol** 사용 (오늘 dp 평균 대신)
+- [ ] **MorningBriefing 시장 심리 정교화** (S&P/NASDAQ 단순 평균 → 변동성 가중)
+- [ ] **Heatmap 색 z-score 매핑**
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**
@@ -425,13 +434,19 @@
 | M3-data | 카테고리 자동 이동 시 idx race (잘못된 종목에 메모 부착) | EditStockModal saveMemoAndClose | symbol로 재조회 — 자동 이동 후에도 안전 |
 | M4-data | 디바운스 2초 사이 탭 종료 시 DB 미저장 | usePortfolioSync | beforeunload + visibilitychange(hidden) 핸들러로 즉시 flush |
 
-### ⚠️ 잔여 (P3+)
+### P3 (이번 세션) ✅ 일부 완료
+
+| ID | 결함 | 수정 |
+|---|---|---|
+| L2-data | snapshot tolerance 휴일 갭 (3 → 7일) | findSnapshotNearDate 기본값 변경. 미국·한국 최대 연휴 모두 커버 |
+| L3-data | localStorage quota 초과 silent fail | persist 에 custom storage wrapper. quota 시 캐시 정리 → snapshots 절반 trim → 재시도 |
+
+### ⚠️ 잔여 (다음 세션 / 외부 인프라 필요)
 
 | ID | 결함 | 위치 | 위험도 |
 |---|---|---|---|
-| L1-data | ai_usage IP PII 무기한 보관 | api/ai-usage | 🟢 |
-| L2-data | snapshot tolerance ±3일 (휴일 갭 7일+ 가능) | dailySnapshot.ts | 🟢 |
-| L3-data | localStorage quota 초과 silent fail | portfolioStore.ts | 🟢 |
+| L1-data | ai_usage IP PII 무기한 보관 | Supabase ai_usage 테이블 | 🟢 (서버 cron 필요) |
+| - | E 본격 구현 (Vercel Cron + 이메일/카카오) | api/cron/morning-brief | 🟡 (인프라 필요) |
 
 ### ❌ 검산 후 false alarm
 

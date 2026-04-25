@@ -32,13 +32,18 @@ export function getDateDaysAgo(days: number): string {
 }
 
 /**
- * 스냅샷 배열에서 가장 가까운 과거 날짜 찾기
- * 정확한 날짜 매칭 실패 시 ±3일 내 가장 가까운 것 반환
+ * 스냅샷 배열에서 가장 가까운 과거 날짜 찾기.
+ *
+ * 정합성 결함 L2 수정: tolerance 기본값 3 → 7 (시장 휴일/연휴 보정).
+ * 미국 시장 최대 연휴(추수감사절 + 주말 + 블랙프라이데이) 4일 + 한국 추석 5일대 모두 커버.
+ *
+ * 예: 1년 전(=오늘 기준 365일 전) 비교 시, 그 날이 토요일이고 직전 금요일도 휴일이면
+ * 3일 tolerance로는 fallback 없음 → "데이터 없음"으로 잘못 판단되던 문제.
  */
 export function findSnapshotNearDate(
   snapshots: DailySnapshot[],
   targetDate: string,
-  toleranceDays = 3,
+  toleranceDays = 7,
 ): DailySnapshot | null {
   if (snapshots.length === 0) return null;
   const exact = snapshots.find(s => s.date === targetDate);

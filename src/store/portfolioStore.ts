@@ -3,7 +3,7 @@
 // ==========================================
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   StockItem, StockCategory, PortfolioStocks,
   MacroEntry, QuoteData, CandleRaw,
@@ -448,6 +448,50 @@ export const usePortfolioStore = create<PortfolioState>()(
     }),
     {
       name: 'solb-portfolio-storage',
+      // 정합성 결함 L3-data: localStorage quota 초과 silent fail 방지
+      // setItem 실패 시 (QuotaExceededError 등) 콘솔 경고 + 가장 오래된 dailySnapshots부터 trim 시도
+      storage: createJSONStorage(() => ({
+        getItem: (name: string) => {
+          try { return localStorage.getItem(name); } catch { return null; }
+        },
+        setItem: (name: string, value: string) => {
+          try {
+            localStorage.setItem(name, value);
+          } catch (e) {
+            const err = e as Error;
+            const isQuota =
+              err.name === 'QuotaExceededError' ||
+              /quota/i.test(err.message || '');
+            console.warn('[persist] localStorage 저장 실패:', err.name || err.message);
+            if (isQuota) {
+              try {
+                // 1차 정리: 오래된 macro/quote 캐시 제거 (가장 큰 비용)
+                localStorage.removeItem('solb_quote_cache');
+                localStorage.removeItem('solb_macro_cache');
+                localStorage.setItem(name, value);
+                console.info('[persist] 캐시 정리 후 저장 성공');
+                return;
+              } catch {
+                // 2차 정리: dailySnapshots 절반으로 trim 후 재시도
+                try {
+                  const parsed = JSON.parse(value);
+                  if (parsed?.state?.dailySnapshots && Array.isArray(parsed.state.dailySnapshots)) {
+                    const arr = parsed.state.dailySnapshots;
+                    parsed.state.dailySnapshots = arr.slice(Math.floor(arr.length / 2));
+                    localStorage.setItem(name, JSON.stringify(parsed));
+                    console.warn('[persist] dailySnapshots 절반 trim 후 저장 성공');
+                    return;
+                  }
+                } catch { /* 마지막 시도도 실패 */ }
+                console.error('[persist] 저장 불가 — 스토리지 가득 참. 데이터 손실 위험.');
+              }
+            }
+          }
+        },
+        removeItem: (name: string) => {
+          try { localStorage.removeItem(name); } catch { /* ignore */ }
+        },
+      })),
       // 정합성 결함 H1-data: 스키마 변경 시 데이터 손상 방지
       // 향후 필드 추가/제거 시 version 올리고 migrate 처리. 호환 깨질 때만 olderToNewer.
       version: 1,
