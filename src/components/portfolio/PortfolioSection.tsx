@@ -211,6 +211,46 @@ export default function PortfolioSection() {
   const todayChangePct = totalValue > 0 ? (todayChange / (totalValue - todayChange)) * 100 : 0;
   const todayGain = todayChange >= 0;
 
+  // 오늘의 한 줄 헤드라인 — 첫 화면 정보 위계 강화 (이상 신호 우선)
+  // 우선순위: 1) 큰 단일 움직임(|dp|≥3%) 2) 52주 고/저점 근접 3) null(헤드라인 없음)
+  let todayHeadline: { emoji: string; text: string; tone: 'gain' | 'loss' | 'neutral' } | null = null;
+  const SIGNIFICANT_DP = 3;
+  const candidates = investingStocks
+    .map(s => {
+      const d = macroData[s.symbol] as QuoteData | undefined;
+      return { symbol: s.symbol, dp: d?.dp || 0, c: d?.c || 0, shares: s.shares };
+    })
+    .filter(s => s.shares > 0 && s.c > 0 && Math.abs(s.dp) >= SIGNIFICANT_DP)
+    .sort((a, b) => Math.abs(b.dp) - Math.abs(a.dp));
+
+  if (candidates.length > 0) {
+    const top = candidates[0];
+    const kr = STOCK_KR[top.symbol] || top.symbol;
+    todayHeadline = top.dp > 0
+      ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}% — 평소보다 큰 움직임`, tone: 'gain' }
+      : { emoji: '🧊', text: `${kr} ${top.dp.toFixed(2)}% — 평소보다 큰 움직임`, tone: 'loss' };
+  } else {
+    for (const s of investingStocks) {
+      if (s.shares <= 0) continue;
+      const d = macroData[s.symbol] as QuoteData | undefined;
+      const candles = rawCandles[s.symbol];
+      if (!d?.c || !candles?.c?.length) continue;
+      const high52 = Math.max(...candles.c);
+      const low52 = Math.min(...candles.c);
+      const highDist = ((high52 - d.c) / d.c) * 100;
+      const lowDist = ((d.c - low52) / d.c) * 100;
+      const kr = STOCK_KR[s.symbol] || s.symbol;
+      if (highDist < 3) {
+        todayHeadline = { emoji: '🎯', text: `${kr}가 52주 고점 근처 (${highDist.toFixed(1)}%)`, tone: 'neutral' };
+        break;
+      }
+      if (lowDist < 3) {
+        todayHeadline = { emoji: '🌱', text: `${kr}가 52주 저점 근처 (${lowDist.toFixed(1)}%)`, tone: 'neutral' };
+        break;
+      }
+    }
+  }
+
   // Build display list
   const activeTab = currentTab as string;
   type DisplayStock = StockItem & { category: 'investing' | 'watching' | 'sold'; originalIdx: number };
@@ -336,6 +376,33 @@ export default function PortfolioSection() {
       {/* ===== 종목 탭 ===== */}
       {subTab === 'stocks' && (
       <div style={{ marginTop: 8, paddingTop: 12 }}>
+
+        {/* 오늘의 한 줄 헤드라인 — 이상 신호가 있을 때만 표시 */}
+        {todayHeadline && investingStocks.length > 0 && (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: '10px 14px',
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              border: '1px solid',
+              ...(todayHeadline.tone === 'gain'
+                ? { background: 'var(--color-gain-bg, rgba(239,68,82,0.06))', color: 'var(--color-gain, #EF4452)', borderColor: 'rgba(239,68,82,0.18)' }
+                : todayHeadline.tone === 'loss'
+                ? { background: 'var(--color-loss-bg, rgba(49,130,246,0.06))', color: 'var(--color-loss, #3182F6)', borderColor: 'rgba(49,130,246,0.18)' }
+                : { background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-primary, #191F28)', borderColor: 'var(--border-light, #F2F4F6)' }),
+            }}
+          >
+            <span style={{ fontSize: 14 }}>{todayHeadline.emoji}</span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {todayHeadline.text}
+            </span>
+          </div>
+        )}
 
         {/* 미니 히트맵 — 첫인상을 프로 도구로. 분석 탭의 풀 히트맵을 압축 표시 */}
         {investingStocks.length > 0 && (
