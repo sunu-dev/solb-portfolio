@@ -294,11 +294,11 @@ export default function PortfolioHeatmap({
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
 
-  // 5. 컨테이너 크기 결정
+  // 5. 컨테이너 크기 결정 — compact는 풀 너비 배너(고정 높이), full은 정사각
   const containerStyle: React.CSSProperties = isCompact ? {
-    maxWidth: 480,
-    aspectRatio: '5 / 3',
-    margin: '0 auto',
+    width: '100%',
+    height: 220,
+    margin: 0,
   } : {
     aspectRatio: '1 / 1',
     maxWidth: 'min(700px, 100%)',
@@ -574,8 +574,8 @@ function CellLabel({
 }: {
   ticker: string; pct: string; isCompact: boolean;
 }) {
-  // CSS @container 쿼리로 셀 크기에 따라 라벨 자동 노출
-  // 작은 셀(< 30px height)은 티커만, 더 작으면(< 18px) 색만
+  // 티커는 셀 크기 무관하게 ALWAYS 표시 (사용자 요구).
+  // 셀 크기에 따라 폰트만 단계적으로 축소. % 는 작은 셀에서 숨김.
   const tickerFs = isCompact ? '11px' : '13px';
   const pctFs = isCompact ? '9px' : '11px';
 
@@ -591,6 +591,8 @@ function CellLabel({
           text-align: center;
           white-space: nowrap;
           overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
         }
         .heatmap-label-pct {
           font-size: ${pctFs};
@@ -603,10 +605,23 @@ function CellLabel({
           white-space: nowrap;
           overflow: hidden;
         }
-        @container (max-height: 28px) { .heatmap-label-pct { display: none; } }
-        @container (max-height: 18px) { .heatmap-label-ticker { display: none; } }
-        @container (max-width: 32px)  { .heatmap-label-pct { display: none; } }
-        @container (max-width: 22px)  { .heatmap-label-ticker { display: none; } }
+        /* 작은 셀에서 티커는 안 사라지고 폰트만 축소 */
+        @container (max-height: 30px) {
+          .heatmap-label-ticker { font-size: 9px; }
+          .heatmap-label-pct { display: none; }
+        }
+        @container (max-height: 20px) {
+          .heatmap-label-ticker { font-size: 8px; line-height: 1; }
+        }
+        @container (max-height: 14px) {
+          .heatmap-label-ticker { font-size: 7px; letter-spacing: -0.04em; }
+        }
+        @container (max-width: 36px) { .heatmap-label-pct { display: none; } }
+        @container (max-width: 26px) { .heatmap-label-ticker { font-size: 8px; }
+        }
+        @container (max-width: 18px) {
+          .heatmap-label-ticker { font-size: 7px; letter-spacing: -0.05em; }
+        }
       `}</style>
       <div className="heatmap-label-ticker">{ticker}</div>
       <div className="heatmap-label-pct">{pct}</div>
