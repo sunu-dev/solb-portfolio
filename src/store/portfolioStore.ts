@@ -132,6 +132,7 @@ interface PortfolioState {
 
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
+  setSnapshotsFromDB: (snapshots: DailySnapshot[]) => void;
   resetPortfolio: () => void;
 
   // Helpers
@@ -415,6 +416,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       // --- Sync ---
       setStocksFromDB: (stocks) => set({ stocks }),
+      setSnapshotsFromDB: (snapshots) => set({ dailySnapshots: snapshots }),
 
       resetPortfolio: () => set({
         stocks: { investing: [], watching: [], sold: [] },

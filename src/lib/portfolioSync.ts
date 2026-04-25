@@ -1,30 +1,38 @@
 import { supabase } from './supabase';
 import type { PortfolioStocks } from '@/config/constants';
+import type { DailySnapshot } from '@/utils/dailySnapshot';
 
 export type LoadResult =
-  | { status: 'ok'; stocks: PortfolioStocks }
+  | { status: 'ok'; stocks: PortfolioStocks; dailySnapshots: DailySnapshot[] }
   | { status: 'empty' }       // 정상 응답 + DB row 없음 (첫 로그인)
   | { status: 'error'; error: string }; // 네트워크/RLS/일시적 오류 — save 금지
 
 /**
  * 포트폴리오 DB 로드 — 결과 명확히 구분 (정합성 결함 C1 수정)
  *
- * 기존엔 null만 반환해 "row 없음"과 "쿼리 실패"를 구분 못 했음.
- * 쿼리 실패 시 caller가 save를 호출하면 빈 localStorage가 DB의 실제 데이터를 덮어씀.
+ * stocks와 daily_snapshots를 함께 로드. 후자는 신규 컬럼이라 missing 가능 → 빈 배열 fallback.
  */
 export async function loadPortfolio(userId: string): Promise<LoadResult> {
   const { data, error } = await supabase
     .from('user_portfolios')
-    .select('stocks')
+    .select('stocks, daily_snapshots')
     .eq('user_id', userId)
-    .maybeSingle(); // single() 대신 maybeSingle() — 0행이 error가 아닌 null
+    .maybeSingle();
 
   if (error) {
-    // PGRST116(0행) 외의 에러 = 네트워크/RLS/권한 문제. save 절대 금지.
+    // 컬럼 missing 에러는 무시하고 stocks만 가져오는 fallback
+    if (/daily_snapshots/i.test(error.message)) {
+      const fb = await supabase
+        .from('user_portfolios').select('stocks').eq('user_id', userId).maybeSingle();
+      if (fb.error) return { status: 'error', error: fb.error.message };
+      if (!fb.data?.stocks) return { status: 'empty' };
+      return { status: 'ok', stocks: fb.data.stocks as PortfolioStocks, dailySnapshots: [] };
+    }
     return { status: 'error', error: error.message };
   }
   if (!data || !data.stocks) return { status: 'empty' };
-  return { status: 'ok', stocks: data.stocks as PortfolioStocks };
+  const snapshots = Array.isArray(data.daily_snapshots) ? data.daily_snapshots as DailySnapshot[] : [];
+  return { status: 'ok', stocks: data.stocks as PortfolioStocks, dailySnapshots: snapshots };
 }
 
 /** @deprecated use loadPortfolio for explicit error vs empty distinction */
@@ -34,16 +42,32 @@ export async function loadPortfolioFromDB(userId: string): Promise<PortfolioStoc
 }
 
 // Save portfolio to Supabase (upsert)
-export async function savePortfolioToDB(userId: string, stocks: PortfolioStocks): Promise<void> {
+// dailySnapshots도 함께 저장 — 신규 컬럼 미존재 시 컬럼 제외 retry
+export async function savePortfolioToDB(
+  userId: string,
+  stocks: PortfolioStocks,
+  dailySnapshots?: DailySnapshot[],
+): Promise<void> {
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    stocks,
+    updated_at: new Date().toISOString(),
+  };
+  if (dailySnapshots !== undefined) payload.daily_snapshots = dailySnapshots;
+
   const { error } = await supabase
     .from('user_portfolios')
-    .upsert({
-      user_id: userId,
-      stocks,
-      updated_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id',
-    });
+    .upsert(payload, { onConflict: 'user_id' });
 
-  if (error) console.error('포트폴리오 저장 오류:', error);
+  if (error) {
+    // 신규 컬럼 missing이면 stocks만으로 retry (마이그레이션 전 호환)
+    if (dailySnapshots !== undefined && /daily_snapshots/i.test(error.message)) {
+      const retry = await supabase.from('user_portfolios').upsert({
+        user_id: userId, stocks, updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      if (retry.error) console.error('포트폴리오 저장 오류 (fallback):', retry.error);
+      return;
+    }
+    console.error('포트폴리오 저장 오류:', error);
+  }
 }

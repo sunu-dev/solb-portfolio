@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
+import type { DailySnapshot } from '@/utils/dailySnapshot';
+import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -79,29 +81,34 @@ function fmtWon(w: number): string {
 }
 
 interface BriefData {
-  todayDelta: number;       // 오늘 일일 변동 (KRW)
-  todayPct: number;         // 오늘 변동률 (%)
-  totalValue: number;       // 현재 평가금액 (KRW)
+  todayDelta: number;            // 오늘 일일 변동 (KRW)
+  todayPct: number;              // 오늘 변동률 (%)
+  totalValue: number;            // 현재 평가금액 (KRW)
   biggestMover: { symbol: string; dp: number } | null;
+  yesterdayDelta: number | null; // 어제 스냅샷 대비 변동 (KRW)
+  yesterdayPct: number | null;
+}
+
+interface PriceCache {
+  [symbol: string]: { c: number; d: number; dp: number } | null;
 }
 
 async function buildBrief(
   stocks: PortfolioStocks,
+  snapshots: DailySnapshot[],
   usdKrw: number,
+  priceCache: PriceCache,
 ): Promise<BriefData | null> {
   const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
   if (investing.length === 0) return null;
 
-  // 현재 시세 fetch (병렬)
-  const quotes = await Promise.all(
-    investing.map(async s => ({ stock: s, q: await fetchPrice(s.symbol) }))
-  );
-
+  // 캐시에서 시세 조회 (cron 시작 시 unique 심볼 한 번에 fetch했음)
   let totalValue = 0;
   let todayDelta = 0;
   let prevValue = 0;
   let biggestMover: { symbol: string; dp: number; absDp: number } | null = null;
-  for (const { stock, q } of quotes) {
+  for (const stock of investing) {
+    const q = priceCache[stock.symbol];
     if (!q) continue;
     const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
     const rate = isKR ? 1 : usdKrw;
@@ -117,37 +124,66 @@ async function buildBrief(
   if (totalValue === 0) return null;
   const todayPct = prevValue > 0 ? (todayDelta / prevValue) * 100 : 0;
 
+  // 어제 스냅샷 vs 현재 — DB 동기화된 dailySnapshots에서 1일 전 ±2일 매칭
+  let yesterdayDelta: number | null = null;
+  let yesterdayPct: number | null = null;
+  if (snapshots.length > 0) {
+    const yDate = getDateDaysAgo(1);
+    const ySnap = findSnapshotNearDate(snapshots, yDate, 2);
+    if (ySnap && ySnap.totalValue > 0) {
+      // 스냅샷 totalValue는 캡처 시점 단위(USD 혼합 가능). 정확한 비교를 위해
+      // 스냅샷 stocks를 다시 평가하면 좋지만 — MVP는 totalValue 직접 비교.
+      // (Dashboard.tsx가 totalValueWon = KRW 누적으로 캡처하므로 KRW 가정 가능)
+      yesterdayDelta = totalValue - ySnap.totalValue;
+      yesterdayPct = (yesterdayDelta / ySnap.totalValue) * 100;
+    }
+  }
+
   return {
-    todayDelta,
-    todayPct,
-    totalValue,
+    todayDelta, todayPct, totalValue,
     biggestMover: biggestMover ? { symbol: biggestMover.symbol, dp: biggestMover.dp } : null,
+    yesterdayDelta, yesterdayPct,
   };
 }
 
 function buildPushPayload(brief: BriefData): { title: string; body: string } {
-  const isUp = brief.todayDelta >= 0;
-  const emoji = isUp ? '🌅' : '🌫️';
+  const emoji = brief.todayDelta >= 0 ? '🌅' : '🌫️';
 
-  let title: string;
-  let body: string;
-
-  if (Math.abs(brief.todayPct) >= 0.05) {
-    title = `${emoji} 포트폴리오 ${isUp ? '+' : '-'}${fmtWon(Math.abs(brief.todayDelta))}`;
-    const pctStr = `${isUp ? '+' : ''}${brief.todayPct.toFixed(2)}%`;
-    body = brief.biggestMover
-      ? `오늘 ${pctStr} · ${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
-      : `오늘 ${pctStr}`;
-  } else if (brief.biggestMover && Math.abs(brief.biggestMover.dp) >= 1) {
-    title = `${emoji} 오늘 아침 브리핑`;
-    const dp = brief.biggestMover.dp;
-    body = `${brief.biggestMover.symbol} ${dp >= 0 ? '+' : ''}${dp.toFixed(2)}% — 가장 큰 움직임`;
-  } else {
-    title = `${emoji} 오늘 아침 브리핑`;
-    body = '간밤 시장 조용한 편 · 앱에서 자세히 확인';
+  // 우선순위 1: 어제 vs 오늘 비교 (스냅샷 가용 시 가장 의미 있는 신호)
+  if (brief.yesterdayDelta !== null && brief.yesterdayPct !== null && Math.abs(brief.yesterdayPct) >= 0.1) {
+    const yIsUp = brief.yesterdayDelta >= 0;
+    const title = `${emoji} 어제 대비 ${yIsUp ? '+' : '-'}${fmtWon(Math.abs(brief.yesterdayDelta))}`;
+    const pctStr = `${yIsUp ? '+' : ''}${brief.yesterdayPct.toFixed(2)}%`;
+    const body = brief.biggestMover
+      ? `${pctStr} · ${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
+      : pctStr;
+    return { title, body };
   }
 
-  return { title, body };
+  // 우선순위 2: 오늘 일일 변동
+  if (Math.abs(brief.todayPct) >= 0.05) {
+    const isUp = brief.todayDelta >= 0;
+    const title = `${emoji} 포트폴리오 ${isUp ? '+' : '-'}${fmtWon(Math.abs(brief.todayDelta))}`;
+    const pctStr = `${isUp ? '+' : ''}${brief.todayPct.toFixed(2)}%`;
+    const body = brief.biggestMover
+      ? `오늘 ${pctStr} · ${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
+      : `오늘 ${pctStr}`;
+    return { title, body };
+  }
+
+  // 우선순위 3: biggestMover만
+  if (brief.biggestMover && Math.abs(brief.biggestMover.dp) >= 1) {
+    const dp = brief.biggestMover.dp;
+    return {
+      title: `${emoji} 오늘 아침 브리핑`,
+      body: `${brief.biggestMover.symbol} ${dp >= 0 ? '+' : ''}${dp.toFixed(2)}% — 가장 큰 움직임`,
+    };
+  }
+
+  return {
+    title: `${emoji} 오늘 아침 브리핑`,
+    body: '간밤 시장 조용한 편 · 앱에서 자세히 확인',
+  };
 }
 
 export async function GET(req: NextRequest) {
@@ -173,13 +209,22 @@ export async function GET(req: NextRequest) {
     const userIds = subs.map(s => s.user_id as string);
     const { data: portfolios } = await db
       .from('user_portfolios')
-      .select('user_id, stocks')
+      .select('user_id, stocks, daily_snapshots')
       .in('user_id', userIds);
     if (!portfolios?.length) {
       return NextResponse.json({ ok: true, ...stats, note: '포트폴리오 없음' });
     }
 
-    // USD/KRW 환율 — Finnhub forex 또는 fallback. 향후: macro 캐시 테이블에서 조회.
+    // 성능 최적화 — 모든 유저 보유 종목 unique 집합으로 dedup, 한 번에 병렬 fetch
+    const allSymbols = new Set<string>();
+    for (const port of portfolios) {
+      const stocks = port.stocks as PortfolioStocks;
+      for (const s of (stocks.investing || [])) {
+        if (s.shares > 0 && s.avgCost > 0) allSymbols.add(s.symbol);
+      }
+    }
+
+    // USD/KRW 환율
     const apiKey = process.env.FINNHUB_API_KEY;
     let usdKrw = 1400;
     try {
@@ -190,14 +235,24 @@ export async function GET(req: NextRequest) {
       }
     } catch { /* fallback */ }
 
+    // 모든 unique 심볼 시세 병렬 fetch (cron 시간 절약 + Finnhub quota 절약)
+    const priceCache: PriceCache = {};
+    const symbols = Array.from(allSymbols);
+    const fetchResults = await Promise.allSettled(symbols.map(s => fetchPrice(s)));
+    symbols.forEach((sym, i) => {
+      const r = fetchResults[i];
+      priceCache[sym] = r.status === 'fulfilled' ? r.value : null;
+    });
+
     for (const sub of subs) {
       const userId = sub.user_id as string;
       const port = portfolios.find(p => p.user_id === userId);
       if (!port) { stats.skipped++; continue; }
 
       const stocks = port.stocks as PortfolioStocks;
+      const snapshots = (Array.isArray(port.daily_snapshots) ? port.daily_snapshots : []) as DailySnapshot[];
 
-      const brief = await buildBrief(stocks, usdKrw);
+      const brief = await buildBrief(stocks, snapshots, usdKrw, priceCache);
       if (!brief) { stats.skipped++; continue; }
 
       const { title, body } = buildPushPayload(brief);

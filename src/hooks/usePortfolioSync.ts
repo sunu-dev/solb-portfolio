@@ -6,7 +6,7 @@ import { loadPortfolio, savePortfolioToDB } from '@/lib/portfolioSync';
 import type { User } from '@supabase/supabase-js';
 
 export function usePortfolioSync(user: User | null) {
-  const { stocks, setStocksFromDB } = usePortfolioStore();
+  const { stocks, dailySnapshots, setStocksFromDB, setSnapshotsFromDB } = usePortfolioStore();
   const lastSyncRef = useRef<string>('');
   const initialLoadDone = useRef(false);
 
@@ -20,18 +20,22 @@ export function usePortfolioSync(user: User | null) {
     loadPortfolio(user.id).then(result => {
       if (cancelled) return;
       if (result.status === 'ok') {
-        // DB에 데이터 있음 → DB를 소스로 사용
+        // DB에 데이터 있음 → DB를 소스로 사용 (snapshots 포함)
         setStocksFromDB(result.stocks);
-        lastSyncRef.current = JSON.stringify(result.stocks);
+        if (result.dailySnapshots.length > 0) {
+          setSnapshotsFromDB(result.dailySnapshots);
+        }
+        lastSyncRef.current = JSON.stringify({
+          stocks: result.stocks,
+          snaps: result.dailySnapshots,
+        });
         initialLoadDone.current = true;
       } else if (result.status === 'empty') {
-        // 첫 로그인, DB row 없음 → 현재 localStorage 데이터를 DB에 저장 (정상 path)
-        savePortfolioToDB(user.id, stocks);
-        lastSyncRef.current = JSON.stringify(stocks);
+        // 첫 로그인, DB row 없음 → 현재 localStorage 데이터를 DB에 저장
+        savePortfolioToDB(user.id, stocks, dailySnapshots);
+        lastSyncRef.current = JSON.stringify({ stocks, snaps: dailySnapshots });
         initialLoadDone.current = true;
       } else {
-        // status === 'error' (네트워크/RLS/일시적 오류) — save 호출 금지
-        // initialLoadDone를 false로 유지해 다음 trigger에 재시도
         console.warn('[portfolioSync] DB load 실패 — save 보류:', result.error);
       }
     });
@@ -41,42 +45,40 @@ export function usePortfolioSync(user: User | null) {
 
   // pending save 추적 — 탭 종료 시 즉시 flush 하기 위함
   const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingStocksRef = useRef<typeof stocks | null>(null);
+  const pendingPayloadRef = useRef<{ stocks: typeof stocks; snaps: typeof dailySnapshots } | null>(null);
 
-  // stocks 변경 시 DB에 저장 (디바운스)
+  // stocks/snapshots 변경 시 DB에 저장 (디바운스)
   useEffect(() => {
     if (!user || !initialLoadDone.current) return;
 
-    const currentStr = JSON.stringify(stocks);
-    if (currentStr === lastSyncRef.current) return; // 변경 없음
+    const currentStr = JSON.stringify({ stocks, snaps: dailySnapshots });
+    if (currentStr === lastSyncRef.current) return;
     lastSyncRef.current = currentStr;
-    pendingStocksRef.current = stocks;
+    pendingPayloadRef.current = { stocks, snaps: dailySnapshots };
 
-    // 디바운스: 2초 동안 변경 없으면 저장
     if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
     pendingTimerRef.current = setTimeout(() => {
-      savePortfolioToDB(user.id, stocks);
+      savePortfolioToDB(user.id, stocks, dailySnapshots);
       pendingTimerRef.current = null;
-      pendingStocksRef.current = null;
+      pendingPayloadRef.current = null;
     }, 2000);
 
     return () => {
       if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
     };
-  }, [user, stocks]);
+  }, [user, stocks, dailySnapshots]);
 
-  // 정합성 결함 M4-data 수정 — 디바운스 2초 사이 탭 종료/숨김 시 즉시 flush
-  // visibilitychange(hidden)는 모바일 백그라운드/탭 전환 모두 잡아내고 beforeunload보다 신뢰성 높음
+  // 정합성 결함 M4-data — 디바운스 2초 사이 탭 종료/숨김 시 즉시 flush
   useEffect(() => {
     if (!user) return;
 
     const flushPending = () => {
-      if (pendingStocksRef.current) {
+      if (pendingPayloadRef.current) {
         if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
-        // 비동기지만 best-effort — 탭 종료 직전 호출 시 브라우저가 일부 보내줌
-        savePortfolioToDB(user.id, pendingStocksRef.current);
+        const { stocks: s, snaps } = pendingPayloadRef.current;
+        savePortfolioToDB(user.id, s, snaps);
         pendingTimerRef.current = null;
-        pendingStocksRef.current = null;
+        pendingPayloadRef.current = null;
       }
     };
 
