@@ -87,8 +87,17 @@ export async function POST(req: NextRequest) {
     currentEvent?: string;
     sectorConcentration?: string;
     investorType?: InvestorType;
+    holdingsContext?: string; // P3 — 시그널 우선순위 기반 핵심 보유 종목 컨텍스트
   };
-  const { portfolioSymbols = [], forceRefresh = false, macroContext, currentEvent, sectorConcentration, investorType = DEFAULT_INVESTOR_TYPE } = body;
+  const {
+    portfolioSymbols = [],
+    forceRefresh = false,
+    macroContext,
+    currentEvent,
+    sectorConcentration,
+    investorType = DEFAULT_INVESTOR_TYPE,
+    holdingsContext,
+  } = body;
 
   // 캐시 키에 investorType 포함 (같은 유저라도 유형 바뀌면 다른 캐시)
   const userKeyWithType = `${userKey}:${investorType}`;
@@ -141,6 +150,9 @@ export async function POST(req: NextRequest) {
     .replace('{SECTOR_CONCENTRATION}', sectorConcentration || '데이터 없음')
     .replace('{ALLOWED_SYMBOLS}', allowedSymbols)
     .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
+    + (holdingsContext
+        ? `\n\n${holdingsContext}\n\n사용자가 위 핵심 종목들에 어떤 비중·신호·메모를 갖고 있는지 인지하고, 추천 종목이 사용자 포트폴리오의 약점(누락 섹터, 분산 부족, 고베타 편중 등)을 보완하거나 사용자 메모/관심 흐름에 자연스럽게 이어지도록 골라주세요.`
+        : '')
     + `\n\n위 기준과 시장 컨텍스트를 종합하여, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
 
   try {

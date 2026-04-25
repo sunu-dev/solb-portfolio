@@ -9,6 +9,8 @@ export interface DNAStock {
   value: number;
   targetReturn: number;
   dp?: number; // today's change %
+  /** 30일 일일 수익률 표준편차 (%). P3 — DNA 변동성 축의 정확도 ↑ */
+  realizedVol?: number;
 }
 
 export interface PortfolioDNA {
@@ -70,10 +72,27 @@ export function calcPortfolioDNA(stocks: DNAStock[]): PortfolioDNA | null {
   const hhi = weights.reduce((acc, w) => acc + w * w, 0);
   const concentration = Math.min(100, Math.round((hhi / 10000) * 100 + (maxW > 50 ? 20 : 0)));
 
-  // ── 2. 변동성 (dp 평균 |절대값|) ──
-  const dps = stocks.map(s => Math.abs(s.dp || 0));
-  const avgDp = dps.length ? dps.reduce((a, b) => a + b, 0) / dps.length : 0;
-  const volatility = Math.min(100, Math.round(avgDp * 15)); // 1% = 15점, 6.7% = 100점
+  // ── 2. 변동성 ──
+  // P3 — realized volatility(30일 일일 σ) 가용 시 우선 사용. 비중 가중 평균.
+  // realizedVol 없는 종목은 |dp| fallback (오늘만 보는 약한 신호).
+  // 1% σ = 15점, 6.7% σ = 100점 (3X 레버리지 ETF 수준)
+  let weightedVol = 0;
+  let volWeightSum = 0;
+  let usingRealized = false;
+  stocks.forEach(s => {
+    const w = totalValue > 0 ? s.value / totalValue : 0;
+    if (s.realizedVol !== undefined && s.realizedVol > 0) {
+      weightedVol += s.realizedVol * w;
+      usingRealized = true;
+    } else {
+      weightedVol += Math.abs(s.dp || 0) * w; // fallback
+    }
+    volWeightSum += w;
+  });
+  // 비중 합이 1 아니면 정규화
+  const finalVol = volWeightSum > 0 ? weightedVol / volWeightSum : 0;
+  const volatility = Math.min(100, Math.round(finalVol * 15));
+  void usingRealized; // 향후 라벨 표시용
 
   // ── 3. 성장주 비중 ──
   let growthValue = 0;
@@ -125,7 +144,7 @@ export function calcPortfolioDNA(stocks: DNAStock[]): PortfolioDNA | null {
   // 부가 특성
   if (stocks.length >= 8) traits.push('분산형');
   if (stocks.length <= 3) traits.push('소수정예');
-  if (avgDp > 3) traits.push('고변동');
+  if (finalVol > 3) traits.push('고변동');
   if (defense > 30 && defense < 50) traits.push('밸런스');
 
   return {

@@ -372,15 +372,24 @@
   - "{종목} 🔥 평소 2.7σ 급등" — 30일 변동성 대비 명시
   - 절대값 기반 RSI/52주 알림이 놓치는 "이 종목엔 이상한 움직임" 잡아냄
 
-### ⚠️ P3 잔여 + 향후
-- [ ] **AI 프롬프트 시그널 우선순위 점수화**
-  - `priority = 0.35·|z| + 0.25·weight + 0.20·goal_proximity + 0.20·user_memo_recency`
-  - AI 촉/분석 컨텍스트에 상위 3종목 상세, 나머지 한 줄
-  - 시계열 사전 추출 ("20일선 위 12거래일째")
+### P3 후속 ✅ 일부 완료
+- [x] **AI 프롬프트 시그널 우선순위 점수화** (AI 촉)
+  - `src/utils/priorityScore.ts` 신규 — `computeHoldingPriorities`, `buildHoldingsPromptContext`
+  - 가중치: 0.35·|z| + 0.25·weight + 0.20·goal_proximity + 0.20·memo_recency (14d 반감기)
+  - AiChokSection이 상위 3종목 + 비중·z-score·메모를 프롬프트에 주입
+  - 시계열 사전 추출(z-score, σ, 메모 텍스트)로 AI 토큰 효율 ↑
+  - 추천이 사용자 약점 보완·메모 흐름과 자연스럽게 연결
+- [x] **PortfolioDNA realized vol 사용**
+  - `dp(오늘만)` 단순 평균 → 30일 일일 수익률 표준편차(σ) 비중 가중 평균
+  - DNAStock에 `realizedVol?: number` 추가, fallback 유지
+  - 1% σ = 15점, 6.7% σ = 100점 (3X 레버리지 ETF 수준)
+  - 오늘 시장이 유독 변동 클 때 DNA 변동성 축이 왜곡되는 문제 해소
+
+### ⚠️ 잔여 (다음 세션)
 - [ ] **InvestorTypes 행동 보정** (퀴즈+행동 데이터 결합)
-- [ ] **PortfolioDNA realized vol** 사용 (오늘 dp 평균 대신)
 - [ ] **MorningBriefing 시장 심리 정교화** (S&P/NASDAQ 단순 평균 → 변동성 가중)
 - [ ] **Heatmap 색 z-score 매핑**
+- [ ] **시계열 사전 추출 강화** ("20일선 위 12거래일째", "RSI 71 과매수 4일째")
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**

@@ -6,6 +6,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { getAvatarColor, STOCK_KR } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
 import type { MacroEntry, PortfolioStocks } from '@/config/constants';
+import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
 
 // ─── 시장 컨텍스트 빌더 ──────────────────────────────────────────────────────
 const SECTOR_MAP: Record<string, string> = {
@@ -214,7 +215,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
 // Main section
 // ==========================================
 export default function AiChokSection() {
-  const { getAllSymbols, setAnalysisSymbol, addStock, stocks, macroData, currentEventId, getAllEvents, investorType } = usePortfolioStore();
+  const { getAllSymbols, setAnalysisSymbol, addStock, stocks, macroData, rawCandles, currentEventId, getAllEvents, investorType } = usePortfolioStore();
   const [state, setState] = useState<ChokState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -233,6 +234,9 @@ export default function AiChokSection() {
     try {
       const portfolioSymbols = getAllSymbols();
       const currentEvent = getAllEvents().find(e => e.id === currentEventId);
+      // P3 — 시그널 우선순위 점수화: 핵심 보유 종목 컨텍스트 빌드
+      const priorities = computeHoldingPriorities(stocks.investing || [], macroData, rawCandles);
+      const holdingsContext = buildHoldingsPromptContext(priorities, 3);
       const res = await fetch('/api/ai-chok', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,6 +247,7 @@ export default function AiChokSection() {
           currentEvent: currentEvent ? `${currentEvent.emoji} ${currentEvent.name}` : '없음',
           sectorConcentration: buildSectorConcentration(stocks),
           investorType,
+          holdingsContext, // 시그널 우선순위 기반 핵심 종목 + 메모 + z-score
         }),
       });
       const data = await res.json() as ChokState & { error?: string; limitReached?: boolean; loginForMore?: boolean };

@@ -4,13 +4,14 @@ import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData } from '@/config/constants';
 import { calcPortfolioDNA } from '@/utils/portfolioDNA';
+import { computeVolBaseline } from '@/utils/volatility';
 
 /**
  * 포트폴리오 DNA — 캐릭터 타입 + 4축 레이더 + 태그
  * 컴팩트 버전 (Dashboard/RightSidebar에 삽입)
  */
 export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 'compact' }) {
-  const { stocks, macroData } = usePortfolioStore();
+  const { stocks, macroData, rawCandles } = usePortfolioStore();
 
   const dna = useMemo(() => {
     const investing = stocks.investing || [];
@@ -18,6 +19,8 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
       .filter(s => s.avgCost > 0 && s.shares > 0)
       .map(s => {
         const q = macroData[s.symbol] as QuoteData | undefined;
+        // P3 — realized vol(30일 일일 σ) 계산. dp(오늘만)보다 정확한 변동성 축
+        const baseline = computeVolBaseline(rawCandles[s.symbol]);
         return {
           symbol: s.symbol,
           avgCost: s.avgCost,
@@ -26,10 +29,11 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
           value: (q?.c || 0) * s.shares,
           targetReturn: s.targetReturn,
           dp: q?.dp,
+          realizedVol: baseline.isReliable ? baseline.stdReturn : undefined,
         };
       });
     return calcPortfolioDNA(dnaStocks);
-  }, [stocks.investing, macroData]);
+  }, [stocks.investing, macroData, rawCandles]);
 
   if (!dna) return null;
 
