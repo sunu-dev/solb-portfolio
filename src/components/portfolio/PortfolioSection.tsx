@@ -9,6 +9,7 @@ import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import PortfolioHeatmap from './PortfolioHeatmap';
+import PortfolioCompactBar from './PortfolioCompactBar';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
@@ -964,25 +965,13 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 미니 히트맵 — 종목 리스트 시각 요약(분석 탭 풀 히트맵 압축) */}
+        {/* 한눈에 — 비중 + 손익 분포 (트리맵에서 교체).
+            전문가 결론: 트리맵은 500종목 시장 도구. 5~20종목 포트폴리오엔
+            가로 스택 바 + 손익 분포 막대(56px)가 정직한 인코딩. */}
         {investingStocks.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <div style={{
-              fontSize: 12, fontWeight: 600,
-              color: 'var(--text-tertiary, #B0B8C1)',
-              marginBottom: 8, letterSpacing: 0.3,
-            }}>
-              포트폴리오 맵
-            </div>
-            <PortfolioHeatmap
-              variant="compact"
-              stocks={investingStocks}
-              macroData={macroData}
-              usdKrw={usdKrw}
-              currency={currency}
-              rawCandles={rawCandles}
+            <PortfolioCompactBar
               onExpand={() => setSubTab('analysis')}
-              onCellClick={(sym) => setAnalysisSymbol(sym)}
             />
           </div>
         )}
