@@ -257,10 +257,11 @@ export default function PortfolioHeatmap({
 
   const totalVal = nodes.reduce((s, n) => s + n.value, 0);
   const VB_W = 100;
-  // compact: 4:3 (모바일에서도 셀이 정사각에 가깝게 수렴)
+  // compact: 5:3 (메인 탭 trigger card, 4:3보다 납작 → 첫 화면 점유 최소화)
   // full: 1:1 (분석 탭 풀스크린)
-  const VB_H = isCompact ? 75 : 100;
+  const VB_H = isCompact ? 60 : 100;
   const layout = squarify(nodes, { x: 0, y: 0, w: VB_W, h: VB_H });
+  const useStackBar = isCompact && nodes.length <= 3; // ≤3 종목은 트리맵 부적합 → 스택 바
 
   const handleMouseMove = (node: TreeNode) => (e: React.MouseEvent) => {
     if (isCompact) return;
@@ -307,7 +308,7 @@ export default function PortfolioHeatmap({
         </div>
       )}
 
-      {/* 다크 컨테이너 */}
+      {/* 다크 컨테이너 — compact: max 480×288 (5:3), 광고판화 차단 */}
       <div
         style={{
           background: '#0A0A0A',
@@ -315,8 +316,68 @@ export default function PortfolioHeatmap({
           borderRadius: isCompact ? 8 : 4,
           position: 'relative',
           overflow: 'hidden',
+          ...(isCompact ? {
+            maxWidth: 480,
+            maxHeight: 288,
+            margin: '0 auto',
+          } : {}),
         }}
       >
+        {/* P4 — ≤3 종목은 트리맵 부적합(거의 단조로운 직사각형) → 수평 스택 바 */}
+        {useStackBar ? (
+          <div style={{
+            display: 'flex',
+            width: '100%',
+            height: 88,
+            gap: 1,
+          }}>
+            {nodes.map(node => {
+              const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
+              let color: string;
+              if (colorMode === 'today' && rawCandles?.[node.symbol]) {
+                const baseline = computeVolBaseline(rawCandles[node.symbol]);
+                const z = computeZScore(node.todayPct, baseline);
+                color = z !== null ? zScoreColor(z) : pnlColor(pct);
+              } else {
+                color = pnlColor(pct);
+              }
+              const widthPct = (node.value / totalVal) * 100;
+              const textColor = textOn(pct);
+              const clickable = !!onCellClick;
+              return (
+                <button
+                  key={node.symbol}
+                  onClick={clickable ? () => onCellClick!(node.symbol) : undefined}
+                  style={{
+                    width: `${widthPct}%`,
+                    minWidth: 36,
+                    height: '100%',
+                    background: color,
+                    border: 'none',
+                    cursor: clickable ? 'pointer' : 'default',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '6px 4px',
+                    color: textColor,
+                    fontFamily: "'SF Mono', 'JetBrains Mono', 'Menlo', monospace",
+                  }}
+                >
+                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                    {node.symbol}
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.92, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+                    {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+                  </div>
+                  <div style={{ fontSize: 9, opacity: 0.62, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
+                    {widthPct.toFixed(0)}%
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           preserveAspectRatio="none"
@@ -330,8 +391,6 @@ export default function PortfolioHeatmap({
             const isOthers = node.symbol === OTHERS_SYMBOL;
             const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
             // P3 — "오늘" 모드 + rawCandles 가용 시 z-score 색.
-            // 누적 모드는 정규분포 가정이 약하므로 piecewise % 유지.
-            // OTHERS 노드는 평균 묶음이라 z-score 부적합 → piecewise 사용.
             let color: string;
             if (colorMode === 'today' && !isOthers && rawCandles?.[node.symbol]) {
               const baseline = computeVolBaseline(rawCandles[node.symbol]);
@@ -344,17 +403,22 @@ export default function PortfolioHeatmap({
             const cellArea = node.w * node.h;
             const minDim = Math.min(node.w, node.h);
 
-            // Progressive disclosure — % 가시성 강화 (4:3에서 셀이 더 정사각이라 임계 완화)
-            // ≥12 viewBox: 티커 + % / ≥7: 티커만 / 그 외: 색만
+            // Progressive disclosure (viewBox 기준 — 셀이 너무 작으면 라벨 자체 숨김)
             const showTicker  = minDim >= 7;
             const showPercent = minDim >= 12;
             const showValue   = !isCompact && minDim >= 16 && cellArea >= 260;
 
-            // 면적 기반 폰트 자동 스케일
-            const fontMul = isCompact ? 0.30 : 0.24;
-            const tickerSize = Math.min(Math.max(minDim * fontMul, 1.8), isCompact ? 6.5 : 7);
+            // P4 — 폰트 cap 대폭 축소 (전문가 회의 결론: Finviz 13~14px 천장 매칭)
+            // SVG fontSize(viewBox) = fallback. CSS clamp(absolute px) = 모던 브라우저 1순위.
+            // compact 480px 컨테이너 기준 viewBox unit 4.8px → cap 3.0 = 14.4px.
+            const fontMul = isCompact ? 0.18 : 0.20;
+            const tickerSize = Math.min(Math.max(minDim * fontMul, 1.6), isCompact ? 3.0 : 5.0);
             const pctSize    = tickerSize * 0.72;
             const valSize    = tickerSize * 0.55;
+            // CSS clamp — 절대 px cap (브라우저가 viewBox 스케일링 무시)
+            const tickerCss = isCompact ? 'clamp(10px, 1.3vw, 13px)' : 'clamp(11px, 1.4vw, 16px)';
+            const pctCss    = isCompact ? 'clamp(8px,  1.0vw, 11px)' : 'clamp(9px,  1.2vw, 13px)';
+            const valCss    = isCompact ? 'clamp(7px,  0.9vw, 10px)' : 'clamp(8px,  1.0vw, 11px)';
 
             const cx = node.x + node.w / 2;
             const cy = node.y + node.h / 2;
@@ -396,7 +460,7 @@ export default function PortfolioHeatmap({
                     fontSize={tickerSize}
                     fontWeight={700}
                     fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
-                    style={{ pointerEvents: 'none', letterSpacing: '-0.02em' }}
+                    style={{ pointerEvents: 'none', letterSpacing: '-0.02em', fontSize: tickerCss }}
                   >
                     {tickerLabel}
                   </text>
@@ -411,7 +475,7 @@ export default function PortfolioHeatmap({
                     fontWeight={600}
                     fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
                     opacity={0.92}
-                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
+                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums', fontSize: pctCss }}
                   >
                     {isOthers
                       ? `${node.childrenSymbols?.length || 0}개`
@@ -428,7 +492,7 @@ export default function PortfolioHeatmap({
                     fontWeight={500}
                     fontFamily="'SF Mono', 'JetBrains Mono', 'Menlo', monospace"
                     opacity={0.62}
-                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums' }}
+                    style={{ pointerEvents: 'none', fontVariantNumeric: 'tabular-nums', fontSize: valCss }}
                   >
                     {node.valFormatted}
                   </text>
@@ -437,6 +501,7 @@ export default function PortfolioHeatmap({
             );
           })}
         </svg>
+        )}
 
         {/* 확대 버튼 — compact만 */}
         {isCompact && onExpand && (
