@@ -416,9 +416,27 @@
   - InsightsSection에 미스매치 힌트 카드 (자가진단 ↔ 실제 패턴 비교, "재진단" CTA)
   - 표본 가드: 종목 < 3개 또는 섹터 < 2개면 null
 
-### ⚠️ 잔여 (서버 인프라)
-- [ ] **L1**: ai_usage IP retention (Supabase 서버 cron + DELETE)
-- [ ] **E 본격 구현**: Vercel Cron + 이메일/카카오
+### ✅ 완료 — 서버 인프라
+
+#### L1: ai_usage IP PII retention
+- `src/app/api/cron/cleanup-pii/route.ts` — Vercel Cron 라우트
+  · ai_usage.ip 90일 후 NULL 익명화 (분석 가치 유지)
+  · api_calls.ip 30일 후 NULL 익명화
+  · 두 테이블 365일+ 행 hard DELETE
+  · CRON_SECRET 인증 (Vercel 자동 설정)
+- `docs/sql_pii_retention.sql` — 인덱스 + 검증 쿼리 + pg_cron 대안
+- `vercel.json` cron: `0 19 * * 6` (토요일 19:00 UTC = 일요일 04:00 KST)
+
+#### E 본격 구현: 모닝 브리핑 (Web Push)
+- `src/app/api/cron/morning-brief/route.ts` — Vercel Cron 라우트
+  · push_subscriptions 조회 → 각 유저 포트폴리오 fetch
+  · 현재 시세로 오늘 일일 변동 + 가장 큰 움직임 종목 계산
+  · 개인화 푸시 본문: "🌅 포트폴리오 +12만원 · 오늘 +0.85% · NVDA +3.2%"
+  · 클릭 → 앱 → 기존 MorningBriefing 컴포넌트가 상세 표시
+  · 410/404 시 만료 구독 자동 삭제
+- `vercel.json` cron: `0 22 * * *` (UTC 22:00 = KST 07:00)
+- 인프라 의존: SUPABASE_SERVICE_KEY, VAPID_*, FINNHUB_API_KEY, CRON_SECRET, NEXT_PUBLIC_APP_URL
+- 향후 확장: Resend 이메일 / 카카오 알림톡 (옵트인 별도)
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**
