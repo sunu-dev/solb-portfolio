@@ -8,6 +8,7 @@ import ConversationalTimeline from '@/components/portfolio/ConversationalTimelin
 import MonthlyReplay from '@/components/portfolio/MonthlyReplay';
 import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
+import CohortReference from '@/components/portfolio/CohortReference';
 import EmptyState from '@/components/common/EmptyState';
 import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
@@ -44,6 +45,7 @@ export default function InsightsSection() {
   const storyRef = useRef<HTMLDivElement>(null);
   const throwbackRef = useRef<HTMLDivElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
+  const cohortRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<HTMLDivElement>(null);
   const dnaRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +54,7 @@ export default function InsightsSection() {
     { id: 'story',     label: '이야기',   emoji: '💬', element: storyRef },
     { id: 'throwback', label: '회고',     emoji: '🕰️', element: throwbackRef },
     { id: 'mirror',    label: '거울',     emoji: '🪞', element: mirrorRef },
+    { id: 'cohort',    label: '코호트',   emoji: '🌐', element: cohortRef },
     { id: 'replay',    label: '월간',     emoji: '📅', element: replayRef },
     { id: 'dna',       label: 'DNA',      emoji: '🧬', element: dnaRef },
   ];
@@ -256,16 +259,23 @@ export default function InsightsSection() {
             </div>
           )}
 
-          {/* 5. Monthly Replay — 한 달 요약 */}
+          {/* 5. 코호트 참조 — 같은 유형 투자자들의 시선 (큐레이션, 추천 아님) */}
+          {hasTypeSet && (
+            <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.4s' }}>
+              <CohortReference />
+            </div>
+          )}
+
+          {/* 6. Monthly Replay — 한 달 요약 */}
           {investingCount > 0 && (
-            <div ref={replayRef} className="insight-stagger" style={{ animationDelay: '0.4s' }}>
+            <div ref={replayRef} className="insight-stagger" style={{ animationDelay: '0.5s' }}>
               <MonthlyReplay />
             </div>
           )}
 
-          {/* 6. Portfolio DNA — 내 투자 캐릭터 (가장 안쪽) */}
+          {/* 7. Portfolio DNA — 내 투자 캐릭터 (가장 안쪽) */}
           {investingCount > 0 && (
-            <div ref={dnaRef} className="insight-stagger" style={{ animationDelay: '0.5s' }}>
+            <div ref={dnaRef} className="insight-stagger" style={{ animationDelay: '0.6s' }}>
               <PortfolioDNA />
             </div>
           )}

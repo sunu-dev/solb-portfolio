@@ -24,6 +24,13 @@ export interface InvestorTypeMeta {
   chokPreference: string[];
   /** UI 색상 (CSS var or hex) */
   accentColor: string;
+  /**
+   * 코호트 참조용 — "같은 유형 투자자들이 자주 보는 종목" (큐레이션, 추천 아님)
+   * 자본시장법: 단순 정보 제공 / 추천·권유 금지. UI에서 "관찰" 프레이밍 사용.
+   */
+  referencePicks: Array<{ symbol: string; reason: string }>;
+  /** 코호트 평균 섹터 분포 (0~1, 합 1) — 본인 분포 비교용 */
+  referenceSectors: Record<string, number>;
 }
 
 export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
@@ -41,6 +48,15 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
 - 회피: 단기 모멘텀·급등락 중심 코멘트, "지금 사야 한다"식 조급함`,
     chokPreference: ['대형주 배당', '저평가 블루칩', '필수소비재', '경제적 해자 뚜렷한 섹터'],
     accentColor: '#8B7355',
+    referencePicks: [
+      { symbol: 'BRK-B', reason: '버핏 직접 운용 · 다각화 지주' },
+      { symbol: 'JNJ',   reason: '60년 연속 배당 인상' },
+      { symbol: 'KO',    reason: '경제적 해자의 교과서' },
+      { symbol: 'PG',    reason: '필수소비재 + 안정 배당' },
+      { symbol: 'V',     reason: '결제 네트워크 해자' },
+      { symbol: 'MSFT',  reason: '클라우드 + 안정 배당' },
+    ],
+    referenceSectors: { '금융': 0.30, '헬스케어': 0.25, '소비재': 0.25, 'IT': 0.20 },
   },
 
   growth: {
@@ -57,6 +73,15 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
 - 회피: 과도한 밸류에이션 경고로 기회 놓치게 만드는 방어적 톤`,
     chokPreference: ['AI/반도체', '클라우드/SaaS', '바이오테크', '고성장 섹터 리더'],
     accentColor: '#3182F6',
+    referencePicks: [
+      { symbol: 'NVDA',  reason: 'AI 반도체 압도적 점유율' },
+      { symbol: 'MSFT',  reason: '클라우드 + AI 동시 leader' },
+      { symbol: 'GOOGL', reason: '검색 + 클라우드 + AI' },
+      { symbol: 'META',  reason: 'AI 인프라 + 광고 회복' },
+      { symbol: 'AMD',   reason: 'AI 반도체 2위' },
+      { symbol: 'TSLA',  reason: 'EV + 자율주행 옵션' },
+    ],
+    referenceSectors: { 'IT': 0.60, '헬스케어': 0.15, '자동차': 0.15, '미디어': 0.10 },
   },
 
   income: {
@@ -73,6 +98,15 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
 - 회피: 변동성 큰 성장주·테마주 추천, 단기 매매 유도`,
     chokPreference: ['배당 ETF', '필수소비재', '유틸리티', '대형 배당주', '저변동성 지수'],
     accentColor: '#16A34A',
+    referencePicks: [
+      { symbol: 'SCHD', reason: '저평가 배당 ETF (배당+성장)' },
+      { symbol: 'JEPI', reason: '월배당 + 변동성 완화' },
+      { symbol: 'KO',   reason: '60년+ 배당 귀족' },
+      { symbol: 'PG',   reason: '필수소비재 안정 현금흐름' },
+      { symbol: 'JNJ',  reason: '헬스케어 방어 + 배당' },
+      { symbol: 'VYM',  reason: '광범위 고배당 ETF' },
+    ],
+    referenceSectors: { '소비재': 0.30, '헬스케어': 0.25, '금융': 0.25, 'ETF': 0.20 },
   },
 
   momentum: {
@@ -89,6 +123,15 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
 - 회피: "장기 보유하면 된다"식 passive 코멘트`,
     chokPreference: ['거래량 급증 종목', '기술적 돌파 임박', '고변동성 ETF(3X)', '단기 모멘텀 테마'],
     accentColor: '#FF9500',
+    referencePicks: [
+      { symbol: 'TSLA', reason: '고변동성 + 거래량 풍부' },
+      { symbol: 'NVDA', reason: '모멘텀 추세 종목' },
+      { symbol: 'COIN', reason: '크립토 베타 + 변동성' },
+      { symbol: 'PLTR', reason: '테마 모멘텀 (AI/방산)' },
+      { symbol: 'TQQQ', reason: '나스닥 3X 레버리지' },
+      { symbol: 'MSTR', reason: '비트코인 프록시 모멘텀' },
+    ],
+    referenceSectors: { 'IT': 0.45, '자동차': 0.20, 'ETF': 0.20, '미디어': 0.15 },
   },
 
   diversified: {
@@ -105,6 +148,15 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
 - 회피: 특정 종목에 과도한 확신, 집중 투자 권유`,
     chokPreference: ['광범위 ETF (VOO/QQQ)', '섹터 ETF', '테마 분산', '해외 분산'],
     accentColor: '#6366F1',
+    referencePicks: [
+      { symbol: 'VOO',  reason: 'S&P500 — 미국 대표 분산' },
+      { symbol: 'QQQ',  reason: '나스닥100 — 테크 비중' },
+      { symbol: 'VT',   reason: '전세계 주식 분산' },
+      { symbol: 'SCHD', reason: '배당 + 가치 분산' },
+      { symbol: 'BND',  reason: '미국 채권 ETF' },
+      { symbol: 'VEA',  reason: '선진국 해외 분산' },
+    ],
+    referenceSectors: { 'ETF': 0.50, 'IT': 0.20, '헬스케어': 0.15, '소비재': 0.15 },
   },
 };
 
