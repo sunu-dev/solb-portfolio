@@ -9,6 +9,7 @@ import MonthlyReplay from '@/components/portfolio/MonthlyReplay';
 import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
 import CohortReference from '@/components/portfolio/CohortReference';
+import { inferInvestorBehavior } from '@/utils/investorBehavior';
 import EmptyState from '@/components/common/EmptyState';
 import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
@@ -34,12 +35,18 @@ interface SectionRef {
 }
 
 export default function InsightsSection() {
-  const { stocks, investorType, investorTypeSetAt, setInvestorType } = usePortfolioStore();
+  const { stocks, macroData, investorType, investorTypeSetAt, setInvestorType } = usePortfolioStore();
   const [showQuiz, setShowQuiz] = useState(false);
   const investingCount = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0).length;
   const hasAnyStock = (stocks.investing?.length || 0) + (stocks.watching?.length || 0) > 0;
   const hasTypeSet = !!investorTypeSetAt;
   const typeMeta = INVESTOR_TYPES[investorType];
+
+  // P3 — 행동 보정: 자가진단 vs 실제 포트폴리오 매칭
+  const behavior = hasTypeSet
+    ? inferInvestorBehavior(stocks.investing || [], macroData, investorType)
+    : null;
+  const bestFitMeta = behavior?.isMismatch ? INVESTOR_TYPES[behavior.bestFit] : null;
 
   const chokRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
@@ -117,7 +124,7 @@ export default function InsightsSection() {
           aria-label={`현재 투자 유형: ${typeMeta.nameKr}. 변경하려면 클릭`}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            marginBottom: 14,
+            marginBottom: behavior?.isMismatch ? 8 : 14,
             padding: '6px 12px', borderRadius: 20,
             background: 'var(--bg-subtle, #F8F9FA)',
             border: `1px solid ${typeMeta.accentColor}33`,
@@ -130,6 +137,51 @@ export default function InsightsSection() {
           </span>
           <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)' }}>변경 ›</span>
         </button>
+      )}
+
+      {/* P3 — 행동 보정 힌트: 자가진단 vs 실제 포트폴리오 미스매치 */}
+      {hasAnyStock && behavior?.isMismatch && bestFitMeta && (
+        <div
+          role="status"
+          aria-label="투자 성향 행동 보정 힌트"
+          style={{
+            marginBottom: 14,
+            padding: '12px 14px',
+            borderRadius: 12,
+            background: `linear-gradient(135deg, ${bestFitMeta.accentColor}10, ${typeMeta.accentColor}08)`,
+            border: `1px solid ${bestFitMeta.accentColor}30`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <span style={{ fontSize: 18, flexShrink: 0 }}>🪞</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
+              자가진단은 <strong style={{ color: typeMeta.accentColor }}>{typeMeta.emoji} {typeMeta.nameKr}</strong>인데,
+              현재 포트폴리오는 <strong style={{ color: bestFitMeta.accentColor }}>{bestFitMeta.emoji} {bestFitMeta.nameKr}</strong> 패턴에 더 가까워요
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
+              섹터 분포 {behavior.gapPct.toFixed(0)}%p 차이 · 의도적이라면 무시하세요
+            </div>
+          </div>
+          <button
+            onClick={() => setShowQuiz(true)}
+            style={{
+              flexShrink: 0,
+              padding: '5px 10px',
+              borderRadius: 8,
+              fontSize: 10,
+              fontWeight: 600,
+              background: 'var(--surface, #FFFFFF)',
+              border: `1px solid ${bestFitMeta.accentColor}40`,
+              color: bestFitMeta.accentColor,
+              cursor: 'pointer',
+            }}
+          >
+            재진단
+          </button>
+        </div>
       )}
 
       {/* 퀴즈 모달 */}

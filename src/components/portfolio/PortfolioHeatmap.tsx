@@ -2,8 +2,9 @@
 
 import { useState, useRef, useMemo } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import type { QuoteData } from '@/config/constants';
+import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 
 // ─── 상수 ──────────────────────────────────────────────────────────────────
 const OTHERS_SYMBOL = '__OTHERS__';
@@ -112,6 +113,28 @@ function squarify(nodes: TreeNode[], rect: Rect): LayoutNode[] {
 
 // ─── 색 스케일 (piecewise, Finviz 스타일) ──────────────────────────────────
 // 한국식: 빨강=수익, 파랑=손실. 0 근처는 차콜 회색(다크 배경에서도 보이게 #2D2D2D).
+//
+// 오늘 모드(zScoreColor): 종목별 변동성 베이스라인 대비 σ 단위로 색 강도 결정
+// 누적 모드(pnlColor): 절대 % 기반 piecewise (누적 수익률은 정규분포 가정 약함)
+
+/**
+ * z-score 기반 색 — "오늘" 모드 한정.
+ * 같은 1% 변동도 안정주(σ=1%)에서는 1σ → 진한 색, 변동주(σ=4%)에서는 0.25σ → 흐린 색.
+ */
+function zScoreColor(z: number): string {
+  if (z >= 3)    return '#B71C1C'; // 극단치 +
+  if (z >= 2.2) return '#D32F2F';
+  if (z >= 1.5) return '#E84549';
+  if (z >= 0.7) return '#C95C5F';
+  if (z >= 0.2) return '#7A4347';
+  if (z > -0.2) return '#2D2D2D'; // 평소 범위
+  if (z > -0.7) return '#3F5777';
+  if (z > -1.5) return '#3071C7';
+  if (z > -2.2) return '#1B64DA';
+  if (z > -3)   return '#1454C4';
+  return '#0D47A1'; // 극단치 -
+}
+
 function pnlColor(pct: number): string {
   if (pct >= 7)    return '#B71C1C';
   if (pct >= 5)   return '#D32F2F';
@@ -149,6 +172,8 @@ interface HeatmapProps {
   onExpand?: () => void;
   /** 셀 클릭 시 분석 패널 열기 */
   onCellClick?: (symbol: string) => void;
+  /** "오늘" 모드 z-score 색 매핑용 — 가용 시 종목별 변동성 정규화 */
+  rawCandles?: Record<string, CandleRaw>;
 }
 
 export default function PortfolioHeatmap({
@@ -156,6 +181,7 @@ export default function PortfolioHeatmap({
   variant = 'full',
   onExpand,
   onCellClick,
+  rawCandles,
 }: HeatmapProps) {
   const [colorMode, setColorMode] = useState<'pnl' | 'today'>('pnl');
   const [hovered, setHovered] = useState<{ node: TreeNode; x: number; y: number } | null>(null);
@@ -303,7 +329,17 @@ export default function PortfolioHeatmap({
           {layout.map(node => {
             const isOthers = node.symbol === OTHERS_SYMBOL;
             const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
-            const color = pnlColor(pct);
+            // P3 — "오늘" 모드 + rawCandles 가용 시 z-score 색.
+            // 누적 모드는 정규분포 가정이 약하므로 piecewise % 유지.
+            // OTHERS 노드는 평균 묶음이라 z-score 부적합 → piecewise 사용.
+            let color: string;
+            if (colorMode === 'today' && !isOthers && rawCandles?.[node.symbol]) {
+              const baseline = computeVolBaseline(rawCandles[node.symbol]);
+              const z = computeZScore(node.todayPct, baseline);
+              color = z !== null ? zScoreColor(z) : pnlColor(pct);
+            } else {
+              color = pnlColor(pct);
+            }
             const textColor = textOn(pct);
             const cellArea = node.w * node.h;
             const minDim = Math.min(node.w, node.h);
@@ -557,7 +593,7 @@ export default function PortfolioHeatmap({
           gap: 8,
         }}>
           <span style={{ fontFamily: '-apple-system, sans-serif' }}>
-            면적 = 평가금액 · 색 = {colorMode === 'pnl' ? '누적 수익률' : '오늘 등락률'}
+            면적 = 평가금액 · 색 = {colorMode === 'pnl' ? '누적 수익률' : (rawCandles ? '오늘 등락 (변동성 정규화)' : '오늘 등락률')}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'SF Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>
             <span>−7%</span>

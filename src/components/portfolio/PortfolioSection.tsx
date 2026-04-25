@@ -980,6 +980,7 @@ export default function PortfolioSection() {
               macroData={macroData}
               usdKrw={usdKrw}
               currency={currency}
+              rawCandles={rawCandles}
               onExpand={() => setSubTab('analysis')}
               onCellClick={(sym) => setAnalysisSymbol(sym)}
             />
@@ -1078,6 +1079,7 @@ export default function PortfolioSection() {
                     macroData={macroData}
                     usdKrw={usdKrw}
                     currency={currency}
+                    rawCandles={rawCandles}
                     onCellClick={(sym) => setAnalysisSymbol(sym)}
                   />
                   <PortfolioHealth stocks={investingData} />

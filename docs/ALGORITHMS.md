@@ -402,9 +402,23 @@
   - 혼조: 그 외
   - 시장 로테이션 신호를 사용자가 한 줄에 인식
 
-### ⚠️ 잔여 (다음 세션)
-- [ ] **InvestorTypes 행동 보정** (퀴즈+행동 데이터 결합)
-- [ ] **Heatmap 색 z-score 매핑** (오늘 모드 한정, rawCandles prop 필요)
+### P3 마지막 ✅ 완료
+- [x] **Heatmap 색 z-score 매핑** (오늘 모드 한정)
+  - `zScoreColor()` 신규 — σ 단위 색 강도(±0.7/1.5/2.2/3+)
+  - "오늘" 모드 + rawCandles 가용 시 z-score 색, 누적 모드는 piecewise % 유지
+  - OTHERS 묶음은 평균 부적합 → piecewise 사용
+  - PortfolioSection 두 호출부에 rawCandles prop 전달
+  - 풋터 라벨도 "오늘 등락 (변동성 정규화)" 명시
+- [x] **InvestorTypes 행동 보정**
+  - `src/utils/investorBehavior.ts` 신규 — `inferInvestorBehavior()`
+  - 알고리즘: 본인 섹터 비중 분포 vs 5타입의 referenceSectors L1 거리 → fit 점수 0~1
+  - 자가진단 fit < best fit AND gap ≥ 15%p → 미스매치
+  - InsightsSection에 미스매치 힌트 카드 (자가진단 ↔ 실제 패턴 비교, "재진단" CTA)
+  - 표본 가드: 종목 < 3개 또는 섹터 < 2개면 null
+
+### ⚠️ 잔여 (서버 인프라)
+- [ ] **L1**: ai_usage IP retention (Supabase 서버 cron + DELETE)
+- [ ] **E 본격 구현**: Vercel Cron + 이메일/카카오
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**
