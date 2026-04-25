@@ -61,7 +61,7 @@ export default function InsightsSection() {
     { id: 'story',     label: '이야기',   emoji: '💬', element: storyRef },
     { id: 'throwback', label: '회고',     emoji: '🕰️', element: throwbackRef },
     { id: 'mirror',    label: '거울',     emoji: '🪞', element: mirrorRef },
-    { id: 'cohort',    label: '코호트',   emoji: '🌐', element: cohortRef },
+    { id: 'cohort',    label: '숨은 종목', emoji: '🌐', element: cohortRef },
     { id: 'replay',    label: '월간',     emoji: '📅', element: replayRef },
     { id: 'dna',       label: 'DNA',      emoji: '🧬', element: dnaRef },
   ];
@@ -311,10 +311,11 @@ export default function InsightsSection() {
             </div>
           )}
 
-          {/* 5. 코호트 참조 — 같은 유형 투자자들의 시선 (큐레이션, 추천 아님) */}
-          {hasTypeSet && (
+          {/* 5. 숨은 종목 — 같은 유형 투자자가 자주 보는 (큐레이션, 추천 아님)
+              유형 미설정 시에도 placeholder 노출(미니 nav 클릭 작동) */}
+          {hasAnyStock && (
             <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.4s' }}>
-              <CohortReference />
+              <CohortReference onStartQuiz={() => setShowQuiz(true)} />
             </div>
           )}
 

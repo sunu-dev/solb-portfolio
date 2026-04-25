@@ -8,21 +8,21 @@ import { getSector } from '@/utils/portfolioHealth';
 import type { QuoteData } from '@/config/constants';
 
 /**
- * 같은 유형 투자자 코호트 — 큐레이션 기반 참조 (자본시장법 준수: 정보 제공 / 추천·권유 금지)
+ * 숨은 종목 — 같은 유형 투자자가 자주 보는 (큐레이션, 추천 아님)
  *
  * 데이터 소스: INVESTOR_TYPES[type].referencePicks / referenceSectors (큐레이션)
  *
- * 향후(P3): Supabase 서버측 익명 집계로 실제 코호트 데이터 교체
- *  - cohort_stats(investor_type, period) 테이블
- *  - 매주 배치로 같은 유형 사용자들의 보유 종목 분포 집계
- *  - PII 제외, 비중 분포만 저장
- *
- * UI 프레이밍:
- * - "같은 [유형] 투자자들이 자주 살펴보는 종목" — 관찰
+ * UI 프레이밍 (자본시장법 준수):
+ * - "[유형]이 자주 보는 종목" — 관찰
  * - "참고용. 실제 투자 판단은 본인이 하세요." — 면책
  * - "추천", "유망", "사세요" 같은 권유 표현 금지
  */
-export default function CohortReference() {
+interface Props {
+  /** 유형 미설정 시 퀴즈 모달 여는 핸들러 */
+  onStartQuiz?: () => void;
+}
+
+export default function CohortReference({ onStartQuiz }: Props = {}) {
   const { stocks, investorType, investorTypeSetAt, addStock, setAnalysisSymbol, macroData } = usePortfolioStore();
 
   const meta = INVESTOR_TYPES[investorType];
@@ -75,8 +75,49 @@ export default function CohortReference() {
     };
   }, [stocks.investing, stocks.watching, stocks.sold, investorType, macroData, meta]);
 
+  // 유형 미설정 시 placeholder — 퀴즈 유도 (이전엔 null로 숨겨서 미니 nav 클릭 무반응)
   if (!hasTypeSet) {
-    return null; // 유형 미설정 시 숨김
+    return (
+      <div
+        style={{
+          marginBottom: 32,
+          padding: '24px 20px',
+          borderRadius: 16,
+          background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,115,85,0.04) 100%)',
+          border: '1px solid rgba(99,102,241,0.15)',
+          textAlign: 'center',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{ fontSize: 22 }}>🌐</span>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
+            HIDDEN PICKS
+          </div>
+        </div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
+          내 스타일에 맞는 숨은 종목
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 16, wordBreak: 'keep-all' }}>
+          가치/성장/배당 등 투자 성향에 맞춰 큐레이션된 종목과<br/>
+          내 포트폴리오 섹터 분포 비교를 볼 수 있어요.
+        </div>
+        <button
+          onClick={onStartQuiz}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 10,
+            background: '#3182F6',
+            color: '#FFFFFF',
+            border: 'none',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          1분 퀴즈로 내 유형 알아보기 →
+        </button>
+      </div>
+    );
   }
 
   const handleAddWatch = (symbol: string) => {
@@ -98,10 +139,10 @@ export default function CohortReference() {
         <span style={{ fontSize: 18 }}>🌐</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            COHORT REFERENCE
+            HIDDEN PICKS
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
-            같은 {meta.nameKr}들의 시선
+            숨은 종목 · {meta.nameKr}이 자주 보는
           </div>
         </div>
         <span style={{
@@ -225,7 +266,7 @@ export default function CohortReference() {
             letterSpacing: 0.4,
             marginBottom: 8,
           }}>
-            자주 살펴보는 종목
+            숨은 종목 6선
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.newPicks.map(pick => {
@@ -302,7 +343,7 @@ export default function CohortReference() {
           color: 'var(--text-tertiary, #B0B8C1)',
           lineHeight: 1.5,
         }}>
-          ✨ 같은 유형 참조 종목 모두 이미 추적 중이에요
+          ✨ 숨은 종목 모두 이미 추적 중이에요
         </div>
       )}
     </div>
