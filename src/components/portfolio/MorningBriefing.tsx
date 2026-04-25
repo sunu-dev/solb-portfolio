@@ -50,19 +50,45 @@ export default function MorningBriefing() {
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
     if (investing.length === 0) return null;
 
-    // 시장 심리
+    // P3 — 시장 심리 정교화: 단순 평균 → 동조/분기 감지
+    // S&P(가치 포함 광범위)와 NASDAQ(성장 편중)이 다른 방향이면 시장 로테이션 신호
     const sp = macroData['S&P 500'] as MacroEntry | undefined;
     const nasdaq = macroData['NASDAQ'] as MacroEntry | undefined;
     const spCp = sp?.changePercent || 0;
     const nasdaqCp = nasdaq?.changePercent || 0;
-    const avg = (spCp + nasdaqCp) / 2;
-    const marketLabel = avg > 1 ? '상승'
-      : avg > 0.3 ? '소폭 상승'
-      : avg < -1 ? '하락'
-      : avg < -0.3 ? '소폭 하락'
-      : '보합';
-    const marketTone: 'gain' | 'loss' | 'neutral' =
-      avg > 0.3 ? 'gain' : avg < -0.3 ? 'loss' : 'neutral';
+
+    const SIG = 0.3; // 의미 임계값
+    const STRONG = 1.0;
+    const spUp = spCp > SIG, spDown = spCp < -SIG;
+    const nqUp = nasdaqCp > SIG, nqDown = nasdaqCp < -SIG;
+    const spread = nasdaqCp - spCp; // 양수: NASDAQ 강세, 음수: S&P 강세
+
+    let marketLabel: string;
+    let marketTone: 'gain' | 'loss' | 'neutral';
+
+    if (spUp && nqUp) {
+      // 동조 상승
+      const max = Math.max(spCp, nasdaqCp);
+      marketLabel = max >= STRONG ? '동조 상승' : '소폭 상승';
+      marketTone = 'gain';
+    } else if (spDown && nqDown) {
+      // 동조 하락
+      const min = Math.min(spCp, nasdaqCp);
+      marketLabel = min <= -STRONG ? '동조 하락' : '소폭 하락';
+      marketTone = 'loss';
+    } else if (Math.abs(spread) >= 0.7) {
+      // 분기 — 한쪽만 또는 반대 방향
+      if (spread > 0) {
+        marketLabel = nqUp || !spDown ? '성장주 강세' : '성장주만 회복';
+        marketTone = nqUp ? 'gain' : 'neutral';
+      } else {
+        marketLabel = spUp || !nqDown ? '가치주 강세 (성장주 약세)' : '성장주 약세';
+        marketTone = nqDown ? 'loss' : 'neutral';
+      }
+    } else {
+      marketLabel = '혼조';
+      marketTone = 'neutral';
+    }
 
     // 현재 자산 + 가장 큰 움직임
     let currentValue = 0;

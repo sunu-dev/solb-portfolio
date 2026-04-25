@@ -162,7 +162,8 @@ export async function POST(req: NextRequest) {
             per, eps, week52High, week52Low, sector,
             stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category,
             investorType = DEFAULT_INVESTOR_TYPE,
-            userNotes = [] as string[] } = body as typeof body & { investorType?: InvestorType; userNotes?: string[] };
+            userNotes = [] as string[],
+            timeSeriesContext = '' } = body as typeof body & { investorType?: InvestorType; userNotes?: string[]; timeSeriesContext?: string };
 
     // 개인화 계산
     const currentPLPct = (avgCost && price && avgCost > 0)
@@ -285,7 +286,7 @@ ${eps != null ? `- EPS(주당순이익): $${eps.toFixed(2)}` : '- EPS: 데이터
 ${week52High != null && week52Low != null ? `- 52주 고가/저가: $${week52High} / $${week52Low}` : ''}
 ${sector ? `- 섹터: ${sector}` : ''}
 
-## 최근 뉴스
+${timeSeriesContext ? timeSeriesContext + '\n\n' : ''}## 최근 뉴스
 ${recentNews || '관련 뉴스 없음'}
 
 ${(userNotes as string[]).length > 0 ? `## 사용자가 남긴 결정 메모 (중요)

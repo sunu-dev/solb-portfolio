@@ -447,6 +447,7 @@ export default function AnalysisPanel() {
                           sector: fundamentals?.sector,
                           investorType,
                           userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
+                          timeSeriesContext: symbol ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(rawCandles[symbol]) : '',
                         }),
                       });
                       const data = await resp.json();
@@ -724,6 +725,7 @@ export default function AnalysisPanel() {
                                   sector: fundamentals?.sector,
                                   investorType,
                                   userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
+                                  timeSeriesContext: symbol ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(rawCandles[symbol]) : '',
                                 }),
                               });
                               const data = await resp.json();

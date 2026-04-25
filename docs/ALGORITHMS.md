@@ -385,11 +385,26 @@
   - 1% σ = 15점, 6.7% σ = 100점 (3X 레버리지 ETF 수준)
   - 오늘 시장이 유독 변동 클 때 DNA 변동성 축이 왜곡되는 문제 해소
 
+### P3 후속 ✅ 추가 완료
+- [x] **시계열 사전 추출** (`src/utils/timeSeries.ts` 신규)
+  - `extractMaPosition`: "20일선 위 N거래일째 (상승 추세 지속)"
+  - `extractRsiTrend`: "RSI 71 (과매수 4거래일째)"
+  - `extract52wPosition`: "52주 고점 근접 (28거래일 전 도달, 현재 -3.2%)"
+  - `extractRecentMomentum`: "최근 5거래일 누적 +12%"
+  - `extractVolumeSpike`: "거래량 평소의 2.3배 (강한 관심)"
+  - `buildTimeSeriesContext`: 신호 있는 항목만 bullet list로 통합
+  - AnalysisPanel → /api/ai-analysis 프롬프트에 주입
+  - LLM이 raw candle 추론 안 해도 됨 → 정확도 + 토큰 효율 ↑
+- [x] **MorningBriefing 시장 심리 정교화**
+  - 단순 평균 (spCp + nasdaqCp) / 2 → **동조/분기 감지**
+  - 동조 상승 / 동조 하락: 둘 다 ±SIG 이상 같은 방향
+  - 분기 (spread ≥ 0.7%p): "성장주 강세 / 약세", "가치주 강세"
+  - 혼조: 그 외
+  - 시장 로테이션 신호를 사용자가 한 줄에 인식
+
 ### ⚠️ 잔여 (다음 세션)
 - [ ] **InvestorTypes 행동 보정** (퀴즈+행동 데이터 결합)
-- [ ] **MorningBriefing 시장 심리 정교화** (S&P/NASDAQ 단순 평균 → 변동성 가중)
-- [ ] **Heatmap 색 z-score 매핑**
-- [ ] **시계열 사전 추출 강화** ("20일선 위 12거래일째", "RSI 71 과매수 4일째")
+- [ ] **Heatmap 색 z-score 매핑** (오늘 모드 한정, rawCandles prop 필요)
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**
