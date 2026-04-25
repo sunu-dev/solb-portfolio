@@ -337,6 +337,21 @@ export default function PortfolioSection() {
       {subTab === 'stocks' && (
       <div style={{ marginTop: 8, paddingTop: 12 }}>
 
+        {/* 미니 히트맵 — 첫인상을 프로 도구로. 분석 탭의 풀 히트맵을 압축 표시 */}
+        {investingStocks.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <PortfolioHeatmap
+              variant="compact"
+              stocks={investingStocks}
+              macroData={macroData}
+              usdKrw={usdKrw}
+              currency={currency}
+              onExpand={() => setSubTab('analysis')}
+              onCellClick={(sym) => setAnalysisSymbol(sym)}
+            />
+          </div>
+        )}
+
         {/* Category tabs + 종목 추가 버튼 (같은 줄) */}
         <div className="flex items-center" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '20px' }}>
           <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ flex: 1, gap: 0 }}>
@@ -956,7 +971,13 @@ export default function PortfolioSection() {
                     }
                   `}</style>
                   <BenchmarkCompare />
-                  <PortfolioHeatmap stocks={investingStocks} macroData={macroData} usdKrw={usdKrw} currency={currency} />
+                  <PortfolioHeatmap
+                    stocks={investingStocks}
+                    macroData={macroData}
+                    usdKrw={usdKrw}
+                    currency={currency}
+                    onCellClick={(sym) => setAnalysisSymbol(sym)}
+                  />
                   <PortfolioHealth stocks={investingData} />
                 </div>
                 <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />

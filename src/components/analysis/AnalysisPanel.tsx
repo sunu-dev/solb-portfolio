@@ -446,6 +446,7 @@ export default function AnalysisPanel() {
                           week52Low: fundamentals?.week52Low,
                           sector: fundamentals?.sector,
                           investorType,
+                          userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
                         }),
                       });
                       const data = await resp.json();
@@ -722,6 +723,7 @@ export default function AnalysisPanel() {
                                   week52Low: fundamentals?.week52Low,
                                   sector: fundamentals?.sector,
                                   investorType,
+                                  userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
                                 }),
                               });
                               const data = await resp.json();

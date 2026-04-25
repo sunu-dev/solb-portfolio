@@ -148,9 +148,15 @@ export default function EditStockModal() {
     // 변경 감지: 메모 프롬프트 트리거
     const sharesDelta = finalShares - (stock.shares || 0);
     const avgCostChanged = Math.abs(finalAvgCost - (stock.avgCost || 0)) > 0.01;
+    const isFirstBuy = (stock.notes || []).length === 0
+      && (stock.shares || 0) === 0
+      && finalShares > 0
+      && editingCat === 'investing';
     let context: string | null = null;
 
-    if (addPriceNum > 0 && addSharesNum > 0) {
+    if (isFirstBuy) {
+      context = '첫 매수';
+    } else if (addPriceNum > 0 && addSharesNum > 0) {
       context = `${addSharesNum}주 추가 매수`;
     } else if (sharesDelta !== 0) {
       context = sharesDelta > 0 ? `+${sharesDelta}주 매수` : `${Math.abs(sharesDelta)}주 매도`;
@@ -511,13 +517,17 @@ export default function EditStockModal() {
             `}</style>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 15 }}>✅</span>
+              <span style={{ fontSize: 15 }}>{memoContext === '첫 매수' ? '🌱' : '✅'}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                저장 완료 · 왜 이 결정을 했나요?
+                {memoContext === '첫 매수'
+                  ? '저장 완료 · 왜 처음 사셨나요?'
+                  : '저장 완료 · 왜 이 결정을 했나요?'}
               </span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 12, lineHeight: 1.5 }}>
-              한 줄만 남겨도 나중에 복기에 큰 도움이 돼요 ({memoContext})
+              {memoContext === '첫 매수'
+                ? '1년 뒤 주비가 다시 보여드릴게요. 한 줄이면 충분해요.'
+                : `한 줄만 남겨도 나중에 복기에 큰 도움이 돼요 (${memoContext})`}
             </div>
 
             {/* 감정 태그 */}
@@ -548,7 +558,9 @@ export default function EditStockModal() {
             <textarea
               value={memoText}
               onChange={e => setMemoText(e.target.value)}
-              placeholder="예: 실적 발표 전 분할 매수 · 목표가 도달해서 일부 익절 · 뉴스 보고 추가매수"
+              placeholder={memoContext === '첫 매수'
+                ? '예: AI 가속화 트렌드 베팅 · 실적 가속화 + 가이던스 상향 · 장기 보유 의도'
+                : '예: 실적 발표 전 분할 매수 · 목표가 도달해서 일부 익절 · 뉴스 보고 추가매수'}
               autoFocus
               style={{
                 width: '100%', minHeight: 60, padding: '10px 12px',

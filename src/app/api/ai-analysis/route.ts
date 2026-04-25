@@ -161,7 +161,8 @@ export async function POST(req: NextRequest) {
             recentNews, mentorId,
             per, eps, week52High, week52Low, sector,
             stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category,
-            investorType = DEFAULT_INVESTOR_TYPE } = body as typeof body & { investorType?: InvestorType };
+            investorType = DEFAULT_INVESTOR_TYPE,
+            userNotes = [] as string[] } = body as typeof body & { investorType?: InvestorType; userNotes?: string[] };
 
     // 개인화 계산
     const currentPLPct = (avgCost && price && avgCost > 0)
@@ -286,6 +287,10 @@ ${sector ? `- 섹터: ${sector}` : ''}
 
 ## 최근 뉴스
 ${recentNews || '관련 뉴스 없음'}
+
+${(userNotes as string[]).length > 0 ? `## 사용자가 남긴 결정 메모 (중요)
+이 사용자가 이 종목에 대해 매수/매도/조정 시 직접 작성한 한 줄 메모입니다. **반드시 분석에 반영하여**, 사용자의 원래 매수 논리가 여전히 유효한지·바뀌었는지 짚어주세요.
+${(userNotes as string[]).map((n: string, i: number) => `${i + 1}. "${n}"`).join('\n')}` : ''}
 
 ${responseFormat}`;
 

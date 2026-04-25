@@ -172,9 +172,48 @@ export default function ThrowbackCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stocks.investing, macroData, rawCandles, dailySnapshots]);
 
+  // 기간별 "그때 메모" — 활성 기간의 ±50% 범위 내 작성된 노트
+  interface PeriodNote {
+    symbol: string;
+    emoji: string;
+    text: string;
+    daysAgo: number;
+  }
+  const periodNotes = useMemo<Record<PeriodKey, PeriodNote[]>>(() => {
+    const out: Record<PeriodKey, PeriodNote[]> = {
+      '1d': [], '1w': [], '1m': [], '3m': [], '6m': [], '1y': [],
+    };
+    const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
+    const now = Date.now();
+    for (const stock of investing) {
+      for (const note of (stock.notes || [])) {
+        const isoPart = note.date.split('_')[0];
+        const noteTs = new Date(isoPart).getTime();
+        if (isNaN(noteTs)) continue;
+        const daysAgo = (now - noteTs) / (1000 * 86400);
+        for (const period of PERIODS) {
+          if (daysAgo >= period.days * 0.5 && daysAgo <= period.days * 1.5) {
+            out[period.key].push({
+              symbol: stock.symbol,
+              emoji: note.emoji,
+              text: note.text,
+              daysAgo,
+            });
+          }
+        }
+      }
+    }
+    for (const k of Object.keys(out) as PeriodKey[]) {
+      out[k].sort((a, b) => b.daysAgo - a.daysAgo); // 오래된 것 먼저
+      out[k] = out[k].slice(0, 5);
+    }
+    return out;
+  }, [stocks.investing]);
+
   if (!allData) return null;
 
   const active = allData[activePeriod];
+  const activeNotes = periodNotes[activePeriod];
 
   const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
   const formatMoney = (usd: number) => {
@@ -264,6 +303,7 @@ export default function ThrowbackCard() {
           data={active}
           selfLabel={PERIODS.find(p => p.key === activePeriod)!.selfLabel}
           formatMoney={formatMoney}
+          notes={activeNotes}
         />
       )}
     </div>
@@ -272,7 +312,7 @@ export default function ThrowbackCard() {
 
 // ─── 활성 기간 본문 ──────────────────────────────────────────────────────────
 function ActiveBody({
-  data, selfLabel, formatMoney,
+  data, selfLabel, formatMoney, notes,
 }: {
   data: {
     perfs: Array<{ symbol: string; shares: number; priceNow: number; pricePast: number; deltaAbs: number; deltaPct: number }>;
@@ -286,6 +326,7 @@ function ActiveBody({
   };
   selfLabel: string;
   formatMoney: (usd: number) => string;
+  notes: { symbol: string; emoji: string; text: string; daysAgo: number }[];
 }) {
   const isGain = data.totalDelta >= 0;
   const isSnapshot = data.source === 'snapshot';
@@ -369,6 +410,67 @@ function ActiveBody({
               isGain={data.worst.deltaPct >= 0}
             />
           )}
+        </div>
+      )}
+
+      {/* 그날의 결정 — 해당 기간 작성된 메모 */}
+      {notes.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700,
+            color: 'var(--text-tertiary, #B0B8C1)',
+            letterSpacing: 0.4,
+            marginBottom: 8,
+          }}>
+            💭 그때의 결정
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {notes.map((n, i) => {
+              const kr = STOCK_KR[n.symbol] || n.symbol;
+              const avatarColor = getAvatarColor(n.symbol);
+              const daysLabel = n.daysAgo < 2
+                ? `${Math.round(n.daysAgo * 24)}시간 전`
+                : `${Math.round(n.daysAgo)}일 전`;
+              return (
+                <div
+                  key={`${n.symbol}-${i}`}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    background: 'var(--surface, #FFFFFF)',
+                    border: '1px solid var(--border-light, #F2F4F6)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%', background: avatarColor,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{n.symbol.charAt(0)}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{kr}</span>
+                      <span style={{ fontSize: 10 }}>{n.emoji}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto' }}>
+                        {daysLabel}
+                      </span>
+                    </div>
+                    <div style={{
+                      fontSize: 12,
+                      color: 'var(--text-secondary, #4E5968)',
+                      lineHeight: 1.5,
+                      wordBreak: 'keep-all',
+                    }}>
+                      &ldquo;{n.text}&rdquo;
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </>
