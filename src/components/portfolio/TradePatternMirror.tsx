@@ -111,16 +111,26 @@ export default function TradePatternMirror() {
 
     const withOutcome = decisions.filter(d => d.outcomePct !== undefined);
     const sortedByOutcome = [...withOutcome].sort((a, b) => (b.outcomePct! - a.outcomePct!));
-    const best = sortedByOutcome[0];
-    const worst = sortedByOutcome[sortedByOutcome.length - 1];
     const avgOutcome = withOutcome.length > 0
       ? withOutcome.reduce((s, d) => s + d.outcomePct!, 0) / withOutcome.length
       : null;
 
+    // best/worst 분리 — 결정 1건이면 부호에 따라 한쪽에만 들어감
+    let best: Decision | null = null;
+    let worst: Decision | null = null;
+    if (withOutcome.length === 1) {
+      const only = withOutcome[0];
+      if (only.outcomePct! >= 0) best = only;
+      else worst = only;
+    } else if (withOutcome.length >= 2) {
+      best = sortedByOutcome[0];
+      worst = sortedByOutcome[sortedByOutcome.length - 1];
+    }
+
     return {
       total, buys, sells,
       emojiStats,
-      best: best && best !== worst ? best : null,
+      best,
       worst,
       avgOutcome,
       withOutcomeCount: withOutcome.length,
@@ -130,20 +140,29 @@ export default function TradePatternMirror() {
   // 메모 0건 — 컴포넌트 자체 숨김 (인사이트 탭의 다른 섹션이 채워줌)
   if (stats.total === 0) return null;
 
-  // ─── 핵심 인사이트 한 문장 — 충동 vs 분석 같은 비교 또는 평균 결과
+  // ─── 핵심 인사이트 한 문장 — 충동 vs 분석 같은 비교 또는 결과 요약
+  // 평균 비교 인사이트는 양쪽 표본이 각각 ≥2건일 때만 (1건짜리 평균은 통계적 의미 없음)
   const headline = (() => {
     const impulse = stats.emojiStats.find(e => e.emoji === '😤');
     const analysis = stats.emojiStats.find(e => e.emoji === '🤔');
-    if (impulse && analysis && impulse.avgOutcome !== null && analysis.avgOutcome !== null) {
+    if (
+      impulse && analysis
+      && impulse.avgOutcome !== null && analysis.avgOutcome !== null
+      && impulse.count >= 2 && analysis.count >= 2
+    ) {
       const diff = analysis.avgOutcome - impulse.avgOutcome;
       const better = diff >= 0;
       return better
         ? `🤔 분석 후 결정이 😤 충동보다 평균 ${Math.abs(diff).toFixed(1)}%p 좋았어요`
         : `😤 충동 결정이 🤔 분석보다 평균 ${Math.abs(diff).toFixed(1)}%p 높네요. 흥미로워요`;
     }
+    if (stats.withOutcomeCount === 1 && stats.avgOutcome !== null) {
+      const sign = stats.avgOutcome >= 0 ? '+' : '';
+      return `1건 추적 중 — ${sign}${stats.avgOutcome.toFixed(1)}%. 결정이 쌓일수록 패턴이 보여요`;
+    }
     if (stats.avgOutcome !== null) {
       const sign = stats.avgOutcome >= 0 ? '+' : '';
-      return `${stats.withOutcomeCount}건의 결정 후 평균 ${sign}${stats.avgOutcome.toFixed(1)}% 흐름`;
+      return `${stats.withOutcomeCount}건 평균 ${sign}${stats.avgOutcome.toFixed(1)}%`;
     }
     return `지금까지 ${stats.total}건의 결정을 기록했어요`;
   })();
@@ -202,7 +221,7 @@ export default function TradePatternMirror() {
           sub={`매수 ${stats.buys} · 매도 ${stats.sells}`}
         />
         <StatCard
-          label="평균 결과"
+          label={stats.withOutcomeCount === 1 ? '결과' : '평균 결과'}
           value={
             stats.avgOutcome !== null
               ? `${stats.avgOutcome >= 0 ? '+' : ''}${stats.avgOutcome.toFixed(1)}%`
@@ -294,21 +313,26 @@ export default function TradePatternMirror() {
         </div>
       )}
 
-      {/* 최고/최악 결정 */}
+      {/* 최고/최악 결정 — 부호에 맞게 라벨 적응 (양수만 있으면 "가장 덜 오른"/"가장 잘 오른") */}
       {(stats.best || stats.worst) && (
-        <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{
+          marginTop: 14,
+          display: 'grid',
+          gridTemplateColumns: stats.best && stats.worst ? '1fr 1fr' : '1fr',
+          gap: 8,
+        }}>
           {stats.best && (
             <DecisionHighlight
-              icon="🏆"
-              label="가장 좋았던"
+              icon={stats.best.outcomePct! >= 0 ? '🏆' : '🌱'}
+              label={stats.best.outcomePct! >= 0 ? '가장 좋았던' : '가장 덜 내린'}
               decision={stats.best}
               onClick={() => setAnalysisSymbol(stats.best!.symbol)}
             />
           )}
           {stats.worst && stats.worst !== stats.best && (
             <DecisionHighlight
-              icon="💧"
-              label="가장 아팠던"
+              icon={stats.worst.outcomePct! < 0 ? '💧' : '🐢'}
+              label={stats.worst.outcomePct! < 0 ? '가장 아팠던' : '가장 덜 오른'}
               decision={stats.worst}
               onClick={() => setAnalysisSymbol(stats.worst!.symbol)}
             />
