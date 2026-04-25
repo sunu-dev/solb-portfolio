@@ -69,12 +69,23 @@ export function needsNewSnapshot(snapshots: DailySnapshot[]): boolean {
 }
 
 /**
- * 최근 N일 이내 스냅샷만 유지 (용량 관리)
+ * 최근 N일 이내 스냅샷만 유지 + 같은 날짜 중복 제거
+ * 정합성 결함 C3 수정: 두 탭 동시 마운트/KST 자정 경계에서 같은 date 2회 push 방지.
+ * 같은 날짜 중복 시 totalValue가 큰 것을 우선(시세 더 많이 로드된 시점).
  */
 export function prune(snapshots: DailySnapshot[], maxDays = 365): DailySnapshot[] {
   if (snapshots.length === 0) return snapshots;
   const cutoffDate = getDateDaysAgo(maxDays);
-  return snapshots
-    .filter(s => s.date >= cutoffDate)
-    .sort((a, b) => a.date.localeCompare(b.date));
+
+  // 같은 date dedup — Map으로 마지막 또는 totalValue 큰 것 보존
+  const byDate = new Map<string, DailySnapshot>();
+  for (const s of snapshots) {
+    if (s.date < cutoffDate) continue;
+    const existing = byDate.get(s.date);
+    if (!existing || s.totalValue > existing.totalValue) {
+      byDate.set(s.date, s);
+    }
+  }
+
+  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
 }

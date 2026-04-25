@@ -363,6 +363,53 @@
 
 ---
 
+## 정합성 감사 (2026-04-25)
+
+전체 코드베이스 수치/데이터 정합성 감사 결과. 핀테크 앱이므로 **실제 손실 가능 결함**은 즉시 수정.
+
+### 🔴 즉시 수정 완료 (커밋됨)
+
+#### C1-calc: 분수주 미지원 → parseFloat
+- **파일**: `src/components/common/EditStockModal.tsx`, `src/components/portfolio/BuySimulator.tsx`
+- **결함**: `parseInt(shares)`로 0.5234주 같은 분수주가 0 또는 정수로 잘림. OcrImportModal은 parseFloat로 분수주 받는데 EditStockModal에서 잘려 저장 → 종목별 평단·총평가 왜곡
+- **수정**: 모든 shares 파싱을 `parseFloat`로 통일. Input에 `step="0.0001"` 추가. BuySimulator도 `Math.floor(x*10000)/10000`로 분수주 4자리 정밀도
+
+#### C2-calc: 가중평균 환율 분모 오류
+- **파일**: `EditStockModal.tsx:104-107`
+- **결함**: `(USD 비용) / (USD 비용)` 형태 → 정의상 분모는 수량이어야 함. `|| 1` fallback이 oldCost=0에서 천문학적 환율 유발
+- **수정**: `(oldShares × oldRate + addShares × addRate) / newTotalShares` (교과서 형태)
+
+#### C3-data: snapshot 중복 dedup
+- **파일**: `src/utils/dailySnapshot.ts:74`
+- **결함**: 두 탭 동시 마운트 / KST 자정 경계에서 같은 date 2회 push. prune이 dedup 안 함
+- **수정**: prune 내부 Map<date, snap> dedup. 같은 날짜 중복 시 totalValue 큰 것 보존 (시세 더 많이 로드된 시점)
+
+#### C1-data: DB 덮어쓰기 race 차단
+- **파일**: `src/lib/portfolioSync.ts`, `src/hooks/usePortfolioSync.ts`
+- **결함**: loadPortfolioFromDB가 null만 반환해 "row 없음"과 "쿼리 실패"를 구분 못 함. 실패 시 caller가 save 호출 → 빈 localStorage가 DB의 실제 데이터를 삭제
+- **수정**: `loadPortfolio()` 신규 함수 — `LoadResult` 타입(`'ok' | 'empty' | 'error'`)으로 명시 분기. error 시 save 절대 금지, initialLoadDone 응답 후에만 true. 기존 함수는 deprecated로 호환 유지
+
+### ⚠️ 추가 발견 (P1, 다음 세션)
+
+| ID | 결함 | 위치 | 위험도 |
+|---|---|---|---|
+| C2-data | 계정 전환 시 이전 데이터 잔존 | useAuth + usePortfolioSync | 🔴 |
+| H1-calc | totalPLPct 분모 단위 혼재 | Dashboard.tsx:84 | 🟠 |
+| H2-calc | fallback 환율 1400 무고지 | 다수 | 🟠 |
+| H1-data | persist version/migrate 부재 | portfolioStore.ts | 🟠 |
+| H4-data | 종목 삭제 시 notes Undo 부재 | portfolioStore.ts | 🟠 |
+| M2-data | notes.date 형식 불일치 | InvestmentNotes vs EditStockModal | 🟡 |
+| M3-data | 카테고리 자동 이동 시 idx race | portfolioStore.ts:282 | 🟡 |
+
+### ❌ 검산 후 false alarm
+
+#### C4-calc: 환차익 분해식 — 실제로는 정확
+- 감사 에이전트 주장: `stockPnLWon + fxPnLWon ≠ plWon`, 교차항 누락
+- 검산: `(price-avgCost)*shares*usdKrw + avgCost*shares*(usdKrw-purchaseRate)` = `shares*(price*usdKrw - avgCost*purchaseRate)` = `currentValueKrw - purchaseCostKrw` = plWon ✓
+- **결론**: 분해식은 수학적으로 합 보존됨. 수정 불필요
+
+---
+
 ## 통계/금융 용어 사전 (개발자용)
 
 | 용어 | 정의 | 사용처 |

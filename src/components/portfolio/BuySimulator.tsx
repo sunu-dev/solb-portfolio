@@ -28,7 +28,8 @@ export default function BuySimulator({
   const kr = STOCK_KR[symbol] || symbol;
   const amountNum = parseFloat(amount) || 0;
   const amountUsd = currency === 'KRW' ? amountNum / usdKrw : amountNum;
-  const newShares = Math.floor(amountUsd / currentPrice);
+  // 분수주 지원 — 한국 증권사 표준. 소수 4자리까지(증권사별 정밀도 일반치)
+  const newShares = currentPrice > 0 ? Math.floor(amountUsd / currentPrice * 10000) / 10000 : 0;
   const actualCost = newShares * currentPrice;
   const remainingCash = amountUsd - actualCost;
 

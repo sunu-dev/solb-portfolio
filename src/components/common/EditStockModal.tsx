@@ -89,21 +89,23 @@ export default function EditStockModal() {
     setEditingIdx(-1);
   };
 
-  // Compute new avg cost + weighted purchaseRate preview
+  // 분수주(0.5234주) 지원 — 한국 증권사가 분수주 거래 표준이므로 parseFloat 사용
+  // 정합성 결함 C1 수정: 기존 parseInt가 분수주를 0 또는 정수로 잘라 평단·총평가 왜곡
   const oldCostNum = parseFloat(avgCost) || 0;
-  const oldSharesNum = parseInt(shares) || 0;
+  const oldSharesNum = parseFloat(shares) || 0;
   const addPriceNum = parseFloat(addBuyPrice) || 0;
-  const addSharesNum = parseInt(addBuyShares) || 0;
+  const addSharesNum = parseFloat(addBuyShares) || 0;
   const addRateNum = parseFloat(addBuyRate) || currentUsdKrw;
   const newTotalShares = oldSharesNum + addSharesNum;
   const newAvgCost = newTotalShares > 0
     ? (oldCostNum * oldSharesNum + addPriceNum * addSharesNum) / newTotalShares
     : oldCostNum;
   const oldRateNum = parseFloat(purchaseRate) || currentUsdKrw;
-  // 가중 평균 환율: (기존수량 × 기존환율 + 추가수량 × 추가환율) / 총수량
+  // 가중 평균 환율 — 정의상 (Σ shares × rate) / Σ shares
+  // 정합성 결함 C2 수정: 기존엔 분모가 USD 비용(oldCost*oldShares + addPrice*addShares) → 잘못
+  //                     `|| 1` fallback이 oldCost=0 케이스에서 천문학적 환율 유발
   const newWeightedRate = newTotalShares > 0
-    ? Math.round((oldCostNum * oldSharesNum * oldRateNum + addPriceNum * addSharesNum * addRateNum) /
-        (oldCostNum * oldSharesNum + addPriceNum * addSharesNum || 1))
+    ? Math.round((oldSharesNum * oldRateNum + addSharesNum * addRateNum) / newTotalShares)
     : oldRateNum;
 
   const [saved, setSaved] = useState(false);
@@ -112,13 +114,14 @@ export default function EditStockModal() {
     if (!editingCat || editingIdx < 0 || !stock) return;
 
     let finalAvgCost = parseFloat(avgCost) || 0;
-    let finalShares = parseInt(shares) || 0;
+    let finalShares = parseFloat(shares) || 0;
     let finalPurchaseRate = parseFloat(purchaseRate) || currentUsdKrw;
 
-    // Recalculate if additional buy is provided
+    // Recalculate if additional buy is provided (분수주 호환)
     if (addPriceNum > 0 && addSharesNum > 0) {
-      finalShares = finalShares + addSharesNum;
-      finalAvgCost = (finalAvgCost * (parseInt(shares) || 0) + addPriceNum * addSharesNum) / finalShares;
+      const baseShares = parseFloat(shares) || 0;
+      finalShares = baseShares + addSharesNum;
+      finalAvgCost = (finalAvgCost * baseShares + addPriceNum * addSharesNum) / finalShares;
       finalPurchaseRate = newWeightedRate;
     }
 
@@ -329,8 +332,8 @@ export default function EditStockModal() {
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 갖고 있는 주식 수</span></label>
-              <input type="number" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 갖고 있는 주식 수 (분수주 지원)</span></label>
+              <input type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
@@ -468,7 +471,7 @@ export default function EditStockModal() {
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>수량</label>
-                    <input type="number" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
+                    <input type="number" step="0.0001" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
                       style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
                   </div>
                 </div>
