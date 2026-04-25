@@ -969,6 +969,16 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {/* 월간 회고 — 시간 적응형 시즌 카드 (위치: 종목 리스트 바로 아래)
+            진행 중(1~25일): "이번 달 페이스" 차분 톤
+            마감 임박(26~말일): "○월 마감 임박 D-N" 긴장감
+            확정(다음 달 1~5일): "○월 회고" 컬러풀 + 공유 강조 */}
+        {investingStocks.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <MonthlyReplay />
+          </div>
+        )}
+
         {/* 포트폴리오 맵 — NASDAQ 스타일 미니 히트맵 */}
         {investingStocks.length > 0 && (
           <div style={{ marginTop: 24 }}>
@@ -989,16 +999,6 @@ export default function PortfolioSection() {
               onExpand={() => setSubTab('analysis')}
               onCellClick={(sym) => setAnalysisSymbol(sym)}
             />
-          </div>
-        )}
-
-        {/* 월간 회고 — 시간 적응형 시즌 카드 (UX 전문가 결론)
-            진행 중(1~25일): "이번 달 페이스" 차분 톤
-            마감 임박(26~말일): "○월 마감 임박 D-N" 긴장감
-            확정(다음 달 1~5일): "○월 회고" 컬러풀 + 공유 강조 */}
-        {investingStocks.length > 0 && (
-          <div style={{ marginTop: 24 }}>
-            <MonthlyReplay />
           </div>
         )}
 

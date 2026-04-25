@@ -345,12 +345,11 @@ export default function PortfolioHeatmap({
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
 
-  // 5. 컨테이너 크기 — compact: NASDAQ 비율(약 2:1), 모바일 최소 높이 보장
-  // 데스크톱 1200×600(2:1, NASDAQ.com 매칭), 모바일 360×280(min 높이),
-  // 와이드 데스크톱은 600 cap (너무 길어지지 않게)
+  // 5. 컨테이너 크기 — compact: 사용자 요구로 30% 축소 (이전: 280/50vw/600 → 현재: 196/35vw/420)
+  // 데스크톱 1200×420 (2.86:1), 모바일 360×196 (1.84:1)
   const containerStyle: React.CSSProperties = isCompact ? {
     width: '100%',
-    height: 'clamp(280px, 50vw, 600px)',
+    height: 'clamp(196px, 35vw, 420px)',
     margin: 0,
   } : {
     aspectRatio: '1 / 1',
