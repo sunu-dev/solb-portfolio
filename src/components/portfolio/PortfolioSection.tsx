@@ -14,6 +14,7 @@ import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import MorningBriefing from './MorningBriefing';
+import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 // AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
@@ -213,23 +214,46 @@ export default function PortfolioSection() {
   const todayGain = todayChange >= 0;
 
   // 오늘의 한 줄 헤드라인 — 첫 화면 정보 위계 강화 (이상 신호 우선)
-  // 우선순위: 1) 큰 단일 움직임(|dp|≥3%) 2) 52주 고/저점 근접 3) null(헤드라인 없음)
+  // P2 알고리즘 업그레이드: 절대값(|dp|≥3%) → z-score(종목별 변동성 정규화)
+  // - 안정 종목(KO σ≈1%) 1.5% 변동 = 1.5σ → 신호로 잡음 (기존엔 무시)
+  // - 변동 종목(TSLA σ≈4%) 3% 변동 = 0.75σ → 노이즈로 무시 (기존엔 알림)
   let todayHeadline: { emoji: string; text: string; tone: 'gain' | 'loss' | 'neutral' } | null = null;
-  const SIGNIFICANT_DP = 3;
-  const candidates = investingStocks
+  const headlineCandidates = investingStocks
     .map(s => {
       const d = macroData[s.symbol] as QuoteData | undefined;
-      return { symbol: s.symbol, dp: d?.dp || 0, c: d?.c || 0, shares: s.shares };
+      const dp = d?.dp || 0;
+      const c = d?.c || 0;
+      if (s.shares <= 0 || c <= 0) return null;
+      const baseline = computeVolBaseline(rawCandles[s.symbol]);
+      const z = computeZScore(dp, baseline);
+      const threshold = adaptiveDailyMoveThreshold(baseline, 2, 3);
+      // z 신뢰 가능하면 |z|≥1.8 (≈약 2σ), 아니면 fallback 절대 임계값
+      const isSignal = z !== null
+        ? Math.abs(z) >= 1.8
+        : Math.abs(dp) >= threshold;
+      return {
+        symbol: s.symbol, dp, c, shares: s.shares,
+        z, threshold, isSignal,
+        // 정렬 키 — z 있으면 |z|, 없으면 |dp|/threshold
+        magnitude: z !== null ? Math.abs(z) : Math.abs(dp) / Math.max(1, threshold),
+      };
     })
-    .filter(s => s.shares > 0 && s.c > 0 && Math.abs(s.dp) >= SIGNIFICANT_DP)
-    .sort((a, b) => Math.abs(b.dp) - Math.abs(a.dp));
+    .filter((s): s is NonNullable<typeof s> => s !== null && s.isSignal)
+    .sort((a, b) => b.magnitude - a.magnitude);
 
-  if (candidates.length > 0) {
-    const top = candidates[0];
+  if (headlineCandidates.length > 0) {
+    const top = headlineCandidates[0];
     const kr = STOCK_KR[top.symbol] || top.symbol;
+    // z 사용 가능하면 "Nσ 움직임"으로 명시, 아니면 기존 표현
+    const sigmaTag = top.z !== null
+      ? ` (${Math.abs(top.z).toFixed(1)}σ)`
+      : '';
+    const reasonText = top.z !== null
+      ? '평소 대비 이례적'
+      : '평소보다 큰 움직임';
     todayHeadline = top.dp > 0
-      ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}% — 평소보다 큰 움직임`, tone: 'gain' }
-      : { emoji: '🧊', text: `${kr} ${top.dp.toFixed(2)}% — 평소보다 큰 움직임`, tone: 'loss' };
+      ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}%${sigmaTag} — ${reasonText}`, tone: 'gain' }
+      : { emoji: '🧊', text: `${kr} ${top.dp.toFixed(2)}%${sigmaTag} — ${reasonText}`, tone: 'loss' };
   } else {
     for (const s of investingStocks) {
       if (s.shares <= 0) continue;

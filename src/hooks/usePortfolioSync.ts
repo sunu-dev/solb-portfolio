@@ -39,6 +39,10 @@ export function usePortfolioSync(user: User | null) {
     return () => { cancelled = true; };
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // pending save 추적 — 탭 종료 시 즉시 flush 하기 위함
+  const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingStocksRef = useRef<typeof stocks | null>(null);
+
   // stocks 변경 시 DB에 저장 (디바운스)
   useEffect(() => {
     if (!user || !initialLoadDone.current) return;
@@ -46,14 +50,48 @@ export function usePortfolioSync(user: User | null) {
     const currentStr = JSON.stringify(stocks);
     if (currentStr === lastSyncRef.current) return; // 변경 없음
     lastSyncRef.current = currentStr;
+    pendingStocksRef.current = stocks;
 
     // 디바운스: 2초 동안 변경 없으면 저장
-    const timer = setTimeout(() => {
+    if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    pendingTimerRef.current = setTimeout(() => {
       savePortfolioToDB(user.id, stocks);
+      pendingTimerRef.current = null;
+      pendingStocksRef.current = null;
     }, 2000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+    };
   }, [user, stocks]);
+
+  // 정합성 결함 M4-data 수정 — 디바운스 2초 사이 탭 종료/숨김 시 즉시 flush
+  // visibilitychange(hidden)는 모바일 백그라운드/탭 전환 모두 잡아내고 beforeunload보다 신뢰성 높음
+  useEffect(() => {
+    if (!user) return;
+
+    const flushPending = () => {
+      if (pendingStocksRef.current) {
+        if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+        // 비동기지만 best-effort — 탭 종료 직전 호출 시 브라우저가 일부 보내줌
+        savePortfolioToDB(user.id, pendingStocksRef.current);
+        pendingTimerRef.current = null;
+        pendingStocksRef.current = null;
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flushPending();
+    };
+
+    window.addEventListener('beforeunload', flushPending);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      window.removeEventListener('beforeunload', flushPending);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user]);
 
   // 로그아웃 시 초기화
   useEffect(() => {

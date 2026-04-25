@@ -349,11 +349,29 @@
   - 신뢰도 라벨(저 N<5 / 중 5~14 / 고 ≥15) 헤더 표시
   - 모든 평균(전체, 감정별)에 시간 가중치 적용
 
-### P2 (다음 세션)
-- [ ] **z-score 유틸 함수** — `src/utils/volatility.ts` (30일 EWMA σ, z-score 계산)
-- [ ] **AlertsEngine 적응적 임계값** — z-score 기반
-- [ ] **ConversationalTimeline 동적 임계값**
+### P2 (이번 세션) ✅ 완료
+- [x] **z-score 유틸 함수** (`src/utils/volatility.ts`)
+  - `computeVolBaseline(candles, lookback=30)` — 30일 일일 수익률 평균/표준편차
+  - `computeZScore(todayReturn, baseline)` — 오늘 변동의 σ 단위 거리
+  - `adaptiveDailyMoveThreshold(baseline, sigmaMul=2)` — 종목별 적응형 임계값
+  - `zScoreGrade(z)` — noise/mild/notable/extreme 등급
+  - 표본 < 20개면 `isReliable=false` → caller가 fallback 사용
+- [x] **PortfolioSection 헤드라인 z-score 적용**
+  - 절대값(±3%) → z-score(|z|≥1.8 ≈ 95% 이상치)
+  - 안정 종목(KO σ≈1%) 1.5% 변동 = 1.5σ → 신호로 잡음 (기존엔 무시됨)
+  - 변동 종목(TSLA σ≈4%) 3% 변동 = 0.75σ → 노이즈로 무시 (기존엔 알림)
+  - 헤드라인에 σ 단위 명시 (`+5.2% (2.1σ)`)
+- [x] **ConversationalTimeline 동적 임계값**
+  - 큰 움직임 정렬 키를 z-score 기반으로
+  - 신호 강도 라벨: "(극단치 — 3σ)", "(평소 대비 이례적)", "(평소보다 큰 움직임)"
+  - z 신뢰 불가 시 절대값 fallback (3% = 약 1σ 가정)
+
+### ⚠️ P2 잔여 + P3 (향후)
+- [ ] **AlertsEngine 적응적 임계값** — z-score 기반 큰 움직임 감지 추가
 - [ ] **AI 프롬프트 시그널 우선순위 점수화**
+  - `priority = 0.35·|z| + 0.25·weight + 0.20·goal_proximity + 0.20·user_memo_recency`
+  - 상위 3종목 상세, 나머지 한 줄
+  - 시계열 사전 추출 ("20일선 위 12거래일째")
 
 ### P3 (향후)
 - [ ] **InvestorTypes 행동 보정**
@@ -399,15 +417,21 @@
 | H1-data | persist version/migrate 부재 | portfolioStore.ts | `version: 1, migrate: ...` 추가 (스키마 변경 시 안전) |
 | H4-data | 종목 삭제 Undo (메인 경로) | PortfolioSection.tsx | 이미 구현됨 — `deleted = stocks[...]` 잡고 토스트로 복구. ✓ |
 
-### ⚠️ 잔여 (P2, 다음 세션)
+### ⚠️ P2 (이번 세션) ✅ 완료
+
+| ID | 결함 | 위치 | 수정 |
+|---|---|---|---|
+| M2-data | notes.date 형식 불일치 (counter reset / 같은 ms 충돌) | InvestmentNotes, EditStockModal | `createNoteDate()` 헬퍼로 일원화. crypto.randomUUID 우선, fallback Math.random |
+| M3-data | 카테고리 자동 이동 시 idx race (잘못된 종목에 메모 부착) | EditStockModal saveMemoAndClose | symbol로 재조회 — 자동 이동 후에도 안전 |
+| M4-data | 디바운스 2초 사이 탭 종료 시 DB 미저장 | usePortfolioSync | beforeunload + visibilitychange(hidden) 핸들러로 즉시 flush |
+
+### ⚠️ 잔여 (P3+)
 
 | ID | 결함 | 위치 | 위험도 |
 |---|---|---|---|
-| M2-data | notes.date 형식 불일치 | InvestmentNotes vs EditStockModal | 🟡 |
-| M3-data | 카테고리 자동 이동 시 idx race | portfolioStore.ts:282 | 🟡 |
-| M4-data | 디바운스 2초 사이 탭 종료 시 DB 미저장 | usePortfolioSync.ts | 🟡 |
 | L1-data | ai_usage IP PII 무기한 보관 | api/ai-usage | 🟢 |
 | L2-data | snapshot tolerance ±3일 (휴일 갭 7일+ 가능) | dailySnapshot.ts | 🟢 |
+| L3-data | localStorage quota 초과 silent fail | portfolioStore.ts | 🟢 |
 
 ### ❌ 검산 후 false alarm
 

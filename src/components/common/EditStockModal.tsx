@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import type { MacroEntry, StockNote } from '@/config/constants';
+import { createNoteDate } from '@/utils/noteId';
 
 // 메모 감정 태그 (InvestmentNotes와 동일 세트 사용)
 const MEMO_TAGS = [
@@ -185,15 +186,31 @@ export default function EditStockModal() {
       return;
     }
     const { cat, idx } = pendingSaveContext;
-    const currentStock = stocks[cat]?.[idx];
+    // 정합성 결함 M3-data 수정 — updateStock의 자동 카테고리 이동(watching↔investing) 후
+    // idx가 무효해질 수 있음. 원래 stock의 symbol로 재조회해 잘못된 종목에 메모 붙는 사고 방지.
+    let currentStock = stocks[cat]?.[idx];
+    let actualCat = cat;
+    let actualIdx = idx;
+    const targetSymbol = stock?.symbol;
+    if ((!currentStock || currentStock.symbol !== targetSymbol) && targetSymbol) {
+      for (const c of ['investing', 'watching', 'sold'] as const) {
+        const i = stocks[c].findIndex(s => s.symbol === targetSymbol);
+        if (i >= 0) {
+          currentStock = stocks[c][i];
+          actualCat = c;
+          actualIdx = i;
+          break;
+        }
+      }
+    }
     if (noteText && noteText.trim() && currentStock) {
       const newNote: StockNote = {
         text: `[${memoContext}] ${noteText.trim()}`,
         emoji: memoEmoji,
-        date: new Date().toISOString() + '_' + Date.now(),
+        date: createNoteDate(),
       };
       const updated = [...(currentStock.notes || []), newNote];
-      updateStock(cat, idx, { notes: updated });
+      updateStock(actualCat, actualIdx, { notes: updated });
     }
     setMemoContext(null);
     setPendingSaveContext(null);

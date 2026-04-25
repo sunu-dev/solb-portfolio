@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 
 /**
  * Conversational Timeline
@@ -55,7 +56,14 @@ export default function ConversationalTimeline() {
     });
 
     // ─── 2. 오늘 가장 많이 움직인 종목 ───────────────────────────────────
-    type Mover = { symbol: string; dp: number; dollarChange: number };
+    // P2 알고리즘 — 절대값 기준(±1%) → z-score 기반 정렬 + 강도 라벨
+    type Mover = {
+      symbol: string;
+      dp: number;
+      dollarChange: number;
+      z: number | null;
+      magnitude: number;
+    };
     const movers: Mover[] = [];
     let totalTodayChange = 0;
 
@@ -64,30 +72,53 @@ export default function ConversationalTimeline() {
       if (!q?.c || q.dp == null) return;
       const shareChange = (q.d || 0) * s.shares;
       totalTodayChange += shareChange;
-      movers.push({ symbol: s.symbol, dp: q.dp, dollarChange: shareChange });
+      const baseline = computeVolBaseline(rawCandles[s.symbol]);
+      const z = computeZScore(q.dp, baseline);
+      movers.push({
+        symbol: s.symbol, dp: q.dp, dollarChange: shareChange, z,
+        // 정렬 키 — z 있으면 z, 없으면 dp 자체 (단위 다름 명시 위해 z null로 구분)
+        magnitude: z !== null ? z : q.dp / 3, // fallback: 3% = 약 1σ 가정
+      });
     });
 
-    const sortedMovers = [...movers].sort((a, b) => b.dp - a.dp);
-    const bestMover = sortedMovers[0];
-    const worstMover = sortedMovers[sortedMovers.length - 1];
+    const sortedByMag = [...movers].sort((a, b) => b.magnitude - a.magnitude);
+    const bestMover = sortedByMag[0];
+    const worstMover = sortedByMag[sortedByMag.length - 1];
 
-    if (bestMover && bestMover.dp >= 1) {
+    // 신호 강도 라벨 (z-score 기반)
+    const sigmaPhrase = (z: number | null): string => {
+      if (z === null) return '';
+      const abs = Math.abs(z);
+      if (abs >= 3) return ' (극단치 — 평소의 3σ 이상)';
+      if (abs >= 2) return ' (평소 대비 이례적)';
+      if (abs >= 1.5) return ' (평소보다 큰 움직임)';
+      return '';
+    };
+
+    // best mover — z 신뢰 가능하면 |z| ≥ 1.2 (약 1σ 이상), 아니면 dp ≥ 1%
+    const bestSignal = bestMover && (
+      bestMover.z !== null ? bestMover.z >= 1.2 : bestMover.dp >= 1
+    );
+    if (bestSignal && bestMover) {
       const kr = STOCK_KR[bestMover.symbol] || bestMover.symbol;
       out.push({
         id: 'best-today',
         type: 'story',
-        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}% 올라서 ${fmt(bestMover.dollarChange)}가 더해졌어요 ✨`,
+        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}%${sigmaPhrase(bestMover.z)} 올라서 ${fmt(bestMover.dollarChange)}가 더해졌어요 ✨`,
         symbol: bestMover.symbol,
         emphasis: 'positive',
       });
     }
 
-    if (worstMover && worstMover.dp <= -1 && worstMover.symbol !== bestMover?.symbol) {
+    const worstSignal = worstMover && worstMover.symbol !== bestMover?.symbol && (
+      worstMover.z !== null ? worstMover.z <= -1.2 : worstMover.dp <= -1
+    );
+    if (worstSignal && worstMover) {
       const kr = STOCK_KR[worstMover.symbol] || worstMover.symbol;
       out.push({
         id: 'worst-today',
         type: 'story',
-        text: `${kr}는 ${worstMover.dp.toFixed(2)}% 내려서 ${fmt(worstMover.dollarChange)} 줄었어요. 긴 호흡으로 보세요`,
+        text: `${kr}는 ${worstMover.dp.toFixed(2)}%${sigmaPhrase(worstMover.z)} 내려서 ${fmt(worstMover.dollarChange)} 줄었어요. 긴 호흡으로 보세요`,
         symbol: worstMover.symbol,
         emphasis: 'negative',
       });

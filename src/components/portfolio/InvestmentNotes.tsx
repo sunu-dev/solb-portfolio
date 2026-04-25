@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { StockNote } from '@/config/constants';
+import { createNoteDate } from '@/utils/noteId';
 
 const EMOTION_TAGS = [
   { emoji: '🤔', label: '분석 후' },
@@ -20,8 +21,6 @@ interface Props {
   notes: StockNote[];
 }
 
-let noteIdCounter = 0;
-
 export default function InvestmentNotes({ symbol, category, stockIdx, notes }: Props) {
   const { updateStock } = usePortfolioStore();
   const [isAdding, setIsAdding] = useState(false);
@@ -33,7 +32,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
     const newNote: StockNote = {
       text: text.trim(),
       emoji: selectedEmoji,
-      date: new Date().toISOString() + '_' + (++noteIdCounter), // 고유 ID 보장
+      date: createNoteDate(),
     };
     const updated = [...(notes || []), newNote];
     updateStock(category, stockIdx, { notes: updated });
