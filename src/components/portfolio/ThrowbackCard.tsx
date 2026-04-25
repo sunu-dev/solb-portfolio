@@ -359,7 +359,7 @@ function ActiveBody({
                 : 'var(--color-warning, #FF9500)',
             }}
           >
-            {isSnapshot ? '✓ 실제' : '≈ 근사'}
+            {isSnapshot ? '실제' : '≈ 근사'}
           </span>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>

@@ -869,10 +869,10 @@ export default function PortfolioSection() {
                     {hasGoal ? (
                       <div className="flex items-center justify-end" style={{ gap: '6px' }}>
                         {goalPct >= stock.targetReturn ? (
-                          // 목표 초과 달성: 바 없이 텍스트만
+                          // 목표 초과 달성: 바 없이 텍스트만 (● 마커로 데이터-잉크 비율 개선)
                           <>
-                            <span style={{ fontSize: '11px', color: '#6B48FF', fontWeight: 700 }}>✓</span>
-                            <span className="tabular-nums" style={{ fontSize: '12px', color: '#6B48FF', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            <span aria-label="목표 달성" style={{ fontSize: '7px', color: '#6B48FF', lineHeight: 1 }}>●</span>
+                            <span className="tabular-nums" style={{ fontSize: '12px', color: '#6B48FF', whiteSpace: 'nowrap', fontWeight: 700 }}>
                               {plPct.toFixed(1)}/{stock.targetReturn}%
                             </span>
                           </>
