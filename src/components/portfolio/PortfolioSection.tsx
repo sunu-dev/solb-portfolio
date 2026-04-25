@@ -13,6 +13,7 @@ import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
+import MorningBriefing from './MorningBriefing';
 // AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
@@ -300,6 +301,9 @@ export default function PortfolioSection() {
   return (
     <div>
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+
+      {/* 오늘 아침 브리핑 — 하루 첫 방문 시 자동 펼침, "확인했어요"로 그날 닫기 */}
+      <MorningBriefing />
 
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
