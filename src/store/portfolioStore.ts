@@ -448,6 +448,24 @@ export const usePortfolioStore = create<PortfolioState>()(
     }),
     {
       name: 'solb-portfolio-storage',
+      // 정합성 결함 H1-data: 스키마 변경 시 데이터 손상 방지
+      // 향후 필드 추가/제거 시 version 올리고 migrate 처리. 호환 깨질 때만 olderToNewer.
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        // v0(version 미지정) → v1: 기존 데이터 호환 유지
+        if (version === 0 && persistedState && typeof persistedState === 'object') {
+          const s = persistedState as Record<string, unknown>;
+          // v0에선 short/long/watch 카테고리도 있었음 — loadPortfolio()가 마이그레이션 담당
+          // dailySnapshots/investorType 같은 신규 필드는 undefined → 초기값 유지
+          return {
+            ...s,
+            // 안전 fallback
+            dailySnapshots: Array.isArray(s.dailySnapshots) ? s.dailySnapshots : [],
+            customEvents: Array.isArray(s.customEvents) ? s.customEvents : [],
+          };
+        }
+        return persistedState as Record<string, unknown>;
+      },
       partialize: (state) => ({
         stocks: state.stocks,
         currency: state.currency,

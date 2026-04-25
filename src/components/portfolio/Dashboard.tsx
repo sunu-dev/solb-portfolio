@@ -71,17 +71,26 @@ export default function Dashboard() {
         holdingCount++;
         todayChange += (q.d || 0) * s.shares;
         const isKR = s.symbol.endsWith('.KS') || s.symbol.endsWith('.KQ');
-        if (!isKR && s.purchaseRate && s.purchaseRate > 0) {
-          totalCostKrw += s.avgCost * s.shares * s.purchaseRate;
+        // 정합성 결함 H1-calc 수정 — 모든 종목을 KRW 누적에 포함 (분모 일관성)
+        // 기존엔 purchaseRate 있는 미국 종목만 totalCostKrw에 들어가 분모 누락 발생.
+        if (isKR) {
+          // 한국 종목: 가격이 이미 원화 단위 → 환율 적용 안 함
+          totalCostKrw += s.avgCost * s.shares;
+          totalValueKrw += q.c * s.shares;
+        } else {
+          // 미국 종목: purchaseRate 있으면 환차익 분리 추적, 없으면 현재 환율 fallback
+          const buyRate = (s.purchaseRate && s.purchaseRate > 0) ? s.purchaseRate : usdKrw;
+          totalCostKrw += s.avgCost * s.shares * buyRate;
           totalValueKrw += q.c * s.shares * usdKrw;
-          hasFxData = true;
+          if (s.purchaseRate && s.purchaseRate > 0) hasFxData = true;
         }
       }
     });
 
     const totalPL = totalValue - totalCost;
-    const totalPLWon = hasFxData ? totalValueKrw - totalCostKrw : totalPL * usdKrw;
-    const totalPLPct = hasFxData && totalCostKrw > 0 ? (totalPLWon / totalCostKrw) * 100 : totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+    // 항상 KRW 누적값 사용 — 모든 종목 포함된 정확한 분자/분모
+    const totalPLWon = totalValueKrw - totalCostKrw;
+    const totalPLPct = totalCostKrw > 0 ? (totalPLWon / totalCostKrw) * 100 : 0;
     const prevValue = totalValue - todayChange;
     const todayPctRaw = prevValue > 0 ? (todayChange / prevValue) * 100 : 0;
     const todayPct = Math.max(-999, Math.min(999, todayPctRaw));
@@ -90,8 +99,9 @@ export default function Dashboard() {
       totalPL, totalPLPct, totalValue, totalCost, holdingCount,
       todayChange, todayPct,
       totalPLWon,
-      totalValueWon: totalValue * usdKrw,
-      totalCostWon: hasFxData ? totalCostKrw : totalCost * usdKrw,
+      // 정합성 H1-calc — 항상 KRW 누적값. 한국 종목 + 미국 종목 모두 포함
+      totalValueWon: totalValueKrw,
+      totalCostWon: totalCostKrw,
       todayChangeWon: todayChange * usdKrw,
       usdKrw,
       bestSymbol, bestDp, worstSymbol, worstDp,

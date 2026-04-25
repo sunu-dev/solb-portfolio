@@ -301,7 +301,10 @@ export function checkAllAlerts(
   }
 
   // 20. Target return / profit / stop-loss% achieved
-  const usdKrw = Number((macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400);
+  // 정합성 결함 H2-calc 수정 — 환율 미수신 시 1400 fallback이 KRW 임계 거짓 트리거 유발
+  // null 사용 후 KRW 검사에서 skip 처리
+  const usdKrwRaw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value;
+  const usdKrw: number | null = usdKrwRaw && usdKrwRaw > 0 ? Number(usdKrwRaw) : null;
   for (const stock of investingStocks) {
     const q = macroData[stock.symbol] as QuoteData | undefined;
     const price = q?.c || 0;
@@ -330,9 +333,9 @@ export function checkAllAlerts(
       ));
     }
 
-    // 20c. Target profit KRW
-    if ((stock.targetProfitKRW ?? 0) > 0) {
-      const plKRW = isKR ? plUSD : plUSD * usdKrw;
+    // 20c. Target profit KRW — 환율 미수신(usdKrw=null) 시 미국 종목 KRW 평가 보류
+    if ((stock.targetProfitKRW ?? 0) > 0 && (isKR || usdKrw !== null)) {
+      const plKRW = isKR ? plUSD : plUSD * (usdKrw as number);
       if (plKRW >= (stock.targetProfitKRW ?? 0)) {
         const fmtWon = (w: number) => w >= 100_000_000
           ? `${(w / 100_000_000).toFixed(1)}억원`

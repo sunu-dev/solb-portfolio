@@ -163,9 +163,9 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
                   throw new Error(d.error || '삭제 실패');
                 }
 
-                // 로컬 상태 초기화
-                const keys = ['solb-portfolio-storage','solb_quote_cache','solb_macro_cache','solb_streak','solb_onboarded','solb_ai_usage'];
-                keys.forEach(k => localStorage.removeItem(k));
+                // 로컬 상태 초기화 — 중앙화된 헬퍼 사용
+                const { clearUserStorage } = await import('@/lib/userStorage');
+                clearUserStorage();
                 resetPortfolio();
                 await supabase.auth.signOut();
                 window.location.reload();

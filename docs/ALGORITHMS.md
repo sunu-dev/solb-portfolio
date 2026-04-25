@@ -389,17 +389,25 @@
 - **결함**: loadPortfolioFromDB가 null만 반환해 "row 없음"과 "쿼리 실패"를 구분 못 함. 실패 시 caller가 save 호출 → 빈 localStorage가 DB의 실제 데이터를 삭제
 - **수정**: `loadPortfolio()` 신규 함수 — `LoadResult` 타입(`'ok' | 'empty' | 'error'`)으로 명시 분기. error 시 save 절대 금지, initialLoadDone 응답 후에만 true. 기존 함수는 deprecated로 호환 유지
 
-### ⚠️ 추가 발견 (P1, 다음 세션)
+### ⚠️ P1 (이번 세션 후속) ✅ 완료
+
+| ID | 결함 | 위치 | 수정 |
+|---|---|---|---|
+| C2-data | 계정 전환 시 이전 데이터 잔존 | useAuth | `clearUserStorage()` 헬퍼 + prevUserIdRef로 user.id 변경 감지 |
+| H1-calc | totalPLPct 분모 단위 혼재 | Dashboard.tsx | 모든 종목 KRW 누적 (KR=원화 직접, US=purchaseRate ?? usdKrw) |
+| H2-calc | fallback 환율 무고지 KRW 거짓 트리거 | alertsEngine.ts | `usdKrw: number\|null` — 미수신 시 미국 종목 KRW 임계 평가 보류 |
+| H1-data | persist version/migrate 부재 | portfolioStore.ts | `version: 1, migrate: ...` 추가 (스키마 변경 시 안전) |
+| H4-data | 종목 삭제 Undo (메인 경로) | PortfolioSection.tsx | 이미 구현됨 — `deleted = stocks[...]` 잡고 토스트로 복구. ✓ |
+
+### ⚠️ 잔여 (P2, 다음 세션)
 
 | ID | 결함 | 위치 | 위험도 |
 |---|---|---|---|
-| C2-data | 계정 전환 시 이전 데이터 잔존 | useAuth + usePortfolioSync | 🔴 |
-| H1-calc | totalPLPct 분모 단위 혼재 | Dashboard.tsx:84 | 🟠 |
-| H2-calc | fallback 환율 1400 무고지 | 다수 | 🟠 |
-| H1-data | persist version/migrate 부재 | portfolioStore.ts | 🟠 |
-| H4-data | 종목 삭제 시 notes Undo 부재 | portfolioStore.ts | 🟠 |
 | M2-data | notes.date 형식 불일치 | InvestmentNotes vs EditStockModal | 🟡 |
 | M3-data | 카테고리 자동 이동 시 idx race | portfolioStore.ts:282 | 🟡 |
+| M4-data | 디바운스 2초 사이 탭 종료 시 DB 미저장 | usePortfolioSync.ts | 🟡 |
+| L1-data | ai_usage IP PII 무기한 보관 | api/ai-usage | 🟢 |
+| L2-data | snapshot tolerance ±3일 (휴일 갭 7일+ 가능) | dailySnapshot.ts | 🟢 |
 
 ### ❌ 검산 후 false alarm
 
