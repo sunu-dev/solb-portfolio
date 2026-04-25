@@ -23,6 +23,8 @@ import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 const OTHERS_SYMBOL = '__OTHERS__';
 const COMPACT_TOP_N = 8;
 const FULL_TOP_N = 16;
+// 비중 < 1.5% 종목은 자동으로 "기타" 묶음 — 글씨 들어갈 만큼은 보장
+const MIN_VISIBLE_WEIGHT = 0.015;
 
 // ─── Squarify (Bruls et al. 2000) ──────────────────────────────────────────
 interface Rect { x: number; y: number; w: number; h: number; }
@@ -217,30 +219,54 @@ export default function PortfolioHeatmap({
     .filter(Boolean) as Node[],
   [stocks, macroData, currency, usdKrw]);
 
-  // 2. Top-N + "기타" 그룹핑
+  // 2. 1.5% 임계 + Top-N — 글씨 들어갈 정도 안 되는 종목은 자동 "기타"
   const topN = isCompact ? COMPACT_TOP_N : FULL_TOP_N;
   const visibleNodes: Node[] = useMemo(() => {
-    if (allNodes.length <= topN) return allNodes;
+    if (allNodes.length === 0) return [];
+    const totalRaw = allNodes.reduce((s, n) => s + n.value, 0);
+    if (totalRaw <= 0) return [];
+
+    // Step 1: 비중 < 1.5%는 hidden로 분리 (thin strip 방지)
     const sorted = [...allNodes].sort((a, b) => b.value - a.value);
-    const keep = sorted.slice(0, topN - 1);
-    const rest = sorted.slice(topN - 1);
-    if (rest.length <= 1) return sorted;
-    const restValue = rest.reduce((s, n) => s + n.value, 0);
-    const wPnl = rest.reduce((s, n) => s + n.pnlPct * n.value, 0) / (restValue || 1);
-    const wToday = rest.reduce((s, n) => s + n.todayPct * n.value, 0) / (restValue || 1);
-    const restProfit = rest.reduce((s, n) => s + n.profit, 0);
+    const aboveThreshold = sorted.filter(n => (n.value / totalRaw) >= MIN_VISIBLE_WEIGHT);
+    const belowThreshold = sorted.filter(n => (n.value / totalRaw) < MIN_VISIBLE_WEIGHT);
+
+    // Step 2: 임계 통과한 것 중 Top-N(슬롯 N-1)만, 나머지도 hidden 합류
+    let kept: Node[];
+    let hidden: Node[];
+    if (aboveThreshold.length > topN - 1 && belowThreshold.length === 0) {
+      // 모두 임계 이상이지만 Top-N 초과 — 마지막부터 잘라서 "기타"로
+      kept = aboveThreshold.slice(0, topN - 1);
+      hidden = aboveThreshold.slice(topN - 1);
+    } else if (aboveThreshold.length > topN - 1) {
+      kept = aboveThreshold.slice(0, topN - 1);
+      hidden = [...belowThreshold, ...aboveThreshold.slice(topN - 1)];
+    } else {
+      kept = aboveThreshold;
+      hidden = belowThreshold;
+    }
+
+    // Step 3: hidden 있으면 "기타" 단일 셀로 묶음
+    if (hidden.length === 0) return kept;
+
+    const restValue = hidden.reduce((s, n) => s + n.value, 0);
+    if (restValue <= 0) return kept;
+    const wPnl = hidden.reduce((s, n) => s + n.pnlPct * n.value, 0) / restValue;
+    const wToday = hidden.reduce((s, n) => s + n.todayPct * n.value, 0) / restValue;
+    const restProfit = hidden.reduce((s, n) => s + n.profit, 0);
     const valFormatted = currency === 'KRW'
       ? formatKRW(Math.round(restValue * usdKrw))
       : fmtShort(restValue);
     const profitFmt = currency === 'KRW'
       ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
       : fmtShort(Math.abs(restProfit));
-    return [...keep, {
+
+    return [...kept, {
       symbol: OTHERS_SYMBOL, value: restValue, pnlPct: wPnl, todayPct: wToday,
-      label: `기타 ${rest.length}개`, valFormatted,
-      avgCost: 0, shares: rest.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
+      label: `기타 ${hidden.length}개`, valFormatted,
+      avgCost: 0, shares: hidden.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
       profit: restProfit, profitFmt,
-      childrenSymbols: rest.map(n => n.symbol),
+      childrenSymbols: hidden.map(n => n.symbol),
       sector: '기타',
     }];
   }, [allNodes, topN, currency, usdKrw]);
@@ -294,10 +320,12 @@ export default function PortfolioHeatmap({
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
 
-  // 5. 컨테이너 크기 결정 — compact는 풀 너비 + 높이 280
+  // 5. 컨테이너 크기 — compact: NASDAQ 비율(약 2:1), 모바일 최소 높이 보장
+  // 데스크톱 1200×600(2:1, NASDAQ.com 매칭), 모바일 360×280(min 높이),
+  // 와이드 데스크톱은 600 cap (너무 길어지지 않게)
   const containerStyle: React.CSSProperties = isCompact ? {
     width: '100%',
-    height: 280,
+    height: 'clamp(280px, 50vw, 600px)',
     margin: 0,
   } : {
     aspectRatio: '1 / 1',
