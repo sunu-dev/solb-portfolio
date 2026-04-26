@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import type { QuoteData, CandleRaw, StockNote } from '@/config/constants';
+import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import { getSector } from '@/utils/portfolioHealth';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
@@ -47,8 +47,6 @@ interface Node {
   profitFmt: string;
   childrenSymbols?: string[];
   sector: string;
-  noteCount: number;        // 메모 도트용
-  zAbs: number;             // 변동성 halo용 (|z-score|)
 }
 
 interface SectorGroup {
@@ -169,47 +167,6 @@ function textOn(pct: number): string {
   return Math.abs(pct) >= 1.5 ? '#FFFFFF' : '#D8D8D8';
 }
 
-// ─── Phase A·B·C: 어필 강화 헬퍼 ───────────────────────────────────────────
-/** hex(#RRGGBB) → 어두운 hex (-amount in 0~1, 0.08 = 8% darker) */
-function darkenHex(hex: string, amount: number): string {
-  const m = hex.replace('#', '');
-  if (m.length !== 6) return hex;
-  const r = parseInt(m.slice(0, 2), 16);
-  const g = parseInt(m.slice(2, 4), 16);
-  const b = parseInt(m.slice(4, 6), 16);
-  const f = Math.max(0, 1 - amount);
-  const to2 = (n: number) => Math.round(n * f).toString(16).padStart(2, '0');
-  return `#${to2(r)}${to2(g)}${to2(b)}`;
-}
-
-/** 외곽선 색 — 오늘 등락률 기반 (Dual encoding outline=today / fill=cumulative) */
-function todayOutlineColor(todayPct: number): string {
-  if (todayPct >= 1.5)  return 'rgba(239, 80, 80, 0.95)';
-  if (todayPct >= 0.5)  return 'rgba(220, 90, 90, 0.7)';
-  if (todayPct > -0.5)  return 'rgba(255,255,255,0.06)';  // 거의 무변동 — 거의 안 보임
-  if (todayPct > -1.5)  return 'rgba(80, 130, 220, 0.7)';
-  return 'rgba(60, 120, 240, 0.95)';
-}
-
-/** 5일 종가 정규화 → SVG polyline points 문자열 (0~100 내) */
-function getSparklinePoints(candles: CandleRaw | undefined, w: number, h: number): string | null {
-  if (!candles?.c?.length || candles.c.length < 5) return null;
-  const closes = candles.c.slice(-5);
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
-  const range = max - min || 1;
-  return closes.map((c, i) => {
-    const x = (i / (closes.length - 1)) * w;
-    const y = h - ((c - min) / range) * h;
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-}
-
-/** 메모 카운트 — 안전 추출 */
-function getNoteCount(notes: StockNote[] | undefined): number {
-  return Array.isArray(notes) ? notes.length : 0;
-}
-
 function fmtShort(val: number): string {
   const abs = Math.abs(val);
   if (abs >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
@@ -219,7 +176,7 @@ function fmtShort(val: number): string {
 
 // ─── Component ─────────────────────────────────────────────────────────────
 interface HeatmapProps {
-  stocks: { symbol: string; avgCost: number; shares: number; targetReturn: number; notes?: StockNote[] }[];
+  stocks: { symbol: string; avgCost: number; shares: number; targetReturn: number; }[];
   macroData: Record<string, QuoteData | unknown>;
   usdKrw: number;
   currency: 'KRW' | 'USD';
@@ -235,19 +192,9 @@ export default function PortfolioHeatmap({
 }: HeatmapProps) {
   const [colorMode, setColorMode] = useState<'pnl' | 'today'>('pnl');
   const [hovered, setHovered] = useState<{ node: LayoutNode; x: number; y: number } | null>(null);
-  const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const captureRef = useRef<HTMLDivElement>(null);
 
   const isCompact = variant === 'compact';
-
-  // Stagger entry — 마운트 후 한 프레임 뒤 트리거 (CSS transition으로 부드럽게)
-  useEffect(() => {
-    const r = requestAnimationFrame(() => setHasMounted(true));
-    return () => cancelAnimationFrame(r);
-  }, []);
 
   // 1. Build all nodes
   const allNodes: Node[] = useMemo(() => stocks
@@ -266,24 +213,15 @@ export default function PortfolioHeatmap({
       const profitFmt = currency === 'KRW'
         ? formatKRW(Math.round(Math.abs(profit) * usdKrw))
         : fmtShort(Math.abs(profit));
-      // 변동성 z-score (오늘 등락률 vs 종목 baseline)
-      let zAbs = 0;
-      if (rawCandles?.[stock.symbol]) {
-        const baseline = computeVolBaseline(rawCandles[stock.symbol]);
-        const z = computeZScore(todayPct, baseline);
-        if (z !== null) zAbs = Math.abs(z);
-      }
       return {
         symbol: stock.symbol, value, pnlPct, todayPct, label, valFormatted,
         avgCost: stock.avgCost, shares: stock.shares, currentPrice: price,
         profit, profitFmt,
         sector: getSector(stock.symbol),
-        noteCount: getNoteCount(stock.notes),
-        zAbs,
       };
     })
     .filter(Boolean) as Node[],
-  [stocks, macroData, currency, usdKrw, rawCandles]);
+  [stocks, macroData, currency, usdKrw]);
 
   // 2. 1.5% 임계 + Top-N — 글씨 들어갈 정도 안 되는 종목은 자동 "기타"
   const topN = isCompact ? COMPACT_TOP_N : FULL_TOP_N;
@@ -328,8 +266,6 @@ export default function PortfolioHeatmap({
         ...single,
         value: Math.max(single.value, minLayoutValue),  // 레이아웃 부스팅
         realValue: single.value,                          // 툴팁용 실제값
-        noteCount: single.noteCount,
-        zAbs: single.zAbs,
       }];
     }
 
@@ -357,8 +293,6 @@ export default function PortfolioHeatmap({
       profit: restProfit, profitFmt,
       childrenSymbols: hidden.map(n => n.symbol),
       sector: '기타',
-      noteCount: 0,
-      zAbs: 0,
     }];
   }, [allNodes, topN, currency, usdKrw]);
 
@@ -407,67 +341,9 @@ export default function PortfolioHeatmap({
     return { sectors, flat: [] as LayoutNode[] };
   }, [visibleNodes, useSectors]);
 
-  // Hero (최대 비중) + Today's Mover (최대 |오늘 등락|)
-  const heroSymbol = useMemo(() => {
-    if (visibleNodes.length === 0) return null;
-    const real = visibleNodes.filter(n => n.symbol !== OTHERS_SYMBOL);
-    if (real.length === 0) return null;
-    return real.reduce((a, b) => (b.value > a.value ? b : a)).symbol;
-  }, [visibleNodes]);
-
-  const pulseSymbol = useMemo(() => {
-    if (visibleNodes.length === 0) return null;
-    const real = visibleNodes.filter(n => n.symbol !== OTHERS_SYMBOL);
-    if (real.length === 0) return null;
-    const top = real.reduce((a, b) => (Math.abs(b.todayPct) > Math.abs(a.todayPct) ? b : a));
-    return Math.abs(top.todayPct) >= 1.5 ? top.symbol : null;  // 의미 있는 변동만
-  }, [visibleNodes]);
-
-  // 공유 스냅샷 — html-to-image로 PNG 생성 → navigator.share OR 다운로드
-  const handleShare = useCallback(async () => {
-    if (!captureRef.current || shareLoading) return;
-    setShareLoading(true);
-    try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(captureRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#0d0e10',
-      });
-      const dateStr = new Date().toISOString().slice(0, 10);
-      const fileName = `solb-portfolio-${dateStr}.png`;
-      // navigator.share 가능 시 파일로 공유
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], fileName, { type: 'image/png' });
-      const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
-      if (navAny.canShare && navAny.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'SOLB 포트폴리오 맵',
-          text: '내 포트폴리오를 공유해요',
-        });
-      } else {
-        // fallback: 다운로드
-        const a = document.createElement('a');
-        a.href = dataUrl; a.download = fileName;
-        document.body.appendChild(a); a.click(); a.remove();
-      }
-    } catch (e) {
-      console.error('share failed', e);
-    } finally {
-      setShareLoading(false);
-    }
-  }, [shareLoading]);
-
   if (allNodes.length === 0) return null;
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
-  const totalPnlPct = (() => {
-    const totalCost = allNodes.reduce((s, n) => s + n.avgCost * n.shares, 0);
-    const totalValue = allNodes.reduce((s, n) => s + n.currentPrice * n.shares, 0);
-    if (totalCost <= 0) return 0;
-    return ((totalValue - totalCost) / totalCost) * 100;
-  })();
 
   // 5. 컨테이너 크기 — compact: 사용자 요구로 30% 축소 (이전: 280/50vw/600 → 현재: 196/35vw/420)
   // 데스크톱 1200×420 (2.86:1), 모바일 360×196 (1.84:1)
@@ -499,177 +375,55 @@ export default function PortfolioHeatmap({
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             내 포트폴리오 맵
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
-              display: 'flex', gap: 2, padding: 2, borderRadius: 6,
-              background: 'var(--bg-subtle, #F2F4F6)',
-            }}>
-              {(['pnl', 'today'] as const).map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => setColorMode(opt)}
-                  style={{
-                    padding: '4px 10px', borderRadius: 4, fontSize: 11,
-                    fontWeight: colorMode === opt ? 700 : 500,
-                    color: colorMode === opt ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
-                    background: colorMode === opt ? '#FFFFFF' : 'transparent',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {opt === 'pnl' ? '수익률' : '오늘'}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={handleShare}
-              disabled={shareLoading}
-              title="포트폴리오 맵 이미지 공유"
-              style={{
-                padding: '4px 10px', borderRadius: 6, fontSize: 11,
-                fontWeight: 700,
-                color: '#FFFFFF',
-                background: shareLoading
-                  ? 'var(--text-tertiary, #B0B8C1)'
-                  : 'linear-gradient(135deg, #AF52DE 0%, #3182F6 100%)',
-                border: 'none',
-                cursor: shareLoading ? 'wait' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4,
-              }}
-            >
-              <span style={{ fontSize: 11 }}>↗</span>
-              {shareLoading ? '생성 중' : '공유'}
-            </button>
+          <div style={{
+            display: 'flex', gap: 2, padding: 2, borderRadius: 6,
+            background: 'var(--bg-subtle, #F2F4F6)',
+          }}>
+            {(['pnl', 'today'] as const).map(opt => (
+              <button
+                key={opt}
+                onClick={() => setColorMode(opt)}
+                style={{
+                  padding: '4px 10px', borderRadius: 4, fontSize: 11,
+                  fontWeight: colorMode === opt ? 700 : 500,
+                  color: colorMode === opt ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
+                  background: colorMode === opt ? '#FFFFFF' : 'transparent',
+                  border: 'none', cursor: 'pointer',
+                }}
+              >
+                {opt === 'pnl' ? '수익률' : '오늘'}
+              </button>
+            ))}
           </div>
         </div>
       )}
 
-      {/* 글로벌 호버·모션·포커스 스타일 */}
+      {/* 글로벌 호버 효과 + 폰트 강화 */}
       <style>{`
-        /* Depth Lift on Tap (C2) — 호버 / active 시 부드럽게 떠오름 */
-        .solb-heatmap-cell { transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), z-index 0s; }
-        .solb-heatmap-cell:hover { z-index: 5; transform: scale(1.02); }
-        .solb-heatmap-cell:active { transform: scale(0.985); transition-duration: 0.08s; }
         .solb-heatmap-cell-inner:hover {
-          filter: brightness(1.08) saturate(1.08);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.16);
+          filter: brightness(1.08) saturate(1.1);
         }
-        .solb-heatmap-cell-inner {
-          transition: filter 0.18s ease, box-shadow 0.22s ease, opacity 0.25s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        .solb-heatmap-cell:hover {
+          z-index: 2;
         }
-        .solb-heatmap-cell-inner > * { position: relative; }
-        .solb-heatmap-cell-inner > .solb-bg-overlay,
-        .solb-heatmap-cell-inner > .solb-inner-border,
-        .solb-heatmap-cell-inner > .solb-sparkline,
-        .solb-heatmap-cell-inner > .solb-memo-dot,
-        .solb-heatmap-cell-inner > .solb-hero-spark,
-        .solb-heatmap-cell-inner > .solb-pulse-ring {
+        .solb-heatmap-cell-inner > * {
+          position: relative;
+        }
+        .solb-heatmap-cell-inner > div:first-child,
+        .solb-heatmap-cell-inner > div:nth-child(2) {
+          /* 그라데이션과 inner border는 absolute, 라벨만 z-index 위로 */
           position: absolute;
-        }
-
-        /* Stagger Cascade Entry (A2/C1) — 처음엔 0%, mounted 후 데이터 인덱스별 delay 적용 */
-        .solb-heatmap-cell-inner.is-pre-mount {
-          opacity: 0;
-          transform: scale(0.94);
-        }
-        .solb-heatmap-cell-inner.is-mounted {
-          opacity: 1;
-          transform: scale(1);
-        }
-        /* OTHERS 셀은 마운트 후 0.88로 다운 — stagger 일관성 유지 */
-        .solb-heatmap-cell-inner.is-mounted.is-others { opacity: 0.88; }
-
-        /* Focus Hover (A4) — 부모에 focus-active 클래스 + 셀에 dimmed 클래스 */
-        .solb-heatmap-root.is-focus-active .solb-heatmap-cell-inner.is-dimmed {
-          opacity: 0.42;
-          filter: saturate(0.55) brightness(0.85);
-        }
-
-        /* Today's Mover Pulse (C3) — 1.5초 1회 ring */
-        @keyframes solb-pulse-ring {
-          0%   { transform: scale(0.94); opacity: 0; }
-          22%  { transform: scale(1.0);  opacity: 0.85; }
-          60%  { transform: scale(1.06); opacity: 0.45; }
-          100% { transform: scale(1.18); opacity: 0; }
-        }
-        .solb-pulse-ring {
-          inset: -2px;
-          border-radius: inherit;
-          pointer-events: none;
-          border: 2px solid rgba(255,200,80,0.85);
-          box-shadow: 0 0 14px rgba(255,200,80,0.55);
-          animation: solb-pulse-ring 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) 0.6s 1 both;
-        }
-
-        /* Hero Sparkle (A1) — 좌상단 미세 반짝이 */
-        @keyframes solb-hero-twinkle {
-          0%, 100% { opacity: 0.55; transform: scale(1); }
-          50%      { opacity: 1;    transform: scale(1.18); }
-        }
-        .solb-hero-spark {
-          top: 4px; left: 4px;
-          width: 5px; height: 5px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,210,140,0.8) 50%, transparent 80%);
-          box-shadow: 0 0 6px rgba(255,220,150,0.7);
-          animation: solb-hero-twinkle 3.2s ease-in-out infinite;
-          pointer-events: none;
-        }
-
-        /* Memo Dot (B5) — 우상단 6×6 다이아몬드 */
-        .solb-memo-dot {
-          top: 4px; right: 4px;
-          width: 6px; height: 6px;
-          background: rgba(255,255,255,0.85);
-          transform: rotate(45deg);
-          border-radius: 1px;
-          box-shadow: 0 0 4px rgba(0,0,0,0.4);
-          pointer-events: none;
-        }
-
-        /* Sparkline (B4) — 큰 셀에서만 표시 (container query) */
-        .solb-sparkline {
-          left: 6px; right: 6px; bottom: 4px;
-          height: 16px;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.3s ease;
-        }
-        @container (min-width: 96px) and (min-height: 64px) {
-          .solb-sparkline { opacity: 0.55; }
-        }
-
-        /* 변동성 Halo (B3 변형) — |z| ≥ 2.5 종목에 미세 외부 글로우 */
-        .solb-vol-halo {
-          box-shadow:
-            inset 0 0 0 1px rgba(255,255,255,0.04),
-            0 0 0 1px rgba(255,255,255,0.18),
-            0 0 8px rgba(255,255,255,0.12) !important;
-        }
-
-        /* prefers-reduced-motion — stagger/pulse 비활성 */
-        @media (prefers-reduced-motion: reduce) {
-          .solb-heatmap-cell-inner.is-pre-mount,
-          .solb-heatmap-cell-inner.is-mounted {
-            opacity: 1;
-            transform: none;
-            transition: none;
-          }
-          .solb-pulse-ring, .solb-hero-spark { animation: none; }
         }
       `}</style>
 
       {/* Heatmap container (다크 배경) */}
-      <div
-        ref={captureRef}
-        className={`solb-heatmap-root${hoveredSymbol ? ' is-focus-active' : ''}`}
-        style={{
-          background: '#0d0e10',
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: 4,
-          ...containerStyle,
-        }}
-      >
+      <div style={{
+        background: '#0d0e10',
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 4,
+        ...containerStyle,
+      }}>
         {/* Compact 모드에서 토글 + 확대 버튼 (상단 absolute) */}
         {isCompact && (
           <div style={{
@@ -749,22 +503,16 @@ export default function PortfolioHeatmap({
                 isCompact={isCompact}
                 onClick={onCellClick}
                 onMouseMove={handleMouseMove(node)}
-                onMouseLeave={() => { setHovered(null); setHoveredSymbol(null); }}
-                onMouseEnter={() => setHoveredSymbol(node.symbol)}
+                onMouseLeave={() => setHovered(null)}
                 relative
                 parentRect={sector}
-                isHero={node.symbol === heroSymbol}
-                isPulse={node.symbol === pulseSymbol}
-                isDimmed={!!hoveredSymbol && hoveredSymbol !== node.symbol}
-                hasMounted={hasMounted}
-                mountIndex={sector.cellLayout.indexOf(node)}
               />
             ))}
           </div>
         ))}
 
         {/* 평면 squarify (compact 또는 sectors 미사용) */}
-        {!useSectors && layout.flat.map((node, i) => (
+        {!useSectors && layout.flat.map(node => (
           <Cell
             key={node.symbol}
             node={node}
@@ -773,13 +521,7 @@ export default function PortfolioHeatmap({
             isCompact={isCompact}
             onClick={onCellClick}
             onMouseMove={handleMouseMove(node)}
-            onMouseLeave={() => { setHovered(null); setHoveredSymbol(null); }}
-            onMouseEnter={() => setHoveredSymbol(node.symbol)}
-            isHero={node.symbol === heroSymbol}
-            isPulse={node.symbol === pulseSymbol}
-            isDimmed={!!hoveredSymbol && hoveredSymbol !== node.symbol}
-            hasMounted={hasMounted}
-            mountIndex={i}
+            onMouseLeave={() => setHovered(null)}
           />
         ))}
 
@@ -792,33 +534,6 @@ export default function PortfolioHeatmap({
             containerWidth={containerRef.current.clientWidth}
             containerHeight={containerRef.current.clientHeight}
           />
-        )}
-
-        {/* 공유 시에만 보이는 워터마크 — 평소엔 안 보임 (shareLoading일 때만 캡처에 포함) */}
-        {shareLoading && !isCompact && (
-          <div style={{
-            position: 'absolute',
-            left: 12, bottom: 10,
-            display: 'flex', alignItems: 'center', gap: 8,
-            color: 'rgba(255,255,255,0.92)',
-            fontSize: 11, fontWeight: 700,
-            fontFamily: '-apple-system, sans-serif',
-            textShadow: '0 1px 3px rgba(0,0,0,0.6)',
-            pointerEvents: 'none', zIndex: 20,
-          }}>
-            <span style={{
-              padding: '3px 8px', borderRadius: 4,
-              background: 'linear-gradient(135deg, #AF52DE 0%, #3182F6 100%)',
-              fontSize: 10, letterSpacing: 0.5,
-            }}>SOLB</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-              {' · 누적 '}
-              <span style={{ color: totalPnlPct >= 0 ? '#FF8585' : '#7AAEFF' }}>
-                {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%
-              </span>
-            </span>
-          </div>
         )}
       </div>
 
@@ -848,10 +563,8 @@ export default function PortfolioHeatmap({
 
 // ─── Sub: 셀 (HTML) ─────────────────────────────────────────────────────────
 function Cell({
-  node, colorMode, rawCandles, isCompact, onClick, onMouseMove, onMouseLeave, onMouseEnter,
+  node, colorMode, rawCandles, isCompact, onClick, onMouseMove, onMouseLeave,
   relative = false, parentRect,
-  isHero = false, isPulse = false, isDimmed = false,
-  hasMounted = true, mountIndex = 0,
 }: {
   node: LayoutNode;
   colorMode: 'pnl' | 'today';
@@ -860,19 +573,13 @@ function Cell({
   onClick?: (symbol: string) => void;
   onMouseMove?: (e: React.MouseEvent) => void;
   onMouseLeave?: () => void;
-  onMouseEnter?: () => void;
   relative?: boolean;
   parentRect?: Rect;
-  isHero?: boolean;
-  isPulse?: boolean;
-  isDimmed?: boolean;
-  hasMounted?: boolean;
-  mountIndex?: number;
 }) {
   const isOthers = node.symbol === OTHERS_SYMBOL;
   const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
 
-  // Fill 색 — 누적 수익률 (PnL 모드) 또는 z-score 색 (Today 모드)
+  // z-score 색 (오늘 모드 + 캔들 가용 시)
   let bg: string;
   if (colorMode === 'today' && !isOthers && rawCandles?.[node.symbol]) {
     const baseline = computeVolBaseline(rawCandles[node.symbol]);
@@ -881,14 +588,6 @@ function Cell({
   } else {
     bg = pnlColor(pct);
   }
-  // Meta Gradient Surface (A3·C4) — 위 → 아래로 어두워지는 책 표지 톤
-  const bgDarker = darkenHex(bg, 0.12);
-  const gradient = `linear-gradient(180deg, ${bg} 0%, ${bgDarker} 100%)`;
-
-  // Dual encoding (B1) — fill=누적 / 외곽선=오늘. PnL 모드에서만 의미 있음
-  // (Today 모드에선 fill 자체가 오늘 인코딩이므로 외곽선 중복 → 비활성)
-  const outlineColor = isOthers ? 'rgba(255,255,255,0.06)' : todayOutlineColor(node.todayPct);
-  const showOutline = !isOthers && colorMode === 'pnl' && Math.abs(node.todayPct) >= 0.5;
 
   // 위치 계산 — sector 안의 셀이면 parentRect 기준 상대값으로 변환
   const left = relative && parentRect ? `${((node.x - parentRect.x) / parentRect.w) * 100}%` : `${node.x}%`;
@@ -901,41 +600,11 @@ function Cell({
   const tickerLabel = isOthers ? `기타 ${node.childrenSymbols?.length || 0}` : node.symbol;
   const pctLabel = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
 
-  // Sparkline points (5일) — 컨테이너 쿼리로 보이고 안 보이고 결정
-  const sparkPoints = !isOthers ? getSparklinePoints(rawCandles?.[node.symbol], 100, 24) : null;
-
-  // 변동성 halo (B3 변형) — |z| ≥ 2.5
-  const showVolHalo = !isOthers && node.zAbs >= 2.5;
-
-  // Stagger entry — 큰 셀(앞쪽 인덱스)이 먼저 들어옴, 50ms stagger
-  const staggerDelay = `${Math.min(mountIndex * 50, 600)}ms`;
-
-  // Long-press handler (C5 simplified) — 350ms 누르면 클릭과 동일하게 발화
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const handleTouchStart = () => {
-    if (!clickable || !onClick) return;
-    longPressTimerRef.current = setTimeout(() => {
-      if ('vibrate' in navigator) try { navigator.vibrate(8); } catch { /* noop */ }
-      onClick(node.symbol);
-    }, 350);
-  };
-  const cancelLongPress = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
   return (
     <div
       onClick={clickable ? () => onClick!(node.symbol) : undefined}
       onMouseMove={onMouseMove}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={() => { onMouseLeave?.(); cancelLongPress(); }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={cancelLongPress}
-      onTouchMove={cancelLongPress}
-      onTouchCancel={cancelLongPress}
+      onMouseLeave={onMouseLeave}
       className="solb-heatmap-cell"
       style={{
         position: 'absolute',
@@ -944,76 +613,43 @@ function Cell({
         boxSizing: 'border-box',
       }}
     >
-      <div
-        className={`solb-heatmap-cell-inner${hasMounted ? ' is-mounted' : ' is-pre-mount'}${isDimmed ? ' is-dimmed' : ''}${showVolHalo ? ' solb-vol-halo' : ''}${isOthers ? ' is-others' : ''}`}
-        style={{
-          position: 'relative',
-          width: '100%', height: '100%',
-          background: gradient,
-          cursor: clickable ? 'pointer' : 'default',
-          color: textColor,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2px 4px',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          containerType: 'size',
-          // Stagger transition delay — mount 시 발화
-          transitionDelay: hasMounted ? staggerDelay : '0ms',
-        } as React.CSSProperties}
-      >
-        {/* 미세 하이라이트 (위) + 섀도우 (아래) — 그라데이션과 별개의 광택 레이어 */}
-        <div className="solb-bg-overlay" style={{
+      <div className="solb-heatmap-cell-inner" style={{
+        position: 'relative',
+        width: '100%', height: '100%',
+        background: bg,
+        opacity: isOthers ? 0.88 : 1,
+        cursor: clickable ? 'pointer' : 'default',
+        color: textColor,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2px 4px',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        // Container queries로 크기에 따라 라벨 자동 표시/숨김
+        containerType: 'size',
+        transition: 'filter 0.18s ease, background-color 0.35s ease, opacity 0.25s ease',
+      } as React.CSSProperties}>
+        {/* 미세한 입체감 그라데이션 — 위 하이라이트 + 아래 섀도우 */}
+        <div style={{
+          position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 28%, transparent 78%, rgba(0,0,0,0.18) 100%)',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 28%, transparent 70%, rgba(0,0,0,0.12) 100%)',
           pointerEvents: 'none',
         }} />
-        {/* Inner border + Dual encoding outline (B1) */}
-        <div className="solb-inner-border" style={{
+        {/* 셀 안 미세 inner border (깊이) */}
+        <div style={{
+          position: 'absolute',
           inset: 0,
-          boxShadow: showOutline
-            ? `inset 0 0 0 1.5px ${outlineColor}, inset 0 0 0 2.5px rgba(0,0,0,0.18)`
-            : 'inset 0 0 0 1px rgba(255,255,255,0.04)',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)',
           pointerEvents: 'none',
-          borderRadius: 'inherit',
         }} />
-
-        {/* Hero Sparkle (A1) — 좌상단 */}
-        {isHero && !isOthers && <div className="solb-hero-spark" />}
-
-        {/* Memo Dot (B5) — 우상단 */}
-        {!isOthers && node.noteCount > 0 && <div className="solb-memo-dot" />}
-
-        {/* Today's Mover Pulse (C3) — 1회 ring */}
-        {isPulse && <div className="solb-pulse-ring" />}
-
         <CellLabel
           ticker={tickerLabel}
           pct={pctLabel}
           isCompact={isCompact}
         />
-
-        {/* Sparkline (B4) — 5일 종가, 큰 셀에서만 보임 (CSS @container) */}
-        {sparkPoints && (
-          <svg
-            className="solb-sparkline"
-            viewBox="0 0 100 24"
-            preserveAspectRatio="none"
-            style={{ width: 'calc(100% - 12px)', display: 'block' }}
-          >
-            <polyline
-              fill="none"
-              stroke="rgba(255,255,255,0.85)"
-              strokeWidth="1.4"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              points={sparkPoints}
-              vectorEffect="non-scaling-stroke"
-            />
-          </svg>
-        )}
       </div>
     </div>
   );
