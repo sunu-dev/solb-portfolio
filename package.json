@@ -17,6 +17,7 @@
     "@upstash/qstash": "^2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "html-to-image": "^1.11.13",
     "lightweight-charts": "^5.1.0",
     "lucide-react": "^0.577.0",
     "next": "16.2.1",
