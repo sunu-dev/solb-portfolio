@@ -9,6 +9,7 @@ import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import PortfolioHeatmap from './PortfolioHeatmap';
+import PortfolioCirclePack from './PortfolioCirclePack';
 import PortfolioCompactBar from './PortfolioCompactBar';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
@@ -1023,7 +1024,7 @@ export default function PortfolioSection() {
             }}>
               포트폴리오 맵
             </div>
-            <PortfolioHeatmap
+            <PortfolioCirclePack
               variant="compact"
               stocks={investingStocks}
               macroData={macroData}
@@ -1123,7 +1124,7 @@ export default function PortfolioSection() {
                     }
                   `}</style>
                   <BenchmarkCompare />
-                  <PortfolioHeatmap
+                  <PortfolioCirclePack
                     stocks={investingStocks}
                     macroData={macroData}
                     usdKrw={usdKrw}
