@@ -144,8 +144,8 @@ export default function PortfolioMindmap({
   const CX = 50, CY = 50;
   const HUB_RADIUS = isCompact ? 25 : 26;  // 중심에서 섹터 허브까지
 
-  const layout: { hubs: SectorHub[]; centerLabel: string } = useMemo(() => {
-    if (allStocks.length === 0) return { hubs: [], centerLabel: '' };
+  const layout: { hubs: SectorHub[]; centerLabel: string; isSingleSector: boolean } = useMemo(() => {
+    if (allStocks.length === 0) return { hubs: [], centerLabel: '', isSingleSector: false };
 
     const totalValue = allStocks.reduce((s, n) => s + n.value, 0);
     const totalCost = allStocks.reduce((s, n) => s + n.avgCost * n.shares, 0);
@@ -158,7 +158,6 @@ export default function PortfolioMindmap({
       arr.push(s);
       bySector.set(s.sector, arr);
     }
-    // 섹터를 평가금액 큰 순으로 정렬 (큰 섹터가 위쪽 근처)
     const sectorEntries = Array.from(bySector.entries())
       .map(([sector, ss]) => ({
         sector,
@@ -168,8 +167,47 @@ export default function PortfolioMindmap({
       .sort((a, b) => b.totalValue - a.totalValue);
 
     const N = sectorEntries.length;
+    const isSingleSector = N === 1;
 
-    // 섹터 허브 위치 — 균등 분포 (시작각 -π/2 = 12시)
+    const sign = totalPctReturn >= 0 ? '+' : '';
+    const centerLabel = `${sign}${totalPctReturn.toFixed(1)}%`;
+
+    // ─── 단일 섹터 분기 — 누적 노드 주변 360° 분산 (sector hub 없음) ───
+    if (isSingleSector) {
+      const entry = sectorEntries[0];
+      const stockCount = entry.stocks.length;
+      const ORBIT_RADIUS = 26;  // 누적 노드에서 종목까지 기본 거리
+
+      const stocksWithLayout: StockNode[] = entry.stocks.map((stock, j) => {
+        // 360° 균등 분산. j=0(큰 비중)이 12시 시작
+        const angle = stockCount === 1
+          ? -Math.PI / 2
+          : (Math.PI * 2 * j) / stockCount - Math.PI / 2;
+        const weight = totalValue > 0 ? stock.value / totalValue : 0;
+        // 큰 비중이 살짝 안쪽 (인력)
+        const dist = ORBIT_RADIUS - Math.sqrt(weight) * 4;
+        const r = Math.max(2.6, Math.min(6, 2.6 + Math.sqrt(weight) * 16));
+        return {
+          ...stock, weight,
+          x: CX + dist * Math.cos(angle),
+          y: CY + dist * Math.sin(angle),
+          r,
+        };
+      });
+
+      const singleHub: SectorHub = {
+        sector: entry.sector,
+        x: CX, y: CY,             // 누적 노드와 동일 — UI에서 hub 안 그림
+        baseAngle: -Math.PI / 2,
+        totalValue: entry.totalValue,
+        weightShare: 1,
+        stocks: stocksWithLayout,
+      };
+
+      return { hubs: [singleHub], centerLabel, isSingleSector: true };
+    }
+
+    // ─── 다중 섹터 — 기존 마인드맵 로직 ───
     const hubs: SectorHub[] = sectorEntries.map((entry, i) => {
       const angle = (Math.PI * 2 * i) / N - Math.PI / 2;
       const hubX = CX + HUB_RADIUS * Math.cos(angle);
@@ -185,52 +223,34 @@ export default function PortfolioMindmap({
       };
     });
 
-    // 종목 노드 위치 — 자기 섹터 허브 주변에 부채꼴로 배치
     hubs.forEach((hub, hubIdx) => {
       const entry = sectorEntries[hubIdx];
       const stockCount = entry.stocks.length;
-
-      // 인접 섹터까지의 각도 절반을 허용 영역으로
       const wedgeHalf = Math.PI / Math.max(N, 2) * 0.85;
 
       entry.stocks.forEach((stock, j) => {
         const weight = totalValue > 0 ? stock.value / totalValue : 0;
-        // 큰 종목일수록 허브에 가까이 (끌어당김)
         const distFromHub = 7 + (1 - Math.min(weight * 6, 0.95)) * 5;
-        // 종목 노드 반지름 (비중에 비례, 안전 범위)
         const r = Math.max(1.6, Math.min(4.2, 1.5 + Math.sqrt(weight) * 14));
 
-        // 부채꼴 안에서 종목 분포
-        // 종목 1개면 정중앙(허브 바깥쪽), 여러 개면 wedge 내 분포
         let localAngle: number;
         if (stockCount === 1) {
           localAngle = hub.baseAngle;
         } else {
-          // 큰 종목이 가운데, 작은 종목이 가장자리
-          // j=0이 가장 큰 종목 (sorted됨)
           const seq = j === 0 ? 0 : (j % 2 === 1 ? Math.ceil(j / 2) : -Math.ceil(j / 2));
           const stepCount = Math.ceil(stockCount / 2);
           const step = stepCount > 0 ? wedgeHalf / stepCount : 0;
           localAngle = hub.baseAngle + seq * step;
         }
 
-        // 허브에서 바깥 방향으로
         const x = hub.x + distFromHub * Math.cos(localAngle);
         const y = hub.y + distFromHub * Math.sin(localAngle);
 
-        hub.stocks.push({
-          ...stock,
-          weight,
-          x, y, r,
-        });
+        hub.stocks.push({ ...stock, weight, x, y, r });
       });
     });
 
-    const sign = totalPctReturn >= 0 ? '+' : '';
-    return {
-      hubs,
-      centerLabel: `${sign}${totalPctReturn.toFixed(1)}%`,
-    };
+    return { hubs, centerLabel, isSingleSector: false };
   }, [allStocks, HUB_RADIUS]);
 
   // 누적 수익률 (워터마크용)
@@ -271,11 +291,12 @@ export default function PortfolioMindmap({
 
   if (allStocks.length === 0) return null;
 
-  // 컨테이너 크기
+  // 컨테이너 크기 — 정사각형 강제 (마인드맵 원형 콘텐츠)
   const containerStyle: React.CSSProperties = isCompact ? {
     width: '100%',
-    height: 'clamp(240px, 42vw, 480px)',
-    margin: 0,
+    aspectRatio: '1 / 1',
+    maxWidth: 480,
+    margin: '0 auto',
   } : {
     aspectRatio: '1 / 1',
     maxWidth: 'min(720px, 100%)',
@@ -449,31 +470,34 @@ export default function PortfolioMindmap({
           preserveAspectRatio="xMidYMid meet"
           style={{ width: '100%', height: '100%', display: 'block' }}
         >
-          {/* 라인 — 중심 → 섹터 허브 */}
-          <g>
-            {layout.hubs.map(hub => (
-              <path
-                key={`line-c-${hub.sector}`}
-                d={curvePath(CX, CY, hub.x, hub.y, 0.0)}
-                fill="none"
-                stroke="rgba(80,90,110,0.32)"
-                strokeWidth={0.5}
-                className={`solb-mm-line${hasMounted ? ' is-mounted' : ' is-pre-mount'}${hoveredSym ? ' is-dimmed' : ''}`}
-                style={{ transitionDelay: hasMounted ? '40ms' : '0ms' }}
-              />
-            ))}
-          </g>
+          {/* 라인 — 중심 → 섹터 허브 (다중 섹터일 때만) */}
+          {!layout.isSingleSector && (
+            <g>
+              {layout.hubs.map(hub => (
+                <path
+                  key={`line-c-${hub.sector}`}
+                  d={curvePath(CX, CY, hub.x, hub.y, 0.0)}
+                  fill="none"
+                  stroke="rgba(80,90,110,0.32)"
+                  strokeWidth={0.5}
+                  className={`solb-mm-line${hasMounted ? ' is-mounted' : ' is-pre-mount'}${hoveredSym ? ' is-dimmed' : ''}`}
+                  style={{ transitionDelay: hasMounted ? '40ms' : '0ms' }}
+                />
+              ))}
+            </g>
+          )}
 
-          {/* 라인 — 섹터 허브 → 종목 */}
+          {/* 라인 — 섹터 허브 → 종목 (단일 섹터: 직선, 다중: 곡선) */}
           <g>
             {layout.hubs.flatMap(hub =>
               hub.stocks.map((stock, j) => {
                 const isHovered = hoveredSym === stock.symbol;
                 const isDimmed = !!hoveredSym && !isHovered;
+                const curvature = layout.isSingleSector ? 0 : 0.18;
                 return (
                   <path
                     key={`line-${stock.symbol}-${j}`}
-                    d={curvePath(hub.x, hub.y, stock.x, stock.y, 0.18)}
+                    d={curvePath(hub.x, hub.y, stock.x, stock.y, curvature)}
                     fill="none"
                     stroke={isHovered ? sectorColorOf(hub.sector) : 'rgba(80,90,110,0.28)'}
                     strokeWidth={isHovered ? 0.8 : 0.4}
@@ -504,8 +528,8 @@ export default function PortfolioMindmap({
             </text>
           </g>
 
-          {/* 섹터 허브 */}
-          {layout.hubs.map(hub => {
+          {/* 섹터 허브 (다중 섹터일 때만 — 단일 섹터면 누적 노드와 겹쳐 안 그림) */}
+          {!layout.isSingleSector && layout.hubs.map(hub => {
             const isHubDimmed = !!hoveredSym && hoveredStock?.hub.sector !== hub.sector;
             const labelOffsetX = hub.x - CX;
             const labelOffsetY = hub.y - CY;
