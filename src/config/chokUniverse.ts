@@ -70,6 +70,36 @@ export const CHOK_UNIVERSE: ChokStock[] = [
   { symbol: 'SOXX',  krName: '반도체 ETF',      sector: 'etf' },
   { symbol: 'VGT',   krName: 'IT섹터 ETF',      sector: 'etf' },
   { symbol: 'SCHD',  krName: '배당성장 ETF',    sector: 'etf' },
+
+  // ─── B 단계 추가 (2026-04-28) — 분산 추천 구조적 한계 해소 ─────
+  // Real Estate (REITs)
+  { symbol: 'O',     krName: '리얼티 인컴',      sector: 'real_estate' },
+  { symbol: 'AMT',   krName: '아메리칸 타워',    sector: 'real_estate' },
+  { symbol: 'PLD',   krName: '프로로지스',      sector: 'real_estate' },
+
+  // Utilities
+  { symbol: 'NEE',   krName: '넥스트에라',      sector: 'utilities' },
+  { symbol: 'SO',    krName: '서던 컴퍼니',     sector: 'utilities' },
+
+  // Industrials
+  { symbol: 'BA',    krName: '보잉',           sector: 'industrials' },
+  { symbol: 'CAT',   krName: '캐터필러',        sector: 'industrials' },
+  { symbol: 'DE',    krName: '디어',           sector: 'industrials' },
+  { symbol: 'HON',   krName: '하니웰',          sector: 'industrials' },
+
+  // Materials
+  { symbol: 'LIN',   krName: '린데',            sector: 'materials' },
+
+  // Consumer Staples (필수소비재 — 방어주)
+  { symbol: 'KO',    krName: '코카콜라',        sector: 'consumer_staples' },
+  { symbol: 'PG',    krName: 'P&G',            sector: 'consumer_staples' },
+  { symbol: 'MO',    krName: '알트리아',        sector: 'consumer_staples' },
+
+  // Communication
+  { symbol: 'VZ',    krName: '버라이즌',        sector: 'communication' },
+
+  // Bond ETF (채권 — 인컴/방어 유저용)
+  { symbol: 'TLT',   krName: '20년+ 미국채 ETF', sector: 'bond_etf' },
 ];
 
 // symbol → krName 빠른 조회
@@ -84,17 +114,24 @@ export const CHOK_SECTOR_MAP: Record<string, string> = Object.fromEntries(
 
 // 섹터 영문 태그 → 한국어 라벨 (UI/프롬프트 일관 표기용)
 export const SECTOR_LABELS_KR: Record<string, string> = {
-  tech:           '빅테크',
-  semiconductor:  '반도체',
-  ev:             'EV',
-  finance:        '금융',
-  crypto:         '크립토',
-  streaming:      '스트리밍',
-  healthcare:     '헬스케어',
-  consumer:       '소비재',
-  energy:         '에너지',
-  etf:            'ETF',
-  other:          '기타',
+  tech:               '빅테크',
+  semiconductor:      '반도체',
+  ev:                 'EV',
+  finance:            '금융',
+  crypto:             '크립토',
+  streaming:          '스트리밍',
+  healthcare:         '헬스케어',
+  consumer:           '소비재',
+  consumer_staples:   '필수소비재',
+  energy:             '에너지',
+  real_estate:        '부동산',
+  utilities:          '유틸리티',
+  industrials:        '산업재',
+  materials:          '소재',
+  communication:      '통신',
+  etf:                'ETF',
+  bond_etf:           '채권ETF',
+  other:              '기타',
 };
 
 export function sectorLabel(tag: string): string {

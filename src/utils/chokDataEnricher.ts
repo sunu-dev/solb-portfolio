@@ -61,16 +61,22 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
       fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${apiKey}`, { cache: 'no-store' }),
       fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`, { cache: 'no-store' }),
     ]);
-    const metric = (await metricRes.json()) as FinnhubMetric;
-    const quote = (await quoteRes.json()) as FinnhubQuote;
+    if (!metricRes.ok && metricRes.status === 429) {
+      console.warn(`[CHOK ENRICH] ${symbol} metric rate-limited (429)`);
+    }
+    const metric = metricRes.ok ? (await metricRes.json()) as FinnhubMetric : {};
+    const quote = quoteRes.ok ? (await quoteRes.json()) as FinnhubQuote : {};
 
     const m = metric.metric || {};
     const currentPrice = typeof quote?.c === 'number' && quote.c > 0 ? quote.c : null;
-    const high52 = typeof m['52WeekHigh'] === 'number' ? m['52WeekHigh'] : null;
-    const low52 = typeof m['52WeekLow'] === 'number' ? m['52WeekLow'] : null;
+    // 강화된 검증: > 0 명시
+    const high52 = typeof m['52WeekHigh'] === 'number' && m['52WeekHigh'] > 0 ? m['52WeekHigh'] : null;
+    const low52 = typeof m['52WeekLow'] === 'number' && m['52WeekLow'] > 0 ? m['52WeekLow'] : null;
     let position52: number | null = null;
     if (currentPrice && high52 && low52 && high52 > low52) {
       position52 = ((currentPrice - low52) / (high52 - low52)) * 100;
+      // 정상 범위 검증 — 가끔 데이터 stale로 100% 초과 가능
+      if (position52 < -5 || position52 > 105) position52 = null;
     }
     const peRaw = m['peTTM'] ?? m['peBasicExclExtraTTM'] ?? m['peNormalizedAnnual'];
     const peRatio = typeof peRaw === 'number' && peRaw > 0 && peRaw < 1000 ? peRaw : null;
@@ -87,7 +93,8 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
       yearReturn,
       month1Return,
     };
-  } catch {
+  } catch (e) {
+    console.warn(`[CHOK ENRICH] ${symbol} fetch failed:`, e instanceof Error ? e.message : 'unknown');
     return fallback;
   }
 }
@@ -110,14 +117,28 @@ export async function enrichUniverse(): Promise<EnrichedStockData[]> {
     }));
   }
 
-  // 동시 12개씩 batch — Finnhub 60/min 제한 안전 (총 ~7s)
-  const BATCH = 12;
+  // 동시 10개씩 batch — universe 확장(43→58) 후에도 free tier 60/min 안전
+  // batch 사이 200ms 간격으로 burst 분산
+  const BATCH = 10;
   const results: EnrichedStockData[] = [];
   for (let i = 0; i < CHOK_UNIVERSE.length; i += BATCH) {
     const slice = CHOK_UNIVERSE.slice(i, i + BATCH);
     const batchResults = await Promise.all(slice.map(s => fetchOne(s.symbol, apiKey)));
     results.push(...batchResults);
+    if (i + BATCH < CHOK_UNIVERSE.length) {
+      await new Promise(r => setTimeout(r, 200));
+    }
   }
+
+  // 진단 — 어떤 필드가 얼마나 채워졌는지 한 번 로깅 (캐시 갱신 시점)
+  const counts = {
+    total: results.length,
+    price: results.filter(r => r.currentPrice !== null).length,
+    pe: results.filter(r => r.peRatio !== null).length,
+    week52: results.filter(r => r.week52Position !== null).length,
+    yearReturn: results.filter(r => r.yearReturn !== null).length,
+  };
+  console.log('[CHOK ENRICH] coverage', JSON.stringify(counts));
 
   cache = { data: results, ts: now };
   return results;
