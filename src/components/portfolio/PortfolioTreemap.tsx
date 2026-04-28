@@ -129,17 +129,19 @@ function squarify<T extends { value: number }>(items: T[], rect: Rect): Array<T 
   return result;
 }
 
-// ─── 색 (파스텔 -45%, 토스 톤) ────────────────────────────────────────────
+// ─── 색 (토스 톤, 진한 채도 + 부드러운 라운드) ──────────────────────────
 function pastelPnl(pct: number): string {
-  if (pct >= 5)    return '#F8AEAE';
-  if (pct >= 3)    return '#FABBBB';
-  if (pct >= 1.5)  return '#FCCBCB';
-  if (pct >= 0.3)  return '#FCDADA';
-  if (pct > -0.3)  return '#EAEDF2';   // 보합 — 따뜻한 그레이
-  if (pct > -1.5)  return '#D6DEF8';
-  if (pct > -3)    return '#C0CBF7';
-  if (pct > -5)    return '#A8B8F3';
-  return '#92A6EF';
+  if (pct >= 7)    return '#FF5757';   // 매우 강한 빨강
+  if (pct >= 5)    return '#FF6B6B';
+  if (pct >= 3)    return '#FF8080';
+  if (pct >= 1.5)  return '#FF9999';
+  if (pct >= 0.3)  return '#FFB8B8';
+  if (pct > -0.3)  return '#EEF0F4';   // 보합 — 라이트 그레이
+  if (pct > -1.5)  return '#BBCFFF';
+  if (pct > -3)    return '#94B0FF';
+  if (pct > -5)    return '#6B92FA';
+  if (pct > -7)    return '#4271F0';
+  return '#2858E5';                     // 매우 강한 파랑
 }
 
 function darkenSlight(hex: string): string {
@@ -148,12 +150,18 @@ function darkenSlight(hex: string): string {
   const r = parseInt(m.slice(0, 2), 16);
   const g = parseInt(m.slice(2, 4), 16);
   const b = parseInt(m.slice(4, 6), 16);
-  const f = 0.94;  // 6% darker
+  const f = 0.93;  // 7% darker (살짝 깊이감)
   const to2 = (n: number) => Math.round(n * f).toString(16).padStart(2, '0');
   return `#${to2(r)}${to2(g)}${to2(b)}`;
 }
 
+/** 셀 안 텍스트 색 — 강한 채도 셀은 흰색, 약한 셀은 다크 */
+function tickerColor(pct: number): string {
+  return Math.abs(pct) >= 3 ? '#FFFFFF' : '#191F28';
+}
+
 function pnlTextColor(pct: number): string {
+  if (Math.abs(pct) >= 3) return 'rgba(255,255,255,0.92)';
   if (pct >= 1.5)  return '#C72C2C';
   if (pct > -1.5)  return '#4E5968';
   return '#1B5BC9';
@@ -608,7 +616,7 @@ export default function PortfolioTreemap({
             <span>−5%</span>
             <div style={{
               width: 90, height: 6, borderRadius: 3,
-              background: 'linear-gradient(to right, #92A6EF 0%, #C0CBF7 25%, #EAEDF2 50%, #FCCBCB 75%, #F8AEAE 100%)',
+              background: 'linear-gradient(to right, #2858E5 0%, #6B92FA 25%, #EEF0F4 50%, #FF8080 75%, #FF5757 100%)',
             }} />
             <span>+5%</span>
           </div>
@@ -672,7 +680,7 @@ function Cell({
           width: '100%', height: '100%',
           background: gradient,
           borderRadius: 14,
-          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
           cursor: clickable ? 'pointer' : 'default',
           display: 'flex',
           flexDirection: 'column',
@@ -685,7 +693,13 @@ function Cell({
           opacity: isOthers ? 0.92 : 1,
         }}
       >
-        <CellLabel ticker={tickerLabel} pct={pctLabel} pctColor={pnlTextColor(pct)} isCompact={isCompact} />
+        <CellLabel
+          ticker={tickerLabel}
+          pct={pctLabel}
+          tickerColor={tickerColor(pct)}
+          pctColor={pnlTextColor(pct)}
+          isCompact={isCompact}
+        />
       </div>
     </div>
   );
@@ -693,9 +707,9 @@ function Cell({
 
 // ─── Sub: Cell label (container queries로 크기별 표시) ─────────────────────
 function CellLabel({
-  ticker, pct, pctColor, isCompact,
+  ticker, pct, tickerColor, pctColor, isCompact,
 }: {
-  ticker: string; pct: string; pctColor: string; isCompact: boolean;
+  ticker: string; pct: string; tickerColor: string; pctColor: string; isCompact: boolean;
 }) {
   const tickerFs = isCompact ? '12px' : '13px';
   const pctFs = isCompact ? '10px' : '11px';
@@ -714,7 +728,6 @@ function CellLabel({
           overflow: hidden;
           text-overflow: ellipsis;
           max-width: 100%;
-          color: #191F28;
         }
         .solb-tm-pct {
           font-size: ${pctFs};
@@ -723,14 +736,14 @@ function CellLabel({
           line-height: 1.2;
           margin-top: 2px;
           text-align: center;
-          opacity: 0.92;
+          opacity: 0.95;
           white-space: nowrap;
         }
         @container (max-height: 36px) { .solb-tm-pct { display: none; } }
         @container (max-width: 50px)  { .solb-tm-pct { display: none; } }
         @container (max-height: 24px) { .solb-tm-ticker { font-size: 10px; } }
       `}</style>
-      <div className="solb-tm-ticker">{ticker}</div>
+      <div className="solb-tm-ticker" style={{ color: tickerColor }}>{ticker}</div>
       <div className="solb-tm-pct" style={{ color: pctColor }}>{pct}</div>
     </>
   );
