@@ -4,21 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { getAvatarColor, STOCK_KR } from '@/config/constants';
-import { CHOK_KR_MAP } from '@/config/chokUniverse';
+import { CHOK_KR_MAP, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
 import type { MacroEntry, PortfolioStocks } from '@/config/constants';
 import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
 
-// ─── 시장 컨텍스트 빌더 ──────────────────────────────────────────────────────
-const SECTOR_MAP: Record<string, string> = {
-  NVDA:'반도체', AMD:'반도체', MU:'반도체', AVGO:'반도체', QCOM:'반도체', INTC:'반도체', TSM:'반도체', SOXX:'반도체', ASML:'반도체', AMAT:'반도체',
-  MSFT:'빅테크', AAPL:'빅테크', GOOGL:'빅테크', META:'빅테크', AMZN:'빅테크', NFLX:'스트리밍', CRM:'빅테크', ORCL:'빅테크',
-  TSLA:'EV', GM:'EV', F:'EV',
-  JPM:'금융', GS:'금융', V:'금융', MA:'금융', BAC:'금융', COIN:'크립토',
-  LLY:'헬스케어', JNJ:'헬스케어', PFE:'헬스케어', ABBV:'헬스케어', UNH:'헬스케어', MRNA:'헬스케어',
-  WMT:'소비재', COST:'소비재', NKE:'소비재', SBUX:'소비재', MCD:'소비재',
-  XOM:'에너지', CVX:'에너지',
-  SPY:'ETF', QQQ:'ETF', VGT:'ETF', SCHD:'ETF',
-};
+// ─── 섹터 라벨 헬퍼 — universe 영문 태그 → 한국어 라벨로 통일 ───────────────
+function symbolToSectorLabel(symbol: string): string {
+  const tag = CHOK_SECTOR_MAP[symbol];
+  if (tag) return sectorLabel(tag);
+  if (symbol.endsWith('.KS') || symbol.endsWith('.KQ')) return '한국주식';
+  return '기타';
+}
 
 function buildMacroContext(macroData: Record<string, MacroEntry | unknown>): string {
   const vix = macroData['VIX'] as MacroEntry | undefined;
@@ -45,7 +41,7 @@ function buildSectorConcentration(stocks: PortfolioStocks): string {
   if (!all.length) return '포트폴리오 없음';
   const cnt: Record<string, number> = {};
   for (const s of all) {
-    const sec = SECTOR_MAP[s.symbol] || '기타';
+    const sec = symbolToSectorLabel(s.symbol);
     cnt[sec] = (cnt[sec] || 0) + 1;
   }
   return Object.entries(cnt)
@@ -204,7 +200,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
             border: 'none',
           }}
         >
-          {inWatching ? '✓ 관심' : '+ 관심'}
+          {inWatching ? '✓ 둘러봄' : '둘러보기'}
         </button>
       </div>
     </div>
@@ -323,7 +319,7 @@ export default function AiChokSection() {
             )}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-            AI의 촉이에요 · 투자 판단은 본인이
+            AI의 관찰 후보예요 · 추천이 아닌 정보 제공 · 투자 판단은 본인이
           </p>
         </div>
 

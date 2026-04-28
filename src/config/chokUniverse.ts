@@ -76,3 +76,27 @@ export const CHOK_UNIVERSE: ChokStock[] = [
 export const CHOK_KR_MAP: Record<string, string> = Object.fromEntries(
   CHOK_UNIVERSE.map(s => [s.symbol, s.krName])
 );
+
+// symbol → sector (universe 영문 태그)
+export const CHOK_SECTOR_MAP: Record<string, string> = Object.fromEntries(
+  CHOK_UNIVERSE.map(s => [s.symbol, s.sector])
+);
+
+// 섹터 영문 태그 → 한국어 라벨 (UI/프롬프트 일관 표기용)
+export const SECTOR_LABELS_KR: Record<string, string> = {
+  tech:           '빅테크',
+  semiconductor:  '반도체',
+  ev:             'EV',
+  finance:        '금융',
+  crypto:         '크립토',
+  streaming:      '스트리밍',
+  healthcare:     '헬스케어',
+  consumer:       '소비재',
+  energy:         '에너지',
+  etf:            'ETF',
+  other:          '기타',
+};
+
+export function sectorLabel(tag: string): string {
+  return SECTOR_LABELS_KR[tag] || tag;
+}
