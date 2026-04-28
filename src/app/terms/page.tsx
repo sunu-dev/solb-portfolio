@@ -6,14 +6,14 @@ export default function TermsPage() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 32, color: 'var(--text-primary, #191F28)' }}>이용약관</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 3월 31일</p>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>시행일: 2026년 4월 28일</p>
 
       <Section title="제1조 (목적)">
         이 약관은 주비(이하 &quot;서비스&quot;)가 제공하는 투자 정보 서비스의 이용 조건 및 절차, 서비스와 이용자의 권리·의무 및 책임 사항 등을 규정함을 목적으로 합니다.
       </Section>
 
       <Section title="제2조 (서비스의 정의)">
-        서비스는 AI 기반 주식 포트폴리오 분석 정보를 제공하는 웹 애플리케이션입니다. 서비스는 투자자문업 또는 투자일임업에 해당하지 않으며, 정보 제공 목적으로만 운영됩니다.
+        서비스는 AI 기반 주식 포트폴리오 분석 정보를 제공하는 웹 애플리케이션입니다. 서비스는 자본시장법상 투자자문업, 투자일임업, 유사투자자문업 어디에도 해당하지 않으며, 불특정 다수에게 정보를 제공할 목적으로만 운영됩니다. 서비스는 어떠한 형태로도 종목 조언이나 매매 권유의 대가를 받지 않습니다.
       </Section>
 
       <Section title="제3조 (약관의 효력 및 변경)">
@@ -55,9 +55,9 @@ export default function TermsPage() {
 
       <Section title="제7조 (투자 관련 면책)">
         <ol>
-          <li>서비스에서 제공하는 모든 분석, 점수, 알림 등은 AI가 자동으로 생성한 참고 자료이며, 투자 자문이 아닙니다.</li>
-          <li>서비스는 특정 금융투자상품의 매수 또는 매도를 권유하지 않습니다.</li>
-          <li>제공되는 정보의 정확성, 완전성, 적시성을 보증하지 않습니다.</li>
+          <li>서비스에서 제공하는 모든 분석, 점수, 알림, AI 관찰 후보 종목(이하 &quot;AI 촉&quot;) 등은 AI가 자동으로 생성한 참고 자료이며, 투자 자문이나 종목 추천이 아닙니다.</li>
+          <li>AI 촉을 포함한 모든 종목 정보 제공은 특정 금융투자상품의 매수 또는 매도를 권유하지 않으며, 그 결과에 대한 어떠한 보장도 하지 않습니다.</li>
+          <li>제공되는 정보의 정확성, 완전성, 적시성을 보증하지 않습니다. AI는 학습 데이터의 한계로 잘못된 정보를 생성할 수 있습니다.</li>
           <li>과거 실적은 미래 수익을 보장하지 않습니다.</li>
           <li>투자 판단 및 그에 따른 이익이나 손실에 대한 책임은 전적으로 이용자에게 있습니다.</li>
           <li>서비스는 투자 결정 전 금융 전문가와 상담할 것을 권장합니다.</li>
