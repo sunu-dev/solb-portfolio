@@ -66,8 +66,15 @@ export async function GET(req: NextRequest) {
         peRatio: e?.peRatio ?? null,
         week52Position: e?.week52Position ?? null,
         yearReturn: e?.yearReturn ?? null,
+        todayChangePct: e?.todayChangePct ?? null,
       };
     });
+
+    // Today movers — 오늘 변동률 기준 상위·하위 5종
+    const withToday = detail.filter(d => d.todayChangePct !== null);
+    const sorted = [...withToday].sort((a, b) => (b.todayChangePct! - a.todayChangePct!));
+    const topGainers = sorted.slice(0, 5);
+    const topLosers = sorted.slice(-5).reverse();
 
     // 가장 부족한 필드 우선 노출
     const missingPe = detail.filter(d => d.peRatio === null).map(d => d.symbol);
@@ -85,6 +92,8 @@ export async function GET(req: NextRequest) {
       sectorDistribution: sectorDist,
       missingPeSymbols: missingPe,
       missing52wSymbols: missing52w,
+      todayGainers: topGainers,
+      todayLosers: topLosers,
       detail,
     });
   } catch (e) {

@@ -16,6 +16,7 @@ interface DetailRow {
   peRatio: number | null;
   week52Position: number | null;
   yearReturn: number | null;
+  todayChangePct: number | null;
 }
 
 interface DebugResp {
@@ -26,6 +27,8 @@ interface DebugResp {
   sectorDistribution: Record<string, number>;
   missingPeSymbols: string[];
   missing52wSymbols: string[];
+  todayGainers: DetailRow[];
+  todayLosers: DetailRow[];
   detail: DetailRow[];
 }
 
@@ -125,6 +128,32 @@ export default function ChokDebugPage() {
               <div style={{ fontSize: 11, color: '#4E5968', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {data.missing52wSymbols.join(', ') || '없음'}
               </div>
+            </div>
+          </section>
+
+          {/* Today movers (오늘 universe 내 상위·하위) */}
+          <section style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ padding: 14, background: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.18)', borderRadius: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#C72C2C', marginBottom: 8 }}>오늘 universe TOP 5 상승</div>
+              {data.todayGainers.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
+              ) : data.todayGainers.map(g => (
+                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted #F2F4F6' }}>
+                  <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
+                  <span style={{ color: '#C72C2C', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>+{g.todayChangePct?.toFixed(2)}%</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: 14, background: 'rgba(49,130,246,0.04)', border: '1px solid rgba(49,130,246,0.18)', borderRadius: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1B5BC9', marginBottom: 8 }}>오늘 universe TOP 5 하락</div>
+              {data.todayLosers.length === 0 ? (
+                <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
+              ) : data.todayLosers.map(g => (
+                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted #F2F4F6' }}>
+                  <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
+                  <span style={{ color: '#1B5BC9', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{g.todayChangePct?.toFixed(2)}%</span>
+                </div>
+              ))}
             </div>
           </section>
 

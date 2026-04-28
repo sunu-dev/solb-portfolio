@@ -26,6 +26,10 @@ export interface EnrichedStockData {
   yearReturn: number | null;
   /** 30일 모멘텀 % (Finnhub priceReturnDaily 기반) */
   month1Return: number | null;
+  /** 오늘 변동률 % */
+  todayChangePct: number | null;
+  /** 오늘 변동 절대값 (USD) */
+  todayChange: number | null;
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
@@ -45,8 +49,10 @@ interface FinnhubMetric {
 }
 
 interface FinnhubQuote {
-  c?: number;
-  pc?: number;
+  c?: number;   // current
+  pc?: number;  // previous close
+  d?: number;   // 변동 절대값
+  dp?: number;  // 변동률 %
 }
 
 async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockData> {
@@ -55,6 +61,7 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
     currentPrice: null, peRatio: null,
     weekHigh52: null, weekLow52: null, week52Position: null,
     yearReturn: null, month1Return: null,
+    todayChange: null, todayChangePct: null,
   };
   try {
     const [metricRes, quoteRes] = await Promise.all([
@@ -69,6 +76,8 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
 
     const m = metric.metric || {};
     const currentPrice = typeof quote?.c === 'number' && quote.c > 0 ? quote.c : null;
+    const todayChange = typeof quote?.d === 'number' ? quote.d : null;
+    const todayChangePct = typeof quote?.dp === 'number' ? quote.dp : null;
     // 강화된 검증: > 0 명시
     const high52 = typeof m['52WeekHigh'] === 'number' && m['52WeekHigh'] > 0 ? m['52WeekHigh'] : null;
     const low52 = typeof m['52WeekLow'] === 'number' && m['52WeekLow'] > 0 ? m['52WeekLow'] : null;
@@ -92,6 +101,8 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
       week52Position: position52,
       yearReturn,
       month1Return,
+      todayChange,
+      todayChangePct,
     };
   } catch (e) {
     console.warn(`[CHOK ENRICH] ${symbol} fetch failed:`, e instanceof Error ? e.message : 'unknown');
@@ -114,6 +125,7 @@ export async function enrichUniverse(): Promise<EnrichedStockData[]> {
       currentPrice: null, peRatio: null,
       weekHigh52: null, weekLow52: null, week52Position: null,
       yearReturn: null, month1Return: null,
+      todayChange: null, todayChangePct: null,
     }));
   }
 

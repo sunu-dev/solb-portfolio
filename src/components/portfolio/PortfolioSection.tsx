@@ -31,6 +31,7 @@ import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
+import MarketMovers from './MarketMovers';
 import { autoArchiveLastMonth } from '@/utils/chapterArchive';
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
@@ -1036,6 +1037,9 @@ export default function PortfolioSection() {
             />
           </div>
         )}
+
+        {/* 오늘 시장이 주목한 종목 — 158 universe (chok 58 + 한국 100) */}
+        <MarketMovers />
 
         {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
         {displayList.length > 0 && (

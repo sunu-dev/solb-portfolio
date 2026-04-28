@@ -199,6 +199,18 @@ export async function POST(req: NextRequest) {
     return formatStockLine(e, u.krName, u.sector, sectorLabel(u.sector));
   }).join('\n');
 
+  // 오늘 universe movers 한 줄 컨텍스트 (B — AI 모멘텀 인지)
+  const todayMovers = (() => {
+    const withDp = allowedUniverse
+      .map(u => ({ u, e: enrichedMap.get(u.symbol) }))
+      .filter(x => x.e?.todayChangePct !== null && x.e?.todayChangePct !== undefined);
+    if (withDp.length === 0) return '';
+    const sorted = [...withDp].sort((a, b) => (b.e!.todayChangePct! - a.e!.todayChangePct!));
+    const gainers = sorted.slice(0, 3).map(x => `${x.u.symbol} ${x.e!.todayChangePct! >= 0 ? '+' : ''}${x.e!.todayChangePct!.toFixed(1)}%`).join(', ');
+    const losers = sorted.slice(-3).reverse().map(x => `${x.u.symbol} ${x.e!.todayChangePct!.toFixed(1)}%`).join(', ');
+    return `\n\n## 오늘 universe 내 변동 상위 (참고용)\n상승 TOP 3: ${gainers}\n하락 TOP 3: ${losers}\n위 변동 정보는 사이클·모멘텀 판단의 보조 신호입니다. 다만 단기 변동만으로 추천 결정하지 마세요.`;
+  })();
+
   const excludeSymbols = portfolioSymbols.length ? portfolioSymbols.join(', ') : '없음';
 
   const prompt = CHOK_SYSTEM_PROMPT
@@ -208,6 +220,7 @@ export async function POST(req: NextRequest) {
     .replace('{SECTOR_CONCENTRATION}', sectorConcentration || '데이터 없음')
     .replace('{ENRICHED_UNIVERSE}', enrichedBlock)
     .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
+    + todayMovers
     + (holdingsContext
         ? `\n\n${holdingsContext}\n\n사용자가 위 핵심 종목들에 어떤 비중·신호·메모를 갖고 있는지 인지하고, 추천 종목이 사용자 포트폴리오의 약점(누락 섹터, 분산 부족, 고베타 편중 등)을 보완하거나 사용자 메모/관심 흐름에 자연스럽게 이어지도록 골라주세요.`
         : '')
