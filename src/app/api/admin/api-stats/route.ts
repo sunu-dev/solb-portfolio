@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getClaudeUsageToday, getProviderStatus } from '@/lib/aiProvider';
 
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['sunu.develop@gmail.com'];
+const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

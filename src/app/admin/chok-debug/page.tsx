@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
-const ADMIN_EMAILS = ['sunu.develop@gmail.com', 'sunu.dev@gmail.com'];
+const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 
 interface DetailRow {

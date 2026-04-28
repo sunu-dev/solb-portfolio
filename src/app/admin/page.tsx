@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import ApiStatsPanel from '@/components/admin/ApiStatsPanel';
 
-const ADMIN_EMAILS = ['sunu.dev@gmail.com'];
+const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 const GEMINI_RPD_PER_KEY = 500;
 
