@@ -378,15 +378,15 @@ export default function PortfolioTreemap({
 
   const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
 
-  // 컨테이너 — 가로형 5:4 (1:1 정사각형 대비 가로 25% ↑)
+  // 컨테이너 — 가로형 4:3 (1:1 정사각형 대비 가로 33% ↑)
   const containerStyle: React.CSSProperties = isCompact ? {
     width: '100%',
-    aspectRatio: '5 / 4',
-    maxWidth: 600,
+    aspectRatio: '4 / 3',
+    maxWidth: 720,
     margin: '0 auto',
   } : {
-    aspectRatio: '5 / 4',
-    maxWidth: 'min(820px, 100%)',
+    aspectRatio: '4 / 3',
+    maxWidth: 'min(960px, 100%)',
     margin: '0 auto',
   };
 
