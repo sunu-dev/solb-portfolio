@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "LATEST=$(ls sessionary/*.md 2>/dev/null | grep -v '/archive/' | grep -v '/TODO\\.md$' | sort -r | head -1); [ -n \"$LATEST\" ] && cat \"$LATEST\"; echo '---TODO---'; cat sessionary/TODO.md 2>/dev/null"
+          }
+        ]
+      }
+    ]
+  }
+}

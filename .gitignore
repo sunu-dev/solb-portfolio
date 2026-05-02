@@ -50,3 +50,8 @@ next-env.d.ts
 /.idea/solb-portfolio.iml
 /.idea/vcs.xml
 .idea/
+
+# Claude Code session secrets
+.claude/secrets.local.md
+.claude/*.local.*
+
