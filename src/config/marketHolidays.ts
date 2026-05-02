@@ -65,3 +65,49 @@ export function isTodayHoliday(market: 'KR' | 'US'): MarketHoliday | null {
     h.date === today && (h.market === market || h.market === 'BOTH')
   ) || null;
 }
+
+/**
+ * 특정 시장의 향후 N일 내 휴장일 (오늘 포함). market 필터 + 정렬 + D-N 정보 포함.
+ *
+ * MarketPopover 내부 "휴장 일정" 섹션 전용. 당일 + 다가오는 휴장 한 번에 반환.
+ * (정책: 9인 패널 회의 결과 — popover에 D-30 시야)
+ */
+export interface UpcomingHolidayForMarket extends MarketHoliday {
+  /** D-N (오늘=0, 내일=1, …) — 캘린더일 기준 */
+  daysAhead: number;
+  /** 당일 휴장 여부 (강조 표시용) */
+  isToday: boolean;
+  /** 요일 한 글자 ('월'~'일') */
+  weekdayKr: string;
+}
+
+const WEEKDAY_KR = ['일', '월', '화', '수', '목', '금', '토'];
+
+export function getUpcomingHolidaysForMarket(
+  market: 'KR' | 'US',
+  days = 30,
+): UpcomingHolidayForMarket[] {
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+  const todayMs = todayDate.getTime();
+  const endMs = todayMs + days * 86400_000;
+
+  return MARKET_HOLIDAYS_2026
+    .filter(h => h.market === market || h.market === 'BOTH')
+    .map(h => {
+      const d = new Date(h.date);
+      d.setHours(0, 0, 0, 0);
+      const diffMs = d.getTime() - todayMs;
+      return {
+        ...h,
+        daysAhead: Math.round(diffMs / 86400_000),
+        isToday: d.getTime() === todayMs,
+        weekdayKr: WEEKDAY_KR[d.getDay()],
+      };
+    })
+    .filter(h => {
+      const t = new Date(h.date).setHours(0, 0, 0, 0);
+      return t >= todayMs && t <= endMs;
+    })
+    .sort((a, b) => a.daysAhead - b.daysAhead);
+}

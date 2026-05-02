@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
-import { isTodayHoliday, getUpcomingHolidays } from '@/config/marketHolidays';
+import { isTodayHoliday, getUpcomingHolidaysForMarket } from '@/config/marketHolidays';
 
 type MarketKey = 'KR' | 'US';
 
@@ -108,6 +108,62 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
       <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 10 }}>
         다음 일정: <span style={{ fontWeight: 600, color: '#191F28' }}>{status.nextEvent}</span>
       </div>
+
+      {/* 휴장 일정 섹션 — 9인 패널 회의 결과 (D-30 시야, market별 자동 필터) */}
+      {(() => {
+        const upcoming = getUpcomingHolidaysForMarket(market, 30);
+        if (upcoming.length === 0) return null;
+        return (
+          <section
+            aria-label="휴장 일정"
+            style={{ borderTop: '1px solid #F2F4F6', paddingTop: 10, marginBottom: 6 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ fontSize: 12 }}>📅</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#8B95A1', letterSpacing: 0.3 }}>
+                휴장 일정
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {upcoming.slice(0, 6).map(h => {
+                const dn = h.isToday ? '오늘' : `D-${h.daysAhead}`;
+                const md = h.date.slice(5).replace('-', '/');
+                const isUrgent = h.isToday;
+                return (
+                  <div
+                    key={h.date}
+                    role="listitem"
+                    aria-label={
+                      h.isToday
+                        ? `오늘, ${h.weekdayKr}요일, ${h.label} 휴장`
+                        : `${h.daysAhead}일 뒤, ${h.weekdayKr}요일 ${md}, ${h.label} 휴장`
+                    }
+                    style={{
+                      display: 'flex', alignItems: 'baseline', gap: 6,
+                      fontSize: 11, lineHeight: 1.5,
+                    }}
+                  >
+                    <span style={{
+                      fontWeight: 700, minWidth: 32,
+                      color: isUrgent ? '#EF4452' : '#191F28',
+                      fontFamily: "'SF Mono', monospace",
+                    }}>
+                      {dn}
+                    </span>
+                    <span style={{ color: '#8B95A1', minWidth: 50 }}>
+                      {h.weekdayKr} {md}
+                    </span>
+                    <span style={{ color: isUrgent ? '#EF4452' : '#191F28', fontWeight: isUrgent ? 600 : 500 }}>
+                      {h.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
       <div style={{ borderTop: '1px solid #F2F4F6', paddingTop: 10 }}>
         {sessions.map((s, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 12 }}>
@@ -176,7 +232,8 @@ export default function MarketSummary() {
   const isUSPreMarket = ms.us.labelSimple === '프리장';
   const krHoliday = isTodayHoliday('KR');
   const usHoliday = isTodayHoliday('US');
-  const upcoming = getUpcomingHolidays(7); // 이번 주 전체 휴장 표시
+  // 다가오는 휴장은 KR/US popover 내부로 이동 (9인 패널 회의 결과)
+  // 상단 바엔 당일 휴장 빨간 뱃지만 노출.
 
   return (
     <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)', position: 'relative', zIndex: 10 }}>
@@ -194,13 +251,17 @@ export default function MarketSummary() {
           }
         `}</style>
 
-        {/* 휴장 뱃지 */}
+        {/* 당일 휴장 뱃지 — 가장 시급한 정보, 상단 바에 유지 */}
         {(krHoliday || usHoliday) && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px',
-            borderRadius: '100px', background: 'rgba(239,68,82,0.08)',
-            border: '1px solid rgba(239,68,82,0.15)', whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px',
+              borderRadius: '100px', background: 'rgba(239,68,82,0.08)',
+              border: '1px solid rgba(239,68,82,0.15)', whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+          >
             <span style={{ fontSize: '10px' }}>🚫</span>
             <span style={{ fontSize: '11px', fontWeight: 600, color: '#EF4452' }}>
               {krHoliday && usHoliday ? `KR·US 휴장 — ${krHoliday.label}` :
@@ -210,32 +271,8 @@ export default function MarketSummary() {
           </div>
         )}
 
-        {/* 다가오는 휴장 (오늘 아닌 경우) — 이번 주 최대 2개 */}
-        {!krHoliday && !usHoliday && upcoming.length > 0 && (() => {
-          const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-          const shown = upcoming.slice(0, 2);
-          return (
-            <div className="hidden lg:flex" style={{ alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              {shown.map(h => {
-                const d = new Date(h.date);
-                const dow = DAYS_KO[d.getDay()];
-                const mmd = h.date.slice(5).replace('-', '/');
-                return (
-                  <div key={h.date} style={{
-                    display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px',
-                    borderRadius: '100px', background: 'var(--bg-subtle, #F8F9FA)',
-                    border: '1px solid var(--border-light, #F2F4F6)', whiteSpace: 'nowrap',
-                  }}>
-                    <span style={{ fontSize: '10px' }}>📅</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>
-                      {mmd}({dow}) {h.label} {h.market === 'BOTH' ? 'KR·US' : h.market} 휴장
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+        {/* 다가오는 휴장 정보는 KR/US popover 내부 "휴장 일정" 섹션으로 이동
+            (9인 패널 회의 결과 — 한국 휴장은 KR popover에, 미국 휴장은 US popover에) */}
 
         {/* Indices Marquee Ticker */}
         {tickerItems.length > 0 && (
