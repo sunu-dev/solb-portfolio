@@ -199,6 +199,19 @@ export default function PortfolioSection() {
     return () => window.removeEventListener('solb-goto-analysis', handler);
   }, []);
 
+  // 지난달 회고 진입 — MonthlyChapter "지난달 회고 보기" CTA → ChapterShelf로 스크롤
+  useEffect(() => {
+    const handler = () => {
+      setSubTab('analysis');
+      requestAnimationFrame(() => {
+        const shelf = document.querySelector('[data-slot="chapter-shelf"]');
+        if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    window.addEventListener('solb-goto-chapter-shelf', handler);
+    return () => window.removeEventListener('solb-goto-chapter-shelf', handler);
+  }, []);
+
   // 내 종목 뉴스 fetch 로직은 NewsSection으로 이전 — 제거
 
   // USD/KRW rate
@@ -1008,7 +1021,10 @@ export default function PortfolioSection() {
             클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
         {investingStocks.length > 0 && (
           <div style={{ marginTop: 24 }}>
-            <MonthlyChapter onOpenWrapped={() => setWrappedOpen(true)} />
+            <MonthlyChapter
+              onOpenWrapped={() => setWrappedOpen(true)}
+              onOpenPreviousChapter={() => window.dispatchEvent(new CustomEvent('solb-goto-chapter-shelf'))}
+            />
           </div>
         )}
 
@@ -1144,7 +1160,7 @@ export default function PortfolioSection() {
                 <TradePatternMirror />
                 <PortfolioDNA />
                 {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4) */}
-                <div style={{ marginTop: 24 }}>
+                <div data-slot="chapter-shelf" style={{ marginTop: 24 }}>
                   <ChapterShelf onSelect={() => setWrappedOpen(true)} />
                 </div>
                 <StockPulse />

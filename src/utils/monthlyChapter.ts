@@ -15,6 +15,11 @@ import type { PortfolioStocks, QuoteData, CandleRaw, StockNote } from '@/config/
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 
 // ─── Phase 결정 (D-카운트다운 라벨) ────────────────────────────────────────
+//
+// 이전 구현은 새 달 1~5일을 "이전 달 recap phase"로 보여줬음.
+// → "5월 시작했는데 4월 챕터가 살아있다"는 UX 혼란.
+// 변경: 새 달 1일부터 즉시 새 챕터. 지난달 회고는 ChapterShelf에서 접근.
+// type은 backward compat 위해 유지하지만 'recap' 값은 더 이상 생성 안 됨.
 export type ChapterPhase = 'progress' | 'closing' | 'recap';
 
 export interface ChapterTime {
@@ -26,26 +31,31 @@ export interface ChapterTime {
   daysRemaining: number;
   /** 진행률 0~1 */
   progress: number;
-  /** 1~25일 progress / 26~말일 closing / 다음 달 1~5일 recap */
+  /** 1~25일 progress / 26~말일 closing */
   phase: ChapterPhase;
-  /** "4월" 같은 라벨 (recap이면 지난달) */
+  /** "5월" 같은 현재 달 라벨 */
   monthLabel: string;
-  /** 챕터 ID (YYYY-MM, recap이면 지난달) */
+  /** 챕터 ID (YYYY-MM, 항상 현재 달) */
   chapterId: string;
+  /** 새 달 첫 7일이면 true — "지난달 회고 보기" CTA 노출 트리거 */
+  isFreshMonth: boolean;
+  /** 지난달 chapterId — isFreshMonth일 때 ChapterShelf 진입점으로 사용 */
+  previousChapterId: string;
 }
 
 export function computeChapterTime(now: Date = new Date()): ChapterTime {
   const dayOfMonth = now.getDate();
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const isFirstWeek = dayOfMonth <= 5;
   const isLastWeek = dayOfMonth >= lastDay - 4;
 
-  const phase: ChapterPhase = isFirstWeek ? 'recap' : isLastWeek ? 'closing' : 'progress';
+  const phase: ChapterPhase = isLastWeek ? 'closing' : 'progress';
 
-  // recap phase는 지난달 챕터 보여줌
-  const targetMonth = phase === 'recap' ? new Date(now.getFullYear(), now.getMonth() - 1, 1) : now;
-  const monthLabel = targetMonth.toLocaleDateString('ko-KR', { month: 'long' });
-  const chapterId = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, '0')}`;
+  const monthLabel = now.toLocaleDateString('ko-KR', { month: 'long' });
+  const chapterId = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  // 지난달 chapterId — 새 달 첫 7일 동안 회고 진입점으로 노출
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const previousChapterId = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`;
 
   return {
     dayOfMonth,
@@ -55,6 +65,8 @@ export function computeChapterTime(now: Date = new Date()): ChapterTime {
     phase,
     monthLabel,
     chapterId,
+    isFreshMonth: dayOfMonth <= 7,
+    previousChapterId,
   };
 }
 
@@ -332,9 +344,7 @@ export function buildTodayLine(input: TodayLineInput): TodayLine {
 
   // P4.2 — 진행 + 누적
   void totalAbsReturn;
-  const dayLabel = time.phase === 'recap'
-    ? `${time.monthLabel} 회고`
-    : `${time.monthLabel} ${time.dayOfMonth}일째`;
+  const dayLabel = `${time.monthLabel} ${time.dayOfMonth}일째`;
   const signNow = totalPctReturn >= 0 ? '+' : '';
   return {
     text: `${dayLabel} — 누적 ${signNow}${totalPctReturn.toFixed(2)}%`,

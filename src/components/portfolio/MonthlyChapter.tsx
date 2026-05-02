@@ -22,9 +22,11 @@ import { computeChapterTime, buildChapterStats, buildTodayLine } from '@/utils/m
 interface Props {
   /** 풀스크린 회고(Wrapped) 열기 핸들러 — Phase 3 연결 */
   onOpenWrapped?: () => void;
+  /** 지난달 회고(ChapterShelf) 진입 — 새 달 첫 7일에만 노출 */
+  onOpenPreviousChapter?: () => void;
 }
 
-export default function MonthlyChapter({ onOpenWrapped }: Props = {}) {
+export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }: Props = {}) {
   const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
   const [hovered, setHovered] = useState(false);
 
@@ -52,8 +54,8 @@ export default function MonthlyChapter({ onOpenWrapped }: Props = {}) {
     ? stats.totalPctReturn - stats.prevTotalPctReturn
     : null;
 
-  // Phase별 톤
-  const isHighlight = time.phase !== 'progress';
+  // Phase별 톤 — closing(말일 5일 전~)에만 강조 톤
+  const isHighlight = time.phase === 'closing';
 
   // 주별 씬 — 이번 달 진행 상태 (1~4주차)
   const weekProgress = time.dayOfMonth / 7;
@@ -95,7 +97,7 @@ export default function MonthlyChapter({ onOpenWrapped }: Props = {}) {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            {time.phase === 'recap' ? 'CHAPTER WRAPPED' : 'CURRENT CHAPTER'}
+            CURRENT CHAPTER
           </span>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary, #191F28)' }}>
             {time.monthLabel} 챕터
@@ -104,17 +106,13 @@ export default function MonthlyChapter({ onOpenWrapped }: Props = {}) {
         <span style={{
           fontSize: 11, fontWeight: 700,
           fontFamily: "'SF Mono', monospace",
-          color: time.daysRemaining <= 7 && time.phase !== 'recap'
+          color: time.daysRemaining <= 7
             ? 'var(--color-warning, #FF9500)'
             : 'var(--text-tertiary, #B0B8C1)',
           padding: '3px 8px', borderRadius: 10,
           background: 'var(--bg-subtle, #F2F4F6)',
         }}>
-          {time.phase === 'recap'
-            ? '회고'
-            : time.daysRemaining === 0
-            ? '오늘 마감'
-            : `D-${time.daysRemaining}`}
+          {time.daysRemaining === 0 ? '오늘 마감' : `D-${time.daysRemaining}`}
         </span>
       </div>
 
@@ -247,6 +245,26 @@ export default function MonthlyChapter({ onOpenWrapped }: Props = {}) {
           </div>
         ))}
       </div>
+
+      {/* 새 달 첫 7일 — 지난달 회고 진입 CTA (recap window 폐지 후 보완 진입점) */}
+      {time.isFreshMonth && onOpenPreviousChapter && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onOpenPreviousChapter(); }}
+          style={{
+            marginTop: 10, width: '100%',
+            padding: '8px 12px', borderRadius: 10,
+            background: 'rgba(175,82,222,0.06)',
+            border: '1px solid rgba(175,82,222,0.18)',
+            cursor: 'pointer',
+            fontSize: 12, fontWeight: 600,
+            color: '#AF52DE',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+          }}
+        >
+          <span>📖 지난달 회고 보기</span>
+          <span style={{ fontSize: 14 }}>›</span>
+        </button>
+      )}
 
       {/* 풀스크린 회고 진입 힌트 (Phase 3) */}
       {onOpenWrapped && (

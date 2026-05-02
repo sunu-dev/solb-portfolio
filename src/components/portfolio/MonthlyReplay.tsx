@@ -170,26 +170,20 @@ export default function MonthlyReplay() {
   const usdKrw = 1400; // 간단히 — macroData에서 가져와도 됨
   const isGain = replay.totalAbsReturn >= 0;
 
-  // 시간 적응형 phase (UX 전문가 결론)
-  // 1~25일: progress (잠정값, 회색 톤) / 26~말일: closing (긴장감) / 다음 달 1~5일: recap (확정, 공유 강조)
+  // 시간 적응형 phase — 1~25일 progress / 26~말일 closing
+  // (이전엔 다음 달 1~5일을 recap window로 잡았으나 "5월에 4월 챕터 살아있다" 혼란으로 폐지.
+  //  지난달 회고는 ChapterShelf에서만 접근.)
   const today = new Date();
   const dayOfMonth = today.getDate();
   const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const isLastWeek = dayOfMonth >= lastDayOfMonth - 4;
-  const isFirstWeek = dayOfMonth <= 5;
-  // 다음 달 1~5일이면 "지난달 회고", 26~말일이면 "이번달 마감 임박", 그 외 "이번달 페이스"
-  const phase: 'progress' | 'closing' | 'recap' = isFirstWeek ? 'recap' : isLastWeek ? 'closing' : 'progress';
+  const phase: 'progress' | 'closing' = isLastWeek ? 'closing' : 'progress';
 
-  // 라벨 — phase에 따라 다름
-  const monthLabel = phase === 'recap'
-    ? new Date(today.getFullYear(), today.getMonth() - 1, 1).toLocaleDateString('ko-KR', { month: 'long' })
-    : today.toLocaleDateString('ko-KR', { month: 'long' });
-  const phaseLabel = phase === 'recap'
-    ? `${monthLabel} 회고`
-    : phase === 'closing'
+  const monthLabel = today.toLocaleDateString('ko-KR', { month: 'long' });
+  const phaseLabel = phase === 'closing'
     ? `${monthLabel} 마감 임박 (D-${lastDayOfMonth - dayOfMonth})`
     : `${monthLabel} 페이스 (${dayOfMonth}일째)`;
-  const isHighlight = phase !== 'progress'; // closing/recap만 컬러풀 톤
+  const isHighlight = phase === 'closing';
 
   const formatMoney = (usd: number) => {
     if (currency === 'KRW') return formatKRW(Math.round(usd * usdKrw));
@@ -218,7 +212,7 @@ export default function MonthlyReplay() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            {phase === 'recap' ? 'MONTHLY REPLAY' : phase === 'closing' ? 'CLOSING SOON' : 'MONTHLY PACE'}
+            {phase === 'closing' ? 'CLOSING SOON' : 'MONTHLY PACE'}
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
             {phaseLabel}
