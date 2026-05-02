@@ -1066,28 +1066,45 @@ export default function AnalysisPanel() {
                   </div>
                 )}
 
-                {/* Buy Simulator */}
-                {symbol && price > 0 && (
-                  <div style={{ marginBottom: 24 }}>
-                    <BuySimulator
-                      symbol={symbol}
-                      currentPrice={price}
-                      avgCost={stockData?.avgCost || 0}
-                      shares={stockData?.shares || 0}
-                      totalPortfolioValue={(() => {
-                        const state = usePortfolioStore.getState();
-                        let tv = 0;
-                        (state.stocks.investing || []).forEach(s => {
-                          const q = state.macroData[s.symbol] as QuoteData | undefined;
-                          if (q?.c && s.shares) tv += q.c * s.shares;
-                        });
-                        return tv;
-                      })()}
-                      usdKrw={usdKrw}
-                      currency={currency}
-                    />
-                  </div>
-                )}
+                {/* Buy Simulator — 9인 패널 결정 반영: market/priceCurrency 분리 */}
+                {symbol && price > 0 && (() => {
+                  const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+                  const market: 'KR' | 'US' = isKR ? 'KR' : 'US';
+                  const priceCurrency: 'KRW' | 'USD' = isKR ? 'KRW' : 'USD';
+                  // 포트폴리오 평가액을 priceCurrency 단위로 통일 (혼합 보유 종목 환산)
+                  const totalPortfolioValue = (() => {
+                    const state = usePortfolioStore.getState();
+                    let tv = 0;
+                    (state.stocks.investing || []).forEach(s => {
+                      const q = state.macroData[s.symbol] as QuoteData | undefined;
+                      if (!q?.c || !s.shares) return;
+                      const stockIsKR = s.symbol.endsWith('.KS') || s.symbol.endsWith('.KQ');
+                      const stockPC = stockIsKR ? 'KRW' : 'USD';
+                      let val = q.c * s.shares;
+                      if (stockPC !== priceCurrency) {
+                        if (priceCurrency === 'KRW') val *= usdKrw;
+                        else if (usdKrw > 0) val /= usdKrw;
+                      }
+                      tv += val;
+                    });
+                    return tv;
+                  })();
+                  return (
+                    <div style={{ marginBottom: 24 }}>
+                      <BuySimulator
+                        symbol={symbol}
+                        market={market}
+                        currentPrice={price}
+                        priceCurrency={priceCurrency}
+                        avgCost={stockData?.avgCost || 0}
+                        shares={stockData?.shares || 0}
+                        totalPortfolioValue={totalPortfolioValue}
+                        usdKrw={usdKrw}
+                        currency={currency}
+                      />
+                    </div>
+                  );
+                })()}
 
                 {/* Investment Notes */}
                 {symbol && stockData && (() => {
