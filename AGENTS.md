@@ -6,9 +6,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
-## Session Management Protocol (v3)
+## Session Management Protocol (v3.1)
 
-이 프로젝트는 세션 관리 방법론 v3를 따른다. 매 세션 시작 시 이 프로토콜을 인지하고 행동한다.
+이 프로젝트는 세션 관리 방법론 v3.1을 따른다. 매 세션 시작 시 이 프로토콜을 인지하고 행동한다.
+
+> v3.1 (2026-05-02) 변경 — hook 버그 픽스: `TODO.md`가 `sessionary/*.md` glob에 매칭되어 `sort -r` 결과 최상단에 올라오던 문제를 `grep -v '/TODO\.md$'` 명시 제외로 해결 (이미 `.claude/settings.json`에 적용됨).
 
 ### 구조
 
