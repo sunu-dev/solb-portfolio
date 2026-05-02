@@ -6,7 +6,10 @@ import { useNotification } from '@/hooks/useNotification';
 import { supabase } from '@/lib/supabase';
 import { X } from 'lucide-react';
 import InviteSection from './InviteSection';
+import PwaInstallCard from './PwaInstallCard';
 import { getSuppressedTypes, getSuppressedCategories, resetAlertLearning } from '@/utils/alertLearning';
+import { getAlertPrefs, setAlertPrefs, CATEGORY_LABELS } from '@/utils/alertPrefs';
+import type { AlertCategory } from '@/config/alertPolicy';
 import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 
@@ -23,14 +26,28 @@ export default function SettingsPanel() {
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
   const [suppressedTypes, setSuppressedTypes] = useState<Array<{ type: string; count: number }>>([]);
   const [suppressedCategories, setSuppressedCategories] = useState<Array<{ category: string; label: string; count: number }>>([]);
+  const [alertPrefsState, setAlertPrefsState] = useState(() => getAlertPrefs());
 
   // 모달 열릴 때마다 현재 suppress 상태 새로고침
   useEffect(() => {
     if (isOpen) {
       setSuppressedTypes(getSuppressedTypes());
       setSuppressedCategories(getSuppressedCategories());
+      setAlertPrefsState(getAlertPrefs());
     }
   }, [isOpen]);
+
+  const toggleCategory = (cat: AlertCategory) => {
+    const next = { ...alertPrefsState.categories, [cat]: !alertPrefsState.categories[cat] };
+    setAlertPrefs({ categories: next });
+    setAlertPrefsState({ ...alertPrefsState, categories: next });
+  };
+
+  const toggleQuietHours = () => {
+    const next = !alertPrefsState.quietHours;
+    setAlertPrefs({ quietHours: next });
+    setAlertPrefsState({ ...alertPrefsState, quietHours: next });
+  };
 
   // Listen for toggle event from Header
   useEffect(() => {
@@ -246,6 +263,9 @@ export default function SettingsPanel() {
             <InvestorTypePicker currentType={investorType} onSelect={setInvestorType} />
           </div>
 
+          {/* PWA 설치 카드 — iOS/Android 미설치 시만 노출 */}
+          <PwaInstallCard />
+
           {/* 알림 설정 */}
           <div style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
@@ -301,6 +321,93 @@ export default function SettingsPanel() {
                 {pushLoading ? '처리 중...' : '📱 푸시 알림 켜기'}
               </button>
             )}
+          </div>
+
+          {/* 알림 카테고리 ON/OFF — 정책 SSOT: docs/NOTIFICATION_POLICY.md §5 */}
+          <div style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+              🎚️ 알림 종류
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+              꺼진 카테고리는 토스트·푸시 알림이 오지 않아요.<br />
+              사이드바 알림 센터에는 계속 표시됩니다.
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {(Object.keys(CATEGORY_LABELS) as AlertCategory[]).map(cat => {
+                const meta = CATEGORY_LABELS[cat];
+                const enabled = alertPrefsState.categories[cat];
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    aria-pressed={enabled}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '10px 14px', borderRadius: 10,
+                      background: enabled ? 'rgba(49,130,246,0.06)' : 'var(--bg-subtle, #F2F4F6)',
+                      border: enabled ? '1px solid rgba(49,130,246,0.18)' : '1px solid transparent',
+                      cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>{meta.emoji}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                        {meta.label}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {meta.desc}
+                      </div>
+                    </div>
+                    <span style={{
+                      width: 36, height: 20, borderRadius: 12, position: 'relative',
+                      background: enabled ? '#3182F6' : '#D1D6DB',
+                      transition: 'background 0.2s', flexShrink: 0,
+                    }}>
+                      <span style={{
+                        position: 'absolute', top: 2, left: enabled ? 18 : 2,
+                        width: 16, height: 16, borderRadius: '50%', background: 'white',
+                        transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                      }} />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* 무음 시간대 */}
+            <button
+              onClick={toggleQuietHours}
+              aria-pressed={alertPrefsState.quietHours}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 14px', borderRadius: 10, marginTop: 10,
+                background: alertPrefsState.quietHours ? 'rgba(175,82,222,0.06)' : 'var(--bg-subtle, #F2F4F6)',
+                border: alertPrefsState.quietHours ? '1px solid rgba(175,82,222,0.18)' : '1px solid transparent',
+                cursor: 'pointer', textAlign: 'left', width: '100%',
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🌙</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                  무음 시간대
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+                  KST 22:00 ~ 07:00 토스트·푸시 끄기
+                </div>
+              </div>
+              <span style={{
+                width: 36, height: 20, borderRadius: 12, position: 'relative',
+                background: alertPrefsState.quietHours ? '#AF52DE' : '#D1D6DB',
+                transition: 'background 0.2s', flexShrink: 0,
+              }}>
+                <span style={{
+                  position: 'absolute', top: 2, left: alertPrefsState.quietHours ? 18 : 2,
+                  width: 16, height: 16, borderRadius: '50%', background: 'white',
+                  transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                }} />
+              </span>
+            </button>
           </div>
 
           {/* 알림 학습 */}

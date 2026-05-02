@@ -31,7 +31,7 @@
 | `daily-plunge` | market | ✅ | ✅ | ✅ | severity 2 |
 | `stoploss-near` | price | ❌ | ✅ | ✅ | severity 2 |
 | `target-near` | price | ❌ | ✅ | ✅ | severity 3 |
-| `buy-zone` | price | ❌ | ✅ | ✅ | severity 2 |
+| `buy-zone` | price | ✅ | ✅ | ✅ | 사용자 명시 트리거(buyBelow) — 자산 변동 트리거에 준함 |
 | `daily-surge` | market | ❌ | ✅ | ✅ | severity 4 |
 | `zscore-extreme` | market | ❌ | ✅ | ✅ | severity 1-2 |
 | `composite-*` | indicator | ❌ | ✅ | ✅ | 5종 복합 신호 |
@@ -189,18 +189,23 @@
 - [x] `AlertCard.tsx` 하단 면책 문구 렌더
 - [x] `ToastAlert.tsx` 8초 + `aria-live="polite"` + 면책 문구 + channels 기반 필터
 
-### Phase 2 (예정)
+### Phase 2 (완료 — 2026-05-02)
 
-- [ ] `suppressAlert()` 통합 함수 — snooze + learning 흡수 (단일 SSOT)
-- [ ] **푸시 cron(`/api/cron/check-alerts`)을 `channels.includes('push')` 정책 인지하도록 리팩토링**
-  - 현재 cron은 alertsEngine과 별도 시스템이며, `buy-zone`도 푸시함 (grandfathered)
-  - 정책상 `buy-zone`은 toast+inapp만 — Phase 2에서 정렬 + Settings ON/OFF
-- [ ] Settings에 카테고리 ON/OFF 토글 UI (price/indicator/market/portfolio/digest)
-- [ ] Dashboard 상단 "최근 알림 미리보기" 슬롯 (severity 3+ 1건)
-- [ ] PWA 설치 유도 카드 (iOS 푸시 안내)
-- [ ] `alert_log` Supabase 테이블 + 푸시 송신 로깅 (분쟁 증거)
+- [x] `config/alertPolicy.ts` 분리 — client/server 공유 SSOT
+- [x] 푸시 cron(`/api/cron/check-alerts`)을 `isPushAllowed()` 인지하도록 정렬
+  - `buy-zone`은 사용자 명시 트리거(buyBelow)이므로 push 허용으로 정책 갱신 (자산 변동 트리거에 준함)
+- [x] `alertSuppress.ts` 통합 facade — `isSuppressed()` + `suppressAlert()` 단일 API
+- [x] `alertPrefs.ts` + Settings에 카테고리 ON/OFF 토글 + 무음 시간대 (KST 22:00~07:00)
+- [x] PWA 설치 유도 카드 (iOS Safari 가이드 + Android Chrome 자동 프롬프트)
+- [x] `alert_log` Supabase 테이블 + 푸시 송신 로깅 (sent / failed / expired_subscription)
+- [x] Dashboard 상단 "최근 알림 미리보기" 슬롯 (severity 1~2 top 1건, 클릭 시 알림 시트 오픈)
+
+### Phase 3 (예정)
+
 - [ ] 푸시 디폴트 "필수 3종만 ON" + 신규 유저 7일 ramp-up
 - [ ] 빌드 시 컴플라이언스 검사 (`npm run lint:alerts`) — CI 차단
+- [ ] alert_log 1년 경과분 자동 cleanup cron
+- [ ] 모닝브리프 이메일 백업 채널 (모바일 사파리 푸시 미설치 보완)
 
 ---
 

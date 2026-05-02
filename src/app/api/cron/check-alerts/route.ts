@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
+import { isPushAllowed, getAlertCategory } from '@/config/alertPolicy';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
 function getSupabaseAdmin() {
@@ -139,6 +140,33 @@ async function markSent(userId: string, alerts: TriggeredAlert[]) {
   } catch { /* silent */ }
 }
 
+/**
+ * 푸시 송신 로그 — 컴플라이언스 분쟁 증거 (정책 §4.4).
+ * 1년 보관, 1행/송신.
+ */
+async function logAlertSent(opts: {
+  userId: string;
+  alerts: TriggeredAlert[];
+  status: 'sent' | 'failed' | 'expired_subscription';
+  errorMessage?: string;
+}) {
+  if (!opts.alerts.length) return;
+  try {
+    const rows = opts.alerts.map(a => ({
+      user_id: opts.userId,
+      symbol: a.symbol,
+      alert_type: a.alertType,
+      category: getAlertCategory(a.alertType),
+      channel: 'push',
+      message: a.message,
+      detail: a.detail,
+      delivery_status: opts.status,
+      error_message: opts.errorMessage || null,
+    }));
+    await getSupabaseAdmin().from('alert_log').insert(rows);
+  } catch { /* alert_log 테이블이 아직 없을 수 있음 — silent */ }
+}
+
 // ─── main handler ────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   // QStash 서명 검증
@@ -222,7 +250,12 @@ export async function POST(req: NextRequest) {
     }
     if (!triggered.length) continue;
 
-    const unsent = await filterUnsent(userId, triggered);
+    // 정책 SSOT 필터 — channels에 'push' 포함된 alertType만 발송
+    // (docs/NOTIFICATION_POLICY.md §2 + config/alertPolicy.ts)
+    const pushable = triggered.filter(a => isPushAllowed(a.alertType));
+    if (!pushable.length) continue;
+
+    const unsent = await filterUnsent(userId, pushable);
     if (!unsent.length) continue;
 
     // 가장 중요한 알림 1개로 푸시 (나머지는 body에 요약)
@@ -242,14 +275,19 @@ export async function POST(req: NextRequest) {
         payload,
       );
       await markSent(userId, unsent);
+      // 정책 §4.4 — 송신 로그 (컴플라이언스 증거)
+      await logAlertSent({ userId, alerts: unsent, status: 'sent' });
       totalSent++;
     } catch (e: unknown) {
       // 구독 만료(410) 시 자동 삭제
       const status = (e as { statusCode?: number })?.statusCode;
+      const errMsg = e instanceof Error ? e.message : String(e);
       if (status === 410 || status === 404) {
         await db.from('push_subscriptions').delete().eq('user_id', userId);
+        await logAlertSent({ userId, alerts: unsent, status: 'expired_subscription', errorMessage: errMsg });
       } else {
         console.error('[cron/check-alerts] push failed:', e);
+        await logAlertSent({ userId, alerts: unsent, status: 'failed', errorMessage: errMsg });
       }
     }
   }

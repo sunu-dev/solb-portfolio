@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { Alert } from '@/utils/alertsEngine';
-import { isAlertSuppressed } from '@/utils/alertLearning';
+import { isSuppressed } from '@/utils/alertSuppress';
 import { DISCLAIMER_SHORT } from '@/utils/alertCompliance';
+import { isAlertAllowedByPrefs } from '@/utils/alertPrefs';
 
 const TOAST_ICON: Record<Alert['type'], string> = {
   urgent: '🚨',
@@ -45,7 +46,9 @@ export default function ToastAlert() {
         a.channels?.includes('toast') &&
         !dismissedAlerts.includes(a.id) &&
         !shownIdsRef.current.has(a.id) &&
-        !isAlertSuppressed(a.id)
+        !isSuppressed(a.id) &&
+        // 사용자 카테고리 ON/OFF + 무음 시간대 (정책 §5)
+        isAlertAllowedByPrefs(a.category)
     );
 
     if (newAlert) {

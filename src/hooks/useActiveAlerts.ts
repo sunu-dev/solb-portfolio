@@ -7,6 +7,8 @@ import { isAlertSnoozed } from '@/utils/alertSnooze';
 import { getMarketStatus } from '@/utils/marketHours';
 import { sortWithSessionWeight } from '@/utils/alertWeighting';
 import type { Alert } from '@/utils/alertsEngine';
+// 본 훅은 severity=1이 learning 억제만 우회하는 미세 정책이 있어
+// alertSuppress 통합 facade 대신 각각 직접 사용. 단순 consumer는 facade 사용 권장.
 
 interface Options {
   /** 학습 suppress 필터 건너뜀 (예: 전체 unread 뱃지에서는 건너뛰면 일관성 ↑) */

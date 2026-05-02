@@ -10,6 +10,7 @@ import { getDailyTerm } from '@/config/dailyTerms';
 import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
 import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
+import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 
 export default function Dashboard() {
   const {
@@ -20,6 +21,9 @@ export default function Dashboard() {
   } = usePortfolioStore();
   const typeMeta = INVESTOR_TYPES[investorType];
   const hasTypeSet = !!investorTypeSetAt;
+
+  // 최근 알림 미리보기용 — top severity 1~2 (정책 §8)
+  const topAlerts = useActiveAlerts({ maxSeverity: 2 });
 
   // 일일 스냅샷 자동 기록 — 시세 로드 후 1회 (하루 1번 내부 체크)
   useEffect(() => {
@@ -441,6 +445,47 @@ export default function Dashboard() {
             종목을 추가하면 수익 현황이 여기에 표시돼요.
           </div>
         )}
+
+        {/* 최근 알림 미리보기 — Status ≠ Alert이지만 진입점만 추가 (정책 §8) */}
+        {topAlerts.length > 0 && (() => {
+          const top = topAlerts[0];
+          const ALERT_COLOR: Record<string, string> = {
+            urgent: '#EF4452', risk: '#FF9500', opportunity: '#00C6BE',
+            insight: '#3182F6', celebrate: '#AF52DE',
+          };
+          const ALERT_ICON: Record<string, string> = {
+            urgent: '🚨', risk: '⚠️', opportunity: '💡', insight: '✨', celebrate: '🎉',
+          };
+          const accent = ALERT_COLOR[top.type] || '#3182F6';
+          return (
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-mobile-alerts'))}
+              aria-label={`최근 알림: ${top.message} (전체 알림 보기)`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                marginTop: 12, padding: '10px 14px', borderRadius: 12,
+                background: `${accent}0d`, border: `1px solid ${accent}24`,
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'background 0.15s',
+              }}
+            >
+              <span style={{ fontSize: 14, flexShrink: 0 }}>{ALERT_ICON[top.type]}</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: accent, flexShrink: 0 }}>최근 알림</span>
+              <span style={{
+                fontSize: 12, color: 'var(--text-primary, #191F28)',
+                flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {top.message}
+              </span>
+              {topAlerts.length > 1 && (
+                <span style={{ fontSize: 10, fontWeight: 600, color: accent, flexShrink: 0 }}>
+                  +{topAlerts.length - 1}
+                </span>
+              )}
+              <span style={{ fontSize: 14, color: accent, flexShrink: 0 }}>›</span>
+            </button>
+          );
+        })()}
 
         {/* 건강점수 + 시장 현황 통합 1줄 */}
         {(health || data.bestSymbol) && (
