@@ -1,11 +1,22 @@
 // ==========================================
 // ALERTS ENGINE -- Smart alert checks (pure functions)
 // ==========================================
+//
+// 정책 SSOT: docs/NOTIFICATION_POLICY.md
+// 채널·카테고리는 각 알림에 박혀있고, 라우터(푸시/토스트/사이드바)가
+// channels 필드를 보고 분기한다. ALERT_POLICY 맵을 단일 진실 원천으로 둔다.
 
 import type { PortfolioStocks, QuoteData, CandleRaw } from '@/config/constants';
 import { STOCK_KR } from '@/config/constants';
 import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/utils/technical';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
+import { validateAlertMessage } from '@/utils/alertCompliance';
+
+/** 알림 노출 채널 — 정책 SSOT: docs/NOTIFICATION_POLICY.md §2 */
+export type AlertChannel = 'push' | 'toast' | 'inapp';
+
+/** 알림 카테고리 — Settings ON/OFF 단위 */
+export type AlertCategory = 'price' | 'indicator' | 'market' | 'portfolio' | 'celebrate';
 
 export interface Alert {
   id: string;           // unique: "symbol-type-condition"
@@ -15,7 +26,57 @@ export interface Alert {
   detail: string;       // one more line of context
   severity: number;     // 1=highest, 5=lowest (for sorting)
   timestamp: number;
+  channels: AlertChannel[]; // 정책에 따라 라우팅
+  category: AlertCategory;  // 사용자 ON/OFF 단위
 }
+
+/**
+ * 알림 condition별 채널·카테고리 정책 맵.
+ * 변경 시 docs/NOTIFICATION_POLICY.md §2 표도 함께 갱신할 것.
+ */
+const ALERT_POLICY: Record<string, { channels: AlertChannel[]; category: AlertCategory }> = {
+  // 가격 도달 — 행동 요구, 푸시 포함
+  'stoploss-hit':       { channels: ['push', 'toast', 'inapp'], category: 'price' },
+  'stoploss-pct':       { channels: ['push', 'toast', 'inapp'], category: 'price' },
+  'target-hit':         { channels: ['push', 'toast', 'inapp'], category: 'price' },
+  'target-return':      { channels: ['push', 'toast', 'inapp'], category: 'price' },
+  'target-profit-usd':  { channels: ['push', 'toast', 'inapp'], category: 'price' },
+  'target-profit-krw':  { channels: ['push', 'toast', 'inapp'], category: 'price' },
+
+  // 가격 근접 — 토스트만, 푸시 없음
+  'stoploss-near':      { channels: ['toast', 'inapp'],         category: 'price' },
+  'target-near':        { channels: ['toast', 'inapp'],         category: 'price' },
+  'buy-zone':           { channels: ['toast', 'inapp'],         category: 'price' },
+
+  // 시장/포트폴리오 — 큰 손실은 푸시
+  'portfolio-down':     { channels: ['push', 'toast', 'inapp'], category: 'portfolio' },
+  'daily-plunge':       { channels: ['push', 'toast', 'inapp'], category: 'market' },
+  'daily-surge':        { channels: ['toast', 'inapp'],         category: 'market' },
+  'zscore-extreme':     { channels: ['toast', 'inapp'],         category: 'market' },
+  'below-avgcost':      { channels: ['inapp'],                  category: 'portfolio' },
+
+  // 기술지표·52주 — 인앱 한정 (자문업 회피 + 알림 피로 방지)
+  'near-52w-low':       { channels: ['inapp'],                  category: 'indicator' },
+  'near-52w-high':      { channels: ['inapp'],                  category: 'indicator' },
+  'golden-cross':       { channels: ['inapp'],                  category: 'indicator' },
+  'death-cross':        { channels: ['inapp'],                  category: 'indicator' },
+  'rsi-oversold':       { channels: ['inapp'],                  category: 'indicator' },
+  'rsi-overbought':     { channels: ['inapp'],                  category: 'indicator' },
+  'bb-lower':           { channels: ['inapp'],                  category: 'indicator' },
+  'bb-upper':           { channels: ['inapp'],                  category: 'indicator' },
+  'macd-bull':          { channels: ['inapp'],                  category: 'indicator' },
+  'macd-bear':          { channels: ['inapp'],                  category: 'indicator' },
+
+  // 복합 신호 — 토스트 + 인앱
+  'composite-strong-bounce':    { channels: ['toast', 'inapp'], category: 'indicator' },
+  'composite-strong-uptrend':   { channels: ['toast', 'inapp'], category: 'indicator' },
+  'composite-overheated':       { channels: ['toast', 'inapp'], category: 'indicator' },
+  'composite-strong-downtrend': { channels: ['toast', 'inapp'], category: 'indicator' },
+  'composite-squeeze':          { channels: ['toast', 'inapp'], category: 'indicator' },
+};
+
+/** 알 수 없는 condition — 보수적으로 inapp만 (푸시 절대 X) */
+const DEFAULT_POLICY = { channels: ['inapp'] as AlertChannel[], category: 'indicator' as AlertCategory };
 
 function kr(symbol: string): string {
   return STOCK_KR[symbol] || symbol;
@@ -29,6 +90,12 @@ function makeAlert(
   message: string,
   detail: string
 ): Alert {
+  // 정책 SSOT 조회 — 매핑 누락 시 가장 보수적인 채널만
+  const policy = ALERT_POLICY[condition] ?? DEFAULT_POLICY;
+
+  // 컴플라이언스 검사 — dev에서 console.warn, prod silent (라우터에서도 별도 검사)
+  validateAlertMessage(message, detail);
+
   return {
     id: `${symbol}-${type}-${condition}`,
     symbol,
@@ -37,6 +104,8 @@ function makeAlert(
     detail,
     severity,
     timestamp: Date.now(),
+    channels: policy.channels,
+    category: policy.category,
   };
 }
 

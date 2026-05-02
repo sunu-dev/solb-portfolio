@@ -6,6 +6,7 @@ import { STOCK_KR } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { snoozeAlert, getSnoozeLabel, type SnoozeDuration } from '@/utils/alertSnooze';
 import { getAlertExplanation } from '@/utils/alertGlossary';
+import { DISCLAIMER_SHORT } from '@/utils/alertCompliance';
 
 declare global {
   interface Window {
@@ -203,6 +204,11 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
             분석 보기 ›
           </div>
         )}
+
+        {/* 면책 — 정책 SSOT: docs/NOTIFICATION_POLICY.md §4.3 (렌더 레이어 강제) */}
+        <div style={{ fontSize: 9, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 6, lineHeight: 1.4 }}>
+          {DISCLAIMER_SHORT}
+        </div>
       </div>
 
       {/* 용어 설명 펼침 */}

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { Alert } from '@/utils/alertsEngine';
 import { isAlertSuppressed } from '@/utils/alertLearning';
+import { DISCLAIMER_SHORT } from '@/utils/alertCompliance';
 
 const TOAST_ICON: Record<Alert['type'], string> = {
   urgent: '🚨',
@@ -37,12 +38,13 @@ export default function ToastAlert() {
   useEffect(() => {
     if (cooldownRef.current || currentToast) return;
 
+    // 정책 SSOT: docs/NOTIFICATION_POLICY.md §2,§3.3
+    // channels에 'toast' 포함된 신규 알림만 띄움. severity 게이트는 ALERT_POLICY가 흡수.
     const newAlert = alerts.find(
       a =>
-        a.severity <= 1 &&
+        a.channels?.includes('toast') &&
         !dismissedAlerts.includes(a.id) &&
         !shownIdsRef.current.has(a.id) &&
-        // 학습: 반복 해제된 타입 토스트 스킵 (방해 민감도 높음)
         !isAlertSuppressed(a.id)
     );
 
@@ -51,6 +53,7 @@ export default function ToastAlert() {
       setCurrentToast(newAlert);
       setVisible(true);
 
+      // A11y: 8초 표시 (정책 §3.3, §9) — 스크린리더 사용자 확보
       const t1 = setTimeout(() => {
         setVisible(false);
         const t2 = setTimeout(() => {
@@ -60,7 +63,7 @@ export default function ToastAlert() {
           timersRef.current.push(t3);
         }, 300);
         timersRef.current.push(t2);
-      }, 5000);
+      }, 8000);
       timersRef.current.push(t1);
     }
 
@@ -84,9 +87,9 @@ export default function ToastAlert() {
 
   return (
     <div
-      role="alert"
-      aria-live="assertive"
-      aria-label={`긴급 알림: ${currentToast.message}`}
+      role="status"
+      aria-live="polite"
+      aria-label={`알림: ${currentToast.message}`}
       onClick={handleDismiss}
       style={{
         position: 'fixed',
@@ -116,6 +119,10 @@ export default function ToastAlert() {
         </div>
         <div style={{ fontSize: '12px', color: '#8B95A1', marginTop: '4px', lineHeight: 1.4 }}>
           {currentToast.detail}
+        </div>
+        {/* 면책 — 정책 SSOT: docs/NOTIFICATION_POLICY.md §4.3 */}
+        <div style={{ fontSize: 9, color: '#B0B8C1', marginTop: 6, lineHeight: 1.3 }}>
+          {DISCLAIMER_SHORT}
         </div>
       </div>
       <button
