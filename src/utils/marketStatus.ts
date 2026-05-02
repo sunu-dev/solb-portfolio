@@ -105,7 +105,7 @@ export function getMarketStatus(): DualMarketStatus {
   const isWeekend = day === 0 || day === 6;
 
   if (isWeekend) {
-    const closed: MarketStatus = { status: 'closed', labelSimple: '쉬는 날', color: '#8B95A1', dot: '⚪', nextEvent: '월요일' };
+    const closed: MarketStatus = { status: 'closed', labelSimple: '쉬는 날', color: '#8B95A1', dot: '⚪', nextEvent: '월요일 개장' };
     return { kr: closed, us: closed, isWeekend: true };
   }
 

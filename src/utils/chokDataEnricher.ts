@@ -5,10 +5,14 @@
  *      "데이터 없는 저평가" 환각을 차단.
  *
  * 데이터 소스: Finnhub /stock/metric (free tier).
- * 캐시: 모듈 레벨 in-memory, TTL 24h (PER/52w는 분 단위로 안 변함).
- * 호출 비용: 43종목 × 1 API call = 43 calls. 무료 tier 60/min 안전.
+ * 캐시 계층:
+ *   L1 — 모듈 레벨 in-memory (같은 인스턴스, TTL 1h)
+ *   L2 — Supabase ai_chok_cache (인스턴스 간 공유, TTL 1h)
+ *        Vercel 서버리스에서 콜드 스타트마다 Finnhub 58종목 재호출을 방지.
+ * 호출 비용: Finnhub 58종목 × 2 call = 116. 무료 tier 60/min 안전.
  */
 
+import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 
 export interface EnrichedStockData {
@@ -32,8 +36,46 @@ export interface EnrichedStockData {
   todayChange: number | null;
 }
 
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1h (오늘 변동률 반영 위해 단축)
 let cache: { data: EnrichedStockData[]; ts: number } | null = null;
+
+// ─── Supabase L2 캐시 (인스턴스 간 공유) ────────────────────────────────────
+const L2_KEY = '__enrich_universe__';
+const L2_DATE = 'persistent';
+
+function makeSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
+
+async function readL2(): Promise<EnrichedStockData[] | null> {
+  const sb = makeSupabase();
+  if (!sb) return null;
+  try {
+    const { data } = await sb
+      .from('ai_chok_cache')
+      .select('picks')
+      .eq('user_key', L2_KEY)
+      .eq('date', L2_DATE)
+      .maybeSingle();
+    if (!data?.picks) return null;
+    const p = data.picks as { ts: number; items: EnrichedStockData[] };
+    if (!p?.ts || !Array.isArray(p.items)) return null;
+    if (Date.now() - p.ts > CACHE_TTL_MS) return null;
+    return p.items;
+  } catch { return null; }
+}
+
+function writeL2(items: EnrichedStockData[]) {
+  const sb = makeSupabase();
+  if (!sb) return;
+  sb.from('ai_chok_cache').upsert(
+    { user_key: L2_KEY, date: L2_DATE, picks: { ts: Date.now(), items }, use_count: 0 },
+    { onConflict: 'user_key,date' }
+  ).then(() => {}, () => {}); // fire-and-forget
+}
 
 interface FinnhubMetric {
   metric?: {
@@ -116,7 +158,16 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
  */
 export async function enrichUniverse(): Promise<EnrichedStockData[]> {
   const now = Date.now();
+
+  // L1: 같은 인스턴스 내 (가장 빠름)
   if (cache && now - cache.ts < CACHE_TTL_MS) return cache.data;
+
+  // L2: Supabase — 콜드 스타트 인스턴스도 캐시 히트 가능
+  const l2 = await readL2();
+  if (l2) {
+    cache = { data: l2, ts: now };
+    return l2;
+  }
 
   const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   if (!apiKey) {
@@ -129,8 +180,7 @@ export async function enrichUniverse(): Promise<EnrichedStockData[]> {
     }));
   }
 
-  // 동시 10개씩 batch — universe 확장(43→58) 후에도 free tier 60/min 안전
-  // batch 사이 200ms 간격으로 burst 분산
+  // L3: Finnhub 직접 호출 — 10개씩 batch, 50ms 간격 (rate limit 여유)
   const BATCH = 10;
   const results: EnrichedStockData[] = [];
   for (let i = 0; i < CHOK_UNIVERSE.length; i += BATCH) {
@@ -138,7 +188,7 @@ export async function enrichUniverse(): Promise<EnrichedStockData[]> {
     const batchResults = await Promise.all(slice.map(s => fetchOne(s.symbol, apiKey)));
     results.push(...batchResults);
     if (i + BATCH < CHOK_UNIVERSE.length) {
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 50));
     }
   }
 
@@ -153,6 +203,7 @@ export async function enrichUniverse(): Promise<EnrichedStockData[]> {
   console.log('[CHOK ENRICH] coverage', JSON.stringify(counts));
 
   cache = { data: results, ts: now };
+  writeL2(results); // fire-and-forget: L2 갱신
   return results;
 }
 

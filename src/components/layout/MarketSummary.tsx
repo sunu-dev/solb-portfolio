@@ -106,7 +106,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
         </span>
       </div>
       <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 10 }}>
-        다음 이벤트: <span style={{ fontWeight: 600, color: '#191F28' }}>{status.nextEvent}</span>
+        다음 일정: <span style={{ fontWeight: 600, color: '#191F28' }}>{status.nextEvent}</span>
       </div>
       <div style={{ borderTop: '1px solid #F2F4F6', paddingTop: 10 }}>
         {sessions.map((s, i) => (
@@ -176,7 +176,7 @@ export default function MarketSummary() {
   const isUSPreMarket = ms.us.labelSimple === '프리장';
   const krHoliday = isTodayHoliday('KR');
   const usHoliday = isTodayHoliday('US');
-  const upcoming = getUpcomingHolidays(3);
+  const upcoming = getUpcomingHolidays(7); // 이번 주 전체 휴장 표시
 
   return (
     <div style={{ background: 'var(--surface, white)', borderBottom: '1px solid var(--border-light, #F2F4F6)', position: 'relative', zIndex: 10 }}>
@@ -210,19 +210,32 @@ export default function MarketSummary() {
           </div>
         )}
 
-        {/* 다가오는 휴장 (오늘 아닌 경우) */}
-        {!krHoliday && !usHoliday && upcoming.length > 0 && (
-          <div className="hidden lg:flex" style={{
-            alignItems: 'center', gap: '4px', padding: '3px 8px',
-            borderRadius: '100px', background: 'var(--bg-subtle, #F8F9FA)',
-            border: '1px solid var(--border-light, #F2F4F6)', whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            <span style={{ fontSize: '10px' }}>📅</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>
-              {upcoming[0].date.slice(5).replace('-', '/')} {upcoming[0].label} ({upcoming[0].market}) 휴장
-            </span>
-          </div>
-        )}
+        {/* 다가오는 휴장 (오늘 아닌 경우) — 이번 주 최대 2개 */}
+        {!krHoliday && !usHoliday && upcoming.length > 0 && (() => {
+          const DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+          const shown = upcoming.slice(0, 2);
+          return (
+            <div className="hidden lg:flex" style={{ alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              {shown.map(h => {
+                const d = new Date(h.date);
+                const dow = DAYS_KO[d.getDay()];
+                const mmd = h.date.slice(5).replace('-', '/');
+                return (
+                  <div key={h.date} style={{
+                    display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px',
+                    borderRadius: '100px', background: 'var(--bg-subtle, #F8F9FA)',
+                    border: '1px solid var(--border-light, #F2F4F6)', whiteSpace: 'nowrap',
+                  }}>
+                    <span style={{ fontSize: '10px' }}>📅</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>
+                      {mmd}({dow}) {h.label} {h.market === 'BOTH' ? 'KR·US' : h.market} 휴장
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Indices Marquee Ticker */}
         {tickerItems.length > 0 && (

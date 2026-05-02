@@ -442,94 +442,87 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Market Context — [S3] 하단 정보 요약 */}
-        {data.bestSymbol && (
-          <div style={{
-            marginTop: 20,
-            padding: '12px 16px',
-            borderRadius: 12,
-            background: 'var(--bg-subtle, #F8F9FA)',
-            fontSize: 12,
-            color: 'var(--text-secondary, #4E5968)',
-            display: 'flex',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: '8px'
-          }}>
-            <span style={{ color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 600 }}>시장 현황</span>
-            <strong style={{ color: avgMarket >= 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)' }}>{marketLabel}</strong>
-            <span style={{ width: 1, height: 10, background: 'var(--border-strong, #E5E8EB)', margin: '0 4px' }} />
-            <span>상승 1위: <span onClick={() => setAnalysisSymbol(data.bestSymbol)} style={{ color: 'var(--color-gain, #EF4452)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{bestKr}</span></span>
-            <span>하락 1위: <span onClick={() => setAnalysisSymbol(data.worstSymbol)} style={{ color: 'var(--color-loss, #3182F6)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{worstKr}</span></span>
-          </div>
-        )}
-
-        {/* 건강점수 미니 — 투자 중 종목 있을 때만 */}
-        {health && (
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('solb-goto-analysis'))}
-            aria-label={`포트폴리오 건강점수 ${health.total}점 (${getHealthLabel(health.total)}) · 분석 탭으로 이동`}
-            className="cursor-pointer"
+        {/* 건강점수 + 시장 현황 통합 1줄 */}
+        {(health || data.bestSymbol) && (
+          <div
+            role="group"
+            aria-label="포트폴리오 요약"
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              width: '100%',
+              gap: 8,
               marginTop: 12,
-              padding: '12px 14px',
+              padding: '10px 14px',
               borderRadius: 12,
               background: 'var(--bg-subtle, #F8F9FA)',
-              border: 'none',
-              textAlign: 'left',
-              transition: 'background 0.15s',
               minHeight: 44,
             }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover, #F2F4F6)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-subtle, #F8F9FA)')}
           >
-            {/* 점수 숫자 */}
-            <div style={{
-              display: 'flex', alignItems: 'baseline', gap: 2,
-              color: getHealthColor(health.total),
-              fontWeight: 800,
-            }}>
-              <span style={{ fontSize: 22, lineHeight: 1 }}>{health.total}</span>
-              <span style={{ fontSize: 11, opacity: 0.8 }}>/100</span>
-            </div>
+            {/* 건강점수 */}
+            {health && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, color: getHealthColor(health.total), fontWeight: 800, flexShrink: 0 }}>
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>{health.total}</span>
+                  <span style={{ fontSize: 10, opacity: 0.8 }}>/100</span>
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
+                  color: getHealthColor(health.total),
+                  background: health.total >= 80 ? 'var(--color-success-bg)' : health.total >= 60 ? 'var(--color-info-bg)' : health.total >= 40 ? 'var(--color-warning-bg)' : 'var(--color-danger-bg)',
+                }}>
+                  {getHealthLabel(health.total)}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                  {(() => {
+                    const metrics = [
+                      { key: '집중도', ratio: health.concentration.score / 30 },
+                      { key: '섹터 분산', ratio: health.diversification.score / 25 },
+                      { key: '목표 설정', ratio: health.goalSetting.score / 25 },
+                      { key: '손익 밸런스', ratio: health.profitBalance.score / 20 },
+                    ].sort((a, b) => a.ratio - b.ratio);
+                    const weakest = metrics[0];
+                    if (weakest.ratio < 0.5) return `${weakest.key} 보완 필요`;
+                    if (health.total >= 80) return '전체 균형이 좋아요';
+                    return '자세히 보기';
+                  })()}
+                </span>
+              </>
+            )}
 
-            {/* 라벨 뱃지 */}
-            <span style={{
-              fontSize: 11, fontWeight: 700,
-              padding: '3px 8px', borderRadius: 20,
-              color: getHealthColor(health.total),
-              background: health.total >= 80 ? 'var(--color-success-bg)'
-                : health.total >= 60 ? 'var(--color-info-bg)'
-                : health.total >= 40 ? 'var(--color-warning-bg)'
-                : 'var(--color-danger-bg)',
-            }}>
-              {getHealthLabel(health.total)}
-            </span>
+            {/* 구분선 + 상승/하락 1위 */}
+            {data.bestSymbol && health && (
+              <span style={{ width: 1, height: 14, background: 'var(--border-strong, #E5E8EB)', flexShrink: 0 }} />
+            )}
+            {data.bestSymbol && (
+              <>
+                <button
+                  onClick={() => setAnalysisSymbol(data.bestSymbol)}
+                  aria-label={`상승 1위 ${bestKr} 분석`}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-gain, #EF4452)', flexShrink: 0, minHeight: 28 }}
+                >
+                  ↑{bestKr}
+                </button>
+                <button
+                  onClick={() => setAnalysisSymbol(data.worstSymbol)}
+                  aria-label={`하락 1위 ${worstKr} 분석`}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-loss, #3182F6)', flexShrink: 0, minHeight: 28 }}
+                >
+                  ↓{worstKr}
+                </button>
+              </>
+            )}
 
-            {/* 약점 1개 요약 */}
-            <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {(() => {
-                // 가장 낮은 점수 메트릭 1개 선택
-                const metrics = [
-                  { key: '집중도', ratio: health.concentration.score / 30 },
-                  { key: '섹터 분산', ratio: health.diversification.score / 25 },
-                  { key: '목표 설정', ratio: health.goalSetting.score / 25 },
-                  { key: '손익 밸런스', ratio: health.profitBalance.score / 20 },
-                ].sort((a, b) => a.ratio - b.ratio);
-                const weakest = metrics[0];
-                if (weakest.ratio < 0.5) return `${weakest.key} 보완 필요`;
-                if (health.total >= 80) return '전체 균형이 좋아요';
-                return '자세히 보기';
-              })()}
-            </span>
-
-            {/* 화살표 */}
-            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}>›</span>
-          </button>
+            {/* 분석 탭 이동 화살표 */}
+            {health && (
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('solb-goto-analysis'))}
+                aria-label="분석 탭으로 이동"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 16, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}
+              >
+                ›
+              </button>
+            )}
+          </div>
         )}
 
         {/* Term Tip — 접이식 오늘의 지식 */}
