@@ -4,6 +4,7 @@ import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { sendEmail } from '@/utils/email';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -186,6 +187,22 @@ function buildPushPayload(brief: BriefData): { title: string; body: string } {
   };
 }
 
+/** 이메일 본문 (정책 §4.3 면책은 sendEmail이 자동 첨부) */
+function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: string): string {
+  return [
+    title,
+    '',
+    body,
+    '',
+    `현재 평가액: ${fmtWon(brief.totalValue)}`,
+    brief.yesterdayDelta !== null
+      ? `어제 대비: ${brief.yesterdayDelta >= 0 ? '+' : ''}${fmtWon(brief.yesterdayDelta)}`
+      : '',
+    '',
+    `자세히 보기: ${appUrl}`,
+  ].filter(Boolean).join('\n');
+}
+
 export async function GET(req: NextRequest) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -195,24 +212,53 @@ export async function GET(req: NextRequest) {
   const db = getAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
 
-  const stats = { totalUsers: 0, sent: 0, skipped: 0, errors: [] as string[] };
+  const stats = { totalUsers: 0, sent: 0, emailed: 0, skipped: 0, errors: [] as string[] };
 
   try {
+    // 푸시 구독자
     const { data: subs } = await db
       .from('push_subscriptions')
       .select('user_id, subscription');
-    if (!subs?.length) {
+
+    // 이메일 구독자 (모닝브리프 ON 유저만) — 정책 §7
+    const { data: emailSubs } = await db
+      .from('email_subscriptions')
+      .select('user_id')
+      .eq('morning_brief_enabled', true);
+    const emailUserIds = new Set((emailSubs || []).map(e => e.user_id as string));
+
+    // 두 채널 합쳐 unique user 집합
+    const allUserIds = new Set<string>();
+    (subs || []).forEach(s => allUserIds.add(s.user_id as string));
+    emailUserIds.forEach(id => allUserIds.add(id));
+
+    if (allUserIds.size === 0) {
       return NextResponse.json({ ok: true, ...stats, note: '구독자 없음' });
     }
-    stats.totalUsers = subs.length;
+    stats.totalUsers = allUserIds.size;
 
-    const userIds = subs.map(s => s.user_id as string);
+    const userIds = Array.from(allUserIds);
     const { data: portfolios } = await db
       .from('user_portfolios')
       .select('user_id, stocks, daily_snapshots')
       .in('user_id', userIds);
     if (!portfolios?.length) {
       return NextResponse.json({ ok: true, ...stats, note: '포트폴리오 없음' });
+    }
+
+    // 이메일 fallback용 — auth.users에서 email 조회
+    let emailMap: Record<string, string> = {};
+    if (emailUserIds.size > 0) {
+      try {
+        const { data: usersList } = await db.auth.admin.listUsers({ perPage: 1000 });
+        emailMap = Object.fromEntries(
+          (usersList?.users || [])
+            .filter(u => emailUserIds.has(u.id) && u.email)
+            .map(u => [u.id, u.email as string])
+        );
+      } catch (e) {
+        stats.errors.push(`auth list: ${e instanceof Error ? e.message : 'unknown'}`);
+      }
     }
 
     // 성능 최적화 — 모든 유저 보유 종목 unique 집합으로 dedup, 한 번에 병렬 fetch
@@ -244,8 +290,10 @@ export async function GET(req: NextRequest) {
       priceCache[sym] = r.status === 'fulfilled' ? r.value : null;
     });
 
-    for (const sub of subs) {
-      const userId = sub.user_id as string;
+    // user_id 기준 push subscription 매핑
+    const subMap = Object.fromEntries((subs || []).map(s => [s.user_id as string, s.subscription]));
+
+    for (const userId of userIds) {
       const port = portfolios.find(p => p.user_id === userId);
       if (!port) { stats.skipped++; continue; }
 
@@ -256,26 +304,41 @@ export async function GET(req: NextRequest) {
       if (!brief) { stats.skipped++; continue; }
 
       const { title, body } = buildPushPayload(brief);
-      const payload = JSON.stringify({
-        title, body,
-        url: appUrl,
-        tag: 'solb-morning-brief', // 같은 tag → 직전 푸시 대체
-      });
 
-      try {
-        await webpush.sendNotification(
-          sub.subscription as webpush.PushSubscription,
-          payload,
-        );
-        stats.sent++;
-      } catch (e: unknown) {
-        const status = (e as { statusCode?: number })?.statusCode;
-        if (status === 410 || status === 404) {
-          await db.from('push_subscriptions').delete().eq('user_id', userId);
-        } else {
-          stats.errors.push(`${userId.slice(0, 8)}: ${(e as Error)?.message || 'unknown'}`);
+      // ─ 푸시 시도 (구독 있으면)
+      const pushSub = subMap[userId];
+      let pushSent = false;
+      if (pushSub) {
+        const payload = JSON.stringify({ title, body, url: appUrl, tag: 'solb-morning-brief' });
+        try {
+          await webpush.sendNotification(pushSub as webpush.PushSubscription, payload);
+          stats.sent++;
+          pushSent = true;
+        } catch (e: unknown) {
+          const status = (e as { statusCode?: number })?.statusCode;
+          if (status === 410 || status === 404) {
+            await db.from('push_subscriptions').delete().eq('user_id', userId);
+          } else {
+            stats.errors.push(`push ${userId.slice(0, 8)}: ${(e as Error)?.message || 'unknown'}`);
+          }
         }
       }
+
+      // ─ 이메일 발송 (구독자이고 이메일 알면) — 푸시 성공 여부와 독립
+      // 사용자가 둘 다 ON 했으면 둘 다 받음 (각자 명시 옵트인이므로 OK)
+      // 푸시 미구독 + 이메일 ON: 이메일이 유일한 채널 (iOS PWA 미설치 케이스)
+      if (emailUserIds.has(userId) && emailMap[userId]) {
+        const emailBody = buildEmailBody(brief, title, body, appUrl);
+        const result = await sendEmail({
+          to: emailMap[userId],
+          subject: title,
+          text: emailBody,
+        });
+        if (result.ok) stats.emailed++;
+        else stats.errors.push(`email ${userId.slice(0, 8)}: ${result.error}`);
+      }
+
+      if (!pushSent && !emailUserIds.has(userId)) stats.skipped++;
     }
 
     return NextResponse.json({ ok: true, ranAt: new Date().toISOString(), ...stats });

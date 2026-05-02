@@ -88,3 +88,37 @@ export function isPushAllowed(alertType: string): boolean {
 export function getAlertCategory(alertType: string): AlertCategory {
   return ALERT_POLICY[alertType]?.category ?? 'indicator';
 }
+
+// ─── 신규 유저 ramp-up 정책 (정책 §3.1) ─────────────────────────────────────
+//
+// 푸시 알림 폭주로 인한 즉시 OFF를 방지. 가입 직후 7일은 가장 긴급한
+// 손절·포트폴리오 알림만 푸시하고, 8일째부터 전체 isPushAllowed 적용.
+
+export const PUSH_RAMP_UP_DAYS = 7;
+
+/** ramp-up 기간 동안 허용되는 alert 타입 (가장 긴급한 것만) */
+const RAMP_UP_ALLOWED: ReadonlySet<string> = new Set([
+  'stoploss-hit',
+  'stoploss-price',  // cron alias
+  'stoploss-pct',
+  'portfolio-down',
+]);
+
+/**
+ * 가입 N일 경과 유저에게 이 alertType이 푸시 가능한가.
+ * createdAt: push_subscriptions.created_at (ISO string)
+ *
+ * - 7일 미만: stoploss + portfolio-down 만
+ * - 7일 이상: isPushAllowed 결과 그대로
+ *
+ * createdAt null/invalid 시 ramp-up 적용 안 함 (legacy 구독자는 전체 허용).
+ */
+export function isPushAllowedForUser(alertType: string, createdAt?: string | null): boolean {
+  if (!isPushAllowed(alertType)) return false;
+  if (!createdAt) return true; // 가입일 미상 → 전체 허용 (legacy)
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  if (Number.isNaN(ageMs) || ageMs < 0) return true;
+  const ageDays = ageMs / (24 * 3600 * 1000);
+  if (ageDays >= PUSH_RAMP_UP_DAYS) return true;
+  return RAMP_UP_ALLOWED.has(alertType);
+}

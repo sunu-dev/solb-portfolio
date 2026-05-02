@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
     .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
     + todayMovers
     + (holdingsContext
-        ? `\n\n${holdingsContext}\n\n사용자가 위 핵심 종목들에 어떤 비중·신호·메모를 갖고 있는지 인지하고, 추천 종목이 사용자 포트폴리오의 약점(누락 섹터, 분산 부족, 고베타 편중 등)을 보완하거나 사용자 메모/관심 흐름에 자연스럽게 이어지도록 골라주세요.`
+        ? `\n\n${holdingsContext}\n\n사용자가 위 핵심 종목들에 어떤 비중·신호·메모를 갖고 있는지 인지하고, 관찰 후보 종목이 사용자 포트폴리오의 약점(누락 섹터, 분산 부족, 고베타 편중 등)을 보완하거나 사용자 메모/관심 흐름에 자연스럽게 이어지도록 골라주세요.`
         : '')
     + `\n\n위 객관 수치 표와 시장 컨텍스트를 종합하여, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
 

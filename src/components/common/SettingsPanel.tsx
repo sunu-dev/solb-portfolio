@@ -13,6 +13,93 @@ import type { AlertCategory } from '@/config/alertPolicy';
 import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 
+// ─── 이메일 모닝브리프 구독 토글 ──────────────────────────────────────────
+function EmailMorningBriefToggle() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          if (!cancelled) setEnabled(false);
+          return;
+        }
+        const res = await fetch('/api/email/morning-brief', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const json = await res.json();
+        if (!cancelled) setEnabled(!!json.enabled);
+      } catch {
+        if (!cancelled) setEnabled(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggle = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert('로그인 후 이용 가능합니다.');
+        setLoading(false);
+        return;
+      }
+      const method = enabled ? 'DELETE' : 'POST';
+      const res = await fetch('/api/email/morning-brief', {
+        method,
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) setEnabled(!enabled);
+      else alert('이메일 구독 변경에 실패했어요.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+        ✉️ 이메일 모닝브리프
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+        매일 오전 7시 포트폴리오 요약을 이메일로도 받아요.<br />
+        아이폰 푸시가 안 와도 안전하게 도달.
+      </div>
+      <button
+        onClick={toggle}
+        disabled={loading || enabled === null}
+        aria-pressed={enabled === true}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px', borderRadius: 10, width: '100%',
+          background: enabled ? 'rgba(0,198,190,0.06)' : 'var(--bg-subtle, #F2F4F6)',
+          border: enabled ? '1px solid rgba(0,198,190,0.18)' : '1px solid transparent',
+          cursor: loading ? 'default' : 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+          {enabled === null ? '확인 중…' : enabled ? '이메일 받는 중' : '이메일 받기'}
+        </span>
+        <span style={{
+          width: 36, height: 20, borderRadius: 12, position: 'relative',
+          background: enabled ? '#00C6BE' : '#D1D6DB',
+          transition: 'background 0.2s', flexShrink: 0,
+        }}>
+          <span style={{
+            position: 'absolute', top: 2, left: enabled ? 18 : 2,
+            width: 16, height: 16, borderRadius: '50%', background: 'white',
+            transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+          }} />
+        </span>
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPanel() {
   const {
     autoRefresh, setAutoRefresh,
@@ -322,6 +409,9 @@ export default function SettingsPanel() {
               </button>
             )}
           </div>
+
+          {/* 이메일 모닝브리프 — iOS Safari 푸시 미설치 보완 채널 (정책 §7) */}
+          <EmailMorningBriefToggle />
 
           {/* 알림 카테고리 ON/OFF — 정책 SSOT: docs/NOTIFICATION_POLICY.md §5 */}
           <div style={{ marginBottom: 28 }}>

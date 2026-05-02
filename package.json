@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:alerts": "node scripts/lint-alerts.mjs",
+    "prebuild": "npm run lint:alerts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

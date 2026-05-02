@@ -102,7 +102,7 @@ export default function PortfolioHealth({ stocks }: Props) {
         const tips: { icon: string; text: string }[] = [];
         if (health.concentration.score < 15) tips.push({ icon: '⚠️', text: `${health.concentration.detail}. 분산 투자를 고려해보세요.` });
         if (health.diversification.score < 15) tips.push({ icon: '💡', text: `${health.diversification.detail}. 다른 섹터 종목을 추가해보세요.` });
-        if (health.goalSetting.score < 20) tips.push({ icon: '🎯', text: `${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 타이밍을 잡기 쉬워요.` });
+        if (health.goalSetting.score < 20) tips.push({ icon: '🎯', text: `${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 시점을 판단하기 쉬워요.` });
         if (health.profitBalance.score < 10) tips.push({ icon: '📉', text: `${health.profitBalance.detail} — 손절 기준을 점검해보세요.` });
         if (tips.length === 0 && health.total >= 80) tips.push({ icon: '🎉', text: '포트폴리오가 잘 관리되고 있어요!' });
         if (tips.length === 0 && health.total >= 60) tips.push({ icon: '👍', text: '전반적으로 양호해요. 약한 부분을 보완하면 더 좋아져요.' });

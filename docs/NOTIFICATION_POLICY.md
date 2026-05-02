@@ -55,8 +55,10 @@
 ### 3.1 푸시 (Push)
 
 - 종목당 24시간 내 **최대 3개**
-- 디폴트 ON: 가격 도달, 손절, 포트폴리오 -10% 만 (필수 3종)
-- 신규 유저 7일 ramp-up: D1 환영 → D3 첫 알림 → D7 모닝브리프
+- 신규 유저 7일 ramp-up:
+  - D0~D6 (가입 후 7일 미만): **`stoploss-*` + `portfolio-down`만 푸시** (가장 긴급한 손실 보호 알림만)
+  - D7+ (7일 경과): 정책상 push 허용된 모든 alertType (`isPushAllowed()`)
+- 구현: `push_subscriptions.created_at` 기준 + `isPushAllowedForUser()` 게이트
 - 무음 시간대: KST 22:00 ~ 07:00 (Settings 토글)
 
 ### 3.2 인앱 (사이드바/시트)
@@ -121,13 +123,15 @@
 
 | 항목 | 위치 | 디폴트 |
 |---|---|---|
-| 푸시 전역 ON/OFF | Settings → 알림 | OFF (사용자가 명시 ON) |
-| 카테고리 ON/OFF (price/indicator/market/portfolio) | Settings → 알림 → 세부 | price·portfolio ON, 나머지 OFF |
-| 무음 시간대 (22:00~07:00) | Settings → 알림 → 무음 | OFF |
+| 푸시 전역 ON/OFF | Settings → 알림 | OFF (사용자가 명시 ON 후, 첫 7일 ramp-up 적용) |
+| 카테고리 ON/OFF (price/indicator/market/portfolio/celebrate/digest) | Settings → 알림 → 종류 | **모두 ON** (발견성 우선, 시끄러우면 사용자가 OFF) |
+| 무음 시간대 (KST 22:00~07:00) | Settings → 알림 → 무음 | OFF |
 | 종목별 음소거 | 종목 상세 → ⋯ → "알림 끄기" | — |
-| 토스트 표시 ON/OFF | Settings → 알림 → 인앱 | ON |
+| 토스트 표시 ON/OFF | (카테고리 토글에 통합) | 카테고리별 |
 | 모닝브리프 구독 | Settings → 알림 → 정기 | OFF |
 | 월말 D-3 리마인더 구독 | Settings → 알림 → 정기 | OFF |
+
+**디폴트 all-ON 결정**: 카테고리 prefs는 토스트·푸시 양쪽에 영향. 첫 7일은 푸시 ramp-up이 별도로 제한하므로(§3.1), prefs 디폴트까지 OFF로 가면 신규 유저가 알림 시스템의 가치를 못 느낌. 발견성 우선.
 
 ---
 
@@ -139,13 +143,17 @@
 
 ---
 
-## 7. 모바일/iOS 한계
+## 7. 모바일/iOS 한계 + 이메일 백업
 
 - iOS Safari Web Push는 **PWA 설치 시에만** 작동 (홈 화면 추가 필수)
 - 일반 모바일 웹 사용자(아이폰)는 푸시 도달률 0
-- **PWA 설치 가이드 카드**를 인앱에 노출 (Phase 1)
-- 카카오톡 알림톡/SMS 백업 채널은 Phase 2 보류 (비용 발생)
-- 이메일 백업 채널: 모닝브리프 한정 (Phase 1.5)
+- **PWA 설치 가이드 카드** 인앱 노출 (Phase 2 ④, 완료)
+- **이메일 백업 채널** (Phase 3 ④, 완료):
+  - 송신: Resend (`@resend SDK`, `RESEND_API_KEY` + `EMAIL_FROM` 환경변수)
+  - 옵트인: 로그인 + Settings에서 "이메일 받기" 토글 (디폴트 OFF, GDPR 준수)
+  - 대상: 모닝브리프 한정 (Phase 4에서 D-3 리마인더로 확장 검토)
+  - 면책 강제: `sendEmail()`이 본문 끝에 `DISCLAIMER` 자동 첨부 (정책 §4.3)
+- 카카오톡 알림톡/SMS 백업 채널은 Phase 5 보류 (비용 발생)
 
 ---
 
@@ -200,12 +208,24 @@
 - [x] `alert_log` Supabase 테이블 + 푸시 송신 로깅 (sent / failed / expired_subscription)
 - [x] Dashboard 상단 "최근 알림 미리보기" 슬롯 (severity 1~2 top 1건, 클릭 시 알림 시트 오픈)
 
-### Phase 3 (예정)
+### Phase 3 (완료 — 2026-05-02)
 
-- [ ] 푸시 디폴트 "필수 3종만 ON" + 신규 유저 7일 ramp-up
-- [ ] 빌드 시 컴플라이언스 검사 (`npm run lint:alerts`) — CI 차단
-- [ ] alert_log 1년 경과분 자동 cleanup cron
-- [ ] 모닝브리프 이메일 백업 채널 (모바일 사파리 푸시 미설치 보완)
+- [x] 푸시 신규 유저 7일 ramp-up (`isPushAllowedForUser` + `push_subscriptions.created_at`)
+  - D0~D6: stoploss-* + portfolio-down 만 푸시
+  - D7+: 정책상 push 허용된 모든 alertType
+- [x] 빌드 차단 컴플라이언스 검사 — `scripts/lint-alerts.mjs` + `prebuild` 훅
+- [x] alert_log 1년 경과분 자동 cleanup — `cleanup-pii` cron에 통합
+- [x] 모닝브리프 이메일 백업 채널 — Resend wrapper + 옵트인 토글 + cron 통합
+  - `email_subscriptions` 테이블 (RLS, 본인 행만)
+  - `/api/email/morning-brief` (GET/POST/DELETE)
+  - SettingsPanel에 토글 UI
+
+### Phase 4 (예정)
+
+- [ ] 월말 D-3 리마인더 이메일 백업 (현재 푸시 only)
+- [ ] 모닝브리프 풍부한 HTML 템플릿 (현재는 plain text)
+- [ ] 이메일 unsubscribe 링크 (RFC 8058 List-Unsubscribe-Post 준수)
+- [ ] 푸시 송신 실패 시 자동 이메일 retry (현재는 두 채널 독립)
 
 ---
 

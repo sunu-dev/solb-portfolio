@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
  * - ai_usage.ip   → 90일 후 NULL로 익명화 (분석 데이터는 유지)
  * - api_calls.ip  → 30일 후 NULL로 익명화 (관측성 위주, IP 가치 낮음)
  * - 365일+ 이전 행 hard DELETE (저장 비용 + GDPR/개보법)
+ * - alert_log    → 365일+ 행 hard DELETE (정책 SSOT: docs/NOTIFICATION_POLICY.md §4.4)
  *
  * 인증: Vercel Cron이 자동 설정하는 Authorization: Bearer ${CRON_SECRET}.
  *      외부에서 임의 호출 차단.
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
     api_calls_anonymized: 0,
     ai_usage_deleted: 0,
     api_calls_deleted: 0,
+    alert_log_deleted: 0,
     errors: [] as string[],
   };
 
@@ -90,6 +92,18 @@ export async function GET(req: NextRequest) {
       .lt('created_at', daysAgoIso(365));
     if (apiDelErr) stats.errors.push(`api_calls delete: ${apiDelErr.message}`);
     else stats.api_calls_deleted = apiDel || 0;
+
+    // 5. 365일+ hard DELETE — alert_log (정책 §4.4 — 컴플라이언스 분쟁 보관기간 만료)
+    const { count: logDel, error: logDelErr } = await supabase
+      .from('alert_log')
+      .delete({ count: 'exact' })
+      .lt('sent_at', daysAgoIso(365));
+    // 테이블 미존재 시 silent — 마이그레이션 미적용 환경 대응
+    if (logDelErr && !/relation .* does not exist/i.test(logDelErr.message)) {
+      stats.errors.push(`alert_log delete: ${logDelErr.message}`);
+    } else {
+      stats.alert_log_deleted = logDel || 0;
+    }
 
     return NextResponse.json({
       ok: stats.errors.length === 0,

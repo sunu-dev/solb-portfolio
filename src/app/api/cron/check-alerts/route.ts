@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
-import { isPushAllowed, getAlertCategory } from '@/config/alertPolicy';
+import { isPushAllowed, isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
 function getSupabaseAdmin() {
@@ -199,11 +199,15 @@ export async function POST(req: NextRequest) {
 
   const { data: subs } = await db
     .from('push_subscriptions')
-    .select('user_id, subscription');
+    .select('user_id, subscription, created_at');
 
   if (!subs?.length) return NextResponse.json({ checked: 0, sent: 0 });
 
   const userIds = subs.map(s => s.user_id as string);
+  // user_id → created_at (ramp-up 정책 판단용)
+  const createdAtMap = Object.fromEntries(
+    subs.map(s => [s.user_id as string, (s.created_at ?? null) as string | null])
+  );
 
   const { data: portfolios } = await db
     .from('user_portfolios')
@@ -250,9 +254,11 @@ export async function POST(req: NextRequest) {
     }
     if (!triggered.length) continue;
 
-    // 정책 SSOT 필터 — channels에 'push' 포함된 alertType만 발송
-    // (docs/NOTIFICATION_POLICY.md §2 + config/alertPolicy.ts)
-    const pushable = triggered.filter(a => isPushAllowed(a.alertType));
+    // 정책 SSOT 필터 — channels에 'push' 포함 + 신규 유저 7일 ramp-up
+    // (docs/NOTIFICATION_POLICY.md §2, §3.1 + config/alertPolicy.ts)
+    const pushable = triggered.filter(a =>
+      isPushAllowedForUser(a.alertType, createdAtMap[userId])
+    );
     if (!pushable.length) continue;
 
     const unsent = await filterUnsent(userId, pushable);
