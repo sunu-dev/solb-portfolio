@@ -220,12 +220,27 @@
   - `/api/email/morning-brief` (GET/POST/DELETE)
   - SettingsPanel에 토글 UI
 
-### Phase 4 (예정)
+### Phase 4 (완료 — 2026-05-02)
 
-- [ ] 월말 D-3 리마인더 이메일 백업 (현재 푸시 only)
-- [ ] 모닝브리프 풍부한 HTML 템플릿 (현재는 plain text)
-- [ ] 이메일 unsubscribe 링크 (RFC 8058 List-Unsubscribe-Post 준수)
-- [ ] 푸시 송신 실패 시 자동 이메일 retry (현재는 두 채널 독립)
+- [x] 이메일 unsubscribe 링크 — RFC 8058 1-click compliant
+  - `utils/unsubscribeToken.ts` — HMAC-SHA256 stateless 토큰 (DB 조회 없음)
+  - `/api/email/unsubscribe` GET (브라우저)/POST (메일 클라이언트 자동)
+  - sendEmail()이 `List-Unsubscribe` + `List-Unsubscribe-Post` 헤더 자동 첨부
+  - 본문 푸터에 unsubscribe 링크 자동 첨부
+- [x] 월말 D-3 리마인더 이메일 백업
+  - `email_subscriptions.monthly_d3_enabled` 컬럼 추가 (morning_brief와 독립 토글)
+  - `/api/email/monthly-d3` (GET/POST/DELETE)
+  - monthly-d3-reminder cron이 push + email 양 채널로 발송
+  - SettingsPanel에 두 토글 통합 UI (재사용 EmailSubscriptionToggle 컴포넌트)
+- [x] 모닝브리프 HTML 템플릿 — 토스 톤
+  - `utils/emailTemplates.ts` — 인라인 CSS, 모바일 호환
+  - 손익 색상(빨강/파랑), 챔피언 종목 강조, CTA 버튼
+
+### Phase 5 (보류)
+
+- [ ] 푸시 송신 실패 시 자동 이메일 retry (현재는 두 채널 독립 — 명시 동의 후에만 이메일)
+- [ ] 카카오톡 알림톡 (비용 발생 — 매출 단계 검토)
+- [ ] 빌드 시 컴플라이언스 검사를 GitHub Actions CI로 (현재는 prebuild 로컬)
 
 ---
 

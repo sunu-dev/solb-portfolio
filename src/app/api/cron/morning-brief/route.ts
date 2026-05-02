@@ -5,6 +5,7 @@ import type { PortfolioStocks } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
+import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -328,11 +329,25 @@ export async function GET(req: NextRequest) {
       // 사용자가 둘 다 ON 했으면 둘 다 받음 (각자 명시 옵트인이므로 OK)
       // 푸시 미구독 + 이메일 ON: 이메일이 유일한 채널 (iOS PWA 미설치 케이스)
       if (emailUserIds.has(userId) && emailMap[userId]) {
-        const emailBody = buildEmailBody(brief, title, body, appUrl);
+        const emailText = buildEmailBody(brief, title, body, appUrl);
+        const totalValueFmt = fmtWon(brief.totalValue);
+        const ydeltaFmt = brief.yesterdayDelta !== null
+          ? `${brief.yesterdayDelta >= 0 ? '+' : '-'}${fmtWon(Math.abs(brief.yesterdayDelta))}${brief.yesterdayPct !== null ? ` (${brief.yesterdayPct >= 0 ? '+' : ''}${brief.yesterdayPct.toFixed(2)}%)` : ''}`
+          : null;
+        const emailHtml = buildMorningBriefHtml({
+          title, body,
+          totalValueFormatted: totalValueFmt,
+          yesterdayDeltaFormatted: ydeltaFmt,
+          yesterdayPct: brief.yesterdayPct,
+          biggestMover: brief.biggestMover,
+          appUrl,
+        });
         const result = await sendEmail({
           to: emailMap[userId],
           subject: title,
-          text: emailBody,
+          text: emailText,
+          html: emailHtml,
+          unsubscribe: { userId, kind: 'morning_brief' }, // RFC 8058 1-click
         });
         if (result.ok) stats.emailed++;
         else stats.errors.push(`email ${userId.slice(0, 8)}: ${result.error}`);

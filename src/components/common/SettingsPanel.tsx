@@ -13,8 +13,16 @@ import type { AlertCategory } from '@/config/alertPolicy';
 import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 
-// ─── 이메일 모닝브리프 구독 토글 ──────────────────────────────────────────
-function EmailMorningBriefToggle() {
+// ─── 이메일 구독 토글 (재사용) ─────────────────────────────────────────────
+interface EmailToggleProps {
+  endpoint: string;
+  label: string;
+  description: string;
+  emoji: string;
+  accent: string; // 활성 색상
+}
+
+function EmailSubscriptionToggle({ endpoint, label, description, emoji, accent }: EmailToggleProps) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,13 +31,8 @@ function EmailMorningBriefToggle() {
     (async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          if (!cancelled) setEnabled(false);
-          return;
-        }
-        const res = await fetch('/api/email/morning-brief', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
+        if (!session?.access_token) { if (!cancelled) setEnabled(false); return; }
+        const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${session.access_token}` } });
         const json = await res.json();
         if (!cancelled) setEnabled(!!json.enabled);
       } catch {
@@ -37,7 +40,7 @@ function EmailMorningBriefToggle() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [endpoint]);
 
   const toggle = async () => {
     setLoading(true);
@@ -45,13 +48,11 @@ function EmailMorningBriefToggle() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         alert('로그인 후 이용 가능합니다.');
-        setLoading(false);
         return;
       }
       const method = enabled ? 'DELETE' : 'POST';
-      const res = await fetch('/api/email/morning-brief', {
-        method,
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      const res = await fetch(endpoint, {
+        method, headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) setEnabled(!enabled);
       else alert('이메일 구독 변경에 실패했어요.');
@@ -61,32 +62,31 @@ function EmailMorningBriefToggle() {
   };
 
   return (
-    <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-        ✉️ 이메일 모닝브리프
-      </div>
-      <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-        매일 오전 7시 포트폴리오 요약을 이메일로도 받아요.<br />
-        아이폰 푸시가 안 와도 안전하게 도달.
-      </div>
+    <div style={{ marginBottom: 16 }}>
       <button
         onClick={toggle}
         disabled={loading || enabled === null}
         aria-pressed={enabled === true}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px', borderRadius: 10, width: '100%',
-          background: enabled ? 'rgba(0,198,190,0.06)' : 'var(--bg-subtle, #F2F4F6)',
-          border: enabled ? '1px solid rgba(0,198,190,0.18)' : '1px solid transparent',
+          padding: '12px 14px', borderRadius: 10, width: '100%',
+          background: enabled ? `${accent}10` : 'var(--bg-subtle, #F2F4F6)',
+          border: enabled ? `1px solid ${accent}30` : '1px solid transparent',
           cursor: loading ? 'default' : 'pointer', textAlign: 'left',
         }}
       >
-        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-          {enabled === null ? '확인 중…' : enabled ? '이메일 받는 중' : '이메일 받기'}
-        </span>
+        <span style={{ fontSize: 16 }}>{emoji}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+            {label}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {description}
+          </div>
+        </div>
         <span style={{
           width: 36, height: 20, borderRadius: 12, position: 'relative',
-          background: enabled ? '#00C6BE' : '#D1D6DB',
+          background: enabled ? accent : '#D1D6DB',
           transition: 'background 0.2s', flexShrink: 0,
         }}>
           <span style={{
@@ -96,6 +96,34 @@ function EmailMorningBriefToggle() {
           }} />
         </span>
       </button>
+    </div>
+  );
+}
+
+function EmailMorningBriefToggle() {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+        ✉️ 이메일 알림
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+        아이폰 푸시가 안 와도 이메일로 안전하게 도달해요.<br />
+        언제든 메일 본문 하단의 링크로 1-click 해제 가능.
+      </div>
+      <EmailSubscriptionToggle
+        endpoint="/api/email/morning-brief"
+        emoji="🌅"
+        label="모닝 브리핑"
+        description="매일 오전 7시 포트폴리오 요약"
+        accent="#00C6BE"
+      />
+      <EmailSubscriptionToggle
+        endpoint="/api/email/monthly-d3"
+        emoji="📖"
+        label="월말 D-3 리마인더"
+        description="월말 3일 전 챕터 회고 안내"
+        accent="#AF52DE"
+      />
     </div>
   );
 }
