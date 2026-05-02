@@ -7,11 +7,11 @@
 
 (작업 중인 항목)
 
-## 대기
+## 대기 (우선순위 순)
 
-- [ ] 포트폴리오 맵 (PortfolioTreemap) 색·비율 사용자 피드백 따라 추가 미세조정
-- [ ] `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토
-- [ ] 베타 1개월 후 `ai_chok_recommendations` backtest 데이터로 추천 효과성 분석
+- [ ] **🔴 NEXT** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토 *(지금 바로 가능, 가장 먼저 할 것)*
+- [ ] 포트폴리오 맵 (PortfolioTreemap) 색·비율 사용자 피드백 따라 추가 미세조정 *(사용자 의견 있을 때)*
+- [ ] 베타 1개월 후 `ai_chok_recommendations` backtest 데이터로 추천 효과성 분석 *(시간 필요)*
 
 ## 차단됨
 
