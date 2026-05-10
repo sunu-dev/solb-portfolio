@@ -374,8 +374,8 @@ export default function Dashboard() {
               )}
               {data.quotesLoaded && periodCompare && (
                 <div
-                  className="flex items-center mt-4 scrollbar-hide"
-                  style={{ gap: 6, overflowX: 'auto', paddingBottom: 2 }}
+                  className="flex items-center mt-4"
+                  style={{ flexWrap: 'wrap', rowGap: 6, columnGap: 6 }}
                   aria-label="기간별 수익 비교"
                 >
                   {([
