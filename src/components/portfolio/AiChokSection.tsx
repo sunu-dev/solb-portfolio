@@ -63,6 +63,8 @@ interface ChokState {
   picks: ChokPick[];
   context: string;
   cached: boolean;
+  fallback?: boolean;
+  stale?: boolean;
   remaining: number;
   sessionLabel?: string;
 }
@@ -222,7 +224,12 @@ export default function AiChokSection() {
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
-  const fetchChok = async (force = false) => {
+  /**
+   * intent='fetch'  → 캐시/폴백만 (마운트, 타입 변경). AI 호출 X, 한도 차감 X.
+   * intent='generate' → 사용자 명시 동작. AI 호출 + 한도 1회 차감.
+   */
+  const fetchChok = async (intent: 'fetch' | 'generate' = 'fetch') => {
+    const force = intent === 'generate';
     if (force) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -238,6 +245,7 @@ export default function AiChokSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           portfolioSymbols,
+          intent,
           forceRefresh: force,
           macroContext: buildMacroContext(macroData),
           currentEvent: currentEvent ? `${currentEvent.emoji} ${currentEvent.name}` : '없음',
@@ -268,16 +276,16 @@ export default function AiChokSection() {
   useEffect(() => {
     if (fetchedRef.current) return;
     fetchedRef.current = true;
-    fetchChok();
+    fetchChok('fetch'); // 마운트는 캐시/폴백만, AI 호출 X
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 투자자 유형 변경 시 자동 재조회 (캐시는 유형별 분리돼 있으므로 서버에서도 다른 결과)
+  // 투자자 유형 변경 시 자동 재조회 — fetch intent 유지 (한도 차감 X)
   const prevTypeRef = useRef(investorType);
   useEffect(() => {
     if (prevTypeRef.current !== investorType && fetchedRef.current) {
       prevTypeRef.current = investorType;
-      fetchChok(); // force=false — 유형별 캐시 우선
+      fetchChok('fetch');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [investorType]);
@@ -303,43 +311,65 @@ export default function AiChokSection() {
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
               AI 촉
             </h2>
-            {state?.cached && (
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: 'var(--text-tertiary, #B0B8C1)',
-                  background: 'var(--bg-subtle, #F2F4F6)',
-                  padding: '2px 6px',
-                  borderRadius: 4,
-                }}
-              >
-                {state.sessionLabel || '오늘 기준'}
-              </span>
-            )}
+            {state && (state.fallback || state.stale || state.cached) && (() => {
+              // 우선순위: fallback > stale > cached
+              const isFallback = state.fallback;
+              const isStale = !isFallback && state.stale;
+              const label = isFallback
+                ? '기준 추천'
+                : isStale
+                  ? `이전 ${state.sessionLabel || ''}`.trim()
+                  : (state.sessionLabel || '오늘 기준');
+              const fg = isFallback ? '#FF9500' : isStale ? '#8B95A1' : 'var(--text-tertiary, #B0B8C1)';
+              const bg = isFallback ? 'rgba(255,149,0,0.10)' : 'var(--bg-subtle, #F2F4F6)';
+              const tip = isFallback
+                ? '객관 수치 기준 기본 추천이에요. AI에게 새로 받아보려면 오른쪽 버튼을 눌러주세요.'
+                : isStale
+                  ? '직전 세션 캐시예요. 새 세션 결과는 새로 받아보세요.'
+                  : undefined;
+              return (
+                <span
+                  title={tip}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: fg,
+                    background: bg,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                  }}
+                >
+                  {label}
+                </span>
+              );
+            })()}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
             AI의 관찰 후보예요 · 추천이 아닌 정보 제공 · 투자 판단은 본인이
           </p>
         </div>
 
-        {/* Refresh button */}
+        {/* Refresh button — 폴백/스테일 상태에선 더 강조해 노출 */}
         {state && state.remaining > 0 && !loading && (
           <button
-            onClick={() => fetchChok(true)}
+            onClick={() => fetchChok('generate')}
             disabled={refreshing}
             className="flex items-center gap-1 cursor-pointer transition-opacity hover:opacity-70 disabled:opacity-40 disabled:cursor-default"
             style={{
               fontSize: 12,
-              fontWeight: 500,
+              fontWeight: state.fallback || state.stale ? 700 : 500,
               color: '#3182F6',
-              background: 'none',
+              background: state.fallback || state.stale ? 'var(--color-info-bg, rgba(49,130,246,0.08))' : 'none',
               border: 'none',
-              padding: '4px 0',
+              padding: state.fallback || state.stale ? '6px 10px' : '4px 0',
+              borderRadius: state.fallback || state.stale ? 8 : 0,
             }}
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            새로 촉 받기 ({state.remaining}회 남음)
+            {state.fallback || state.stale ? 'AI에게 받기' : '새로 촉 받기'}
+            <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>
+              · 오늘 {state.remaining}회
+            </span>
           </button>
         )}
       </div>
@@ -382,7 +412,7 @@ export default function AiChokSection() {
           ) : (
             !limitReached && (
               <button
-                onClick={() => fetchChok()}
+                onClick={() => fetchChok('fetch')}
                 className="cursor-pointer"
                 style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
               >
@@ -443,7 +473,7 @@ export default function AiChokSection() {
             촉이 오는 종목을 찾지 못했어요.
           </p>
           <button
-            onClick={() => fetchChok(true)}
+            onClick={() => fetchChok('generate')}
             className="cursor-pointer"
             style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
           >

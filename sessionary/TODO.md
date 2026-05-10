@@ -11,11 +11,12 @@
 
 ### 🔴 사용자 액션 필요 (이메일 백업 채널 활성화 위해)
 
-- [ ] **Supabase migration 4건 적용** (Supabase 콘솔 SQL Editor)
+- [ ] **Supabase migration 5건 적용** (Supabase 콘솔 SQL Editor)
   - `supabase/migrations/2026-05-02_alert_log.sql` — 알림 송신 로그 (분쟁 증거)
   - `supabase/migrations/2026-05-02_email_subscriptions.sql` — 이메일 모닝브리프 옵트인
   - `supabase/migrations/2026-05-02_email_subscriptions_monthly_d3.sql` — 월말 D-3 옵트인 추가
   - `supabase/migrations/2026-05-02_push_subscriptions_created_at.sql` — 7일 ramp-up 위해
+  - `supabase/migrations/2026-05-10_ai_chok_cache.sql` — **AI 촉 호출 정책 변경 (P0)**: excluded_recent + created_at 컬럼. 미적용 시 fetch intent에서 폴백만 노출됨 (기능은 동작, 다양성/스테일 lookup만 제한)
 - [ ] **Vercel 환경변수 추가**
   - `RESEND_API_KEY` (resend.com 발급, 무료 월 3천건)
   - `EMAIL_FROM` (예: `"주비 <noreply@solb.kr>"`, 도메인 검증 필요)

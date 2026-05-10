@@ -7,6 +7,7 @@ import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError, getProviderStatus } from '@/lib/aiProvider';
 import { enrichUniverse, formatStockLine } from '@/utils/chokDataEnricher';
+import { generateFallbackPicks, deterministicSlice } from '@/utils/chokFallback';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -51,19 +52,46 @@ async function getCachedPicks(userKey: string, dateKey: string) {
   try {
     const { data } = await supabase
       .from('ai_chok_cache')
-      .select('picks, use_count')
+      .select('picks, use_count, excluded_recent')
       .eq('user_key', userKey)
       .eq('date', dateKey)
       .maybeSingle();
-    return data as { picks: unknown; use_count: number } | null;
+    return data as { picks: unknown; use_count: number; excluded_recent: string[] | null } | null;
   } catch { return null; }
 }
 
-async function upsertCache(userKey: string, dateKey: string, picks: unknown, useCount: number) {
+/**
+ * 24h 이내 가장 최근 캐시 (정확 키 매칭 실패 시 fallback lookup).
+ * 새 세션 진입 직후에도 어제 캐시 그대로 표시 가능 → 빈 화면 방지.
+ */
+async function getRecentCachedPicks(userKey: string) {
+  if (!supabase) return null;
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from('ai_chok_cache')
+      .select('picks, use_count, created_at')
+      .eq('user_key', userKey)
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data as { picks: unknown; use_count: number; created_at: string } | null;
+  } catch { return null; }
+}
+
+async function upsertCache(userKey: string, dateKey: string, picks: unknown, useCount: number, excludedRecent: string[]) {
   if (!supabase) return;
   try {
     await supabase.from('ai_chok_cache').upsert(
-      { user_key: userKey, date: dateKey, picks, use_count: useCount },
+      {
+        user_key: userKey,
+        date: dateKey,
+        picks,
+        use_count: useCount,
+        excluded_recent: excludedRecent,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: 'user_key,date' }
     );
   } catch { /* silent */ }
@@ -130,6 +158,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as {
     portfolioSymbols?: string[];
     forceRefresh?: boolean;
+    intent?: 'fetch' | 'generate';
     macroContext?: string;
     currentEvent?: string;
     sectorConcentration?: string;
@@ -139,6 +168,8 @@ export async function POST(req: NextRequest) {
   const {
     portfolioSymbols = [],
     forceRefresh = false,
+    // 호환: intent 미지정 시 forceRefresh로 추정 — 신규 클라이언트는 intent 명시 권장
+    intent = forceRefresh ? 'generate' : 'fetch',
     macroContext,
     currentEvent,
     sectorConcentration,
@@ -152,12 +183,55 @@ export async function POST(req: NextRequest) {
   const userKeyWithType = `${userKey}:${investorType}`;
   const cached = await getCachedPicks(userKeyWithType, cacheDateKey);
 
-  // ── 2. 캐시 히트 → 레이트 리밋 소비 없이 즉시 반환 ──────────────
-  if (!forceRefresh && cached?.picks) {
+  // ── 2-A. intent='fetch' → AI 호출 절대 X (마운트/타입변경 시) ───
+  //         정책: 사용자 명시 동작이 없으면 한도/quota 차감 금지.
+  if (intent === 'fetch') {
+    // 정확 키 매칭
+    if (cached?.picks) {
+      return NextResponse.json({
+        picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
+        context: (cached.picks as { context: string }).context ?? '',
+        cached: true,
+        fallback: false,
+        sessionLabel: sessionLabel(session),
+        remaining: Math.max(0, limit - (cached.use_count || 1)),
+      });
+    }
+    // 24h 이내 가장 최근 캐시 (다른 session/vix bucket이라도 사용)
+    const recent = await getRecentCachedPicks(userKeyWithType);
+    if (recent?.picks) {
+      return NextResponse.json({
+        picks: (recent.picks as { picks: unknown }).picks ?? recent.picks,
+        context: (recent.picks as { context: string }).context ?? '',
+        cached: true,
+        fallback: false,
+        stale: true, // 다른 세션 캐시
+        sessionLabel: sessionLabel(session),
+        // 다른 세션이므로 남은 횟수는 현재 세션 기준 (full)
+        remaining: limit,
+      });
+    }
+    // 폴백 — 객관 수치 기반 결정론적 선택 (AI 호출 X)
+    const enriched = await enrichUniverse();
+    const excluded = new Set(portfolioSymbols.map(s => s.toUpperCase()));
+    const fbPicks = generateFallbackPicks({ enriched, excludedSymbols: excluded });
+    return NextResponse.json({
+      picks: fbPicks,
+      context: '객관 수치(PER·52주 위치) 기준의 기본 추천이에요. AI에게 새로 받아보려면 위 버튼을 눌러주세요.',
+      cached: false,
+      fallback: true,
+      sessionLabel: sessionLabel(session),
+      remaining: limit,
+    });
+  }
+
+  // ── 2-B. intent='generate' but 캐시 히트 → 정확 키이고 forceRefresh 아니면 캐시 반환 ──
+  if (intent === 'generate' && !forceRefresh && cached?.picks) {
     return NextResponse.json({
       picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
       context: (cached.picks as { context: string }).context ?? '',
       cached: true,
+      fallback: false,
       sessionLabel: sessionLabel(session),
       remaining: Math.max(0, limit - (cached.use_count || 1)),
     });
@@ -189,11 +263,20 @@ export async function POST(req: NextRequest) {
   const enriched = await enrichUniverse();
   const enrichedMap = new Map(enriched.map(e => [e.symbol, e]));
 
-  const excluded = new Set(portfolioSymbols.map(s => s.toUpperCase()));
+  // A안 — exclude 누적: 보유 종목 + 직전 추천 종목 (다양성 강제)
+  const recentExcluded = (cached?.excluded_recent || []).map(s => s.toUpperCase());
+  const excluded = new Set([
+    ...portfolioSymbols.map(s => s.toUpperCase()),
+    ...recentExcluded,
+  ]);
   const allowedUniverse = CHOK_UNIVERSE.filter(s => !excluded.has(s.symbol));
 
-  // 객관 수치 블록 — 한 종목 1줄
-  const enrichedBlock = allowedUniverse.map(u => {
+  // G안 — universe deterministic slice: 매 호출마다 다른 35종 풀 노출
+  const sliceSeed = `${userKeyWithType}:${cacheDateKey}:${cached?.use_count ?? 0}`;
+  const slicedUniverse = deterministicSlice(allowedUniverse, 35, sliceSeed);
+
+  // 객관 수치 블록 — 한 종목 1줄 (slice된 풀만)
+  const enrichedBlock = slicedUniverse.map(u => {
     const e = enrichedMap.get(u.symbol);
     if (!e) return `${u.symbol}(${u.krName}/${sectorLabel(u.sector)}) · 데이터 없음`;
     return formatStockLine(e, u.krName, u.sector, sectorLabel(u.sector));
@@ -201,7 +284,7 @@ export async function POST(req: NextRequest) {
 
   // 오늘 universe movers 한 줄 컨텍스트 (B — AI 모멘텀 인지)
   const todayMovers = (() => {
-    const withDp = allowedUniverse
+    const withDp = slicedUniverse
       .map(u => ({ u, e: enrichedMap.get(u.symbol) }))
       .filter(x => x.e?.todayChangePct !== null && x.e?.todayChangePct !== undefined);
     if (withDp.length === 0) return '';
@@ -229,7 +312,7 @@ export async function POST(req: NextRequest) {
   // ── AI 호출 + 검증 + 재시도 (서로 다른 섹터 3개 강제)
   async function callAndValidate(extraInstruction = ''): Promise<{ picks: PickRecord[]; context: string } | null> {
     const finalPrompt = prompt + extraInstruction;
-    const aiRes = await callAiJson({ prompt: finalPrompt, temperature: 0.4, maxTokens: 2048 });
+    const aiRes = await callAiJson({ prompt: finalPrompt, temperature: 0.6, maxTokens: 2048 });
     const parsed = JSON.parse(aiRes.text) as { picks: Array<PickRecord>; context: string };
 
     // universe 필터 + 제외 필터
@@ -282,8 +365,14 @@ export async function POST(req: NextRequest) {
 
     const newCount = currentCount + 1;
 
+    // A안 — excluded_recent 누적: 같은 캐시 row 내에서 새로고침마다 직전 picks symbol 추가
+    const newExcludedRecent = Array.from(new Set([
+      ...(cached?.excluded_recent || []),
+      ...result.picks.map(p => p.symbol),
+    ]));
+
     await Promise.all([
-      upsertCache(userKeyWithType, cacheDateKey, result, newCount),
+      upsertCache(userKeyWithType, cacheDateKey, result, newCount, newExcludedRecent),
       Promise.resolve(supabase?.from('ai_usage').insert({
         ip,
         user_id: userId || null,
