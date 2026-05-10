@@ -266,7 +266,7 @@ export default function PortfolioSection() {
   // P2 알고리즘 업그레이드: 절대값(|dp|≥3%) → z-score(종목별 변동성 정규화)
   // - 안정 종목(KO σ≈1%) 1.5% 변동 = 1.5σ → 신호로 잡음 (기존엔 무시)
   // - 변동 종목(TSLA σ≈4%) 3% 변동 = 0.75σ → 노이즈로 무시 (기존엔 알림)
-  let todayHeadline: { emoji: string; text: string; tone: 'gain' | 'loss' | 'neutral' } | null = null;
+  let todayHeadline: { emoji: string; text: string; tone: 'gain' | 'loss' | 'neutral'; tip?: string } | null = null;
   const headlineCandidates = investingStocks
     .map(s => {
       const d = macroData[s.symbol] as QuoteData | undefined;
@@ -293,16 +293,17 @@ export default function PortfolioSection() {
   if (headlineCandidates.length > 0) {
     const top = headlineCandidates[0];
     const kr = STOCK_KR[top.symbol] || top.symbol;
-    // z 사용 가능하면 "Nσ 움직임"으로 명시, 아니면 기존 표현
-    const sigmaTag = top.z !== null
-      ? ` (${Math.abs(top.z).toFixed(1)}σ)`
-      : '';
+    // z 표기는 통계 용어라 본문에서 제거 — 자연어 "평소의 N배"로 의역.
+    // 정확한 σ 값은 컨테이너 title 속성에 보존(접근성/툴팁 진입점).
     const reasonText = top.z !== null
-      ? '평소 대비 이례적'
+      ? `평소의 약 ${Math.abs(top.z).toFixed(1)}배 움직임`
       : '평소보다 큰 움직임';
+    const tip = top.z !== null
+      ? `통계상 ${Math.abs(top.z).toFixed(1)}σ — 종목별 변동성으로 표준화한 점수`
+      : undefined;
     todayHeadline = top.dp > 0
-      ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}%${sigmaTag} — ${reasonText}`, tone: 'gain' }
-      : { emoji: '🧊', text: `${kr} ${top.dp.toFixed(2)}%${sigmaTag} — ${reasonText}`, tone: 'loss' };
+      ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}% — ${reasonText}`, tone: 'gain', tip }
+      : { emoji: '🧊', text: `${kr} ${top.dp.toFixed(2)}% — ${reasonText}`, tone: 'loss', tip };
   } else {
     for (const s of investingStocks) {
       if (s.shares <= 0) continue;
@@ -460,6 +461,8 @@ export default function PortfolioSection() {
         {/* 오늘의 한 줄 헤드라인 — 이상 신호가 있을 때만 표시 */}
         {todayHeadline && investingStocks.length > 0 && (
           <div
+            title={todayHeadline.tip}
+            aria-label={todayHeadline.tip ? `${todayHeadline.text}. ${todayHeadline.tip}` : todayHeadline.text}
             style={{
               marginBottom: 12,
               padding: '10px 14px',

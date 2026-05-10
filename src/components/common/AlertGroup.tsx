@@ -137,7 +137,12 @@ function GroupedCard({
             </span>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {alerts.map(a => a.message.split(' ')[0]).join(' · ')}
+            {primary.message}
+            {alerts.length > 1 && (
+              <span style={{ marginLeft: 4, color: 'var(--text-tertiary, #B0B8C1)' }}>
+                · 외 {alerts.length - 1}건
+              </span>
+            )}
           </div>
         </div>
 

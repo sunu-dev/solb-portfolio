@@ -350,7 +350,7 @@ export default function Dashboard() {
       {/* Main Stats Section — [S2] 수치 가독성 및 정돈 */}
       <div style={{ padding: '24px' }}>
         {data.hasInvestment ? (
-          <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr] gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
             {/* P&L Display */}
             <div style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
               <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4, fontWeight: 500 }}>전체 수익 현황</div>
@@ -360,14 +360,14 @@ export default function Dashboard() {
                   <div className="skeleton-shimmer" style={{ width: 100, height: 20, borderRadius: 6 }} />
                 </div>
               ) : (
-              <div className="flex items-baseline gap-2">
-                <span className="tabular-nums" style={{ fontSize: 'clamp(28px, 6vw, 36px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em' }}>
+              <div className="flex items-baseline gap-2" style={{ flexWrap: 'wrap' }}>
+                <span className="tabular-nums" style={{ fontSize: 'clamp(24px, 5.5vw, 34px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                   {currency === 'KRW'
                     ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
                     : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   }
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)' }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', whiteSpace: 'nowrap' }}>
                   ({isGain ? '+' : '-'}{Math.abs(data.totalPLPct).toFixed(2)}%)
                 </span>
               </div>
@@ -399,18 +399,25 @@ export default function Dashboard() {
                     // week/month는 delta (USD) 계산값, today는 deltaKrw 포함
                     const dollarDelta = 'deltaKrw' in d ? d.delta : d.delta;
                     const krwDelta = 'deltaKrw' in d ? d.deltaKrw : d.delta * data.usdKrw;
+                    // 시각 위계: today만 강조 톤, week/month는 보조 톤(중립 배경 + 회색 라벨)으로 정보 과밀 완화
+                    const isPrimary = key === 'today';
+                    const accentColor = isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
                     return (
                       <span key={key} style={{
-                        fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8,
-                        color: isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
-                        background: isUp ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))',
+                        fontSize: 11, fontWeight: isPrimary ? 700 : 600, padding: '4px 10px', borderRadius: 8,
+                        color: isPrimary ? accentColor : 'var(--text-secondary, #4E5968)',
+                        background: isPrimary
+                          ? (isUp ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))')
+                          : 'var(--bg-subtle, #F2F4F6)',
                         whiteSpace: 'nowrap', flexShrink: 0,
                       }}>
                         <span style={{ fontWeight: 500, opacity: 0.8, marginRight: 4 }}>{label}</span>
-                        {isUp ? '▲' : '▼'}{' '}
-                        {currency === 'KRW'
-                          ? formatKRW(Math.round(Math.abs(krwDelta)))
-                          : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
+                        <span style={{ color: isPrimary ? accentColor : (isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)') }}>
+                          {isUp ? '▲' : '▼'}{' '}
+                          {currency === 'KRW'
+                            ? formatKRW(Math.round(Math.abs(krwDelta)))
+                            : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
+                        </span>
                         <span style={{ marginLeft: 4, opacity: 0.85 }}>({isUp ? '+' : ''}{d.pct.toFixed(2)}%)</span>
                       </span>
                     );
@@ -433,9 +440,9 @@ export default function Dashboard() {
                 { label: '총 투자', value: currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
                 { label: '보유 종목', value: `${data.holdingCount}개` },
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between" style={{ fontSize: 13 }}>
-                  <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>{item.label}</span>
-                  <strong style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>{item.value}</strong>
+                <div key={i} className="flex items-center justify-between" style={{ fontSize: 13, gap: 12 }}>
+                  <span style={{ color: 'var(--text-secondary, #8B95A1)', whiteSpace: 'nowrap', flexShrink: 0 }}>{item.label}</span>
+                  <strong className="tabular-nums" style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600, whiteSpace: 'nowrap' }}>{item.value}</strong>
                 </div>
               ))}
             </div>
@@ -478,8 +485,8 @@ export default function Dashboard() {
                 {top.message}
               </span>
               {topAlerts.length > 1 && (
-                <span style={{ fontSize: 10, fontWeight: 600, color: accent, flexShrink: 0 }}>
-                  +{topAlerts.length - 1}
+                <span style={{ fontSize: 11, fontWeight: 600, color: accent, flexShrink: 0 }}>
+                  +{topAlerts.length - 1}건 더
                 </span>
               )}
               <span style={{ fontSize: 14, color: accent, flexShrink: 0 }}>›</span>
@@ -495,7 +502,9 @@ export default function Dashboard() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
+              flexWrap: 'wrap',
+              rowGap: 6,
+              columnGap: 8,
               marginTop: 12,
               padding: '10px 14px',
               borderRadius: 12,
@@ -517,7 +526,7 @@ export default function Dashboard() {
                 }}>
                   {getHealthLabel(health.total)}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: '1 1 140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {(() => {
                     const metrics = [
                       { key: '집중도', ratio: health.concentration.score / 30 },
@@ -534,27 +543,27 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* 구분선 + 상승/하락 1위 */}
-            {data.bestSymbol && health && (
-              <span style={{ width: 1, height: 14, background: 'var(--border-strong, #E5E8EB)', flexShrink: 0 }} />
-            )}
+            {/* 상승/하락 1위 — 위험 메시지와 시각 분리 (모바일에서는 wrap 시 다음 줄로 함께 이동) */}
             {data.bestSymbol && (
-              <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+                {health && (
+                  <span aria-hidden style={{ width: 1, height: 14, background: 'var(--border-strong, #E5E8EB)' }} />
+                )}
                 <button
                   onClick={() => setAnalysisSymbol(data.bestSymbol)}
                   aria-label={`상승 1위 ${bestKr} 분석`}
-                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-gain, #EF4452)', flexShrink: 0, minHeight: 28 }}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-gain, #EF4452)', minHeight: 28 }}
                 >
                   ↑{bestKr}
                 </button>
                 <button
                   onClick={() => setAnalysisSymbol(data.worstSymbol)}
                   aria-label={`하락 1위 ${worstKr} 분석`}
-                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-loss, #3182F6)', flexShrink: 0, minHeight: 28 }}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-loss, #3182F6)', minHeight: 28 }}
                 >
                   ↓{worstKr}
                 </button>
-              </>
+              </div>
             )}
 
             {/* 분석 탭 이동 화살표 */}
