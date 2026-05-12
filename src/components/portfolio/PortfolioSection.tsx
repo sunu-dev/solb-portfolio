@@ -315,12 +315,20 @@ export default function PortfolioSection() {
       const highDist = ((high52 - d.c) / d.c) * 100;
       const lowDist = ((d.c - low52) / d.c) * 100;
       const kr = STOCK_KR[s.symbol] || s.symbol;
+      if (highDist < 0.3) {
+        todayHeadline = { emoji: '🚀', text: `${kr} 52주 최고가 도달`, tone: 'gain' };
+        break;
+      }
       if (highDist < 3) {
-        todayHeadline = { emoji: '🎯', text: `${kr}가 52주 고점 근처 (${highDist.toFixed(1)}%)`, tone: 'neutral' };
+        todayHeadline = { emoji: '🎯', text: `${kr} 52주 최고가 -${highDist.toFixed(1)}% 부근`, tone: 'neutral' };
+        break;
+      }
+      if (lowDist < 0.3) {
+        todayHeadline = { emoji: '🥶', text: `${kr} 52주 최저가 도달`, tone: 'loss' };
         break;
       }
       if (lowDist < 3) {
-        todayHeadline = { emoji: '🌱', text: `${kr}가 52주 저점 근처 (${lowDist.toFixed(1)}%)`, tone: 'neutral' };
+        todayHeadline = { emoji: '🌱', text: `${kr} 52주 최저가 +${lowDist.toFixed(1)}% 부근`, tone: 'neutral' };
         break;
       }
     }
@@ -644,14 +652,22 @@ export default function PortfolioSection() {
             <button
               onClick={() => {
                 const samples = [
-                  { symbol: 'NVDA', avgCost: 95, shares: 10, targetReturn: 30 },
-                  { symbol: 'AAPL', avgCost: 175, shares: 5, targetReturn: 15 },
-                  { symbol: 'MSFT', avgCost: 380, shares: 3, targetReturn: 20 },
+                  { symbol: 'NVDA', avgCost: 95, shares: 10, targetReturn: 30, fallback: { c: 165, d: 2.4, dp: 1.48 } },
+                  { symbol: 'AAPL', avgCost: 175, shares: 5, targetReturn: 15, fallback: { c: 195, d: 1.5, dp: 0.78 } },
+                  { symbol: 'MSFT', avgCost: 380, shares: 3, targetReturn: 20, fallback: { c: 445, d: 3.2, dp: 0.73 } },
                 ];
+                // 시세 캐시 즉시 주입 — 빈 화면 방지
+                try {
+                  const prev = localStorage.getItem('solb_quote_cache');
+                  const parsed = prev ? JSON.parse(prev) : { data: {}, ts: Date.now() };
+                  samples.forEach(s => { parsed.data[s.symbol] = s.fallback; });
+                  parsed.ts = Date.now();
+                  localStorage.setItem('solb_quote_cache', JSON.stringify(parsed));
+                } catch { /* storage full */ }
                 samples.forEach(s => {
                   const existing = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
                   if (!existing.some(st => st.symbol === s.symbol)) {
-                    addStock('investing', s);
+                    addStock('investing', { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: s.targetReturn });
                   }
                 });
               }}

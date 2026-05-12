@@ -20,9 +20,9 @@ const POPULAR_STOCKS = [
 ];
 
 const SAMPLE_PORTFOLIO = [
-  { symbol: '005930.KS', avgCost: 71000, shares: 10 },
-  { symbol: 'AAPL',      avgCost: 178,   shares: 5  },
-  { symbol: 'SPY',       avgCost: 480,   shares: 3  },
+  { symbol: '005930.KS', avgCost: 71000, shares: 10, fallback: { c: 75000,  d: 200,  dp: 0.27 } },
+  { symbol: 'AAPL',      avgCost: 178,   shares: 5,  fallback: { c: 195,    d: 1.5,  dp: 0.78 } },
+  { symbol: 'SPY',       avgCost: 480,   shares: 3,  fallback: { c: 540,    d: 2.8,  dp: 0.52 } },
 ];
 
 export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowProps) {
@@ -169,6 +169,12 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <button
               onClick={() => {
                 if (sampleLoaded) { onComplete(); return; }
+                // 시세 캐시 즉시 주입 — 본 화면 진입 시 빈 화면 없이 즉시 가격 표시
+                try {
+                  const cacheData: Record<string, { c: number; d: number; dp: number }> = {};
+                  SAMPLE_PORTFOLIO.forEach(s => { cacheData[s.symbol] = s.fallback; });
+                  localStorage.setItem('solb_quote_cache', JSON.stringify({ data: cacheData, ts: Date.now() }));
+                } catch { /* storage full */ }
                 SAMPLE_PORTFOLIO.forEach(s => {
                   const ns: StockItem = { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: 0, buyBelow: 0 };
                   addStock('investing', ns);
