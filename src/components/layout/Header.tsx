@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { Settings, Bell, Search } from 'lucide-react';
+import { Settings, Bell, Search, HelpCircle } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -144,6 +144,30 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
           {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+        </button>
+
+        {/* Help button — 투어 재시작 + /help 페이지 진입 */}
+        <button
+          data-tour="help-button"
+          onClick={(e) => {
+            e.currentTarget.blur();
+            window.location.href = '/help';
+          }}
+          className="flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
+          style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '8px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--text-secondary, #8B95A1)',
+            WebkitTapHighlightColor: 'transparent',
+            outline: 'none',
+          }}
+          aria-label="도움말"
+          title="도움말"
+        >
+          <HelpCircle className="w-[16px] h-[16px]" />
         </button>
 
         {/* Alert bell */}

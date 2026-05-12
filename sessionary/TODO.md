@@ -11,12 +11,13 @@
 
 ### 🔴 사용자 액션 필요 (이메일 백업 채널 활성화 위해)
 
-- [ ] **Supabase migration 5건 남음** (Supabase 콘솔 SQL Editor)
+- [ ] **Supabase migration 6건 남음** (Supabase 콘솔 SQL Editor)
   - `supabase/migrations/2026-05-02_alert_log.sql` — 알림 송신 로그 (분쟁 증거)
   - `supabase/migrations/2026-05-02_email_subscriptions.sql` — 이메일 모닝브리프 옵트인
   - `supabase/migrations/2026-05-02_email_subscriptions_monthly_d3.sql` — 월말 D-3 옵트인 추가
   - `supabase/migrations/2026-05-02_push_subscriptions_created_at.sql` — 7일 ramp-up 위해
   - `supabase/migrations/2026-05-10_ai_chok_cache.sql` — **AI 촉 호출 정책 변경 (P0)**: excluded_recent + created_at 컬럼. 미적용 시 fetch intent에서 폴백만 노출됨 (기능은 동작, 다양성/스테일 lookup만 제한)
+  - `supabase/migrations/2026-05-12_stock_listings.sql` — **신규 상장 감지 (P0)**: 매일 cron이 채우는 종목 워치리스트. 미적용 시 cron은 동작하나 DB에 쌓지 못함 + 검색 배지/admin 패널 작동 안 함.
   - [x] ~~`supabase/migrations/2026-05-12_user_profiles_tier.sql`~~ — **적용 완료 (2026-05-12)** — profiles 테이블 + auto-create trigger + 기존 사용자 백필. PRO 승급 시 `UPDATE profiles SET tier='pro' WHERE id=X`.
 - [ ] **Vercel 환경변수 추가**
   - `RESEND_API_KEY` (resend.com 발급, 무료 월 3천건)
@@ -26,6 +27,9 @@
 
 ### 일반 대기
 
+- [ ] **🔴 stock_listings 마이그레이션 적용 후 cron 수동 트리거** — `curl -H "Authorization: Bearer $CRON_SECRET" https://[도메인]/api/cron/sync-listings` 또는 다음 UTC 00:00 대기. 첫 실행 후 `/admin` → 📚 신규 상장 탭에서 결과 확인.
+- [ ] **🟡 docs/UNIVERSE_INCLUSION_CRITERIA.md** 작성 — universe 편입 객관 기준 (상장 12개월+/시총 $5B+/데이터 정상) 명시. 법무 리스크 회피.
+- [ ] **🟡 ai-analysis 신규 IPO 안내** — 분석 요청 종목이 6개월 이내 IPO면 응답에 "신규 상장이라 데이터 부족" 플래그 추가 (다음 세션, stock_listings 데이터 채워진 후)
 - [ ] **🔴 NEXT** AI 호출 정책 변경 배포 후 `/admin/api-stats` 모니터링 — 비로그인 차단 효과(Top 10에 `ip:` 거의 없어야 함) + free 한도(촉 1/일, 분석 3/일) 적정성 확인
 - [ ] **🔴** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토 *(지금 바로 가능)*
 - [ ] 매수 시뮬 P2 (회의 결과 보류분):

@@ -27,6 +27,7 @@ import SettingsPanel from '@/components/common/SettingsPanel';
 // ToastAlert removed — alerts now shown in sidebar notification center
 import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import CoachMark from '@/components/onboarding/CoachMark';
 import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 
@@ -213,7 +214,9 @@ export default function Home() {
       />
 
       {/* Market Summary - one line */}
-      <MarketSummary />
+      <div data-tour="macro-strip">
+        <MarketSummary />
+      </div>
       <OfflineNotice />
 
       {/* Main body: content + right sidebar */}
@@ -263,6 +266,9 @@ export default function Home() {
           onComplete={handleOnboardingComplete}
         />
       )}
+
+      {/* Coach mark tour — 본 화면 첫 진입 시 자동 시작 + 'open-tour' 이벤트로 재시작 */}
+      {!showOnboarding && <CoachMark />}
 
       {/* Mobile bottom navigation (hidden on lg+) */}
       <MobileNav onMoreClick={() => setShowMobileSidebar(true)} />

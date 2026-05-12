@@ -304,7 +304,7 @@ export default function AiChokSection() {
   };
 
   return (
-    <section style={{ marginBottom: 28 }}>
+    <section data-tour="ai-chok" style={{ marginBottom: 28 }}>
       {/* Header row */}
       <div className="flex items-start justify-between" style={{ marginBottom: 12 }}>
         <div>

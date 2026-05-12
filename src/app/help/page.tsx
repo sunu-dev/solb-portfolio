@@ -1,0 +1,171 @@
+'use client';
+
+import Link from 'next/link';
+import { ArrowLeft, HelpCircle } from 'lucide-react';
+import { logApiCall } from '@/lib/apiLogger';
+import { useEffect } from 'react';
+
+interface Section {
+  emoji: string;
+  title: string;
+  items: { q: string; a: string }[];
+}
+
+const SECTIONS: Section[] = [
+  {
+    emoji: '🎯',
+    title: 'AI 촉 — 매일 새 종목 추천',
+    items: [
+      {
+        q: 'AI 촉이 뭐예요?',
+        a: '시장 상황(VIX·금리·이벤트)과 내 포트폴리오 약점(섹터 편중·고베타 집중 등)을 분석해, 서로 다른 섹터의 종목 3개를 매일 추천해드려요. 추천이 아닌 정보 제공이며, 투자 판단은 본인이 합니다.',
+      },
+      {
+        q: '하루 몇 번 받을 수 있어요?',
+        a: '무료 회원은 하루 1번, PRO 회원은 하루 30번까지 받을 수 있어요. 페이지를 새로고침해도 한도는 차감되지 않아요. 명시적으로 "새로 촉 받기" 버튼을 눌러야 1번 차감됩니다.',
+      },
+      {
+        q: '비로그인으로도 사용 가능한가요?',
+        a: '비로그인 사용자는 AI 호출이 차단돼요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요. (서비스 비용을 통제하기 위함이에요)',
+      },
+    ],
+  },
+  {
+    emoji: '🧑‍🏫',
+    title: '멘토 분석 — 6명의 관점',
+    items: [
+      {
+        q: '멘토가 누구누구 있어요?',
+        a: '워런 버핏(가치투자), 피터 린치(성장+생활관찰), 레이 달리오(거시·올웨더), 캐시 우드(혁신), 리처드 데니스(추세), 윌리엄 오닐(CANSLIM). 같은 종목도 멘토에 따라 평가가 다를 수 있어요.',
+      },
+      {
+        q: '어떻게 사용해요?',
+        a: '분석 화면에서 멘토 카드를 클릭하면 그 멘토의 철학으로 분석한 보고서를 받아볼 수 있어요. 하루 3번까지 가능합니다.',
+      },
+    ],
+  },
+  {
+    emoji: '📊',
+    title: '건강 점수 — 내 포트폴리오 상태',
+    items: [
+      {
+        q: '점수가 어떻게 계산되나요?',
+        a: '4가지 축으로 100점 만점: 분산도(섹터 다양성) / 수익률 균형 / 손절 설정 유무 / 매수 평균가 vs 현재가 거리. 80점 이상이면 양호, 60점 미만이면 점검 권장.',
+      },
+      {
+        q: '점수가 낮으면 뭘 해야 하나요?',
+        a: '대시보드 우측의 "개선 제안" 영역을 확인하세요. AI 촉으로 누락 섹터를 보완하거나, 매수 단가를 조정하는 등 구체적 액션을 안내해드려요.',
+      },
+    ],
+  },
+  {
+    emoji: '🔔',
+    title: '알림 — 종목 상태 변화 감지',
+    items: [
+      {
+        q: '어떤 알림이 와요?',
+        a: '52주 신고가/신저가 근접, RSI 과매수/과매도, 평균 단가 대비 ±10% 등락, 거래량 평소의 N배 이상, 손절가 근접 등. 사용자가 설정한 손절가·목표가 근접 시에도 알림.',
+      },
+      {
+        q: '푸시 알림을 받으려면?',
+        a: '헤더의 🔔 알림 벨 → 설정 → 푸시 활성화. 브라우저 권한 허용 필요. 카카오톡/SMS는 현재 미지원 (베타 이후 검토).',
+      },
+    ],
+  },
+  {
+    emoji: '🛒',
+    title: '매수 시뮬레이션 — 매수 전 시뮬',
+    items: [
+      {
+        q: '어떻게 사용해요?',
+        a: '종목 분석 화면에서 "매수 시뮬" 탭. 매수가·수량·환율 입력하면 비중 변화, 평단가 변화, 환산 손익을 미리 볼 수 있어요. 실제 매수는 본인 증권 앱에서.',
+      },
+    ],
+  },
+];
+
+export default function HelpPage() {
+  useEffect(() => {
+    logApiCall('help_opened');
+  }, []);
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg, #fff)' }}>
+      {/* Top bar */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'var(--surface, #fff)', borderBottom: '1px solid var(--border-light, #F2F4F6)',
+        padding: '12px 16px',
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#191F28', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+          <ArrowLeft size={18} />
+          돌아가기
+        </Link>
+        <div style={{ flex: 1 }} />
+      </div>
+
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 80px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <HelpCircle size={28} color="#3182F6" />
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#191F28', margin: 0 }}>
+            주비 도움말
+          </h1>
+        </div>
+        <p style={{ fontSize: 14, color: '#8B95A1', marginBottom: 28 }}>
+          처음 사용하시나요? 핵심 기능을 한눈에 살펴보세요.
+        </p>
+
+        {/* 투어 다시 보기 CTA */}
+        <button
+          onClick={() => {
+            window.location.href = '/';
+            setTimeout(() => window.dispatchEvent(new CustomEvent('open-tour')), 400);
+          }}
+          style={{
+            width: '100%', padding: '14px 18px', marginBottom: 24,
+            borderRadius: 12, background: 'rgba(49,130,246,0.08)', color: '#3182F6',
+            border: '1px dashed rgba(49,130,246,0.3)',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          }}
+        >
+          🎬 본 화면 투어 다시 보기
+        </button>
+
+        {SECTIONS.map((sec) => (
+          <section key={sec.title} style={{ marginBottom: 32 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 24 }}>{sec.emoji}</span>
+              {sec.title}
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {sec.items.map((it, i) => (
+                <details
+                  key={i}
+                  style={{
+                    padding: '14px 16px',
+                    background: 'var(--bg-subtle, #F8F9FA)',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <summary style={{ fontSize: 14, fontWeight: 600, color: '#191F28', cursor: 'pointer', listStyle: 'none' }}>
+                    Q. {it.q}
+                  </summary>
+                  <p style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.7, marginTop: 10, marginBottom: 0 }}>
+                    {it.a}
+                  </p>
+                </details>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <div style={{ padding: '16px 18px', borderRadius: 12, background: 'rgba(255,149,0,0.06)', fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
+          <strong>참고</strong> · 주비는 정보 제공 도구이며 투자 자문이 아닙니다. 모든 투자 판단의 책임은 이용자에게 있습니다.
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -381,7 +381,7 @@ export default function PortfolioSection() {
     .slice(0, 2);
 
   return (
-    <div>
+    <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
 
       {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
