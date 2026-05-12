@@ -28,6 +28,8 @@
 ### 일반 대기
 
 - [ ] **🔴 stock_listings 마이그레이션 적용 후 cron 수동 트리거** — `curl -H "Authorization: Bearer $CRON_SECRET" https://[도메인]/api/cron/sync-listings` 또는 다음 UTC 00:00 대기. 첫 실행 후 `/admin` → 📚 신규 상장 탭에서 결과 확인.
+- [ ] **🟡 온보딩·투어 funnel 위젯** — /admin 성장 탭에 `onboarding_step_view`, `tour_*` 이벤트 집계. 단계별 이탈률 확인. 일주일 이상 데이터 쌓인 후.
+- [ ] **🟡 코치마크 모바일 보텀시트 패턴** — 현재 위치 기반 툴팁은 PC 친화. 베타 사용자 피드백 보고 결정.
 - [ ] **🟡 docs/UNIVERSE_INCLUSION_CRITERIA.md** 작성 — universe 편입 객관 기준 (상장 12개월+/시총 $5B+/데이터 정상) 명시. 법무 리스크 회피.
 - [ ] **🟡 ai-analysis 신규 IPO 안내** — 분석 요청 종목이 6개월 이내 IPO면 응답에 "신규 상장이라 데이터 부족" 플래그 추가 (다음 세션, stock_listings 데이터 채워진 후)
 - [ ] **🔴 NEXT** AI 호출 정책 변경 배포 후 `/admin/api-stats` 모니터링 — 비로그인 차단 효과(Top 10에 `ip:` 거의 없어야 함) + free 한도(촉 1/일, 분석 3/일) 적정성 확인
