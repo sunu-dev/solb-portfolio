@@ -37,7 +37,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
   const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx } = usePortfolioStore();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ symbol: string; description: string }[]>([]);
+  const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [recent, setRecent] = useState<{ symbol: string; description: string }[]>([]);
@@ -271,11 +271,24 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                   </span>
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                    {item.symbol}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                      {item.symbol}
+                    </span>
+                    {item.isNewListing && (
+                      <span
+                        title={item.listedAt ? `상장일 ${item.listedAt}` : '최근 6개월 이내 신규 감지'}
+                        style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'rgba(255,149,0,0.12)', color: '#FF9500', letterSpacing: 0.3 }}
+                      >
+                        📅 신규
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {item.description}
+                    {item.isNewListing && (
+                      <span style={{ fontSize: 10, color: '#FF9500', marginLeft: 4 }}>· 데이터 제한</span>
+                    )}
                   </div>
                 </div>
               </div>

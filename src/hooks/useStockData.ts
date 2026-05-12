@@ -91,7 +91,13 @@ async function fetchNewsAPI({ q, topic, locale, maxHours }: { q?: string; topic?
 }
 
 // --- Search stocks (server-side API route) ---
-export async function searchStocks(query: string, _apiKey?: string): Promise<{ symbol: string; description: string }[]> {
+export interface StockSearchResult {
+  symbol: string;
+  description: string;
+  isNewListing?: boolean;
+  listedAt?: string | null;
+}
+export async function searchStocks(query: string, _apiKey?: string): Promise<StockSearchResult[]> {
   try {
     const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     const d = await r.json();
