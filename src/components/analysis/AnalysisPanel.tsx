@@ -143,6 +143,7 @@ export default function AnalysisPanel() {
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [mentorReport, setMentorReport] = useState<any>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
+  const [mentorError, setMentorError] = useState('');
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
   const [fundamentals, setFundamentals] = useState<any>(null);
 
@@ -465,11 +466,12 @@ export default function AnalysisPanel() {
                     } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }
                     setAiLoading(false);
                   }}
-                  className="flex items-center justify-center cursor-pointer transition-colors"
+                  disabled={aiLoading}
+                  className="flex items-center justify-center transition-colors disabled:cursor-default"
                   style={{
                     width: '100%',
                     padding: 14,
-                    background: '#3182F6',
+                    background: aiLoading ? '#B0B8C1' : '#3182F6',
                     color: '#fff',
                     borderRadius: 12,
                     fontSize: 15,
@@ -477,10 +479,11 @@ export default function AnalysisPanel() {
                     border: 'none',
                     marginBottom: 24,
                     gap: 8,
+                    cursor: aiLoading ? 'default' : 'pointer',
                   }}
                 >
-                  <span>🤖</span> {showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}
-                  {aiRemaining !== null && !showAIReport && (
+                  <span>🤖</span> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}
+                  {aiRemaining !== null && !showAIReport && !aiLoading && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
                 </button>
@@ -499,11 +502,22 @@ export default function AnalysisPanel() {
                     {aiLoading && <AIProgressIndicator />}
 
                     {aiError && (
-                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#FF9500' }}>
+                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
                         {aiError}
-                        <div style={{ marginTop: 8 }}>
-                          <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: '#3182F6', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
-                        </div>
+                        {aiError.includes('로그인') ? (
+                          <div style={{ marginTop: 10 }}>
+                            <button
+                              onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
+                              style={{ padding: '8px 18px', borderRadius: 8, background: '#3182F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            >
+                              로그인하기
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ marginTop: 8 }}>
+                            <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: '#3182F6', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -681,9 +695,10 @@ export default function AnalysisPanel() {
                         <button
                           key={m.id}
                           onClick={async () => {
-                            if (isActive) { setSelectedMentor(null); setMentorReport(null); return; }
+                            if (isActive) { setSelectedMentor(null); setMentorReport(null); setMentorError(''); return; }
                             setSelectedMentor(m);
                             setMentorReport(null);
+                            setMentorError('');
 
                             // Check cache
                             const cacheKey = `${symbol}-${m.id}`;
@@ -738,11 +753,16 @@ export default function AnalysisPanel() {
                                   localStorage.setItem('solb_ai_usage', String(prev + 1));
                                 } catch { /* ignore */ }
                                 logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
+                              } else {
+                                setMentorError(data.error || 'AI 분석 요청에 실패했어요. 잠시 후 다시 시도해주세요.');
                               }
-                            } catch { /* silent */ }
+                            } catch {
+                              setMentorError('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+                            }
                             setMentorLoading(false);
                           }}
-                          className="cursor-pointer transition-all"
+                          disabled={mentorLoading}
+                          className="transition-all disabled:cursor-default"
                           style={{
                             display: 'flex',
                             flexDirection: 'column',
@@ -754,6 +774,8 @@ export default function AnalysisPanel() {
                             background: isActive ? `${m.color}10` : 'var(--bg-subtle, #F8F9FA)',
                             minWidth: 72,
                             flexShrink: 0,
+                            cursor: mentorLoading ? 'default' : 'pointer',
+                            opacity: mentorLoading && !isActive ? 0.5 : 1,
                           }}
                         >
                           <img src={m.characterImage} alt={m.character} style={{ width: 52, height: 52, borderRadius: '50%' }} />
@@ -885,7 +907,23 @@ export default function AnalysisPanel() {
                         </>
                       )}
 
-                      {!mentorLoading && !mentorReport && (
+                      {!mentorLoading && !mentorReport && mentorError && (
+                        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
+                          {mentorError}
+                          {mentorError.includes('로그인') && (
+                            <div style={{ marginTop: 10 }}>
+                              <button
+                                onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
+                                style={{ padding: '8px 18px', borderRadius: 8, background: '#3182F6', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                              >
+                                로그인하기
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {!mentorLoading && !mentorReport && !mentorError && (
                         <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
                           분석을 준비하고 있어요...
                         </div>

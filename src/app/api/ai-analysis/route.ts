@@ -7,15 +7,16 @@ import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
+import { getUserTier, getTierLimits } from '@/lib/userTier';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
   process.env.GEMINI_API_KEY_2,
 ].filter(Boolean) as string[];
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
-const DAILY_LIMIT_GUEST = parseInt(process.env.AI_DAILY_LIMIT_GUEST || '3', 10);
-const DAILY_LIMIT_USER = parseInt(process.env.AI_DAILY_LIMIT_USER || '10', 10);
 const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
+
+const CHOK_USAGE_TAG = 'ai-chok';
 
 // Supabase server client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -29,43 +30,35 @@ function getTodayKST(): string {
   return kst.toISOString().split('T')[0];
 }
 
-async function getUsage(ip: string, userId?: string): Promise<{ userCount: number; totalCount: number }> {
+// AI 분석 사용량 — mentor_id != 'ai-chok' 만 카운트 (촉과 분리)
+async function getAnalysisUsage(userId: string): Promise<{ userCount: number; totalCount: number }> {
   if (!supabase) return { userCount: 0, totalCount: 0 };
   const today = getTodayKST();
   try {
+    // 글로벌 캡: 모든 AI 호출 합산 (자릿수 안전망)
     const { count: totalCount } = await supabase
       .from('ai_usage')
       .select('*', { count: 'exact', head: true })
       .eq('date', today);
 
-    // 로그인 사용자는 user_id로, 비로그인은 IP로 추적
-    let userCount = 0;
-    if (userId) {
-      const { count } = await supabase
-        .from('ai_usage')
-        .select('*', { count: 'exact', head: true })
-        .eq('date', today)
-        .eq('user_id', userId);
-      userCount = count || 0;
-    } else {
-      const { count } = await supabase
-        .from('ai_usage')
-        .select('*', { count: 'exact', head: true })
-        .eq('date', today)
-        .eq('ip', ip);
-      userCount = count || 0;
-    }
+    // 사용자별: ai-chok 호출 제외하고 카운트
+    const { count: userCount } = await supabase
+      .from('ai_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', today)
+      .eq('user_id', userId)
+      .or(`mentor_id.is.null,mentor_id.neq.${CHOK_USAGE_TAG}`);
 
     return { userCount: userCount || 0, totalCount: totalCount || 0 };
   } catch { return { userCount: 0, totalCount: 0 }; }
 }
 
-async function recordUsage(ip: string, symbol: string, mentorId?: string, userId?: string) {
+async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string) {
   if (!supabase) return;
   try {
     await supabase.from('ai_usage').insert({
       ip,
-      user_id: userId || null,
+      user_id: userId,
       date: getTodayKST(),
       symbol: symbol || null,
       mentor_id: mentorId || null,
@@ -130,9 +123,23 @@ export async function POST(req: NextRequest) {
     } catch { /* not logged in */ }
   }
   const isLoggedIn = !!userId;
-  const perUserLimit = isLoggedIn ? DAILY_LIMIT_USER : DAILY_LIMIT_GUEST;
 
-  const { userCount, totalCount } = await getUsage(ip, userId);
+  // ── 비로그인 차단 (정책: AI 분석은 로그인 사용자 전용) ─────────────
+  if (!isLoggedIn) {
+    await gate.finalize(401, 'login_required');
+    return NextResponse.json({
+      error: 'AI 분석은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
+      limitReached: true,
+      remaining: 0,
+      loginForMore: true,
+    }, { status: 401 });
+  }
+
+  // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
+  const tier = await getUserTier(userId);
+  const perUserLimit = getTierLimits(tier).analysisDaily;
+
+  const { userCount, totalCount } = await getAnalysisUsage(userId!);
 
   if (totalCount >= DAILY_LIMIT_TOTAL) {
     await gate.finalize(429, 'daily_total_limit');
@@ -143,15 +150,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (userCount >= perUserLimit) {
-    const msg = isLoggedIn
+    const msg = tier === 'pro'
       ? `오늘 AI 분석 횟수를 모두 사용했어요 (${perUserLimit}회/일). 내일 다시 이용해주세요.`
-      : `비로그인 사용자는 하루 ${perUserLimit}회까지 이용할 수 있어요. 로그인하면 ${DAILY_LIMIT_USER}회까지 사용 가능해요!`;
+      : `오늘 AI 분석 횟수를 모두 사용했어요 (${perUserLimit}회/일). 내일 0시 이후 다시 받을 수 있어요!`;
     await gate.finalize(429, 'daily_user_limit');
     return NextResponse.json({
       error: msg,
       limitReached: true,
       remaining: 0,
-      loginForMore: !isLoggedIn,
+      dailyLimit: perUserLimit,
+      tier,
     }, { status: 429 });
   }
 
@@ -314,7 +322,7 @@ ${responseFormat}`;
 
         // 성공: 사용량 기록 (병렬)
         await Promise.all([
-          recordUsage(ip, symbol, mentorId, userId),
+          recordUsage(ip, symbol, mentorId, userId!),
           recordGeminiKeyUsage(keyIndex),
         ]);
         const newTotal = totalCount + 1;
@@ -327,10 +335,10 @@ ${responseFormat}`;
         try {
           const parsed = JSON.parse(text);
           await gate.finalize(200);
-          return NextResponse.json({ success: true, report: parsed, remaining });
+          return NextResponse.json({ success: true, report: parsed, remaining, dailyLimit: perUserLimit, tier });
         } catch {
           await gate.finalize(200, 'parse_fallback');
-          return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining });
+          return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining, dailyLimit: perUserLimit, tier });
         }
       } catch (e) {
         lastError = e;
@@ -345,11 +353,10 @@ ${responseFormat}`;
 
     try {
       const aiRes = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096 });
-      // aiProvider 내부가 Gemini 먼저 재시도 후 Claude — 방금 전 실패했으니 Claude로 갈 확률 높음
       try {
         const parsed = JSON.parse(aiRes.text);
         await Promise.all([
-          recordUsage(ip, symbol, mentorId, userId),
+          recordUsage(ip, symbol, mentorId, userId!),
         ]);
         const newTotal = totalCount + 1;
         const remaining = perUserLimit - userCount - 1;
@@ -357,14 +364,15 @@ ${responseFormat}`;
           sendSlackAlert(newTotal);
         }
         await gate.finalize(200, `fallback_${aiRes.provider}`);
-        return NextResponse.json({ success: true, report: parsed, remaining, provider: aiRes.provider });
+        return NextResponse.json({ success: true, report: parsed, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
       } catch {
-        // fallback 응답도 파싱 실패
         await gate.finalize(200, 'fallback_parse_fail');
         return NextResponse.json({
           success: true,
           report: { currentStatus: aiRes.text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: aiRes.text } },
           remaining: perUserLimit - userCount - 1,
+          dailyLimit: perUserLimit,
+          tier,
           provider: aiRes.provider,
         });
       }

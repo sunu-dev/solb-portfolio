@@ -8,15 +8,15 @@ import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circu
 import { callAiJson, AiProviderError, getProviderStatus } from '@/lib/aiProvider';
 import { enrichUniverse, formatStockLine } from '@/utils/chokDataEnricher';
 import { generateFallbackPicks, deterministicSlice } from '@/utils/chokFallback';
+import { getUserTier, getTierLimits } from '@/lib/userTier';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
-const SESSION_LIMIT = 3; // 세션당 수동 새로고침 횟수 (로그인 유저)
-const DAILY_LIMIT_GUEST = 1;
+const CHOK_USAGE_TAG = 'ai-chok';
 
-// ─── 세션 계산 (KST 기준) ────────────────────────────────────────────────────
+// ─── 세션 라벨 (UX용 — 카운팅과 무관) ────────────────────────────────────────
 // day  세션: 09:00 ~ 22:29 KST (미장 개장 전)
 // night세션: 22:30 ~ 08:59 KST (미장 개장 후)
 function getSessionKey(): { date: string; session: 'day' | 'night' } {
@@ -25,7 +25,6 @@ function getSessionKey(): { date: string; session: 'day' | 'night' } {
   const hour = kst.getUTCHours();
   const minute = kst.getUTCMinutes();
   const totalMin = hour * 60 + minute;
-  // 22:30 = 1350분 / 09:00 = 540분
   const isNight = totalMin >= 1350 || totalMin < 540;
   return { date: dateStr, session: isNight ? 'night' : 'day' };
 }
@@ -46,7 +45,28 @@ function vixBucket(macroContext: string): string {
   return 'normal';
 }
 
-// ─── 캐시 (세션 단위) ────────────────────────────────────────────────────────
+// ─── 일별 AI 촉 사용량 (ai_usage 테이블, mentor_id='ai-chok' 만) ─────────────
+function getTodayKST(): string {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().split('T')[0];
+}
+
+async function getDailyChokCount(userId: string): Promise<number> {
+  if (!supabase) return 0;
+  try {
+    const { count } = await supabase
+      .from('ai_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', getTodayKST())
+      .eq('user_id', userId)
+      .eq('mentor_id', CHOK_USAGE_TAG);
+    return count || 0;
+  } catch {
+    return 0;
+  }
+}
+
+// ─── 캐시 (다양성 트래킹용 — 한도 카운팅과 분리) ────────────────────────────
 async function getCachedPicks(userKey: string, dateKey: string) {
   if (!supabase) return null;
   try {
@@ -151,9 +171,22 @@ export async function POST(req: NextRequest) {
   }
 
   const isLoggedIn = !!userId;
-  const userKey = userId || ip;
+
+  // ── 비로그인 차단 (정책: AI 촉은 로그인 사용자 전용) ─────────────
+  if (!isLoggedIn) {
+    return NextResponse.json({
+      error: 'AI 촉은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
+      limitReached: true,
+      loginForMore: true,
+    }, { status: 401 });
+  }
+
+  // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
+  const tier = await getUserTier(userId);
+  const dailyLimit = getTierLimits(tier).chokDaily;
+
+  const userKey = userId!;
   const { date, session } = getSessionKey();
-  const limit = isLoggedIn ? SESSION_LIMIT : DAILY_LIMIT_GUEST;
 
   const body = await req.json() as {
     portfolioSymbols?: string[];
@@ -183,6 +216,10 @@ export async function POST(req: NextRequest) {
   const userKeyWithType = `${userKey}:${investorType}`;
   const cached = await getCachedPicks(userKeyWithType, cacheDateKey);
 
+  // 일일 사용량 조회 (캐시 히트 분기에서도 잔여 횟수 응답에 사용)
+  const dailyCount = await getDailyChokCount(userId!);
+  const remaining = Math.max(0, dailyLimit - dailyCount);
+
   // ── 2-A. intent='fetch' → AI 호출 절대 X (마운트/타입변경 시) ───
   //         정책: 사용자 명시 동작이 없으면 한도/quota 차감 금지.
   if (intent === 'fetch') {
@@ -194,7 +231,9 @@ export async function POST(req: NextRequest) {
         cached: true,
         fallback: false,
         sessionLabel: sessionLabel(session),
-        remaining: Math.max(0, limit - (cached.use_count || 1)),
+        remaining,
+        dailyLimit,
+        tier,
       });
     }
     // 24h 이내 가장 최근 캐시 (다른 session/vix bucket이라도 사용)
@@ -205,10 +244,11 @@ export async function POST(req: NextRequest) {
         context: (recent.picks as { context: string }).context ?? '',
         cached: true,
         fallback: false,
-        stale: true, // 다른 세션 캐시
+        stale: true,
         sessionLabel: sessionLabel(session),
-        // 다른 세션이므로 남은 횟수는 현재 세션 기준 (full)
-        remaining: limit,
+        remaining,
+        dailyLimit,
+        tier,
       });
     }
     // 폴백 — 객관 수치 기반 결정론적 선택 (AI 호출 X)
@@ -221,7 +261,9 @@ export async function POST(req: NextRequest) {
       cached: false,
       fallback: true,
       sessionLabel: sessionLabel(session),
-      remaining: limit,
+      remaining,
+      dailyLimit,
+      tier,
     });
   }
 
@@ -233,11 +275,13 @@ export async function POST(req: NextRequest) {
       cached: true,
       fallback: false,
       sessionLabel: sessionLabel(session),
-      remaining: Math.max(0, limit - (cached.use_count || 1)),
+      remaining,
+      dailyLimit,
+      tier,
     });
   }
 
-  // ── 3. 여기부터는 실제 AI 호출 경로 → 레이트/서킷/세션 한도 체크 ─
+  // ── 3. 여기부터는 실제 AI 호출 경로 → 레이트/서킷/일일 한도 체크 ─
   const gate = await enforceRateLimit(req, '/api/ai-chok', POLICIES.aiAnalysis);
   if (!gate.ok) return gate.response;
 
@@ -248,15 +292,19 @@ export async function POST(req: NextRequest) {
     return circuitOpenResponse(circuit, '/api/ai-chok');
   }
 
-  // 세션 한도
-  const currentCount = cached?.use_count || 0;
-  if (currentCount >= limit) {
-    const nextSession = session === 'day' ? '오후 10시 30분(미장 개장)' : '오전 9시';
-    const msg = isLoggedIn
-      ? `이번 세션 AI 촉 횟수를 모두 사용했어요 (${limit}회). ${nextSession} 이후 새 촉이 준비돼요!`
-      : `비로그인 사용자는 세션당 ${limit}회까지 이용할 수 있어요. 로그인하면 ${SESSION_LIMIT}회까지 가능해요!`;
-    await gate.finalize(429, 'session_limit');
-    return NextResponse.json({ error: msg, limitReached: true, loginForMore: !isLoggedIn }, { status: 429 });
+  // 일일 한도 (tier 기반)
+  if (dailyCount >= dailyLimit) {
+    const msg = tier === 'pro'
+      ? `오늘 AI 촉 횟수를 모두 사용했어요 (${dailyLimit}회/일). 내일 다시 이용해주세요.`
+      : `오늘 AI 촉 횟수를 모두 사용했어요 (${dailyLimit}회/일). 내일 0시 이후 다시 받을 수 있어요!`;
+    await gate.finalize(429, 'daily_limit');
+    return NextResponse.json({
+      error: msg,
+      limitReached: true,
+      remaining: 0,
+      dailyLimit,
+      tier,
+    }, { status: 429 });
   }
 
   // ── Finnhub로 universe 객관 데이터 enrich (캐시 24h)
@@ -327,25 +375,22 @@ export async function POST(req: NextRequest) {
       const realSec = CHOK_SECTOR_MAP[p.symbol];
       if (!realSec || seenSectors.has(realSec)) continue;
       seenSectors.add(realSec);
-      // sector 필드를 universe 기준으로 정규화
       diverse.push({ ...p, sector: sectorLabel(realSec) });
       if (diverse.length >= 3) break;
     }
 
-    if (diverse.length < 3) return null; // 재시도 신호
+    if (diverse.length < 3) return null;
     return { picks: diverse, context: parsed.context || '' };
   }
 
   try {
     let result = await callAndValidate();
     if (!result) {
-      // 1회 재시도 — 더 강한 sector 다양성 지시
       result = await callAndValidate(
         '\n\n중요: 위 표에서 *섹터(괄호 안 한국어 라벨)가 모두 다른* 종목 3개를 반드시 골라주세요. 같은 섹터 중복 금지.'
       );
     }
     if (!result) {
-      // 그래도 실패 → 폴백: universe sector 다양성 보장하는 결정론적 선택
       const pickedSectors = new Set<string>();
       const fallback: PickRecord[] = [];
       for (const u of allowedUniverse) {
@@ -363,7 +408,7 @@ export async function POST(req: NextRequest) {
       result = { picks: fallback, context: 'AI 응답이 부족해 보수적 폴백을 선택했어요.' };
     }
 
-    const newCount = currentCount + 1;
+    const newCount = (cached?.use_count || 0) + 1;
 
     // A안 — excluded_recent 누적: 같은 캐시 row 내에서 새로고침마다 직전 picks symbol 추가
     const newExcludedRecent = Array.from(new Set([
@@ -378,7 +423,7 @@ export async function POST(req: NextRequest) {
         user_id: userId || null,
         date,
         symbol: null,
-        mentor_id: 'ai-chok',
+        mentor_id: CHOK_USAGE_TAG,
       })).catch(() => {}),
       logRecommendations({
         userId, ip, investorType,
@@ -398,7 +443,9 @@ export async function POST(req: NextRequest) {
       ...result,
       cached: false,
       sessionLabel: sessionLabel(session),
-      remaining: Math.max(0, limit - newCount),
+      remaining: Math.max(0, dailyLimit - dailyCount - 1),
+      dailyLimit,
+      tier,
     });
   } catch (e) {
     if (e instanceof AiProviderError) {

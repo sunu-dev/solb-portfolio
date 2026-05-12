@@ -66,6 +66,8 @@ interface ChokState {
   fallback?: boolean;
   stale?: boolean;
   remaining: number;
+  dailyLimit?: number;
+  tier?: 'free' | 'pro';
   sessionLabel?: string;
 }
 
@@ -368,7 +370,7 @@ export default function AiChokSection() {
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
             {state.fallback || state.stale ? 'AI에게 받기' : '새로 촉 받기'}
             <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>
-              · 오늘 {state.remaining}회
+              · 오늘 {state.remaining}/{state.dailyLimit ?? 1}
             </span>
           </button>
         )}

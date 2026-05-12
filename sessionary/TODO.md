@@ -11,20 +11,23 @@
 
 ### 🔴 사용자 액션 필요 (이메일 백업 채널 활성화 위해)
 
-- [ ] **Supabase migration 5건 적용** (Supabase 콘솔 SQL Editor)
+- [ ] **Supabase migration 5건 남음** (Supabase 콘솔 SQL Editor)
   - `supabase/migrations/2026-05-02_alert_log.sql` — 알림 송신 로그 (분쟁 증거)
   - `supabase/migrations/2026-05-02_email_subscriptions.sql` — 이메일 모닝브리프 옵트인
   - `supabase/migrations/2026-05-02_email_subscriptions_monthly_d3.sql` — 월말 D-3 옵트인 추가
   - `supabase/migrations/2026-05-02_push_subscriptions_created_at.sql` — 7일 ramp-up 위해
   - `supabase/migrations/2026-05-10_ai_chok_cache.sql` — **AI 촉 호출 정책 변경 (P0)**: excluded_recent + created_at 컬럼. 미적용 시 fetch intent에서 폴백만 노출됨 (기능은 동작, 다양성/스테일 lookup만 제한)
+  - [x] ~~`supabase/migrations/2026-05-12_user_profiles_tier.sql`~~ — **적용 완료 (2026-05-12)** — profiles 테이블 + auto-create trigger + 기존 사용자 백필. PRO 승급 시 `UPDATE profiles SET tier='pro' WHERE id=X`.
 - [ ] **Vercel 환경변수 추가**
   - `RESEND_API_KEY` (resend.com 발급, 무료 월 3천건)
   - `EMAIL_FROM` (예: `"주비 <noreply@solb.kr>"`, 도메인 검증 필요)
   - `EMAIL_UNSUB_SECRET` (선택 — 없으면 CRON_SECRET fallback)
+  - (선택) `CHOK_DAILY_FREE=1` `CHOK_DAILY_PRO=30` `ANALYSIS_DAILY_FREE=3` `ANALYSIS_DAILY_PRO=30` — 미설정 시 코드 기본값 동일
 
 ### 일반 대기
 
-- [ ] **🔴 NEXT** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토 *(지금 바로 가능)*
+- [ ] **🔴 NEXT** AI 호출 정책 변경 배포 후 `/admin/api-stats` 모니터링 — 비로그인 차단 효과(Top 10에 `ip:` 거의 없어야 함) + free 한도(촉 1/일, 분석 3/일) 적정성 확인
+- [ ] **🔴** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토 *(지금 바로 가능)*
 - [ ] 매수 시뮬 P2 (회의 결과 보류분):
   - 호가 단위 정렬 (가격대별 1원/10원/50원)
   - stale price 배지 (휴장/시간외)
