@@ -11,15 +11,16 @@
 
 ### 🔴 사용자 액션 필요 (이메일 백업 채널 활성화 위해)
 
-- [ ] **Supabase migration 6건 남음** (Supabase 콘솔 SQL Editor)
-  - `supabase/migrations/2026-05-02_alert_log.sql` — 알림 송신 로그 (분쟁 증거)
-  - `supabase/migrations/2026-05-02_email_subscriptions.sql` — 이메일 모닝브리프 옵트인
-  - `supabase/migrations/2026-05-02_email_subscriptions_monthly_d3.sql` — 월말 D-3 옵트인 추가
-  - `supabase/migrations/2026-05-02_push_subscriptions_created_at.sql` — 7일 ramp-up 위해
-  - `supabase/migrations/2026-05-10_ai_chok_cache.sql` — **AI 촉 호출 정책 변경 (P0)**: excluded_recent + created_at 컬럼. 미적용 시 fetch intent에서 폴백만 노출됨 (기능은 동작, 다양성/스테일 lookup만 제한)
-  - [x] ~~`supabase/migrations/2026-05-12_stock_listings.sql`~~ — **적용 완료 (2026-05-13)** — stock_listings 테이블 + 상태 머신 + 인덱스 + last_seen 트리거. cron 수동 트리거 또는 다음 UTC 00:00 대기로 데이터 채움.
-  - `supabase/migrations/2026-05-13_ai_feedback.sql` — **사용자 피드백 1탭 (Phase 1 P0-3)**: 👍/👎 + comment 수집. ALGORITHM_REVIEW.md §5 보강. 미적용 시 AI 촉 카드 피드백 버튼이 silent fail.
-  - [x] ~~`supabase/migrations/2026-05-12_user_profiles_tier.sql`~~ — **적용 완료 (2026-05-12)** — profiles 테이블 + auto-create trigger + 기존 사용자 백필. PRO 승급 시 `UPDATE profiles SET tier='pro' WHERE id=X`.
+- [x] ~~**Supabase migration 모두 적용 완료** (2026-05-13 통합 SQL `_combined_pending_2026-05-13.sql` 한 번에 실행)~~
+  - [x] ~~`2026-04-28_ai_chok_recommendations.sql`~~ — AI 촉 백테스트 로깅
+  - [x] ~~`2026-05-02_alert_log.sql`~~ — 알림 송신 로그 (분쟁 증거)
+  - [x] ~~`2026-05-02_email_subscriptions.sql`~~ — 모닝브리프 이메일 옵트인
+  - [x] ~~`2026-05-02_email_subscriptions_monthly_d3.sql`~~ — 월말 D-3 옵트인
+  - [x] ~~`2026-05-02_push_subscriptions_created_at.sql`~~ — 7일 ramp-up
+  - [x] ~~`2026-05-10_ai_chok_cache.sql`~~ — AI 촉 캐시 + 다양성 컬럼
+  - [x] ~~`2026-05-12_stock_listings.sql`~~ — 신규 상장 감지
+  - [x] ~~`2026-05-12_user_profiles_tier.sql`~~ — PRO 멤버십 게이트
+  - [x] ~~`2026-05-13_ai_feedback.sql`~~ — 1탭 피드백 (Phase 1 P0-3)
 - [ ] **Vercel 환경변수 추가**
   - `RESEND_API_KEY` (resend.com 발급, 무료 월 3천건)
   - `EMAIL_FROM` (예: `"주비 <noreply@solb.kr>"`, 도메인 검증 필요)
