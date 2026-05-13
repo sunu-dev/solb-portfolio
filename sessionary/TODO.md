@@ -17,7 +17,8 @@
   - `supabase/migrations/2026-05-02_email_subscriptions_monthly_d3.sql` — 월말 D-3 옵트인 추가
   - `supabase/migrations/2026-05-02_push_subscriptions_created_at.sql` — 7일 ramp-up 위해
   - `supabase/migrations/2026-05-10_ai_chok_cache.sql` — **AI 촉 호출 정책 변경 (P0)**: excluded_recent + created_at 컬럼. 미적용 시 fetch intent에서 폴백만 노출됨 (기능은 동작, 다양성/스테일 lookup만 제한)
-  - `supabase/migrations/2026-05-12_stock_listings.sql` — **신규 상장 감지 (P0)**: 매일 cron이 채우는 종목 워치리스트. 미적용 시 cron은 동작하나 DB에 쌓지 못함 + 검색 배지/admin 패널 작동 안 함.
+  - [x] ~~`supabase/migrations/2026-05-12_stock_listings.sql`~~ — **적용 완료 (2026-05-13)** — stock_listings 테이블 + 상태 머신 + 인덱스 + last_seen 트리거. cron 수동 트리거 또는 다음 UTC 00:00 대기로 데이터 채움.
+  - `supabase/migrations/2026-05-13_ai_feedback.sql` — **사용자 피드백 1탭 (Phase 1 P0-3)**: 👍/👎 + comment 수집. ALGORITHM_REVIEW.md §5 보강. 미적용 시 AI 촉 카드 피드백 버튼이 silent fail.
   - [x] ~~`supabase/migrations/2026-05-12_user_profiles_tier.sql`~~ — **적용 완료 (2026-05-12)** — profiles 테이블 + auto-create trigger + 기존 사용자 백필. PRO 승급 시 `UPDATE profiles SET tier='pro' WHERE id=X`.
 - [ ] **Vercel 환경변수 추가**
   - `RESEND_API_KEY` (resend.com 발급, 무료 월 3천건)
@@ -27,20 +28,33 @@
 
 ### 일반 대기
 
-- [ ] **🔴 stock_listings 마이그레이션 적용 후 cron 수동 트리거** — `curl -H "Authorization: Bearer $CRON_SECRET" https://[도메인]/api/cron/sync-listings` 또는 다음 UTC 00:00 대기. 첫 실행 후 `/admin` → 📚 신규 상장 탭에서 결과 확인.
-- [ ] **🟡 온보딩·투어 funnel 위젯** — /admin 성장 탭에 `onboarding_step_view`, `tour_*` 이벤트 집계. 단계별 이탈률 확인. 일주일 이상 데이터 쌓인 후.
-- [ ] **🟡 코치마크 모바일 보텀시트 패턴** — 현재 위치 기반 툴팁은 PC 친화. 베타 사용자 피드백 보고 결정.
-- [ ] **🟡 docs/UNIVERSE_INCLUSION_CRITERIA.md** 작성 — universe 편입 객관 기준 (상장 12개월+/시총 $5B+/데이터 정상) 명시. 법무 리스크 회피.
-- [ ] **🟡 ai-analysis 신규 IPO 안내** — 분석 요청 종목이 6개월 이내 IPO면 응답에 "신규 상장이라 데이터 부족" 플래그 추가 (다음 세션, stock_listings 데이터 채워진 후)
-- [ ] **🔴 NEXT** AI 호출 정책 변경 배포 후 `/admin/api-stats` 모니터링 — 비로그인 차단 효과(Top 10에 `ip:` 거의 없어야 함) + free 한도(촉 1/일, 분석 3/일) 적정성 확인
-- [ ] **🔴** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토 *(지금 바로 가능)*
+- [x] ~~stock_listings 마이그레이션 + cron 첫 트리거~~ — **완료 (2026-05-13)**. US 24,400건 수집, KS/KQ는 별도 우회.
+- [x] ~~Phase 1 P0-6 KPI funnel 위젯~~ — **완료 (2026-05-13)**. /admin 성장 탭에 onboarding/tour/feedback funnel 위젯 + AI 만족도 표시.
+- [x] ~~Phase 1 P0-7 Universe 3중 AND 자동 검증~~ — **완료 (2026-05-13)**. enrich-listings에서 자동 'eligible' 승급.
+- [x] ~~Phase 1 P0-9 KRX 한국 종목 우회~~ — **완료 (2026-05-13)**. /api/search 자동 등록.
+- [x] ~~Phase 2 P1-3 챕터 시즌제 강화~~ — **완료 (2026-05-13)**. D-7 카운트다운 + 회고 자연어 자동 생성.
+- [x] ~~Phase B-1 broker 필드~~ — **완료 (2026-05-13)**. 한국 증권사 15개 + OCR 자동 추정 + BrokerSummaryCard.
+- [x] ~~Phase B-2 필터·챕터 통합~~ — **완료 (2026-05-13)**. 클릭 필터 + brokerChampions 라인.
+- [x] ~~Phase B-4 마케팅 카피~~ — **완료 (2026-05-13)**. /help + /landing 보강.
+- [ ] **🟡 (후속) KRX/OpenDART 한국 신규 상장 자동 fetch cron** — admin 수동/search 자동 등록은 임시. 월 10건 이하라 운영 가능하나 완전 자동화는 후속.
+- [ ] **🟡 enrich-listings cron 1주일 모니터링** — `SELECT count(*) FROM stock_listings WHERE market_cap IS NOT NULL;` 진행률 확인. 일별 40건이라 시총 큰 종목 25일 안 완료 예상.
+- [ ] **🟡 코치마크 모바일 보텀시트 패턴** — 베타 사용자 피드백 보고 결정.
+- [ ] **🟡 docs/UNIVERSE_INCLUSION_CRITERIA.md** 작성 — 법무 리스크 회피용 외부 문서 (코드는 이미 enrich-listings에 구현됨).
+- [ ] **🟡 ai-analysis 신규 IPO 안내** — 6개월 이내 IPO 종목 분석 시 "데이터 부족" 안내. stock_listings 데이터 누적 후.
+- [ ] **🔴 NEXT** 베타 1주일 후 `/admin` 성장 탭 funnel 데이터 확인 — D1/D7 retention + AI 만족도 + 온보딩 이탈률.
+- [ ] **🔴** `/admin/chok-debug` 배포 후 PER 채움률 확인 → 50% 이하면 F 작업(/candle fallback) 검토.
+- [ ] **🟡 멘토 6명 시연 영상 (5분)** — 외부 제작. NVDA 종목 6명 분석 비교. 마케팅 핵심 자산.
+- [ ] **🟡 PRO 결제 페이지 UI 시안** — 토스페이먼츠 등록 전 UI만 먼저. 1일.
+- [ ] **🟡 PRO 결제 인프라 (토스페이먼츠)** — 사용자 계정 등록 후. 베타 100명+ 시점.
+- [ ] **🟡 Phase B-3 계좌 종류 + 세무 비서** — ISA/IRP/연금. 진짜 moat. 베타 500명 후.
+- [ ] **🟡 Affiliate 계좌 개설 보상** — 증권사 1~3개 제휴.
 - [ ] 매수 시뮬 P2 (회의 결과 보류분):
   - 호가 단위 정렬 (가격대별 1원/10원/50원)
   - stale price 배지 (휴장/시간외)
   - 모바일 키보드 가림 sticky 또는 scrollIntoView
   - 엣지 케이스 가드 강화 (`usdKrw=0`, 음수 입력)
-- [ ] 포트폴리오 맵 (PortfolioTreemap) 색·비율 사용자 피드백 따라 미세조정 *(사용자 의견 있을 때)*
-- [ ] 베타 1개월 후 `ai_chok_recommendations` 백테스트 데이터로 추천 효과성 분석 *(시간 필요)*
+- [ ] 포트폴리오 맵 (PortfolioTreemap) 색·비율 사용자 피드백 따라 미세조정.
+- [ ] 베타 1개월 후 `ai_chok_recommendations` 백테스트 데이터로 추천 효과성 분석.
 
 ### 알림 Phase 5 (보류)
 
