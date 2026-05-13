@@ -16,7 +16,6 @@ import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import MorningBriefing from './MorningBriefing';
-import Today30sCard from './Today30sCard';
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
@@ -398,9 +397,6 @@ export default function PortfolioSection() {
 
       {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
       <ChapterKeywordPrompt />
-
-      {/* "오늘의 30초" — 매일 켜는 이유 (모닝브리프+챕터+CTA 통합) */}
-      <Today30sCard />
 
       {/* 오늘 아침 브리핑 — 하루 첫 방문 시 자동 펼침, "확인했어요"로 그날 닫기 */}
       <MorningBriefing />
