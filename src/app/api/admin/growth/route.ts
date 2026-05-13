@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const since = getDaysAgo(days);
 
   try {
-    const [signupsRes, logsRes, aiRes, totalUsersRes] = await Promise.all([
+    const [signupsRes, logsRes, aiRes, totalUsersRes, feedbackRes] = await Promise.all([
       // 일별 신규 가입 (user_portfolios.created_at 기준)
       supabaseAdmin
         .from('user_portfolios')
@@ -54,6 +54,12 @@ export async function GET(req: NextRequest) {
       supabaseAdmin
         .from('user_portfolios')
         .select('created_at, user_id'),
+
+      // AI 피드백 (ai_feedback 테이블, P0-3)
+      supabaseAdmin
+        .from('ai_feedback')
+        .select('source, rating, created_at')
+        .gte('created_at', since + 'T00:00:00+09:00'),
     ]);
 
     // ── 날짜 배열 생성 (최근 N일) ──────────────────────────────
@@ -138,6 +144,43 @@ export async function GET(req: NextRequest) {
     ];
     const readinessPct = Math.round((checks.filter(c => c.done).length / checks.length) * 100);
 
+    // ── 온보딩 funnel (P0-6) ──────────────────────────────────
+    // 각 단계 진입 / 완료 / 스킵 카운트
+    const onboardingFunnel = {
+      step0: actionCount['onboarding_step_view'] ? 0 : 0,  // detail은 metadata에 있음 — 일단 step별 분리 못함
+      view: actionCount['onboarding_step_view'] || 0,
+      complete: actionCount['onboarding_complete'] || 0,
+      skip: actionCount['onboarding_skip'] || 0,
+      samplePortfolio: actionCount['onboarding_sample_portfolio'] || 0,
+      stockAdd: actionCount['onboarding_stock_add'] || 0,
+    };
+
+    // ── 본 화면 투어 funnel ────────────────────────────────────
+    const tourFunnel = {
+      started: actionCount['tour_started'] || 0,
+      step: actionCount['tour_step'] || 0,
+      completed: actionCount['tour_completed'] || 0,
+      skipped: actionCount['tour_skipped'] || 0,
+    };
+
+    // ── 도움말 진입 ────────────────────────────────────────────
+    const helpOpened = actionCount['help_opened'] || 0;
+
+    // ── AI 피드백 집계 (source별 👍/👎 비율) ────────────────────
+    const feedbackBySource: Record<string, { positive: number; negative: number; total: number; satisfaction: number }> = {};
+    (feedbackRes.data || []).forEach(row => {
+      const source = (row as { source: string; rating: number }).source;
+      const rating = (row as { source: string; rating: number }).rating;
+      if (!feedbackBySource[source]) feedbackBySource[source] = { positive: 0, negative: 0, total: 0, satisfaction: 0 };
+      if (rating === 1) feedbackBySource[source].positive++;
+      else if (rating === -1) feedbackBySource[source].negative++;
+      feedbackBySource[source].total++;
+    });
+    for (const src of Object.keys(feedbackBySource)) {
+      const f = feedbackBySource[src];
+      f.satisfaction = f.total > 0 ? Math.round((f.positive / f.total) * 100) : 0;
+    }
+
     return NextResponse.json({
       dateList,
       signupByDate: dateList.map(d => ({ date: d, count: signupByDate[d] })),
@@ -152,6 +195,11 @@ export async function GET(req: NextRequest) {
       totalAiUsage,
       checks,
       readinessPct,
+      // P0-6 신규 KPI
+      onboardingFunnel,
+      tourFunnel,
+      helpOpened,
+      feedbackBySource,
     }, {
       headers: { 'Cache-Control': 'no-store' },
     });

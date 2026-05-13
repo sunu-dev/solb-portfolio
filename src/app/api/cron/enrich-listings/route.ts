@@ -27,6 +27,10 @@ const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const BATCH_SIZE = 40;
 const SLEEP_MS = 1000;
 
+// Universe 편입 3중 AND 조건 (docs/THRESHOLDS.md §8, ALGORITHM_REVIEW.md §4-#1)
+const UNIVERSE_MIN_MARKET_CAP = 5_000_000_000;  // $5B
+const UNIVERSE_MIN_LISTING_MONTHS = 12;          // 상장 12개월 이상
+
 function verifyCronAuth(req: NextRequest): boolean {
   const auth = req.headers.get('authorization');
   const secret = process.env.CRON_SECRET;
@@ -95,7 +99,9 @@ export async function GET(req: NextRequest) {
 
   let processed = 0;
   let errors = 0;
+  let autoEligible = 0;          // 3중 AND 자동 승급 카운트
   const sample: string[] = [];
+  const eligibleSample: string[] = [];
 
   for (const row of pending) {
     const profile = await fetchProfile(row.symbol, apiKey);
@@ -105,10 +111,27 @@ export async function GET(req: NextRequest) {
         : null;
       const listedAt = profile.ipo || null;
 
-      // description 보강도 함께 (기존 빈 경우)
       const update: Record<string, unknown> = {};
       if (marketCap !== null) update.market_cap = marketCap;
       if (listedAt) update.listed_at = listedAt;
+
+      // Universe 편입 3중 AND 자동 검증
+      // - market_cap >= $5B
+      // - 상장 12개월 이상 (ipo + 12개월 < 오늘)
+      // - 데이터 정상 (marketCap AND listedAt 둘 다 있음)
+      const meetsUniverse =
+        marketCap !== null &&
+        marketCap >= UNIVERSE_MIN_MARKET_CAP &&
+        listedAt !== null &&
+        (() => {
+          const ipoDate = new Date(listedAt);
+          if (isNaN(ipoDate.getTime())) return false;
+          const monthsSince = (Date.now() - ipoDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+          return monthsSince >= UNIVERSE_MIN_LISTING_MONTHS;
+        })();
+      if (meetsUniverse) {
+        update.status = 'eligible';
+      }
 
       const { error: updErr } = await supabase
         .from('stock_listings')
@@ -118,20 +141,23 @@ export async function GET(req: NextRequest) {
       if (!updErr) {
         processed++;
         if (sample.length < 5) sample.push(row.symbol);
+        if (meetsUniverse) {
+          autoEligible++;
+          if (eligibleSample.length < 5) eligibleSample.push(row.symbol);
+        }
       } else {
         errors++;
       }
     } else {
-      // profile 비어있어도 카운트 (Finnhub이 일부 종목 metadata 없음)
-      // last_seen만 갱신해서 다음 cron에서 또 시도하지 않게 마킹할 수도 있으나
-      // 일단 무한 재시도는 그대로 두고 후속 검토
+      // profile 비어있음 — 무한 재시도 그대로 (후속 검토)
     }
-    // Rate limit 안전 영역 (Finnhub 무료 60/min)
     await new Promise(res => setTimeout(res, SLEEP_MS));
   }
 
   return NextResponse.json({
     ok: true,
+    autoEligible,
+    eligibleSample,
     requested: pending.length,
     processed,
     errors,

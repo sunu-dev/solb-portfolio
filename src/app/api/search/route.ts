@@ -54,11 +54,11 @@ export async function GET(req: NextRequest) {
           .from('stock_listings')
           .select('symbol, listed_at, first_seen')
           .in('symbol', syms);
-        const map = new Map((listings || []).map(l => [(l as { symbol: string }).symbol, l]));
+        const existingMap = new Map((listings || []).map(l => [(l as { symbol: string }).symbol, l]));
         const cutoff = Date.now() - NEW_LISTING_WINDOW_MS;
         for (const item of baseResults) {
-          const l = map.get(item.symbol) as { listed_at: string | null; first_seen: string } | undefined;
-          // listed_at 만 신뢰 — first_seen은 cron이 처음 감지한 시점이라 IPO일 아님 (대량 backfill 시 잘못된 "신규" 판정 위험)
+          const l = existingMap.get(item.symbol) as { listed_at: string | null; first_seen: string } | undefined;
+          // listed_at 만 신뢰 — first_seen은 cron이 처음 감지한 시점이라 IPO일 아님
           if (l?.listed_at) {
             const refTime = new Date(l.listed_at).getTime();
             if (refTime > cutoff) {
@@ -66,6 +66,24 @@ export async function GET(req: NextRequest) {
               item.listedAt = l.listed_at;
             }
           }
+        }
+
+        // P0-9 — Finnhub 미지원 한국 거래소(.KS/.KQ) 우회 등록
+        // 사용자 검색 결과 중 한국 종목으로 stock_listings에 없는 것 자동 insert
+        // (KRX 자동 cron 미구현 대안 — 사용자 검색이 곧 universe 후보 발견)
+        const koreanNewRows = baseResults
+          .filter(r => (r.symbol.endsWith('.KS') || r.symbol.endsWith('.KQ')) && !existingMap.has(r.symbol))
+          .map(r => ({
+            symbol: r.symbol,
+            exchange: r.symbol.endsWith('.KS') ? 'KS' : 'KQ',
+            description: r.description,
+            status: 'watch',
+          }));
+        if (koreanNewRows.length > 0) {
+          await supabaseAdmin
+            .from('stock_listings')
+            .insert(koreanNewRows)
+            .then(() => null, () => null); // 동시 검색 race 방지: 실패 silent
         }
       } catch { /* stock_listings 테이블 없으면 silent */ }
     }

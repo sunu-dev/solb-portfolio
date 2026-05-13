@@ -616,6 +616,11 @@ interface GrowthData {
   totalAiUsage: number;
   checks: { id: string; label: string; target: number; current: number; unit: string; done: boolean }[];
   readinessPct: number;
+  // P0-6 신규 KPI
+  onboardingFunnel?: { view: number; complete: number; skip: number; samplePortfolio: number; stockAdd: number };
+  tourFunnel?: { started: number; step: number; completed: number; skipped: number };
+  helpOpened?: number;
+  feedbackBySource?: Record<string, { positive: number; negative: number; total: number; satisfaction: number }>;
 }
 
 function MiniBarChart({ data, color }: { data: { date: string; count: number }[]; color: string }) {
@@ -776,6 +781,93 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
           <div style={{ fontSize: 13, color: '#B0B8C1', textAlign: 'center', padding: '20px 0' }}>데이터 없음</div>
         )}
       </div>
+
+      {/* P0-6 — 온보딩·투어·도움말 Funnel */}
+      {data.onboardingFunnel && (
+        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+            온보딩·투어 Funnel (최근 {days}일)
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            {/* 온보딩 */}
+            <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>📚 온보딩</div>
+              <FunnelRow label="가입 (총)" value={data.totalUsers} max={data.totalUsers || 1} />
+              <FunnelRow label="step view (모든 단계 합산)" value={data.onboardingFunnel.view} max={Math.max(data.onboardingFunnel.view, data.totalUsers, 1)} />
+              <FunnelRow label="샘플 사용" value={data.onboardingFunnel.samplePortfolio} max={data.totalUsers || 1} />
+              <FunnelRow label="종목 추가" value={data.onboardingFunnel.stockAdd} max={data.totalUsers || 1} />
+              <FunnelRow label="완료" value={data.onboardingFunnel.complete} max={data.totalUsers || 1} highlight />
+              <FunnelRow label="스킵" value={data.onboardingFunnel.skip} max={data.totalUsers || 1} muted />
+            </div>
+
+            {/* 본 화면 투어 */}
+            {data.tourFunnel && (
+              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>🎬 본 화면 투어</div>
+                <FunnelRow label="시작" value={data.tourFunnel.started} max={data.totalUsers || 1} />
+                <FunnelRow label="단계 진입" value={data.tourFunnel.step} max={Math.max(data.tourFunnel.started, 1)} />
+                <FunnelRow label="완료" value={data.tourFunnel.completed} max={Math.max(data.tourFunnel.started, 1)} highlight />
+                <FunnelRow label="스킵" value={data.tourFunnel.skipped} max={Math.max(data.tourFunnel.started, 1)} muted />
+              </div>
+            )}
+
+            {/* 도움말 */}
+            <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>❓ 도움말</div>
+              <FunnelRow label="/help 진입" value={data.helpOpened ?? 0} max={data.totalUsers || 1} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* P0-6 — AI 피드백 (👍/👎) */}
+      {data.feedbackBySource && Object.keys(data.feedbackBySource).length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+            AI 추천 만족도 (최근 {days}일)
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {Object.entries(data.feedbackBySource).map(([source, f]) => (
+              <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#F8F9FA', borderRadius: 10 }}>
+                <code style={{ fontSize: 12, color: '#4E5968', fontWeight: 700, minWidth: 110 }}>{source}</code>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ flex: 1, height: 8, background: '#F2F4F6', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${f.satisfaction}%`, height: '100%', background: f.satisfaction >= 70 ? '#16A34A' : f.satisfaction >= 50 ? '#FF9500' : '#EF4452' }} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: f.satisfaction >= 70 ? '#16A34A' : f.satisfaction >= 50 ? '#FF9500' : '#EF4452', minWidth: 36, textAlign: 'right' }}>
+                    {f.satisfaction}%
+                  </span>
+                </div>
+                <span style={{ fontSize: 11, color: '#8B95A1' }}>
+                  👍 {f.positive} · 👎 {f.negative} (총 {f.total})
+                </span>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, fontSize: 11, color: '#B0B8C1' }}>
+            ※ 70%+ 만족도 = 알고리즘 정당성 ✅ / 50% 미만 = 가중치 재검토 필요
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FunnelRow({ label, value, max, highlight, muted }: { label: string; value: number; max: number; highlight?: boolean; muted?: boolean }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  const barColor = muted ? '#B0B8C1' : highlight ? '#16A34A' : '#3182F6';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11 }}>
+      <span style={{ width: 130, color: muted ? '#8B95A1' : '#4E5968', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 4, background: '#E5E8EB', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: barColor, borderRadius: 2 }} />
+      </div>
+      <span style={{ fontWeight: 700, color: muted ? '#8B95A1' : '#191F28', minWidth: 36, textAlign: 'right' }}>
+        {value}
+      </span>
+      <span style={{ fontSize: 9, color: '#B0B8C1', minWidth: 32, textAlign: 'right' }}>
+        {pct}%
+      </span>
     </div>
   );
 }
