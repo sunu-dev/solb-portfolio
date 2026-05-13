@@ -19,10 +19,6 @@
     {
       "path": "/api/cron/sync-listings",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/enrich-listings",
-      "schedule": "10 * * * *"
     }
   ]
 }
