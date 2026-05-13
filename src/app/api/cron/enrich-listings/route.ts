@@ -22,8 +22,10 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
-const BATCH_SIZE = 50;
-const SLEEP_MS = 1100;
+// Hobby 60s 한계 + Finnhub 60/min + HTTP latency 안전 마진
+// 40건 × 1.2초(sleep + fetch latency 평균) ≈ 48초 → 60초 안에 안전
+const BATCH_SIZE = 40;
+const SLEEP_MS = 1000;
 
 function verifyCronAuth(req: NextRequest): boolean {
   const auth = req.headers.get('authorization');
