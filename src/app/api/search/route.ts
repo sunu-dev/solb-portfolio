@@ -58,8 +58,9 @@ export async function GET(req: NextRequest) {
         const cutoff = Date.now() - NEW_LISTING_WINDOW_MS;
         for (const item of baseResults) {
           const l = map.get(item.symbol) as { listed_at: string | null; first_seen: string } | undefined;
-          if (l) {
-            const refTime = l.listed_at ? new Date(l.listed_at).getTime() : new Date(l.first_seen).getTime();
+          // listed_at 만 신뢰 — first_seen은 cron이 처음 감지한 시점이라 IPO일 아님 (대량 backfill 시 잘못된 "신규" 판정 위험)
+          if (l?.listed_at) {
+            const refTime = new Date(l.listed_at).getTime();
             if (refTime > cutoff) {
               item.isNewListing = true;
               item.listedAt = l.listed_at;

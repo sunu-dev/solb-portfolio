@@ -40,6 +40,14 @@ export default function ListingsPanel() {
   const [notesDraft, setNotesDraft] = useState('');
   const [busy, setBusy] = useState<Set<string>>(new Set());
 
+  // 수동 추가 폼
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addSymbol, setAddSymbol] = useState('');
+  const [addExchange, setAddExchange] = useState<'KS' | 'KQ' | 'US'>('KS');
+  const [addDescription, setAddDescription] = useState('');
+  const [addKrName, setAddKrName] = useState('');
+  const [adding, setAdding] = useState(false);
+
   const fetchListings = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,6 +95,59 @@ export default function ListingsPanel() {
       alert('업데이트 실패');
     } finally {
       setBusy(prev => { const ns = new Set(prev); ns.delete(symbol); return ns; });
+    }
+  }
+
+  async function enrichOne(symbol: string) {
+    setBusy(prev => new Set(prev).add(symbol));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/admin/listings/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ symbol }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `API ${res.status}`);
+      await fetchListings();
+    } catch (e) {
+      console.error(e);
+      alert('데이터 채움 실패: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(prev => { const ns = new Set(prev); ns.delete(symbol); return ns; });
+    }
+  }
+
+  async function handleManualAdd() {
+    if (!addSymbol.trim()) { alert('Symbol 필수'); return; }
+    setAdding(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/admin/listings/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          symbol: addSymbol.trim(),
+          exchange: addExchange,
+          description: addDescription.trim() || undefined,
+          kr_name: addKrName.trim() || undefined,
+          status: 'eligible',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `API ${res.status}`);
+      // 폼 리셋 + 'eligible' 필터로 전환해 추가된 종목 노출
+      setAddSymbol(''); setAddDescription(''); setAddKrName('');
+      setShowAddForm(false);
+      setFilterStatus('eligible');
+      await fetchListings();
+    } catch (e) {
+      console.error(e);
+      alert('추가 실패: ' + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -155,7 +216,7 @@ export default function ListingsPanel() {
         })}
       </div>
 
-      {/* 거래소 + 검색 */}
+      {/* 거래소 + 검색 + 추가 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
         <select
           value={filterExchange}
@@ -180,7 +241,67 @@ export default function ListingsPanel() {
         >
           새로고침
         </button>
+        <button
+          onClick={() => setShowAddForm(v => !v)}
+          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8, background: showAddForm ? '#F2F4F6' : '#3182F6', color: showAddForm ? '#4E5968' : '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+        >
+          {showAddForm ? '닫기' : '＋ 수동 추가'}
+        </button>
       </div>
+
+      {/* 수동 추가 폼 (Finnhub 한국 미지원 우회) */}
+      {showAddForm && (
+        <div style={{ marginBottom: 14, padding: 14, borderRadius: 10, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.15)' }}>
+          <div style={{ fontSize: 12, color: '#3182F6', fontWeight: 700, marginBottom: 10 }}>
+            🇰🇷 한국 종목 수동 추가 (Finnhub 미지원 우회)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <select
+              value={addExchange}
+              onChange={(e) => setAddExchange(e.target.value as 'KS' | 'KQ' | 'US')}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB', background: '#fff' }}
+            >
+              <option value="KS">코스피 (KS)</option>
+              <option value="KQ">코스닥 (KQ)</option>
+              <option value="US">미국 (US)</option>
+            </select>
+            <input
+              type="text"
+              placeholder="Symbol (예: 005930 또는 005930.KS)"
+              value={addSymbol}
+              onChange={(e) => setAddSymbol(e.target.value)}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+            />
+            <input
+              type="text"
+              placeholder="한국어명 (예: 삼성전자)"
+              value={addKrName}
+              onChange={(e) => setAddKrName(e.target.value)}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="영문 설명 (선택)"
+              value={addDescription}
+              onChange={(e) => setAddDescription(e.target.value)}
+              style={{ flex: 1, padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+            />
+            <button
+              onClick={handleManualAdd}
+              disabled={adding || !addSymbol.trim()}
+              style={{ padding: '8px 18px', fontSize: 12, fontWeight: 700, color: '#fff', background: '#3182F6', border: 'none', borderRadius: 6, cursor: (adding || !addSymbol.trim()) ? 'default' : 'pointer', opacity: (adding || !addSymbol.trim()) ? 0.5 : 1 }}
+            >
+              {adding ? '추가 중...' : '추가'}
+            </button>
+          </div>
+          <div style={{ marginTop: 8, fontSize: 10, color: '#8B95A1', lineHeight: 1.5 }}>
+            • KS/KQ 선택 시 symbol에 자동으로 .KS / .KQ 접미사 부착됨<br />
+            • 상태는 자동 &apos;eligible&apos; (후보) — 시총·상장연도 확인 후 universe 편입 결정
+          </div>
+        </div>
+      )}
 
       {loading && <div style={{ padding: 24, textAlign: 'center', color: '#8B95A1' }}>로딩 중...</div>}
       {error && <div style={{ padding: 24, textAlign: 'center', color: '#EF4452' }}>{error}</div>}
@@ -205,16 +326,32 @@ export default function ListingsPanel() {
                   display: 'flex', flexDirection: 'column', gap: 8,
                 }}
               >
-                {/* 첫 줄: symbol, 거래소, 영문명 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                {/* 첫 줄: symbol, 거래소, 영문명, 시총·상장일 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, flexWrap: 'wrap' }}>
                   <code style={{ fontWeight: 700, color: '#191F28' }}>{l.symbol}</code>
                   <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: '#F2F4F6', color: '#8B95A1' }}>{l.exchange}</span>
-                  <span style={{ flex: 1, color: '#4E5968', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ flex: 1, minWidth: 100, color: '#4E5968', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {l.description || '(설명 없음)'}
                   </span>
-                  <span style={{ fontSize: 10, color: '#B0B8C1' }}>
-                    {new Date(l.first_seen).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
-                  </span>
+                  {l.market_cap !== null && (
+                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(22,163,74,0.08)', color: '#16A34A', fontWeight: 600 }}>
+                      ${(l.market_cap / 1_000_000_000).toFixed(1)}B
+                    </span>
+                  )}
+                  {l.listed_at && (
+                    <span style={{ fontSize: 10, color: '#8B95A1' }}>
+                      상장 {l.listed_at}
+                    </span>
+                  )}
+                  {!l.market_cap && !l.listed_at && (
+                    <button
+                      onClick={() => enrichOne(l.symbol)}
+                      disabled={isBusy}
+                      style={{ padding: '2px 8px', fontSize: 10, color: '#3182F6', background: 'rgba(49,130,246,0.08)', border: 'none', borderRadius: 4, cursor: isBusy ? 'default' : 'pointer' }}
+                    >
+                      📊 데이터 채움
+                    </button>
+                  )}
                 </div>
 
                 {/* 두 번째 줄: 한국어명 + notes */}
