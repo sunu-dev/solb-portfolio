@@ -18,6 +18,7 @@ import Dashboard from './Dashboard';
 import MorningBriefing from './MorningBriefing';
 import Today30sCard from './Today30sCard';
 import BrokerSummaryCard from './BrokerSummaryCard';
+import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 // AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
@@ -412,6 +413,9 @@ export default function PortfolioSection() {
         active={brokerFilter as never}
         onSelect={(b) => setBrokerFilter(b as string | null)}
       />
+
+      {/* 다중 broker 분산 보유 종목 통합 뷰 — Phase M-2 (multi-broker 종목 1개 이상 시만 노출) */}
+      <MergedHoldingsCard />
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (

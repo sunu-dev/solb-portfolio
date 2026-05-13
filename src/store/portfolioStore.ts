@@ -252,11 +252,27 @@ export const usePortfolioStore = create<PortfolioState>()(
         })),
 
       // --- Portfolio CRUD ---
+      // Phase M-1.1 — (symbol, broker) 페어 중복 제어
+      // 같은 broker에 같은 종목 추가 시 차단. 다른 broker는 허용 (분산 보유 지원).
       addStock: (category, stock) =>
         set((state) => {
           const total = (state.stocks.investing?.length || 0) + (state.stocks.watching?.length || 0) + (state.stocks.sold?.length || 0);
           if (total >= 50) {
             if (typeof window !== 'undefined') alert('종목은 최대 50개까지 등록할 수 있어요.');
+            return state;
+          }
+          // 같은 (symbol, broker) 페어가 같은 카테고리에 이미 있으면 차단
+          const existing = (state.stocks[category] || []).find(s =>
+            s.symbol.toUpperCase() === stock.symbol.toUpperCase() &&
+            (s.broker || '') === (stock.broker || '')
+          );
+          if (existing) {
+            if (typeof window !== 'undefined') {
+              const where = stock.broker
+                ? `${stock.broker}` // BROKER_LABELS는 broker 코드라 그대로 표시 (UI 측에서 라벨화 가능)
+                : '미지정';
+              alert(`이 종목은 이미 ${where}에 등록돼 있어요. 다른 증권사로 추가하려면 broker를 바꿔주세요.`);
+            }
             return state;
           }
           const updated = { ...state.stocks };

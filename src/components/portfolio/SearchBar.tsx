@@ -117,10 +117,22 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       return;
     }
     const sym = symbol.toUpperCase();
+    // Phase M-1.3 — (symbol, broker) 페어 단위 중복 제어
+    // SearchBar는 broker 미지정으로 추가하므로, 미지정 broker로 같은 종목이
+    // 이미 있을 때만 차단. broker가 다른 곳에 등록돼 있어도 새 broker로 추가 가능
+    // (사용자가 모달에서 broker 설정하면 분산 보유 자동 활성화).
     for (const c of ['investing', 'watching', 'sold'] as const) {
-      if ((stocks[c] || []).some(s => s.symbol === sym)) {
-        alert(`${sym} 이미 있습니다.`);
+      const dup = (stocks[c] || []).find(s => s.symbol === sym && !s.broker);
+      if (dup) {
+        alert(`${sym} 이미 미지정 증권사로 등록돼 있어요.\n다른 증권사에 추가하려면 기존 종목의 증권사를 먼저 설정해주세요.`);
         return;
+      }
+      // 다른 broker에 등록된 종목이 있으면 안내 (차단 X)
+      const otherBroker = (stocks[c] || []).find(s => s.symbol === sym && s.broker);
+      if (otherBroker) {
+        const ok = confirm(`${sym}은(는) 이미 다른 증권사에 등록돼 있어요.\n새 증권사로 추가하시겠어요? (추가 후 증권사를 설정해주세요)`);
+        if (!ok) return;
+        break;
       }
     }
     if (name && !STOCK_KR[sym]) STOCK_KR[sym] = name;

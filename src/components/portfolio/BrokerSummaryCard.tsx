@@ -99,6 +99,34 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
         </span>
       </div>
 
+      {/* Phase M-3 — 통합 자산 합계 (모든 broker 합산) */}
+      {(() => {
+        const totalValue = stats.reduce((sum, s) => sum + s.totalValueKrw, 0);
+        const totalCost = stats.reduce((sum, s) => sum + s.totalCostKrw, 0);
+        const totalPnlKrw = totalValue - totalCost;
+        const totalPnlPct = totalCost > 0 ? (totalPnlKrw / totalCost) * 100 : 0;
+        const pnlColor = totalPnlPct > 0 ? '#EF4452' : totalPnlPct < 0 ? '#3182F6' : '#8B95A1';
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'baseline', gap: 8,
+            padding: '10px 12px', marginBottom: 10,
+            borderRadius: 10,
+            background: 'linear-gradient(135deg, rgba(49,130,246,0.10), rgba(22,163,74,0.06))',
+            border: '1px solid rgba(49,130,246,0.15)',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#3182F6' }}>💎 통합 자산</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginLeft: 'auto' }}>
+              ₩{Math.round(totalValue).toLocaleString()}
+            </span>
+            {totalCost > 0 && (
+              <span style={{ fontSize: 12, fontWeight: 700, color: pnlColor }}>
+                {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        );
+      })()}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {stats.map(s => {
           const pnlColor = s.pnlPct > 0 ? '#EF4452' : s.pnlPct < 0 ? '#3182F6' : '#8B95A1';
