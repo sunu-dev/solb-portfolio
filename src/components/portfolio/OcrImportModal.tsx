@@ -32,6 +32,7 @@ export default function OcrImportModal({ onClose }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [source, setSource] = useState('');
+  const [detectedBroker, setDetectedBroker] = useState<string>('');
   const [ocrStocks, setOcrStocks] = useState<EditableStock[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [errorDetail, setErrorDetail] = useState<OcrError | null>(null);
@@ -86,6 +87,9 @@ export default function OcrImportModal({ onClose }: Props) {
 
       setOcrStocks(editable);
       setSource(data.source);
+      // Phase B-1 — 증권사 자동 추정 (Broker enum 키)
+      const VALID_KEYS = ['toss','kiwoom','mirae','kis','samsung','nh','kb','shinhan','meritz','hana','daishin','yuanta','sk','eugene','kakaopay','other'];
+      setDetectedBroker(VALID_KEYS.includes(data.brokerKey) ? data.brokerKey : '');
       const nonDupIndices = new Set(
         editable.map((_, i) => i).filter(i => !isDuplicate(editable[i].symbol))
       );
@@ -184,6 +188,8 @@ export default function OcrImportModal({ onClose }: Props) {
         targetReturn: hasShares ? 10 : 0,
         purchaseRate: s.currency === 'USD' ? undefined : 0,
         buyBelow: !hasShares ? 0 : undefined,
+        // Phase B-1 — OCR이 추정한 증권사 자동 부착
+        broker: (detectedBroker || undefined) as never,
       });
 
       if (cat === 'investing') investCount++;

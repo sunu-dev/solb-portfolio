@@ -94,18 +94,33 @@ StockItem.broker?: enum (8개) — 스키마 변경 최소. user_portfolios가 j
 
 ### Phase B-1 — broker 필드 + OCR 보강 (1~2일, 🔴 즉시)
 
-**스키마**:
+**스키마** (한국 증권사 상위 15개 + 기타):
 ```ts
 type Broker =
-  | 'toss'    | 'kiwoom'  | 'mirae'   | 'samsung'
-  | 'kb'      | 'shinhan' | 'nh'      | 'hana'
-  | 'us-broker' | 'other';
+  | 'toss'      // 토스증권
+  | 'kiwoom'    // 키움증권
+  | 'mirae'     // 미래에셋증권
+  | 'kis'       // 한국투자증권
+  | 'samsung'   // 삼성증권
+  | 'nh'        // NH투자증권
+  | 'kb'        // KB증권
+  | 'shinhan'   // 신한투자증권
+  | 'meritz'    // 메리츠증권
+  | 'hana'      // 하나증권
+  | 'daishin'   // 대신증권
+  | 'yuanta'    // 유안타증권
+  | 'sk'        // SK증권
+  | 'eugene'    // 유진투자증권
+  | 'kakaopay'  // 카카오페이증권
+  | 'other';    // 기타 (DB금융투자·교보·신영증권 등)
 
 export interface StockItem {
   // ...existing
   broker?: Broker;
 }
 ```
+
+> **미국 증권사 미포함**: 한국 사용자 기반이라 한국 증권사 15개 + 기타로 시작. 미국 증권사(Robinhood/Fidelity/IBKR)는 Phase B-2 검토.
 
 **구현**:
 - `EditStockModal` broker 드롭다운 (선택, 기본 미지정)

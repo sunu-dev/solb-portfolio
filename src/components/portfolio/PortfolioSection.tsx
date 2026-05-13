@@ -17,6 +17,7 @@ import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import MorningBriefing from './MorningBriefing';
 import Today30sCard from './Today30sCard';
+import BrokerSummaryCard from './BrokerSummaryCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 // AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
@@ -396,6 +397,9 @@ export default function PortfolioSection() {
 
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
+
+      {/* 증권사별 보유 현황 — Phase B-1, 2개 이상 broker 등록 시 자동 노출 */}
+      <BrokerSummaryCard />
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (

@@ -10,6 +10,56 @@ export interface StockNote {
   date: string;  // ISO date
 }
 
+// Broker SSOT — docs/BROKER_FEATURE.md (Phase B-1)
+// 한국 증권사 상위 15개 + 기타. 미국 증권사는 별도 검토 (Phase B-2+).
+// 순서: 개인 사용자 점유율·인지도 기준 (토스·키움 모바일 우위, 미래에셋·한국투자 자기자본 우위)
+export type Broker =
+  | 'toss'      // 토스증권
+  | 'kiwoom'    // 키움증권
+  | 'mirae'     // 미래에셋증권
+  | 'kis'       // 한국투자증권 (Korea Investment Securities)
+  | 'samsung'   // 삼성증권
+  | 'nh'        // NH투자증권
+  | 'kb'        // KB증권
+  | 'shinhan'   // 신한투자증권
+  | 'meritz'    // 메리츠증권
+  | 'hana'      // 하나증권
+  | 'daishin'   // 대신증권
+  | 'yuanta'    // 유안타증권
+  | 'sk'        // SK증권
+  | 'eugene'    // 유진투자증권
+  | 'kakaopay'  // 카카오페이증권
+  | 'other';    // 기타 (DB금융투자·교보·신영증권 등)
+
+export const BROKER_LABELS: Record<Broker, string> = {
+  toss: '토스증권',
+  kiwoom: '키움증권',
+  mirae: '미래에셋증권',
+  kis: '한국투자증권',
+  samsung: '삼성증권',
+  nh: 'NH투자증권',
+  kb: 'KB증권',
+  shinhan: '신한투자증권',
+  meritz: '메리츠증권',
+  hana: '하나증권',
+  daishin: '대신증권',
+  yuanta: '유안타증권',
+  sk: 'SK증권',
+  eugene: '유진투자증권',
+  kakaopay: '카카오페이증권',
+  other: '기타',
+};
+
+export const BROKER_ORDER: Broker[] = [
+  'toss', 'kiwoom', 'mirae', 'kis', 'samsung',
+  'nh', 'kb', 'shinhan', 'meritz', 'hana',
+  'daishin', 'yuanta', 'sk', 'eugene', 'kakaopay',
+  'other',
+];
+
+// 점진 노출 임계 — 이 숫자 이상의 broker가 등록되면 필터 UI 자동 활성화
+export const BROKER_DISCOVERY_THRESHOLD = 2;
+
 export interface StockItem {
   symbol: string;
   avgCost: number;
@@ -29,6 +79,8 @@ export interface StockItem {
   buyBelow?: number;
   // Notes
   notes?: StockNote[];
+  // Phase B-1 — 증권사별 자산 관리 (선택, 미지정 OK)
+  broker?: Broker;
 }
 
 export interface Transaction {

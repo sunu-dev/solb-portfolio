@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { STOCK_KR } from '@/config/constants';
-import type { MacroEntry, StockNote } from '@/config/constants';
+import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
+import type { MacroEntry, StockNote, Broker } from '@/config/constants';
 import { createNoteDate } from '@/utils/noteId';
 
 // 메모 감정 태그 (InvestmentNotes와 동일 세트 사용)
@@ -34,6 +34,7 @@ export default function EditStockModal() {
   const [weight, setWeight] = useState('');
   const [buyBelow, setBuyBelow] = useState('');
   const [purchaseRate, setPurchaseRate] = useState('');
+  const [broker, setBroker] = useState<Broker | ''>('');
   const [addBuyPrice, setAddBuyPrice] = useState('');
   const [addBuyShares, setAddBuyShares] = useState('');
   const [addBuyRate, setAddBuyRate] = useState('');
@@ -80,6 +81,7 @@ export default function EditStockModal() {
     setBuyBelow(stock.buyBelow ? String(stock.buyBelow) : '');
     // purchaseRate: 저장된 값 우선, 없으면 현재 환율로 초기화 (신규 입력 편의)
     setPurchaseRate(stock.purchaseRate ? String(stock.purchaseRate) : String(currentUsdKrw));
+    setBroker((stock.broker as Broker) || '');
     setAddBuyPrice('');
     setAddBuyShares('');
     setAddBuyRate(String(currentUsdKrw));
@@ -133,6 +135,7 @@ export default function EditStockModal() {
       targetProfitUSD: parseFloat(targetProfitUSD) || 0,
       targetProfitKRW: parseFloat(targetProfitKRW) || 0,
       purchaseRate: finalPurchaseRate,
+      broker: broker || undefined,  // 미지정은 undefined로 저장 (스토어 정리)
     };
 
     if (editingCat === 'investing') {
@@ -353,6 +356,23 @@ export default function EditStockModal() {
               <input type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
+          </div>
+
+          {/* 증권사 선택 (선택) — Phase B-1. 한국 증권사 15개 + 기타 */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>
+              🏦 증권사 <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 선택사항. 비워두면 미지정</span>
+            </label>
+            <select
+              value={broker}
+              onChange={(e) => setBroker(e.target.value as Broker | '')}
+              style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+            >
+              <option value="">미지정</option>
+              {BROKER_ORDER.map(b => (
+                <option key={b} value={b}>{BROKER_LABELS[b]}</option>
+              ))}
+            </select>
           </div>
 
           {/* 매수 환율 — 환차익 추적 */}
