@@ -5,7 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { formatKRW } from '@/utils/formatKRW';
 import { STOCK_KR } from '@/config/constants';
 import type { MacroEntry } from '@/config/constants';
-import { computeChapterTime, buildChapterStats, buildTodayLine } from '@/utils/monthlyChapter';
+import { computeChapterTime, buildChapterStats, buildTodayLine, buildChapterRecap } from '@/utils/monthlyChapter';
 
 /**
  * Monthly Chapter — 30일 시즌으로 작동하는 투자 일지 척추 카드.
@@ -37,11 +37,13 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
     });
     if (!stats) return null;
     const todayLine = buildTodayLine({ time, stats, snapshots: dailySnapshots });
-    return { time, stats, todayLine };
+    // P1-3 — D-7 카운트다운 시점부터 회고 미리보기 자동 생성
+    const recap = time.isFinalWeek ? buildChapterRecap(stats, time) : null;
+    return { time, stats, todayLine, recap };
   }, [stocks, macroData, rawCandles, dailySnapshots]);
 
   if (!data) return null;
-  const { time, stats, todayLine } = data;
+  const { time, stats, todayLine, recap } = data;
 
   const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
   const isGain = stats.totalAbsReturn >= 0;
@@ -106,13 +108,16 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
         <span style={{
           fontSize: 11, fontWeight: 700,
           fontFamily: "'SF Mono', monospace",
-          color: time.daysRemaining <= 7
-            ? 'var(--color-warning, #FF9500)'
+          color: time.isFinalWeek
+            ? '#fff'
             : 'var(--text-tertiary, #B0B8C1)',
-          padding: '3px 8px', borderRadius: 10,
-          background: 'var(--bg-subtle, #F2F4F6)',
+          padding: '3px 10px', borderRadius: 10,
+          background: time.isFinalWeek
+            ? (time.daysRemaining === 0 ? '#EF4452' : time.daysRemaining <= 3 ? '#FF9500' : '#3182F6')
+            : 'var(--bg-subtle, #F2F4F6)',
+          animation: time.daysRemaining <= 3 && time.daysRemaining > 0 ? 'pulse 2s ease-in-out infinite' : undefined,
         }}>
-          {time.daysRemaining === 0 ? '오늘 마감' : `D-${time.daysRemaining}`}
+          {time.daysRemaining === 0 ? '🎬 오늘 마감' : `D-${time.daysRemaining}`}
         </span>
       </div>
 
@@ -131,6 +136,39 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
           transition: 'width 0.4s ease',
         }} />
       </div>
+
+      {/* P1-3 — D-7 회고 미리보기 (월말 카운트다운 강화) */}
+      {recap && (
+        <div style={{
+          marginBottom: 14,
+          padding: '12px 14px',
+          borderRadius: 12,
+          background: recap.tone === 'gain'
+            ? 'linear-gradient(135deg, rgba(22,163,74,0.06), rgba(49,130,246,0.04))'
+            : recap.tone === 'loss'
+              ? 'linear-gradient(135deg, rgba(239,68,82,0.04), rgba(255,149,0,0.06))'
+              : 'var(--bg-subtle, #F8F9FA)',
+          border: '1px solid rgba(49,130,246,0.12)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 18 }}>{recap.emoji}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', lineHeight: 1.4 }}>
+              {recap.headline}
+            </span>
+          </div>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {recap.bullets.slice(0, 5).map((b, i) => (
+              <li key={i} style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.55 }}>
+                · {b}
+              </li>
+            ))}
+          </ul>
+          <div style={{ fontSize: 10, color: '#B0B8C1', marginTop: 2 }}>
+            {time.daysRemaining === 0 ? '오늘이 챕터 마지막 날 — 회고를 마무리해보세요' : `${time.daysRemaining}일 후 챕터가 마감돼요`}
+          </div>
+        </div>
+      )}
 
       {/* 누적 손익 큰 숫자 + 어제 대비 델타 */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>

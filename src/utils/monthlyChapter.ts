@@ -41,12 +41,15 @@ export interface ChapterTime {
   isFreshMonth: boolean;
   /** 지난달 chapterId — isFreshMonth일 때 ChapterShelf 진입점으로 사용 */
   previousChapterId: string;
+  /** P1-3 — 챕터 마무리 카운트다운 강화: 7일 이내 남았는지 */
+  isFinalWeek: boolean;
 }
 
 export function computeChapterTime(now: Date = new Date()): ChapterTime {
   const dayOfMonth = now.getDate();
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const isLastWeek = dayOfMonth >= lastDay - 4;
+  const daysRemaining = lastDay - dayOfMonth;
 
   const phase: ChapterPhase = isLastWeek ? 'closing' : 'progress';
 
@@ -60,14 +63,86 @@ export function computeChapterTime(now: Date = new Date()): ChapterTime {
   return {
     dayOfMonth,
     lastDay,
-    daysRemaining: lastDay - dayOfMonth,
+    daysRemaining,
     progress: dayOfMonth / lastDay,
     phase,
     monthLabel,
     chapterId,
     isFreshMonth: dayOfMonth <= 7,
     previousChapterId,
+    // P1-3 — D-7 카운트다운: closing(4일 이내)보다 더 일찍 알림 시작
+    isFinalWeek: daysRemaining >= 0 && daysRemaining <= 7,
   };
+}
+
+// ─── 챕터 회고 자연어 자동 생성 (P1-3) ─────────────────────────────────────
+
+export interface ChapterRecap {
+  headline: string;       // 한 줄 요약 (큰 글씨)
+  bullets: string[];      // 3~5개 세부 사실
+  emoji: string;          // 분위기 이모지
+  tone: 'gain' | 'loss' | 'flat';
+}
+
+/**
+ * 챕터 통계 → 자연어 회고. 월말 D-7부터 미리 보여줄 수 있음.
+ * (Spotify Wrapped 톤 — 사실 + 가벼운 격려/위로)
+ */
+export function buildChapterRecap(stats: ChapterStats, time: ChapterTime): ChapterRecap {
+  const { totalPctReturn, totalAbsReturn, champion, bestDay, notesThisMonth, memoStreak } = stats;
+  const isGain = totalPctReturn >= 0;
+  const isFlat = Math.abs(totalPctReturn) < 0.5;
+
+  const tone: ChapterRecap['tone'] = isFlat ? 'flat' : isGain ? 'gain' : 'loss';
+  const emoji = isFlat ? '🧘' : isGain ? '🌱' : '🍂';
+
+  let headline: string;
+  if (isFlat) {
+    headline = `${time.monthLabel} 챕터는 차분한 한 달이었어요`;
+  } else if (isGain) {
+    headline = totalPctReturn >= 5
+      ? `${time.monthLabel} 챕터는 빛난 달이었어요`
+      : `${time.monthLabel} 챕터는 한 걸음 전진한 달이었어요`;
+  } else {
+    headline = totalPctReturn <= -5
+      ? `${time.monthLabel} 챕터는 힘들었지만 배움이 큰 달이었어요`
+      : `${time.monthLabel} 챕터는 조정이 있었지만 견뎌낸 달이었어요`;
+  }
+
+  const bullets: string[] = [];
+
+  // 누적 수익률
+  if (!isFlat) {
+    const sign = totalPctReturn >= 0 ? '+' : '';
+    bullets.push(`누적 ${sign}${totalPctReturn.toFixed(1)}% (${totalAbsReturn >= 0 ? '+' : ''}$${Math.abs(totalAbsReturn).toFixed(0)})`);
+  } else {
+    bullets.push('큰 움직임은 없었어요 — 인내의 시간');
+  }
+
+  // 챔피언
+  if (champion && champion.pctReturn >= 1) {
+    bullets.push(`🏆 챔피언: ${champion.symbol} +${champion.pctReturn.toFixed(1)}%`);
+  }
+
+  // 베스트 데이
+  if (bestDay && bestDay.pctChange >= 0.5) {
+    const d = bestDay.date.slice(5);
+    bullets.push(`☀️ 베스트 날: ${d} (+${bestDay.pctChange.toFixed(1)}%)`);
+  }
+
+  // 메모 활동
+  if (notesThisMonth > 0) {
+    bullets.push(`📝 메모 ${notesThisMonth}개${memoStreak >= 3 ? ` · 연속 ${memoStreak}일 작성` : ''}`);
+  }
+
+  // 진행도 (D-7 카운트다운 시점)
+  if (time.daysRemaining > 0 && time.isFinalWeek) {
+    bullets.push(`⏳ 챕터 마감 D-${time.daysRemaining}`);
+  } else if (time.daysRemaining === 0) {
+    bullets.push('🎬 오늘이 챕터 마지막 날');
+  }
+
+  return { headline, bullets, emoji, tone };
 }
 
 // ─── 챕터 통계 ─────────────────────────────────────────────────────────────
