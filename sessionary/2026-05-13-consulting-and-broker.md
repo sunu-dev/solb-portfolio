@@ -113,6 +113,35 @@ ISA/IRP/연금 계좌 종류. 세무 검토 필요 + 베타 500명 후. 진짜 m
 - 🟡 Phase B-3 세무 비서 (베타 500명 후)
 - 🟡 사용자 추천 효과 백테스트 (ai_chok_recommendations 6개월 데이터 후)
 
+### F. Broker Merge — Phase M-1~M-3 (커밋 fd27062, 7 files / +549 / −2)
+
+11인 회의 (PM·UX·아키텍트·금융·페르소나×3·성능·법무·그로스·세무) 합의:
+**"흩어진 같은 종목을 비서가 합쳐서 진짜 평단가 보여주는 도구. 세금까지 챙겨주는 한국 유일."**
+
+**Phase M-1 — 데이터 모델 + selector**:
+- portfolioStore.addStock: (symbol, broker) 페어 중복 제어 (같은 broker 차단, 다른 broker 허용)
+- utils/mergedHoldings.ts: mergeHoldings() selector
+  - USD/KRW 가중평균 평단가
+  - 환율 가중평균 (purchaseRate 있는 lot만)
+  - lots 보존 (편집·세금 시뮬용)
+  - inferDefaultViewMode() 자동 추론
+- SearchBar.handleAdd: 미지정 broker 같은 종목만 차단, 다른 broker 있으면 confirm 모달
+
+**Phase M-2 — MergedHoldingsCard 통합 뷰**:
+- 자동 노출 (hasMultipleBrokers ≥ 1개 발견 시)
+- 단일 broker 사용자 → UI 변화 0
+- 통합 row + broker별 lots accordion
+- 디스클레이머: "주비 계산값, 증권사 표시와 다를 수 있어요"
+
+**Phase M-3 — 통합 자산 헤더**:
+- BrokerSummaryCard 상단 "💎 통합 자산 ₩X.XM (+5.2%)" 한 줄
+
+**Phase M-4 보류** (세금 비서, 매도 순서 최적화, ISA/IRP):
+- 진짜 moat (토스도 못 함)
+- 베타 500명 후 + 세무 검토 + 변호사 자문 필수
+
+**문서**: docs/BROKER_MERGE_FEATURE.md — 11인 회의 전문 + 4-Phase 로드맵 + 데이터 모델
+
 ## 다음 세션 진입점
 
 `docs/NEXT_ACTIONS.md` 의 권장 진행 순서 3개 옵션:

@@ -37,6 +37,8 @@
 - [x] ~~Phase B-1 broker 필드~~ — **완료 (2026-05-13)**. 한국 증권사 15개 + OCR 자동 추정 + BrokerSummaryCard.
 - [x] ~~Phase B-2 필터·챕터 통합~~ — **완료 (2026-05-13)**. 클릭 필터 + brokerChampions 라인.
 - [x] ~~Phase B-4 마케팅 카피~~ — **완료 (2026-05-13)**. /help + /landing 보강.
+- [x] ~~Phase M-1·M-2·M-3 (다중 broker 통합 + 동일 티커 합산)~~ — **완료 (2026-05-13)**. mergeHoldings selector + MergedHoldingsCard + 통합 자산 헤더.
+- [ ] **🟡 Phase M-4 세금 비서 (Phase 3, 진짜 moat)** — accountType 활성화 + ISA/IRP 한도 안내 + PRO 매도 순서 최적화. 베타 500명 + 세무 검토 + 변호사 자문 필수.
 - [ ] **🟡 (후속) KRX/OpenDART 한국 신규 상장 자동 fetch cron** — admin 수동/search 자동 등록은 임시. 월 10건 이하라 운영 가능하나 완전 자동화는 후속.
 - [ ] **🟡 enrich-listings cron 1주일 모니터링** — `SELECT count(*) FROM stock_listings WHERE market_cap IS NOT NULL;` 진행률 확인. 일별 40건이라 시총 큰 종목 25일 안 완료 예상.
 - [ ] **🟡 코치마크 모바일 보텀시트 패턴** — 베타 사용자 피드백 보고 결정.
