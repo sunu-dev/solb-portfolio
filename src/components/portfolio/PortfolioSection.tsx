@@ -163,6 +163,7 @@ export default function PortfolioSection() {
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
+  const [brokerFilter, setBrokerFilter] = useState<string | null>(null);  // Phase B-2 — broker 필터
 
   // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
   useEffect(() => {
@@ -352,6 +353,14 @@ export default function PortfolioSection() {
     displayList = (stocks[cat] || []).map((s, idx) => ({ ...s, category: cat, originalIdx: idx }));
   }
 
+  // Phase B-2 — broker 필터 적용 (활성 시만)
+  if (brokerFilter !== null) {
+    displayList = displayList.filter(s => {
+      if (brokerFilter === 'unspecified') return !s.broker;
+      return s.broker === brokerFilter;
+    });
+  }
+
   function handleSort(col: typeof sortBy) {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('desc'); }
@@ -398,8 +407,11 @@ export default function PortfolioSection() {
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
-      {/* 증권사별 보유 현황 — Phase B-1, 2개 이상 broker 등록 시 자동 노출 */}
-      <BrokerSummaryCard />
+      {/* 증권사별 보유 현황 — Phase B-1/B-2, 클릭 시 필터 활성 */}
+      <BrokerSummaryCard
+        active={brokerFilter as never}
+        onSelect={(b) => setBrokerFilter(b as string | null)}
+      />
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (

@@ -54,10 +54,23 @@ export default function LandingPage() {
             fontSize: 16,
             color: '#8B95A1',
             lineHeight: 1.6,
-            marginBottom: 48,
+            marginBottom: 16,
           }}
         >
           차트 몰라도 괜찮아요. 주비가 읽어드릴게요.
+        </p>
+
+        {/* Phase B-4 — broker 어필 카피 */}
+        <p
+          style={{
+            fontSize: 14,
+            color: '#3182F6',
+            lineHeight: 1.6,
+            marginBottom: 48,
+            fontWeight: 600,
+          }}
+        >
+          🏦 토스·키움·미래에셋 등 여러 증권사를 한 화면에서 비서답게 코칭합니다
         </p>
 
         {/* Feature list */}
@@ -75,6 +88,7 @@ export default function LandingPage() {
           {[
             { label: '시세', text: '실시간 가격 + 원화 환산' },
             { label: 'AI', text: 'AI가 차트를 한국어로 읽어줘요' },
+            { label: '증권사', text: '토스·키움·미래에셋 등 한 화면에' },
             { label: '알림', text: '손절/목표 자동 알림' },
             { label: '로그인', text: 'Google/카카오 로그인' },
           ].map((item, i) => (

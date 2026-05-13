@@ -231,3 +231,6 @@ export interface StockItem {
 | 일자 | 변경 |
 |---|---|
 | 2026-05-13 | 9인 회의 결과 문서화. Phase B-1~B-4 합의안 정립. |
+| 2026-05-13 | **Phase B-1 구현 완료** — Broker enum (한국 15개) + EditStockModal 드롭다운 + BrokerSummaryCard 점진 노출 + OCR 자동 추정. |
+| 2026-05-13 | **Phase B-2 구현 완료** — BrokerSummaryCard 클릭 필터 + ChapterStats.brokerChampions + buildChapterRecap 증권사별 챔피언 라인. |
+| 2026-05-13 | **Phase B-4 구현 완료** — /help 페이지에 "증권사 통합" 섹션 (5 Q&A) + 랜딩 페이지 broker 카피 1줄 추가. |

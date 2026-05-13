@@ -26,7 +26,14 @@ interface BrokerStat {
   pnlPct: number;
 }
 
-export default function BrokerSummaryCard() {
+interface Props {
+  /** 활성 필터 (null = 전체) — 부모가 관리 */
+  active?: Broker | 'unspecified' | null;
+  /** 칩 클릭 핸들러 — 같은 칩 재클릭 시 null 전달 (해제) */
+  onSelect?: (broker: Broker | 'unspecified' | null) => void;
+}
+
+export default function BrokerSummaryCard({ active = null, onSelect }: Props = {}) {
   const { stocks, macroData } = usePortfolioStore();
 
   const stats = useMemo<BrokerStat[]>(() => {
@@ -96,12 +103,23 @@ export default function BrokerSummaryCard() {
         {stats.map(s => {
           const pnlColor = s.pnlPct > 0 ? '#EF4452' : s.pnlPct < 0 ? '#3182F6' : '#8B95A1';
           const pct = stats.length > 0 ? (s.totalValueKrw / Math.max(...stats.map(x => x.totalValueKrw), 1)) * 100 : 0;
+          const isActive = active === s.broker;
+          const isOtherActive = active !== null && !isActive;
+          const Wrap = onSelect ? 'button' : 'div';
           return (
-            <div key={s.broker} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 12px', borderRadius: 10,
-              background: 'var(--bg-subtle, #F8F9FA)',
-            }}>
+            <Wrap key={s.broker} type={onSelect ? 'button' : undefined}
+              onClick={onSelect ? () => onSelect(isActive ? null : s.broker) : undefined}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 10,
+                background: isActive ? 'rgba(49,130,246,0.10)' : 'var(--bg-subtle, #F8F9FA)',
+                border: isActive ? '1px solid rgba(49,130,246,0.35)' : '1px solid transparent',
+                opacity: isOtherActive ? 0.5 : 1,
+                cursor: onSelect ? 'pointer' : 'default',
+                width: '100%',
+                textAlign: 'left',
+                transition: 'opacity 0.2s, background 0.2s',
+              }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
@@ -130,10 +148,15 @@ export default function BrokerSummaryCard() {
                   </div>
                 )}
               </div>
-            </div>
+            </Wrap>
           );
         })}
       </div>
+      {active !== null && (
+        <div style={{ marginTop: 10, fontSize: 11, color: '#3182F6', textAlign: 'center' }}>
+          🔍 필터 활성 — 같은 칩을 다시 누르면 전체 보기
+        </div>
+      )}
     </section>
   );
 }

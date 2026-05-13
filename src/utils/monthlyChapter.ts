@@ -11,7 +11,8 @@
  *   P4 — Fallback: 컨텍스트 리프레이밍 (30일 전 오늘 vs 지금) — 항상 존재
  */
 
-import type { PortfolioStocks, QuoteData, CandleRaw, StockNote } from '@/config/constants';
+import type { PortfolioStocks, QuoteData, CandleRaw, StockNote, Broker } from '@/config/constants';
+import { BROKER_LABELS } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 
 // ─── Phase 결정 (D-카운트다운 라벨) ────────────────────────────────────────
@@ -124,6 +125,17 @@ export function buildChapterRecap(stats: ChapterStats, time: ChapterTime): Chapt
     bullets.push(`🏆 챔피언: ${champion.symbol} +${champion.pctReturn.toFixed(1)}%`);
   }
 
+  // Phase B-2 — 증권사별 챔피언 (2개 이상 broker 발견 시)
+  if (stats.brokerChampions && stats.brokerChampions.length >= 2) {
+    const top2 = stats.brokerChampions
+      .sort((a, b) => b.pctReturn - a.pctReturn)
+      .slice(0, 2);
+    const summary = top2
+      .map(c => `${c.brokerLabel} ${c.symbol} ${c.pctReturn >= 0 ? '+' : ''}${c.pctReturn.toFixed(1)}%`)
+      .join(' · ');
+    bullets.push(`🏦 증권사별: ${summary}`);
+  }
+
   // 베스트 데이
   if (bestDay && bestDay.pctChange >= 0.5) {
     const d = bestDay.date.slice(5);
@@ -153,6 +165,8 @@ export interface ChapterStats {
   prevTotalPctReturn: number | null;
   /** 이번 달 챔피언 종목 (수익률 1위) */
   champion: { symbol: string; pctReturn: number; absReturn: number } | null;
+  /** Phase B-2 — 증권사별 챔피언 (broker 등록 종목 기준) */
+  brokerChampions?: { broker: string; brokerLabel: string; symbol: string; pctReturn: number }[];
   /** 이번 달 베스트 데이 */
   bestDay: { date: string; absChange: number; pctChange: number } | null;
   /** 이번 달 작성된 메모 수 */
@@ -180,7 +194,7 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   monthStart.setHours(0, 0, 0, 0);
 
   // 1. 종목별 30일(또는 이번 달) 수익률 — 챔피언 산출
-  type Perf = { symbol: string; pctReturn: number; absReturn: number };
+  type Perf = { symbol: string; pctReturn: number; absReturn: number; broker?: Broker };
   const perfs: Perf[] = [];
   let totalAbsReturn = 0;
   let dataCoverage = 0;
@@ -200,7 +214,7 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
     if (!monthStartPrice || monthStartPrice <= 0) continue;
     const pctReturn = ((q.c - monthStartPrice) / monthStartPrice) * 100;
     const absReturn = (q.c - monthStartPrice) * s.shares;
-    perfs.push({ symbol: s.symbol, pctReturn, absReturn });
+    perfs.push({ symbol: s.symbol, pctReturn, absReturn, broker: s.broker });
     totalAbsReturn += absReturn;
     dataCoverage++;
   }
@@ -213,6 +227,23 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   // 2. 챔피언 — 수익률 1위
   const sortedByPct = [...perfs].sort((a, b) => b.pctReturn - a.pctReturn);
   const champion = sortedByPct[0] || null;
+
+  // Phase B-2 — broker별 챔피언 (2개 이상 broker 발견 시만)
+  const brokerChampions: ChapterStats['brokerChampions'] = [];
+  const brokersInPerfs = Array.from(new Set(perfs.filter(p => p.broker).map(p => p.broker as Broker)));
+  if (brokersInPerfs.length >= 2) {
+    for (const broker of brokersInPerfs) {
+      const brokerPerfs = perfs.filter(p => p.broker === broker).sort((a, b) => b.pctReturn - a.pctReturn);
+      if (brokerPerfs[0]) {
+        brokerChampions.push({
+          broker,
+          brokerLabel: BROKER_LABELS[broker] || broker,
+          symbol: brokerPerfs[0].symbol,
+          pctReturn: brokerPerfs[0].pctReturn,
+        });
+      }
+    }
+  }
 
   // 3. 베스트 데이 — 일별 누적 변화
   let bestDay: { date: string; absChange: number; pctChange: number } | null = null;
@@ -282,6 +313,7 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
     notesThisMonth,
     memoStreak,
     coverage,
+    brokerChampions: brokerChampions.length > 0 ? brokerChampions : undefined,
   };
 }
 
