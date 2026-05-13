@@ -225,3 +225,77 @@ export function getHealthColor(total: number): string {
   if (total >= 40) return 'var(--color-warning, #FF9500)';
   return 'var(--color-danger, #EF4452)';
 }
+
+// ==========================================
+// NEXT ACTION RECOMMENDATION
+// ==========================================
+//
+// docs/ALGORITHM_REVIEW.md §4 (결정적 결함 #3 대응)
+// 사용자가 점수만 보고 끝나지 않게, "5점 더 올리려면 X" 액션 1개 제시.
+
+export interface HealthAction {
+  axis: 'concentration' | 'diversification' | 'goalSetting' | 'profitBalance';
+  title: string;      // "+5점 더 올리려면" 같은 헤드라인
+  action: string;     // 구체 실행 안내 (1문장)
+  emoji: string;
+  impact: number;     // 기대 점수 상승 (0~max)
+}
+
+/**
+ * 가장 큰 약점 축을 찾아 액션 1개 추천.
+ * 4축 점수/만점 비율 최저인 축이 타깃.
+ * 모든 축이 80%+ 이상이면 null (이미 충분히 양호).
+ */
+export function recommendNextAction(result: HealthResult): HealthAction | null {
+  const axes = [
+    { key: 'concentration' as const, m: result.concentration, max: 30 },
+    { key: 'diversification' as const, m: result.diversification, max: 25 },
+    { key: 'goalSetting' as const, m: result.goalSetting, max: 25 },
+    { key: 'profitBalance' as const, m: result.profitBalance, max: 20 },
+  ];
+
+  // 모든 축이 만점의 80%+ → 액션 불필요
+  if (axes.every(a => a.m.score / a.max >= 0.8)) return null;
+
+  // 가장 낮은 비율 축
+  const worst = axes.reduce((min, a) =>
+    (a.m.score / a.max) < (min.m.score / min.max) ? a : min
+  );
+  const gap = Math.min(5, worst.max - worst.m.score);
+  if (gap < 2) return null;
+
+  switch (worst.key) {
+    case 'concentration':
+      return {
+        axis: worst.key,
+        emoji: '⚖️',
+        title: `+${gap}점 더 올리려면`,
+        action: '한 종목 비중이 너무 큰 듯해요. 비중 큰 종목을 일부 정리하거나 다른 섹터를 추가해보세요.',
+        impact: gap,
+      };
+    case 'diversification':
+      return {
+        axis: worst.key,
+        emoji: '🌐',
+        title: `+${gap}점 더 올리려면`,
+        action: '섹터가 한 쪽에 쏠려있어요. 다른 산업 종목 1~2개를 추가하면 분산 효과가 커져요.',
+        impact: gap,
+      };
+    case 'goalSetting':
+      return {
+        axis: worst.key,
+        emoji: '🎯',
+        title: `+${gap}점 더 올리려면`,
+        action: '목표 수익률이 없는 종목이 있어요. 종목별 목표를 정해두면 점수와 함께 매매 결정도 쉬워져요.',
+        impact: gap,
+      };
+    case 'profitBalance':
+      return {
+        axis: worst.key,
+        emoji: '🛡️',
+        title: `+${gap}점 더 올리려면`,
+        action: '손실 큰 종목에 손절가를 설정해두면 평균 손실이 줄어요. 위험 관리부터 시작해보세요.',
+        impact: gap,
+      };
+  }
+}

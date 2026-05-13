@@ -8,6 +8,7 @@ import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
+import { sanitizeAiObject } from '@/utils/alertCompliance';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -334,8 +335,9 @@ ${responseFormat}`;
 
         try {
           const parsed = JSON.parse(text);
+          const { result: safeReport } = sanitizeAiObject(parsed);
           await gate.finalize(200);
-          return NextResponse.json({ success: true, report: parsed, remaining, dailyLimit: perUserLimit, tier });
+          return NextResponse.json({ success: true, report: safeReport, remaining, dailyLimit: perUserLimit, tier });
         } catch {
           await gate.finalize(200, 'parse_fallback');
           return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining, dailyLimit: perUserLimit, tier });
@@ -355,6 +357,7 @@ ${responseFormat}`;
       const aiRes = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096 });
       try {
         const parsed = JSON.parse(aiRes.text);
+        const { result: safeReport } = sanitizeAiObject(parsed);
         await Promise.all([
           recordUsage(ip, symbol, mentorId, userId!),
         ]);
@@ -364,7 +367,7 @@ ${responseFormat}`;
           sendSlackAlert(newTotal);
         }
         await gate.finalize(200, `fallback_${aiRes.provider}`);
-        return NextResponse.json({ success: true, report: parsed, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
+        return NextResponse.json({ success: true, report: safeReport, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
       } catch {
         await gate.finalize(200, 'fallback_parse_fail');
         return NextResponse.json({

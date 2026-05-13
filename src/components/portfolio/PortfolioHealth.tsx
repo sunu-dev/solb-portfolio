@@ -1,6 +1,6 @@
 'use client';
 
-import { calcHealthScore, getHealthColor, getHealthLabel, type HealthStock } from '@/utils/portfolioHealth';
+import { calcHealthScore, getHealthColor, getHealthLabel, recommendNextAction, type HealthStock } from '@/utils/portfolioHealth';
 
 interface Props {
   stocks: HealthStock[];
@@ -97,7 +97,34 @@ export default function PortfolioHealth({ stocks }: Props) {
         </div>
       </div>
 
-      {/* 개선 제안 */}
+      {/* 다음 액션 카드 — 가장 큰 약점 1개에 대한 구체 안내 (recommendNextAction) */}
+      {(() => {
+        const nextAction = recommendNextAction(health);
+        if (!nextAction) return null;
+        return (
+          <div style={{
+            marginTop: 14,
+            padding: '12px 14px',
+            borderRadius: 10,
+            background: 'var(--surface, #fff)',
+            border: '1px solid rgba(49,130,246,0.15)',
+            borderLeft: '3px solid #3182F6',
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>{nextAction.emoji}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#3182F6', marginBottom: 4 }}>
+                {nextAction.title}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.55 }}>
+                {nextAction.action}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 부가 개선 제안 (기존 tips, 작게 표시) */}
       {(() => {
         const tips: { icon: string; text: string }[] = [];
         if (health.concentration.score < 15) tips.push({ icon: '⚠️', text: `${health.concentration.detail}. 분산 투자를 고려해보세요.` });
@@ -109,7 +136,7 @@ export default function PortfolioHealth({ stocks }: Props) {
         if (tips.length === 0) tips.push({ icon: '🔍', text: '포트폴리오 구성을 점검해보세요.' });
 
         return (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {tips.map((tip, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--surface, #FFFFFF)', fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
                 <span style={{ flexShrink: 0 }}>{tip.icon}</span>

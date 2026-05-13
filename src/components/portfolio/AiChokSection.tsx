@@ -7,6 +7,7 @@ import { getAvatarColor, STOCK_KR } from '@/config/constants';
 import { CHOK_KR_MAP, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
 import type { MacroEntry, PortfolioStocks } from '@/config/constants';
 import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
+import { supabase } from '@/lib/supabase';
 
 // ─── 섹터 라벨 헬퍼 — universe 영문 태그 → 한국어 라벨로 통일 ───────────────
 function symbolToSectorLabel(symbol: string): string {
@@ -106,11 +107,13 @@ function SkeletonCard() {
 // ==========================================
 // Chok card
 // ==========================================
-function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
+function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbackGiven }: {
   pick: ChokPick;
   onAnalyze: () => void;
   onAddWatch: () => void;
   inWatching: boolean;
+  onFeedback: (rating: 1 | -1) => void;
+  feedbackGiven: 1 | -1 | null;
 }) {
   const avatarColor = getAvatarColor(pick.symbol);
   const krName = STOCK_KR[pick.symbol] || CHOK_KR_MAP[pick.symbol] || pick.krName || pick.symbol;
@@ -207,6 +210,33 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching }: {
           {inWatching ? '✓ 둘러봄' : '둘러보기'}
         </button>
       </div>
+
+      {/* 1탭 피드백 (도움됐어요/별로예요) */}
+      <div className="flex items-center justify-end" style={{ gap: 4, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+        <span style={{ marginRight: 2 }}>도움이 됐어요?</span>
+        <button
+          onClick={() => onFeedback(1)}
+          disabled={feedbackGiven !== null}
+          style={{
+            padding: '2px 6px', fontSize: 12, lineHeight: 1, border: 'none', borderRadius: 4,
+            background: feedbackGiven === 1 ? 'rgba(22,163,74,0.15)' : 'transparent',
+            color: feedbackGiven === 1 ? '#16A34A' : '#8B95A1',
+            cursor: feedbackGiven !== null ? 'default' : 'pointer',
+          }}
+          aria-label="도움됐어요"
+        >👍</button>
+        <button
+          onClick={() => onFeedback(-1)}
+          disabled={feedbackGiven !== null}
+          style={{
+            padding: '2px 6px', fontSize: 12, lineHeight: 1, border: 'none', borderRadius: 4,
+            background: feedbackGiven === -1 ? 'rgba(239,68,82,0.15)' : 'transparent',
+            color: feedbackGiven === -1 ? '#EF4452' : '#8B95A1',
+            cursor: feedbackGiven !== null ? 'default' : 'pointer',
+          }}
+          aria-label="별로예요"
+        >👎</button>
+      </div>
     </div>
   );
 }
@@ -220,6 +250,7 @@ export default function AiChokSection() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [feedbacks, setFeedbacks] = useState<Record<string, 1 | -1>>({});
   const [loginForMore, setLoginForMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fetchedRef = useRef(false);
@@ -291,6 +322,21 @@ export default function AiChokSection() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [investorType]);
+
+  const handleFeedback = async (symbol: string, rating: 1 | -1) => {
+    if (feedbacks[symbol]) return; // 이미 응답함
+    setFeedbacks(prev => ({ ...prev, [symbol]: rating }));
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return; // 비로그인 무시 (서버에서도 401)
+      await fetch('/api/ai-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ source: 'ai-chok', symbol, rating, context: { investorType } }),
+      });
+    } catch { /* silent */ }
+  };
 
   const handleAddWatch = (pick: ChokPick) => {
     if (watchingSet.has(pick.symbol)) return;
@@ -439,6 +485,8 @@ export default function AiChokSection() {
                   onAnalyze={() => setAnalysisSymbol(pick.symbol)}
                   onAddWatch={() => handleAddWatch(pick)}
                   inWatching={watchingSet.has(pick.symbol)}
+                  onFeedback={(rating) => handleFeedback(pick.symbol, rating)}
+                  feedbackGiven={feedbacks[pick.symbol] ?? null}
                 />
               </div>
             ))}

@@ -9,6 +9,7 @@ import { callAiJson, AiProviderError, getProviderStatus } from '@/lib/aiProvider
 import { enrichUniverse, formatStockLine } from '@/utils/chokDataEnricher';
 import { generateFallbackPicks, deterministicSlice } from '@/utils/chokFallback';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
+import { sanitizeAiObject } from '@/utils/alertCompliance';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -407,6 +408,10 @@ export async function POST(req: NextRequest) {
       }
       result = { picks: fallback, context: 'AI 응답이 부족해 보수적 폴백을 선택했어요.' };
     }
+
+    // AI 응답 컴플라이언스 후처리 (FORBIDDEN_PHRASES 자동 교체)
+    const { result: sanitized } = sanitizeAiObject(result);
+    result = sanitized;
 
     const newCount = (cached?.use_count || 0) + 1;
 

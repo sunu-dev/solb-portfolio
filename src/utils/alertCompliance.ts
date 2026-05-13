@@ -74,3 +74,98 @@ export function validateAlertMessage(
 
   return violations;
 }
+
+// ==========================================
+// AI RESPONSE SANITIZER — Gemini/Claude 응답 후처리
+// ==========================================
+//
+// 정책 SSOT: docs/ALGORITHM_REVIEW.md §4 (결정적 결함 #2 대응)
+//
+// AI 응답에 FORBIDDEN_PHRASES가 섞여 나올 수 있어, 응답을 사용자에게
+// 노출하기 전 자동으로 안전한 표현으로 교체한다. ai-analysis 등
+// AI 응답 라우트에서 사용.
+
+/** 금지 어휘 → 안전 대체 표현 매핑 */
+const SAFE_REPLACEMENTS: Record<string, string> = {
+  '지금 사세요': '지금 관찰해보세요',
+  '지금 매수': '지금 관찰',
+  '지금 매도': '지금 점검',
+  '매수하세요': '관찰해보세요',
+  '매도하세요': '점검해보세요',
+  '매수 추천': '관찰 후보',
+  '매도 추천': '점검 후보',
+  '추천 종목': '관찰 후보 종목',
+  '매수 타이밍': '진입 시점 관찰',
+  '매도 타이밍': '청산 시점 점검',
+  '사야 한다': '관찰할 만하다',
+  '팔아야 한다': '점검할 만하다',
+  '사야합니다': '관찰해볼 수 있어요',
+  '팔아야합니다': '점검해볼 수 있어요',
+  '확실한 수익': '예상 수익',
+  '수익 보장': '수익 가능성',
+  '100% 보장': '높은 가능성',
+  '반드시 오릅니다': '오를 가능성이 있어요',
+  '반드시 떨어집니다': '떨어질 가능성이 있어요',
+};
+
+export interface SanitizeResult {
+  text: string;
+  replaced: string[];  // 교체된 어휘 목록 (audit용)
+}
+
+/**
+ * AI 응답 텍스트의 금지 어휘를 안전한 표현으로 자동 교체.
+ *
+ * @param raw AI 원본 응답 (JSON 문자열 또는 일반 텍스트)
+ * @returns 교체된 텍스트 + 교체 기록
+ */
+export function sanitizeAiOutput(raw: string): SanitizeResult {
+  let text = raw;
+  const replaced: string[] = [];
+
+  for (const phrase of FORBIDDEN_PHRASES) {
+    if (text.includes(phrase)) {
+      const safe = SAFE_REPLACEMENTS[phrase] ?? phrase.replace(/매수|매도|사야|팔아야/g, '관찰');
+      // 한국어 단어 경계 (공백·구두점) 고려 — String.prototype.replaceAll 전역
+      text = text.split(phrase).join(safe);
+      replaced.push(phrase);
+    }
+  }
+
+  if (replaced.length > 0 && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      `[AI SANITIZE] ${replaced.length}개 금지 어휘 자동 교체:`,
+      replaced.join(', '),
+    );
+  }
+
+  return { text, replaced };
+}
+
+/**
+ * AI 응답 JSON 객체의 모든 string 필드를 재귀적으로 sanitize.
+ * 멘토 보고서(keyAdvice, mentorVerdict, conclusion.desc 등) 일괄 처리용.
+ */
+export function sanitizeAiObject<T>(obj: T): { result: T; replacedTotal: number } {
+  let replacedTotal = 0;
+
+  function walk(node: unknown): unknown {
+    if (typeof node === 'string') {
+      const { text, replaced } = sanitizeAiOutput(node);
+      replacedTotal += replaced.length;
+      return text;
+    }
+    if (Array.isArray(node)) {
+      return node.map(walk);
+    }
+    if (node && typeof node === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(node)) out[k] = walk(v);
+      return out;
+    }
+    return node;
+  }
+
+  const result = walk(obj) as T;
+  return { result, replacedTotal };
+}
