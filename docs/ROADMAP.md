@@ -169,6 +169,8 @@
 
 - [ALGORITHM_REVIEW.md](ALGORITHM_REVIEW.md) — 17개 알고리즘 정당성 9인 리뷰
 - [BUSINESS_REVIEW.md](BUSINESS_REVIEW.md) — 시장성·수익성 9인 토론
+- [BROKER_FEATURE.md](BROKER_FEATURE.md) — 증권사별 자산 관리 9인 회의 (2026-05-13)
+- [NEXT_ACTIONS.md](NEXT_ACTIONS.md) — 통합 우선순위 목록 (즉시 실행 가능 + 사용자 액션 + 트리거)
 - [THRESHOLDS.md](THRESHOLDS.md) — 임계값 SSOT + 재검증 우선순위
 - [CRONS.md](CRONS.md) — Cron 운영 SSOT
 - [NOTIFICATION_POLICY.md](NOTIFICATION_POLICY.md) — 알림 정책 SSOT
