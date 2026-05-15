@@ -13,7 +13,7 @@
 | 4 | `/api/cron/chok-followup` | `30 17 * * *` | 매일 02:30 | 일별 | AI 촉 추천 종목 24h 후 성과 트래킹 |
 | 5 | `/api/cron/sync-listings` | `0 0 * * *` | 매일 09:00 | 일별 | Finnhub 전체 상장 목록 diff (신규/상폐) |
 | 6 | `/api/cron/enrich-listings` | `0 1 * * *` | 매일 10:00 | 일별 | stock_listings 시총·상장일 점진 채움 (40건/일) |
-| 7 | `/api/cron/check-alerts` | (수동/외부) | — | — | 알림 체크. Vercel cron 미등록 (QStash 또는 외부 트리거 가능) |
+| 7 | `/api/cron/check-alerts` | `0 13 * * *` | 매일 22:00 | 일별 | 가격·기술지표 알림 체크. 미장 개장 직전·푸시 quiet hours 안전 (2026-05-15 등록, BLOCKER #2 대응) |
 
 ## Vercel 플랜 한계 (반드시 지킬 것)
 
