@@ -25,7 +25,7 @@ export default function LandingPage() {
           style={{
             fontSize: 14,
             fontWeight: 700,
-            color: '#3182F6',
+            color: 'var(--brand-primary)',
             letterSpacing: '0.12em',
             marginBottom: 48,
           }}
@@ -64,7 +64,7 @@ export default function LandingPage() {
         <p
           style={{
             fontSize: 14,
-            color: '#3182F6',
+            color: 'var(--brand-primary)',
             lineHeight: 1.6,
             marginBottom: 4,
             fontWeight: 600,
@@ -124,7 +124,7 @@ export default function LandingPage() {
                 justifyContent: 'center',
                 fontSize: 11,
                 fontWeight: 700,
-                color: '#3182F6',
+                color: 'var(--brand-primary)',
               }}>{item.label.slice(0, 2)}</span>
               <span>{item.text}</span>
             </div>
@@ -138,7 +138,7 @@ export default function LandingPage() {
             style={{
               display: 'inline-block',
               padding: '16px 48px',
-              background: '#3182F6',
+              background: 'var(--brand-primary)',
               color: '#FFFFFF',
               fontSize: 17,
               fontWeight: 700,

@@ -108,7 +108,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
             <polygon points="20,8 22.5,13 17.5,13" fill="white"/>
           </svg>
           <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1,
-            background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
+            background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-hover) 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
           }}>
             주비
@@ -146,12 +146,12 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           </ConsentRow>
           <ConsentRow checked={agreeTerms} onChange={setAgreeTerms}>
             <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6', textDecoration: 'underline' }}>이용약관</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>이용약관</a>
             에 동의합니다
           </ConsentRow>
           <ConsentRow checked={agreePrivacy} onChange={setAgreePrivacy}>
             <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6', textDecoration: 'underline' }}>개인정보처리방침</a>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>개인정보처리방침</a>
             에 동의합니다 (국외이전 포함)
           </ConsentRow>
         </div>
@@ -261,7 +261,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         <p style={{ fontSize: '11px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
           본 서비스는 투자 참고용이며, 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
           <br />
-          <strong style={{ color: '#3182F6' }}>베타 단계로 무료 제공 중</strong>입니다.
+          <strong style={{ color: 'var(--brand-primary)' }}>베타 단계로 무료 제공 중</strong>입니다.
         </p>
       </div>
     </div>
@@ -295,7 +295,7 @@ function ConsentRow({
         style={{
           width: 16,
           height: 16,
-          accentColor: '#3182F6',
+          accentColor: 'var(--brand-primary)',
           cursor: 'pointer',
           flexShrink: 0,
         }}

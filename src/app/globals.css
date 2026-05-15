@@ -15,13 +15,27 @@
   --surface: #FFFFFF;
   --surface-hover: #F9FAFB;
 
-  /* Brand — 솔(松) + 비(雨) */
+  /* Brand — 솔(松) + 비(雨) ─ V1.1 리브랜딩 3인 패널 합의 (2026-05-15) */
+  /* Primary: 송우 Mossy Teal — 토스블루와 시각 차별, 학습/내공 메타포 */
+  --brand-primary: #0E7C7B;
+  --brand-primary-hover: #0A6362;
+  --brand-primary-light: rgba(14, 124, 123, 0.08);
+  --brand-primary-bg: rgba(14, 124, 123, 0.06);
+  /* Accent: 인스타 골드 — AI 촉 강조, 페르소나 "인스타 박힘" 요구 */
+  --brand-accent: #F59E0B;
+  --brand-accent-hover: #D97706;
+  --brand-accent-light: rgba(245, 158, 11, 0.10);
+  --brand-accent-bg: rgba(245, 158, 11, 0.06);
+  /* Slate: 비(雨) 보조 — 채도 낮은 청회색, 보조 텍스트·차트 격자 */
+  --brand-slate: #94A3B8;
+  --brand-slate-strong: #64748B;
+  /* Legacy (점진 마이그레이션 — V1.1 완료 시 alias 제거) */
   --brand-sol: #1B6B3A;
   --brand-rain: #3182F6;
   --brand-gold: #D4A853;
-  --brand-gradient: linear-gradient(135deg, #1B6B3A, #3182F6);
+  --brand-gradient: linear-gradient(135deg, #0E7C7B, #14B8A6);
 
-  /* Accent */
+  /* Accent (legacy shadcn) */
   --accent: oklch(0.97 0 0);
   --accent-blue: #3182F6;
   --accent-light: rgba(49, 130, 246, 0.08);
@@ -118,6 +132,12 @@
   --color-accent: var(--accent);
   --color-gain: var(--color-gain);
   --color-loss: var(--color-loss);
+  /* V1.1 Brand tokens for Tailwind classes (bg-brand-primary, text-brand-primary 등) */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-hover: var(--brand-primary-hover);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-accent-hover: var(--brand-accent-hover);
+  --color-brand-slate: var(--brand-slate);
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -306,6 +326,18 @@ body {
   --text-secondary: #8E8E9A;
   --text-tertiary: #5C5C6A;
   --border-light: #2A2D3D;
+  /* V1.1 Brand dark variants — 명도↑ 채도↓ (다크에서 형광 회피) */
+  --brand-primary: #14B8A6;
+  --brand-primary-hover: #2DD4BF;
+  --brand-primary-light: rgba(20, 184, 166, 0.15);
+  --brand-primary-bg: rgba(20, 184, 166, 0.10);
+  --brand-accent: #FBBF24;
+  --brand-accent-hover: #F59E0B;
+  --brand-accent-light: rgba(251, 191, 36, 0.18);
+  --brand-accent-bg: rgba(251, 191, 36, 0.10);
+  --brand-slate: #94A3B8;
+  --brand-slate-strong: #CBD5E1;
+  --brand-gradient: linear-gradient(135deg, #14B8A6, #5EEAD4);
   --border-row: #1E2030;
   --color-gain: #EF4452;
   --color-loss: #3182F6;

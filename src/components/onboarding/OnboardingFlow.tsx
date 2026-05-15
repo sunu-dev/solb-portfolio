@@ -37,7 +37,7 @@ const VALUE_CARDS = [
     emoji: '📊',
     title: '매일 내 종목 한 줄 요약',
     desc: '오늘 가장 큰 움직임, 52주 위치, 멘토 평가까지 한 화면에.',
-    color: '#3182F6',
+    color: 'var(--brand-primary)',
   },
   {
     emoji: '🎯',
@@ -120,7 +120,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               width: step === i ? '24px' : '8px',
               height: '8px',
               borderRadius: '4px',
-              background: step === i ? '#3182F6' : 'var(--border-strong, #E5E8EB)',
+              background: step === i ? 'var(--brand-primary)' : 'var(--border-strong, #E5E8EB)',
               transition: 'all 0.3s ease',
             }}
           />
@@ -134,7 +134,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         {step === 0 && (
           <>
             <div style={{ fontSize: '40px', fontWeight: 900, letterSpacing: '-0.04em', margin: '0 auto 12px', lineHeight: 1 }}>
-              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>주</span><span style={{ color: 'var(--text-primary, #191F28)' }}>비</span>
+              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, var(--brand-primary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>주</span><span style={{ color: 'var(--text-primary, #191F28)' }}>비</span>
             </div>
             <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 28 }}>
               {userName}님의 <strong style={{ color: '#191F28' }}>주</strong>식 <strong style={{ color: '#191F28' }}>비</strong>서
@@ -251,7 +251,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                     }}
                     style={{
                       display: 'inline-block', padding: '10px 18px', borderRadius: 20,
-                      background: isAdded ? '#3182F6' : 'var(--bg-subtle, #F2F4F6)',
+                      background: isAdded ? 'var(--brand-primary)' : 'var(--bg-subtle, #F2F4F6)',
                       fontSize: 13, fontWeight: 600,
                       color: isAdded ? '#fff' : 'var(--text-primary, #333D4B)',
                       border: 'none', cursor: isAdded ? 'default' : 'pointer', transition: 'all 0.2s',
@@ -293,7 +293,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                     <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: '#F2F4F6', color: '#4E5968', marginLeft: 'auto' }}>{p.sector}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>{p.reason}</div>
-                  <div style={{ fontSize: 11, color: '#3182F6', background: 'rgba(49,130,246,0.08)', padding: '2px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{p.keyMetric}</div>
+                  <div style={{ fontSize: 11, color: 'var(--brand-primary)', background: 'var(--brand-primary-light)', padding: '2px 8px', borderRadius: 4, alignSelf: 'flex-start' }}>{p.keyMetric}</div>
                 </div>
               ))}
             </div>
@@ -328,7 +328,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
           onClick={handleNext}
           style={{
             width: '100%', height: 52, borderRadius: 12,
-            background: '#3182F6', color: '#fff',
+            background: 'var(--brand-primary)', color: '#fff',
             fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
           }}
         >

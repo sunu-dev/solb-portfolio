@@ -16,7 +16,7 @@ export default async function OG() {
         style={{
           width: '100%',
           height: '100%',
-          background: 'linear-gradient(135deg, #3182F6 0%, #1B64DA 100%)',
+          background: 'linear-gradient(135deg, #0E7C7B 0%, #0A6362 100%)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

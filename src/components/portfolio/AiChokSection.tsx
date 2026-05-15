@@ -165,7 +165,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
           style={{
             fontSize: 11,
             fontWeight: 600,
-            color: '#3182F6',
+            color: 'var(--brand-primary)',
             background: 'var(--color-info-bg, rgba(49,130,246,0.08))',
             padding: '3px 8px',
             borderRadius: 6,
@@ -210,7 +210,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
             fontSize: 11,
             fontWeight: 600,
             background: inWatching ? 'var(--bg-subtle, #F2F4F6)' : 'var(--color-info-bg, rgba(49,130,246,0.08))',
-            color: inWatching ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
+            color: inWatching ? 'var(--text-tertiary, #B0B8C1)' : 'var(--brand-primary)',
             border: 'none',
           }}
         >
@@ -413,7 +413,7 @@ export default function AiChokSection() {
             style={{
               fontSize: 12,
               fontWeight: state.fallback || state.stale ? 700 : 500,
-              color: '#3182F6',
+              color: 'var(--brand-primary)',
               background: state.fallback || state.stale ? 'var(--color-info-bg, rgba(49,130,246,0.08))' : 'none',
               border: 'none',
               padding: state.fallback || state.stale ? '6px 10px' : '4px 0',
@@ -458,7 +458,7 @@ export default function AiChokSection() {
               onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
               style={{
                 marginTop: 14, padding: '8px 20px', borderRadius: 8,
-                background: '#3182F6', color: '#fff', border: 'none',
+                background: 'var(--brand-primary)', color: '#fff', border: 'none',
                 fontSize: 13, fontWeight: 700, cursor: 'pointer',
               }}
             >
@@ -469,7 +469,7 @@ export default function AiChokSection() {
               <button
                 onClick={() => fetchChok('fetch')}
                 className="cursor-pointer"
-                style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
+                style={{ marginTop: 12, fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: 'none', padding: 0 }}
               >
                 다시 시도
               </button>
@@ -532,7 +532,7 @@ export default function AiChokSection() {
           <button
             onClick={() => fetchChok('generate')}
             className="cursor-pointer"
-            style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', padding: 0 }}
+            style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: 'none', padding: 0 }}
           >
             다시 촉 받기
           </button>
