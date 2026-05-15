@@ -159,19 +159,26 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
         {pick.reason}
       </div>
 
-      {/* Key metric chip */}
-      <div
-        className="self-start"
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          color: '#3182F6',
-          background: 'var(--color-info-bg, rgba(49,130,246,0.08))',
-          padding: '3px 8px',
-          borderRadius: 6,
-        }}
-      >
-        {pick.keyMetric}
+      {/* Key metric chip + 카드 인라인 면책 (캡처 시 함께 노출되도록) */}
+      <div className="flex items-center justify-between gap-1.5">
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: '#3182F6',
+            background: 'var(--color-info-bg, rgba(49,130,246,0.08))',
+            padding: '3px 8px',
+            borderRadius: 6,
+          }}
+        >
+          {pick.keyMetric}
+        </div>
+        <span
+          title="관찰 후보일 뿐 매수·매도 권유가 아닙니다. 투자 판단은 본인 책임."
+          style={{ fontSize: 9, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}
+        >
+          ⓘ 정보용
+        </span>
       </div>
 
       {/* Actions */}

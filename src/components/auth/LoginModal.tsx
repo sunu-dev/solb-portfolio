@@ -1,6 +1,10 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+const CONSENT_TERMS_VERSION = 'v2';
+const CONSENT_PRIVACY_VERSION = 'v2';
+export const CONSENT_STORAGE_KEY = 'solb_consent_pending';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,6 +20,40 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
     },
     [onClose],
   );
+
+  // 9인 패널 BLOCKER #9·#10: 14세 게이트 + 동의 시점 DB 로깅
+  const [age14, setAge14] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const allChecked = age14 && agreeTerms && agreePrivacy;
+
+  const persistConsent = useCallback(() => {
+    try {
+      sessionStorage.setItem(
+        CONSENT_STORAGE_KEY,
+        JSON.stringify({
+          age_14_plus: true,
+          terms: CONSENT_TERMS_VERSION,
+          privacy: CONSENT_PRIVACY_VERSION,
+          ts: new Date().toISOString(),
+        }),
+      );
+    } catch {
+      // sessionStorage 실패 시 동의 INSERT는 누락되지만 OAuth는 계속 — 베타 사용자 차단보다 우선
+    }
+  }, []);
+
+  const handleGoogle = useCallback(() => {
+    if (!allChecked) return;
+    persistConsent();
+    onGoogleLogin();
+  }, [allChecked, onGoogleLogin, persistConsent]);
+
+  const handleKakao = useCallback(() => {
+    if (!allChecked) return;
+    persistConsent();
+    onKakaoLogin();
+  }, [allChecked, onKakaoLogin, persistConsent]);
 
   // Scroll lock when modal is open
   useEffect(() => {
@@ -92,9 +130,36 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           주식 비서
         </p>
 
+        {/* 동의 체크박스 — 14세·약관·개인정보 (필수) */}
+        <div style={{
+          width: '100%',
+          background: '#F9FAFB',
+          borderRadius: 10,
+          padding: '12px 14px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}>
+          <ConsentRow checked={age14} onChange={setAge14}>
+            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong> 만 14세 이상입니다
+          </ConsentRow>
+          <ConsentRow checked={agreeTerms} onChange={setAgreeTerms}>
+            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6', textDecoration: 'underline' }}>이용약관</a>
+            에 동의합니다
+          </ConsentRow>
+          <ConsentRow checked={agreePrivacy} onChange={setAgreePrivacy}>
+            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6', textDecoration: 'underline' }}>개인정보처리방침</a>
+            에 동의합니다 (국외이전 포함)
+          </ConsentRow>
+        </div>
+
         {/* Google Button */}
         <button
-          onClick={onGoogleLogin}
+          onClick={handleGoogle}
+          disabled={!allChecked}
           style={{
             width: '100%',
             height: '48px',
@@ -108,7 +173,8 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
             fontSize: '15px',
             fontWeight: 600,
             color: '#191F28',
-            cursor: 'pointer',
+            cursor: allChecked ? 'pointer' : 'not-allowed',
+            opacity: allChecked ? 1 : 0.5,
             marginBottom: '10px',
           }}
         >
@@ -136,7 +202,8 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
 
         {/* Kakao Button */}
         <button
-          onClick={onKakaoLogin}
+          onClick={handleKakao}
+          disabled={!allChecked}
           style={{
             width: '100%',
             height: '48px',
@@ -150,7 +217,8 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
             fontSize: '15px',
             fontWeight: 600,
             color: '#191F28',
-            cursor: 'pointer',
+            cursor: allChecked ? 'pointer' : 'not-allowed',
+            opacity: allChecked ? 1 : 0.5,
             marginBottom: '20px',
           }}
         >
@@ -189,17 +257,50 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           확인할 수 있어요.
         </p>
 
-        {/* 개인정보 동의 */}
+        {/* 면책 안내 */}
         <p style={{ fontSize: '11px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-          로그인 시{' '}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#8B95A1', textDecoration: 'underline' }}>개인정보처리방침</a>
-          {' '}및{' '}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#8B95A1', textDecoration: 'underline' }}>이용약관</a>
-          에 동의하는 것으로 간주합니다.
-          <br />
           본 서비스는 투자 참고용이며, 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
+          <br />
+          <strong style={{ color: '#3182F6' }}>베타 단계로 무료 제공 중</strong>입니다.
         </p>
       </div>
     </div>
+  );
+}
+
+// ─── 동의 체크박스 row 컴포넌트 ────────────────────────────────────────────
+function ConsentRow({
+  checked,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <label style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      fontSize: 12,
+      color: '#4E5968',
+      cursor: 'pointer',
+      lineHeight: 1.5,
+    }}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{
+          width: 16,
+          height: 16,
+          accentColor: '#3182F6',
+          cursor: 'pointer',
+          flexShrink: 0,
+        }}
+      />
+      <span>{children}</span>
+    </label>
   );
 }

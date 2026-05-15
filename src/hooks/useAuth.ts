@@ -23,7 +23,7 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       const prevId = prevUserIdRef.current;
       const newId = newSession?.user?.id ?? null;
 
@@ -35,6 +35,34 @@ export function useAuth() {
         console.log('[useAuth] 계정 전환 감지 — 이전 데이터 정리');
         clearUserStorage();
         usePortfolioStore.getState().resetPortfolio();
+      }
+
+      // 신규 로그인 (anon → authenticated): LoginModal에서 동의한 내용을 user_consents에 INSERT
+      // BLOCKER #10 — 동의 시점 DB 로깅 (분쟁 1순위 증거)
+      if (!prevId && newId) {
+        try {
+          const pending = sessionStorage.getItem('solb_consent_pending');
+          if (pending) {
+            const consent = JSON.parse(pending) as {
+              age_14_plus: boolean;
+              terms: string;
+              privacy: string;
+              ts: string;
+            };
+            await supabase.from('user_consents').upsert(
+              [
+                { user_id: newId, consent_type: 'age_14_plus', version: 'v1', agreed_at: consent.ts },
+                { user_id: newId, consent_type: 'terms', version: consent.terms, agreed_at: consent.ts },
+                { user_id: newId, consent_type: 'privacy', version: consent.privacy, agreed_at: consent.ts },
+              ],
+              { onConflict: 'user_id,consent_type,version', ignoreDuplicates: true },
+            );
+            sessionStorage.removeItem('solb_consent_pending');
+          }
+        } catch (e) {
+          // 동의 INSERT 실패해도 로그인은 계속 — 베타 사용자 차단보다 우선. 다음 진입 시 재시도 가능.
+          console.warn('[useAuth] consent persist failed', e);
+        }
       }
 
       prevUserIdRef.current = newId;

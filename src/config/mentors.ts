@@ -101,7 +101,7 @@ PER/EPS 펀더멘털 > 52주 저점 근접도 > RSI (과매도만 관심) > MACD
     icon: '⚖️',
     color: '#7C3AED',
     risk: 3,
-    tagline: '어떤 폭풍에도 버티는 포트폴리오',
+    tagline: '다양한 시장에 대비한 분산',
     emphasis: '전체 균형',
     keywords: ['분산', '자산배분', '리밸런싱', '상관관계'],
     systemPrompt: `당신은 '균형설계'입니다. 포트폴리오 전체의 균형과 분산을 설계하는 AI 멘토입니다.
