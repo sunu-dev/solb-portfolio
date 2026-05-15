@@ -9,8 +9,21 @@ import { cn } from "@/lib/utils";
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: '주비 — 폭풍우에도 흔들리지 않는 내 주식 비서',
-  description: '내 주식을 쉽게 읽어주는 AI 투자 정보 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.',
+  metadataBase: new URL('https://solb-portfolio.vercel.app'),
+  title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
+  description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉(관찰 후보)·멘토 6명 분석·증권사 통합 평단가. 베타 무료.',
+  openGraph: {
+    title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
+    description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉·멘토 6명·증권사 통합. 베타 무료.',
+    type: 'website',
+    locale: 'ko_KR',
+    siteName: '주비',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
+    description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉·멘토 6명·증권사 통합. 베타 무료.',
+  },
 };
 
 export default function RootLayout({
@@ -19,10 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable)}>
+    <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable)} style={{ colorScheme: 'light' }}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
+        <meta name="color-scheme" content="light" />
         <meta name="theme-color" content="#3182F6" />
         {/* iOS PWA */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
