@@ -38,9 +38,19 @@
 - [x] ~~샘플 포트폴리오 sandbox 분리 (watching + 안내)~~ — `9a7bd0e`
 - [x] ~~랜딩 슬로건 톤다운 + "수동 입력"·OCR 보안 카피~~ — `9a7bd0e`
 - [x] ~~iOS PWA PwaInstallCard 기존 존재 검증~~ — SettingsPanel 마운트
-- [ ] **🟡 V1.1**: 랜딩 슬로건 A/B 인프라 (`/landing?v=a/b`)
-- [ ] **🟡 V1.1**: PER/VIX hover tooltip
-- [ ] **🟡 V1.1**: 푸시 권한 타이밍 재설계 (2번째 세션 + AI 촉 1회 직후)
+- [ ] **🟡 V1.2**: 랜딩 슬로건 A/B 인프라 (`/landing?v=a/b`)
+- [ ] **🟡 V1.2**: PER/VIX hover tooltip (커스텀 `<TermHint>` 컴포넌트)
+- [ ] **🟡 V1.2**: 푸시 권한 타이밍 재설계 (2번째 세션 + AI 촉 1회 직후)
+
+### 디자인 리브랜딩 V1.1 — 코드 ✅ (2026-05-15 한 세션 압축 완료)
+- [x] ~~3인 패널 회의 (아트·UX·페르소나27)~~ — Mossy Teal #0E7C7B + Amber #F59E0B 합의
+- [x] ~~Step 1: CSS 토큰 시스템 (globals.css `:root`·`.dark`)~~ — `a56b05c`
+- [x] ~~Step 2: 첫 화면 5개 (landing·OG·LoginModal·Onboarding·AiChokSection)~~ — `a56b05c`
+- [x] ~~Step 3: 카드 3종 (MorningBriefing·MergedHoldings·BrokerSummary)~~ — `738d504`
+- [x] ~~Step 4: 레이아웃 + /help (Header·RightSidebar·MobileNav·help)~~ — `738d504`
+- [ ] **🟡 V1.2**: 다크모드 정식 토글 + 위험 영역 3개 (AI 촉 그라데이션·멘토 SVG·차트 grid)
+- [ ] **🟡 V1.2**: admin·debug 화면 마이그레이션 (Step 5)
+- [ ] **🟡 V1.2**: inline-style hex 잔존 lint (`no-inline-hex` 룰)
 
 ### QA (D-1) — 실기기 수동 sweep
 - [x] ~~체크리스트 작성 (docs/BETA_SMOKE_CHECKLIST.md)~~ — `9a7bd0e`
@@ -53,8 +63,8 @@
 - [ ] **Web Push 410 GONE → `push_subscriptions` 자동 삭제 핸들러**
 - [ ] **`usdKrw` stale 환율 가드** (모닝브리프 발송 직전 freshness 체크)
 
-### 출시 후 즉시 (V1.1, D+7 이내)
-- [ ] **디자인 리브랜딩 풀스코프** — CSS 토큰 시스템 (`--brand-*`) + 다크모드 정식 지원
+### 출시 후 즉시 (V1.2, D+7 이내)
+- [x] ~~디자인 리브랜딩 핵심 (V1.1 Step 1~4)~~ — 한 세션 압축 완료 (2026-05-15)
 - [ ] **PRO 결제 페이지 UI 시안** (`/upgrade` 더미) — 결제 의향 측정 시작
 - [ ] **멘토 시연 영상 5분 — 6/30 전 라이브** (토스 AI 출시 방어 시그니처)
 - [ ] **인스타 릴스 30초 × 3** (멘토 6명 NVDA 분석 차이)
