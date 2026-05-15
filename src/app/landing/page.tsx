@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: '주비 — 폭풍우에도 흔들리지 않는 내 주식 비서',
-  description: '내 주식을 쉽게 읽어주는 AI 투자 정보 비서. 6가지 관점의 종목 분석, 실시간 시세, 스마트 알림.',
+  title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
+  description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉(관찰 후보)·멘토 6명 분석·증권사 통합 평단가. 베타 무료.',
 };
 
 export default function LandingPage() {
@@ -33,7 +33,7 @@ export default function LandingPage() {
           주비
         </div>
 
-        {/* Main headline */}
+        {/* Main headline (9인 패널 BLOCKER #5 톤다운 — 페르소나 거부감 해결) */}
         <h1
           style={{
             fontSize: 36,
@@ -44,9 +44,9 @@ export default function LandingPage() {
             letterSpacing: '-0.02em',
           }}
         >
-          폭풍우에도 흔들리지 않는
+          내 주식,
           <br />
-          내 주식 비서
+          쉽게 읽어주는 AI 비서
         </h1>
 
         <p
@@ -60,17 +60,27 @@ export default function LandingPage() {
           차트 몰라도 괜찮아요. 주비가 읽어드릴게요.
         </p>
 
-        {/* Phase B-4 — broker 어필 카피 */}
+        {/* Phase B-4 — broker 어필 카피 + 수동 입력 솔직 한 줄 (페르소나1 함정 해결) */}
         <p
           style={{
             fontSize: 14,
             color: '#3182F6',
             lineHeight: 1.6,
-            marginBottom: 48,
+            marginBottom: 4,
             fontWeight: 600,
           }}
         >
-          🏦 토스·키움·미래에셋 등 여러 증권사를 한 화면에서 비서답게 코칭합니다
+          🏦 토스·키움·미래에셋 등 여러 증권사를 한 화면에서 비서답게 코칭
+        </p>
+        <p
+          style={{
+            fontSize: 12,
+            color: '#B0B8C1',
+            lineHeight: 1.6,
+            marginBottom: 48,
+          }}
+        >
+          직접 입력 또는 스크린샷 OCR · 이미지는 서버에 저장하지 않습니다
         </p>
 
         {/* Feature list */}

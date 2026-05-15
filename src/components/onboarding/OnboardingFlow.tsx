@@ -181,7 +181,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               샘플로 둘러봐도 좋고, 본인 종목을 가져와도 좋아요
             </p>
 
-            {/* 샘플 포트폴리오 체험 */}
+            {/* 샘플 종목 — '관심' 목록에 sandbox로 추가 (보유 아님)
+                9인 패널 BLOCKER #7 — 페르소나 함정: "체험인 줄 알았다가 본 화면에 안 산 종목 있음" 해결
+            */}
             <button
               onClick={() => {
                 if (sampleLoaded) { onComplete(); return; }
@@ -191,9 +193,11 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                   SAMPLE_PORTFOLIO.forEach(s => { cacheData[s.symbol] = s.fallback; });
                   localStorage.setItem('solb_quote_cache', JSON.stringify({ data: cacheData, ts: Date.now() }));
                 } catch { /* storage full */ }
+                // 'watching' 카테고리에 추가 — 실제 보유가 아닌 관심 종목으로 명확히 분리.
+                // avgCost·shares는 시뮬레이션 데이터로 유지 (둘러보기용).
                 SAMPLE_PORTFOLIO.forEach(s => {
                   const ns: StockItem = { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: 0, buyBelow: 0 };
-                  addStock('investing', ns);
+                  addStock('watching', ns);
                 });
                 setSampleLoaded(true);
                 logApiCall('onboarding_sample_portfolio');
@@ -208,8 +212,11 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               }}
             >
               <span style={{ fontSize: 18 }}>🐘</span>
-              샘플 포트폴리오로 먼저 구경하기
+              샘플 종목 둘러보기 (관심 목록)
             </button>
+            <p style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>
+              실제 보유 X · 관심 목록에 추가됩니다. 언제든 삭제 가능.
+            </p>
 
             {/* OCR 가져오기 */}
             <button
