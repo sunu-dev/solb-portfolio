@@ -16,14 +16,34 @@
 - [x] ~~Vercel Analytics + Sentry 설치~~ — `1e76442` (DSN 없으면 자동 비활성)
 - [x] ~~Service Role 클라 누출 검증~~ — 0건
 - [x] ~~Cron 7개 Authorization 가드 검증~~ — 모두 통과
-- [ ] **🔴 사용자 액션**: RESEND_API_KEY · EMAIL_FROM · NEXT_PUBLIC_SENTRY_DSN · SENTRY_DSN Vercel env 추가
+- [ ] **🔴 사용자 액션 (다음 세션 즉시 시작 준비됨)**: RESEND_API_KEY · EMAIL_FROM · NEXT_PUBLIC_SENTRY_DSN · SENTRY_DSN Vercel env 추가
+  - **트리거 단어 (다음 세션에서)**: "1번 진행", "Phase A 진행", "Resend 진행", 또는 "Sentry 진행" 중 무엇이든 OK
+  - **Phase A — Resend 가입 + 도메인 결정**:
+    - resend.com Google OAuth 가입 → API Keys → Create (`solb-portfolio-prod`, Sending access) → `re_xxxx` 복사
+    - 도메인 옵션 (사용자 결정 필요):
+      - A1) `solb.kr` 보유 → DNS SPF/DKIM 추가 (5~10분 검증) → `EMAIL_FROM="주비 <noreply@solb.kr>"`
+      - A2) 별도 도메인 (예: solb-portfolio.com) → 동일 DNS 검증
+      - A3) 임시 → `EMAIL_FROM="주비 <onboarding@resend.dev>"` (검증 0, 단 스팸 확률 ↑·송신자 평판 ↓)
+  - **Phase B — Sentry 가입 + DSN**:
+    - sentry.io Google/GitHub OAuth 가입 → Create Project → Platform: **Next.js** → Project name: `solb-portfolio` → DSN 복사 (`https://xxxx@xxxx.ingest.sentry.io/xxxx`)
+    - tracesSampleRate 0.1 (이미 코드 적용)
+  - **Phase C — Vercel UI 입력** (vercel.com → solb-portfolio → Settings → Environment Variables):
+    - `RESEND_API_KEY` = `re_xxxx` (Phase A에서 발급)
+    - `EMAIL_FROM` = (Phase A에서 결정)
+    - `NEXT_PUBLIC_SENTRY_DSN` = (Phase B DSN)
+    - `SENTRY_DSN` = (위와 같은 값)
+    - 4개 모두 Production + Preview + Development 체크
+  - **Phase D — 검증** (Claude가 자동 진행 가능):
+    - Vercel Redeploy 트리거 (또는 자동 재배포 대기)
+    - Sentry 대시보드에서 test event 확인
+    - morning-brief cron 수동 트리거 → 이메일 수신함 확인 (Gmail·Naver)
 
 ### 법무 (D-5) — 코드 ✅
 - [x] ~~14세 게이트 + 동의 체크박스 (LoginModal)~~ — `1a002e7`
 - [x] ~~동의 시점 DB 로깅 (user_consents 테이블·useAuth INSERT)~~ — `1a002e7`
 - [x] ~~AI 촉 카드 인라인 면책 + FORBIDDEN_PHRASES 7개 추가~~ — `1a002e7`
 - [x] ~~멘토 6명 퍼블리시티 검수 (balance tagline 톤다운)~~ — `1a002e7`
-- [ ] **🔴 사용자 액션**: `supabase/migrations/2026-05-15_user_consents.sql` 적용
+- [x] ~~**사용자 액션**: `supabase/migrations/2026-05-15_user_consents.sql` 적용~~ — 2026-05-15 완료
 - [ ] **🔴 사용자 액션**: 카카오 콘솔·Supabase Auth Redirect URLs production만 화이트리스트
 
 ### 디자인 V1 (D-4) — 코드 ✅
