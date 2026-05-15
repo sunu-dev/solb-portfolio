@@ -225,13 +225,13 @@ export default function RightSidebar() {
             style={{
               padding: '24px 16px',
               borderRadius: 12,
-              background: 'linear-gradient(135deg, rgba(49,130,246,0.04), rgba(175,82,222,0.04))',
-              border: '1px solid rgba(49,130,246,0.08)',
+              background: 'linear-gradient(135deg, rgba(14,124,123,0.06), rgba(245,158,11,0.04))',
+              border: '1px solid rgba(14,124,123,0.10)',
               textAlign: 'center',
             }}
           >
             <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#3182F6', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', marginBottom: 4 }}>
               알림이 없어요
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
@@ -292,8 +292,8 @@ export default function RightSidebar() {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: '#3182F6',
-                background: 'rgba(49,130,246,0.08)',
+                color: 'var(--brand-primary)',
+                background: 'var(--brand-primary-light)',
                 padding: '3px 8px',
                 borderRadius: 6,
                 marginBottom: 12,
@@ -334,8 +334,8 @@ export default function RightSidebar() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  background: watchingSet.has(chokPick.symbol) ? 'var(--bg-subtle, #F2F4F6)' : 'rgba(49,130,246,0.08)',
-                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
+                  background: watchingSet.has(chokPick.symbol) ? 'var(--bg-subtle, #F2F4F6)' : 'var(--brand-primary-light)',
+                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-tertiary, #B0B8C1)' : 'var(--brand-primary)',
                   border: 'none',
                 }}
               >

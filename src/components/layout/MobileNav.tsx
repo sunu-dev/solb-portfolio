@@ -53,7 +53,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? '#3182F6' : 'var(--text-tertiary, #B0B8C1)',
+              color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary, #B0B8C1)',
               fontSize: 10,
               fontWeight: isActive ? 600 : 400,
               letterSpacing: '-0.3px',
@@ -70,7 +70,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
                 transform: 'translateX(-50%)',
                 width: 20,
                 height: 2,
-                background: '#3182F6',
+                background: 'var(--brand-primary)',
                 borderRadius: 1,
               }} />
             )}

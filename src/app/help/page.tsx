@@ -133,7 +133,7 @@ export default function HelpPage() {
 
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <HelpCircle size={28} color="#3182F6" />
+          <HelpCircle size={28} color="var(--brand-primary)" />
           <h1 style={{ fontSize: 26, fontWeight: 800, color: '#191F28', margin: 0 }}>
             주비 도움말
           </h1>
@@ -150,8 +150,8 @@ export default function HelpPage() {
           }}
           style={{
             width: '100%', padding: '14px 18px', marginBottom: 24,
-            borderRadius: 12, background: 'rgba(49,130,246,0.08)', color: '#3182F6',
-            border: '1px dashed rgba(49,130,246,0.3)',
+            borderRadius: 12, background: 'rgba(14,124,123,0.08)', color: 'var(--brand-primary)',
+            border: '1px dashed rgba(14,124,123,0.3)',
             fontSize: 14, fontWeight: 700, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           }}

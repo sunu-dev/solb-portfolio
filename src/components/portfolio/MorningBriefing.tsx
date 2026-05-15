@@ -186,8 +186,8 @@ export default function MorningBriefing() {
         marginBottom: 16,
         padding: '18px 20px',
         borderRadius: 16,
-        background: 'linear-gradient(135deg, rgba(255,193,7,0.06) 0%, rgba(49,130,246,0.04) 60%, rgba(175,82,222,0.03) 100%)',
-        border: '1px solid rgba(255,193,7,0.18)',
+        background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(14,124,123,0.04) 60%, rgba(148,163,184,0.03) 100%)',
+        border: '1px solid rgba(245,158,11,0.18)',
         position: 'relative',
         animation: 'briefing-fade-in 0.4s ease-out',
       }}

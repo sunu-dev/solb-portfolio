@@ -111,10 +111,10 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
             display: 'flex', alignItems: 'baseline', gap: 8,
             padding: '10px 12px', marginBottom: 10,
             borderRadius: 10,
-            background: 'linear-gradient(135deg, rgba(49,130,246,0.10), rgba(22,163,74,0.06))',
-            border: '1px solid rgba(49,130,246,0.15)',
+            background: 'linear-gradient(135deg, rgba(14,124,123,0.10), rgba(245,158,11,0.06))',
+            border: '1px solid rgba(14,124,123,0.18)',
           }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#3182F6' }}>💎 통합 자산</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary)' }}>💎 통합 자산</span>
             <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginLeft: 'auto' }}>
               ₩{Math.round(totalValue).toLocaleString()}
             </span>
@@ -140,8 +140,8 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px', borderRadius: 10,
-                background: isActive ? 'rgba(49,130,246,0.10)' : 'var(--bg-subtle, #F8F9FA)',
-                border: isActive ? '1px solid rgba(49,130,246,0.35)' : '1px solid transparent',
+                background: isActive ? 'rgba(14,124,123,0.12)' : 'var(--bg-subtle, #F8F9FA)',
+                border: isActive ? '1px solid rgba(14,124,123,0.35)' : '1px solid transparent',
                 opacity: isOtherActive ? 0.5 : 1,
                 cursor: onSelect ? 'pointer' : 'default',
                 width: '100%',
@@ -161,7 +161,7 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
                   <div style={{
                     width: `${Math.max(2, pct)}%`,
                     height: '100%',
-                    background: s.broker === 'unspecified' ? '#B0B8C1' : '#3182F6',
+                    background: s.broker === 'unspecified' ? '#B0B8C1' : 'var(--brand-primary)',
                     borderRadius: 2,
                   }} />
                 </div>
@@ -181,7 +181,7 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
         })}
       </div>
       {active !== null && (
-        <div style={{ marginTop: 10, fontSize: 11, color: '#3182F6', textAlign: 'center' }}>
+        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--brand-primary)', textAlign: 'center' }}>
           🔍 필터 활성 — 같은 칩을 다시 누르면 전체 보기
         </div>
       )}
