@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -31,6 +33,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-[#F2F4F6]">
         {children}
+        <Analytics />
+        <SpeedInsights />
         <Script
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
           strategy="afterInteractive"
