@@ -112,13 +112,24 @@ export async function GET(req: NextRequest) {
   }
 
   // 2. 기존 stock_listings 전체 조회
-  const { data: existing, error: selErr } = await supabase
-    .from('stock_listings')
-    .select('symbol, status');
-  if (selErr) {
-    console.error('[sync-listings] select error:', selErr);
-    return NextResponse.json({ error: 'db select failed' }, { status: 500 });
+  // Supabase JS 기본 limit이 1000건이라 페이지네이션 필수.
+  // 24,400+ 종목을 한 번에 못 가져오면 매 cron마다 23,000건이 '신규'로 오탐 (2026-05-15 발견).
+  const PAGE = 1000;
+  const allExisting: { symbol: string; status: string }[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: page, error: selErr } = await supabase
+      .from('stock_listings')
+      .select('symbol, status')
+      .range(from, from + PAGE - 1);
+    if (selErr) {
+      console.error('[sync-listings] select error:', selErr);
+      return NextResponse.json({ error: 'db select failed' }, { status: 500 });
+    }
+    if (!page || page.length === 0) break;
+    allExisting.push(...(page as { symbol: string; status: string }[]));
+    if (page.length < PAGE) break; // 마지막 페이지
   }
+  const existing = allExisting;
 
   const existingMap = new Map<string, string>(
     (existing || []).map(r => [r.symbol as string, r.status as string])
