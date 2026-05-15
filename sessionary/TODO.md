@@ -18,12 +18,13 @@
 - [x] ~~Cron 7개 Authorization 가드 검증~~ — 모두 통과
 - [ ] **🔴 사용자 액션 (다음 세션 즉시 시작 준비됨)**: RESEND_API_KEY · EMAIL_FROM · NEXT_PUBLIC_SENTRY_DSN · SENTRY_DSN Vercel env 추가
   - **트리거 단어 (다음 세션에서)**: "1번 진행", "Phase A 진행", "Resend 진행", 또는 "Sentry 진행" 중 무엇이든 OK
-  - **Phase A — Resend 가입 + 도메인 결정**:
+  - **Phase A — Resend 가입 + joobi.kr 도메인 등록**:
+    - **0) joobi.kr 등록** (가비아·후이즈, 1~2만원/년) — 2026-05-15 결정, 유일 미등록 .kr 후보
+    - **0-1) KIPRIS 상표 검색** (`kipris.or.kr`, 5분): "주비"·"JOOBI" 09/35/36 분류 충돌 검토
     - resend.com Google OAuth 가입 → API Keys → Create (`solb-portfolio-prod`, Sending access) → `re_xxxx` 복사
-    - 도메인 옵션 (사용자 결정 필요):
-      - A1) `solb.kr` 보유 → DNS SPF/DKIM 추가 (5~10분 검증) → `EMAIL_FROM="주비 <noreply@solb.kr>"`
-      - A2) 별도 도메인 (예: solb-portfolio.com) → 동일 DNS 검증
-      - A3) 임시 → `EMAIL_FROM="주비 <onboarding@resend.dev>"` (검증 0, 단 스팸 확률 ↑·송신자 평판 ↓)
+    - 도메인 옵션:
+      - A1) **`joobi.kr` 등록 완료 시** → DNS SPF/DKIM 추가 (5~10분 검증) → `EMAIL_FROM="주비 <noreply@joobi.kr>"` ⭐
+      - A2) 임시 → `EMAIL_FROM="주비 <onboarding@resend.dev>"` (검증 0, 단 스팸 확률 ↑)
   - **Phase B — Sentry 가입 + DSN**:
     - sentry.io Google/GitHub OAuth 가입 → Create Project → Platform: **Next.js** → Project name: `solb-portfolio` → DSN 복사 (`https://xxxx@xxxx.ingest.sentry.io/xxxx`)
     - tracesSampleRate 0.1 (이미 코드 적용)

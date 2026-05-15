@@ -35,7 +35,7 @@ export default async function OG() {
             marginBottom: 32,
           }}
         >
-          JUBI
+          JOOBI
         </div>
         <div
           style={{
