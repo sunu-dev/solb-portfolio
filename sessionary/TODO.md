@@ -16,15 +16,18 @@
 - [x] ~~Vercel Analytics + Sentry 설치~~ — `1e76442` (DSN 없으면 자동 비활성)
 - [x] ~~Service Role 클라 누출 검증~~ — 0건
 - [x] ~~Cron 7개 Authorization 가드 검증~~ — 모두 통과
-- [ ] **🔴 사용자 액션 (다음 세션 즉시 시작 준비됨)**: RESEND_API_KEY · EMAIL_FROM · NEXT_PUBLIC_SENTRY_DSN · SENTRY_DSN Vercel env 추가
-  - **트리거 단어 (다음 세션에서)**: "1번 진행", "Phase A 진행", "Resend 진행", 또는 "Sentry 진행" 중 무엇이든 OK
-  - **Phase A — Resend 가입 + joobi.kr 도메인 등록**:
-    - **0) joobi.kr 등록** (가비아·후이즈, 1~2만원/년) — 2026-05-15 결정, 유일 미등록 .kr 후보
-    - **0-1) KIPRIS 상표 검색** (`kipris.or.kr`, 5분): "주비"·"JOOBI" 09/35/36 분류 충돌 검토
-    - resend.com Google OAuth 가입 → API Keys → Create (`solb-portfolio-prod`, Sending access) → `re_xxxx` 복사
-    - 도메인 옵션:
-      - A1) **`joobi.kr` 등록 완료 시** → DNS SPF/DKIM 추가 (5~10분 검증) → `EMAIL_FROM="주비 <noreply@joobi.kr>"` ⭐
-      - A2) 임시 → `EMAIL_FROM="주비 <onboarding@resend.dev>"` (검증 0, 단 스팸 확률 ↑)
+- [ ] **🔴 사용자 액션 (결제 진행 중, 결제 완료 후 즉시 시작 가능)**: joobi.kr 도메인 + RESEND·SENTRY env 4개
+  - **현재 상태 (2026-05-18)**: 가비아에서 `joobi.kr` 2년 결제 진행 중. KIPRIS 상표 검토 완료 (JOOBI 충돌 0건, 한글 "주비"는 아소비교육 38류 캐릭터로 카테고리 다름 → 사용 OK)
+  - **트리거 단어 (다음 세션)**: "등록했어", "결제 완료", "joobi.kr 진행하자", "1번 진행", "Phase A 진행" 중 무엇이든 OK
+  - **결제 완료 후 진행 흐름**:
+    1. **Vercel Add Domain** (3분, 함께): solb-portfolio → Settings → Domains → Add `joobi.kr` + `www.joobi.kr`
+    2. **가비아 DNS 레코드 추가** (5분, 함께): A `@` → 76.76.21.21 + CNAME `www` → cname.vercel-dns.com (Vercel 안내값 그대로)
+    3. **DNS 전파 대기** (5분~24시간 자동)
+    4. **`https://joobi.kr` 정상 접속 확인** + HTTPS 자동 발급
+    5. **Phase A — Resend**: resend.com Google OAuth 가입 → API Keys → Create (`solb-portfolio-prod`, Sending access) → `re_xxxx` 복사 → DNS TXT 추가 (SPF/DKIM, 가비아) → `EMAIL_FROM="주비 <noreply@joobi.kr>"`
+    6. **Phase B — Sentry**: sentry.io Google/GitHub OAuth 가입 → Create Project → Next.js → DSN 복사
+    7. **Phase C — Vercel env 입력**: `RESEND_API_KEY` · `EMAIL_FROM` · `NEXT_PUBLIC_SENTRY_DSN` · `SENTRY_DSN` (Production+Preview+Dev 모두 체크)
+    8. **Phase D — 검증**: Vercel Redeploy → Sentry test event → morning-brief cron 수동 트리거 → 이메일 수신 확인 (Gmail·Naver)
   - **Phase B — Sentry 가입 + DSN**:
     - sentry.io Google/GitHub OAuth 가입 → Create Project → Platform: **Next.js** → Project name: `solb-portfolio` → DSN 복사 (`https://xxxx@xxxx.ingest.sentry.io/xxxx`)
     - tracesSampleRate 0.1 (이미 코드 적용)
