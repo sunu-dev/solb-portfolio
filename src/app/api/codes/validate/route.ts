@@ -8,14 +8,25 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, userId, context = 'signup' } = await req.json() as {
+    const { code, context = 'signup' } = await req.json() as {
       code: string;
-      userId?: string;
       context?: string;
     };
 
     if (!code?.trim()) {
       return NextResponse.json({ valid: false, error: '코드를 입력해주세요.' }, { status: 400 });
+    }
+
+    // 보안: body의 userId는 신뢰하지 않음. Authorization 토큰에서만 추출.
+    // 기존엔 body userId 신뢰 → 타인 명의 코드 사용·리퍼럴 보상 가로채기 가능했음.
+    let userId: string | undefined;
+    const authHeader = req.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      try {
+        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        userId = user?.id;
+      } catch { /* 토큰 검증 실패 — userId 미설정 */ }
     }
 
     const normalized = code.trim().toUpperCase();

@@ -185,8 +185,8 @@ export default function AnalysisPanel() {
     if (!symbol) return;
     const krName = STOCK_KR[symbol] || symbol;
     const q = (krName !== symbol ? krName + ' ' : '') + symbol + ' 주가';
-    fetchKoreanNews(q).then(items => {
-      setTickerNews(items?.slice(0, 5) || []);
+    fetchKoreanNews(q).then(result => {
+      setTickerNews(result.items.slice(0, 5));
     });
   }, [symbol]);
 
@@ -377,11 +377,12 @@ export default function AnalysisPanel() {
                       // AI 분석 시 뉴스를 새로 가져옴 (최신 반영)
                       const freshKr = STOCK_KR[symbol] || symbol;
                       const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
-                      const freshNews = await fetchKoreanNews(freshQuery);
-                      if (freshNews?.length) setTickerNews(freshNews.slice(0, 6));
+                      const freshNewsResult = await fetchKoreanNews(freshQuery);
+                      const freshNewsItems = freshNewsResult.items;
+                      if (freshNewsItems.length) setTickerNews(freshNewsItems.slice(0, 6));
                       // 24시간 이내 뉴스 필터링 + 날짜 레이블
                       const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-                      const recentOnly = (freshNews || tickerNews).filter(n => {
+                      const recentOnly = (freshNewsItems.length ? freshNewsItems : tickerNews).filter(n => {
                         if (!n.pubDate) return false;
                         return new Date(n.pubDate).getTime() > oneDayAgo;
                       });

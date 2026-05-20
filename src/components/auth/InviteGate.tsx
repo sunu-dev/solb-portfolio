@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import type { User } from '@supabase/supabase-js';
 
 interface Props {
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function InviteGate({ user, onVerified }: Props) {
+  const { signOut } = useAuth();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -84,7 +86,7 @@ export default function InviteGate({ user, onVerified }: Props) {
               setCode(e.target.value.toUpperCase());
               setError('');
             }}
-            placeholder="SOLB-XXXXXXXX"
+            placeholder="JB-XXXXXXXX"
             maxLength={20}
             disabled={loading || !!success}
             style={{
@@ -153,7 +155,7 @@ export default function InviteGate({ user, onVerified }: Props) {
         </div>
 
         <button
-          onClick={() => supabase.auth.signOut()}
+          onClick={() => signOut()}
           style={{
             marginTop: 16,
             fontSize: 12,

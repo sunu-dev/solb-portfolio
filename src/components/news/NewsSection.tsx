@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
 import { STOCK_KR } from '@/config/constants';
@@ -27,6 +27,9 @@ const NEWS_TABS = [
   { id: 'my', label: '관심 종목' },
   { id: 'hot', label: '인기' },
 ];
+
+// 마지막 fetch가 어떻게 끝났는지 — EmptyState 분기에 사용
+type FetchStatus = 'idle' | 'ok' | 'empty' | 'network' | 'server' | 'timeout';
 
 function getNewsTag(title: string): NewsTag & { type: string } {
   const t = title.toLowerCase();
@@ -61,59 +64,89 @@ function NewsSkeleton() {
 }
 
 export default function NewsSection() {
-  const { currentNewsMarket, setCurrentNewsMarket, newsCache, stocks } = usePortfolioStore();
+  const { currentNewsMarket, setCurrentNewsMarket, newsCache, newsCacheTimes, stocks } = usePortfolioStore();
   const { fetchNews } = useNewsData();
   const [loading, setLoading] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState<FetchStatus>('idle');
+  const [retryCount, setRetryCount] = useState(0);
 
   // '내 종목'(all) 탭 전용 — 보유 종목 기반 병렬 검색 결과
   const [portfolioNews, setPortfolioNews] = useState<(NewsItem & { tag: string })[]>([]);
-  const [portfolioNewsLoaded, setPortfolioNewsLoaded] = useState(false);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   const activeMarket = currentNewsMarket === 'all' ? 'us' : currentNewsMarket;
 
-  // 캐시 타임스탬프 관리 (30분 stale)
-  const [cacheTimes] = useState<Record<string, number>>({});
+  // 진행 중인 내 종목 fetch 식별자 — race condition 방지
+  const portfolioFetchIdRef = useRef(0);
+
+  const STALE_MS = 30 * 60 * 1000; // 30분
 
   const loadNews = useCallback(async (market: string) => {
     const m = market === 'all' ? 'us' : market;
-    const cachedAt = cacheTimes[m] || 0;
-    const isStale = Date.now() - cachedAt > 30 * 60 * 1000;
+    const cachedAt = newsCacheTimes[m] || 0;
+    const isStale = Date.now() - cachedAt > STALE_MS;
     const hasCached = newsCache[m]?.length > 0;
-    if (hasCached && !isStale) return;
-    setLoading(true);
-    await fetchNews(m);
-    cacheTimes[m] = Date.now();
-    setLoading(false);
-  }, [newsCache, fetchNews, cacheTimes]);
 
-  // 내 종목 탭 전용: 보유 종목별 병렬 뉴스 검색
+    // 캐시 hit + fresh: 즉시 반환, 네트워크 호출 없음
+    if (hasCached && !isStale) {
+      setFetchStatus('ok');
+      return;
+    }
+    // 캐시 hit + stale: SWR — 즉시 표시 + 백그라운드 갱신
+    if (hasCached && isStale) {
+      setFetchStatus('ok');
+      const result = await fetchNews(m);
+      if (result.status === 'error') setFetchStatus(result.reason as FetchStatus);
+      else setFetchStatus(result.status);
+      return;
+    }
+    // 캐시 miss: 스켈레톤 표시 + fetch
+    setLoading(true);
+    const result = await fetchNews(m);
+    if (result.status === 'error') setFetchStatus(result.reason as FetchStatus);
+    else setFetchStatus(result.status);
+    setLoading(false);
+  }, [newsCache, newsCacheTimes, fetchNews, STALE_MS]);
+
+  // 내 종목 탭 전용: 보유 종목별 병렬 뉴스 검색 (progressive — 첫 결과 즉시 표시)
   useEffect(() => {
     if (currentNewsMarket !== 'all') return;
     const investingSymbols = (stocks.investing || []).map(s => s.symbol);
     if (!investingSymbols.length) {
       setPortfolioNews([]);
-      setPortfolioNewsLoaded(true);
+      setFetchStatus('empty');
       return;
     }
 
     const targets = investingSymbols
       .map(s => ({ sym: s, kr: STOCK_KR[s] }))
       .filter(t => t.kr)
-      .slice(0, 5);
+      .slice(0, 3); // 5→3으로 축소 (rate limit + tail latency 보호)
 
     const queries = targets.length > 0
       ? targets.map(t => `${t.kr} 주가`)
       : ['미국 주식 증시'];
 
+    // 진행 중 fetch id — 사용자가 빠르게 탭을 바꿔도 stale 결과로 덮어쓰지 않음
+    const fetchId = ++portfolioFetchIdRef.current;
+
     setLoading(true);
-    Promise.all(queries.map(q => fetchKoreanNews(q, undefined, 48).catch(() => null)))
-      .then(results => {
-        const seen = new Set<string>();
-        const merged: (NewsItem & { tag: string })[] = [];
-        results.forEach((items, i) => {
-          if (!items) return;
+    setFetchStatus('idle');
+
+    const seen = new Set<string>();
+    const merged: (NewsItem & { tag: string })[] = [];
+    let okCount = 0;
+    let firstResultShown = false;
+
+    // 각 쿼리를 독립 Promise로 처리 — 첫 결과 도착 즉시 setState
+    queries.forEach((q, i) => {
+      fetchKoreanNews(q, undefined, 48).then(result => {
+        // 이 fetch가 시작된 후 사용자가 탭을 바꿨으면 결과 무시
+        if (fetchId !== portfolioFetchIdRef.current) return;
+        if (result.status === 'ok' && result.items.length) {
+          okCount++;
           const sym = targets[i]?.sym || investingSymbols[0];
-          items.slice(0, 4).forEach(item => {
+          result.items.slice(0, 4).forEach(item => {
             if (seen.has(item.title)) return;
             seen.add(item.title);
             let tag = sym;
@@ -122,17 +155,28 @@ export default function NewsSection() {
             }
             merged.push({ ...item, tag });
           });
-        });
-        merged.sort((a, b) => new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime());
-        setPortfolioNews(merged.slice(0, 20));
-        setPortfolioNewsLoaded(true);
+          const sorted = [...merged].sort((a, b) =>
+            new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime()
+          );
+          setPortfolioNews(sorted.slice(0, 20));
+          if (!firstResultShown) {
+            firstResultShown = true;
+            setLoading(false); // 첫 결과 도착 시 스켈레톤 제거
+            setFetchStatus('ok');
+          }
+        }
+      }).catch(() => { /* 개별 실패는 skip */ });
+    });
+
+    // 모든 쿼리가 끝났는데 한 건도 못 받았으면 status 갱신
+    Promise.allSettled(queries.map(q => fetchKoreanNews(q, undefined, 48))).then(() => {
+      if (fetchId !== portfolioFetchIdRef.current) return;
+      if (okCount === 0) {
         setLoading(false);
-      })
-      .catch(() => {
-        setPortfolioNewsLoaded(true);
-        setLoading(false);
-      });
-  }, [currentNewsMarket, stocks.investing]);
+        setFetchStatus(merged.length === 0 ? 'empty' : 'ok');
+      }
+    });
+  }, [currentNewsMarket, stocks.investing, retryTrigger]);
 
   // 그 외 탭: 기존 로직
   useEffect(() => {
@@ -141,14 +185,25 @@ export default function NewsSection() {
   }, [currentNewsMarket]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTabClick = (market: string) => {
+    setRetryCount(0); // 탭 바꾸면 retry 카운터 리셋
     setCurrentNewsMarket(market);
-    if (market === 'all') return; // useEffect가 처리
-    const m = market === 'all' ? 'us' : market;
-    if (!newsCache[m]) {
-      setLoading(true);
-      fetchNews(m).finally(() => setLoading(false));
-    }
+    // 나머지는 useEffect가 처리
   };
+
+  const handleRetry = useCallback(async () => {
+    if (retryCount >= 3) return; // 3회 초과 차단
+    setRetryCount(c => c + 1);
+    if (currentNewsMarket === 'all') {
+      // 내 종목 탭: useEffect dependency를 흔들어 재실행
+      setRetryTrigger(t => t + 1);
+    } else {
+      setLoading(true);
+      const result = await fetchNews(activeMarket);
+      if (result.status === 'error') setFetchStatus(result.reason as FetchStatus);
+      else setFetchStatus(result.status);
+      setLoading(false);
+    }
+  }, [retryCount, currentNewsMarket, activeMarket, fetchNews]);
 
   // '내 종목' 탭이면 portfolioNews 사용, 아니면 newsCache
   const items: (NewsItem & { tag?: string })[] =
@@ -293,11 +348,11 @@ export default function NewsSection() {
           })}
         </div>
       ) : (() => {
-        // 탭별 맞춤 빈 상태
+        // 탭별·상태별 빈 상태 분기
         const investingCount = (stocks.investing || []).length;
         const watchingCount = (stocks.watching || []).length;
 
-        // 내 종목 탭 — 투자 중 종목 없으면 가이드
+        // 1. 내 종목 탭 — 투자 중 종목 없으면 가이드
         if (currentNewsMarket === 'all' && investingCount === 0) {
           return (
             <EmptyState
@@ -315,7 +370,7 @@ export default function NewsSection() {
           );
         }
 
-        // 관심 종목 탭 — 관심 종목 없으면 가이드
+        // 2. 관심 종목 탭 — 관심 종목 없으면 가이드
         if (currentNewsMarket === 'my' && watchingCount === 0) {
           return (
             <EmptyState
@@ -333,18 +388,52 @@ export default function NewsSection() {
           );
         }
 
-        // 일반 시장 탭 — 뉴스 fetch 실패/미수신
+        // 3. fetch 결과별 분기
+        const retryDisabled = retryCount >= 3;
+        const retryLabel = retryDisabled ? '연결을 확인해주세요' : `다시 시도${retryCount > 0 ? ` (${retryCount}/3)` : ''}`;
+
+        if (fetchStatus === 'network' || fetchStatus === 'timeout') {
+          return (
+            <EmptyState
+              icon="⚠️"
+              title="연결을 확인해주세요"
+              description={fetchStatus === 'timeout'
+                ? '응답이 평소보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.'
+                : '인터넷이 불안정해요. 연결을 확인하고 다시 시도해주세요.'}
+              primaryAction={{
+                label: retryLabel,
+                onClick: retryDisabled ? () => {} : handleRetry,
+                variant: retryDisabled ? 'ghost' : 'primary',
+              }}
+            />
+          );
+        }
+
+        if (fetchStatus === 'server') {
+          return (
+            <EmptyState
+              icon="🔧"
+              title="뉴스 서비스 점검 중이에요"
+              description="다른 탭은 정상적으로 이용할 수 있어요. 잠시 후 다시 시도해주세요."
+              primaryAction={{
+                label: retryLabel,
+                onClick: retryDisabled ? () => {} : handleRetry,
+                variant: retryDisabled ? 'ghost' : 'primary',
+              }}
+            />
+          );
+        }
+
+        // 정상 빈 응답 (status === 'empty') 또는 'idle'/'ok'이지만 items 0건
         return (
           <EmptyState
-            icon="📰"
-            title="뉴스를 불러올 수 없어요"
-            description="일시적인 문제일 수 있어요. 잠시 후 다시 시도해주세요."
+            icon="📭"
+            title="지금은 새 뉴스가 없어요"
+            description="시장이 휴장 중이거나 평소보다 조용한 시간일 수 있어요."
             primaryAction={{
-              label: '다시 시도',
-              onClick: () => {
-                setLoading(true);
-                fetchNews(activeMarket).finally(() => setLoading(false));
-              },
+              label: retryLabel,
+              onClick: retryDisabled ? () => {} : handleRetry,
+              variant: retryDisabled ? 'ghost' : 'primary',
             }}
           />
         );

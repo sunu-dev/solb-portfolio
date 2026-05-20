@@ -4,6 +4,7 @@
 
 import type { TrendType, PatternResult, SignalSummary, AIReport } from '@/config/constants';
 import { TREND_TEXT } from '@/config/constants';
+import { iGa } from './koreanJosa';
 
 export function calcSMA(closes: number[], period: number): number[] {
   const r: number[] = [];
@@ -222,7 +223,7 @@ export function getChartShapeSummary(
       return {
         icon: '📈',
         title: '바닥에서 반등 시도 중',
-        desc: `${pattern.name}이(가) 형성되었고, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요. 과거에 이런 패턴에서 반등이 나온 확률이 높아요.`,
+        desc: `${pattern.name}${iGa(pattern.name)} 형성되었고, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요. 과거에 이런 패턴에서 반등이 나온 확률이 높아요.`,
         signal: 'positive',
       };
     }
@@ -238,7 +239,7 @@ export function getChartShapeSummary(
       return {
         icon: '📉',
         title: '하락 추세에서 바닥 다지는 중',
-        desc: `최근 30일간 내려갔지만, 지금 가격이 더 이상 안 떨어지는 바닥 구간이에요. 과거에 이런 모양에서 70% 확률로 반등이 나왔어요.`,
+        desc: `최근 30일간 내려갔지만, 지금 가격이 더 이상 안 떨어지는 바닥 구간이에요. 다만 바닥 패턴이라고 반드시 반등으로 이어지는 건 아니에요.`,
         signal: 'caution',
       };
     }
@@ -381,14 +382,15 @@ export function generateAIReport(
   else if (volRatio < 0.5) { volSignal = 'negative'; volLabel = `평균 대비 ${volRatio.toFixed(1)}배 (한산) 🔴`; }
   indicators.push({ name: '거래량', value: volLabel, signal: volSignal });
 
-  // Historical note
+  // Historical note (종목별 백테스트 통계가 아님 — RSI 일반 해석만 제공)
+  // 기존엔 "5번 반등 평균 +12%" 같은 하드코딩 통계가 종목별 사실로 오인될 위험이 있었음.
   let historicalNote = '';
   if (rsiVal < 30) {
-    historicalNote = '최근 1년간 RSI 30 이하에서 5번 반등했고, 평균 반등폭은 +12%였어요. 다만 2번은 추가 하락했어요.';
+    historicalNote = 'RSI 30 이하는 일반적으로 매도 압력이 누적된 구간이에요. 다만 모든 종목에 같은 양상이 나타나지는 않아요.';
   } else if (rsiVal > 70) {
-    historicalNote = '과열 구간에서는 평균 5~10% 조정이 나타났어요. 분할 매도를 고려해볼 수 있어요.';
+    historicalNote = 'RSI 70 이상은 일반적으로 단기 조정 가능성이 있는 구간이에요. 분할 매도를 고려해볼 수 있어요.';
   } else {
-    historicalNote = '현재 RSI 수준에서는 뚜렷한 역사적 패턴이 없어요. 다른 지표와 함께 판단하세요.';
+    historicalNote = '현재 RSI는 중립 구간이에요. 다른 지표와 함께 판단하세요.';
   }
 
   // Conclusion

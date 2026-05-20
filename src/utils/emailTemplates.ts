@@ -60,7 +60,7 @@ export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
     <!-- 헤더 -->
     <div style="margin-bottom:16px;">
       <div style="font-size:11px;font-weight:700;color:${COLOR_TERTIARY};letter-spacing:0.5px;margin-bottom:4px;">
-        SOLB · MORNING BRIEFING
+        JOOBI · MORNING BRIEFING
       </div>
       <div style="font-size:13px;color:${COLOR_SECONDARY};">
         ${userName ? `${escapeHtml(userName)}님, 좋은 아침이에요 ☕` : '좋은 아침이에요 ☕'}
@@ -116,7 +116,7 @@ export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
 
     <!-- 시그니처 -->
     <div style="text-align:center;font-size:11px;color:${COLOR_TERTIARY};line-height:1.6;padding:8px;">
-      📊 SOLB Portfolio · 매일 오전 7시 발송
+      📊 주비 · 매일 오전 7시 발송
     </div>
 
   </div>

@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     const r = await fetch(rssUrl, {
       // 실제 브라우저 UA — SOLBBot 등 Bot 문자열은 Google이 차단 or 제한
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
       // Next.js App Router는 fetch를 무기한 캐싱함 → 강제 최신화
       cache: 'no-store',
     });
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
         try {
           const r2 = await fetch(fallbackUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(3500),
             cache: 'no-store',
           });
           const text2 = await r2.text();
@@ -129,11 +129,21 @@ export async function GET(req: NextRequest) {
 
     logServerApi('api_news', { query: query || topic, result_count: recent.length });
 
+    // 빈 응답은 절대 CDN 캐시 금지 — 한 명의 빈 응답이 5분간 모든 사용자에게 박히는 사고 방지
+    // 정상 응답: topic(고정 시장)은 길게, q(사용자별)는 짧게 차등
+    const hasData = recent.length > 0;
+    const cacheHeader = !hasData
+      ? 'no-store, no-cache, must-revalidate'
+      : topic
+        ? 's-maxage=600, stale-while-revalidate=1800'  // 고정 시장 탭: 10분 + 30분 stale
+        : 's-maxage=300, stale-while-revalidate=900';  // 사용자 쿼리: 5분 + 15분 stale
+
     return NextResponse.json(
-      { items: recent },
+      { items: recent, _meta: { count: recent.length, source: topic ? 'topic' : 'search' } },
       {
         headers: {
-          'Cache-Control': 's-maxage=180, stale-while-revalidate=300',
+          'Cache-Control': cacheHeader,
+          'x-news-count': String(recent.length),
         },
       }
     );

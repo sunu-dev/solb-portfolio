@@ -13,7 +13,12 @@ import { sanitizeAiObject } from '@/utils/alertCompliance';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+// auth.getUser는 anon client로 (token 검증)
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+// ai_chok_cache(RLS: service-only) / ai_chok_recommendations(INSERT policy 없음) 등 RLS-보호 테이블은
+// service-role admin client로 접근해야 캐시 hit / 백테스트 누적이 실제 작동함.
+const supabaseAdmin = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 const CHOK_USAGE_TAG = 'ai-chok';
 
@@ -53,9 +58,9 @@ function getTodayKST(): string {
 }
 
 async function getDailyChokCount(userId: string): Promise<number> {
-  if (!supabase) return 0;
+  if (!supabaseAdmin) return 0;
   try {
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('ai_usage')
       .select('*', { count: 'exact', head: true })
       .eq('date', getTodayKST())
@@ -69,9 +74,9 @@ async function getDailyChokCount(userId: string): Promise<number> {
 
 // ─── 캐시 (다양성 트래킹용 — 한도 카운팅과 분리) ────────────────────────────
 async function getCachedPicks(userKey: string, dateKey: string) {
-  if (!supabase) return null;
+  if (!supabaseAdmin) return null;
   try {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from('ai_chok_cache')
       .select('picks, use_count, excluded_recent')
       .eq('user_key', userKey)
@@ -86,10 +91,10 @@ async function getCachedPicks(userKey: string, dateKey: string) {
  * 새 세션 진입 직후에도 어제 캐시 그대로 표시 가능 → 빈 화면 방지.
  */
 async function getRecentCachedPicks(userKey: string) {
-  if (!supabase) return null;
+  if (!supabaseAdmin) return null;
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from('ai_chok_cache')
       .select('picks, use_count, created_at')
       .eq('user_key', userKey)
@@ -102,9 +107,9 @@ async function getRecentCachedPicks(userKey: string) {
 }
 
 async function upsertCache(userKey: string, dateKey: string, picks: unknown, useCount: number, excludedRecent: string[]) {
-  if (!supabase) return;
+  if (!supabaseAdmin) return;
   try {
-    await supabase.from('ai_chok_cache').upsert(
+    await supabaseAdmin.from('ai_chok_cache').upsert(
       {
         user_key: userKey,
         date: dateKey,
@@ -130,7 +135,7 @@ async function logRecommendations(opts: {
   vixBucketStr: string;
   enrichedMap: Map<string, { currentPrice: number | null; peRatio: number | null; week52Position: number | null }>;
 }) {
-  if (!supabase) return;
+  if (!supabaseAdmin) return;
   try {
     const rows = opts.picks.map(p => {
       const e = opts.enrichedMap.get(p.symbol);
@@ -148,8 +153,11 @@ async function logRecommendations(opts: {
         week52_position: e?.week52Position ?? null,
       };
     });
-    await supabase.from('ai_chok_recommendations').insert(rows);
-  } catch { /* 테이블 없으면 silent — backtest는 옵션 */ }
+    await supabaseAdmin.from('ai_chok_recommendations').insert(rows);
+  } catch (e) {
+    // 백테스트 데이터 손실은 운영 가시화 필수
+    console.error('[ai-chok] logRecommendations failed:', e);
+  }
 }
 
 // ─── handler ─────────────────────────────────────────────────────────────────
@@ -423,7 +431,7 @@ export async function POST(req: NextRequest) {
 
     await Promise.all([
       upsertCache(userKeyWithType, cacheDateKey, result, newCount, newExcludedRecent),
-      Promise.resolve(supabase?.from('ai_usage').insert({
+      Promise.resolve(supabaseAdmin?.from('ai_usage').insert({
         ip,
         user_id: userId || null,
         date,

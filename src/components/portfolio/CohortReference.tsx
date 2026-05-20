@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { STOCK_KR } from '@/config/constants';
 import { getSector } from '@/utils/portfolioHealth';
+import { iGa } from '@/utils/koreanJosa';
 import type { QuoteData } from '@/config/constants';
 
 /**
@@ -142,7 +143,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
             HIDDEN PICKS
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
-            숨은 종목 · {meta.nameKr}이 자주 보는
+            숨은 종목 · {meta.nameKr}{iGa(meta.nameKr)} 자주 보는
           </div>
         </div>
         <span style={{

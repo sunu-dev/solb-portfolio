@@ -37,6 +37,16 @@ export function useAuth() {
         usePortfolioStore.getState().resetPortfolio();
       }
 
+      // 로그아웃 감지(prev=non-null, new=null) — 다른 탭 로그아웃·토큰 만료·signOut 실패
+      // 시점에도 로컬 데이터 잔존 차단. signOut() 호출도 결국 이 listener를 거치므로
+      // 어떤 경로든 일관된 정리 보장.
+      if (prevId && !newId) {
+        // eslint-disable-next-line no-console
+        console.log('[useAuth] 로그아웃 감지 — 로컬 데이터 정리');
+        clearUserStorage();
+        usePortfolioStore.getState().resetPortfolio();
+      }
+
       // 신규 로그인 (anon → authenticated): LoginModal에서 동의한 내용을 user_consents에 INSERT
       // BLOCKER #10 — 동의 시점 DB 로깅 (분쟁 1순위 증거)
       if (!prevId && newId) {
@@ -94,12 +104,23 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // supabase.auth.signOut()이 실패해도(네트워크·토큰만료 등) 로컬은 반드시 정리.
+    // 정리 누락 시 user=null인데 store 잔존하는 race가 발생함.
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[useAuth] supabase signOut error — 로컬 정리는 계속 진행:', e);
+    }
     clearUserStorage();
     usePortfolioStore.getState().resetPortfolio();
     prevUserIdRef.current = null;
     setUser(null);
     setSession(null);
+    // 완전 클린 상태 보장 — 컴포넌트 트리 전부 다시 마운트되어 stale state/effect 제거.
+    // 디바운스 중인 usePortfolioSync save effect의 race도 reload로 회피.
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   }, []);
 
   return { user, session, loading, signInWithGoogle, signInWithKakao, signOut };

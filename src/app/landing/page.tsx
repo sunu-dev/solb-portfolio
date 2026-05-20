@@ -80,7 +80,7 @@ export default function LandingPage() {
             marginBottom: 48,
           }}
         >
-          직접 입력 또는 스크린샷 OCR · 이미지는 서버에 저장하지 않습니다
+          직접 입력 또는 스크린샷 OCR · 이미지는 서버에 영구 저장하지 않습니다 (OCR 처리 후 즉시 폐기)
         </p>
 
         {/* Feature list */}

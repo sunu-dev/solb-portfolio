@@ -46,10 +46,20 @@ export function usePortfolioSync(user: User | null) {
   // pending save 추적 — 탭 종료 시 즉시 flush 하기 위함
   const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingPayloadRef = useRef<{ stocks: typeof stocks; snaps: typeof dailySnapshots } | null>(null);
+  // 정합성 결함 race-A: 로그아웃 직후 stocks가 빈 배열로 바뀌면서 이전 user.id의 DB에
+  // 빈 데이터가 저장되는 race 차단. user 전환된 첫 변경은 reset/load이므로 save 보류.
+  const syncUserIdRef = useRef<string | null>(null);
 
   // stocks/snapshots 변경 시 DB에 저장 (디바운스)
   useEffect(() => {
     if (!user || !initialLoadDone.current) return;
+
+    // user.id 전환 직후 첫 effect 실행은 baseline 갱신만 하고 save 보류
+    if (syncUserIdRef.current !== user.id) {
+      syncUserIdRef.current = user.id;
+      lastSyncRef.current = JSON.stringify({ stocks, snaps: dailySnapshots });
+      return;
+    }
 
     const currentStr = JSON.stringify({ stocks, snaps: dailySnapshots });
     if (currentStr === lastSyncRef.current) return;
@@ -100,6 +110,13 @@ export function usePortfolioSync(user: User | null) {
     if (!user) {
       initialLoadDone.current = false;
       lastSyncRef.current = '';
+      syncUserIdRef.current = null;
+      // 디바운스 대기 중인 save도 취소 — 이전 user의 stale payload 차단
+      if (pendingTimerRef.current) {
+        clearTimeout(pendingTimerRef.current);
+        pendingTimerRef.current = null;
+      }
+      pendingPayloadRef.current = null;
     }
   }, [user]);
 }

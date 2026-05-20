@@ -70,24 +70,42 @@ function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
   return fallback.slice(0, 15);
 }
 
-export async function fetchKoreanNews(query: string, locale?: string, maxHours?: number): Promise<NewsItem[] | null> {
+// 뉴스 fetch 결과 — 빈 응답·네트워크 에러·서버 에러를 구분
+export type NewsFetchResult =
+  | { status: 'ok'; items: NewsItem[] }
+  | { status: 'empty'; items: NewsItem[]; reason?: string }
+  | { status: 'error'; items: NewsItem[]; reason: 'network' | 'server' | 'timeout' };
+
+export async function fetchKoreanNews(query: string, locale?: string, maxHours?: number): Promise<NewsFetchResult> {
   return fetchNewsAPI({ q: query, locale, maxHours });
 }
 
-async function fetchNewsAPI({ q, topic, locale, maxHours }: { q?: string; topic?: string; locale?: string; maxHours?: number }): Promise<NewsItem[] | null> {
+async function fetchNewsAPI({ q, topic, locale, maxHours }: { q?: string; topic?: string; locale?: string; maxHours?: number }): Promise<NewsFetchResult> {
+  const ctrl = new AbortController();
+  // 서버 측 최악 8.5s (5s + 3.5s fallback)에 여유 1s
+  const timer = setTimeout(() => ctrl.abort('client-timeout'), 9500);
   try {
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (topic) params.set('topic', topic);
     if (locale) params.set('locale', locale);
     if (maxHours) params.set('maxHours', String(maxHours));
-    const r = await fetch(`/api/news?${params}`);
+    const r = await fetch(`/api/news?${params}`, { signal: ctrl.signal });
+    if (!r.ok) {
+      return { status: 'error', items: [], reason: 'server' };
+    }
     const d = await r.json();
-    if (d.items?.length) return d.items;
+    const items: NewsItem[] = Array.isArray(d.items) ? d.items : [];
+    if (items.length > 0) return { status: 'ok', items };
+    return { status: 'empty', items: [] };
   } catch (e) {
-    console.error('News fetch failed:', e);
+    const err = e as Error;
+    const isTimeout = err.name === 'AbortError' || /abort|timeout/i.test(err.message || '');
+    console.error('News fetch failed:', err.name || err.message);
+    return { status: 'error', items: [], reason: isTimeout ? 'timeout' : 'network' };
+  } finally {
+    clearTimeout(timer);
   }
-  return null;
 }
 
 // --- Search stocks (server-side API route) ---
@@ -438,8 +456,8 @@ export function useCandleData(symbol: string | null) {
 export function useNewsData() {
   const { updateNewsCache, getAllSymbols } = usePortfolioStore();
 
-  const fetchNews = useCallback(async (market: string) => {
-    let items: NewsItem[] | null;
+  const fetchNews = useCallback(async (market: string): Promise<NewsFetchResult> => {
+    let result: NewsFetchResult;
     if (market === 'my') {
       const allSymbols = getAllSymbols();
       const krNames = allSymbols.map(s => STOCK_KR[s]).filter(Boolean).slice(0, 3);
@@ -454,16 +472,16 @@ export function useNewsData() {
       } else {
         q = '미국 증시 나스닥 코스피';
       }
-      items = await fetchKoreanNews(q, 'ko', 24);
+      result = await fetchKoreanNews(q, 'ko', 24);
     } else {
       const entry = NEWS_QUERIES[market];
-      if (!entry) return null;
-      items = await fetchNewsAPI({ q: entry.q, topic: entry.topic, locale: entry.locale, maxHours: entry.maxHours });
+      if (!entry) return { status: 'empty', items: [] };
+      result = await fetchNewsAPI({ q: entry.q, topic: entry.topic, locale: entry.locale, maxHours: entry.maxHours });
     }
-    if (items?.length) {
-      updateNewsCache(market, items);
+    if (result.status === 'ok' && result.items.length) {
+      updateNewsCache(market, result.items);
     }
-    return items;
+    return result;
   }, [getAllSymbols, updateNewsCache]);
 
   return { fetchNews };
@@ -471,7 +489,7 @@ export function useNewsData() {
 
 // --- useAutoRefresh ---
 export function useAutoRefresh() {
-  const { autoRefresh, refreshInterval, currentNewsMarket, updateMacroEntry } = usePortfolioStore();
+  const { autoRefresh, refreshInterval, currentNewsMarket, currentSection, updateMacroEntry } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { fetchNews } = useNewsData();
@@ -479,11 +497,32 @@ export function useAutoRefresh() {
   const newsTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fxTimerRef = useRef<NodeJS.Timeout | null>(null);
   const newsMarketRef = useRef(currentNewsMarket);
+  const sectionRef = useRef(currentSection);
 
-  // Keep the ref in sync without triggering interval recreation
+  // Keep refs in sync without triggering interval recreation
   useEffect(() => {
     newsMarketRef.current = currentNewsMarket;
   }, [currentNewsMarket]);
+
+  useEffect(() => {
+    sectionRef.current = currentSection;
+  }, [currentSection]);
+
+  // 페이지가 visible 상태로 복귀하면 뉴스 stale 체크 후 즉시 갱신
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (sectionRef.current !== 'news') return;
+      const market = newsMarketRef.current || 'us';
+      const lastFetch = usePortfolioStore.getState().newsCacheTimes?.[market] || 0;
+      if (Date.now() - lastFetch > 10 * 60 * 1000) {
+        fetchNews(market);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [fetchNews]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -498,10 +537,12 @@ export function useAutoRefresh() {
       fetchMacro();
     }, refreshInterval);
 
-    // 뉴스: 15분마다
+    // 뉴스: 15분마다 — 단, (1) 사용자가 뉴스탭에 있을 때 (2) 페이지가 visible일 때만
     newsTimerRef.current = setInterval(() => {
+      if (sectionRef.current !== 'news') return;
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
       fetchNews(newsMarketRef.current || 'us');
-      fetchNews('my');
+      // 'my'는 NewsSection 내부 5-way 로직이 별도 처리 — 여기서 중복 호출 제거
     }, 15 * 60 * 1000);
 
     // 환율: 10분마다

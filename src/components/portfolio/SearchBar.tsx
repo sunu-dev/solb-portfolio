@@ -8,6 +8,7 @@ import type { StockItem } from '@/config/constants';
 import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { useAuth } from '@/hooks/useAuth';
+import { eunNeun } from '@/utils/koreanJosa';
 
 const RECENT_KEY = 'solb_recent_searches';
 const MAX_RECENT = 5;
@@ -130,7 +131,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       // 다른 broker에 등록된 종목이 있으면 안내 (차단 X)
       const otherBroker = (stocks[c] || []).find(s => s.symbol === sym && s.broker);
       if (otherBroker) {
-        const ok = confirm(`${sym}은(는) 이미 다른 증권사에 등록돼 있어요.\n새 증권사로 추가하시겠어요? (추가 후 증권사를 설정해주세요)`);
+        const ok = confirm(`${sym}${eunNeun(sym)} 이미 다른 증권사에 등록돼 있어요.\n새 증권사로 추가하시겠어요? (추가 후 증권사를 설정해주세요)`);
         if (!ok) return;
         break;
       }

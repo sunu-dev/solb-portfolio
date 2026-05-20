@@ -96,7 +96,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="24" height="24" rx="6" fill="#EF4452"/>
+            <rect width="24" height="24" rx="6" fill="#0E7C7B"/>
             <path
               d="M 7 5 L 12 5 L 12 16 C 12 21 20 21 20 12"
               stroke="white"

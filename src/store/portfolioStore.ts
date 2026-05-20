@@ -46,6 +46,7 @@ interface PortfolioState {
   candleCache: Record<string, Record<number, number>>;
   rawCandles: Record<string, CandleRaw>;
   newsCache: Record<string, NewsItem[]>;
+  newsCacheTimes: Record<string, number>;
   eventCache: Record<string, Record<string, EventCacheEntry>>;
 
   // UI state
@@ -149,6 +150,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       candleCache: {},
       rawCandles: {},
       newsCache: {},
+      newsCacheTimes: {},
       eventCache: {},
 
       currentTab: 'all' as StockCategory,
@@ -235,7 +237,10 @@ export const usePortfolioStore = create<PortfolioState>()(
         set((state) => ({ rawCandles: { ...state.rawCandles, [symbol]: val } })),
 
       updateNewsCache: (market, items) =>
-        set((state) => ({ newsCache: { ...state.newsCache, [market]: items } })),
+        set((state) => ({
+          newsCache: { ...state.newsCache, [market]: items },
+          newsCacheTimes: { ...state.newsCacheTimes, [market]: Date.now() },
+        })),
 
       updateEventCache: (eventId, data) =>
         set((state) => ({ eventCache: { ...state.eventCache, [eventId]: data } })),
@@ -440,11 +445,17 @@ export const usePortfolioStore = create<PortfolioState>()(
         candleCache: {},
         rawCandles: {},
         newsCache: {},
+        newsCacheTimes: {},
         eventCache: {},
         alerts: [],
         dismissedAlerts: [],
         lastDismissBatch: [],
         lastUpdate: null,
+        // 사용자별 데이터 — 계정 전환/로그아웃 시 반드시 초기화
+        investorType: DEFAULT_INVESTOR_TYPE,
+        investorTypeSetAt: null,
+        dailySnapshots: [],
+        customEvents: [],
       }),
 
       // --- Helpers ---

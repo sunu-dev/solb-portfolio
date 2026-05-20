@@ -55,7 +55,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
           {/* J 로고 — 짧은 상단 가로획 + 수직 하강 + 우상향 훅 + 상승 ▲ */}
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="24" height="24" rx="6" fill="#EF4452"/>
+            <rect width="24" height="24" rx="6" fill="#0E7C7B"/>
             {/* J: 짧은 가로획(왼쪽으로만) + 수직 하강 + 우상향 훅 */}
             <path
               d="M 7 5 L 12 5 L 12 16 C 12 21 20 21 20 12"

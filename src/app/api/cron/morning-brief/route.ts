@@ -6,6 +6,7 @@ import type { DailySnapshot } from '@/utils/dailySnapshot';
 import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
+import { sendCronAlert } from '@/lib/cronAlert';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -271,16 +272,25 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // USD/KRW 환율
+    // USD/KRW 환율 — fallback 1400 사용 시 거짓 KRW 손익 위험 → Sentry/운영 모니터링 필수
     const apiKey = process.env.FINNHUB_API_KEY;
     let usdKrw = 1400;
+    let usdKrwIsStale = true;
     try {
       if (apiKey) {
         const fx = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${apiKey}`, { cache: 'no-store' });
         const j = await fx.json();
-        if (j?.quote?.KRW && typeof j.quote.KRW === 'number') usdKrw = j.quote.KRW;
+        if (j?.quote?.KRW && typeof j.quote.KRW === 'number') {
+          usdKrw = j.quote.KRW;
+          usdKrwIsStale = false;
+        }
       }
-    } catch { /* fallback */ }
+    } catch (e) {
+      console.error('[cron/morning-brief] USD/KRW fetch failed — using 1400 fallback', e);
+    }
+    if (usdKrwIsStale) {
+      console.error('[cron/morning-brief] USD/KRW unavailable — using 1400 fallback. KRW 환산 손익은 부정확할 수 있음.');
+    }
 
     // 모든 unique 심볼 시세 병렬 fetch (cron 시간 절약 + Finnhub quota 절약)
     const priceCache: PriceCache = {};
@@ -294,6 +304,9 @@ export async function GET(req: NextRequest) {
     // user_id 기준 push subscription 매핑
     const subMap = Object.fromEntries((subs || []).map(s => [s.user_id as string, s.subscription]));
 
+    // KST date — notification_log idempotency 키
+    const todayKST = new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
+
     for (const userId of userIds) {
       const port = portfolios.find(p => p.user_id === userId);
       if (!port) { stats.skipped++; continue; }
@@ -303,6 +316,21 @@ export async function GET(req: NextRequest) {
 
       const brief = await buildBrief(stocks, snapshots, usdKrw, priceCache);
       if (!brief) { stats.skipped++; continue; }
+
+      // 멱등성 가드 — 같은 KST 일자에 같은 사용자에게 한 번만 발송.
+      // INSERT가 UNIQUE 위반하면 이미 발송된 상태 → skip (cron retry 중복 차단).
+      const { error: idemErr } = await db.from('notification_log').insert({
+        user_id: userId,
+        notification_type: 'morning_brief',
+        sent_date: todayKST,
+        channel: 'pending',
+        status: 'sending',
+      });
+      if (idemErr) {
+        // UNIQUE 위반 또는 테이블 미적용 — silent skip (테이블 적용 후 정상 동작)
+        stats.skipped++;
+        continue;
+      }
 
       const { title, body } = buildPushPayload(brief);
 
@@ -358,6 +386,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ ok: true, ranAt: new Date().toISOString(), ...stats });
   } catch (e) {
+    await sendCronAlert({
+      jobName: 'morning-brief',
+      stage: 'main',
+      error: e,
+      context: { ...stats },
+    });
     return NextResponse.json({
       ok: false,
       error: e instanceof Error ? e.message : String(e),

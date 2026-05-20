@@ -38,8 +38,17 @@ export async function GET(req: NextRequest) {
       { signal: AbortSignal.timeout(5000) }
     );
     const d = await r.json();
+    // 통화 환산 인프라가 USD ↔ KRW만 지원 → 그 외 거래소(.T 도쿄·.HK·.L 런던 등) 차단.
+    // suffix 없음 = US(USD), .KS/.KQ = 한국(KRW)만 허용. 등록되면 KRW 환산이 깨져 거짓 손익 발생.
     const baseResults: SearchResultItem[] = (d.result || [])
-      .filter((item: { type: string }) => item.type === 'Common Stock' || item.type === 'ETP')
+      .filter((item: { type: string; symbol: string }) => {
+        if (item.type !== 'Common Stock' && item.type !== 'ETP') return false;
+        const sym = String(item.symbol || '');
+        if (sym.includes('.')) {
+          return sym.endsWith('.KS') || sym.endsWith('.KQ');
+        }
+        return true;
+      })
       .slice(0, 8)
       .map((item: { symbol: string; description: string }) => ({
         symbol: item.symbol,

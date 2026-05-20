@@ -684,7 +684,7 @@ export default function PortfolioCirclePack({
               padding: '3px 8px', borderRadius: 4,
               background: '#191F28', color: '#FFFFFF',
               fontSize: 10, letterSpacing: 0.5,
-            }}>SOLB</span>
+            }}>JOOBI</span>
             <span style={{ fontVariantNumeric: 'tabular-nums' }}>
               {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
               {' · 누적 '}

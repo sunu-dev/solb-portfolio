@@ -11,6 +11,7 @@ import { STOCK_KR } from '@/config/constants';
 import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/utils/technical';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { validateAlertMessage } from '@/utils/alertCompliance';
+import { iGa } from '@/utils/koreanJosa';
 import { ALERT_POLICY, DEFAULT_ALERT_POLICY, type AlertChannel, type AlertCategory } from '@/config/alertPolicy';
 
 export type { AlertChannel, AlertCategory };
@@ -138,7 +139,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'daily-surge', 'insight', 4,
         `${name} +${dp.toFixed(1)}% 급등`,
-        `오늘 ${name}이(가) 큰 폭으로 상승했어요. 이유를 확인해보세요.`
+        `오늘 ${name}${iGa(name)} 큰 폭으로 상승했어요. 이유를 확인해보세요.`
       ));
     }
 
@@ -147,7 +148,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'daily-plunge', 'risk', 2,
         `${name} ${dp.toFixed(1)}% 급락`,
-        `오늘 ${name}이(가) 큰 폭으로 하락했어요. 손절 라인을 점검하세요.`
+        `오늘 ${name}${iGa(name)} 큰 폭으로 하락했어요. 손절 라인을 점검하세요.`
       ));
     }
 

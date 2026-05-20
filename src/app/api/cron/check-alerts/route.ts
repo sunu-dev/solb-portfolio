@@ -4,6 +4,7 @@ import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
 import { isPushAllowed, isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
+import { sendCronAlert } from '@/lib/cronAlert';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
 function getSupabaseAdmin() {
@@ -52,17 +53,30 @@ async function fetchPrice(symbol: string): Promise<number | null> {
 }
 
 async function fetchUsdKrw(): Promise<number> {
+  // fallback 1400 사용 시 사용자에게 거짓 KRW 손익이 갈 수 있음 → Sentry/운영 모니터링 필수.
+  // 사용자 노출 메시지 본문 변경은 P1 작업으로 미룸 (메시지 빌더 영향 범위 큼).
   try {
     const res = await fetch(
       'https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=1d',
       { signal: AbortSignal.timeout(5000) }
     );
-    if (!res.ok) return 1400;
+    if (!res.ok) {
+      console.error('[cron/check-alerts] USD/KRW fetch !ok — using 1400 fallback');
+      return 1400;
+    }
     const json = await res.json() as {
       chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> };
     };
-    return json.chart?.result?.[0]?.meta?.regularMarketPrice ?? 1400;
-  } catch { return 1400; }
+    const rate = json.chart?.result?.[0]?.meta?.regularMarketPrice;
+    if (typeof rate !== 'number' || rate <= 0) {
+      console.error('[cron/check-alerts] USD/KRW invalid rate — using 1400 fallback');
+      return 1400;
+    }
+    return rate;
+  } catch (e) {
+    console.error('[cron/check-alerts] USD/KRW fetch failed — using 1400 fallback', e);
+    return 1400;
+  }
 }
 
 function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): TriggeredAlert[] {
@@ -114,18 +128,37 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
   return alerts;
 }
 
-// ─── dedup ───────────────────────────────────────────────────────────────────
+// ─── dedup + 종목당 24h cap ──────────────────────────────────────────────────
+// NOTIFICATION_POLICY §3.1: 같은 종목에 하루 최대 3건만 발송 (알림 피로 차단).
+// dedup(같은 alert_type) + symbol daily cap 두 가지를 한 번에 처리.
+const SYMBOL_DAILY_CAP = 3;
 async function filterUnsent(userId: string, alerts: TriggeredAlert[]): Promise<TriggeredAlert[]> {
   const todayKST = new Date(Date.now() + 9 * 3600_000).toISOString().split('T')[0];
   try {
+    // 오늘 보낸 모든 alert_type 조회 (cap 카운트용 — in() 필터 제거)
     const { data } = await getSupabaseAdmin()
       .from('sent_alerts')
       .select('symbol, alert_type')
       .eq('user_id', userId)
-      .eq('sent_date', todayKST)
-      .in('alert_type', alerts.map(a => a.alertType));
-    const sent = new Set((data || []).map((r: { symbol: string; alert_type: string }) => `${r.symbol}:${r.alert_type}`));
-    return alerts.filter(a => !sent.has(`${a.symbol}:${a.alertType}`));
+      .eq('sent_date', todayKST);
+    const allSentToday = (data || []) as Array<{ symbol: string; alert_type: string }>;
+    const sentKeys = new Set(allSentToday.map(r => `${r.symbol}:${r.alert_type}`));
+    const symbolCount: Record<string, number> = {};
+    for (const r of allSentToday) {
+      symbolCount[r.symbol] = (symbolCount[r.symbol] || 0) + 1;
+    }
+
+    const result: TriggeredAlert[] = [];
+    for (const a of alerts) {
+      // 1. 같은 (symbol, alert_type) 중복 → skip
+      if (sentKeys.has(`${a.symbol}:${a.alertType}`)) continue;
+      // 2. 종목당 일일 cap 도달 → skip
+      if ((symbolCount[a.symbol] || 0) >= SYMBOL_DAILY_CAP) continue;
+      // 통과 — 이번 alert가 cap에 카운트되도록 미리 증가
+      symbolCount[a.symbol] = (symbolCount[a.symbol] || 0) + 1;
+      result.push(a);
+    }
+    return result;
   } catch { return alerts; }
 }
 
@@ -163,14 +196,37 @@ async function logAlertSent(opts: {
       delivery_status: opts.status,
       error_message: opts.errorMessage || null,
     }));
-    await getSupabaseAdmin().from('alert_log').insert(rows);
-  } catch { /* alert_log 테이블이 아직 없을 수 있음 — silent */ }
+    const { error } = await getSupabaseAdmin().from('alert_log').insert(rows);
+    if (error) {
+      // 컴플라이언스 분쟁 증거가 사라지는 사고 — 즉시 운영 가시화
+      await sendCronAlert({
+        jobName: 'check-alerts',
+        stage: 'alert_log-insert',
+        error,
+        context: { userId: opts.userId, count: rows.length },
+      });
+    }
+  } catch (e) {
+    await sendCronAlert({
+      jobName: 'check-alerts',
+      stage: 'alert_log-insert',
+      error: e,
+      context: { userId: opts.userId },
+    });
+  }
 }
 
 // ─── main handler ────────────────────────────────────────────────────────────
+// Vercel Cron이 GET 메서드를 보내는데 기존엔 POST만 export → 매일 405 → 알림 0건 사고.
+// GET은 CRON_SECRET Bearer로만 인증, POST는 QStash 서명 또는 CRON_SECRET fallback.
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
+
 export async function POST(req: NextRequest) {
-  // QStash 서명 검증
-  if (process.env.QSTASH_CURRENT_SIGNING_KEY) {
+  const isVercelCronGet = req.method === 'GET';
+  // GET 요청은 QStash 분기 우회 — CRON_SECRET Bearer만
+  if (!isVercelCronGet && process.env.QSTASH_CURRENT_SIGNING_KEY) {
     const receiver = new Receiver({
       currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
       nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || '',
@@ -180,7 +236,7 @@ export async function POST(req: NextRequest) {
     const isValid = await receiver.verify({ signature, body }).catch(() => false);
     if (!isValid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   } else {
-    // fallback: CRON_SECRET Bearer 인증 (Vercel Pro Cron 또는 수동 테스트용)
+    // fallback: CRON_SECRET Bearer 인증 (Vercel Cron GET 또는 QStash 미설정 환경)
     const authHeader = req.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

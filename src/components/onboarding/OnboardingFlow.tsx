@@ -318,7 +318,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--bg-subtle, #F8F9FA)', fontSize: 12, color: '#4E5968', lineHeight: 1.6, borderLeft: '3px solid #1B6B3A', marginBottom: 30, textAlign: 'left' }}>
               <strong style={{ color: '#1B6B3A' }}>주</strong>비 = <strong>주</strong>식 <strong>비</strong>서 ·
               화투의 <strong style={{ color: '#1B6B3A' }}>솔</strong>(松)은 사계절 흔들리지 않는 소나무.<br />
-              <span style={{ fontSize: 11, color: '#8B95A1' }}>폭풍우 속에서도 흔들리지 않는 내 주식 비서.</span>
+              <span style={{ fontSize: 11, color: '#8B95A1' }}>내 주식, 매일 한 줄로 읽어드릴게요.</span>
             </div>
           </>
         )}

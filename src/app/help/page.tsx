@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 interface Section {
   emoji: string;
@@ -188,10 +189,165 @@ export default function HelpPage() {
           </section>
         ))}
 
+        <BugReportSection />
+
         <div style={{ padding: '16px 18px', borderRadius: 12, background: 'rgba(255,149,0,0.06)', fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
           <strong>참고</strong> · 주비는 정보 제공 도구이며 투자 자문이 아닙니다. 모든 투자 판단의 책임은 이용자에게 있습니다.
         </div>
       </div>
     </div>
+  );
+}
+
+// 인앱 버그/피드백 신고 폼 — 사장 카톡 1:1 인입 운영 SLA 붕괴 차단용.
+// 응답은 Slack #beta-bug 채널 + bug_reports 테이블에 저장.
+function BugReportSection() {
+  const [category, setCategory] = useState<'bug' | 'feedback' | 'praise' | 'payment'>('bug');
+  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (message.trim().length < 5) {
+      setErrorMsg('내용을 5자 이상 입력해주세요.');
+      return;
+    }
+    setStatus('sending');
+    setErrorMsg('');
+    try {
+      const session = (await supabase.auth.getSession()).data.session;
+      const token = session?.access_token;
+      const viewport = typeof window !== 'undefined' ? `${window.innerWidth}x${window.innerHeight}` : '';
+      const r = await fetch('/api/feedback/report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          category,
+          message: message.trim(),
+          page: '/help',
+          email: email.trim() || undefined,
+          viewport,
+        }),
+      });
+      const d = await r.json();
+      if (d.ok) {
+        setStatus('ok');
+        setMessage('');
+        setEmail('');
+      } else {
+        setStatus('error');
+        setErrorMsg(d.error || '전송 실패');
+      }
+    } catch {
+      setStatus('error');
+      setErrorMsg('네트워크 오류. 잠시 후 다시 시도해주세요.');
+    }
+  };
+
+  if (status === 'ok') {
+    return (
+      <section style={{ marginBottom: 24, padding: 20, borderRadius: 12, background: 'rgba(14,124,123,0.06)', border: '1px solid rgba(14,124,123,0.2)' }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)', marginBottom: 6 }}>
+          ✅ 잘 받았어요
+        </div>
+        <p style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6, margin: 0 }}>
+          소중한 의견 고마워요. 검토 후 필요하면 입력해주신 이메일로 연락드릴게요.
+        </p>
+        <button
+          onClick={() => setStatus('idle')}
+          style={{ marginTop: 10, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--brand-primary, #0E7C7B)', background: 'transparent', color: 'var(--brand-primary, #0E7C7B)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+        >
+          또 보내기
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section style={{ marginBottom: 32 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 24 }}>💬</span>
+        버그·의견 신고
+      </h2>
+      <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 14, lineHeight: 1.6 }}>
+        뭔가 이상하거나 더 있으면 좋겠다 싶은 게 있으면 알려주세요. 베타 기간엔 모든 신고를 직접 읽어요.
+      </p>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {([
+            { v: 'bug', label: '🐛 버그' },
+            { v: 'feedback', label: '💬 의견' },
+            { v: 'praise', label: '✨ 칭찬' },
+            { v: 'payment', label: '💳 결제' },
+          ] as const).map(opt => (
+            <button
+              type="button"
+              key={opt.v}
+              onClick={() => setCategory(opt.v)}
+              style={{
+                padding: '6px 14px', borderRadius: 999,
+                border: category === opt.v ? '1px solid var(--brand-primary, #0E7C7B)' : '1px solid #E5E8EB',
+                background: category === opt.v ? 'rgba(14,124,123,0.08)' : '#FFFFFF',
+                color: category === opt.v ? 'var(--brand-primary, #0E7C7B)' : '#4E5968',
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder={category === 'bug'
+            ? '어디서 무엇이 안 되는지 적어주세요. (예: 뉴스탭에서 한국 시장 클릭하면 빈 화면)'
+            : '편하게 적어주세요'}
+          maxLength={2000}
+          rows={5}
+          style={{
+            padding: 12, borderRadius: 10, border: '1px solid #E5E8EB',
+            fontSize: 13, lineHeight: 1.6, color: '#191F28', resize: 'vertical',
+            fontFamily: 'inherit', outline: 'none',
+          }}
+        />
+
+        <input
+          type="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="응답 받을 이메일 (선택, 비로그인일 때 권장)"
+          maxLength={200}
+          style={{
+            padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E8EB',
+            fontSize: 13, color: '#191F28', outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
+
+        {errorMsg && (
+          <div style={{ fontSize: 12, color: '#EF4452' }}>{errorMsg}</div>
+        )}
+
+        <button
+          type="submit"
+          disabled={status === 'sending'}
+          style={{
+            padding: '12px 20px', borderRadius: 10,
+            background: status === 'sending' ? '#B0B8C1' : 'var(--brand-primary, #0E7C7B)',
+            color: '#FFFFFF', border: 'none',
+            fontSize: 14, fontWeight: 700, cursor: status === 'sending' ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {status === 'sending' ? '보내는 중...' : '보내기'}
+        </button>
+      </form>
+    </section>
   );
 }
