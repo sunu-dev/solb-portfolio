@@ -5,7 +5,101 @@
 
 ## 진행 중
 
-- [ ] **🟡 Obsidian export** — 2026-05-13 세션 결과물(docs/ 8건 + 세셔너리 2건)을 사용자 Obsidian Vault로 내보내기. 다음 세션 시작 시 사용자에게 vault 경로 + export 범위 확인 후 진행.
+- [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
+
+## 🆕 2026-05-20 세션 — 20인 패널 종합 감사 (P0 18건 코드 ✅)
+
+> **종합 문서**: `docs/BETA_D6_PANEL_AUDIT.md` (5분야 회의 결과 + 반영 + 사용자 액션 + P1/P2)
+
+### 코드 반영 완료 (18건)
+- [x] ~~P0-1: check-alerts cron GET 핸들러 추가 (POST→POST+GET 분기)~~ — 알림 100% 누락 차단
+- [x] ~~P0-2: ai_chok_cache admin client (anon → service-role)~~ — Gemini quota 폭발 차단
+- [x] ~~P0-3: ai_chok_recommendations admin INSERT~~ — 백테스트 누적 활성화
+- [x] ~~P0-4: codes/validate body userId → token 검증~~ — 보안
+- [x] ~~P0-5: user_consents·user_profiles_tier 마이그 git 복구~~
+- [x] ~~P0-6: technical.ts historicalNote 환각 통계 제거~~
+- [x] ~~P0-7: getChartShapeSummary "70% 확률" 제거~~
+- [x] ~~P0-8: 환율 fallback 1400 사용 시 console.error → Sentry 캡쳐~~
+- [x] ~~P0-9: 검색 API 비-USD/비-KRW 종목 차단 (.T/.HK/.L 등)~~
+- [x] ~~P0-10: 종목당 일일 푸시 3개 cap (NOTIFICATION_POLICY §3.1)~~
+- [x] ~~P0-11: "SOLB" 7곳 → "JOOBI" + invite prefix `SOLB-`→`JB-`~~
+- [x] ~~P0-12: "폭풍우" 3곳 → "내 주식, 매일 한 줄로 읽어드려요"~~
+- [x] ~~P0-13: LoginModal·Header 빨강 J → Mossy Teal~~
+- [x] ~~P0-14: alert_log silent fail 제거 + sendCronAlert~~
+- [x] ~~P0-15: notification_log 마이그 + morning-brief 멱등성 가드~~
+- [x] ~~P0-16: cronAlert 유틸 신설 + check-alerts·morning-brief 적용~~
+- [x] ~~P0-17: OCR 카피 "처리 후 즉시 폐기" 정확화~~
+- [x] ~~P0-18: 인앱 버그 신고 채널 (bug_reports + /api/feedback/report + /help 폼)~~
+
+### 🔴 사용자 액션 (D-6 안 필수) — Phase A~G
+- [ ] **Phase A**: 가비아 joobi.kr 결제 완료 + Vercel Add Domain + 가비아 DNS + Resend 가입 + SPF/DKIM TXT
+- [ ] **Phase B**: Sentry 가입 + DSN 복사
+- [ ] **Phase C**: Vercel env 입력 — `RESEND_API_KEY` `EMAIL_FROM` `NEXT_PUBLIC_SENTRY_DSN` `SENTRY_DSN`
+- [ ] **Phase D**: Supabase SQL Editor에 2건 적용:
+  - `supabase/migrations/2026-05-20_notification_log.sql` (푸시 멱등성)
+  - `supabase/migrations/2026-05-20_bug_reports.sql` (인앱 신고)
+- [ ] **Phase E**: 카카오 콘솔·Supabase Auth Redirect URLs production만 화이트리스트
+- [ ] **Phase F**: Slack workspace + 채널 4개 (#beta-bug, #beta-alert, #beta-deploy, #beta-feedback) + Vercel env `SLACK_WEBHOOK_CRON` `SLACK_WEBHOOK_BUG`. 카카오 오픈채팅방 개설
+- [ ] **Phase G**: Redeploy + Sentry test event + morning-brief 수동 트리거 + /help 신고 폼 검증
+
+### 카나리 24h 페르소나 화이트리스트 (운영 패널 합의)
+- [ ] 다증권사 30대 (iOS Safari)
+- [ ] 1증권사 20대 (Android Chrome)
+- [ ] **Samsung Internet** 30대 (필수)
+- [ ] **카카오 인앱브라우저** 20대 (필수)
+- [ ] PC desktop 30대
+
+### 합의된 출시 일자
+- [ ] **5/26(월) 권고** — 5/22(금)은 risk-adjusted 음수. joobi.kr 5/21 이전 완료 시 카나리 4일 가능
+
+## 🆕 2026-05-19 세션 결과물 (베타 D-7 BLOCKER 묶음 — 코드 ✅)
+
+> 상세: `sessionary/2026-05-19-news-tab-p0.md` + `sessionary/2026-05-19-logout-race-and-josa.md`
+
+### 뉴스탭 P0 — 코드 ✅
+- [x] ~~3인 전문가 병렬 회의 (데이터/Next.js/UX)~~
+- [x] ~~P0-A 빈 응답 캐시 no-store~~
+- [x] ~~P0-B cacheTimes 버그 픽스 (Zustand newsCacheTimes)~~
+- [x] ~~P0-C 클라이언트 타임아웃 + 반환 타입 분기 (NewsFetchResult)~~
+- [x] ~~P0-D 내 종목 탭 progressive setState + fan-out 5→3~~
+- [x] ~~P0-E API 타임아웃 단축 (8→5s, 6→3.5s)~~
+- [x] ~~P0-F useAutoRefresh section/visibility 가드~~
+- [x] ~~P0-G EmptyState 4분기 + retry counter (1/3)~~
+
+### 로그아웃 race 3계층 — 코드 ✅
+- [x] ~~InviteGate signOut 우회 수정 (useAuth.signOut 경유)~~
+- [x] ~~resetPortfolio 4필드 추가 (investorType/setAt/dailySnapshots/customEvents)~~
+- [x] ~~clearUserStorage 누락 8키 + prefix 매칭 + candle_* 동적 키~~
+- [x] ~~useAuth.signOut try-catch + window.location 리다이렉트~~
+- [x] ~~onAuthStateChange 로그아웃 분기 (prevId && !newId)~~
+- [x] ~~usePortfolioSync syncUserIdRef 가드 + pending timer 취소~~
+
+### 한국어 조사 유틸 — 코드 ✅
+- [x] ~~src/utils/koreanJosa.ts 신설 (hasJongseong/iGa/eunNeun/eulReul/gwaWa/euroRo)~~
+- [x] ~~CohortReference.tsx HIDDEN PICKS 카드~~
+- [x] ~~technical.ts pattern desc~~
+- [x] ~~alertsEngine.ts 급등/급락 알림~~
+- [x] ~~SearchBar.tsx 종목 중복 confirm~~
+
+### 🔴 사용자 액션 (실기기 검증 필수, 베타 출시 전)
+- [ ] **로그아웃 3시나리오 종목 잔존 0건 확인**: 정상/InviteGate/다른 탭
+- [ ] **"성장 투자자가 자주 보는"** HIDDEN PICKS 카드 표시 확인
+- [ ] **뉴스탭 회선 끊김 → "연결을 확인해주세요" + retry counter** 동작 확인
+- [ ] **로그아웃 후 자동 reload** 동작 + 헤더/포트폴리오 정리 확인
+
+### 🟡 다음 세션 P1 (D+7 안)
+- [ ] **네이버 Search API fallback** — CLIENT_ID/SECRET 발급 + Vercel env + route.ts 시퀀스 추가
+- [ ] **"방금 갱신" 배지** — `newsCacheTimes` 활용 (Mossy Teal 점 + "N분 전 갱신")
+- [ ] **Pull-to-refresh** (모바일)
+- [ ] **SWR optimistic 탭 전환** (cache hit 시 0ms cross-fade)
+- [ ] **BETA_SMOKE_CHECKLIST.md** 보강 — 로그아웃 잔존 + 조사 + 뉴스탭 시나리오
+- [ ] **한국어 조사 유틸 적용 범위 확대** — analysisPrompt.ts, 멘토 결과 텍스트 전수 검사
+
+### 🟡 V1.2 (P2)
+- [ ] **Cache Components (`'use cache'`) 시장 탭 한정 도입** — `cacheComponents: true` 활성화, 라우트 판정 알고리즘 변경 영향 검토
+- [ ] **Supabase + Cron 뉴스 사전 수집** — Google News 의존 최종 제거
+- [ ] **시장 탭 Server Component + Suspense streaming** 점진 분리
+- [ ] **영문 발음 받침 룰** (l/m/n/ng 끝나는 영문 처리)
 
 ## 🚀 베타 출시 D-7 진행 상황 (2026-05-15)
 
