@@ -1001,14 +1001,16 @@ export default function PortfolioSection() {
                             {plPct.toFixed(1)}/{stock.targetReturn}%
                           </span>
                         ) : (
-                          // 진행 중: 진행 바 + 텍스트
+                          // 진행 중: 진행 바 + 텍스트.
+                          // bar 너비 44px(과거 60px) + gap 10px(과거 6px)로 왼쪽 '내 수익' 컬럼과 시각 분리.
+                          // 색은 디자인 시스템 SSOT(Mossy Teal) 적용 — 이전 토스블루 #3182F6 회피.
                           <>
-                            <div style={{ width: '60px', height: '4px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div style={{ width: '44px', height: '4px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: '2px', overflow: 'hidden', marginLeft: '4px' }}>
                               <div
                                 style={{
                                   height: '100%',
                                   borderRadius: '2px',
-                                  background: '#3182F6',
+                                  background: 'var(--brand-primary, #0E7C7B)',
                                   width: `${Math.min(goalPct / stock.targetReturn * 100, 100)}%`,
                                 }}
                               />
