@@ -7,6 +7,44 @@
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
 
+## 🆕 2026-05-28 세션 (2) — 검색 UX·연관 종목 8인 패널 (P0 4건 코드 ✅)
+
+> **종합 문서**: `sessionary/2026-05-28-search-ux-panel.md`
+> **사용자 호소**: "삼성전자 검색 시 005930.KS가 먼저 나오는게 맞나? 토스는 연관 종목 보여주는데 여기는 그것도 아니네"
+> **결과**: 4분야×2인=8인 패널 만장일치 → P0 4건 (3개 파일) 즉시 + P1 연관 종목 V1.2 후속
+
+### 코드 반영 완료 (P0 4건, 3개 파일)
+- [x] ~~P0-1: SearchBar `getDisplayName()` + `getInitial()` helper + JSX 위계 반전 (종목명 15pt/700 메인 + 종목코드 12pt monospace 보조)~~
+- [x] ~~P0-2: 좌측 회색 원 `symbol.charAt(0)` → `getInitial(item)` (한글/영문 첫 글자, 노이즈 제거)~~
+- [x] ~~P0-3: FORBIDDEN_PHRASES 3구 추가 ('인기 종목'·'같이 사는'·'함께 매수') — V1.2 연관 종목 사전 준비~~
+- [x] ~~P0-4: 약관 v3 제2조 1문단 추가 ("연관 정보=객관 기준 정보 제공, 매매 권유 아님") + universe 기준에 '자산 클래스' 명시~~
+
+### 검증
+- [x] ~~`npx tsc --noEmit` 통과~~
+- [x] ~~`npm run lint:alerts` "금지 어휘 검출 없음"~~
+
+### 🟡 V1.2 후속 (P1, 출시 후 1~2주)
+- [ ] **`src/utils/relatedSymbols.ts` SSOT 신설** — `getRelatedSymbols(symbol, limit)` 함수, chokUniverse.sector + isBlockedLeverage 강제 필터 + 시총대 ±50% 가중
+- [ ] **종목 상세 페이지 하단 "같은 산업의 다른 종목" 4칸 카드** (같은 sector 3개 + 대표 ETF 1개 + 라벨)
+- [ ] **`STOCK_KR` 30종에 sector 필드 추가** 또는 `koreanUniverse.ts` 신설 (한국 종목 sector 매핑)
+- [ ] **면책 카피 통합**: "같은 산업 분류 기준 안내이며 매수·매도 추천이 아니에요"
+
+### 🟡 V2 (PRO 차별점)
+- [ ] **6축 mentorScores 유사도 기반 "성향 비슷한 종목"** PRO 도구
+- [ ] **AI 촉 "이 종목과 ○○의 차이" 비교 학습 카드** (PRO 전용)
+
+### 🚫 P2 (영구 금기)
+- 개인화 점수·인기순 정렬 도입 절대 금지
+- "추천" 어휘 절대 금지 (FORBIDDEN_PHRASES 박제)
+- 단일종목 레버리지/인버스 연관 추천 노출 절대 금지
+
+### 권고 어휘 매트릭스 (법무 SSOT)
+| 안전 ✅ | 회색 ⚠ | 위험 ❌ |
+|---|---|---|
+| **같은 산업의 다른 종목** ★ | 관련 종목 | 추천 종목 |
+| 같은 섹터 종목 | 함께 보는 종목 | 인기 종목 |
+| 같은 업종 기업 | 참고 종목 | 이 종목 사면 같이 |
+
 ## 🆕 2026-05-28 세션 — 단일종목 레버리지 ETF/ETN 5분야 패널 (P0 8건 코드 ✅)
 
 > **종합 문서**: `sessionary/2026-05-28-leverage-single-stock-panel.md`
