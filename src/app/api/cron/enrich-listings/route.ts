@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { classifyAssetClass, isUniverseEligibleClass } from '@/utils/leverageGuard';
 
 /**
  * 신규 상장 종목 메타데이터(시총·상장일) 점진 채움 cron
@@ -115,14 +116,25 @@ export async function GET(req: NextRequest) {
       if (marketCap !== null) update.market_cap = marketCap;
       if (listedAt) update.listed_at = listedAt;
 
-      // Universe 편입 3중 AND 자동 검증
+      // 자산 클래스 자동 분류 (P1, 2026-05-28) — leverageGuard SSOT
+      // Universe 4번째 룰 + 단일종목 레버리지/인버스·ETN·other 자동 배제
+      const assetClass = classifyAssetClass(row.symbol, profile.name);
+      update.asset_class = assetClass;
+      // 단일종목 레버리지·인버스는 universe 진입 자체 차단 → status='rejected'
+      if (assetClass === 'leveraged_single' || assetClass === 'inverse_single') {
+        update.status = 'rejected';
+      }
+
+      // Universe 편입 4중 AND 자동 검증 (THRESHOLDS.md #41-43, #46)
       // - market_cap >= $5B
       // - 상장 12개월 이상 (ipo + 12개월 < 오늘)
       // - 데이터 정상 (marketCap AND listedAt 둘 다 있음)
+      // - 자산 클래스 허용 (normal·etf_index·etf_sector·etf_dividend·reit만)
       const meetsUniverse =
         marketCap !== null &&
         marketCap >= UNIVERSE_MIN_MARKET_CAP &&
         listedAt !== null &&
+        isUniverseEligibleClass(assetClass) &&
         (() => {
           const ipoDate = new Date(listedAt);
           if (isNaN(ipoDate.getTime())) return false;

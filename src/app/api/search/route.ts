@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logServerApi } from '@/lib/serverLogger';
+import { isBlockedLeverage } from '@/utils/leverageGuard';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -40,13 +41,15 @@ export async function GET(req: NextRequest) {
     const d = await r.json();
     // 통화 환산 인프라가 USD ↔ KRW만 지원 → 그 외 거래소(.T 도쿄·.HK·.L 런던 등) 차단.
     // suffix 없음 = US(USD), .KS/.KQ = 한국(KRW)만 허용. 등록되면 KRW 환산이 깨져 거짓 손익 발생.
+    // 단일종목 레버리지·인버스 ETF/ETN 차단 — 2026-05-27 KRX 상장 대응, 5분야 패널 합의 (leverageGuard SSOT)
     const baseResults: SearchResultItem[] = (d.result || [])
-      .filter((item: { type: string; symbol: string }) => {
+      .filter((item: { type: string; symbol: string; description?: string }) => {
         if (item.type !== 'Common Stock' && item.type !== 'ETP') return false;
         const sym = String(item.symbol || '');
         if (sym.includes('.')) {
-          return sym.endsWith('.KS') || sym.endsWith('.KQ');
+          if (!(sym.endsWith('.KS') || sym.endsWith('.KQ'))) return false;
         }
+        if (isBlockedLeverage(sym, item.description)) return false;
         return true;
       })
       .slice(0, 8)

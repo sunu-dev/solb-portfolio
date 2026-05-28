@@ -6,7 +6,7 @@ export default function TermsPage() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary, #191F28)' }}>이용약관</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 4 }}>시행일: 2026년 5월 15일 (v2)</p>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 4 }}>시행일: 2026년 5월 28일 (v3)</p>
       <p style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>본 서비스는 현재 <strong style={{ color: '#3182F6' }}>베타 단계</strong>로, 무료로 제공됩니다.</p>
 
       <Section title="제1조 (목적)">
@@ -51,6 +51,9 @@ export default function TermsPage() {
           <li>관련 뉴스 제공</li>
           <li>1탭 피드백 (👍/👎) 수집</li>
         </ol>
+        <p style={{ marginTop: 12, fontSize: 13, color: 'var(--text-tertiary, #8B95A1)' }}>
+          <strong>분석 대상 제외 상품</strong>: 단일종목 레버리지·인버스 ETF·ETN(예: 미래에셋 레버리지 삼성전자 단일종목 ETN, KODEX/TIGER/ACE 단일종목 2X·-2X ETF, 미국 TSLL/NVDU 등)은 일일 N배 추종·음의 복리·발행사 신용 위험이 있는 고위험 단기 트레이딩 도구로, 서비스의 AI 촉·기술적 분석·멘토 분석·모닝 브리프·스마트 알림 대상에서 영구 제외됩니다. 사용자가 직접 보유 등록은 가능하나, 분석 결과는 제공되지 않습니다.
+        </p>
       </Section>
 
       <Section title="제6조 (서비스 이용의 제한)">
@@ -76,6 +79,7 @@ export default function TermsPage() {
           <li>신규 상장(IPO) 종목은 상장 후 12개월 이내에는 시계열 데이터가 부족해 분석 정확도가 낮을 수 있으며, 이 경우 별도 안내가 표시됩니다.</li>
           <li>증권사별 자산 통합 및 평단가 계산은 사용자가 직접 입력한 정보를 기반으로 한 추정값이며, 실제 증권사 표시값과 다를 수 있습니다. 정확한 잔고 확인은 각 증권사 앱을 이용해주세요.</li>
           <li>과거 실적은 미래 수익을 보장하지 않습니다.</li>
+          <li><strong>단일종목 레버리지·인버스 상품(ETF·ETN) 관련</strong>: 본 상품은 일일 수익률의 N배(예: 2배 또는 -2배)를 추종하는 구조로, 장기 보유 시 음의 복리(volatility decay)로 인해 기초자산이 횡보하거나 변동성이 클 경우 원금이 잠식될 수 있습니다. ETN의 경우 발행사 신용 위험(채무불이행 시 원금 손실)이 추가로 존재합니다. 거래소(KRX) 및 금융감독원은 사전 교육 이수와 기본 예탁금 요건을 두고 있으며, 손실 감내 능력과 위험 이해도가 낮은 투자자에게는 부적합하다고 명시하고 있습니다. 서비스는 해당 상품에 대한 어떠한 분석·추천·예측도 제공하지 않으며, 보유 등록 시에도 분석 결과는 제공되지 않습니다.</li>
           <li>투자 판단 및 그에 따른 이익이나 손실에 대한 책임은 전적으로 이용자에게 있습니다.</li>
           <li>서비스는 투자 결정 전 금융 전문가와 상담할 것을 권장합니다.</li>
           <li>서비스의 AI 멘토 캐릭터는 가상의 분석 도구이며, 실존 인물과 무관합니다.</li>

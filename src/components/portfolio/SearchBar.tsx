@@ -9,6 +9,12 @@ import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { useAuth } from '@/hooks/useAuth';
 import { eunNeun } from '@/utils/koreanJosa';
+import { isBlockedLeverage, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
+
+// 검색어가 단일종목 레버리지 의도인지 휴리스틱 판정 — EmptyState 분기에만 사용
+function isLeverageQuery(q: string): boolean {
+  return /레버리지|인버스|곱버스|곱버|2배|2X|단일종목|TQQQ|SOXL|SOXS|UPRO|TSLL|NVDU|FNGU|FNGD/i.test(q);
+}
 
 const RECENT_KEY = 'solb_recent_searches';
 const MAX_RECENT = 5;
@@ -97,14 +103,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           .catch(() => []),
       ]);
 
-      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거
+      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거 + 단일종목 레버리지 차단 (leverageGuard SSOT)
       const seen = new Set<string>();
       const combined: { symbol: string; description: string }[] = [];
       for (const item of [...localMatches, ...krItems, ...usItems]) {
-        if (!seen.has(item.symbol)) {
-          seen.add(item.symbol);
-          combined.push(item);
-        }
+        if (seen.has(item.symbol)) continue;
+        if (isBlockedLeverage(item.symbol, item.description)) continue;
+        seen.add(item.symbol);
+        combined.push(item);
       }
       setResults(combined.slice(0, 8));
       setShowResults(combined.length > 0);
@@ -118,6 +124,11 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       return;
     }
     const sym = symbol.toUpperCase();
+    // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응 (leverageGuard SSOT)
+    if (isBlockedLeverage(sym, name)) {
+      alert(`${LEVERAGE_BLOCK_SHORT}\n\n일일 N배 추종·음의 복리·발행사 신용 위험이 있어 학습용 앱 범위 밖이에요. 자세한 정보는 발행사 공시·금융감독원 안내를 확인해주세요.`);
+      return;
+    }
     // Phase M-1.3 — (symbol, broker) 페어 단위 중복 제어
     // SearchBar는 broker 미지정으로 추가하므로, 미지정 broker로 같은 종목이
     // 이미 있을 때만 차단. broker가 다른 곳에 등록돼 있어도 새 broker로 추가 가능
@@ -314,11 +325,25 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — 단일종목 레버리지 검색어면 명시적 안내, 그 외엔 일반 메시지 */}
       {query.length > 0 && !showResults && results.length === 0 && (
-        <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>
-          검색 결과가 없습니다
-        </div>
+        isLeverageQuery(query) ? (
+          <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: '#B45309', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
+              ⚠ 분석 대상 아님
+            </div>
+            <div style={{ marginBottom: 6, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+              {LEVERAGE_BLOCK_SHORT}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
+              단일종목 레버리지·인버스 ETF/ETN은 일일 N배 추종·음의 복리·발행사 신용 위험이 있어 학습용 앱 범위 밖이에요. 자세한 정보는 발행사 공시·금융감독원 안내를 확인해주세요.
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>
+            검색 결과가 없습니다
+          </div>
+        )
       )}
     </div>
   );

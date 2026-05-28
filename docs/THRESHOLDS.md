@@ -91,11 +91,12 @@
 
 | # | 임계값 | 위치 | 근거 | 재검증 |
 |---|---|---|---|---|
-| 41 | 상장 12개월 이상 | 회의록 (코드 미구현) | 🎯 | P0 (코드 구현 시급) |
-| 42 | 시총 $5B (한국 1조원) 이상 | 회의록 (코드 미구현) | 🎯 | P0 |
-| 43 | 데이터 정상 (Finnhub PER/EPS/52w) | 회의록 (코드 미구현) | 🎯 | P0 |
+| 41 | 상장 12개월 이상 | `enrich-listings/route.ts` | 🎯 | P0 ✅ (2026-05-13 구현) |
+| 42 | 시총 $5B (한국 1조원) 이상 | `enrich-listings/route.ts` | 🎯 | P0 ✅ |
+| 43 | 데이터 정상 (Finnhub PER/EPS/52w) | `enrich-listings/route.ts` | 🎯 | P0 ✅ |
 | 44 | 신규 상장 배지 6개월 이내 | `search/route.ts:10` | 🎯 | P3 |
 | 45 | enrich-listings batch 40건/일 | `enrich-listings/route.ts` | 🎯 (Hobby 60s 안전 마진) | P3 |
+| 46 | **자산 클래스 4번째 룰** — `asset_class IN ('normal','etf_index','etf_sector','etf_dividend','reit')` 만 universe 진입. leveraged_single·inverse_single·etn·leveraged_index·inverse_index·other 모두 배제. | `stock_listings.asset_class` + `utils/leverageGuard.ts:isUniverseEligibleClass` + `enrich-listings/route.ts` | ✅ (자본시장법 §6 + 음의 복리 + 발행사 신용리스크 회피) | P0 ✅ (2026-05-28 구현) |
 
 ## 9. 컴플라이언스
 

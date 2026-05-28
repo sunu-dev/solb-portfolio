@@ -3,8 +3,12 @@
  * 안전성 / 성장성 / 가치 / 수익성 / 추세 / 관심도
  */
 
+import { classifyAssetClass } from './leverageGuard';
+import { STOCK_KR } from '@/config/constants';
+
 interface ScoreInput {
   symbol: string;
+  description?: string;  // 자산 클래스 분류용 (옵셔널, 없으면 STOCK_KR fallback)
   price: number;
   change: number;
   changePercent: number;
@@ -38,10 +42,17 @@ export const ATTRIBUTE_LABELS: { key: keyof StockAttributes; label: string; icon
 ];
 
 // 종목 유형 판별
-function getAssetType(symbol: string): 'leveraged' | 'inverse' | 'index_etf' | 'sector_etf' | 'dividend_etf' | 'kr_stock' | 'stock' {
+// 한국 단일종목 레버리지/인버스 분기 추가 (P1, 2026-05-28) — leverageGuard SSOT 활용
+// 이전 버그: 520100.KS 같은 한국 단일종목 레버리지가 'kr_stock'으로 오분류 → safety=3 일반 프로필 부여
+// → 17개 알고리즘 중 10개가 음의 복리·하루 60% 손실 가능성을 인지 못 하고 작동 (algorithm panel critical #1)
+function getAssetType(symbol: string, description?: string): 'leveraged' | 'inverse' | 'index_etf' | 'sector_etf' | 'dividend_etf' | 'kr_stock' | 'stock' {
   const s = symbol.toUpperCase();
-  if (['TQQQ', 'SOXL', 'UPRO', 'FNGU', 'KORU', 'LABU', 'TNA', 'SPXL', 'TECL', 'FAS'].includes(s)) return 'leveraged';
-  if (['SQQQ', 'SH', 'SPXS', 'SDOW', 'SPXU', 'TZA', 'FAZ'].includes(s)) return 'inverse';
+  // 자산 클래스 SSOT 활용 — 한·미 단일종목 + 지수 레버리지/인버스 일관 식별
+  const desc = description || STOCK_KR[s];
+  const cls = classifyAssetClass(s, desc);
+  if (cls === 'leveraged_single' || cls === 'leveraged_index') return 'leveraged';
+  if (cls === 'inverse_single' || cls === 'inverse_index') return 'inverse';
+
   if (['SPY', 'VOO', 'VTI', 'QQQ', 'IWM', 'IVV', 'DIA', 'VT', 'VXUS'].includes(s)) return 'index_etf';
   if (['SCHD', 'VYM', 'HDV', 'DVY', 'DGRO', 'VIG', 'SPYD', 'JEPI', 'JEPQ'].includes(s)) return 'dividend_etf';
   if (['XLK', 'XLE', 'XLF', 'XLV', 'ARKK', 'ARKW', 'SOXX', 'SMH', 'TAN', 'ICLN'].includes(s)) return 'sector_etf';
@@ -60,7 +71,7 @@ function clamp(v: number): number {
 }
 
 export function calcStockAttributes(input: ScoreInput): StockAttributes {
-  const type = getAssetType(input.symbol);
+  const type = getAssetType(input.symbol, input.description);
   const rsi = input.rsiVal != null ? input.rsiVal : 50;
   const trendStr = input.trend || '';
   const macd = input.macdStatus || '';

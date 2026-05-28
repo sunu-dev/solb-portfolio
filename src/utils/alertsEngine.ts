@@ -12,6 +12,7 @@ import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/u
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { validateAlertMessage } from '@/utils/alertCompliance';
 import { iGa } from '@/utils/koreanJosa';
+import { isBlockedLeverage } from '@/utils/leverageGuard';
 import { ALERT_POLICY, DEFAULT_ALERT_POLICY, type AlertChannel, type AlertCategory } from '@/config/alertPolicy';
 
 export type { AlertChannel, AlertCategory };
@@ -67,8 +68,12 @@ export function checkAllAlerts(
 ): Alert[] {
   const alerts: Alert[] = [];
 
-  const investingStocks = stocks.investing || [];
-  const watchingStocks = stocks.watching || [];
+  // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응, leverageGuard SSOT.
+  // 음의 복리·일일 N배 추종 상품은 모멘텀·SMA·Z-score·52주 임계 모두 왜곡되어
+  // 사용자에게 매수 권유로 오인될 수 있음 → 알림 진입점 첫 줄에서 일관 차단.
+  const notLeveraged = (s: { symbol: string }) => !isBlockedLeverage(s.symbol, STOCK_KR[s.symbol]);
+  const investingStocks = (stocks.investing || []).filter(notLeveraged);
+  const watchingStocks = (stocks.watching || []).filter(notLeveraged);
   const allStocks = [...investingStocks, ...watchingStocks];
 
   // --- Price-based checks ---

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { OcrStock } from '@/app/api/portfolio/ocr/route';
+import { isBlockedLeverage } from '@/utils/leverageGuard';
 
 interface Props {
   onClose: () => void;
@@ -40,6 +41,7 @@ export default function OcrImportModal({ onClose }: Props) {
   const [applied, setApplied] = useState(0);
   const [appliedWatching, setAppliedWatching] = useState(0);
   const [skippedDup, setSkippedDup] = useState(0);
+  const [skippedLeverage, setSkippedLeverage] = useState(0);
   const [targetCat, setTargetCat] = useState<TargetCat>('investing');
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -169,10 +171,13 @@ export default function OcrImportModal({ onClose }: Props) {
     let investCount = 0;
     let watchCount = 0;
     let dupCount = 0;
+    let leverageCount = 0;
 
     ocrStocks.forEach((s, i) => {
       if (!selected.has(i)) return;
       if (isDuplicate(s.symbol)) { dupCount++; return; }
+      // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응 (leverageGuard SSOT)
+      if (isBlockedLeverage(s.symbol, s.name)) { leverageCount++; return; }
 
       const finalAvgCost = parseFloat(s.editAvgCost) || 0;
       const finalShares = parseFloat(s.editShares) || 0;
@@ -199,6 +204,7 @@ export default function OcrImportModal({ onClose }: Props) {
     setApplied(investCount);
     setAppliedWatching(watchCount);
     setSkippedDup(dupCount);
+    setSkippedLeverage(leverageCount);
     setStep('done');
   };
 
@@ -525,6 +531,12 @@ export default function OcrImportModal({ onClose }: Props) {
                 {applied > 0 && <>투자 중 {applied}개<br /></>}
                 {appliedWatching > 0 && <>관심 종목 {appliedWatching}개 (정보 미입력)<br /></>}
                 {skippedDup > 0 && <>중복 {skippedDup}개 건너뜀<br /></>}
+                {skippedLeverage > 0 && (
+                  <>
+                    <span style={{ color: '#B45309' }}>⚠ 단일종목 레버리지·인버스 {skippedLeverage}개 차단</span>
+                    <br />
+                  </>
+                )}
                 포트폴리오에서 확인하고 필요하면 수정해주세요.
               </div>
               <div style={{ display: 'flex', gap: 8 }}>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isBlockedLeverage, LEVERAGE_BLOCK_USER_MESSAGE } from '@/utils/leverageGuard';
 
 /**
  * 한국 종목 (또는 임의 종목) 수동 추가 admin API
@@ -59,6 +60,14 @@ export async function POST(req: NextRequest) {
     normalized = normalized.replace(/\.[A-Z]+$/, '') + '.KS';
   } else if (body.exchange === 'KQ' && !normalized.endsWith('.KQ')) {
     normalized = normalized.replace(/\.[A-Z]+$/, '') + '.KQ';
+  }
+
+  // 단일종목 레버리지·인버스 ETF/ETN 차단 — 2026-05-27 KRX 상장 대응
+  if (isBlockedLeverage(normalized, body.description)) {
+    return NextResponse.json(
+      { error: LEVERAGE_BLOCK_USER_MESSAGE, code: 'leverage_blocked' },
+      { status: 400 },
+    );
   }
 
   const row = {

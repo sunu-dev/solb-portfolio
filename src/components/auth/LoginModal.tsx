@@ -22,10 +22,16 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
   );
 
   // 9인 패널 BLOCKER #9·#10: 14세 게이트 + 동의 시점 DB 로깅
-  const [age14, setAge14] = useState(false);
+  // 출생연도 입력으로 강화 (2026-05-28 P1) — 자본시장법 §49 + 단일종목 레버리지 적합성 의무 대응
+  const [birthYear, setBirthYear] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
-  const allChecked = age14 && agreeTerms && agreePrivacy;
+  const currentYear = new Date().getFullYear();
+  const parsedYear = birthYear.length === 4 ? parseInt(birthYear, 10) : 0;
+  const age = parsedYear > 0 ? currentYear - parsedYear : 0;
+  const isAge14Plus = age >= 14 && age <= 130;
+  const ageInvalid = birthYear.length === 4 && (age < 14 || age > 130 || isNaN(parsedYear));
+  const allChecked = isAge14Plus && agreeTerms && agreePrivacy;
 
   const persistConsent = useCallback(() => {
     try {
@@ -33,6 +39,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         CONSENT_STORAGE_KEY,
         JSON.stringify({
           age_14_plus: true,
+          birth_year: parsedYear,
           terms: CONSENT_TERMS_VERSION,
           privacy: CONSENT_PRIVACY_VERSION,
           ts: new Date().toISOString(),
@@ -41,7 +48,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
     } catch {
       // sessionStorage 실패 시 동의 INSERT는 누락되지만 OAuth는 계속 — 베타 사용자 차단보다 우선
     }
-  }, []);
+  }, [parsedYear]);
 
   const handleGoogle = useCallback(() => {
     if (!allChecked) return;
@@ -130,7 +137,7 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           주식 비서
         </p>
 
-        {/* 동의 체크박스 — 14세·약관·개인정보 (필수) */}
+        {/* 동의 체크박스 — 출생연도(14세 게이트)·약관·개인정보 (필수) */}
         <div style={{
           width: '100%',
           background: '#F9FAFB',
@@ -139,11 +146,44 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           marginBottom: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 10,
         }}>
-          <ConsentRow checked={age14} onChange={setAge14}>
-            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong> 만 14세 이상입니다
-          </ConsentRow>
+          {/* 출생연도 입력 — 만 14세 자동 검증 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#4E5968', lineHeight: 1.5 }}>
+            <span style={{ flexShrink: 0 }}>
+              <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong> 출생연도
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="YYYY"
+              maxLength={4}
+              style={{
+                width: 80,
+                padding: '6px 10px',
+                fontSize: 13,
+                border: `1px solid ${ageInvalid ? '#DC2626' : '#E5E8EB'}`,
+                borderRadius: 6,
+                outline: 'none',
+                textAlign: 'center',
+                color: '#191F28',
+                fontFamily: 'monospace',
+              }}
+            />
+            {isAge14Plus && (
+              <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 600 }}>
+                ✓ 만 {age}세
+              </span>
+            )}
+            {ageInvalid && (
+              <span style={{ fontSize: 11, color: '#DC2626' }}>
+                만 14세 미만은 가입 불가
+              </span>
+            )}
+          </div>
           <ConsentRow checked={agreeTerms} onChange={setAgreeTerms}>
             <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
             <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>이용약관</a>

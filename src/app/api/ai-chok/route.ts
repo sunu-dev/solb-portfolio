@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
+import { isBlockedLeverage } from '@/utils/leverageGuard';
 import { CHOK_SYSTEM_PROMPT, buildUserTypeContext } from '@/config/analysisPrompt';
 import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
@@ -137,22 +138,26 @@ async function logRecommendations(opts: {
 }) {
   if (!supabaseAdmin) return;
   try {
-    const rows = opts.picks.map(p => {
-      const e = opts.enrichedMap.get(p.symbol);
-      return {
-        user_id: opts.userId || null,
-        ip: opts.ip,
-        investor_type: opts.investorType,
-        symbol: p.symbol,
-        sector: p.sector,
-        reason: p.reason,
-        key_metric: p.keyMetric,
-        vix_bucket: opts.vixBucketStr,
-        current_price: e?.currentPrice ?? null,
-        pe_ratio: e?.peRatio ?? null,
-        week52_position: e?.week52Position ?? null,
-      };
-    });
+    // 단일종목 레버리지·인버스 ETF/ETN은 백테스트 통계 왜곡 위험(생존편향) — 누적 차단 (P1, leverageGuard SSOT)
+    const rows = opts.picks
+      .filter(p => !isBlockedLeverage(p.symbol))
+      .map(p => {
+        const e = opts.enrichedMap.get(p.symbol);
+        return {
+          user_id: opts.userId || null,
+          ip: opts.ip,
+          investor_type: opts.investorType,
+          symbol: p.symbol,
+          sector: p.sector,
+          reason: p.reason,
+          key_metric: p.keyMetric,
+          vix_bucket: opts.vixBucketStr,
+          current_price: e?.currentPrice ?? null,
+          pe_ratio: e?.peRatio ?? null,
+          week52_position: e?.week52Position ?? null,
+        };
+      });
+    if (rows.length === 0) return;
     await supabaseAdmin.from('ai_chok_recommendations').insert(rows);
   } catch (e) {
     // 백테스트 데이터 손실은 운영 가시화 필수
@@ -326,7 +331,11 @@ export async function POST(req: NextRequest) {
     ...portfolioSymbols.map(s => s.toUpperCase()),
     ...recentExcluded,
   ]);
-  const allowedUniverse = CHOK_UNIVERSE.filter(s => !excluded.has(s.symbol));
+  // chokUniverse는 미국 우량주 + 글로벌 ETF만 하드코딩되어 단일종목 레버리지 없음 (영구 안전).
+  // 보강: 향후 chokUniverse에 실수로 추가되어도 leverageGuard SSOT가 차단.
+  const allowedUniverse = CHOK_UNIVERSE.filter(
+    s => !excluded.has(s.symbol) && !isBlockedLeverage(s.symbol, s.krName),
+  );
 
   // G안 — universe deterministic slice: 매 호출마다 다른 35종 풀 노출
   const sliceSeed = `${userKeyWithType}:${cacheDateKey}:${cached?.use_count ?? 0}`;

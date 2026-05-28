@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
+import { STOCK_KR } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
 import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
+import { isBlockedLeverage } from '@/utils/leverageGuard';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -102,7 +104,12 @@ async function buildBrief(
   usdKrw: number,
   priceCache: PriceCache,
 ): Promise<BriefData | null> {
-  const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
+  // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응 (leverageGuard SSOT).
+  // 음의 복리 종목이 "biggest mover"로 매일 푸시되면 매수 권유로 오인될 수 있어
+  // 모닝브리프에서 영구 제외. 보유 자체는 허용(자율권), 단 브리핑 컨텍스트에선 빠짐.
+  const investing = (stocks.investing || []).filter(s =>
+    s.shares > 0 && s.avgCost > 0 && !isBlockedLeverage(s.symbol, STOCK_KR[s.symbol]),
+  );
   if (investing.length === 0) return null;
 
   // 캐시에서 시세 조회 (cron 시작 시 unique 심볼 한 번에 fetch했음)
