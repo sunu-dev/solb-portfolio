@@ -16,7 +16,9 @@ export default function TermsPage() {
       <Section title="제2조 (서비스의 정의)">
         서비스는 AI 기반 주식 포트폴리오 분석 정보를 제공하는 웹 애플리케이션(PWA)입니다. 서비스는 자본시장법상 투자자문업, 투자일임업, 유사투자자문업 어디에도 해당하지 않으며, 불특정 다수에게 정보를 제공할 목적으로만 운영됩니다. 서비스는 어떠한 형태로도 종목 조언이나 매매 권유의 대가를 받지 않습니다.
         <br /><br />
-        서비스의 종목 노출 범위(universe)는 사전에 공개된 객관 기준(시가총액, 상장 경과 기간, 데이터 정상성)에 의해서만 결정되며, 그 기준은 별도 문서(<a href="https://github.com/sunu-dev/solb-portfolio/blob/main/docs/UNIVERSE_INCLUSION_CRITERIA.md" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6' }}>UNIVERSE_INCLUSION_CRITERIA.md</a>)에 명시되어 있습니다.
+        서비스의 종목 노출 범위(universe)는 사전에 공개된 객관 기준(시가총액, 상장 경과 기간, 데이터 정상성, 자산 클래스)에 의해서만 결정되며, 그 기준은 별도 문서(<a href="https://github.com/sunu-dev/solb-portfolio/blob/main/docs/UNIVERSE_INCLUSION_CRITERIA.md" target="_blank" rel="noopener noreferrer" style={{ color: '#3182F6' }}>UNIVERSE_INCLUSION_CRITERIA.md</a>)에 명시되어 있습니다.
+        <br /><br />
+        서비스가 제공할 수 있는 종목 간 연관 정보(같은 산업 분류의 다른 종목 등)는 사전 공개된 객관 기준(섹터·산업 분류, 시가총액, 자산 클래스)에 의한 정보 제공이며, 매매 권유나 특정 종목 추천이 아닙니다.
       </Section>
 
       <Section title="제3조 (약관의 효력 및 변경)">

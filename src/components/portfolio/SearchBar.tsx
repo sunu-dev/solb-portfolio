@@ -16,6 +16,24 @@ function isLeverageQuery(q: string): boolean {
   return /레버리지|인버스|곱버스|곱버|2배|2X|단일종목|TQQQ|SOXL|SOXS|UPRO|TSLL|NVDU|FNGU|FNGD/i.test(q);
 }
 
+// 검색 결과 카드 표시명 — 8인 패널 합의 (2026-05-28):
+// 한국어 종목명 메인 / 종목코드 보조. 시장 표준(토스·카카오페이·키움) 일치.
+// STOCK_KR 매핑 우선 → description의 거래소 suffix 제거 → fallback symbol.
+function getDisplayName(item: { symbol: string; description?: string }): string {
+  if (STOCK_KR[item.symbol]) return STOCK_KR[item.symbol];
+  const desc = (item.description || '').trim();
+  // " (KRX)", " (NASDAQ)" 같은 거래소 suffix 제거
+  const cleaned = desc.replace(/\s*\([A-Z]+\)\s*$/, '').trim();
+  return cleaned || item.symbol;
+}
+
+// 좌측 회색 원 — 종목명 첫 글자 (한글 또는 영문). 기존 symbol.charAt(0)("0", "2")는 노이즈.
+function getInitial(item: { symbol: string; description?: string }): string {
+  const name = getDisplayName(item);
+  const first = name.charAt(0);
+  return first ? first.toUpperCase() : item.symbol.charAt(0);
+}
+
 const RECENT_KEY = 'solb_recent_searches';
 const MAX_RECENT = 5;
 
@@ -290,28 +308,28 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                   background: 'var(--bg-subtle, #F2F4F6)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #4E5968)' }}>
-                    {item.symbol.charAt(0)}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary, #4E5968)' }}>
+                    {getInitial(item)}
                   </span>
                 </div>
-                <div>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                      {item.symbol}
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {getDisplayName(item)}
                     </span>
                     {item.isNewListing && (
                       <span
                         title={item.listedAt ? `상장일 ${item.listedAt}` : '최근 6개월 이내 신규 감지'}
-                        style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'rgba(255,149,0,0.12)', color: '#FF9500', letterSpacing: 0.3 }}
+                        style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'rgba(255,149,0,0.12)', color: '#FF9500', letterSpacing: 0.3, flexShrink: 0 }}
                       >
                         📅 신규
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.description}
+                  <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2, fontFamily: '"SF Mono", Menlo, monospace', letterSpacing: 0.2, maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {item.symbol}
                     {item.isNewListing && (
-                      <span style={{ fontSize: 10, color: '#FF9500', marginLeft: 4 }}>· 데이터 제한</span>
+                      <span style={{ fontSize: 10, color: '#FF9500', marginLeft: 6, fontFamily: 'system-ui' }}>· 데이터 제한</span>
                     )}
                   </div>
                 </div>
