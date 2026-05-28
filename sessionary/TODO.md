@@ -7,6 +7,54 @@
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
 
+## 🆕 2026-05-28 세션 — 단일종목 레버리지 ETF/ETN 5분야 패널 (P0 8건 코드 ✅)
+
+> **종합 문서**: `sessionary/2026-05-28-leverage-single-stock-panel.md`
+> **사건**: 2026-05-27 KRX 단일종목 레버리지 18종(ETF 16+ETN 2, 4.3조원) 사상 최초 동시 상장 → 사용자가 막 검색 시작할 시점에 베타 D-6.
+> **결과**: 외부 조사 + 5분야 20인 패널 → 만장일치 결론(universe 영구 배제 + 진입점 5곳 일관 차단) → P0 8건 동일 세션 반영 (9개 파일).
+
+### 코드 반영 완료 (P0 8건, 9개 파일)
+- [x] ~~P0-1: `src/utils/leverageGuard.ts` SSOT 신설 (deny-list + 정규식 + 카피)~~
+- [x] ~~P0-2: `search/route.ts` Finnhub filter에 isBlockedLeverage 추가~~
+- [x] ~~P0-3: `admin/listings/add/route.ts` POST 400 reject 분기~~
+- [x] ~~P0-4: `analysisPrompt.ts` "단일종목 레버리지·인버스 ETF/ETN (분석 거부 대상)" 새 분기 + 한국 520xxx·미국 TSLL/NVDU 명시~~
+- [x] ~~P0-5: `alertsEngine.checkAllAlerts` 진입 filter (모든 알림 6개 루프 차단) + `morning-brief.buildBrief` filter~~
+- [x] ~~P0-6: 약관 v2 → v3 시행 (2026-05-28), 제5조 "분석 대상 제외" + 제7조 음의 복리·예탁금·발행사 신용 면책~~
+- [x] ~~P0-7: `alertCompliance.FORBIDDEN_PHRASES` 9구 추가 (레버리지·인버스·곱버스 권유) + SAFE_REPLACEMENTS~~
+- [x] ~~P0-8: SearchBar EmptyState 분기 + handleAdd alert (localStorage·옛 데이터 경로 차단)~~
+
+### 검증
+- [x] ~~`npx tsc --noEmit` 통과~~
+- [x] ~~`npm run lint:alerts` "금지 어휘 검출 없음"~~
+
+### P1 후속 — 같은 세션 진행 완료 (7/10 ✅ + OCR 보너스 + 3건 V1.2 분리)
+
+> 상세: `sessionary/2026-05-28-leverage-single-stock-panel.md` P1 후속 단락
+
+- [x] ~~**`stock_listings.asset_class` 컬럼 마이그레이션** + `enrich-listings` 자동 태깅~~ — 🆕 마이그 `2026-05-28_stock_listings_asset_class.sql` + `classifyAssetClass()` SSOT
+- [x] ~~**출생연도 입력 14세 게이트 강화**~~ — LoginModal 단순 체크박스 → 출생연도 4자리 입력 + 자동 검증
+- [x] ~~**`mentorScores.getAssetType()` 한국 단일종목 레버리지 분기**~~ — **algorithm critical #1 해결**. classifyAssetClass + STOCK_KR fallback
+- [x] ~~**`ai_chok_recommendations` CHECK constraint**~~ — 🆕 마이그 `2026-05-28_ai_chok_recommendations_constraint.sql` (한국 ETN 5xxxxx DB-레벨 차단)
+- [x] ~~**THRESHOLDS.md 4번째 룰**~~ — #46 박제 + #41-43 ✅ 표시
+- [x] ~~**ai-chok/route.ts에 isBlockedLeverage 보강**~~ — universe slice + logRecommendations insert
+- [x] ~~**OCR 가드 추가 (보너스)**~~ — OcrImportModal applyToPortfolio에 isBlockedLeverage + skippedLeverage 카운터 + done 화면 ⚠ 표시
+- [x] ~~**Phase D — Supabase 마이그 2건 적용** (2026-05-28)~~ — asset_class · ai_chok_recommendations CHECK 모두 적용 완료
+
+### 🟡 V1.2 분리 (ROI 검토 후, 베타 출시 후 사용자 피드백 보고 재조정)
+- [ ] **종목 카드 Amber 띠 (P1-G)** — PortfolioSection 600줄+ 변경 필요, 진입점 차단으로 보유 카드 진입 사실상 0건 → 시각 안전망 가치 < 비용
+- [ ] **보유 등록 2단계 동의 모달 (P1-H)** — 5개 진입점이 모두 차단해서 모달 발동 시나리오 없음. 안전망 가치 매우 낮음
+- [ ] **"왜 안 다루나요?" 풀시트 (P1-J)** — SearchBar EmptyState 카피로 이미 충분, 풀시트 신설은 중복
+
+### 🟡 V2 분리 (외부 정보 필요)
+- [ ] **ETF 16종 정확한 종목코드 KRX 공시 확인** → `LEVERAGE_DENY_SYMBOLS` 보강. 현재는 종목명 정규식 + 한국 ETN 5xxxxx 패턴으로 임시 차단(ETN 2종만 확정 deny-list)
+
+### 🚫 P2 (영구 금기 — 절대 하지 않음)
+- AI 촉 유니버스 편입 (chokUniverse.ts에 단일종목 레버리지 추가 금지)
+- 점진 노출·임의 화이트리스트 (§6 트리거)
+- PRO 차별점 도구로 노출 (§101 직격)
+- 마케팅·SNS·인플루언서 '단일종목 레버리지'·'2배'·'곱버스' 어휘 (광고심사법 §3 + 자본시장법 §57)
+- KIS Developers·KRX OpenAPI 인프라 구축 시도 (V2 별도 결정)
+
 ## 🆕 2026-05-20 세션 — 20인 패널 종합 감사 (P0 18건 코드 ✅)
 
 > **종합 문서**: `docs/BETA_D6_PANEL_AUDIT.md` (5분야 회의 결과 + 반영 + 사용자 액션 + P1/P2)
@@ -35,9 +83,7 @@
 - [ ] **Phase A**: 가비아 joobi.kr 결제 완료 + Vercel Add Domain + 가비아 DNS + Resend 가입 + SPF/DKIM TXT
 - [ ] **Phase B**: Sentry 가입 + DSN 복사
 - [ ] **Phase C**: Vercel env 입력 — `RESEND_API_KEY` `EMAIL_FROM` `NEXT_PUBLIC_SENTRY_DSN` `SENTRY_DSN`
-- [ ] **Phase D**: Supabase SQL Editor에 2건 적용:
-  - `supabase/migrations/2026-05-20_notification_log.sql` (푸시 멱등성)
-  - `supabase/migrations/2026-05-20_bug_reports.sql` (인앱 신고)
+- [x] ~~**Phase D**: Supabase SQL Editor에 2건 적용 — `2026-05-20_notification_log.sql` · `2026-05-20_bug_reports.sql` (2026-05-20 완료)~~
 - [ ] **Phase E**: 카카오 콘솔·Supabase Auth Redirect URLs production만 화이트리스트
 - [ ] **Phase F**: Slack workspace + 채널 4개 (#beta-bug, #beta-alert, #beta-deploy, #beta-feedback) + Vercel env `SLACK_WEBHOOK_CRON` `SLACK_WEBHOOK_BUG`. 카카오 오픈채팅방 개설
 - [ ] **Phase G**: Redeploy + Sentry test event + morning-brief 수동 트리거 + /help 신고 폼 검증
