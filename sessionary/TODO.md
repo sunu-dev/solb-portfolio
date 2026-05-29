@@ -5,14 +5,15 @@
 
 ## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
 
-> **자동 로드 sessionary**: `2026-05-29-leverage-policy-review.md` (단일종목 레버리지 정책 재검토 단계 1 박제)
+> **자동 로드 sessionary**: `2026-05-29-search-coverage-and-consent.md` (변호사 점검 + 동의 버전 정합화 + P0 5건 인지 갭 해소)
 > **베타 D-6 상태**: 카운트다운 진행 중. 코드 BLOCKER 0건. 사용자 액션 BLOCKER 2건.
+> **2026-05-29 (3) 완료**: 동의 버전 정합화(legalVersions SSOT) ✅ · P0 5건 인지 갭(검색 30→113종, 13/13 시세 검증) ✅ · §8 변호사 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md` ✅. **단일종목 레버리지 차단 인프라 그대로 유지.**
 
 ### 🔴 즉시 우선순위 (BLOCKER)
 
 1. **변호사 1시간 상담 예약** (자본시장법 전문, 30~50만원)
    - 메모리 [legal] 트리거 자동 발동 (2026-05-29 박제)
-   - 질문 목록 10건: `sessionary/2026-05-29-leverage-policy-review.md §8`
+   - **질문지 완성**: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 10건 + 사업구조 + 현행 안전망, 변호사 지참용)
    - 트리거 사유: 사용자가 옵션 C(단일종목 레버리지 일반 분석) 선택 → 단계 2 진입 전 변호사 답변 필수
 2. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
@@ -21,14 +22,19 @@
 3. **카나리 24h 페르소나 5명 모집** (사용자 직접)
    - 다증권사 30대 iOS · 1증권사 20대 Android · **Samsung Internet** 30대 · **카카오 인앱브라우저** 20대 · PC desktop 30대
 
-### 🟢 정책 무관, 베타 D-6 안 진행 가능 (9인 패널 P0 5건)
+### ✅ 정책 무관 P0 5건 — 2026-05-29 (3) 완료 (검증 통과)
 
-한국 종목 커버리지 확장 — 단일종목 레버리지 정책 재검토와 별개. 사용자 인지 갭 직접 해소.
-- KR_STOCKS 30→50종 (삼성전기·우선주 005935/006405·인기 ETF) — `src/app/api/kr-quote/route.ts:3-32`
-- 검색 EmptyState 3분기 분기 (차단·없음·오타)
-- 자산 클래스 칩 컴포넌트 (Amber)
-- 검색 결과 assetClassOrder 정렬
-- admin add 폼 "단일종목" 키워드 lint
+한국 종목 커버리지 확장 — 사용자 인지 갭 직접 해소. tsc 0 · lint 0 · 앱 실검증 13/13 시세 정상.
+- [x] ~~검색 30→113종~~ — `kr-quote/route.ts`가 `KOREAN_UNIVERSE`(100) 재활용 + 우선주 8·ETF 5 보강. "삼성전" 1~2 → 4건
+- [x] ~~검색 EmptyState 3분기~~ (차단·한국어오타·영문오타) — `SearchBar.tsx`
+- [x] ~~자산 클래스 칩~~ — `utils/searchAssetClass.ts` 신설(표시 전용). **중립 회색**(Amber 원안에서 편차) → 🟡 색상 최종 확정 필요
+- [x] ~~assetClassOrder 정렬~~ (보통주→ETF→우선주→혼합)
+- [x] ~~admin add "단일종목" lint~~ — description+kr_name 둘 다 검사
+
+### 🟡 위 후속 (2026-05-29 (3))
+- [x] ~~칩 색상 최종 확정~~ — **중립 회색 확정** (사용자 결정 2026-05-29, 디자인 메모리 부합)
+- [ ] **검색 커버리지 더 확장** — 채권혼합 ETF 등 → KRX 마스터 CSV (V1.2)
+- [ ] **기존 사용자 약관 v3 재동의 고지 확인** — 로그인 유지 중 사용자는 재로그인 전까지 DB v2. 변경 고지 이력 점검
 
 ### 📋 2026-05-29 오늘 누적 (7 커밋)
 
@@ -72,12 +78,16 @@
 - [ ] **카나리 4일** (5명 페르소나 + 모니터링)
 - [ ] **Production 승격**
 
-### 🟢 정책과 별개 (9인 패널 P0 5건, 베타 D-6 안 진행 가능)
-- [ ] **KR_STOCKS 30→50종 확장** (삼성전기·우선주 005935/006405·인기 ETF) — `src/app/api/kr-quote/route.ts:3-32`
-- [ ] **검색 EmptyState 3분기 분기** (차단·없음·오타) — `src/components/portfolio/SearchBar.tsx`
-- [ ] **자산 클래스 칩 컴포넌트** (우선주·혼합·차단 Amber, 디자인 시스템 통합)
-- [ ] **검색 결과 `assetClassOrder` 정렬**
-- [ ] **admin add 폼 "단일종목" 키워드 lint**
+### ✅ 정책과 별개 (9인 패널 P0 5건) — 2026-05-29 (3) 완료
+- [x] ~~검색 30→113종~~ (KOREAN_UNIVERSE 재활용 + 우선주 8·ETF 5) — `src/app/api/kr-quote/route.ts`
+- [x] ~~검색 EmptyState 3분기~~ — `src/components/portfolio/SearchBar.tsx`
+- [x] ~~자산 클래스 칩~~ — `src/utils/searchAssetClass.ts` (표시 전용 SSOT)
+- [x] ~~assetClassOrder 정렬~~
+- [x] ~~admin add "단일종목" lint~~ (description+kr_name)
+> 상세·후속: 본 파일 최상단 "다음 세션 자동 브리핑" + `sessionary/2026-05-29-search-coverage-and-consent.md`
+
+### ✅ 동의 버전 정합화 — 2026-05-29 (3) 완료
+- [x] ~~`legalVersions.ts` SSOT 신설~~ — terms v2→v3 결함 수정. 화면·동의로깅·DB 버전 단일화. 4파일 연결.
 
 ## 🆕 2026-05-29 세션 — 한국어 UI/UX 시스템 SSOT 격상 (5인 패널 + 자성)
 
