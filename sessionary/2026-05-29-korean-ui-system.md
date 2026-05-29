@@ -152,3 +152,45 @@
 **참고 메서드 SSOT**:
 - **시스템 부재 신호 인지** = 패널 모더레이터의 메타 책임. 다음 패널 운영 시 자성 4개 질문 발동 의무.
 - **soft 모드 lint 도입 패턴** = 즉시 strict 도입 시 BLOCKER 위험 → soft 모드 통합 + baseline 박제 + 점진 sweep + strict 격상. lint:korean이 다음 lint 도입의 표준 패턴.
+
+---
+
+## 격식 sweep 같은 세션 진행 (66건 → 0건, lint:korean strict 격상)
+
+> 사용자: "격식 어휘 66건 sweep도 진행하자"
+> 결과: 자동 sed 일괄 적용 + 예외 경로 보강 → lint:korean 0건 통과 → prebuild strict 격상. **soft → strict 같은 세션 안에 완료** (baseline 박제 패턴이 즉시 sweep으로 단축됨).
+
+### 자동 sed 일괄 적용
+- 16개 매핑 일괄 변환 (있/없/되/맞/아닙·되돌릴·필요·확인·주의·입력·선택·시작·이용·드리·드립)
+- 예외 경로: terms·privacy·Disclaimer·koreanCopy.ts
+- find 대상: `src/**/*.{ts,tsx}` 만 (.sql 마이그 자동 제외)
+
+### 예외 경로 추가 (lint-korean.mjs)
+- `src/utils/koreanCopy.ts` — TOSS_TONE_MAP 정의 자체 (격식 어휘가 key)
+- `src/config/analysisPrompt.ts` — LLM prompt 안의 §6 금지 어휘 예시 ("추천합니다" 등)
+
+### prebuild strict 격상
+- `prebuild`: `npm run lint:alerts && npm run lint:korean` (--soft 제거)
+- lint:korean:soft 명령 보존 (다음 lint 도입 시 baseline → strict 패턴 재사용)
+
+### 변환 결과 샘플
+- "삭제됩니다" → "삭제돼요"
+- "표시됩니다" → "표시돼요"
+- "되돌릴 수 없습니다" → "되돌릴 수 없어요"
+- "확인하세요" → "확인해주세요"
+
+### 누적 변경 (66건 sweep 단계)
+- 25개 파일 sed 변환 (admin·help·SettingsPanel·OcrImportModal·AnalysisPanel·UserMenu·InvestmentJournal·MonthlyWrapped·NewsSection·OnboardingFlow·AiChokSection·PortfolioSection·SearchBar·OfflineNotice·ListingsPanel·analysisPrompt·constants·designTokens·alertGlossary·alertsEngine·technical 등)
+- `scripts/lint-korean.mjs` — 예외 경로 2건 추가
+- `package.json` — prebuild strict 격상
+
+### 검증
+- ✅ `npm run lint:korean` "위반 없음 (조사 괄호 0건 · 격식 톤 0건)"
+- ✅ `npm run lint:alerts` 통과
+- ✅ `npm run prebuild` strict 통과
+
+### 사고 1건 — 마이그 파일 비어짐 (워킹 트리)
+- 작업 도중 `supabase/migrations/2026-05-28_ai_chok_recommendations_constraint.sql`이 26줄 → 1줄로 working tree에 변경 발견
+- sed 작업과는 무관(`.sql` 비대상, src/ 비포함). IDE 의도하지 않은 변경 가능성
+- `git checkout HEAD --` 으로 복구. Supabase에는 이미 적용된 상태라 DB 영향 없음
+- **교훈**: working tree에 의도하지 않은 변경이 git diff에 나타나면 즉시 확인 + HEAD 복구가 안전

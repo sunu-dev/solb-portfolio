@@ -28,7 +28,7 @@
 - [x] ~~`npm run prebuild` 통과~~
 
 ### 🟡 V1.2 sweep (P1)
-- [ ] **격식 종결 어휘 66건 sweep** → `koreanCopy.toTossTone()` 적용 또는 직접 구어체. 완료 후 lint:korean strict 격상 (`prebuild`에서 `--soft` 제거)
+- [x] ~~**격식 종결 어휘 66건 sweep**~~ — 자동 sed 일괄 적용 + 예외 경로 추가 (koreanCopy.ts·analysisPrompt.ts) → **lint:korean 0건** + **prebuild strict 격상 완료** (2026-05-29 같은 세션)
 - [ ] **`<br />` 28개 sweep** → 의도된 줄바꿈만 남기고 제거 (OcrImportModal·SettingsPanel·PortfolioSection·ThrowbackCard·InviteGate)
 - [ ] **`formatKrw`·`formatPct` 컴포넌트 통합** (Dashboard·MergedHoldingsCard·MorningBriefing 등 산발 포맷 통합)
 - [ ] **`formatRelativeKo` 적용** (newsCacheTimes "방금 갱신" 배지 등)
