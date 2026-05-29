@@ -7,6 +7,47 @@
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
 
+## 🆕 2026-05-29 세션 — 한국어 UI/UX 시스템 SSOT 격상 (5인 패널 + 자성)
+
+> **종합 문서**: `sessionary/2026-05-29-korean-ui-system.md`
+> **사용자 호소**: "이런 어절에 대해서는 기본적인 ui/ux 의 알고리즘 골력이 갖워 있어야 하지 않나?"
+> **결과**: 5인 디자인 패널 + 자성 → 한국어 UI 시스템 SSOT 격상. 산발 룰을 단일 골격으로 통합 (문서 1 + 유틸 3 + lint 1 + 메모리 2).
+
+### 코드·문서 반영 완료
+- [x] ~~Phase A: `docs/KOREAN_UI_SYSTEM.md` 신설 (8개 룰 카테고리 + 유틸 매핑 + 시스템 부재 신호 인지 룰)~~
+- [x] ~~Phase B: 유틸 3개 신설 (`koreanNumber.ts`·`koreanDate.ts`·`koreanCopy.ts`)~~
+- [x] ~~Phase C: `scripts/lint-korean.mjs` + strict/soft 모드 + `prebuild` 통합 (soft)~~
+- [x] ~~Phase D: 메모리 승급 (`project_korean_ui_system.md` 신설 + `feedback_panel_audit_methodology` 보강)~~
+- [x] ~~`globals.css` body word-break: keep-all + monospace reset (P0, 사용자 호소 1차)~~
+- [x] ~~`LoginModal.tsx` 면책 영역 `<br />` 제거 + 카피 simplify (P0, 사용자 호소 1차)~~
+
+### 검증
+- [x] ~~`npx tsc --noEmit` 통과~~
+- [x] ~~`npm run lint:alerts` 통과~~
+- [⚠️] **`npm run lint:korean` 66건 위반 검출 (V1.2 sweep 대상, soft로 prebuild 통과)**
+- [x] ~~`npm run prebuild` 통과~~
+
+### 🟡 V1.2 sweep (P1)
+- [ ] **격식 종결 어휘 66건 sweep** → `koreanCopy.toTossTone()` 적용 또는 직접 구어체. 완료 후 lint:korean strict 격상 (`prebuild`에서 `--soft` 제거)
+- [ ] **`<br />` 28개 sweep** → 의도된 줄바꿈만 남기고 제거 (OcrImportModal·SettingsPanel·PortfolioSection·ThrowbackCard·InviteGate)
+- [ ] **`formatKrw`·`formatPct` 컴포넌트 통합** (Dashboard·MergedHoldingsCard·MorningBriefing 등 산발 포맷 통합)
+- [ ] **`formatRelativeKo` 적용** (newsCacheTimes "방금 갱신" 배지 등)
+- [ ] **디자인 토큰화** (`--text-korean-wrap`, `--text-korean-body` V1.2 토큰 시스템 확장)
+- [ ] **ESLint 커스텀 룰 격상** (prebuild 스크립트 → ESLint plugin, IDE 인라인 경고)
+
+### 🟡 V2
+- [ ] 영문 단어 발음 받침 룰 (l/m/n/ng 영문 처리)
+- [ ] AI 응답 자동 toTossTone 적용 (analysisPrompt 결과·멘토 카드, 면책 영역 제외)
+
+### 패널 운영 — 시스템 부재 신호 인지 룰 (메모리 박제 완료)
+모더레이터가 패널 결과 받으면 항상 4개 질문 자성:
+1. 매번 패널이 발견할 일인가, 시스템화로 끝날 일인가?
+2. 비슷한 사례가 다른 화면에 N개 있는가?
+3. 빌드 시 검증으로 자동화 가능한가?
+4. 메모리 승급 가치 있는 영속 사실인가?
+
+→ 2개 이상 YES = 시스템 격상 (문서 + 유틸 + lint + 메모리 4축 동시 박제)
+
 ## 🆕 2026-05-28 세션 (2) — 검색 UX·연관 종목 8인 패널 (P0 4건 코드 ✅)
 
 > **종합 문서**: `sessionary/2026-05-28-search-ux-panel.md`
