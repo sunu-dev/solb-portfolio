@@ -6,6 +6,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 /**
  * Conversational Timeline
@@ -129,9 +130,12 @@ export default function ConversationalTimeline() {
       const q = macroData[s.symbol] as QuoteData | undefined;
       if (!q?.c) return;
       const kr = STOCK_KR[s.symbol] || s.symbol;
+      // 단일종목 레버리지·인버스 보유분: 목표가 도달(매도 유인) 문구는 생성 금지(§6).
+      // 손절가 하회 등 순수 위험 고지는 아래에서 유지.
+      const isLev = isSingleStockLeverage(s.symbol, kr);
 
-      // 목표 수익률 근접
-      if (s.avgCost > 0 && s.targetReturn > 0) {
+      // 목표 수익률 근접 — 목표가 도달은 '수익 실현'(매도) 방향 → 레버리지면 건너뜀
+      if (!isLev && s.avgCost > 0 && s.targetReturn > 0) {
         const currentPct = ((q.c - s.avgCost) / s.avgCost) * 100;
         const progress = (currentPct / s.targetReturn) * 100;
         if (progress >= 90 && progress < 110) {
@@ -197,7 +201,8 @@ export default function ConversationalTimeline() {
           symbol: s.symbol,
           emphasis: 'neutral',
         });
-      } else if (lowDist < 3) {
+      } else if (lowDist < 3 && !isSingleStockLeverage(s.symbol, kr)) {
+        // 52주 저점 '분할 매수 기회'는 매수 유인 → 단일종목 레버리지면 생성 금지(§6).
         out.push({
           id: `52l-${s.symbol}`,
           type: 'insight',

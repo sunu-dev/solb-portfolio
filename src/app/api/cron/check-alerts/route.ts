@@ -5,6 +5,7 @@ import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
 import { isPushAllowed, isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
 import { sendCronAlert } from '@/lib/cronAlert';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
 function getSupabaseAdmin() {
@@ -124,6 +125,12 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
     alerts.push({ symbol: sym, alertType: 'buy-zone', emoji: '🛒',
       message: `${sym} 관심 매수가 도달!`,
       detail: `현재가 ${cur}${price.toLocaleString()} ≤ 목표 ${cur}${stock.buyBelow}` });
+
+  // 단일종목 레버리지/인버스: 매매 방향·신규 매수 유인(target-*·buy-zone) 발송 금지 (§6 자본시장법).
+  // 보유 위험 고지(stoploss-*)만 남긴다. 지수 레버리지(TQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
+  if (isSingleStockLeverage(sym)) {
+    return alerts.filter(a => a.alertType === 'stoploss-price' || a.alertType === 'stoploss-pct');
+  }
 
   return alerts;
 }

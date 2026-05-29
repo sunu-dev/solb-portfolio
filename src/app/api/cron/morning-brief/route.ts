@@ -8,7 +8,7 @@ import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
-import { isBlockedLeverage } from '@/utils/leverageGuard';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 /**
  * 모닝 브리핑 cron — E 항목 본격 구현.
@@ -104,12 +104,11 @@ async function buildBrief(
   usdKrw: number,
   priceCache: PriceCache,
 ): Promise<BriefData | null> {
-  // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응 (leverageGuard SSOT).
-  // 음의 복리 종목이 "biggest mover"로 매일 푸시되면 매수 권유로 오인될 수 있어
-  // 모닝브리프에서 영구 제외. 보유 자체는 허용(자율권), 단 브리핑 컨텍스트에선 빠짐.
-  const investing = (stocks.investing || []).filter(s =>
-    s.shares > 0 && s.avgCost > 0 && !isBlockedLeverage(s.symbol, STOCK_KR[s.symbol]),
-  );
+  // '중간 옵션'(2026-05-29): 단일종목 레버리지 보유분도 포트폴리오 손익 계산엔 포함한다
+  // (정확한 보유 현황 = 관리·확인 목적). 단 아래 biggestMover('오늘의 주목 종목')로는
+  // 스포트라이트하지 않는다 — 음의 복리 종목이 매일 주목 종목으로 푸시되면 매수/매도
+  // 유인으로 읽힐 수 있으므로.
+  const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
   if (investing.length === 0) return null;
 
   // 캐시에서 시세 조회 (cron 시작 시 unique 심볼 한 번에 fetch했음)
@@ -125,6 +124,8 @@ async function buildBrief(
     totalValue += q.c * stock.shares * rate;
     todayDelta += q.d * stock.shares * rate;
     prevValue += (q.c - q.d) * stock.shares * rate;
+    // 레버리지는 손익엔 반영하되 '오늘의 주목 종목'으로는 띄우지 않음 (유인 억제).
+    if (isSingleStockLeverage(stock.symbol, STOCK_KR[stock.symbol])) continue;
     const absDp = Math.abs(q.dp);
     if (!biggestMover || absDp > biggestMover.absDp) {
       biggestMover = { symbol: stock.symbol, dp: q.dp, absDp };

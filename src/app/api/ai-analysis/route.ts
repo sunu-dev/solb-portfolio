@@ -9,6 +9,7 @@ import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circu
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
 import { sanitizeAiObject } from '@/utils/alertCompliance';
+import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE } from '@/utils/leverageGuard';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -92,6 +93,43 @@ async function sendSlackAlert(totalCount: number) {
   } catch { /* silent */ }
 }
 
+/**
+ * 단일종목 레버리지·인버스 응답 후처리 — 서버 강제 가드(§6 자본시장법).
+ * LLM이 OVERRIDE 지시를 어기더라도 매수 매력도/방향이 새지 않도록 타입 안전하게 무력화한다.
+ * - mentorScore(매수 매력도 점수) 등 수치 매력도 필드 제거
+ * - mentorVerdict(한 줄 매매 판단) 제거
+ * - conclusion.label='주의', signal='negative' 강제
+ * - 비-레버리지 응답은 절대 건드리지 않음 (호출부에서 isLev일 때만 호출).
+ */
+function enforceLeverageReport(report: unknown): unknown {
+  if (!report || typeof report !== 'object') return report;
+  const r = report as Record<string, unknown>;
+
+  // 1) 매수 매력도/방향으로 읽히는 필드 제거 (있을 때만)
+  delete r.mentorScore;     // 1~5 '얼마나 좋은지' 점수
+  delete r.mentorVerdict;   // 한 줄 매매 판단
+
+  // 2) 상승/하락 시나리오 제거 — scenarios.bull('📈 상승한다면' 초록 카드)이 매수 유인으로 읽힘
+  delete r.scenarios;
+
+  // 3) 기술 지표 신호 중립화 — indicators[].signal==='positive' 초록 배지 = 매수 방향
+  if (Array.isArray(r.indicators)) {
+    r.indicators = (r.indicators as unknown[]).map((ind) =>
+      ind && typeof ind === 'object'
+        ? { ...(ind as Record<string, unknown>), signal: 'neutral' }
+        : ind,
+    );
+  }
+
+  // 4) conclusion을 가장 보수적으로 고정
+  const concl = (r.conclusion && typeof r.conclusion === 'object')
+    ? r.conclusion as Record<string, unknown>
+    : {};
+  r.conclusion = { ...concl, label: '주의', signal: 'negative' };
+
+  return r;
+}
+
 export async function POST(req: NextRequest) {
   if (!GEMINI_KEYS.length) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
@@ -172,7 +210,12 @@ export async function POST(req: NextRequest) {
             stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category,
             investorType = DEFAULT_INVESTOR_TYPE,
             userNotes = [] as string[],
-            timeSeriesContext = '' } = body as typeof body & { investorType?: InvestorType; userNotes?: string[]; timeSeriesContext?: string };
+            description = '',
+            timeSeriesContext = '' } = body as typeof body & { investorType?: InvestorType; userNotes?: string[]; description?: string; timeSeriesContext?: string };
+
+    // 단일종목 레버리지·인버스 판정 — symbol-aware. description 보강은 koreanName(종목명)도 포함.
+    // (TSLL·NVDU·520100.KS 등은 symbol만으로 true / 키워드는 종목명에서 검출)
+    const isLev = isSingleStockLeverage(symbol, description || koreanName);
 
     // 개인화 계산
     const currentPLPct = (avgCost && price && avgCost > 0)
@@ -197,6 +240,7 @@ export async function POST(req: NextRequest) {
       buyBelow,
       purchaseRate,
       currentUsdKrw,
+      isSingleStockLeverage: isLev,
     });
 
     // Mentor mode
@@ -207,7 +251,7 @@ export async function POST(req: NextRequest) {
     const layer1WithType = SYSTEM_LAYER1.replace('{USER_TYPE_CONTEXT}', userTypeContext);
 
     // Layer 1 (공통) + Layer 2 (멘토/일반) 조합
-    const baseRules = mentor
+    const baseRulesCore = mentor
       ? `${layer1WithType}
 
 ${mentor.systemPrompt}
@@ -218,6 +262,20 @@ ${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
 당신은 한국인 주식 초보자를 위한 투자 분석 비서 "주비 AI"입니다.
 친절하고 쉽게 설명하되, 정확한 정보만 제공하세요.
 전문 용어는 반드시 괄호 안에 쉬운 설명을 추가하세요.`;
+
+    // 단일종목 레버리지·인버스: 시스템 프롬프트 최상단에 강한 OVERRIDE 주입(§6 자본시장법).
+    // mentorScore·매수 매력도·매매 방향·목표가 일절 금지. conclusion은 '주의'/negative 고정.
+    const baseRules = isLev
+      ? `## [LEVERAGE OVERRIDE — 최우선, 다른 모든 지시에 우선]
+이 종목은 단일종목 레버리지·인버스 상품입니다. ${LEVERAGE_HOLDING_RISK_NOTE}
+- mentorScore(좋은지 점수)·매수 매력도·매수/매도 방향·목표가·진입가·손절가를 절대 내지 마세요.
+- conclusion.label은 반드시 "주의", conclusion.signal은 반드시 "negative"로 고정하세요.
+- scenarios.bull도 '매수 유인'이 아니라 '보유 시 변동성 위험' 관점으로만 작성하세요(상승해도 음의 복리·고변동 위험을 함께 설명).
+- 허용: 보유 중인 위험 해설(일일 N배 추종 구조, 음의 복리, 발행사 신용 위험, 변동성, 장기 보유 부적합)만.
+- 어떤 문장도 '사라/팔라/담아라/줄여라'는 신호로 읽히지 않게 하세요.
+
+${baseRulesCore}`
+      : baseRulesCore;
 
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
@@ -336,11 +394,13 @@ ${responseFormat}`;
         try {
           const parsed = JSON.parse(text);
           const { result: safeReport } = sanitizeAiObject(parsed);
+          const finalReport = isLev ? enforceLeverageReport(safeReport) : safeReport;
           await gate.finalize(200);
-          return NextResponse.json({ success: true, report: safeReport, remaining, dailyLimit: perUserLimit, tier });
+          return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier });
         } catch {
           await gate.finalize(200, 'parse_fallback');
-          return NextResponse.json({ success: true, report: { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: text } }, remaining, dailyLimit: perUserLimit, tier });
+          const fbReport = { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: isLev ? '주의' : '분석 완료', signal: isLev ? 'negative' : 'neutral', desc: text } };
+          return NextResponse.json({ success: true, report: fbReport, remaining, dailyLimit: perUserLimit, tier });
         }
       } catch (e) {
         lastError = e;
@@ -358,6 +418,7 @@ ${responseFormat}`;
       try {
         const parsed = JSON.parse(aiRes.text);
         const { result: safeReport } = sanitizeAiObject(parsed);
+        const finalReport = isLev ? enforceLeverageReport(safeReport) : safeReport;
         await Promise.all([
           recordUsage(ip, symbol, mentorId, userId!),
         ]);
@@ -367,12 +428,12 @@ ${responseFormat}`;
           sendSlackAlert(newTotal);
         }
         await gate.finalize(200, `fallback_${aiRes.provider}`);
-        return NextResponse.json({ success: true, report: safeReport, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
+        return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
       } catch {
         await gate.finalize(200, 'fallback_parse_fail');
         return NextResponse.json({
           success: true,
-          report: { currentStatus: aiRes.text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: '분석 완료', signal: 'neutral', desc: aiRes.text } },
+          report: { currentStatus: aiRes.text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: isLev ? '주의' : '분석 완료', signal: isLev ? 'negative' : 'neutral', desc: aiRes.text } },
           remaining: perUserLimit - userCount - 1,
           dailyLimit: perUserLimit,
           tier,

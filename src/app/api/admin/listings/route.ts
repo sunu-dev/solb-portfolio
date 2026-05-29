@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { callAiJson } from '@/lib/aiProvider';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 /**
  * 신규 상장 종목 검수 admin API
@@ -91,6 +92,16 @@ export async function PATCH(req: NextRequest) {
 
   if (!body.symbol) {
     return NextResponse.json({ error: 'symbol required' }, { status: 400 });
+  }
+
+  // 단일종목 레버리지는 eligible/universe(신규 발굴 표면)로 승급 금지 — add/route.ts·enrich-listings와 일관.
+  // PATCH가 유일하게 빠져 있던 방어선 (재감사 should-fix). symbol-aware(US·deny) + kr_name 키워드.
+  if ((body.status === 'eligible' || body.status === 'universe')
+      && isSingleStockLeverage(body.symbol, body.kr_name)) {
+    return NextResponse.json(
+      { error: '단일종목 레버리지·인버스는 universe 편입 대상이 아니에요', code: 'leverage_blocked' },
+      { status: 400 },
+    );
   }
 
   const update: Record<string, unknown> = { reviewed_at: new Date().toISOString(), reviewed_by: auth.userId };

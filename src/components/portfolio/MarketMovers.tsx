@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 /**
  * 오늘 시장이 주목한 종목 — 회의 결과 옵션 C UI.
@@ -57,7 +58,10 @@ export default function MarketMovers() {
 
   if (!data?.ok) return null;
 
-  const list = data[market === 'US' ? 'us' : 'kr'][tab];
+  // 단일종목 레버리지·인버스는 순수 신규 발굴 표면에서 제외 (defense-in-depth, §6 자본시장법).
+  // 지수 레버리지(TQQQ·SQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
+  const list = data[market === 'US' ? 'us' : 'kr'][tab]
+    .filter(item => !isSingleStockLeverage(item.symbol, item.krName));
   if (list.length === 0) return null;
 
   return (

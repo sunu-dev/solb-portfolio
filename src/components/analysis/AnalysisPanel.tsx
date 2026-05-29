@@ -19,6 +19,7 @@ import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
+import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE } from '@/utils/leverageGuard';
 
 const AI_STEPS = [
   { label: '최신 뉴스 수집 중', pct: 15 },
@@ -149,6 +150,9 @@ export default function AnalysisPanel() {
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
+  // 단일종목 레버리지·인버스: 매수 매력도 점수·매매 방향(차트 신호·기술 지표 '매수' 배지)을
+  // 모두 가리고 위험 해설만 — §6 자문업 차단. symbol-aware(US 화이트리스트·deny-list) + 종목명 키워드.
+  const isLev = isSingleStockLeverage(symbol || '', kr);
   const avatarColor = symbol ? getAvatarColor(symbol) : '#3182F6';
 
   // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
@@ -665,24 +669,46 @@ export default function AnalysisPanel() {
                 )}
 
                 <div style={{ marginBottom: 24 }}>
-                  {/* Radar chart — 종목 속성 6축 */}
-                  <MentorRadar
-                    scores={calcStockAttributes({
-                      symbol: symbol || '',
-                      price,
-                      change,
-                      changePercent: cp,
-                      rsiVal: analysis?.rsiVal ?? undefined,
-                      trend: analysis?.trend,
-                      cross: analysis?.cross ?? undefined,
-                      bollingerStatus: analysis?.bollingerStatus?.status ?? undefined,
-                      macdStatus: analysis?.macdStatus?.status ?? undefined,
-                      volRatio: analysis?.volRatio ?? undefined,
-                      avgCost: stockData?.avgCost,
-                      shares: stockData?.shares,
-                      targetReturn: stockData?.targetReturn,
-                    })}
-                  />
+                  {/* Radar chart — 종목 속성 6축.
+                      단일종목 레버리지·인버스(보유분)는 매수 매력도 점수를 노출하지 않는다.
+                      매수/매도 방향 신호 = §6 자문업 영역 → 점수 대신 보유 위험 해설만 제공. */}
+                  {isLev ? (
+                    <div style={{
+                      marginBottom: 20,
+                      padding: '16px 18px',
+                      borderRadius: 12,
+                      background: 'rgba(245,158,11,0.06)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                    }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 16 }}>⚠️</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309' }}>
+                          매수 매력도 점수를 제공하지 않는 종목이에요
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7 }}>
+                        {LEVERAGE_HOLDING_RISK_NOTE}
+                      </div>
+                    </div>
+                  ) : (
+                    <MentorRadar
+                      scores={calcStockAttributes({
+                        symbol: symbol || '',
+                        price,
+                        change,
+                        changePercent: cp,
+                        rsiVal: analysis?.rsiVal ?? undefined,
+                        trend: analysis?.trend,
+                        cross: analysis?.cross ?? undefined,
+                        bollingerStatus: analysis?.bollingerStatus?.status ?? undefined,
+                        macdStatus: analysis?.macdStatus?.status ?? undefined,
+                        volRatio: analysis?.volRatio ?? undefined,
+                        avgCost: stockData?.avgCost,
+                        shares: stockData?.shares,
+                        targetReturn: stockData?.targetReturn,
+                      })}
+                    />
+                  )}
 
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 12 }}>
                     멘토에게 상세 분석 받기
@@ -933,7 +959,7 @@ export default function AnalysisPanel() {
                   )}
                 </div>
 
-                {analysis && (
+                {analysis && !isLev && (
                   <>
                     {/* Chart shape summary card */}
                     <div style={{
@@ -1166,7 +1192,7 @@ export default function AnalysisPanel() {
                   return null;
                 })()}
 
-                {analysis && (
+                {analysis && !isLev && (
                   <>
                     {/* Chart Tabs */}
                     <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>

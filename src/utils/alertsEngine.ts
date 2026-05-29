@@ -12,7 +12,7 @@ import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/u
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { validateAlertMessage } from '@/utils/alertCompliance';
 import { iGa } from '@/utils/koreanJosa';
-import { isBlockedLeverage } from '@/utils/leverageGuard';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { ALERT_POLICY, DEFAULT_ALERT_POLICY, type AlertChannel, type AlertCategory } from '@/config/alertPolicy';
 
 export type { AlertChannel, AlertCategory };
@@ -68,12 +68,12 @@ export function checkAllAlerts(
 ): Alert[] {
   const alerts: Alert[] = [];
 
-  // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응, leverageGuard SSOT.
-  // 음의 복리·일일 N배 추종 상품은 모멘텀·SMA·Z-score·52주 임계 모두 왜곡되어
-  // 사용자에게 매수 권유로 오인될 수 있음 → 알림 진입점 첫 줄에서 일관 차단.
-  const notLeveraged = (s: { symbol: string }) => !isBlockedLeverage(s.symbol, STOCK_KR[s.symbol]);
-  const investingStocks = (stocks.investing || []).filter(notLeveraged);
-  const watchingStocks = (stocks.watching || []).filter(notLeveraged);
+  // '중간 옵션'(2026-05-29): 단일종목 레버리지 보유분도 알림 대상에 포함한다.
+  // 단 위험 고지(urgent/risk)만 내보내고 기회·축하·인사이트(매수/매도 시점 유인으로
+  // 읽힐 수 있음)는 함수 말미(return 직전)에서 억제한다. 보유 위험을 함께 보는 건
+  // 소비자 보호에 부합 — 신규 유인이 아니므로 §6 회색 지대를 넘지 않음.
+  const investingStocks = stocks.investing || [];
+  const watchingStocks = stocks.watching || [];
   const allStocks = [...investingStocks, ...watchingStocks];
 
   // --- Price-based checks ---
@@ -421,10 +421,17 @@ export function checkAllAlerts(
     return b.timestamp - a.timestamp;
   });
 
+  // '중간 옵션': 단일종목 레버리지 보유분은 위험 고지(urgent/risk)만 남기고
+  // 기회·축하·인사이트(매수/매도 시점 유인으로 읽힐 수 있음)는 억제한다.
+  const directional = alerts.filter(a => {
+    if (!isSingleStockLeverage(a.symbol, STOCK_KR[a.symbol])) return true;
+    return a.type === 'urgent' || a.type === 'risk';
+  });
+
   // 동적 임계치: severity 1~2 (urgent/risk)는 모두 보장, 나머지는 한도 내 top N
   // 총 상한 25개 — 이보다 많이 나오면 UI 폭주 가능
-  const urgentAndRisk = alerts.filter(a => a.severity <= 2);
-  const lower = alerts.filter(a => a.severity > 2);
+  const urgentAndRisk = directional.filter(a => a.severity <= 2);
+  const lower = directional.filter(a => a.severity > 2);
   const lowerBudget = Math.max(0, 25 - urgentAndRisk.length);
   return [...urgentAndRisk, ...lower.slice(0, lowerBudget)];
 }

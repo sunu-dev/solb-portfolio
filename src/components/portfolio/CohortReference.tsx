@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { STOCK_KR } from '@/config/constants';
 import { getSector } from '@/utils/portfolioHealth';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { iGa } from '@/utils/koreanJosa';
 import type { QuoteData } from '@/config/constants';
 
@@ -65,7 +66,11 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
     });
 
     // 3. 사용자가 보유 안 한 reference picks만 노출
-    const newPicks = meta.referencePicks.filter(p => !heldSymbols.has(p.symbol));
+    //    + 단일종목 레버리지·인버스는 신규 발굴 표면이므로 제외 (defense-in-depth, §6).
+    //    지수 레버리지(TQQQ 등)는 isSingleStockLeverage=false라 영향 없음.
+    const newPicks = meta.referencePicks.filter(
+      p => !heldSymbols.has(p.symbol) && !isSingleStockLeverage(p.symbol),
+    );
 
     return {
       heldSymbols,
