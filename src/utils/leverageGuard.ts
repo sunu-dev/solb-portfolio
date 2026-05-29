@@ -9,18 +9,27 @@
 // - 금감원 가이드: 'ETF' 명칭 금지, 사전교육 2시간, 예탁금 1000만원, 적합성 의무
 // - 위험: 하루 60% 손실 가능, 음의 복리, 발행사 신용리스크
 //
-// 정책 (5분야 20인 패널 합의 2026-05-28):
-// - universe 영구 배제 (자본시장법 §6 회피)
-// - 검색에서 EmptyState 안내, 사용자가 '왜 안 보임?'을 알 수 있게
-// - AI 분석·촉·모닝브리프·알림 모두 차단 — 진입점 누수 0
-// - 보유 등록은 허용 (사용자 자율권), 단 AI OFF + 종목 페이지에 Amber 띠
+// 정책 ('중간 옵션' — 2026-05-29 변호사 의견 반영, 옵션 C 폐기):
+//   차단의 기준은 '종목'이 아니라 'AI 출력이 가리키는 방향'이다.
+//   - ✅ 허용: 사용자가 '이미 보유한' 단일종목 레버리지의 사후 위험 해설
+//             (현황·변동성·구조·음의 복리·발행사 신용 위험 고지). 소비자 보호에 부합.
+//   - 🔴 차단: 신규 매매 유인 — AI 촉(관찰 후보)·universe 편입·신규 매수 시사·
+//             매수 유인 알림. 이름과 무관하게 '신규 매수 신호'면 §6 자문업으로 당겨짐.
 //
-// 호출점 (누수 0 필수):
-// - api/search/route.ts — 검색 결과 filter
-// - api/admin/listings/add/route.ts — admin 수동 등록 reject
-// - utils/alertsEngine.ts — checkAllAlerts 루프 최상단
-// - api/cron/morning-brief/route.ts — 보유종목 enrich 전
-// - api/ai-chok/route.ts — universe slice 전 (chokUniverse.ts에 한국 상품 없어 이미 안전, 보강)
+//   판별 분리: isSingleStockLeverage()는 '이 종목이 단일종목 레버리지인가'(분류)만 답한다.
+//   차단/허용은 각 진입점의 '의도'에 따라 호출부에서 결정한다.
+//
+// 진입점별 정책 (방향성):
+// - api/ai-chok/route.ts        — 신규 발굴 → 🔴 차단 유지
+// - api/admin/listings/add      — universe 편입 → 🔴 차단 유지
+// - chokUniverse / universe 승급 — 🔴 차단 유지
+// - api/search/route.ts         — 보유 입력용 발견 → ✅ 노출 (라벨)
+// - SearchBar 보유 등록          — ✅ 허용 (성인·위험 게이트 후)
+// - config/analysisPrompt.ts    — 보유분 → ✅ 위험 해설만 (매매 방향 금지)
+// - utils/alertsEngine.ts       — 보유분 → ✅ 위험 고지 / 🔴 매수 유인 차단
+// - api/cron/morning-brief      — 보유분 → ✅ 위험 라인 / 🔴 매수 유인 차단
+//
+// ⚠️ 변호사 정식 GO(2026-05-29) 하에 진행. 약관 v4 병행. 분쟁 대비 사전 의견서 확보.
 
 /** 확정 deny-list — 정확한 종목코드 확인된 상품
  *
@@ -34,6 +43,16 @@ const LEVERAGE_DENY_SYMBOLS = new Set<string>([
 
 /** 한국 ETN 종목코드 패턴 — 5xxxxx 6자리 (520xxx 시리즈 포함) */
 const KOREAN_ETN_CODE = /^5\d{5}\.K[SQ]$/;
+
+// 미국 단일종목 레버리지/인버스 화이트리스트 (Direxion·GraniteShares 등).
+// isSingleStockLeverage(분류)와 classifyAssetClass(자산 클래스) 양쪽이 공유 — symbol 기준 인식.
+const LEVERAGED_SINGLE_US = new Set(['TSLL', 'NVDU', 'NVDX', 'AAPU', 'MSFU', 'AMZU', 'GGLL', 'METU', 'NFLU']);
+const INVERSE_SINGLE_US = new Set(['TSLQ', 'NVDD', 'NVDQ', 'AAPD', 'MSFD', 'AMZD', 'GGLS', 'METD', 'NFLD']);
+
+/** bare 6자리 한국코드 → .KS 정규화 (OCR·접미사 없는 입력 대응) */
+function krNormalize(sym: string): string {
+  return /^\d{6}$/.test(sym) ? `${sym}.KS` : sym;
+}
 
 /** 종목명에서 레버리지·인버스 시그널 어휘 */
 const LEVERAGE_NAME_PATTERNS: RegExp[] = [
@@ -52,38 +71,60 @@ function hasLeverageKeyword(text: string): boolean {
 }
 
 /**
- * 단일종목 레버리지·인버스 차단 판정
+ * 단일종목 레버리지·인버스 **분류** 판정 (정책 아님).
+ *
+ * "이 종목이 단일종목 레버리지/인버스인가?"에만 답한다.
+ * 차단/허용은 호출부가 진입점 의도(신규 유인 vs 보유 해설)에 따라 결정한다.
  *
  * @param symbol 종목코드 (예: '520100.KS', 'TQQQ', 'AAPL')
  * @param description 종목명 (Finnhub description 또는 사용자/admin 입력값)
- * @returns true면 universe·검색·분석·알림 등 모든 진입점에서 차단
  */
-export function isBlockedLeverage(symbol: string, description?: string): boolean {
+export function isSingleStockLeverage(symbol: string, description?: string): boolean {
   if (!symbol) return false;
   const sym = symbol.toUpperCase().trim();
+  const norm = krNormalize(sym); // bare '520100' → '520100.KS'
 
-  // 1) 확정 deny-list
-  if (LEVERAGE_DENY_SYMBOLS.has(sym)) return true;
+  // 1) 확정 deny-list (원본 + .KS 정규화 — OCR bare 코드 대응)
+  if (LEVERAGE_DENY_SYMBOLS.has(sym) || LEVERAGE_DENY_SYMBOLS.has(norm)) return true;
 
-  // 2) 한국 ETN 종목코드 + 종목명에 레버리지 키워드 (가장 안전한 조합)
-  if (KOREAN_ETN_CODE.test(sym) && description && hasLeverageKeyword(description)) {
-    return true;
-  }
+  // 2) 미국 단일종목 레버리지/인버스 화이트리스트 — **symbol 기준** (description 불필요).
+  //    TSLL·NVDU·AAPU 등은 description 키워드 없이도 차단돼야 함 (STOCK_KR undefined 경로 누수 차단).
+  if (LEVERAGED_SINGLE_US.has(sym) || INVERSE_SINGLE_US.has(sym)) return true;
 
-  // 3) 종목명 키워드만으로도 차단 (description이 제공되는 모든 경로)
-  if (description && hasLeverageKeyword(description)) {
-    return true;
-  }
+  // 3) 종목명 키워드 (description 제공 경로 — 한국 ETF 16종 등 코드 미확정분 대응)
+  if (description && hasLeverageKeyword(description)) return true;
 
   return false;
 }
 
-/** 사용자 노출 카피 — 검색 EmptyState, admin reject 사유 등 */
-export const LEVERAGE_BLOCK_USER_MESSAGE =
-  '단일종목 레버리지·인버스 ETF/ETN은 주비 분석 대상이 아니에요. 일일 N배 추종, 음의 복리, 발행사 신용 위험이 있어 학습용 앱 범위 밖이에요.';
+/**
+ * @deprecated 이름이 '무조건 차단'을 암시해 '중간 옵션'과 어긋난다.
+ * 신규 매수 유인 표면(촉·universe·admin 등록)에서만 차단 의미로 쓰고,
+ * 보유 해설 표면에서는 쓰지 말 것. 분류엔 isSingleStockLeverage() 직접 사용.
+ */
+export const isBlockedLeverage = isSingleStockLeverage;
+
+// ── 사용자 노출 카피 ──────────────────────────────────────────────────────
+
+/** 신규 발굴 차단 표면(AI 촉·admin universe 등록)의 거부 사유 */
+export const LEVERAGE_NEW_BUY_BLOCK_MESSAGE =
+  '단일종목 레버리지·인버스 ETF/ETN은 주비가 신규로 추천하거나 관찰 후보로 제시하지 않아요. 일일 N배 추종·음의 복리·발행사 신용 위험이 있는 고위험 단기 트레이딩 도구예요.';
+
+/** 보유분 위험 고지 톤 — 분석·알림에서 "신규 추천 아님 + 위험 함께 보기" 프레이밍 */
+export const LEVERAGE_HOLDING_RISK_NOTE =
+  '일일 N배 추종·음의 복리·발행사 신용 위험이 있는 단기 트레이딩 도구예요. 추천 목적이 아니라, 보유 중인 위험을 함께 보기 위한 정보예요.';
+
+/** 검색 결과 라벨 — 노출은 하되 '신규 추천 아님' 명시 */
+export const LEVERAGE_SEARCH_LABEL = '고위험 · 보유 관리용';
+
+/**
+ * @deprecated '분석 대상 아님' 프레이밍은 중간 옵션과 어긋남(보유분은 해설 제공).
+ * 신규 차단 사유엔 LEVERAGE_NEW_BUY_BLOCK_MESSAGE 사용.
+ */
+export const LEVERAGE_BLOCK_USER_MESSAGE = LEVERAGE_NEW_BUY_BLOCK_MESSAGE;
 
 /** 짧은 변형 — 검색 결과 1줄, 종목 카드 띠 등 공간 제약 시 */
-export const LEVERAGE_BLOCK_SHORT = '단일종목 레버리지는 주비에서 다루지 않아요';
+export const LEVERAGE_BLOCK_SHORT = '단일종목 레버리지는 신규 추천하지 않아요';
 
 // ==========================================
 // ASSET CLASS — Universe 4번째 룰 (P1, 2026-05-28)
@@ -105,9 +146,7 @@ export type AssetClass =
   | 'reit'               // 부동산
   | 'other';             // 기타
 
-// 미국 단일종목 레버리지/인버스 화이트리스트 (Direxion·GraniteShares 등)
-const LEVERAGED_SINGLE_US = new Set(['TSLL', 'NVDU', 'NVDX', 'AAPU', 'MSFU', 'AMZU', 'GGLL', 'METU', 'NFLU']);
-const INVERSE_SINGLE_US = new Set(['TSLQ', 'NVDD', 'NVDQ', 'AAPD', 'MSFD', 'AMZD', 'GGLS', 'METD', 'NFLD']);
+// 미국 단일종목 레버리지/인버스 화이트리스트는 상단으로 이동(isSingleStockLeverage와 공유).
 
 // 미국 지수 레버리지/인버스 화이트리스트
 const LEVERAGED_INDEX_US = new Set(['TQQQ', 'SOXL', 'UPRO', 'FNGU', 'TNA', 'TMF', 'TECL', 'CURE', 'FAS', 'YINN', 'LABU', 'JNUG']);
@@ -122,10 +161,14 @@ const INVERSE_INDEX_US = new Set(['SQQQ', 'SOXS', 'SPXS', 'SH', 'FNGD', 'TZA', '
 export function classifyAssetClass(symbol: string, description?: string): AssetClass {
   if (!symbol) return 'normal';
   const sym = symbol.toUpperCase().trim();
+  const norm = krNormalize(sym); // bare '520100' → '520100.KS'
   const text = description || '';
 
+  // 0) 확정 deny-list — description 없어도 단일종목 레버리지로 확정 (radar 오분류 차단)
+  if (LEVERAGE_DENY_SYMBOLS.has(sym) || LEVERAGE_DENY_SYMBOLS.has(norm)) return 'leveraged_single';
+
   // 1) 한국 ETN 종목코드 (5xxxxx) — 종목명에서 레버리지/인버스 식별
-  if (/^5\d{5}\.K[SQ]$/.test(sym)) {
+  if (KOREAN_ETN_CODE.test(norm)) {
     if (/인버스|곱버스|-2X/i.test(text)) return 'inverse_single';
     if (/레버리지|2X|단일종목/.test(text)) return 'leveraged_single';
     return 'etn';  // 일반 ETN
