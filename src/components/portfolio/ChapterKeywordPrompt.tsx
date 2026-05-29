@@ -114,10 +114,9 @@ export default function ChapterKeywordPrompt() {
           </div>
           <div style={{
             fontSize: 12, color: 'var(--text-secondary, #4E5968)',
-            marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all',
+            marginTop: 8, lineHeight: 1.5,
           }}>
-            이번 달의 한 줄 키워드를 적어보세요.<br/>
-            월말 회고에서 다시 만나요.
+            이번 달의 한 줄 키워드를 적어보세요. 월말 회고에서 다시 만나요.
           </div>
         </div>
 

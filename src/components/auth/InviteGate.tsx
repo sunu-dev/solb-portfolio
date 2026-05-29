@@ -75,8 +75,7 @@ export default function InviteGate({ user, onVerified }: Props) {
           주비 베타
         </h1>
         <p style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.6, marginBottom: 32 }}>
-          현재 베타 테스터만 이용 가능해요.<br />
-          초대 코드를 입력해주세요.
+          현재 베타 테스터만 이용 가능해요. 초대 코드를 입력해주세요.
         </p>
 
         <form onSubmit={handleSubmit}>

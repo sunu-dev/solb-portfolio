@@ -107,8 +107,7 @@ function EmailMorningBriefToggle() {
         ✉️ 이메일 알림
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-        아이폰 푸시가 안 와도 이메일로 안전하게 도달해요.<br />
-        언제든 메일 본문 하단의 링크로 1-click 해제 가능.
+        아이폰 푸시가 안 와도 이메일로 안전하게 도달해요. 언제든 메일 본문 하단의 링크로 1-click 해제 가능.
       </div>
       <EmailSubscriptionToggle
         endpoint="/api/email/morning-brief"
@@ -370,8 +369,8 @@ export default function SettingsPanel() {
               🎯 내 투자 유형
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-              AI 촉·분석이 이 유형에 맞춰 톤과 추천 기준을 조정해요.<br />
-              현재: <strong style={{ color: INVESTOR_TYPES[investorType].accentColor }}>
+              AI 촉·분석이 이 유형에 맞춰 톤과 추천 기준을 조정해요. 현재:{' '}
+              <strong style={{ color: INVESTOR_TYPES[investorType].accentColor }}>
                 {INVESTOR_TYPES[investorType].emoji} {INVESTOR_TYPES[investorType].nameKr}
               </strong>
             </div>
@@ -386,9 +385,8 @@ export default function SettingsPanel() {
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
               🔔 푸시 알림
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
-              목표가·수익률 도달 시 앱이 꺼져있어도 알림을 받아요.<br />
-              로그인 후 이용 가능 · iOS는 홈화면 추가 필요
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
+              목표가·수익률 도달 시 앱이 꺼져있어도 알림을 받아요. 로그인 후 이용 가능 · iOS는 홈화면 추가 필요
             </div>
 
             {pushEnabled ? (
@@ -447,8 +445,7 @@ export default function SettingsPanel() {
               🎚️ 알림 종류
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-              꺼진 카테고리는 토스트·푸시 알림이 오지 않아요.<br />
-              사이드바 알림 센터에는 계속 표시돼요.
+              꺼진 카테고리는 토스트·푸시 알림이 오지 않아요. 사이드바 알림 센터에는 계속 표시돼요.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -534,8 +531,7 @@ export default function SettingsPanel() {
               🧠 알림 학습
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-              자주 닫으신 알림 타입은 자동으로 덜 보여드려요.<br />
-              최근 7일 내 3회 이상 해제된 타입이 숨김 대상입니다.
+              자주 닫으신 알림 타입은 자동으로 덜 보여드려요. 최근 7일 내 3회 이상 해제된 타입이 숨김 대상이에요.
             </div>
 
             {suppressedTypes.length === 0 && suppressedCategories.length === 0 ? (

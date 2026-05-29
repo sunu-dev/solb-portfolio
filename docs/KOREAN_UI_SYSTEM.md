@@ -31,11 +31,25 @@
 - **전역 기본값**: `word-break: keep-all; overflow-wrap: break-word;` (globals.css body)
 - **이유**: CJK 브라우저 기본값은 음절 단위 분리 → "있/습니다" 깨짐. keep-all은 어절 보존.
 - **예외**: `code, pre, kbd, samp, .font-mono`는 `word-break: normal; overflow-wrap: anywhere;` (영문·티커·종목코드 가독성)
-- **`<br />` 사용 룰**:
-  - ❌ **금지**: 자연 줄바꿈으로 충분한 한국어 문장 사이에 강제 `<br />` (예: 면책 카피, EmptyState)
-  - ✅ **허용**: tagline·로고·헤더처럼 **의도된 시각적 줄바꿈** (예: "내 주식,\n쉽게 읽어주는\n주식 비서")
-  - ✅ **허용**: 표·리스트의 셀 내 명시적 줄 분리
-  - 검증: `lint:korean`이 한국어 사이 `<br />`을 grep 검출 (의도 라벨 주석으로 화이트리스트)
+- **`<br />` 사용 룰** (2026-05-29 baseline 1차 sweep 후 보강):
+
+| 카테고리 | 정책 | 예시 |
+|---|---|---|
+| 약관·개인정보 단락 구분 | ✅ 유지 | `terms`·`privacy` 본문, 연락처 |
+| tagline·로고·헤더 강조 | ✅ 유지 | "내 주식,\n쉽게 읽어주는\n주식 비서" (LoginModal) |
+| EmptyState 두 줄 시각 분리 | ✅ 유지 | "관심 종목을 추가하면\n실시간 가격..." (PortfolioSection) |
+| 에러 안내 + 해결 안내 | ✅ 유지 | "데이터를 불러올 수 없어요\n잠시 후 다시 시도해주세요" |
+| 운영 가이드 불릿 (`•` 사이) | ✅ 유지 | admin 페이지, ListingsPanel 가이드 |
+| 통계·리스트 줄 분리 | ✅ 유지 | OCR done 화면, 증권사 리스트 |
+| 강조 fragment 끝 | ✅ 유지 | InvestorTypeQuiz 카드 |
+| 분석 결과 시각 분리 | ✅ 유지 | AnalysisPanel 결과 사이 |
+| 온보딩·랜딩 슬로건 | ✅ 유지 | OnboardingFlow, landing/page |
+| **두 문장 안내 카피** | ❌ 제거 | "현재 베타 테스터만...<br />초대 코드를 입력..." → 한 단락 자연 위임 |
+| **인라인 `wordBreak: 'keep-all'` 중복** | ❌ 제거 | 글로벌 적용 후 인라인 중복 |
+
+  - 의도 라벨 권장 (V2): 의도된 `<br />` 옆에 `{/* keep-br: tagline */}` 같은 라벨로 PR 리뷰·회귀 방지
+  - 검증: V2 ESLint plugin에서 br 검출 룰 통합 예정. 현재는 PR 리뷰 시 카테고리 확인
+  - 2026-05-29 baseline: 40+ → 31 (9건 자연 위임 1차 sweep), 31건은 시각 의도로 유지
 
 ### 3.2 조사 룰
 

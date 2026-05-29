@@ -98,9 +98,8 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
           내 스타일에 맞는 숨은 종목
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 16, wordBreak: 'keep-all' }}>
-          가치/성장/배당 등 투자 성향에 맞춰 큐레이션된 종목과<br/>
-          내 포트폴리오 섹터 분포 비교를 볼 수 있어요.
+        <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 16 }}>
+          가치/성장/배당 등 투자 성향에 맞춰 큐레이션된 종목과 내 포트폴리오 섹터 분포 비교를 볼 수 있어요.
         </div>
         <button
           onClick={onStartQuiz}

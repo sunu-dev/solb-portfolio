@@ -56,8 +56,7 @@ export default function ChapterShelf({ onSelect }: Props) {
           아직 책장이 비어있어요
         </div>
         <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.5 }}>
-          매월 1일에 지난 달 챕터가 자동으로 책장에 꽂혀요.<br/>
-          첫 챕터가 마감되면 여기에 책이 생깁니다.
+          매월 1일에 지난 달 챕터가 자동으로 책장에 꽂혀요. 첫 챕터가 마감되면 여기에 책이 생겨요.
         </div>
       </div>
     );
