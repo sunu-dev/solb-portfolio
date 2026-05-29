@@ -128,7 +128,7 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
 
   // 단일종목 레버리지/인버스: 매매 방향·신규 매수 유인(target-*·buy-zone) 발송 금지 (§6 자본시장법).
   // 보유 위험 고지(stoploss-*)만 남긴다. 지수 레버리지(TQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
-  if (isSingleStockLeverage(sym)) {
+  if (isSingleStockLeverage(sym, stock.name)) {
     return alerts.filter(a => a.alertType === 'stoploss-price' || a.alertType === 'stoploss-pct');
   }
 

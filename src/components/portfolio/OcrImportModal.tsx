@@ -188,6 +188,7 @@ export default function OcrImportModal({ onClose }: Props) {
 
       addStock(cat, {
         symbol: s.symbol.toUpperCase(),
+        name: s.name?.trim() || undefined, // 종목명 영속화 (leverage 분류·표시·매수일 토대)
         avgCost: finalAvgCost,
         shares: finalShares,
         targetReturn: hasShares ? 10 : 0,

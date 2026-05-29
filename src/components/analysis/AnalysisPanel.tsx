@@ -150,9 +150,6 @@ export default function AnalysisPanel() {
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
-  // 단일종목 레버리지·인버스: 매수 매력도 점수·매매 방향(차트 신호·기술 지표 '매수' 배지)을
-  // 모두 가리고 위험 해설만 — §6 자문업 차단. symbol-aware(US 화이트리스트·deny-list) + 종목명 키워드.
-  const isLev = isSingleStockLeverage(symbol || '', kr);
   const avatarColor = symbol ? getAvatarColor(symbol) : '#3182F6';
 
   // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
@@ -202,6 +199,11 @@ export default function AnalysisPanel() {
     }
     return null;
   }, [symbol, stocks]);
+
+  // 단일종목 레버리지·인버스: 매수 매력도·매매 방향(차트 신호·기술 지표 '매수' 배지)을 가리고
+  // 위험 해설만 — §6 자문업 차단. 영속 종목명(stockData.name) 우선 → 한국 ETF 16종 키워드 탐지.
+  const displayName = stockData?.name || kr;
+  const isLev = isSingleStockLeverage(symbol || '', displayName);
 
   const stockCategory = useMemo((): string | undefined => {
     if (!symbol) return undefined;
@@ -424,7 +426,7 @@ export default function AnalysisPanel() {
                         },
                         body: JSON.stringify({
                           symbol,
-                          koreanName: kr,
+                          koreanName: displayName,
                           price: latestPrice,
                           change: latestChange,
                           changePercent: latestCp,
@@ -745,7 +747,7 @@ export default function AnalysisPanel() {
                                   ...(sess?.access_token ? { 'Authorization': `Bearer ${sess.access_token}` } : {}),
                                 },
                                 body: JSON.stringify({
-                                  symbol, koreanName: kr, price, change, changePercent: cp,
+                                  symbol, koreanName: displayName, price, change, changePercent: cp,
                                   avgCost: stockData?.avgCost, shares: stockData?.shares,
                                   targetReturn: stockData?.targetReturn,
                                   stopLoss: stockData?.stopLoss,

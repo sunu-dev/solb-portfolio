@@ -75,6 +75,9 @@ export function checkAllAlerts(
   const investingStocks = stocks.investing || [];
   const watchingStocks = stocks.watching || [];
   const allStocks = [...investingStocks, ...watchingStocks];
+  // leverage 분류용 종목명 — 영속 name 우선, 없으면 STOCK_KR (한국 ETF 16종 키워드 탐지)
+  const stockNameOf = new Map(allStocks.map(s => [s.symbol, s.name]));
+  const leverageNameOf = (sym: string) => stockNameOf.get(sym) || STOCK_KR[sym];
 
   // --- Price-based checks ---
   for (const stock of allStocks) {
@@ -424,7 +427,7 @@ export function checkAllAlerts(
   // '중간 옵션': 단일종목 레버리지 보유분은 위험 고지(urgent/risk)만 남기고
   // 기회·축하·인사이트(매수/매도 시점 유인으로 읽힐 수 있음)는 억제한다.
   const directional = alerts.filter(a => {
-    if (!isSingleStockLeverage(a.symbol, STOCK_KR[a.symbol])) return true;
+    if (!isSingleStockLeverage(a.symbol, leverageNameOf(a.symbol))) return true;
     return a.type === 'urgent' || a.type === 'risk';
   });
 

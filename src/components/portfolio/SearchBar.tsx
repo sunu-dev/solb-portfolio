@@ -189,6 +189,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     else if (currentTab === 'sold') targetCat = 'sold';
 
     const ns: StockItem = { symbol: sym, avgCost: 0, shares: 0, targetReturn: 0 };
+    if (cleanName) ns.name = cleanName; // 종목명 영속화 — 리로드 후 leverage 분류·표시·매수일 토대
     if (targetCat === 'watching') ns.buyBelow = 0;
 
     addStock(targetCat, ns);

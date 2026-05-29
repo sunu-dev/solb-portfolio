@@ -62,6 +62,7 @@ export const BROKER_DISCOVERY_THRESHOLD = 2;
 
 export interface StockItem {
   symbol: string;
+  name?: string;                // 종목명 (등록 시점 영속화) — 리로드 후 표시·leverage 분류용. 없으면 STOCK_KR fallback
   avgCost: number;
   shares: number;
   targetReturn: number;         // 목표 수익률 (%)

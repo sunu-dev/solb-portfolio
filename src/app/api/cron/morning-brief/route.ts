@@ -125,7 +125,7 @@ async function buildBrief(
     todayDelta += q.d * stock.shares * rate;
     prevValue += (q.c - q.d) * stock.shares * rate;
     // 레버리지는 손익엔 반영하되 '오늘의 주목 종목'으로는 띄우지 않음 (유인 억제).
-    if (isSingleStockLeverage(stock.symbol, STOCK_KR[stock.symbol])) continue;
+    if (isSingleStockLeverage(stock.symbol, stock.name || STOCK_KR[stock.symbol])) continue;
     const absDp = Math.abs(q.dp);
     if (!biggestMover || absDp > biggestMover.absDp) {
       biggestMover = { symbol: stock.symbol, dp: q.dp, absDp };
