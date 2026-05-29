@@ -194,3 +194,51 @@
 - sed 작업과는 무관(`.sql` 비대상, src/ 비포함). IDE 의도하지 않은 변경 가능성
 - `git checkout HEAD --` 으로 복구. Supabase에는 이미 적용된 상태라 DB 영향 없음
 - **교훈**: working tree에 의도하지 않은 변경이 git diff에 나타나면 즉시 확인 + HEAD 복구가 안전
+
+---
+
+## `<br />` 1차 sweep 같은 세션 진행 (40+ → 31, 9건 자연 위임)
+
+> 사용자: "br 28개 sweep도 진행하자"
+> 발견: 실제 40+개 (28개 패널 추정보다 많음). 카테고리 분류 후 자연 위임 가능 9건만 1차 제거.
+
+### 카테고리 분류 (KOREAN_UI_SYSTEM.md §3.1 보강)
+
+| 카테고리 | 정책 | 처리 |
+|---|---|---|
+| 약관·개인정보 단락·연락처 | ✅ 유지 | 격식 영역 (lint 예외) |
+| tagline·로고·헤더 강조 | ✅ 유지 | LoginModal "내 주식,\n쉽게 읽어주는\n주식 비서" |
+| EmptyState 두 줄 시각 | ✅ 유지 | PortfolioSection, ThrowbackCard |
+| 운영 가이드 불릿 (`•` 사이) | ✅ 유지 | admin·ListingsPanel |
+| 통계·리스트 줄 분리 | ✅ 유지 | OCR done 화면, 증권사 리스트 |
+| 강조 fragment 끝 | ✅ 유지 | InvestorTypeQuiz |
+| 분석 결과 시각 | ✅ 유지 | AnalysisPanel |
+| 온보딩·랜딩 슬로건 | ✅ 유지 | OnboardingFlow, landing |
+| tagline 톤 강조 | ✅ 유지 | MonthlyWrapped "한 달이 모여 한 챕터가 돼요\n챕터들이 모여..." |
+| **두 문장 안내 카피** | ❌ 제거 | InviteGate, SettingsPanel, CohortReference, ChapterKeywordPrompt, ChapterShelf |
+| **인라인 `wordBreak: 'keep-all'` 중복** | ❌ 제거 | CohortReference, ChapterKeywordPrompt (글로벌 적용 후 중복) |
+
+### 1차 sweep 9건 (자연 위임)
+
+- `src/components/auth/InviteGate.tsx:78` — "현재 베타 테스터만..." + "초대 코드를..." 한 단락 위임
+- `src/components/common/SettingsPanel.tsx:110, 373, 390, 450, 537` — 5건 두 문장 안내 한 단락 위임
+- `src/components/portfolio/CohortReference.tsx:102` — 큐레이션 안내 한 단락 + 인라인 keep-all 중복 제거
+- `src/components/portfolio/ChapterKeywordPrompt.tsx:119` — 키워드 입력 안내 + 인라인 keep-all 중복 제거
+- `src/components/portfolio/ChapterShelf.tsx:59` — 책장 안내 + 격식 "생깁니다" → "생겨요" 함께 변환
+
+### 보너스 변환
+
+- ChapterShelf "생깁니다" → "생겨요" — TOSS_TONE_MAP에 미등록 어휘. lint:korean 통과는 했지만 토스 톤 일관성 차원 변환.
+- CohortReference·ChapterKeywordPrompt 인라인 `wordBreak: 'keep-all'` 제거 — globals.css 글로벌 적용 후 중복, 코드 정리.
+
+### 31개 유지 (시각 의도)
+
+baseline 박제. KOREAN_UI_SYSTEM.md §3.1 카테고리 표가 향후 PR 리뷰 가이드.
+
+### V1.2~V2 후속
+- ESLint plugin에 `<br />` 검출 룰 통합 (한국어 텍스트 사이 + 화이트리스트 라벨 인지)
+- 의도 라벨 주석 추가 (`{/* keep-br: tagline */}` 등) — 회귀 방지
+- TOSS_TONE_MAP에 "생깁니다"·"드립니다 변형"·"입니다" 등 추가
+
+### 검증
+- ✅ `npm run prebuild` strict 통과 (lint:alerts + lint:korean 모두 0건)

@@ -29,7 +29,8 @@
 
 ### 🟡 V1.2 sweep (P1)
 - [x] ~~**격식 종결 어휘 66건 sweep**~~ — 자동 sed 일괄 적용 + 예외 경로 추가 (koreanCopy.ts·analysisPrompt.ts) → **lint:korean 0건** + **prebuild strict 격상 완료** (2026-05-29 같은 세션)
-- [ ] **`<br />` 28개 sweep** → 의도된 줄바꿈만 남기고 제거 (OcrImportModal·SettingsPanel·PortfolioSection·ThrowbackCard·InviteGate)
+- [x] ~~**`<br />` 1차 sweep**~~ — 40+ → 31 (9건 자연 위임 제거: InviteGate·SettingsPanel 5·CohortReference·ChapterKeywordPrompt·ChapterShelf). KOREAN_UI_SYSTEM.md §3.1에 카테고리 분류 표 박제 (2026-05-29 같은 세션)
+- [ ] **`<br />` V2 후속 — 의도 라벨링 + ESLint plugin 검출** — 31건 시각 의도 유지분에 `{/* keep-br: tagline */}` 라벨 추가 + ESLint plugin에서 한국어 사이 검출 + 화이트리스트 인지
 - [ ] **`formatKrw`·`formatPct` 컴포넌트 통합** (Dashboard·MergedHoldingsCard·MorningBriefing 등 산발 포맷 통합)
 - [ ] **`formatRelativeKo` 적용** (newsCacheTimes "방금 갱신" 배지 등)
 - [ ] **디자인 토큰화** (`--text-korean-wrap`, `--text-korean-body` V1.2 토큰 시스템 확장)
