@@ -62,8 +62,11 @@ export async function POST(req: NextRequest) {
     normalized = normalized.replace(/\.[A-Z]+$/, '') + '.KQ';
   }
 
-  // 단일종목 레버리지·인버스 ETF/ETN 차단 — 2026-05-27 KRX 상장 대응
-  if (isBlockedLeverage(normalized, body.description)) {
+  // 단일종목 레버리지·인버스 ETF/ETN 차단 — 2026-05-27 KRX 상장 대응.
+  // description·kr_name 둘 다 검사 (P0-5): '단일종목'·'레버리지' 키워드가
+  // kr_name에만 있고 description이 비면 차단 누수가 생기던 갭 해소.
+  const guardText = [body.description, body.kr_name].filter(Boolean).join(' ').trim();
+  if (isBlockedLeverage(normalized, guardText || undefined)) {
     return NextResponse.json(
       { error: LEVERAGE_BLOCK_USER_MESSAGE, code: 'leverage_blocked' },
       { status: 400 },
