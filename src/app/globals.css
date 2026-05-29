@@ -415,7 +415,10 @@ code, pre, kbd, samp, .font-mono {
     padding: 0 16px !important;
   }
   .stock-table-row {
-    grid-template-columns: 1fr 80px 70px auto !important;
+    /* 가격 칼럼을 넓혀 7자리 KRW(₩1,192,929)가 등락률과 겹치지 않게.
+       이름 칼럼은 minmax(0,1fr)로 축소 허용(긴 종목명은 ellipsis). */
+    grid-template-columns: minmax(0, 1fr) 104px 78px auto !important;
+    column-gap: 8px !important;
   }
   .stock-table-header {
     display: none !important;
