@@ -10,6 +10,7 @@ import { logApiCall } from '@/lib/apiLogger';
 import { useAuth } from '@/hooks/useAuth';
 import { eunNeun } from '@/utils/koreanJosa';
 import { isBlockedLeverage, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
+import { getSearchTag, searchTagOrder } from '@/utils/searchAssetClass';
 
 // 검색어가 단일종목 레버리지 의도인지 휴리스틱 판정 — EmptyState 분기에만 사용
 function isLeverageQuery(q: string): boolean {
@@ -130,6 +131,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         seen.add(item.symbol);
         combined.push(item);
       }
+      // 자산 클래스 정렬 (P0-4): 보통주 → ETF → 우선주 → 혼합.
+      // "삼성전자"가 "삼성전자우"보다 먼저 노출되도록. sort는 ES2019+ stable이라
+      // 같은 클래스 안에서는 관련도(로컬→KRX→Finnhub) 순서가 보존됨.
+      combined.sort(
+        (a, b) =>
+          searchTagOrder(a.symbol, getDisplayName(a)) -
+          searchTagOrder(b.symbol, getDisplayName(b)),
+      );
       setResults(combined.slice(0, 8));
       setShowResults(combined.length > 0);
     }, 300);
@@ -165,10 +174,13 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         break;
       }
     }
-    if (name && !STOCK_KR[sym]) STOCK_KR[sym] = name;
+    // 저장·표시용 정제명 — "삼성전기 (KRX)" 같은 거래소 suffix 제거.
+    // (leverageGuard는 위에서 원본 name으로 이미 검사 완료)
+    const cleanName = (name || '').replace(/\s*\([A-Z]+\)\s*$/, '').trim() || name;
+    if (cleanName && !STOCK_KR[sym]) STOCK_KR[sym] = cleanName;
 
     // 최근 검색에 저장
-    saveRecent({ symbol: sym, description: name });
+    saveRecent({ symbol: sym, description: cleanName });
     setRecent(getRecent());
 
     let targetCat: 'investing' | 'watching' | 'sold' = 'watching';
@@ -317,6 +329,18 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                     <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {getDisplayName(item)}
                     </span>
+                    {(() => {
+                      // 자산 클래스 칩 (P0-3) — 우선주·ETF·혼합. 위험이 아닌 정보이므로
+                      // 중립 회색(토스풍 미니멀, 디자인 메모리 준수). 차단 상품은 결과에서
+                      // 이미 필터되므로 여기 칩으로는 안 나타남.
+                      const tag = getSearchTag(item.symbol, getDisplayName(item));
+                      if (!tag) return null;
+                      return (
+                        <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #6B7684)', letterSpacing: 0.2, flexShrink: 0 }}>
+                          {tag.label}
+                        </span>
+                      );
+                    })()}
                     {item.isNewListing && (
                       <span
                         title={item.listedAt ? `상장일 ${item.listedAt}` : '최근 6개월 이내 신규 감지'}
@@ -343,9 +367,11 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         </div>
       )}
 
-      {/* Empty state — 단일종목 레버리지 검색어면 명시적 안내, 그 외엔 일반 메시지 */}
+      {/* Empty state — 3분기 (9인 패널 P0-2): 차단 / 한국 종목 오타·미수록 / 영문 오타.
+          "결과 없음"을 막다른 길로 두지 않고, 왜 안 나오는지 + 다음 행동을 안내. */}
       {query.length > 0 && !showResults && results.length === 0 && (
         isLeverageQuery(query) ? (
+          // ① 차단 — 단일종목 레버리지·인버스
           <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: '#B45309', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
               ⚠ 분석 대상 아님
@@ -357,9 +383,25 @@ export default function SearchBar({ onClose }: SearchBarProps) {
               단일종목 레버리지·인버스 ETF/ETN은 일일 N배 추종·음의 복리·발행사 신용 위험이 있어 학습용 앱 범위 밖이에요. 자세한 정보는 발행사 공시·금융감독원 안내를 확인해주세요.
             </div>
           </div>
+        ) : /[가-힣]/.test(query) ? (
+          // ② 한국 종목 추정 — 오타 또는 아직 미수록
+          <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ marginBottom: 6, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+              ‘{query}’ 검색 결과가 없어요
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
+              종목명 철자나 6자리 코드(예: 005930)를 확인해주세요. 일부 한국 종목은 아직 준비 중이라 검색되지 않을 수 있어요.
+            </div>
+          </div>
         ) : (
-          <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>
-            검색 결과가 없어요
+          // ③ 영문·심볼 추정 — 오타 안내
+          <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div style={{ marginBottom: 6, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+              ‘{query}’ 검색 결과가 없어요
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
+              철자가 맞는지 확인하거나 정확한 심볼(예: AAPL, TSLA)로 검색해보세요.
+            </div>
           </div>
         )
       )}
