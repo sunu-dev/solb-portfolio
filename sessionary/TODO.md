@@ -3,6 +3,46 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
+## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
+
+> **자동 로드 sessionary**: `2026-05-29-leverage-policy-review.md` (단일종목 레버리지 정책 재검토 단계 1 박제)
+> **베타 D-6 상태**: 카운트다운 진행 중. 코드 BLOCKER 0건. 사용자 액션 BLOCKER 2건.
+
+### 🔴 즉시 우선순위 (BLOCKER)
+
+1. **변호사 1시간 상담 예약** (자본시장법 전문, 30~50만원)
+   - 메모리 [legal] 트리거 자동 발동 (2026-05-29 박제)
+   - 질문 목록 10건: `sessionary/2026-05-29-leverage-policy-review.md §8`
+   - 트리거 사유: 사용자가 옵션 C(단일종목 레버리지 일반 분석) 선택 → 단계 2 진입 전 변호사 답변 필수
+2. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
+   - 가비아 결제 진행 중 (메모리 [solb_status])
+   - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제
+   - 트리거 단어: "결제 완료", "joobi.kr 진행하자", "Phase A 진행"
+3. **카나리 24h 페르소나 5명 모집** (사용자 직접)
+   - 다증권사 30대 iOS · 1증권사 20대 Android · **Samsung Internet** 30대 · **카카오 인앱브라우저** 20대 · PC desktop 30대
+
+### 🟢 정책 무관, 베타 D-6 안 진행 가능 (9인 패널 P0 5건)
+
+한국 종목 커버리지 확장 — 단일종목 레버리지 정책 재검토와 별개. 사용자 인지 갭 직접 해소.
+- KR_STOCKS 30→50종 (삼성전기·우선주 005935/006405·인기 ETF) — `src/app/api/kr-quote/route.ts:3-32`
+- 검색 EmptyState 3분기 분기 (차단·없음·오타)
+- 자산 클래스 칩 컴포넌트 (Amber)
+- 검색 결과 assetClassOrder 정렬
+- admin add 폼 "단일종목" 키워드 lint
+
+### 📋 2026-05-29 오늘 누적 (7 커밋)
+
+1. **5인 디자인 패널 + 한국어 UI 시스템 SSOT 격상** (`3f727cb` `46fc031`) — 문서/유틸 3/lint/메모리 2 SSOT 골격 박제
+2. **격식 어휘 66건 sweep + lint:korean strict 격상** (`60de522` `125d134`) — 25 files 변환, prebuild strict
+3. **`<br />` 1차 sweep 9건 + 카테고리 표** (`95d883c` `f36a243`) — 40+ → 31 baseline, KOREAN_UI_SYSTEM §3.1 보강
+4. **9인 패널 + 정책 재검토 + 변호사 상담 트리거 박제** (`f66b234`) — 코드 변경 X, sessionary 270줄 박제
+
+### ⚠️ 작업 시 주의
+
+- **단일종목 레버리지 차단 인프라 그대로 유지** (변호사 답변 전 해체 X) — leverageGuard SSOT · 5축 차단 · 약관 v3 · DB CHECK constraint 모두 보존
+- **메모리 정책 SSOT 그대로** — `project_leverage_single_stock_policy` 정정·archive 보류
+- **lint:korean strict 가동 중** — 격식 어휘 추가 시 빌드 차단. `koreanCopy.toTossTone()` 사용 또는 직접 구어체
+
 ## 진행 중
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
