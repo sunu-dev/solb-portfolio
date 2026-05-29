@@ -5,16 +5,18 @@
 
 ## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
 
-> **자동 로드 sessionary**: `2026-05-29-search-coverage-and-consent.md` (변호사 점검 + 동의 버전 정합화 + P0 5건 인지 갭 해소)
+> **최신 sessionary**: `2026-05-29-leverage-middle-option.md` (단일종목 레버리지 '중간 옵션' 구현)
 > **베타 D-6 상태**: 카운트다운 진행 중. 코드 BLOCKER 0건. 사용자 액션 BLOCKER 2건.
-> **2026-05-29 (3) 완료**: 동의 버전 정합화(legalVersions SSOT) ✅ · P0 5건 인지 갭(검색 30→113종, 13/13 시세 검증) ✅ · §8 변호사 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md` ✅. **단일종목 레버리지 차단 인프라 그대로 유지.**
+> **2026-05-29 (4) 완료**: 단일종목 레버리지 **'영구 차단' → '중간 옵션' 전환** (변호사 의견 기반, 정식 GO 간주). Phase 1~5 구현 ✅. 방향성 분리 = 신규 발굴 차단 + 보유 해설 허용. tsc·prebuild·앱 실검증 통과.
+> **⚠️ 배포 게이트**: 약관 v4 DRAFT — **변호사 정식 검토 전 production 배포 금지** (의견서 §5).
+> **2026-05-29 (3) 완료**: 동의 버전 정합화(legalVersions SSOT) · P0 5건 인지 갭(검색 30→113종) · §8 변호사 질문지.
 
 ### 🔴 즉시 우선순위 (BLOCKER)
 
-1. **변호사 1시간 상담 예약** (자본시장법 전문, 30~50만원)
-   - 메모리 [legal] 트리거 자동 발동 (2026-05-29 박제)
-   - **질문지 완성**: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 10건 + 사업구조 + 현행 안전망, 변호사 지참용)
-   - 트리거 사유: 사용자가 옵션 C(단일종목 레버리지 일반 분석) 선택 → 단계 2 진입 전 변호사 답변 필수
+1. **약관 v4 변호사 정식 검토** (자본시장법 전문, 30~50만원) — **배포 게이트**
+   - 중간 옵션 코드는 구현됨. 약관 v4 검토 후 production 배포 가능.
+   - 질문지: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 10건 + 사업구조 + 현행 안전망)
+   - 메모리 [legal] 트리거 발동 상태 유지.
 2. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
    - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제
@@ -52,6 +54,29 @@
 ## 진행 중
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
+
+## 🆕 2026-05-29 세션 (4) — 단일종목 레버리지 '중간 옵션' 구현 (변호사 GO)
+
+> **종합 문서**: `sessionary/2026-05-29-leverage-middle-option.md`
+> **전환**: '영구 차단' → '중간 옵션'. 기준 = AI 출력 방향(보유 해설 허용 / 신규 유인 차단). 정식 GO 간주.
+
+### 코드 반영 완료 (Phase 1~5, 10파일)
+- [x] ~~Phase 1: leverageGuard 분류(`isSingleStockLeverage`)/정책 분리 + 방향성 카피~~
+- [x] ~~Phase 2: 약관 v4 (제2/5/7조) + legalVersions v3→v4~~
+- [x] ~~Phase 3: LeverageRiskGate 모달 + 검색 노출·앰버 칩·정렬 + ETN 2종 검색 + universe 자동등록 차단 유지~~
+- [x] ~~Phase 4: analysisPrompt 보유 위험 해설 모드 (매매 방향 금지)~~
+- [x] ~~Phase 5: alertsEngine 위험고지만 / morning-brief 손익포함·주목종목제외~~
+- [x] ~~검증: tsc 0 · prebuild 통과 · 앱 실검증~~
+
+### 🔴 배포 게이트
+- [ ] **약관 v4 변호사 정식 검토** — production 배포 전 선행 (의견서 §5)
+
+### 🟡 follow-up (의도적 미포함)
+- [ ] **OCR 게이트 임포트** — OcrImportModal 아직 레버리지 skip(안전하나 비대칭). 배치 위험 동의 후속
+- [ ] **mentorScores radar** — 레버리지 '매수 매력도' radar 노출 적정성 재검토
+- [ ] **한국 레버리지 16종 코드** — 현재 ETN 2종만. KRX 마스터 CSV(V1.2)
+- [ ] **게이트 동의 DB 로깅** — `user_consents`에 `leverage_risk`(CHECK 마이그) → 분쟁 증거
+- [ ] **적대적 검증 workflow** — 누수 0 확인 (이번 세션 후속 진행)
 
 ## 🆕 2026-05-29 세션 (2) — 단일종목 레버리지 정책 재검토 (9인 패널 + 변호사 상담 트리거)
 
