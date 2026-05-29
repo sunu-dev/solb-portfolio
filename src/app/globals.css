@@ -202,6 +202,17 @@ body {
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
   overflow-x: hidden;
+  /* 한국어 어절 단위 줄바꿈 SSOT — 2026-05-29 5인 디자인 패널 합의.
+     keep-all: 한글 어절 보존 (있/습니다 깨짐 차단, 토스·카카오뱅크 표준).
+     overflow-wrap: break-word: 긴 영문 단어·URL·이메일은 안전하게 깨뜨림. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* monospace·코드 영역은 영문 기본 동작 유지 (티커·종목코드·코드블록 가독성) */
+code, pre, kbd, samp, .font-mono {
+  word-break: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ==========================================

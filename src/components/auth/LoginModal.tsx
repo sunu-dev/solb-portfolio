@@ -290,18 +290,15 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
           로그인 없이 둘러보기 &rsaquo;
         </button>
 
-        {/* Bottom note */}
+        {/* Bottom note — 한국어 어절 줄바꿈은 globals.css body의 keep-all이 담당 */}
         <p style={{ fontSize: '12px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6 }}>
-          로그인하면 어디서든 내 포트폴리오를
-          <br />
-          확인할 수 있어요.
+          로그인하면 어디서든 내 포트폴리오를 확인할 수 있어요.
         </p>
 
-        {/* 면책 안내 */}
+        {/* 면책 안내 — 정식 면책은 약관 v3 제7조가 담당, 모달은 인지용 1줄 */}
         <p style={{ fontSize: '11px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-          본 서비스는 투자 참고용이며, 투자 결과에 대한 책임은 이용자 본인에게 있습니다.
-          <br />
-          <strong style={{ color: 'var(--brand-primary)' }}>베타 단계로 무료 제공 중</strong>입니다.
+          투자 결과의 책임은 본인에게 있어요.{' '}
+          <strong style={{ color: 'var(--brand-primary)' }}>베타 무료 제공 중</strong>
         </p>
       </div>
     </div>
