@@ -1,9 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { TERMS_VERSION, PRIVACY_VERSION } from '@/config/legalVersions';
 
-const CONSENT_TERMS_VERSION = 'v2';
-const CONSENT_PRIVACY_VERSION = 'v2';
 export const CONSENT_STORAGE_KEY = 'solb_consent_pending';
 
 interface LoginModalProps {
@@ -40,8 +39,8 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
         JSON.stringify({
           age_14_plus: true,
           birth_year: parsedYear,
-          terms: CONSENT_TERMS_VERSION,
-          privacy: CONSENT_PRIVACY_VERSION,
+          terms: TERMS_VERSION,
+          privacy: PRIVACY_VERSION,
           ts: new Date().toISOString(),
         }),
       );

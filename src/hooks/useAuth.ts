@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { clearUserStorage } from '@/lib/userStorage';
+import { AGE_GATE_VERSION } from '@/config/legalVersions';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -61,7 +62,7 @@ export function useAuth() {
             };
             await supabase.from('user_consents').upsert(
               [
-                { user_id: newId, consent_type: 'age_14_plus', version: 'v1', agreed_at: consent.ts },
+                { user_id: newId, consent_type: 'age_14_plus', version: AGE_GATE_VERSION, agreed_at: consent.ts },
                 { user_id: newId, consent_type: 'terms', version: consent.terms, agreed_at: consent.ts },
                 { user_id: newId, consent_type: 'privacy', version: consent.privacy, agreed_at: consent.ts },
               ],

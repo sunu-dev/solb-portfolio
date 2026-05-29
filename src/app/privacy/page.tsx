@@ -1,3 +1,5 @@
+import { PRIVACY_VERSION, PRIVACY_EFFECTIVE_DATE } from '@/config/legalVersions';
+
 export const metadata = {
   title: '주비 — 개인정보처리방침',
 };
@@ -6,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary, #191F28)' }}>개인정보처리방침</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 4 }}>시행일: 2026년 5월 15일 (v2)</p>
+      <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 4 }}>시행일: {PRIVACY_EFFECTIVE_DATE} ({PRIVACY_VERSION})</p>
       <p style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>본 서비스는 현재 <strong style={{ color: '#3182F6' }}>베타 단계</strong>로, 무료로 제공됩니다.</p>
 
       <Section title="1. 개인정보처리방침의 목적">
