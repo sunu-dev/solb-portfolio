@@ -84,9 +84,14 @@ export async function POST(req: NextRequest) {
     const syms = symbols.slice(0, 50);
     const results: Record<string, QuoteResult | null> = {};
 
-    // Split: index symbols → Yahoo Finance, regular stocks → Finnhub
-    const indexSymbols = syms.filter(s => s.startsWith('^') || YAHOO_INDEX_MAP[s]);
-    const stockSymbols = syms.filter(s => !s.startsWith('^') && !YAHOO_INDEX_MAP[s]);
+    // Split: index/한국(.KS/.KQ) → Yahoo Finance, 미국 stocks → Finnhub.
+    // 한국 종목을 Yahoo로 보내는 이유: Finnhub 무료 티어는 .KS/.KQ 미지원이라 배치에서 null이
+    // 되고, 배치가 (미국 종목으로) 성공 처리되면 useStockData의 KR fallback이 스킵돼
+    // 한국 종목 시세가 영영 안 채워진다(무한 스켈레톤). Yahoo는 .KS를 정상 처리(kr-quote와 동일).
+    const isYahooSym = (s: string) =>
+      s.startsWith('^') || !!YAHOO_INDEX_MAP[s] || s.endsWith('.KS') || s.endsWith('.KQ');
+    const indexSymbols = syms.filter(isYahooSym);
+    const stockSymbols = syms.filter(s => !isYahooSym(s));
 
     let usdKrw: { c: number; d: number; dp: number } | null = null;
 
