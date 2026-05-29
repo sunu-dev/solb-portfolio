@@ -32,13 +32,24 @@ const KR_SEARCH_EXTRA: { symbol: string; name: string }[] = [
   { symbol: '379800.KS', name: 'KODEX 미국S&P500' },
 ];
 
-// 검색 카탈로그 = universe(100) + 보강(우선주·ETF). symbol 기준 중복 제거.
+// 단일종목 레버리지 — 검색 노출 전용 ('중간 옵션' 2026-05-29).
+//   보유 입력을 위해 검색에서 찾을 수 있어야 한다. 단 SearchBar가 '고위험' 라벨 +
+//   위험 동의 게이트를 강제하고, universe·AI 촉에는 절대 진입하지 않는다
+//   (KOREAN_UNIVERSE·CHOK_UNIVERSE에 미포함, asset_class 'rejected').
+//   현재 코드 확정분(ETN 2종)만. ETF 16종은 KRX 마스터 CSV(V1.2)로 보강.
+const KR_LEVERAGE_SEARCHABLE: { symbol: string; name: string }[] = [
+  { symbol: '520100.KS', name: '미래에셋 레버리지 삼성전자 단일종목 ETN' },
+  { symbol: '520101.KS', name: '미래에셋 레버리지 SK하이닉스 단일종목 ETN' },
+];
+
+// 검색 카탈로그 = universe(100) + 보강(우선주·ETF) + 레버리지(노출 전용). symbol 기준 중복 제거.
 const KR_CATALOG: { symbol: string; name: string }[] = (() => {
   const seen = new Set<string>();
   const out: { symbol: string; name: string }[] = [];
   for (const s of [
     ...KOREAN_UNIVERSE_DEDUPED.map(u => ({ symbol: u.symbol, name: u.krName })),
     ...KR_SEARCH_EXTRA,
+    ...KR_LEVERAGE_SEARCHABLE,
   ]) {
     if (seen.has(s.symbol)) continue;
     seen.add(s.symbol);

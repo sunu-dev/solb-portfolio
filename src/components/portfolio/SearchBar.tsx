@@ -9,8 +9,9 @@ import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { useAuth } from '@/hooks/useAuth';
 import { eunNeun } from '@/utils/koreanJosa';
-import { isBlockedLeverage, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
+import { isSingleStockLeverage, LEVERAGE_SEARCH_LABEL, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
 import { getSearchTag, searchTagOrder } from '@/utils/searchAssetClass';
+import LeverageRiskGate from '@/components/portfolio/LeverageRiskGate';
 
 // 검색어가 단일종목 레버리지 의도인지 휴리스틱 판정 — EmptyState 분기에만 사용
 function isLeverageQuery(q: string): boolean {
@@ -68,6 +69,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [recent, setRecent] = useState<{ symbol: string; description: string }[]>([]);
   const [showRecent, setShowRecent] = useState(false);
+  // 단일종목 레버리지 보유 등록 게이트 — 통과 대기 중인 종목
+  const [leverageGate, setLeverageGate] = useState<{ symbol: string; name: string } | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -122,40 +125,38 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           .catch(() => []),
       ]);
 
-      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거 + 단일종목 레버리지 차단 (leverageGuard SSOT)
+      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거.
+      // '중간 옵션'(2026-05-29): 단일종목 레버리지도 검색에 노출한다 — 보유 입력을
+      // 위해 찾을 수 있어야 하기 때문. 신규 추천이 아님은 결과 라벨 + 등록 게이트로 명시.
       const seen = new Set<string>();
       const combined: { symbol: string; description: string }[] = [];
       for (const item of [...localMatches, ...krItems, ...usItems]) {
         if (seen.has(item.symbol)) continue;
-        if (isBlockedLeverage(item.symbol, item.description)) continue;
         seen.add(item.symbol);
         combined.push(item);
       }
-      // 자산 클래스 정렬 (P0-4): 보통주 → ETF → 우선주 → 혼합.
-      // "삼성전자"가 "삼성전자우"보다 먼저 노출되도록. sort는 ES2019+ stable이라
-      // 같은 클래스 안에서는 관련도(로컬→KRX→Finnhub) 순서가 보존됨.
-      combined.sort(
-        (a, b) =>
-          searchTagOrder(a.symbol, getDisplayName(a)) -
-          searchTagOrder(b.symbol, getDisplayName(b)),
-      );
+      // 자산 클래스 정렬 (P0-4): 보통주 → ETF → 우선주 → 혼합 → 레버리지(맨 아래).
+      // "삼성전자"가 "삼성전자우"·"삼성전자 레버리지 ETN"보다 먼저 노출되도록.
+      // sort는 ES2019+ stable이라 같은 클래스 안에선 관련도(로컬→KRX→Finnhub) 순서 보존.
+      const rank = (item: { symbol: string; description?: string }) => {
+        const display = getDisplayName(item);
+        if (isSingleStockLeverage(item.symbol, display)) return 9; // 고위험은 항상 맨 아래
+        return searchTagOrder(item.symbol, display);
+      };
+      combined.sort((a, b) => rank(a) - rank(b));
       setResults(combined.slice(0, 8));
       setShowResults(combined.length > 0);
     }, 300);
   }, [apiKey, krToTicker]);
 
-  const handleAdd = useCallback(async (symbol: string, name: string) => {
+  // 실제 등록 — 레버리지 게이트 통과 후 또는 일반 종목에서 호출.
+  const doAdd = useCallback(async (symbol: string, name: string) => {
     if (!user) {
       window.dispatchEvent(new CustomEvent('open-login'));
       if (onClose) onClose();
       return;
     }
     const sym = symbol.toUpperCase();
-    // 단일종목 레버리지·인버스 차단 — 2026-05-27 KRX 상장 대응 (leverageGuard SSOT)
-    if (isBlockedLeverage(sym, name)) {
-      alert(`${LEVERAGE_BLOCK_SHORT}\n\n일일 N배 추종·음의 복리·발행사 신용 위험이 있어 학습용 앱 범위 밖이에요. 자세한 정보는 발행사 공시·금융감독원 안내를 확인해주세요.`);
-      return;
-    }
     // Phase M-1.3 — (symbol, broker) 페어 단위 중복 제어
     // SearchBar는 broker 미지정으로 추가하므로, 미지정 broker로 같은 종목이
     // 이미 있을 때만 차단. broker가 다른 곳에 등록돼 있어도 새 broker로 추가 가능
@@ -175,7 +176,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       }
     }
     // 저장·표시용 정제명 — "삼성전기 (KRX)" 같은 거래소 suffix 제거.
-    // (leverageGuard는 위에서 원본 name으로 이미 검사 완료)
+    // (레버리지 위험 게이트는 handleAdd에서 등록 전 처리)
     const cleanName = (name || '').replace(/\s*\([A-Z]+\)\s*$/, '').trim() || name;
     if (cleanName && !STOCK_KR[sym]) STOCK_KR[sym] = cleanName;
 
@@ -212,7 +213,23 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       }
     } catch { /* silent */ }
     if (onClose) onClose();
-  }, [apiKey, stocks, currentTab, addStock, updateMacroEntry, onClose]);
+  }, [apiKey, stocks, currentTab, addStock, updateMacroEntry, onClose, user]);
+
+  // 등록 진입점 — 단일종목 레버리지면 위험 동의 게이트를 먼저 띄우고,
+  // 통과 후 doAdd로 실제 등록 ('중간 옵션': 신규 추천 X, 보유 등록은 게이트 후 허용).
+  const handleAdd = useCallback((symbol: string, name: string) => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent('open-login'));
+      if (onClose) onClose();
+      return;
+    }
+    const sym = symbol.toUpperCase();
+    if (isSingleStockLeverage(sym, name)) {
+      setLeverageGate({ symbol: sym, name });
+      return;
+    }
+    doAdd(symbol, name);
+  }, [user, onClose, doAdd]);
 
   const handleRemoveRecent = (e: React.MouseEvent, symbol: string) => {
     e.stopPropagation();
@@ -330,10 +347,19 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                       {getDisplayName(item)}
                     </span>
                     {(() => {
-                      // 자산 클래스 칩 (P0-3) — 우선주·ETF·혼합. 위험이 아닌 정보이므로
-                      // 중립 회색(토스풍 미니멀, 디자인 메모리 준수). 차단 상품은 결과에서
-                      // 이미 필터되므로 여기 칩으로는 안 나타남.
-                      const tag = getSearchTag(item.symbol, getDisplayName(item));
+                      const display = getDisplayName(item);
+                      // 단일종목 레버리지 — 앰버 경고 칩 (고위험, 신규 추천 아님).
+                      // 위험 맥락이라 경고색 사용 (정보성 칩의 중립 회색과 구분).
+                      if (isSingleStockLeverage(item.symbol, display)) {
+                        return (
+                          <span title={LEVERAGE_SEARCH_LABEL} style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(245,158,11,0.14)', color: '#B45309', letterSpacing: 0.2, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                            고위험
+                          </span>
+                        );
+                      }
+                      // 자산 클래스 칩 (P0-3) — 우선주·ETF·혼합. 위험 아닌 정보 → 중립 회색
+                      // (토스풍 미니멀, 디자인 메모리 준수).
+                      const tag = getSearchTag(item.symbol, display);
                       if (!tag) return null;
                       return (
                         <span style={{ fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 6, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #6B7684)', letterSpacing: 0.2, flexShrink: 0 }}>
@@ -371,16 +397,17 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           "결과 없음"을 막다른 길로 두지 않고, 왜 안 나오는지 + 다음 행동을 안내. */}
       {query.length > 0 && !showResults && results.length === 0 && (
         isLeverageQuery(query) ? (
-          // ① 차단 — 단일종목 레버리지·인버스
+          // ① 단일종목 레버리지 — 검색에 결과가 없을 때 (예: 카탈로그 미수록 한국 상품).
+          // '중간 옵션': 신규 추천은 안 하되, 보유분은 직접 등록 가능함을 안내.
           <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.12)', color: '#B45309', fontSize: 11, fontWeight: 700, marginBottom: 8 }}>
-              ⚠ 분석 대상 아님
+              ⚠ 고위험 · 신규 추천 안 함
             </div>
             <div style={{ marginBottom: 6, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
               {LEVERAGE_BLOCK_SHORT}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
-              단일종목 레버리지·인버스 ETF/ETN은 일일 N배 추종·음의 복리·발행사 신용 위험이 있어 학습용 앱 범위 밖이에요. 자세한 정보는 발행사 공시·금융감독원 안내를 확인해주세요.
+              단일종목 레버리지·인버스는 일일 N배 추종·음의 복리·발행사 신용 위험이 있어 주비가 신규로 추천하지 않아요. 이미 보유 중이라면 정확한 종목코드(예: 520100)로 검색해 등록하고 보유 위험 해설을 받아볼 수 있어요.
             </div>
           </div>
         ) : /[가-힣]/.test(query) ? (
@@ -405,6 +432,20 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           </div>
         )
       )}
+
+      {/* 단일종목 레버리지 보유 등록 게이트 — 통과 시 doAdd로 실제 등록.
+          position:fixed라 패널 컨테이너(overflow:hidden) 밖으로 정상 오버레이됨. */}
+      <LeverageRiskGate
+        isOpen={!!leverageGate}
+        symbol={leverageGate?.symbol || ''}
+        name={leverageGate?.name || ''}
+        onConfirm={() => {
+          const g = leverageGate;
+          setLeverageGate(null);
+          if (g) doAdd(g.symbol, g.name);
+        }}
+        onCancel={() => setLeverageGate(null)}
+      />
     </div>
   );
 }

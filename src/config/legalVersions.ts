@@ -17,9 +17,12 @@
 // LoginModal 동의 상수는 v2로 남아, 신규 가입자가 화면에서 v3에 동의해도
 // DB에는 terms=v2로 기록되던 증거 결함. 이 SSOT 도입으로 근본 차단.
 
-/** 이용약관 (/terms) */
-export const TERMS_VERSION = 'v3';
-export const TERMS_EFFECTIVE_DATE = '2026년 5월 28일';
+/** 이용약관 (/terms)
+ *  v4 (2026-05-29): 단일종목 레버리지 '중간 옵션' 반영 — 신규 추천 제외 유지 +
+ *  보유분 사후 위험 해설 허용 + 성인·위험 게이트. ⚠️ 변호사 정식 검토 후 배포할 것
+ *  (의견서 §5). 텍스트와 버전은 항상 함께 이동 (동의 증거력 정합성). */
+export const TERMS_VERSION = 'v4';
+export const TERMS_EFFECTIVE_DATE = '2026년 5월 29일';
 
 /** 개인정보처리방침 (/privacy) */
 export const PRIVACY_VERSION = 'v2';

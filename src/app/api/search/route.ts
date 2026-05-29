@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logServerApi } from '@/lib/serverLogger';
-import { isBlockedLeverage } from '@/utils/leverageGuard';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -41,7 +41,8 @@ export async function GET(req: NextRequest) {
     const d = await r.json();
     // 통화 환산 인프라가 USD ↔ KRW만 지원 → 그 외 거래소(.T 도쿄·.HK·.L 런던 등) 차단.
     // suffix 없음 = US(USD), .KS/.KQ = 한국(KRW)만 허용. 등록되면 KRW 환산이 깨져 거짓 손익 발생.
-    // 단일종목 레버리지·인버스 ETF/ETN 차단 — 2026-05-27 KRX 상장 대응, 5분야 패널 합의 (leverageGuard SSOT)
+    // '중간 옵션'(2026-05-29): 단일종목 레버리지도 검색 '표시'는 허용한다 (보유 입력용).
+    // 단 아래 universe 자동 등록(koreanNewRows)에서는 제외 — 신규 발굴 표면이므로 차단.
     const baseResults: SearchResultItem[] = (d.result || [])
       .filter((item: { type: string; symbol: string; description?: string }) => {
         if (item.type !== 'Common Stock' && item.type !== 'ETP') return false;
@@ -49,7 +50,6 @@ export async function GET(req: NextRequest) {
         if (sym.includes('.')) {
           if (!(sym.endsWith('.KS') || sym.endsWith('.KQ'))) return false;
         }
-        if (isBlockedLeverage(sym, item.description)) return false;
         return true;
       })
       .slice(0, 8)
@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
         // 사용자 검색 결과 중 한국 종목으로 stock_listings에 없는 것 자동 insert
         // (KRX 자동 cron 미구현 대안 — 사용자 검색이 곧 universe 후보 발견)
         const koreanNewRows = baseResults
-          .filter(r => (r.symbol.endsWith('.KS') || r.symbol.endsWith('.KQ')) && !existingMap.has(r.symbol))
+          .filter(r => (r.symbol.endsWith('.KS') || r.symbol.endsWith('.KQ')) && !existingMap.has(r.symbol)
+            && !isSingleStockLeverage(r.symbol, r.description)) // 레버리지는 universe 진입 금지 (신규 발굴 차단)
           .map(r => ({
             symbol: r.symbol,
             exchange: r.symbol.endsWith('.KS') ? 'KS' : 'KQ',
