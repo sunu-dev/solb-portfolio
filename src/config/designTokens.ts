@@ -2,7 +2,7 @@
  * SOLB 디자인 토큰 — TypeScript 상수
  *
  * 인라인 스타일에서 이 상수를 참조하세요.
- * 값은 모두 CSS 변수를 가리키므로 다크모드가 자동 적용됩니다.
+ * 값은 모두 CSS 변수를 가리키므로 다크모드가 자동 적용돼요.
  *
  * 사용 예:
  *   style={{ background: T.surface, color: T.textPrimary, borderRadius: T.radius.md }}

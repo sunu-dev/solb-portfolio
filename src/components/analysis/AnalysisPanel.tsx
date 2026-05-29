@@ -903,7 +903,7 @@ export default function AnalysisPanel() {
                           )}
 
                           <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 12 }}>
-                            AI가 생성한 참고 자료이며, 투자 자문이 아닙니다. 투자 판단의 책임은 이용자에게 있습니다.
+                            AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
                           </div>
                         </>
                       )}
@@ -1419,7 +1419,7 @@ export default function AnalysisPanel() {
 
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid #F2F4F6', marginTop: 16 }}>
-                  ⚠️ AI가 생성한 참고 자료이며, 투자 자문이 아닙니다. 투자 판단의 책임은 이용자에게 있습니다.
+                  ⚠️ AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
                 </div>
               </>
             )}

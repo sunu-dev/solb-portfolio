@@ -63,6 +63,8 @@ const FORMAL_TONE_EXEMPT_PATHS = [
   'src/app/terms/page.tsx',
   'src/app/privacy/page.tsx',
   'src/components/common/Disclaimer.tsx',
+  'src/utils/koreanCopy.ts',  // TOSS_TONE_MAP 정의 자체 (격식 어휘가 key로 들어감)
+  'src/config/analysisPrompt.ts',  // LLM prompt 안의 §6 금지 어휘 예시 (메타 지시)
   // 약관 마이그·README·docs는 src 밖이라 자연 제외
 ];
 

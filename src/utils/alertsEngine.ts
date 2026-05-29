@@ -91,7 +91,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'stoploss-hit', 'urgent', 1,
         `${name} 손절가 도달!`,
-        `현재가 $${price.toFixed(2)}이 손절가 $${stock.stopLoss.toFixed(2)}에 도달했어요. 즉시 확인하세요.`
+        `현재가 $${price.toFixed(2)}이 손절가 $${stock.stopLoss.toFixed(2)}에 도달했어요. 즉시 확인해주세요.`
       ));
     }
     // 2. Stop-loss approaching

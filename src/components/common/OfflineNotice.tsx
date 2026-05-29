@@ -38,7 +38,7 @@ export default function OfflineNotice() {
         padding: '6px 16px',
       }}
     >
-      📡 네트워크 연결이 끊겼어요. 캐시된 데이터를 표시하고 있습니다.
+      📡 네트워크 연결이 끊겼어요. 캐시된 데이터를 표시하고 있어요.
     </div>
   );
 }

@@ -181,7 +181,7 @@ export function getMACDStatus(
     if (prevHist > 0 && lastHist <= 0) {
       return {
         status: '하향 교차',
-        desc: '하락 힘이 세지고 있어요. 추가 하락에 주의하세요.',
+        desc: '하락 힘이 세지고 있어요. 추가 하락에 주의해주세요.',
         signal: 'sell',
       };
     }
@@ -258,7 +258,7 @@ export function getChartShapeSummary(
     return {
       icon: '📉',
       title: '데드크로스 발생, 하락 주의',
-      desc: '단기선이 장기선을 아래로 돌파했어요. 추가 하락에 주의하세요.',
+      desc: '단기선이 장기선을 아래로 돌파했어요. 추가 하락에 주의해주세요.',
       signal: 'caution',
     };
   }
@@ -512,7 +512,7 @@ export function generateSummary(
   else if (r > 70) body += `RSI가 ${r.toFixed(0)}으로 과열 구간이에요. 단기 조정이 올 수 있어요. `;
   else body += `RSI ${r.toFixed(0)}으로 적정 수준이에요. `;
   if (cross === 'golden') body += '최근 골든크로스(단기선이 장기선을 상향 돌파)가 발생했어요. 상승 신호로 볼 수 있어요.';
-  if (cross === 'death') body += '최근 데드크로스(단기선이 장기선을 하향 돌파)가 발생했어요. 추가 하락에 주의하세요.';
+  if (cross === 'death') body += '최근 데드크로스(단기선이 장기선을 하향 돌파)가 발생했어요. 추가 하락에 주의해주세요.';
 
   return { cls, icon, label, body };
 }

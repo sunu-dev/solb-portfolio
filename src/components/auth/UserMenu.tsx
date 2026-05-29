@@ -40,7 +40,7 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
 
   const handleSignOut = useCallback(() => {
     setOpen(false);
-    const ok = window.confirm('로그아웃하면 로컬 데이터가 초기화됩니다.\n데이터는 계정에 안전하게 저장되어 있어 다시 로그인하면 복원돼요.');
+    const ok = window.confirm('로그아웃하면 로컬 데이터가 초기화돼요.\n데이터는 계정에 안전하게 저장되어 있어 다시 로그인하면 복원돼요.');
     if (!ok) return;
     onSignOut();
   }, [onSignOut]);
@@ -145,7 +145,7 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
           <button
             disabled={deletingAccount}
             onClick={async () => {
-              if (!confirm('정말 계정을 삭제하시겠어요?\n\n포트폴리오, 분석 기록 등 모든 데이터가 영구 삭제되며 복구할 수 없습니다.')) return;
+              if (!confirm('정말 계정을 삭제하시겠어요?\n\n포트폴리오, 분석 기록 등 모든 데이터가 영구 삭제되며 복구할 수 없어요.')) return;
               if (!confirm('마지막 확인: 계정 삭제 후에는 되돌릴 수 없어요. 계속하시겠어요?')) return;
               setDeletingAccount(true);
               setOpen(false);

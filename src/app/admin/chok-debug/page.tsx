@@ -61,7 +61,7 @@ export default function ChokDebugPage() {
   useEffect(() => { if (isAdmin) fetchDebug(); }, [isAdmin]);
 
   if (loading) return <div style={{ padding: 40 }}>로딩…</div>;
-  if (!user) return <div style={{ padding: 40 }}>로그인이 필요합니다.</div>;
+  if (!user) return <div style={{ padding: 40 }}>로그인이 필요해요.</div>;
   if (!isAdmin) return <div style={{ padding: 40 }}>관리자만 접근 가능합니다.</div>;
 
   const fmt = (n: number | null, suffix = '') => n === null ? '—' : `${n.toFixed(suffix === '%' ? 1 : 2)}${suffix}`;

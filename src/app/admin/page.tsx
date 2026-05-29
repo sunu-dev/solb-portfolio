@@ -75,9 +75,9 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) { setError('로그인이 필요합니다.'); return; }
+    if (!user) { setError('로그인이 필요해요.'); return; }
     const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-    if (!isAdmin) { setError('관리자 권한이 없습니다.'); return; }
+    if (!isAdmin) { setError('관리자 권한이 없어요.'); return; }
     fetchStats();
   }, [user, loading]);
 
@@ -148,7 +148,7 @@ export default function AdminPage() {
         limits: { guest: 3, user: 10, total: 250 },
       });
     } catch (e) {
-      setError('통계를 불러올 수 없습니다.');
+      setError('통계를 불러올 수 없어요.');
       console.error(e);
     } finally {
       setRefreshing(false);
@@ -159,7 +159,7 @@ export default function AdminPage() {
   if (!user && !loading) return (
     <div style={{ padding: 48, textAlign: 'center' }}>
       <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>관리자 페이지</div>
-      <div style={{ fontSize: 14, color: '#8B95A1' }}>로그인이 필요합니다.</div>
+      <div style={{ fontSize: 14, color: '#8B95A1' }}>로그인이 필요해요.</div>
     </div>
   );
   if (error) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error}</div>;

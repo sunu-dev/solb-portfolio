@@ -188,7 +188,7 @@ export default function SettingsPanel() {
   };
 
   const handleClearAll = async () => {
-    if (!confirm('전체 초기화할까요? 모든 종목, 설정, 캐시 데이터가 삭제됩니다.')) return;
+    if (!confirm('전체 초기화할까요? 모든 종목, 설정, 캐시 데이터가 삭제돼요.')) return;
 
     // Supabase DB에서도 포트폴리오 삭제
     try {
@@ -448,7 +448,7 @@ export default function SettingsPanel() {
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
               꺼진 카테고리는 토스트·푸시 알림이 오지 않아요.<br />
-              사이드바 알림 센터에는 계속 표시됩니다.
+              사이드바 알림 센터에는 계속 표시돼요.
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -644,7 +644,7 @@ export default function SettingsPanel() {
               위험 구역
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
-              이 작업은 되돌릴 수 없습니다
+              이 작업은 되돌릴 수 없어요
             </div>
             <button
               onClick={handleClearAll}
@@ -666,7 +666,7 @@ export default function SettingsPanel() {
               전체 데이터 초기화
             </button>
             <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 8 }}>
-              모든 종목, 설정, 캐시 데이터가 삭제됩니다
+              모든 종목, 설정, 캐시 데이터가 삭제돼요
             </div>
           </div>
 

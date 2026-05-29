@@ -359,7 +359,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           </div>
         ) : (
           <div style={{ padding: '24px 20px', textAlign: 'center', fontSize: 13, color: '#8B95A1' }}>
-            검색 결과가 없습니다
+            검색 결과가 없어요
           </div>
         )
       )}

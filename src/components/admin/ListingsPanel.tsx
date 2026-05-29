@@ -421,7 +421,7 @@ export default function ListingsPanel() {
                     <button
                       onClick={() => {
                         if (!l.kr_name) { alert('한국어명을 먼저 채워주세요'); return; }
-                        if (confirm(`${l.symbol} 를 universe에 편입하시겠어요? 코드 PR로 CHOK_UNIVERSE에 추가해야 실제 적용됩니다.`)) {
+                        if (confirm(`${l.symbol} 를 universe에 편입하시겠어요? 코드 PR로 CHOK_UNIVERSE에 추가해야 실제 적용돼요.`)) {
                           patchListing(l.symbol, { status: 'universe' });
                         }
                       }}

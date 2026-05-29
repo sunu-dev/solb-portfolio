@@ -1151,7 +1151,7 @@ export default function PortfolioSection() {
                 내 종목 뉴스 보기
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-                뉴스 탭에서 보유 종목 관련 기사를 확인하세요
+                뉴스 탭에서 보유 종목 관련 기사를 확인해주세요
               </div>
             </div>
             <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>

@@ -215,7 +215,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               샘플 종목 둘러보기 (관심 목록)
             </button>
             <p style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>
-              실제 보유 X · 관심 목록에 추가됩니다. 언제든 삭제 가능.
+              실제 보유 X · 관심 목록에 추가돼요. 언제든 삭제 가능.
             </p>
 
             {/* OCR 가져오기 */}

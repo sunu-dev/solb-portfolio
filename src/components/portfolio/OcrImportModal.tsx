@@ -437,7 +437,7 @@ export default function OcrImportModal({ onClose }: Props) {
               {incompleteSelected > 0 && (
                 <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(255,149,0,0.08)', borderRadius: 10, fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
                   {incompleteSelected}개 종목의 평단/수량이 비어있어요.
-                  값을 입력하지 않으면 <strong>관심 종목</strong>으로 추가됩니다.
+                  값을 입력하지 않으면 <strong>관심 종목</strong>으로 추가돼요.
                 </div>
               )}
 

@@ -174,7 +174,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
           {pick.keyMetric}
         </div>
         <span
-          title="관찰 후보일 뿐 매수·매도 권유가 아닙니다. 투자 판단은 본인 책임."
+          title="관찰 후보일 뿐 매수·매도 권유가 아니에요. 투자 판단은 본인 책임."
           style={{ fontSize: 9, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}
         >
           ⓘ 정보용

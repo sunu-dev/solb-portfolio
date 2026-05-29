@@ -251,8 +251,8 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
             </div>
           )}
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 24, lineHeight: 1.5 }}>
-            한 달이 모여 한 챕터가 됩니다.<br/>
-            챕터들이 모여 당신의 투자 인생이 됩니다.
+            한 달이 모여 한 챕터가 돼요.<br/>
+            챕터들이 모여 당신의 투자 인생이 돼요.
           </div>
           <button
             onClick={(e) => {

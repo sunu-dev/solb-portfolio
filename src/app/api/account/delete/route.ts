@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   // 요청자 인증 확인
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    return NextResponse.json({ error: '인증이 필요해요.' }, { status: 401 });
   }
 
   const token = authHeader.replace('Bearer ', '');

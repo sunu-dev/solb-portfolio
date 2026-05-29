@@ -144,7 +144,7 @@ export default function InvestmentJournal() {
 
       {entries.length > 20 && (
         <div style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)' }}>
-          최근 20개만 표시 · 나머지는 각 종목 분석 화면에서 확인하세요
+          최근 20개만 표시 · 나머지는 각 종목 분석 화면에서 확인해주세요
         </div>
       )}
     </div>

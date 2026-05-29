@@ -301,7 +301,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2026-02-27',
     endDate: null,
     description: '미국-이스라엘 연합 이란 공습. 유가 급등, 글로벌 증시 급락.',
-    insight: '전쟁 충격은 보통 1~3개월 내 안정화됩니다. 현재 보유 종목은 10~15% 할인된 상태로, 분쟁 종료 시 강하게 반등할 가능성이 높아요.',
+    insight: '전쟁 충격은 보통 1~3개월 내 안정화돼요. 현재 보유 종목은 10~15% 할인된 상태로, 분쟁 종료 시 강하게 반등할 가능성이 높아요.',
     keyFacts: ['WTI 유가 급등', '글로벌 증시 동반 급락', '방산주 급등'],
     basePrices: { MU: 487, MSFT: 418, AVGO: 349, AMZN: 223, ASTX: 62.5, BEX: 31.2 },
     baseMacro: { 'S&P 500': 6878.88, NASDAQ: 19850, KOSPI: 7050, 'USD/KRW': 1420, 'WTI Oil': 66.81, VIX: 14.2 },
