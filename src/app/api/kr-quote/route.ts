@@ -38,8 +38,27 @@ const KR_SEARCH_EXTRA: { symbol: string; name: string }[] = [
 //   (KOREAN_UNIVERSE·CHOK_UNIVERSE에 미포함, asset_class 'rejected').
 //   현재 코드 확정분(ETN 2종)만. ETF 16종은 KRX 마스터 CSV(V1.2)로 보강.
 const KR_LEVERAGE_SEARCHABLE: { symbol: string; name: string }[] = [
+  // ETN 2종 (미래에셋)
   { symbol: '520100.KS', name: '미래에셋 레버리지 삼성전자 단일종목 ETN' },
   { symbol: '520101.KS', name: '미래에셋 레버리지 SK하이닉스 단일종목 ETN' },
+  // ETF 16종 (2026-05-27 KRX, 코드 K-ETF ISIN 검증). 검색 '표시'는 합법 레이어(§6/§101 회피) —
+  // SearchBar가 '고위험' 라벨 + 위험 동의 게이트 강제, deny-list가 분석·촉·universe 차단.
+  { symbol: '0193W0.KS', name: 'KODEX 삼성전자 단일종목 레버리지' },
+  { symbol: '0193T0.KS', name: 'KODEX SK하이닉스 단일종목 레버리지' },
+  { symbol: '0195R0.KS', name: 'TIGER 삼성전자 단일종목 레버리지' },
+  { symbol: '0195S0.KS', name: 'TIGER SK하이닉스 단일종목 레버리지' },
+  { symbol: '0194M0.KS', name: 'ACE 삼성전자 단일종목 레버리지' },
+  { symbol: '0194T0.KS', name: 'ACE SK하이닉스 단일종목 레버리지' },
+  { symbol: '0192M0.KS', name: 'RISE 삼성전자 단일종목 레버리지' },
+  { symbol: '0192L0.KS', name: 'RISE SK하이닉스 단일종목 레버리지' },
+  { symbol: '0193K0.KS', name: 'PLUS 삼성전자 단일종목 레버리지' },
+  { symbol: '0193L0.KS', name: 'PLUS 삼성전자선물 단일종목 인버스2X' },
+  { symbol: '0197W0.KS', name: 'SOL SK하이닉스 단일종목 레버리지' },
+  { symbol: '0197X0.KS', name: 'SOL SK하이닉스선물 단일종목 인버스2X' },
+  { symbol: '0194N0.KS', name: 'KIWOOM 삼성전자선물 단일종목 레버리지' },
+  { symbol: '0194R0.KS', name: 'KIWOOM SK하이닉스선물 단일종목 레버리지' },
+  { symbol: '0198B0.KS', name: '1Q 삼성전자선물 단일종목 레버리지' },
+  { symbol: '0198D0.KS', name: '1Q SK하이닉스선물 단일종목 레버리지' },
 ];
 
 // 검색 카탈로그 = universe(100) + 보강(우선주·ETF) + 레버리지(노출 전용). symbol 기준 중복 제거.
