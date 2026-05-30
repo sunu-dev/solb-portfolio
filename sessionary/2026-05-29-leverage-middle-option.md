@@ -59,8 +59,11 @@
 - ✅ **BuySimulator(추가매수 시뮬·물타기) isLev 게이트** (비평 발견, reachable)
 - ✅ 변호사 GO 문구 정합 (leverageGuard ↔ legalVersions: 구현=사용자GO / 배포=변호사검토후)
 
-### 🟡 잔존 — latent + long-tail (reachable must-fix는 3라운드로 전부 폐쇄)
-- [ ] **16종 한국 레버리지 ETF (latent)** — 코드 미확정이라 name-키워드로만 탐지. kr-quote 카탈로그·OCR로 현재 등록 불가라 도달 0. **KRX CSV 코드를 deny-list에 추가하면 닫힘** (등록 가능해지기 전 선행 필수). check-alerts·OCR·SearchBar 게이트의 name-의존은 이 클래스 한정.
+### ✅ 16종 한국 레버리지 ETF — 코드 확보 + deny-list 등재 (2026-05-30, 탐지 폐쇄)
+- [x] ~~웹 리서치(20에이전트) + K-ETF ISIN 교차검증으로 16종 알파뉴메릭 단축코드 확인~~ — 8개 운용사, 14종 2X + 2종 인버스(-2X). `KR_LEVERAGE_ETF_2026`로 bare+.KS 양형 deny-list 등재. 검증 6/6(오탐 0). ⚠️ 알파뉴메릭(0193W0)이라 `/^\d{6}$/` 정규화 비대상 → 직접 등재. ACE 2종 medium 신뢰도(운영 반영 시 KRX 최종 대조 권장).
+- [ ] **16종 검색 노출(KR_LEVERAGE_SEARCHABLE 추가)은 보류** — 노출=등록 가능화는 배포 게이트(변호사). §8 Q11(적합성-의무 상품 보유 해설 범위) 답변 후. 탐지는 이미 deny-list로 닫힘.
+
+### 🟡 잔존 — long-tail (reachable must-fix는 3라운드로 전부 폐쇄)
 - [ ] **long-tail 표면** (비평) — 월간 회고 champion 칭송+공유, priorityScore AI촉 주입 등 보유분 파생 표면. 저빈도·저severity. 추가 라운드 시 isLev 게이트.
 - [ ] **OCR 게이트 임포트** — 현재 레버리지 skip(안전, 중간옵션과 비대칭). 배치 위험 동의 후속.
 - [ ] **sanitize 룰 기반 방향 동사 스캐너** (should) — 정적 대체로 AI 리포트는 닫혔으나, 알림 등 다른 경로 방어 강화용.
