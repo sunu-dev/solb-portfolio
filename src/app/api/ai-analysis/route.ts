@@ -294,25 +294,23 @@ ${baseRulesCore}`
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
 {
-  "currentStatus": "${mentor.nameKr}의 관점에서 현재 상태를 2~3문장으로 설명 (이 투자자의 말투로)",
-  "mentorScore": 1~5 사이 정수 (이 투자자의 기준으로 이 종목/포트폴리오가 얼마나 좋은지),
-  "mentorVerdict": "${mentor.nameKr}의 관점에서 이 종목을 어떻게 볼지 한 줄 요약",
+  "currentStatus": "${mentor.nameKr}의 관점에서 현재 상태·특성을 2~3문장으로 설명 (이 투자자의 말투로)",
   "keyAdvice": [
-    "${mentor.nameKr}의 철학에 기반한 구체적 조언 1",
-    "${mentor.nameKr}의 철학에 기반한 구체적 조언 2",
-    "${mentor.nameKr}의 철학에 기반한 구체적 조언 3"
+    "${mentor.nameKr}의 철학에 기반한 관점·해석 1 (이 종목을 어떻게 볼지 — 매수/매도 지시가 아님)",
+    "${mentor.nameKr}의 철학에 기반한 관점·해석 2",
+    "${mentor.nameKr}의 철학에 기반한 관점·해석 3"
   ],
   "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "${mentor.nameKr} 관점에서 이 뉴스가 종목에 미칠 영향 1문장"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
   "newsContext": "뉴스 없을 때만: '최근 24시간 내 관련 뉴스가 없어요'",
   "scenarios": {
-    "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로.",
-    "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로."
+    "bull": "상승 시 시나리오: 뉴스/지표가 우호적으로 전개되면 어떤 상황이 될 수 있는지 1~2문장 (상황 설명일 뿐 매수 권유 아님). ${mentor.nameKr}의 말투로.",
+    "bear": "하락 시 시나리오: 리스크가 현실화되면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로."
   },
   "quote": "이 멘토 철학에 맞는 투자 격언 1개 (출처 없이)",
   "conclusion": {
-    "label": "긍정적/관망/주의 중 하나",
+    "label": "관심/중립/주의 중 하나 (매수 매력도가 아니라 ${mentor.nameKr}가 본 현황·위험 톤)",
     "signal": "positive/neutral/negative",
-    "desc": "${mentor.nameKr}의 관점에서 종합 판단 2~3문장"
+    "desc": "${mentor.nameKr}의 관점에서 현황·특성·위험 종합 2~3문장 (매수/매도 방향·목표가 없이)"
   }
 }`
       : `## 응답 형식 (반드시 JSON으로)
