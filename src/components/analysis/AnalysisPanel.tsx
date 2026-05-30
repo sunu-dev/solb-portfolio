@@ -1156,6 +1156,8 @@ export default function AnalysisPanel() {
                     });
                     return tv;
                   })();
+                  // 단일종목 레버리지: 추가매수 시뮬(물타기 평단)은 매수 방향 유인 → 미노출 (§6).
+                  if (isLev) return null;
                   return (
                     <div style={{ marginBottom: 24 }}>
                       <BuySimulator

@@ -43,7 +43,7 @@
 - [ ] **한국 레버리지 16종 코드** — 현재 ETN 2종만. KRX 마스터 CSV(V1.2).
 - [ ] **게이트 동의 DB 로깅** — 현재 행동 시점 게이트만. `user_consents`에 `leverage_risk` 추가(CHECK 마이그) → 분쟁 증거.
 
-### 🔵 적대적 검증 workflow (완료) — 2라운드 loop-until-clean
+### 🔵 적대적 검증 workflow (완료) — 3라운드 loop-until-clean (must-fix 10→5→2→reachable 0)
 **1차 감사** (28에이전트): 확정 누수 15건(must 10·should 5) + 비평 8 → **빠른 GO 구현이 불완전했음 적발**.
 **Tier 1 근본수정**: `isSingleStockLeverage` symbol-aware(US 화이트리스트+bare코드 정규화) + `classifyAssetClass` deny-list 통합 → 9/9 검증.
 **Tier 2 표면수정**(병렬 6파일): check-alerts·ai-analysis(3중방어)·AnalysisPanel·Timeline·Cohort·MarketMovers.
@@ -52,8 +52,18 @@
 - ✅ enforceLeverageReport에 scenarios 삭제 + indicators 신호 중립화 추가 (서버 단일 지점)
 - ✅ admin PATCH 레버리지 승급 차단 가드 (should-fix)
 - ✅ SearchBar EmptyState OCR 거짓 약속 카피 제거 (should-fix)
+- ✅ StockItem.name 영속화 → 보유-표면 가드(alertsEngine·check-alerts·morning-brief·AnalysisPanel) name 연결
 
-### 🟡 잔존 (latent — 현재 등록 불가, 근본수정 필요)
+**3차 재감사** (24에이전트, 9건): must-fix 2 = AI 리포트 자유텍스트(keyAdvice·currentStatus·quote·historicalNote) 누수 + 16종 name-의존(latent) → 보강:
+- ✅ **enforceLeverageReport가 자유텍스트를 정적 위험 해설로 대체** (currentStatus·keyAdvice 고정, quote·historicalNote·newsAnalysis 삭제, conclusion desc 고정). LLM이 OVERRIDE 어겨도 사용자엔 위험 해설만 — 결정론적 백스톱. (chok-leak-1 must + sanitize·historicalNote should 동시 폐쇄)
+- ✅ **BuySimulator(추가매수 시뮬·물타기) isLev 게이트** (비평 발견, reachable)
+- ✅ 변호사 GO 문구 정합 (leverageGuard ↔ legalVersions: 구현=사용자GO / 배포=변호사검토후)
+
+### 🟡 잔존 — latent + long-tail (reachable must-fix는 3라운드로 전부 폐쇄)
+- [ ] **16종 한국 레버리지 ETF (latent)** — 코드 미확정이라 name-키워드로만 탐지. kr-quote 카탈로그·OCR로 현재 등록 불가라 도달 0. **KRX CSV 코드를 deny-list에 추가하면 닫힘** (등록 가능해지기 전 선행 필수). check-alerts·OCR·SearchBar 게이트의 name-의존은 이 클래스 한정.
+- [ ] **long-tail 표면** (비평) — 월간 회고 champion 칭송+공유, priorityScore AI촉 주입 등 보유분 파생 표면. 저빈도·저severity. 추가 라운드 시 isLev 게이트.
+- [ ] **OCR 게이트 임포트** — 현재 레버리지 skip(안전, 중간옵션과 비대칭). 배치 위험 동의 후속.
+- [ ] **sanitize 룰 기반 방향 동사 스캐너** (should) — 정적 대체로 AI 리포트는 닫혔으나, 알림 등 다른 경로 방어 강화용.
 - [ ] **근본원인: `StockItem`에 종목명 필드 부재** → 보유-표면 leverageGuard가 symbol-only로 퇴화. 한국 레버리지 ETF 16종(코드 미확정, 이름 키워드로만 탐지)이 alertsEngine·check-alerts·morning-brief에서 미탐지. **단, 16종은 kr-quote 카탈로그·OCR 어디로도 현재 등록 불가라 latent.** `StockItem.name` 영속화로 닫힘(JSON blob sync라 저위험) — **표시 버그(리로드 시 이름이 심볼로 보임)도 동시 해결** + 매수일 기능 토대.
 - [ ] **OCR 게이트 임포트** — 현재 레버리지 skip(안전하나 중간옵션과 비대칭). 배치 위험 동의 후속.
 - [ ] **16종 ETF 코드(KRX CSV) 추가 전, name 영속화 선행 필수** (등록 가능해지면 16종 탐지 의존)

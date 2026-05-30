@@ -121,11 +121,25 @@ function enforceLeverageReport(report: unknown): unknown {
     );
   }
 
-  // 4) conclusion을 가장 보수적으로 고정
+  // 4) 자유텍스트 필드를 정적 위험 해설로 **대체** — LLM이 OVERRIDE를 어기고 소프트
+  //    매매 방향('비중을 줄이세요'·'반등 시 분할 매도'·'과거 반등 경향')을 출력해도
+  //    사용자에게 닿지 않게 결정론적 백스톱. (멘토 keyAdvice·currentStatus·quote,
+  //    일반 historicalNote가 sanitize exact-match를 우회하던 누수 차단.)
+  r.currentStatus = '단일종목 레버리지·인버스는 일일 N배 추종·음의 복리·발행사 신용 위험이 있는 고위험 단기 트레이딩 도구예요. 주비는 이 상품을 신규로 추천하지 않고, 매수·매도 방향이나 목표가도 제시하지 않아요. 아래는 보유 시 점검할 위험이에요.';
+  r.keyAdvice = [
+    '음의 복리: 기초자산이 횡보하거나 변동성이 크면 장기 보유 시 원금이 잠식될 수 있어요.',
+    'ETN은 발행사 신용 위험(채무불이행 시 원금 손실)이 추가로 있어요.',
+    '금융감독원은 손실 감내·위험 이해가 낮은 투자자에게 부적합하다고 안내해요.',
+  ];
+  delete r.quote;          // 투자 격언 — 매매 동기 부여로 읽힐 수 있어 제거
+  delete r.historicalNote; // '과거 반등 경향' 등 방향성 통계 차단
+  delete r.newsAnalysis;   // 뉴스 영향 해석이 방향으로 읽힐 수 있어 제거
+
+  // 5) conclusion을 가장 보수적으로 고정
   const concl = (r.conclusion && typeof r.conclusion === 'object')
     ? r.conclusion as Record<string, unknown>
     : {};
-  r.conclusion = { ...concl, label: '주의', signal: 'negative' };
+  r.conclusion = { ...concl, label: '주의', signal: 'negative', desc: '단일종목 레버리지는 신규 추천·매매 방향 제시 대상이 아니에요. 보유 위험만 함께 살펴보세요.' };
 
   return r;
 }
