@@ -994,8 +994,9 @@ export default function AnalysisPanel() {
                                   analysis.chartShape.signal === 'caution' ? '#E8950A' : '#8B95A1',
                           }}
                         >
-                          {analysis.chartShape.signal === 'positive' ? '🟢 긍정적' :
-                           analysis.chartShape.signal === 'caution' ? '🟡 관망' : '⚪ 중립'}
+                          {/* 매매 valence(긍정/관망) 대신 기술적 '상태' 라벨 — 방향 0 (관리·해설 도구) */}
+                          {analysis.chartShape.signal === 'positive' ? '🟢 양호' :
+                           analysis.chartShape.signal === 'caution' ? '🟡 주의' : '⚪ 중립'}
                         </span>
                         {analysis.rsiVal != null && (
                           <span style={{ fontSize: 13, color: '#8B95A1', fontWeight: 500 }}>

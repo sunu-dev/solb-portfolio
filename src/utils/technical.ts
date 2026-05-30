@@ -174,7 +174,7 @@ export function getMACDStatus(
     if (prevHist < 0 && lastHist >= 0) {
       return {
         status: '상향 교차',
-        desc: '상승 힘이 세지고 있어요. 매수 신호로 볼 수 있어요.',
+        desc: '단기 흐름의 상승 힘이 세지는 상태예요(상향 교차).',
         signal: 'buy',
       };
     }
@@ -223,7 +223,7 @@ export function getChartShapeSummary(
       return {
         icon: '📈',
         title: '바닥에서 반등 시도 중',
-        desc: `${pattern.name}${iGa(pattern.name)} 형성되었고, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요. 과거에 이런 패턴에서 반등이 나온 확률이 높아요.`,
+        desc: `${pattern.name}${iGa(pattern.name)} 형성됐고, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요.`,
         signal: 'positive',
       };
     }
@@ -249,8 +249,8 @@ export function getChartShapeSummary(
   if (cross === 'golden') {
     return {
       icon: '📈',
-      title: '골든크로스 발생, 상승 전환 신호',
-      desc: '단기선이 장기선을 위로 돌파했어요. 상승 추세 전환의 신호로 볼 수 있어요.',
+      title: '골든크로스 발생',
+      desc: '단기선이 장기선을 위로 돌파한 상태예요.',
       signal: 'positive',
     };
   }
@@ -276,7 +276,7 @@ export function getChartShapeSummary(
     return {
       icon: '📉',
       title: '하락 추세 진행 중',
-      desc: '가격이 이동평균선 아래에서 거래 중이에요. 반등 신호가 나올 때까지 관망이 좋을 수 있어요.',
+      desc: '가격이 이동평균선 아래에서 거래 중이에요.',
       signal: 'caution',
     };
   }
@@ -285,7 +285,7 @@ export function getChartShapeSummary(
       return {
         icon: '📈',
         title: '상승 추세이나 과열 주의',
-        desc: `상승 추세가 이어지고 있지만, RSI ${rsiVal.toFixed(0)}으로 과열 구간이에요. 단기 조정에 대비하세요.`,
+        desc: `상승 추세가 이어지고 있지만, RSI ${rsiVal.toFixed(0)}으로 과열 구간이에요.`,
         signal: 'caution',
       };
     }
