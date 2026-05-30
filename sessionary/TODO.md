@@ -5,17 +5,17 @@
 
 ## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
 
-> **최신 sessionary**: `2026-05-29-leverage-middle-option.md` (단일종목 레버리지 '중간 옵션' 구현)
-> **베타 D-6 상태**: 카운트다운 진행 중. 코드 BLOCKER 0건. 사용자 액션 BLOCKER 2건.
-> **2026-05-29 (4) 완료**: 단일종목 레버리지 **'영구 차단' → '중간 옵션' 전환** (변호사 의견 기반, 정식 GO 간주). Phase 1~5 구현 ✅. 방향성 분리 = 신규 발굴 차단 + 보유 해설 허용. tsc·prebuild·앱 실검증 통과.
-> **⚠️ 배포 게이트**: 약관 v4 DRAFT — **변호사 정식 검토 전 production 배포 금지** (의견서 §5).
-> **2026-05-29 (3) 완료**: 동의 버전 정합화(legalVersions SSOT) · P0 5건 인지 갭(검색 30→113종) · §8 변호사 질문지.
+> **최신 sessionary**: `2026-05-30-ai-direction-neutral-and-identity.md` (제품 정체성 + AI 방향 중립화 전 종목)
+> **정체성 확립**: 주비 = 매매·추천 아닌 **본인 주식 관리·확인 도구. AI는 매매 방향 0** (메모리 `project_product_identity`). 초개인화=해자, 개인화는 '이해'에·방향 0(§6 회피+차별화 양립).
+> **2026-05-30 완료**: AI 분석 **전 종목 방향 중립화**(프롬프트 LAYER1 대원칙+멘토 P&L+개인화+mentorScore 제거+기술 배지) · 16종 레버리지 ETF 코드 deny-list 등재 · UI 2건(삼성전자 스켈레톤=quotes KR→Yahoo / 모바일 겹침). radar·BuySimulator·시나리오·멘토 관점은 '이해'라 유지.
+> **2026-05-29 완료**: 레버리지 '영구 차단→중간 옵션' 전환 + 3라운드 적대적 검증(must-fix 10→5→2→0 reachable) + 동의 정합화 + P0 인지 갭.
+> **⚠️ 배포 게이트**: 약관 v4 DRAFT — **변호사 정식 검토 전 production 배포 금지**. AI 방향성 수준도 §8 확인 대상.
 
 ### 🔴 즉시 우선순위 (BLOCKER)
 
-1. **약관 v4 변호사 정식 검토** (자본시장법 전문, 30~50만원) — **배포 게이트**
-   - 중간 옵션 코드는 구현됨. 약관 v4 검토 후 production 배포 가능.
-   - 질문지: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 10건 + 사업구조 + 현행 안전망)
+1. **약관 v4 + §8 변호사 정식 검토** (자본시장법 전문, 30~50만원) — **배포 게이트**
+   - 레버리지 중간 옵션 + AI 방향 0 코드 구현됨. 검토 후 production 배포 가능.
+   - 질문지: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 11건 — Q11=적합성-의무 16종 보유해설, "허용 방향성 수준"이 앱 전체 §6 전략 핵심)
    - 메모리 [legal] 트리거 발동 상태 유지.
 2. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
@@ -54,6 +54,29 @@
 ## 진행 중
 
 - [x] ~~**🟡 Obsidian export** — 2026-05-13~05-20 세션 결과물 13건을 `~/Dev/Obsidian/sunu-space/00_Inbox/from-projects/solb-portfolio/`로 export 완료 (2026-05-20)~~
+
+## 🆕 2026-05-30 세션 — 제품 정체성 + AI 방향 중립화(전 종목) + 16종 코드 + UI
+
+> **종합 문서**: `sessionary/2026-05-30-ai-direction-neutral-and-identity.md`
+> **축**: "주비 = 관리 도구, AI 매매 방향 0" 정체성 확립 → 레버리지 너머 전 종목으로 방향 중립화.
+
+### 코드 반영 완료
+- [x] ~~제품 정체성 메모리~~ (`project_product_identity` 신설 — 초개인화=해자, 방향 0)
+- [x] ~~16종 레버리지 ETF 코드 deny-list 등재~~ (`39bc36c` — 리서치+ISIN, 알파뉴메릭 0193W0)
+- [x] ~~AI 방향 중립화 전 종목~~ (`4ca2f99` — LAYER1 대원칙·멘토 P&L·개인화·mentorScore 제거·FORBIDDEN_PHRASES)
+- [x] ~~기술 배지 방향 중립화~~ (`8619736` — technical.ts desc만, status/signal 유지)
+- [x] ~~UI: 삼성전자 스켈레톤(quotes KR→Yahoo)~~ (`48cfdca`) · ~~모바일 겹침~~ (`08c2519`)
+
+### 🔴 배포 게이트 / 검증
+- [ ] **§8 변호사** — 허용 방향성 수준(앱 전체 §6) + Q11(적합성-의무 16종 보유해설)
+- [ ] **in-app AI 출력 검증** (라이브 호출, 방향 0 확인)
+- [ ] **모바일 겹침 실기기 확인**
+
+### 🟡 후속
+- [ ] 16종 검색 노출(`KR_LEVERAGE_SEARCHABLE`, §8 후) · ACE 2종 KRX 대조
+- [ ] 매수일(buyDate) A/B 결정 (name 영속화로 토대 마련)
+- [ ] 추가 중립화 옵션(radar·BuySimulator·non-mentor indicators) 사용자 판단
+- [ ] long-tail(champion·priorityScore) · OCR 게이트 임포트
 
 ## 🆕 2026-05-29 세션 (4) — 단일종목 레버리지 '중간 옵션' 구현 (변호사 GO)
 
