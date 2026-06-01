@@ -5,7 +5,9 @@
 
 ## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
 
-> **최신 sessionary**: `2026-05-30-ai-direction-neutral-and-identity.md` (제품 정체성 + AI 방향 중립화 전 종목)
+> **최신 sessionary**: `2026-06-01-leverage-analysis-refusal-and-deploy-gate.md` (레버리지 AI분석 거부 전환 + 배포 게이트 + 브랜치 프리뷰)
+> **2026-06-01 완료**: 레버리지 AI분석 '해설→거부+일반유도'(디자인 패널, 적합성 우려 해소) · 16종 검색 노출(토스 패리티) · 배포 게이트 검토 NO_GO(약관v4·사전의견서) · **브랜치 `leverage-middle-option` 프리뷰 푸시(production 미배포, origin/main=c86f56d 옛 코드)**.
+> **🔴 배포 게이트**: production 라이브 = `leverage-middle-option` → main 머지 시 Vercel 자동 배포. **약관 v4 변호사 검토(§8)+사전 의견서 후에만.** 배포 위험: `docs/DEPLOY_RISK_LEVERAGE.md`.
 > **정체성 확립**: 주비 = 매매·추천 아닌 **본인 주식 관리·확인 도구. AI는 매매 방향 0** (메모리 `project_product_identity`). 초개인화=해자, 개인화는 '이해'에·방향 0(§6 회피+차별화 양립).
 > **2026-05-30 완료**: AI 분석 **전 종목 방향 중립화**(프롬프트 LAYER1 대원칙+멘토 P&L+개인화+mentorScore 제거+기술 배지) · 16종 레버리지 ETF 코드 deny-list 등재 · UI 2건(삼성전자 스켈레톤=quotes KR→Yahoo / 모바일 겹침). radar·BuySimulator·시나리오·멘토 관점은 '이해'라 유지.
 > **2026-05-29 완료**: 레버리지 '영구 차단→중간 옵션' 전환 + 3라운드 적대적 검증(must-fix 10→5→2→0 reachable) + 동의 정합화 + P0 인지 갭.
