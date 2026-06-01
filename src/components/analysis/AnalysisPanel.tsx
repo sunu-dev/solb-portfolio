@@ -19,7 +19,7 @@ import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
-import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE } from '@/utils/leverageGuard';
+import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
 
 const AI_STEPS = [
   { label: '최신 뉴스 수집 중', pct: 15 },
@@ -368,6 +368,8 @@ export default function AnalysisPanel() {
                 {/* AI 분석 리포트 버튼 */}
                 <button
                   onClick={async () => {
+                    // 단일종목 레버리지: AI 분석 거부 — API 호출·쿼터 차감·로딩 없이 거부 카드만 토글 (§6).
+                    if (isLev) { setShowAIReport(p => !p); return; }
                     if (showAIReport) { setShowAIReport(false); return; }
                     setShowAIReport(true);
                     if (aiReport) return; // already loaded
@@ -478,25 +480,59 @@ export default function AnalysisPanel() {
                   style={{
                     width: '100%',
                     padding: 14,
-                    background: aiLoading ? '#B0B8C1' : '#3182F6',
-                    color: '#fff',
+                    // 레버리지: 회색 disabled(고장처럼)가 아니라 의도적 정책임을 앰버 톤으로
+                    background: isLev ? 'rgba(245,158,11,0.10)' : aiLoading ? '#B0B8C1' : '#3182F6',
+                    color: isLev ? '#B45309' : '#fff',
                     borderRadius: 12,
-                    fontSize: 15,
-                    fontWeight: 600,
-                    border: 'none',
+                    fontSize: isLev ? 13.5 : 15,
+                    fontWeight: isLev ? 700 : 600,
+                    border: isLev ? '1px solid rgba(245,158,11,0.25)' : 'none',
                     marginBottom: 24,
                     gap: 8,
                     cursor: aiLoading ? 'default' : 'pointer',
                   }}
                 >
-                  <span>🤖</span> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}
-                  {aiRemaining !== null && !showAIReport && !aiLoading && (
+                  {isLev
+                    ? <><span>🛡️</span> 이 상품은 AI 분석을 제공하지 않아요</>
+                    : <><span>🤖</span> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</>}
+                  {aiRemaining !== null && !showAIReport && !aiLoading && !isLev && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
                 </button>
 
-                {/* AI Analysis Report — Gemini API */}
-                {showAIReport && (
+                {/* 단일종목 레버리지: AI 분석 '거부 + 일반 종목 유도' 카드 (디자인 패널 2026-06-01).
+                    모달 X(이미 게이트 거침)·인라인 교체. 면허 아닌 '고위험·적합성' 사유, 방향·추천 0. */}
+                {showAIReport && isLev && (
+                  <div style={{ borderRadius: 16, padding: '18px 20px', marginBottom: 24, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', wordBreak: 'keep-all' }}>
+                    <div style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: 8, background: 'rgba(245,158,11,0.14)', color: '#B45309', fontSize: 11, fontWeight: 700, letterSpacing: 0.2, marginBottom: 10 }}>
+                      🛡️ 고위험 · AI 분석 제외
+                    </div>
+                    <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                      <span style={{ fontSize: 18 }}>🛡️</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#B45309' }}>이 종목은 AI 분석을 제공하지 않아요</span>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7 }}>
+                      {LEVERAGE_ANALYSIS_REFUSAL}
+                    </div>
+                    <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle, #F2F4F6)', fontSize: 12.5, color: 'var(--text-secondary, #4E5968)' }}>
+                      ✓ 보유 현황·수익률·차트·가격 알림은 그대로 관리돼요.
+                    </div>
+                    <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(245,158,11,0.18)' }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 8 }}>
+                        레버리지가 아닌 일반 종목은 주비 AI 멘토 분석을 받을 수 있어요.
+                      </div>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
+                        style={{ width: '100%', padding: '11px 16px', background: '#fff', border: '1px solid rgba(245,158,11,0.4)', color: '#B45309', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        다른 종목 검색해서 분석받기 ›
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Analysis Report — Gemini API (일반 종목) */}
+                {showAIReport && !isLev && (
                   <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.12)' }}>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
                       <span style={{ fontSize: 18 }}>📊</span>
@@ -670,6 +706,9 @@ export default function AnalysisPanel() {
                   </div>
                 )}
 
+                {/* 단일종목 레버리지: 레이더(매수 매력도)·멘토 분석 섹션 전체 숨김 — '분석' 출구 차단.
+                    거부 + 일반 유도 카드가 위 AI 분석 영역에 노출됨. */}
+                {!isLev && (
                 <div style={{ marginBottom: 24 }}>
                   {/* Radar chart — 종목 속성 6축.
                       단일종목 레버리지·인버스(보유분)는 매수 매력도 점수를 노출하지 않는다.
@@ -960,6 +999,7 @@ export default function AnalysisPanel() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {analysis && !isLev && (
                   <>
