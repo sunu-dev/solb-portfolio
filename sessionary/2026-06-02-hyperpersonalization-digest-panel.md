@@ -17,15 +17,16 @@
 - **워크플로**(`wmfqvuqve`): 리서치 4(토스tech·카카오·시차 cross-market·2026 트렌드) → 패널 5(PM·개인화엔지니어·시장시차·UX·법무, UX 렌즈 1개 structured output 깨져 종합에 흡수) → 종합(ADD P0 5 + P1 4 + REMOVE 5 + deliverySpec).
 - **박제**: 메모리 `project_personalized_digest_strategy.md` 신설 + MEMORY.md 인덱스. docs/PERSONALIZED_DIGEST_SPEC.md 구현 스펙.
 
-## 미해결 TODO
+## 미해결 TODO (대부분 완료 — 2026-06-03 갱신)
 
-- [ ] P0 구현 5건 (시차 2슬롯 / RAG 해설 / 컴플라이언스 게이트 / digest 카테고리 / 면책) — 브랜치
-- [ ] build·lint + 적대적 §6/멱등성/환각 리뷰 워크플로 → fix
-- [ ] 배포 결정 (RAG 해설 = 변호사 게이트, 플래그 off 출발 권장)
+- [x] P0 구현 5건 (`98ed784`) + 적대 리뷰 12건 반영(`f28e10b`) + close 슬롯 게이트(`549bda3`)
+- [x] build·lint·적대 리뷰 워크플로(36 에이전트, must-fix 2 반영)
+- [x] **배포 완료** — main 머지·push, **두 플래그 off라 무변화 배포**(morning만 동작)
+- [ ] 플래그 활성화: `DIGEST_CLOSE_SLOT_ENABLED='on'`(2슬롯 가동) → 그 후 (변호사 후)`DIGEST_RAG_EXPLANATION='on'`
+- [ ] ⚠️ 아침 브리핑 ①②(주목종목 미장 우선·이메일 면책 DISCLAIMER_DIGEST) 그대로 둘지 되돌릴지 미결
 - [ ] P1: 보유 종목 캘린더 / 홈 시차 적응형 재정렬 / digest 카피톤 lint / 미장 전 저녁 슬롯(KST21:00 in-app·email만)
 
 ## 다음 세션 진입점
 
-**상태**: 전략 박제 완료. P0 구현 착수. 휴장 버그 라이브 픽스 완료(f725348).
-**우선순위**: ① 코드 확인(morning-brief·alertPolicy·alertCompliance·marketHours·vercel.json 실제 정독) → ② P0 구현 → ③ 적대적 검증.
-**참고**: 전략 [[project_personalized_digest_strategy]] · 시장 [[project_market_strategy]] · 멱등성 [[project_cron_idempotency]] · 환각금지 [[feedback_hallucinated_stats]] · docs/PERSONALIZED_DIGEST_SPEC.md.
+**상태**: digest P0 배포 완료(플래그 off). **단, 같은 세션에서 생존 패널이 pivot-required 판정 → 세무 피봇으로 전략 무게중심 이동.** digest는 "1 maybe" 차별점으로 인정됐으나 retention 배선 필요.
+**참고**: 후속 흐름은 `2026-06-03-survival-pivot-and-tax-design.md` 참조. 전략 [[project_personalized_digest_strategy]] · docs/PERSONALIZED_DIGEST_SPEC.md.

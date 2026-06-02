@@ -3,27 +3,28 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-05-30+)
+## 🎯 다음 세션 자동 브리핑 (2026-06-03)
 
-> **최신 sessionary**: `2026-06-01-leverage-analysis-refusal-and-deploy-gate.md` (레버리지 AI분석 거부 전환 + 배포 게이트 + 브랜치 프리뷰)
-> **2026-06-01 완료**: 레버리지 AI분석 '해설→거부+일반유도'(디자인 패널, 적합성 우려 해소) · 16종 검색 노출(토스 패리티) · 배포 게이트 검토 NO_GO(약관v4·사전의견서) · **브랜치 `leverage-middle-option` 프리뷰 푸시(production 미배포, origin/main=c86f56d 옛 코드)**.
-> **🔴 배포 게이트**: production 라이브 = `leverage-middle-option` → main 머지 시 Vercel 자동 배포. **약관 v4 변호사 검토(§8)+사전 의견서 후에만.** 배포 위험: `docs/DEPLOY_RISK_LEVERAGE.md`.
-> **정체성 확립**: 주비 = 매매·추천 아닌 **본인 주식 관리·확인 도구. AI는 매매 방향 0** (메모리 `project_product_identity`). 초개인화=해자, 개인화는 '이해'에·방향 0(§6 회피+차별화 양립).
-> **2026-05-30 완료**: AI 분석 **전 종목 방향 중립화**(프롬프트 LAYER1 대원칙+멘토 P&L+개인화+mentorScore 제거+기술 배지) · 16종 레버리지 ETF 코드 deny-list 등재 · UI 2건(삼성전자 스켈레톤=quotes KR→Yahoo / 모바일 겹침). radar·BuySimulator·시나리오·멘토 관점은 '이해'라 유지.
-> **2026-05-29 완료**: 레버리지 '영구 차단→중간 옵션' 전환 + 3라운드 적대적 검증(must-fix 10→5→2→0 reachable) + 동의 정합화 + P0 인지 갭.
-> **⚠️ 배포 게이트**: 약관 v4 DRAFT — **변호사 정식 검토 전 production 배포 금지**. AI 방향성 수준도 §8 확인 대상.
+> **최신 sessionary**: `2026-06-03-survival-pivot-and-tax-design.md` (생존 패널 pivot-required + 세무 피봇 설계·법률 질문지)
+> **🔴 전략 전환**: 12인 생존 패널 = **pivot-required**(만장일치, 확신 80%, Q1 11 no·Q2 0 survive). 방향0 관리툴=vitamin·수익 천장 → **세무 비서로 피봇** 권고. 세무가 §6 안 어기고 '실행 가능한 결론' 주는 유일 painkiller. 토스·ChatGPT 구조적 불가. 메모리 [[project_survival_pivot]] [[project_tax_pivot]].
+> **🔴 세무 배포 게이트**: 세무 기능 구현 전 **세무사 calc 감수 + 변호사 카피·약관**(세무사법 §20③ — "세무 비서" 네이밍 금지!). 질문지 `docs/LEGAL_CONSULTATION_TAX.md`. 파운더가 자문 + 4 결정(입력경로·sold일원화·FX통화·공식환율 소스) 가져오면 Phase 1(taxRates SSOT·transactions/fx_rates 스키마·lint·약관 v5) 진입.
+> **2026-06-02~03 완료**: 휴장 주말필터 버그 픽스 배포(`f725348`) · 시차 digest P0 배포(`98ed784`+적대리뷰`f28e10b`+게이트`549bda3`, **두 플래그 off라 무변화 배포**) · 생존 패널 · 세무 설계·질문지(`7a1a3b2`).
+> **레버리지 (이전, 배포됨)**: 선배포 결정으로 production 라이브(ccb0ca8) — AI분석 거부+검색노출+전종목 방향0. 사후 변호사 자문 doc ready(`docs/LEGAL_CONSULTATION_LEVERAGE.md`·`DEPLOY_RISK_LEVERAGE.md`).
+> **정체성**: 주비 = 매매·추천 아닌 **본인 주식 관리·정보 도구, AI 방향 0** ([[project_product_identity]]). 단 생존 패널이 "관리툴만으론 수익 불가" 지적 → 세무로 과금축 이동.
 
 ### 🔴 즉시 우선순위 (BLOCKER)
 
-1. **약관 v4 + §8 변호사 정식 검토** (자본시장법 전문, 30~50만원) — **배포 게이트**
-   - 레버리지 중간 옵션 + AI 방향 0 코드 구현됨. 검토 후 production 배포 가능.
-   - 질문지: `docs/LEGAL_CONSULTATION_LEVERAGE.md` (질문 11건 — Q11=적합성-의무 16종 보유해설, "허용 방향성 수준"이 앱 전체 §6 전략 핵심)
-   - 메모리 [legal] 트리거 발동 상태 유지.
-2. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
+1. **세무 피봇 자문 (신규 — 배포 게이트)** — `docs/LEGAL_CONSULTATION_TAX.md`
+   - 세무사 9문(calc 정확성: 환율 기준일·lot 취득가·환차손익·필요경비·과세대상 판정) + 변호사 6문(세무사법 §20③ 네이밍·§2 상담경계·OCR=직접입력 동치·약관규제법 §7·§101 단일 PRO 묶음).
+   - 파운더 결정 4건: 입력경로(OCR vs 수기)·sold→sell 일원화·FX USD-only vs 다통화·공식 매매기준율 데이터 소스.
+   - 자문 전이라도 calc 정확성 노출 없는 골격(taxRates SSOT·스키마·lint·약관 v5)은 선행 가능.
+2. **레버리지 약관 v4 + §8 변호사 사후 자문** (배포됨 → 사후 검증)
+   - production 라이브 상태. 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md`(11건, Q11=적합성). 분쟁 소지 사후 점검.
+3. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
    - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제
    - 트리거 단어: "결제 완료", "joobi.kr 진행하자", "Phase A 진행"
-3. **카나리 24h 페르소나 5명 모집** (사용자 직접)
+4. **카나리 24h 페르소나 5명 모집** (사용자 직접)
    - 다증권사 30대 iOS · 1증권사 20대 Android · **Samsung Internet** 30대 · **카카오 인앱브라우저** 20대 · PC desktop 30대
 
 ### ✅ 정책 무관 P0 5건 — 2026-05-29 (3) 완료 (검증 통과)
