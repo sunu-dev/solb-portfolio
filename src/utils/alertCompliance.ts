@@ -80,6 +80,18 @@ export const DISCLAIMER =
 /** 짧은 변형 — 푸시 body 등 공간 제약 시 */
 export const DISCLAIMER_SHORT = '정보 제공용. 투자 판단은 본인 책임.';
 
+/**
+ * 시차 digest 전용 '자기한계 선언형' 면책 — Robinhood Cortex 패턴 차용.
+ *
+ * 일반 DISCLAIMER(결과 책임)에 더해 "주비는 회원님의 투자 목표·위험 성향·투자 기간을
+ * 알지 못하므로 자문·로보어드바이저가 아니다"라는 자기 한계를 명시한다. 개인화가 강한
+ * digest(보유 종목 기반 해설)일수록 본문 스스로 '개별 맞춤 자문이 아님'을 증명하는
+ * 면책 증거력이 핵심이기 때문이다.
+ * SSOT: docs/PERSONALIZED_DIGEST_SPEC.md §3. 최종 문구는 약관 v4 변호사 검토 묶음 확정.
+ */
+export const DISCLAIMER_DIGEST =
+  '주비는 회원님의 투자 목표·위험 성향·투자 기간을 알지 못하므로 투자자문·로보어드바이저가 아니며, 본 요약은 보유 종목의 현황·정보 제공 목적입니다. 투자 판단과 그 결과는 본인 책임입니다.';
+
 export interface ComplianceViolation {
   phrase: string;
   field: 'message' | 'detail';
@@ -220,4 +232,55 @@ export function sanitizeAiObject<T>(obj: T): { result: T; replacedTotal: number 
 
   const result = walk(obj) as T;
   return { result, replacedTotal };
+}
+
+// ==========================================
+// DIGEST EXPLANATION GATE — 시차 digest '왜 움직였나' 사후 해설 전용
+// ==========================================
+//
+// SSOT: docs/PERSONALIZED_DIGEST_SPEC.md §2(c)
+//
+// digest 사후 해설은 '과거 사실·비단정'에만 머물러야 한다(§6). 인과 단정·미래 단정은
+// 토스 2026-01 환각사고(상관→인과 비약)의 정확한 실패 모드다. 단 이 어휘들('때문에' 등)은
+// 일반 알림·UI 카피에선 정상적으로 흔히 쓰이므로 글로벌 FORBIDDEN_PHRASES(런타임 전역
+// 검사)에 넣으면 과차단된다. 그래서 digest 해설 텍스트에만 적용하는 별도 게이트로 분리한다.
+// 정책: 검출 시 '교체'가 아니라 '해설 자체를 드롭(omit)' — 잘못된 인과 한 줄보다 무(無)가 안전.
+
+const DIGEST_CAUSAL_FORBIDDEN: readonly string[] = [
+  // 인과 단정
+  '때문에', '때문입니다', '때문이에요',
+  '덕분에', '덕분입니다',
+  '영향으로 상승', '영향으로 하락', '여파로',
+  '로 인해', '으로 인해',
+  // 확신 부사
+  '확실히', '분명히', '반드시', '틀림없이',
+  // 미래 단정 (방향 시그널로 읽힘)
+  '오를 것', '내릴 것', '상승할 것', '하락할 것', '급등할', '급락할',
+];
+
+export interface DigestGateResult {
+  /** 게이트를 통과한 안전 해설 (드롭되면 null) */
+  note: string | null;
+  /** 드롭 사유 (감사·로깅용, 통과 시 null) */
+  droppedFor: string | null;
+}
+
+/**
+ * digest 사후 해설(1~2문장)을 §6 안전 게이트에 통과시킨다.
+ * - 글로벌 FORBIDDEN_PHRASES(방향·추천 권유) 검출 → 드롭
+ * - DIGEST_CAUSAL_FORBIDDEN(인과·미래 단정) 검출 → 드롭
+ * - 통과 시 원문 그대로 반환 (비단정 서술은 안전)
+ *
+ * fail-safe: 의심되면 드롭한다. 해설 없음(델타 숫자만)이 잘못된 인과보다 안전하다.
+ */
+export function gateDigestNote(raw: string): DigestGateResult {
+  const text = (raw || '').trim();
+  if (!text) return { note: null, droppedFor: 'empty' };
+  for (const p of FORBIDDEN_PHRASES) {
+    if (text.includes(p)) return { note: null, droppedFor: `forbidden:${p}` };
+  }
+  for (const p of DIGEST_CAUSAL_FORBIDDEN) {
+    if (text.includes(p)) return { note: null, droppedFor: `causal:${p}` };
+  }
+  return { note: text, droppedFor: null };
 }

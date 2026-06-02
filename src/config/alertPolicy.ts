@@ -64,6 +64,13 @@ export const ALERT_POLICY: Record<string, AlertPolicyEntry> = {
   'composite-overheated':       { channels: ['toast', 'inapp'], category: 'indicator' },
   'composite-strong-downtrend': { channels: ['toast', 'inapp'], category: 'indicator' },
   'composite-squeeze':          { channels: ['toast', 'inapp'], category: 'indicator' },
+
+  // ─── 시차 인지 digest (정시 발송 — morning-brief cron 계열, docs/PERSONALIZED_DIGEST_SPEC.md)
+  // 실제 발송 게이트는 push_subscriptions/email_subscriptions 명시 옵트인이며, 여기 채널은
+  // Settings 카테고리 그룹핑·alert engine 디폴트용. push는 digest에서 기본 미허용(opt-in 모델).
+  'morning_brief':      { channels: ['inapp'], category: 'digest' },
+  'digest_kr_morning':  { channels: ['inapp'], category: 'digest' }, // alias of morning_brief (국장 07:00 슬롯)
+  'digest_kr_close':    { channels: ['inapp'], category: 'digest' }, // 국장 마감 16:00 슬롯
 };
 
 /** 정책에 없는 condition — 보수적으로 inapp만 (푸시 절대 X, 안전 디폴트) */

@@ -9,17 +9,40 @@ import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { DISCLAIMER_DIGEST, gateDigestNote } from '@/utils/alertCompliance';
+
+// ─── 시차 인지 2슬롯 digest (docs/PERSONALIZED_DIGEST_SPEC.md) ───────────────
+// 같은 route를 ?slot= 쿼리로 분기. 국장 07:00(간밤 미장 보유분) / 국장 마감 16:00(오늘 국장).
+type DigestSlot = 'morning' | 'close';
+
+interface SlotFraming {
+  upEmoji: string;
+  downEmoji: string;
+  briefTitle: string;     // 기본(조용한 날) 제목
+  /** close 슬롯은 '오늘(국장 마감) 변동'을 먼저, morning은 '어제 대비'를 먼저 */
+  todayFirst: boolean;
+  /** 멱등성 notification_type — 슬롯별 분리(단일 타입이면 둘째 슬롯 UNIQUE 위반 silent skip) */
+  notificationType: string;
+}
+
+const SLOT_FRAMING: Record<DigestSlot, SlotFraming> = {
+  morning: { upEmoji: '🌅', downEmoji: '🌫️', briefTitle: '오늘 아침 브리핑', todayFirst: false, notificationType: 'morning_brief' },
+  close:   { upEmoji: '📊', downEmoji: '🌆', briefTitle: '국장 마감 브리핑', todayFirst: true,  notificationType: 'digest_kr_close' },
+};
 
 /**
- * 모닝 브리핑 cron — E 항목 본격 구현.
+ * 시차 인지 2슬롯 digest cron (구 모닝 브리핑) — docs/PERSONALIZED_DIGEST_SPEC.md.
  *
  * 동작:
- * - 매일 KST 7am (= UTC 22:00) 실행
- * - push_subscriptions에 등록된 유저에게 개인화 브리핑 푸시
- * - 푸시 본문: 어제 vs 오늘 자산 변화 + 가장 큰 움직임 종목
+ * - 국장 아침 슬롯: KST 07:00 (= UTC 22:00) — 간밤 미장 보유분 정리(미장 종목 주목)
+ * - 국장 마감 슬롯: KST 16:00 (= UTC 07:00) — 오늘 국장 마감 정리(국장 종목 주목)
+ * - push_subscriptions/email_subscriptions 옵트인 유저에게 개인화 digest 발송
+ * - 본문: 어제/오늘 자산 변화 + 슬롯 시장의 가장 큰 움직임 종목 (+ 플래그 시 '왜 움직였나' 해설)
  * - 클릭 → 앱 열림 → 기존 MorningBriefing 컴포넌트가 상세 표시
  *
- * 등록: vercel.json crons에 "schedule": "0 22 * * *"
+ * 등록: vercel.json crons에 같은 path 2개 ("0 22 * * *" + "0 7 * * *").
+ *       슬롯은 핸들러가 UTC 시각으로 판정(쿼리스트링 cron path 미문서화 회피).
+ *       멱등성 notification_type 슬롯별 분리(morning_brief / digest_kr_close).
  *
  * 인프라 의존:
  * - SUPABASE_SERVICE_KEY: Service role for admin queries
@@ -103,6 +126,7 @@ async function buildBrief(
   snapshots: DailySnapshot[],
   usdKrw: number,
   priceCache: PriceCache,
+  slot: DigestSlot,
 ): Promise<BriefData | null> {
   // '중간 옵션'(2026-05-29): 단일종목 레버리지 보유분도 포트폴리오 손익 계산엔 포함한다
   // (정확한 보유 현황 = 관리·확인 목적). 단 아래 biggestMover('오늘의 주목 종목')로는
@@ -115,7 +139,10 @@ async function buildBrief(
   let totalValue = 0;
   let todayDelta = 0;
   let prevValue = 0;
-  let biggestMover: { symbol: string; dp: number; absDp: number } | null = null;
+  // 주목 종목 후보: 슬롯 시장 매칭(close=국장 KR / morning=간밤 미장 US) 우선, 없으면 전체 fallback.
+  type Mover = { symbol: string; dp: number; absDp: number };
+  let biggestMatch: Mover | null = null;
+  let biggestAny: Mover | null = null;
   for (const stock of investing) {
     const q = priceCache[stock.symbol];
     if (!q) continue;
@@ -127,10 +154,12 @@ async function buildBrief(
     // 레버리지는 손익엔 반영하되 '오늘의 주목 종목'으로는 띄우지 않음 (유인 억제).
     if (isSingleStockLeverage(stock.symbol, stock.name || STOCK_KR[stock.symbol])) continue;
     const absDp = Math.abs(q.dp);
-    if (!biggestMover || absDp > biggestMover.absDp) {
-      biggestMover = { symbol: stock.symbol, dp: q.dp, absDp };
-    }
+    const cand: Mover = { symbol: stock.symbol, dp: q.dp, absDp };
+    if (!biggestAny || absDp > biggestAny.absDp) biggestAny = cand;
+    const slotMatch = slot === 'close' ? isKR : !isKR;
+    if (slotMatch && (!biggestMatch || absDp > biggestMatch.absDp)) biggestMatch = cand;
   }
+  const biggestMover = biggestMatch || biggestAny;
 
   if (totalValue === 0) return null;
   const todayPct = prevValue > 0 ? (todayDelta / prevValue) * 100 : 0;
@@ -157,44 +186,83 @@ async function buildBrief(
   };
 }
 
-function buildPushPayload(brief: BriefData): { title: string; body: string } {
-  const emoji = brief.todayDelta >= 0 ? '🌅' : '🌫️';
+function buildPushPayload(brief: BriefData, slot: DigestSlot): { title: string; body: string } {
+  const f = SLOT_FRAMING[slot];
+  const emoji = brief.todayDelta >= 0 ? f.upEmoji : f.downEmoji;
+  const moverStr = brief.biggestMover
+    ? `${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
+    : null;
 
-  // 우선순위 1: 어제 vs 오늘 비교 (스냅샷 가용 시 가장 의미 있는 신호)
-  if (brief.yesterdayDelta !== null && brief.yesterdayPct !== null && Math.abs(brief.yesterdayPct) >= 0.1) {
+  // 어제 대비 브랜치 (스냅샷 가용 시 가장 의미 있는 신호)
+  const yesterdayBranch = (): { title: string; body: string } | null => {
+    if (brief.yesterdayDelta === null || brief.yesterdayPct === null || Math.abs(brief.yesterdayPct) < 0.1) return null;
     const yIsUp = brief.yesterdayDelta >= 0;
-    const title = `${emoji} 어제 대비 ${yIsUp ? '+' : '-'}${fmtWon(Math.abs(brief.yesterdayDelta))}`;
     const pctStr = `${yIsUp ? '+' : ''}${brief.yesterdayPct.toFixed(2)}%`;
-    const body = brief.biggestMover
-      ? `${pctStr} · ${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
-      : pctStr;
-    return { title, body };
-  }
+    return {
+      title: `${emoji} 어제 대비 ${yIsUp ? '+' : '-'}${fmtWon(Math.abs(brief.yesterdayDelta))}`,
+      body: moverStr ? `${pctStr} · ${moverStr}` : pctStr,
+    };
+  };
 
-  // 우선순위 2: 오늘 일일 변동
-  if (Math.abs(brief.todayPct) >= 0.05) {
+  // 오늘(국장 마감) 일일 변동 브랜치
+  const todayBranch = (): { title: string; body: string } | null => {
+    if (Math.abs(brief.todayPct) < 0.05) return null;
     const isUp = brief.todayDelta >= 0;
-    const title = `${emoji} 포트폴리오 ${isUp ? '+' : '-'}${fmtWon(Math.abs(brief.todayDelta))}`;
+    const head = slot === 'close' ? '국장 마감' : '포트폴리오';
+    const lead = slot === 'close' ? '오늘 국장' : '오늘';
     const pctStr = `${isUp ? '+' : ''}${brief.todayPct.toFixed(2)}%`;
-    const body = brief.biggestMover
-      ? `오늘 ${pctStr} · ${brief.biggestMover.symbol} ${brief.biggestMover.dp >= 0 ? '+' : ''}${brief.biggestMover.dp.toFixed(1)}%`
-      : `오늘 ${pctStr}`;
-    return { title, body };
+    return {
+      title: `${emoji} ${head} ${isUp ? '+' : '-'}${fmtWon(Math.abs(brief.todayDelta))}`,
+      body: moverStr ? `${lead} ${pctStr} · ${moverStr}` : `${lead} ${pctStr}`,
+    };
+  };
+
+  // 슬롯별 우선순위: close=오늘(국장 마감) 우선, morning=어제 대비 우선
+  const ordered = f.todayFirst ? [todayBranch, yesterdayBranch] : [yesterdayBranch, todayBranch];
+  for (const branch of ordered) {
+    const r = branch();
+    if (r) return r;
   }
 
-  // 우선순위 3: biggestMover만
+  // biggestMover만 (변동이 작은 날)
   if (brief.biggestMover && Math.abs(brief.biggestMover.dp) >= 1) {
     const dp = brief.biggestMover.dp;
     return {
-      title: `${emoji} 오늘 아침 브리핑`,
+      title: `${emoji} ${f.briefTitle}`,
       body: `${brief.biggestMover.symbol} ${dp >= 0 ? '+' : ''}${dp.toFixed(2)}% — 가장 큰 움직임`,
     };
   }
 
   return {
-    title: `${emoji} 오늘 아침 브리핑`,
-    body: '간밤 시장 조용한 편 · 앱에서 자세히 확인',
+    title: `${emoji} ${f.briefTitle}`,
+    body: slot === 'close' ? '오늘 국장 조용한 편 · 앱에서 자세히 확인' : '간밤 시장 조용한 편 · 앱에서 자세히 확인',
   };
+}
+
+/**
+ * '왜 움직였나' 사후 해설 — biggestMover 종목 최근 헤드라인을 비단정 서술로 첨부.
+ *
+ * ⚠️ 환각·§6 위험의 유일한 지점이라 env 플래그로 게이트한다. 기본 off → null(현행 델타-only).
+ * - DIGEST_RAG_EXPLANATION='on'일 때만 동작. 약관 v4 변호사 검토 후 on.
+ * - LLM '생성'이 아니라 실제 헤드라인 '인용'(RAG-grounded 사실) — 토스 2026-01 동일티커
+ *   환각사고 방어를 위해 한글명으로만 질의.
+ * - gateDigestNote()로 인과·방향·미래 단정 검출 시 드롭(omit) — 잘못된 인과보다 무가 안전.
+ */
+async function buildMoverNote(symbol: string, name: string): Promise<string | null> {
+  if (process.env.DIGEST_RAG_EXPLANATION !== 'on') return null;
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) return null;
+    const res = await fetch(`${appUrl}/api/news?q=${encodeURIComponent(name || symbol)}&maxHours=24&locale=ko`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const d = await res.json();
+    const headline: string | undefined = d?.items?.[0]?.title;
+    if (!headline) return null;
+    const { note } = gateDigestNote(`관련 소식: ${headline}`);
+    return note;
+  } catch {
+    return null;
+  }
 }
 
 /** 이메일 본문 (정책 §4.3 면책은 sendEmail이 자동 첨부) */
@@ -210,6 +278,8 @@ function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: s
       : '',
     '',
     `자세히 보기: ${appUrl}`,
+    '',
+    DISCLAIMER_DIGEST, // 자기한계 선언형 면책 (sendEmail이 결과책임 DISCLAIMER도 자동 첨부)
   ].filter(Boolean).join('\n');
 }
 
@@ -221,6 +291,17 @@ export async function GET(req: NextRequest) {
   initWebPush();
   const db = getAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
+
+  // 시차 슬롯 판정 — vercel.json에 같은 path 2개(0 22=KST07 아침 / 0 7=KST16 마감)를 등록하고
+  // (쿼리스트링 cron path는 미문서화라 회피), 핸들러가 UTC 시각으로 슬롯을 가른다.
+  //   UTC 22:00 = KST 07:00(아침/morning) · UTC 07:00 = KST 16:00(마감/close)
+  // → UTC hour < 12면 마감 슬롯, 아니면 아침 슬롯. ?slot=로 수동 테스트 override 가능.
+  const slotParam = req.nextUrl.searchParams.get('slot');
+  const slot: DigestSlot =
+    slotParam === 'close' ? 'close'
+    : slotParam === 'morning' ? 'morning'
+    : new Date().getUTCHours() < 12 ? 'close' : 'morning';
+  const framing = SLOT_FRAMING[slot];
 
   const stats = { totalUsers: 0, sent: 0, emailed: 0, skipped: 0, errors: [] as string[] };
 
@@ -322,14 +403,16 @@ export async function GET(req: NextRequest) {
       const stocks = port.stocks as PortfolioStocks;
       const snapshots = (Array.isArray(port.daily_snapshots) ? port.daily_snapshots : []) as DailySnapshot[];
 
-      const brief = await buildBrief(stocks, snapshots, usdKrw, priceCache);
+      const brief = await buildBrief(stocks, snapshots, usdKrw, priceCache, slot);
       if (!brief) { stats.skipped++; continue; }
 
-      // 멱등성 가드 — 같은 KST 일자에 같은 사용자에게 한 번만 발송.
+      // 멱등성 가드 — 같은 KST 일자에 같은 사용자·같은 슬롯에 한 번만 발송.
+      // ⚠️ notification_type을 슬롯별로 분리(morning_brief / digest_kr_close)해야
+      //    두 슬롯이 같은 날 UNIQUE(user, type, sent_date) 충돌로 둘째가 silent skip되지 않는다.
       // INSERT가 UNIQUE 위반하면 이미 발송된 상태 → skip (cron retry 중복 차단).
       const { error: idemErr } = await db.from('notification_log').insert({
         user_id: userId,
-        notification_type: 'morning_brief',
+        notification_type: framing.notificationType,
         sent_date: todayKST,
         channel: 'pending',
         status: 'sending',
@@ -340,13 +423,20 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const { title, body } = buildPushPayload(brief);
+      const built = buildPushPayload(brief, slot);
+      const title = built.title;
+      let body = built.body;
+      // '왜 움직였나' 사후 해설 (플래그 off면 null → 현행 델타-only 유지)
+      if (brief.biggestMover) {
+        const note = await buildMoverNote(brief.biggestMover.symbol, STOCK_KR[brief.biggestMover.symbol] || brief.biggestMover.symbol);
+        if (note) body = `${body}\n${note}`;
+      }
 
       // ─ 푸시 시도 (구독 있으면)
       const pushSub = subMap[userId];
       let pushSent = false;
       if (pushSub) {
-        const payload = JSON.stringify({ title, body, url: appUrl, tag: 'solb-morning-brief' });
+        const payload = JSON.stringify({ title, body, url: appUrl, tag: `solb-digest-${slot}` });
         try {
           await webpush.sendNotification(pushSub as webpush.PushSubscription, payload);
           stats.sent++;
