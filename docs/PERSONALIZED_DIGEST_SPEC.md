@@ -8,11 +8,13 @@
 
 ## 1. 무엇을 / 언제
 
-| 슬롯 | 시각(KST) | cron | 콘텐츠 | 비고 |
+| 슬롯 | 시각(KST) | cron path · schedule | 콘텐츠 | 비고 |
 |---|---|---|---|---|
-| 국장 morning | 07:00 | `0 22 * * *` (기존 재활용) | 간밤 미장 보유분 "왜 움직였나" 사후 해설 | morning-brief 진화 |
-| 국장 close | 16:00 | `0 7 * * *` (신규) | 오늘 국장 마감 정리 | getKRStatus 연장거래창·무음 밖 |
+| 국장 morning | 07:00 | `/api/cron/morning-brief` · `0 22 * * *` | 간밤 미장 보유분 "왜 움직였나" 사후 해설 | morning-brief 진화 |
+| 국장 close | 16:00 | `/api/cron/morning-brief-close` · `0 7 * * *` | 오늘 국장 마감 정리 | runDigest(req,'close') 고정 호출 |
 | 미장 전 evening | 21:00 | (P1 보류) | 미장 개장 전 국장 정리 | 무음 22:00 근접 + Hobby daily-1x 한계 → in-app/email 전용 후속 |
+
+> **슬롯 결정론** (적대 리뷰 must-fix): 슬롯을 wall-clock(UTC hour)으로 추정하지 않는다 — 22:00 morning cron이 자정(UTC)을 넘겨 재시도되면 슬롯이 뒤집혀 notification_type이 바뀌고 멱등성이 깨지기 때문. 대신 **경로를 분리**해 morning 라우트(GET)와 close 라우트가 각자 슬롯을 `runDigest(req, slot)`에 고정 주입한다. `?slot=`는 수동 테스트 override만.
 
 **콘텐츠 3축 (전부 방향0·과거 사실):**
 1. **왜 움직였나** — biggestMover 종목에 RAG 1~2문장 사후 해설. 비단정 어조(`~관련 보도가 있었어요` / `~로 보입니다`). 인과 단정(`때문에`) 금지.
@@ -48,6 +50,21 @@
 
 - digest 면책 문구 + RAG 해설 범위는 **약관 v4 변호사 검토 묶음**에 포함 후 LIVE (`feedback_consent_version_ssot` 정합).
 - RAG "왜 움직였나" 레이어는 **플래그 off로 출발** → 구조적 digest(안전)만 먼저, RAG는 변호사 검토 후 on.
+
+## 5.1 적대 리뷰 결과 (커밋 98ed784 → 수정 반영)
+
+4차원 적대 리뷰(§6·cron멱등성·환각게이트·회귀) 17건 → 12 confirmed. **반영 완료:**
+- (must) 슬롯 wall-clock 취약 → 경로 분리 결정론화 (§1 표 참조).
+- (must) 이메일 면책 이중 첨부 → `appendDisclaimer:false` + HTML 템플릿에 `DISCLAIMER_DIGEST` 렌더(text·HTML 단일화).
+- (should) `notification_log` 에러 미분화 → UNIQUE(23505)만 silent skip, 그 외(스키마/RLS)는 stats.errors + console.error.
+- (should) RAG 종목명 영문 폴백 → 한글명(STOCK_KR) 있을 때만 질의(동일명 환각 방어).
+- (should) `buildMoverNote` 무로깅 → fetch 실패·게이트 드롭·예외 console.warn.
+- (polish) close 슬롯 HTML이 "좋은 아침" 오발화 → 슬롯별 kicker/greeting/footer 파라미터화.
+
+**후속 (RAG 플래그 on 전 / 별도):**
+- [ ] per-slot 이메일 구독 분리 — 현재 `morning_brief_enabled` 단일 플래그가 두 슬롯 공통 제어(멱등성으로 중복은 없음). Settings에서 슬롯 독립 토글 원하면 `email_subscriptions.digest_kr_close_enabled` 컬럼 + 쿼리 분기 필요.
+- [ ] lint-alerts.mjs ↔ alertCompliance.ts FORBIDDEN 완전 SSOT화(공유 .mjs 추출) — 현재는 명백 코어만 정적 검사 + digest 인과어는 digest 파일 한정(과차단 회피). 드리프트 주석으로 명시.
+- [ ] RAG on 시 buildMoverNote 뉴스 fetch 심볼별 dedup(현재 사용자별 호출, 플래그 off라 무영향).
 
 ## 6. 경쟁사 레퍼런스 (방향0 선례)
 

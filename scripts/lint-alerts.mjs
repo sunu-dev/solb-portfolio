@@ -23,7 +23,12 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-// 컴플라이언스 단어 — alertCompliance.ts와 동기 유지 (양쪽 변경 시 함께)
+// 컴플라이언스 단어 — alertCompliance.ts가 런타임 SSOT.
+//
+// ⚠️ 의도적 부분집합: alertCompliance.ts의 FORBIDDEN_PHRASES는 더 크다(개인맞춤추천·단일종목
+//    레버리지·소프트방향 동사 '담으세요/정리하세요' 등). 그 어휘들은 일반 UI 카피에서도 흔히
+//    쓰여 정적 전체 스캔에 넣으면 과차단되므로 런타임(validateAlertMessage/sanitize) 전용으로 둔다.
+//    여기 정적 lint는 '문장으로 등장하면 거의 항상 위반'인 명백한 매매권유·수익보장 코어만 검사한다.
 const FORBIDDEN_PHRASES = [
   '지금 사세요',
   '지금 매수',
@@ -45,6 +50,22 @@ const FORBIDDEN_PHRASES = [
   '반드시 오릅니다',
   '반드시 떨어집니다',
 ];
+
+// digest '왜 움직였나' 사후 해설 전용 — 인과·미래 단정 (alertCompliance.ts DIGEST_CAUSAL_FORBIDDEN 미러).
+// 이 어휘들('때문에' 등)은 일반 코드/카피에 흔해 전역 검사는 과차단이라, digest 소스 파일에만 적용한다.
+// 런타임 1차 방어는 gateDigestNote()(드롭)이고, 이 정적 검사는 digest 소스에 인과 단정 문자열이
+// 하드코딩되는 회귀를 빌드에서 잡는 2차 그물.
+const DIGEST_CAUSAL_FORBIDDEN = [
+  '때문에', '때문입니다', '때문이에요',
+  '덕분에', '덕분입니다',
+  '영향으로 상승', '영향으로 하락', '여파로',
+  '로 인해', '으로 인해',
+  '확실히', '분명히', '틀림없이',
+  '오를 것', '내릴 것', '상승할 것', '하락할 것', '급등할', '급락할',
+];
+
+/** digest 사후 해설을 생성·조립하는 소스 파일에만 DIGEST_CAUSAL_FORBIDDEN을 적용 */
+const DIGEST_FILE_RE = /morning-brief|digest/;
 
 /**
  * 검사에서 제외할 파일·디렉토리.
@@ -97,6 +118,7 @@ async function lintFile(filePath) {
   const content = await fs.readFile(filePath, 'utf8');
   const lines = content.split('\n');
   const violations = [];
+  const isDigestFile = DIGEST_FILE_RE.test(filePath);
 
   let inBlockComment = false;
 
@@ -127,6 +149,20 @@ async function lintFile(filePath) {
           phrase,
           context: lines[i].trim().slice(0, 200),
         });
+      }
+    }
+
+    // digest 소스 파일 한정 — 인과·미래 단정 (전역엔 과차단이라 미적용)
+    if (isDigestFile) {
+      for (const phrase of DIGEST_CAUSAL_FORBIDDEN) {
+        if (stripped.includes(phrase)) {
+          violations.push({
+            file: path.relative(ROOT, filePath),
+            line: i + 1,
+            phrase: `[digest 인과단정] ${phrase}`,
+            context: lines[i].trim().slice(0, 200),
+          });
+        }
       }
     }
   }

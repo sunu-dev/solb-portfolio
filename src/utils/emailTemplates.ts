@@ -29,6 +29,14 @@ interface MorningBriefHtmlOpts {
   appUrl: string;
   /** 사용자 이름 (있으면 인사) */
   userName?: string;
+  /** 헤더 kicker (기본 'MORNING BRIEFING'). 슬롯별로 다르게(예: 마감 슬롯) */
+  kicker?: string;
+  /** 인사말 (기본 '좋은 아침이에요 ☕'). 마감 슬롯엔 시간대에 맞는 인사로 */
+  greeting?: string;
+  /** 하단 시그니처 문구 (기본 '매일 오전 7시 발송') */
+  footerNote?: string;
+  /** digest 자기한계 면책 — 지정 시 본문에 렌더(sendEmail appendDisclaimer=false와 함께 사용해 이중 첨부 방지) */
+  disclaimer?: string;
 }
 
 const COLOR_GAIN = '#EF4452';
@@ -42,10 +50,15 @@ const COLOR_BORDER = '#E5E8EB';
 /** 모닝브리프 이메일 HTML 빌드 */
 export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
   const { title, body, totalValueFormatted, yesterdayDeltaFormatted, yesterdayPct, biggestMover, appUrl, userName } = opts;
+  const kicker = opts.kicker ?? 'MORNING BRIEFING';
+  const greeting = opts.greeting ?? '좋은 아침이에요 ☕';
+  const footerNote = opts.footerNote ?? '매일 오전 7시 발송';
   const isUp = (yesterdayPct ?? 0) >= 0;
   const accentColor = yesterdayPct === null ? COLOR_TERTIARY : isUp ? COLOR_GAIN : COLOR_LOSS;
 
   const moverColor = biggestMover && biggestMover.dp >= 0 ? COLOR_GAIN : COLOR_LOSS;
+  // body는 '왜 움직였나' 해설이 붙으면 \n을 포함할 수 있어 <br>로 변환 (escape 후).
+  const bodyHtml = escapeHtml(body).replace(/\n/g, '<br>');
 
   return `<!DOCTYPE html>
 <html lang="ko">
@@ -60,10 +73,10 @@ export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
     <!-- 헤더 -->
     <div style="margin-bottom:16px;">
       <div style="font-size:11px;font-weight:700;color:${COLOR_TERTIARY};letter-spacing:0.5px;margin-bottom:4px;">
-        JOOBI · MORNING BRIEFING
+        JOOBI · ${escapeHtml(kicker)}
       </div>
       <div style="font-size:13px;color:${COLOR_SECONDARY};">
-        ${userName ? `${escapeHtml(userName)}님, 좋은 아침이에요 ☕` : '좋은 아침이에요 ☕'}
+        ${userName ? `${escapeHtml(userName)}님, ${escapeHtml(greeting)}` : escapeHtml(greeting)}
       </div>
     </div>
 
@@ -75,7 +88,7 @@ export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
       </div>
 
       <div style="font-size:13px;color:${COLOR_SECONDARY};line-height:1.6;margin-bottom:18px;">
-        ${escapeHtml(body)}
+        ${bodyHtml}
       </div>
 
       <!-- 평가액 -->
@@ -114,9 +127,15 @@ export function buildMorningBriefHtml(opts: MorningBriefHtmlOpts): string {
       </a>
     </div>
 
+    ${opts.disclaimer ? `
+    <!-- digest 자기한계 면책 (SSOT: DISCLAIMER_DIGEST) -->
+    <div style="font-size:11px;color:${COLOR_TERTIARY};line-height:1.6;padding:0 4px 8px;">
+      ${escapeHtml(opts.disclaimer)}
+    </div>` : ''}
+
     <!-- 시그니처 -->
     <div style="text-align:center;font-size:11px;color:${COLOR_TERTIARY};line-height:1.6;padding:8px;">
-      📊 주비 · 매일 오전 7시 발송
+      📊 주비 · ${escapeHtml(footerNote)}
     </div>
 
   </div>

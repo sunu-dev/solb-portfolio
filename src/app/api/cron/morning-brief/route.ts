@@ -250,17 +250,23 @@ function buildPushPayload(brief: BriefData, slot: DigestSlot): { title: string; 
  */
 async function buildMoverNote(symbol: string, name: string): Promise<string | null> {
   if (process.env.DIGEST_RAG_EXPLANATION !== 'on') return null;
+  if (!name) return null; // 한글명 없으면 질의 안 함 (영문 심볼 폴백 금지 — 동일명 환각 방어)
   try {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     if (!appUrl) return null;
-    const res = await fetch(`${appUrl}/api/news?q=${encodeURIComponent(name || symbol)}&maxHours=24&locale=ko`, { cache: 'no-store' });
-    if (!res.ok) return null;
+    const res = await fetch(`${appUrl}/api/news?q=${encodeURIComponent(name)}&maxHours=24&locale=ko`, { cache: 'no-store' });
+    if (!res.ok) {
+      console.warn(`[cron/morning-brief] buildMoverNote 뉴스 fetch 실패: ${symbol} status=${res.status}`);
+      return null;
+    }
     const d = await res.json();
     const headline: string | undefined = d?.items?.[0]?.title;
     if (!headline) return null;
-    const { note } = gateDigestNote(`관련 소식: ${headline}`);
+    const { note, droppedFor } = gateDigestNote(`관련 소식: ${headline}`);
+    if (droppedFor) console.warn(`[cron/morning-brief] buildMoverNote §6 게이트 드롭: ${symbol} (${droppedFor})`);
     return note;
-  } catch {
+  } catch (e) {
+    console.warn(`[cron/morning-brief] buildMoverNote 예외: ${symbol} — ${e instanceof Error ? e.message : 'unknown'}`);
     return null;
   }
 }
@@ -283,7 +289,20 @@ function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: s
   ].filter(Boolean).join('\n');
 }
 
+// 국장 아침 슬롯 (KST 07:00 = UTC 22:00). vercel.json "0 22 * * *".
 export async function GET(req: NextRequest) {
+  return runDigest(req, 'morning');
+}
+
+/**
+ * digest 발송 본체. 슬롯은 호출 라우트가 결정론적으로 주입한다(defaultSlot).
+ *
+ * ⚠️ 슬롯을 wall-clock(UTC hour)으로 추정하지 않는다 — 22:00 morning cron이 자정(UTC)을
+ * 넘겨 재시도되면(00:00~06:59) 슬롯이 close로 뒤집혀 notification_type이 바뀌고 멱등성이
+ * 깨지기 때문(적대 리뷰 must-fix). 대신 morning 라우트(GET)와 close 라우트(../morning-brief-close)가
+ * 각자 자기 슬롯을 고정 주입한다. ?slot=는 수동 테스트 override만.
+ */
+export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
   if (!verifyCronAuth(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -292,15 +311,8 @@ export async function GET(req: NextRequest) {
   const db = getAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
 
-  // 시차 슬롯 판정 — vercel.json에 같은 path 2개(0 22=KST07 아침 / 0 7=KST16 마감)를 등록하고
-  // (쿼리스트링 cron path는 미문서화라 회피), 핸들러가 UTC 시각으로 슬롯을 가른다.
-  //   UTC 22:00 = KST 07:00(아침/morning) · UTC 07:00 = KST 16:00(마감/close)
-  // → UTC hour < 12면 마감 슬롯, 아니면 아침 슬롯. ?slot=로 수동 테스트 override 가능.
   const slotParam = req.nextUrl.searchParams.get('slot');
-  const slot: DigestSlot =
-    slotParam === 'close' ? 'close'
-    : slotParam === 'morning' ? 'morning'
-    : new Date().getUTCHours() < 12 ? 'close' : 'morning';
+  const slot: DigestSlot = slotParam === 'close' ? 'close' : slotParam === 'morning' ? 'morning' : defaultSlot;
   const framing = SLOT_FRAMING[slot];
 
   const stats = { totalUsers: 0, sent: 0, emailed: 0, skipped: 0, errors: [] as string[] };
@@ -418,7 +430,13 @@ export async function GET(req: NextRequest) {
         status: 'sending',
       });
       if (idemErr) {
-        // UNIQUE 위반 또는 테이블 미적용 — silent skip (테이블 적용 후 정상 동작)
+        // 정상 멱등성(UNIQUE 위반, code 23505)은 조용히 skip. 그 외(테이블 미적용·RLS·스키마
+        // 오류)는 silent fail이면 전체 cron이 sent:0인데 ok처럼 보이므로 감시 대상으로 올린다.
+        const isDup = idemErr.code === '23505' || /duplicate|unique/i.test(idemErr.message || '');
+        if (!isDup) {
+          stats.errors.push(`idem ${userId.slice(0, 8)}: ${idemErr.code || ''} ${idemErr.message || 'unknown'}`);
+          console.error('[cron/morning-brief] notification_log insert error (스키마/RLS 의심)', { code: idemErr.code, msg: idemErr.message });
+        }
         stats.skipped++;
         continue;
       }
@@ -426,10 +444,15 @@ export async function GET(req: NextRequest) {
       const built = buildPushPayload(brief, slot);
       const title = built.title;
       let body = built.body;
-      // '왜 움직였나' 사후 해설 (플래그 off면 null → 현행 델타-only 유지)
+      // '왜 움직였나' 사후 해설 (플래그 off면 null → 현행 델타-only 유지).
+      // ⚠️ 한글명(STOCK_KR)이 있을 때만 질의 — 영문 심볼 폴백은 동일명 타사 뉴스 오노출
+      //    위험이라 금지(spec §2(b), 토스 2026-01 사고 방어).
       if (brief.biggestMover) {
-        const note = await buildMoverNote(brief.biggestMover.symbol, STOCK_KR[brief.biggestMover.symbol] || brief.biggestMover.symbol);
-        if (note) body = `${body}\n${note}`;
+        const koreanName = STOCK_KR[brief.biggestMover.symbol];
+        if (koreanName) {
+          const note = await buildMoverNote(brief.biggestMover.symbol, koreanName);
+          if (note) body = `${body}\n${note}`;
+        }
       }
 
       // ─ 푸시 시도 (구독 있으면)
@@ -467,12 +490,18 @@ export async function GET(req: NextRequest) {
           yesterdayPct: brief.yesterdayPct,
           biggestMover: brief.biggestMover,
           appUrl,
+          kicker: slot === 'close' ? 'MARKET CLOSE BRIEFING' : 'MORNING BRIEFING',
+          greeting: slot === 'close' ? '오늘 국장 마감 정리예요 🌆' : '좋은 아침이에요 ☕',
+          footerNote: slot === 'close' ? '국장 마감 후 발송 · KST 16:00' : '국장 시작 전 발송 · KST 07:00',
+          disclaimer: DISCLAIMER_DIGEST,
         });
         const result = await sendEmail({
           to: emailMap[userId],
           subject: title,
           text: emailText,
           html: emailHtml,
+          // DISCLAIMER_DIGEST가 text·HTML 본문에 이미 포함(결과책임 문구 포함) → 글로벌 DISCLAIMER 이중 첨부 방지
+          appendDisclaimer: false,
           unsubscribe: { userId, kind: 'morning_brief' }, // RFC 8058 1-click
         });
         if (result.ok) stats.emailed++;
