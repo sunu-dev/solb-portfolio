@@ -107,7 +107,11 @@ export function getUpcomingHolidaysForMarket(
     })
     .filter(h => {
       const t = new Date(h.date).setHours(0, 0, 0, 0);
-      return t >= todayMs && t <= endMs;
+      // 주말(토·일)과 겹치는 공휴일은 시장이 이미 휴장이라 '다음 휴장'으로 표시하지 않는다.
+      // (예: 2026 현충일 06-06은 토요일 → 거래일 휴장 아님. 대체공휴일이 생기는 명절·광복절 등은
+      //  별도 '대체' 항목으로 평일 날짜가 이미 데이터에 들어 있어 그쪽이 표시됨.)
+      const isWeekend = h.weekdayKr === '토' || h.weekdayKr === '일';
+      return t >= todayMs && t <= endMs && !isWeekend;
     })
     .sort((a, b) => a.daysAhead - b.daysAhead);
 }
