@@ -315,6 +315,13 @@ export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
   const slot: DigestSlot = slotParam === 'close' ? 'close' : slotParam === 'morning' ? 'morning' : defaultSlot;
   const framing = SLOT_FRAMING[slot];
 
+  // close 슬롯(국장 마감)은 옵트인 유저 전원의 알림을 2배로 만드는 UX 변화라, 코드는 배포하되
+  // env 플래그로 활성화를 통제한다(기본 off). 파운더가 검토 후 DIGEST_CLOSE_SLOT_ENABLED='on'으로 켠다.
+  // morning 슬롯(기존 모닝브리프)은 게이트 없이 정상 동작 → 배포해도 사용자 영향 0.
+  if (slot === 'close' && process.env.DIGEST_CLOSE_SLOT_ENABLED !== 'on') {
+    return NextResponse.json({ ok: true, slot, skipped: 'close-slot-disabled' });
+  }
+
   const stats = { totalUsers: 0, sent: 0, emailed: 0, skipped: 0, errors: [] as string[] };
 
   try {

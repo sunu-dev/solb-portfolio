@@ -49,7 +49,10 @@
 ## 5. 배포 게이트
 
 - digest 면책 문구 + RAG 해설 범위는 **약관 v4 변호사 검토 묶음**에 포함 후 LIVE (`feedback_consent_version_ssot` 정합).
-- RAG "왜 움직였나" 레이어는 **플래그 off로 출발** → 구조적 digest(안전)만 먼저, RAG는 변호사 검토 후 on.
+- **2개 env 플래그로 활성화 통제 (코드는 배포, 켜는 건 통제):**
+  - `DIGEST_CLOSE_SLOT_ENABLED='on'` — 국장 마감(KST 16:00) 슬롯. **기본 off** = 배포해도 알림 2배 안 됨(morning만 동작, 사용자 영향 0). 파운더가 검토·테스트 후 on.
+  - `DIGEST_RAG_EXPLANATION='on'` — '왜 움직였나' 헤드라인 해설. **기본 off** = 델타-only. **변호사 검토 후** on.
+- 즉 **production 배포 자체는 안전**(두 플래그 off면 기존 모닝브리프와 동일 동작). 단계적 on: ① 배포 → ② close 슬롯 on(2슬롯 가동) → ③ (변호사 후) RAG on.
 
 ## 5.1 적대 리뷰 결과 (커밋 98ed784 → 수정 반영)
 
