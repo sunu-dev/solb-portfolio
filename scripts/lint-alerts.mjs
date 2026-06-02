@@ -67,6 +67,21 @@ const DIGEST_CAUSAL_FORBIDDEN = [
 /** digest 사후 해설을 생성·조립하는 소스 파일에만 DIGEST_CAUSAL_FORBIDDEN을 적용 */
 const DIGEST_FILE_RE = /morning-brief|digest/;
 
+// 세무 카피 — 세무사법 §20③/§2 오인 표현 (alertCompliance.ts TAX_FORBIDDEN_PHRASES 미러).
+// 전역엔 과차단('세무사'·'환급'·'절세' 단독은 안전 카피)이라 세무 소스 파일에만 적용한다.
+// 런타임 1차 방어는 gateTaxAdvice()(드롭)이고, 이 정적 검사는 세무 UI/카피에 위험 주장이
+// 하드코딩되는 회귀를 빌드에서 잡는 2차 그물.
+const TAX_FORBIDDEN_PHRASES = [
+  '세무대리', '세무 대리', '신고대행', '신고 대행', '신고를 대행', '대신 신고', '신고 대신',
+  '기장대행', '기장 대행', '대신 신고해', '신고해드',
+  '세무상담', '세무 상담', '세무자문', '세무 자문', '세무 컨설팅',
+  '절세전문', '절세 전문', '절세 컨설팅', '절세 상담',
+  '환급해드', '환급받아드', '세금 돌려드',
+  '세무 비서', '세무비서',
+];
+/** 세무 기능 소스 파일에만 TAX_FORBIDDEN_PHRASES를 적용 (taxRates·tax UI·tax API) */
+const TAX_FILE_RE = /tax|양도세/i;
+
 /**
  * 검사에서 제외할 파일·디렉토리.
  *
@@ -119,6 +134,7 @@ async function lintFile(filePath) {
   const lines = content.split('\n');
   const violations = [];
   const isDigestFile = DIGEST_FILE_RE.test(filePath);
+  const isTaxFile = TAX_FILE_RE.test(filePath);
 
   let inBlockComment = false;
 
@@ -160,6 +176,20 @@ async function lintFile(filePath) {
             file: path.relative(ROOT, filePath),
             line: i + 1,
             phrase: `[digest 인과단정] ${phrase}`,
+            context: lines[i].trim().slice(0, 200),
+          });
+        }
+      }
+    }
+
+    // 세무 소스 파일 한정 — 세무대리·상담 오인 표현 (세무사법 §20③/§2)
+    if (isTaxFile) {
+      for (const phrase of TAX_FORBIDDEN_PHRASES) {
+        if (stripped.includes(phrase)) {
+          violations.push({
+            file: path.relative(ROOT, filePath),
+            line: i + 1,
+            phrase: `[세무사법 오인] ${phrase}`,
             context: lines[i].trim().slice(0, 200),
           });
         }

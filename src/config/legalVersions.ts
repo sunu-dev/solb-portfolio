@@ -30,3 +30,10 @@ export const PRIVACY_EFFECTIVE_DATE = '2026년 5월 15일';
 
 /** 만 14세 게이트 동의 — 별도 문서 페이지 없는 동의 항목 (자본시장법 §49) */
 export const AGE_GATE_VERSION = 'v1';
+
+/** 세무 도구(해외주식 양도세 계산기) 약관·면책 버전 — 골격 예약.
+ *  세무 기능은 '계산·정리 도구이며 세무대리·상담·자문 아님' 면책 4축(docs/TAX_PIVOT_MVP_SPEC §법무)을
+ *  약관 v5에 포함하며, ⚠️ **세무사 calc 감수 + 변호사 카피·약관 검토 후 배포**(docs/LEGAL_CONSULTATION_TAX.md).
+ *  현재는 골격만 — 세무 calc/UI 미배선이라 사용자 동의 경로엔 아직 연결하지 않는다(드리프트 방지). */
+export const TAX_TOOL_VERSION = 'v1-draft';
+export const TAX_TOOL_EFFECTIVE_DATE = null; // 변호사 검토 후 배포 시점에 확정

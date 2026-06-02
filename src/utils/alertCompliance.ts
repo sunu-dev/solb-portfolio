@@ -284,3 +284,49 @@ export function gateDigestNote(raw: string): DigestGateResult {
   }
   return { note: text, droppedFor: null };
 }
+
+// ==========================================
+// TAX COPY GATE — 세무사법 경계 (해외주식 양도세 계산·정리 도구 전용)
+// ==========================================
+//
+// SSOT: docs/TAX_PIVOT_MVP_SPEC.md §법무, docs/LEGAL_CONSULTATION_TAX.md.
+//
+// 세무사법 위반 회피 = 자본시장법 §6만큼 중요. 두 축:
+//  - §20③(2026.1.2 시행): 무자격자의 세무대리 '오인 표시·광고'만으로 형사처벌(1년/1천만).
+//    → 우리가 '대리·대행·상담·자문'한다는 인상을 주는 표현 차단.
+//  - §2 4호: 세무상담·자문은 세무사 독점. AI가 '이렇게 팔아 절세하세요'식 맞춤 처방 누출 금지
+//    (방향0 OVERRIDE 누출과 동일 실패 모드).
+//
+// ⚠️ 의도적 제외: '세무사'·'환급'·'절세' 단독은 차단하지 않는다 — '세무사 확인 권유'(전문가 위임)·
+//    '예상 환급·절세 여력'(중립 정보)은 오히려 안전한 카피라 과차단하면 안 된다.
+//    위험한 '주장(우리가 해준다)' 표현만 타깃한다.
+export const TAX_FORBIDDEN_PHRASES: readonly string[] = [
+  // 세무대리·대행 오인 (§20③)
+  '세무대리', '세무 대리', '신고대행', '신고 대행', '신고를 대행', '대신 신고', '신고 대신',
+  '기장대행', '기장 대행', '대신 신고해', '신고해드',
+  // 세무상담·자문 독점 (§2 4호)
+  '세무상담', '세무 상담', '세무자문', '세무 자문', '세무 컨설팅',
+  // 절세 '전문/컨설팅' = 전문성 주장 (단순 '절세' 정보는 허용)
+  '절세전문', '절세 전문', '절세 컨설팅', '절세 상담',
+  // 환급 '대행' 주장 (단순 '환급' 정보는 허용)
+  '환급해드', '환급받아드', '세금 돌려드',
+  // 네이밍 — 세무 맥락 '비서'(§20③ 오인 소지). spec: '양도세 계산기'로 리네이밍.
+  '세무 비서', '세무비서',
+];
+
+/**
+ * 세무 사후 해설·안내 텍스트를 세무사법 게이트에 통과시킨다(향후 AI 세무 출력용 — 현재 미배선).
+ * gateDigestNote와 동형. 방향0(FORBIDDEN_PHRASES) + 세무대리·상담 주장(TAX_FORBIDDEN_PHRASES)
+ * 검출 시 드롭(fail-safe). 잘못된 세무 주장보다 무(無)가 안전.
+ */
+export function gateTaxAdvice(raw: string): { text: string | null; droppedFor: string | null } {
+  const text = (raw || '').trim();
+  if (!text) return { text: null, droppedFor: 'empty' };
+  for (const p of FORBIDDEN_PHRASES) {
+    if (text.includes(p)) return { text: null, droppedFor: `forbidden:${p}` };
+  }
+  for (const p of TAX_FORBIDDEN_PHRASES) {
+    if (text.includes(p)) return { text: null, droppedFor: `tax:${p}` };
+  }
+  return { text, droppedFor: null };
+}

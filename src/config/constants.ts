@@ -68,6 +68,9 @@ export interface StockItem {
   targetReturn: number;         // 목표 수익률 (%)
   // 환차익 추적: 매수 시점 USD/KRW 환율 (가중 평균)
   purchaseRate?: number;
+  // 세무 골격(선택) — 매수일. 장기보유 판정 등 참고용. ⚠️ 정확 양도세는 lot 단위 거래내역
+  // (transactions 테이블)이 필요하며 평단·이 필드만으론 '추정'. docs/TAX_PIVOT_MVP_SPEC.md
+  purchaseDate?: string;        // ISO date
   // Investing-specific
   targetSell?: number;          // 목표 매도가 ($)
   targetProfitUSD?: number;     // 목표 수익금 ($) — e.g. 500 = $500 이익
