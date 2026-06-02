@@ -22,6 +22,7 @@ import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@
 // AI 촉 → AI 인사이트 탭으로 이동
 import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
+import TaxEstimateModal from './TaxEstimateModal';
 import InvestmentJournal from './InvestmentJournal';
 import StockPulse from './StockPulse';
 import PortfolioValueChart from './PortfolioValueChart';
@@ -162,6 +163,7 @@ export default function PortfolioSection() {
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
+  const [showTax, setShowTax] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
   const [brokerFilter, setBrokerFilter] = useState<string | null>(null);  // Phase B-2 — broker 필터
 
@@ -394,6 +396,7 @@ export default function PortfolioSection() {
   return (
     <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+      {showTax && <TaxEstimateModal onClose={() => setShowTax(false)} />}
 
       {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
       <ChapterKeywordPrompt />
@@ -412,6 +415,23 @@ export default function PortfolioSection() {
 
       {/* 다중 broker 분산 보유 종목 통합 뷰 — Phase M-2 (multi-broker 종목 1개 이상 시만 노출) */}
       <MergedHoldingsCard />
+
+      {/* 해외주식 양도세 계산기 진입 — v1 합산기 (docs/TAX_PIVOT_MVP_SPEC.md) */}
+      <button
+        onClick={() => setShowTax(true)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+          padding: '14px 16px', marginBottom: 12, cursor: 'pointer',
+          background: 'var(--surface, #fff)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16,
+        }}
+      >
+        <span style={{ fontSize: 22, flex: '0 0 auto' }}>🧾</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text, #191F28)' }}>올해 해외주식 세금 한 번에</span>
+          <span style={{ display: 'block', fontSize: 12, color: '#8B95A1', marginTop: 2, lineHeight: 1.4 }}>여러 증권사 합쳐 예상 양도세·250만 공제 잔여 보기</span>
+        </span>
+        <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)' }}>미리보기 →</span>
+      </button>
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (

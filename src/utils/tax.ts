@@ -1,11 +1,54 @@
 // ==========================================
-// TAX — 세무 데이터 타입 + 원화 환산 단일 게이트 (골격)
+// TAX — 세무 데이터 타입 + v1 합산기 + 원화 환산 게이트(v2)
 // ==========================================
 //
 // SSOT: docs/TAX_PIVOT_MVP_SPEC.md · 세율·규칙 상수는 @/config/taxRates.
 //
-// ⚠️ 이 파일은 **데이터 골격 + 환산 게이트**만 담는다. 양도세 '계산'(취득가 산정·세액 산출)은
-//    세무사 감수(docs/LEGAL_CONSULTATION_TAX.md A섹션) 후 별도 구현 — 여기서 계산하지 않는다.
+// ⚠️ v1 합산기(computeTaxEstimate): 증권사가 제공한 '실현손익(KRW)'을 **합산**해 예상 양도세를
+//    추정한다. 우리는 세액을 '재계산'하지 않는다 — 환율·lot·환차는 증권사가 이미 반영했고, 우리는
+//    verified 공제·세율만 적용한다(세무사 감수 불요 경로). 결과는 '추정치'(신고 근거 아님).
+// ⚠️ v2 자체계산(toKrwAtSettle 등): raw 거래내역에서 직접 산출 — 세무사 감수+E&O 게이트. 미구현.
+
+import { ANNUAL_BASIC_DEDUCTION_KRW, OVERSEAS_CAPITAL_GAINS_TAX_RATE } from '@/config/taxRates';
+
+// ─── v1 합산기 ────────────────────────────────────────────────────────────────
+/** 증권사별 올해 실현손익 1줄 (증권사 '양도소득세 계산내역' 제공값, 이미 KRW 환산) */
+export interface TaxBrokerEntry {
+  id: string;
+  broker: string;      // @/config/constants Broker
+  gainKrw: number;     // 실현손익 (KRW, 음수=손실 가능)
+}
+
+/** v1 합산기 추정 결과 (전부 '추정치' — 신고 근거 아님) */
+export interface TaxEstimate {
+  totalGainKrw: number;       // 합산 실현손익
+  deductionUsed: number;      // 사용한 기본공제 (0~250만)
+  deductionRemaining: number; // 잔여 기본공제 (0~250만)
+  taxableBaseKrw: number;     // 과세표준 = max(0, 합산 − 250만)
+  estimatedTaxKrw: number;    // 추정 양도세 = 과세표준 × 22% (반올림)
+}
+
+/**
+ * v1 합산기 — 증권사 제공 실현손익(KRW)을 합산해 예상 양도세를 추정한다.
+ *
+ * 계산은 단순 산수만: 합산 → 250만 기본공제(국내외 합산 1회) → 22% 단일세율.
+ * 환율·lot 취득가·환차손익은 **계산하지 않는다**(증권사가 이미 반영, needs-confirm 회피).
+ * 손실 이월 없음(taxRates.LOSS_CARRYFORWARD_ALLOWED=false), 같은 과세연도 합산만.
+ * 순수 함수 — tax.test.ts로 검증. 결과는 화면에서 항상 '(추정)'으로 노출.
+ */
+export function computeTaxEstimate(entries: TaxBrokerEntry[]): TaxEstimate {
+  const totalGainKrw = entries.reduce((sum, e) => {
+    const g = Number(e.gainKrw);
+    return sum + (Number.isFinite(g) ? g : 0); // NaN/Infinity 가드
+  }, 0);
+  const deductionUsed = Math.max(0, Math.min(ANNUAL_BASIC_DEDUCTION_KRW, totalGainKrw));
+  const deductionRemaining = ANNUAL_BASIC_DEDUCTION_KRW - deductionUsed;
+  const taxableBaseKrw = Math.max(0, totalGainKrw - ANNUAL_BASIC_DEDUCTION_KRW);
+  const estimatedTaxKrw = Math.round(taxableBaseKrw * OVERSEAS_CAPITAL_GAINS_TAX_RATE);
+  return { totalGainKrw, deductionUsed, deductionRemaining, taxableBaseKrw, estimatedTaxKrw };
+}
+
+// ─── v2 자체계산 골격 (세무사 감수 게이트 — 미배선) ───────────────────────────────
 
 /** 거래 시장 (transactions.market) */
 export type TaxMarket = 'US' | 'KR' | 'JP' | 'HK' | 'other';
