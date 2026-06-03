@@ -25,10 +25,18 @@
 - [ ] **변호사 자문** — B섹션 6문(§20③ 네이밍·§2 상담/서류작성·OCR=직접입력 동치·약관규제법 §7·§101 단일 PRO 묶음).
 - [ ] **파운더 결정 4건** — ①입력경로(OCR vs 수기) ②sold→sell 일원화 ③FX USD-only vs 다통화 ④공식 매매기준율 데이터 소스(서울외국환중개 라이선스).
 
-### 🟢 자문 후 구현 (Phase 1, ~4주)
-- [ ] W1-2: taxRates.ts SSOT(verified만)·transactions/fx_rates 마이그·TAX_FORBIDDEN_PHRASES lint·약관 v5
-- [ ] W3-4: toKrwAtSettle·무료 통합 미리보기·what-if 매도·250만 공제 현황판·손익통산(과세대상 게이트)·투자탭 위젯·OCR 정산내역
-- [ ] Phase 2: fx 적재 cron·PRO 리포트 다운로드·토스페이먼츠 빌링키·정산내역 파서
+## 후속 (같은 세션) — "감수 꼭 필요?" 검토 + Phase 1 골격 + v1 슬라이스 빌드
+
+- **"세무사 감수 꼭 필요?" 3관점 워크플로(`wm7soled6`)** → 답: **법적 의무 아님, 조건부.** 증권사 제공 세액 합산·정리(v1)=감수 불요·변호사 약관만 / raw 자체 재계산(v2)=감수+E&O 필수. needs-confirm 4개 중 2개 국세청 공식답(환율=결제일 국제세원-229, lot=증권사 이동평균, 합계액 신고 허용). 선례(Koinly·Sharesight·삼쩜삼·토스) 만장일치='추정 도구+면책+전문가 유도'. spec/메모리 박제.
+- **LLM이 변호사 대체 못 하는 이유 명시**: 변호사가 파는 건 지식이 아니라 **책임(중과실 방어 증거)**. [[feedback-professional-review-not-llm]].
+- **Phase 1 안전 골격 빌드(`d052787`, main 푸시됨)**: taxRates.ts SSOT(verified만)·alertCompliance TAX_FORBIDDEN_PHRASES+gateTaxAdvice·lint-alerts 세무 scoped·transactions/fx_rates 마이그(Supabase 수동 적용 대기)·tax.ts toKrwAtSettle·StockItem.purchaseDate·TAX_TOOL_VERSION. 전부 dormant.
+- **v1 합산기 슬라이스 빌드(브랜치 `tax-v1-slice`, `899c28c`+`0ba64e8`, 푸시됨·main 미머지)**: A computeTaxEstimate 순수함수+vitest 9건 / B taxStore(persist) / C TaxEstimateModal+포트폴리오 진입 카드. 다듬기: 만원 입력·연도 선택·세금0 맥락 메시지·합산 Aha·전체 지우기. tsc·lint·vitest·build 0.
+
+### 🟢 자문 후 / 검증 후
+- [ ] **v1 슬라이스 카나리/지인 WTP 검증** (변호사 전 가능 — 프리뷰는 공개 아님). 반응 좋으면 main 머지(공개)+결제 레일+변호사 약관.
+- [ ] transactions/fx_rates 마이그 **Supabase 콘솔 수동 적용** (v2 자체계산 시 필요).
+- [ ] v2(자체계산: 환차·필요경비·lot 재계산) = 세무사 감수+E&O 게이트.
+- [ ] 파운더 결정 4건 (입력경로·sold일원화·FX·환율소스) — v2 진입 시.
 
 ### 🟡 digest 잔여 (별개)
 - [ ] 플래그 on 단계: DIGEST_CLOSE_SLOT_ENABLED → (변호사 후) DIGEST_RAG_EXPLANATION
@@ -36,6 +44,6 @@
 
 ## 다음 세션 진입점
 
-**상태**: 세무 피봇 **설계·법률 질문지 완료**. 코드 변경 0(세무는 게이트 전 미구현). digest P0는 배포됨(플래그 off).
-**우선순위**: 파운더가 세무사·변호사 자문 + 4 결정 가져오면 → Phase 1 W1-2(안전 골격: taxRates SSOT·스키마·lint·약관 v5)부터. 자문 전이라도 **calc 정확성 노출 없는 골격**은 선행 가능.
-**참고**: [[project_survival_pivot]] · [[project_tax_pivot]] · docs/TAX_PIVOT_MVP_SPEC.md · docs/LEGAL_CONSULTATION_TAX.md.
+**상태**: 세무 v1 합산기 슬라이스 **빌드 완료**(브랜치 `tax-v1-slice` 푸시, main 미머지=비공개). 골격은 main. digest P0 배포됨(플래그 off).
+**우선순위**: ① v1 슬라이스 **프리뷰/카나리 WTP 검증** → 반응 좋으면 main 머지+결제+변호사 약관 / ② v2(자체계산)는 세무사 감수 게이트.
+**참고**: [[project_survival_pivot]] · [[project_tax_pivot]] · [[feedback-professional-review-not-llm]] · docs/TAX_PIVOT_MVP_SPEC.md(§v1 합산기 결정) · docs/LEGAL_CONSULTATION_TAX.md.
