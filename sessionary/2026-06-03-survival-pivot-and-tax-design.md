@@ -15,13 +15,13 @@
 
 - **생존 회의 워크플로**(`wqpf3lfhx`→resume `w1shf0sb1`): Ground 4(코드 매핑) + 12인 패널 + 베어/불 + verdict. verdict가 StructuredOutput 실패 → **산문으로 바꿔 resume**(18 캐시, 1 재실행, 89초). 교훈 메모리 [[feedback-panel-audit-methodology]]에 박제.
 - **세무 설계 워크플로**(`wf9ddndpz`): 리서치5(세법·금투세·세무사법·선례 + 데이터모델 코드) + 설계5인 + 산문 스펙. 결과 `docs/TAX_PIVOT_MVP_SPEC.md`.
-- **법률 질문지**(`7a1a3b2`): `docs/LEGAL_CONSULTATION_TAX.md` — 세무사 9문 + 변호사 6문 + 면책 4축 + 결정표. 배포 게이트.
+- **법률 질문지**(`7a1a3b2`): `docs/legal-review/LEGAL_CONSULTATION_TAX.md` — 세무사 9문 + 변호사 6문 + 면책 4축 + 결정표. 배포 게이트.
 - 메모리 승급 4건: project_survival_pivot(신규)·project_tax_pivot(신규)·MEMORY.md 인덱스(+market_strategy 캐비엇)·feedback_panel_audit_methodology(StructuredOutput 교훈).
 
 ## 미해결 TODO
 
 ### 🔴 세무 피봇 진입 게이트 (파운더 액션)
-- [ ] **세무사 자문** — docs/LEGAL_CONSULTATION_TAX.md A섹션 9문(환율 기준일·lot 취득가·환차손익·필요경비·과세대상 판정 주체·추정치 라벨 오차).
+- [ ] **세무사 자문** — docs/legal-review/LEGAL_CONSULTATION_TAX.md A섹션 9문(환율 기준일·lot 취득가·환차손익·필요경비·과세대상 판정 주체·추정치 라벨 오차).
 - [ ] **변호사 자문** — B섹션 6문(§20③ 네이밍·§2 상담/서류작성·OCR=직접입력 동치·약관규제법 §7·§101 단일 PRO 묶음).
 - [ ] **파운더 결정 4건** — ①입력경로(OCR vs 수기) ②sold→sell 일원화 ③FX USD-only vs 다통화 ④공식 매매기준율 데이터 소스(서울외국환중개 라이선스).
 
@@ -46,4 +46,4 @@
 
 **상태**: 세무 v1 합산기 슬라이스 **빌드 완료**(브랜치 `tax-v1-slice` 푸시, main 미머지=비공개). 골격은 main. digest P0 배포됨(플래그 off).
 **우선순위**: ① v1 슬라이스 **프리뷰/카나리 WTP 검증** → 반응 좋으면 main 머지+결제+변호사 약관 / ② v2(자체계산)는 세무사 감수 게이트.
-**참고**: [[project_survival_pivot]] · [[project_tax_pivot]] · [[feedback-professional-review-not-llm]] · docs/TAX_PIVOT_MVP_SPEC.md(§v1 합산기 결정) · docs/LEGAL_CONSULTATION_TAX.md.
+**참고**: [[project_survival_pivot]] · [[project_tax_pivot]] · [[feedback-professional-review-not-llm]] · docs/TAX_PIVOT_MVP_SPEC.md(§v1 합산기 결정) · docs/legal-review/LEGAL_CONSULTATION_TAX.md.

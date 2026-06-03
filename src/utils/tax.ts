@@ -5,7 +5,7 @@
 // SSOT: docs/TAX_PIVOT_MVP_SPEC.md · 세율·규칙 상수는 @/config/taxRates.
 //
 // ⚠️ 이 파일은 **데이터 골격 + 환산 게이트**만 담는다. 양도세 '계산'(취득가 산정·세액 산출)은
-//    세무사 감수(docs/LEGAL_CONSULTATION_TAX.md A섹션) 후 별도 구현 — 여기서 계산하지 않는다.
+//    세무사 감수(docs/legal-review/LEGAL_CONSULTATION_TAX.md A섹션) 후 별도 구현 — 여기서 계산하지 않는다.
 
 /** 거래 시장 (transactions.market) */
 export type TaxMarket = 'US' | 'KR' | 'JP' | 'HK' | 'other';

@@ -31,7 +31,7 @@
 - 보강 13종 GET 시세 → **13/13 실제 Yahoo KRW 정상**(404 0건). 우선주 +5 규칙·ETF 플래그십 코드 전부 유효.
 
 ### 5) §8 변호사 질문지 문서화
-- `docs/LEGAL_CONSULTATION_LEVERAGE.md` 신설 — 외부 변호사용 자족 문서(사업구조·쟁점·질문10·현행 안전망·진행계획).
+- `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md` 신설 — 외부 변호사용 자족 문서(사업구조·쟁점·질문10·현행 안전망·진행계획).
 
 ## 결정사항 (왜)
 
@@ -44,7 +44,7 @@
 ## 미해결 TODO
 
 ### 🔴 BLOCKER (사용자 액션)
-- [ ] **자본시장법 전문 변호사 1시간 상담** — 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md` 지참. 답변 후 단계 3(약관 v4) 진입.
+- [ ] **자본시장법 전문 변호사 1시간 상담** — 질문지 `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md` 지참. 답변 후 단계 3(약관 v4) 진입.
 - [ ] **Phase A — joobi.kr 결제 + 도메인 + Resend** (베타 출시 BLOCKER, 변동 없음)
 
 ### 🟡 이번 세션 후속

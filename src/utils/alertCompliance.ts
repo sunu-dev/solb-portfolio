@@ -289,7 +289,7 @@ export function gateDigestNote(raw: string): DigestGateResult {
 // TAX COPY GATE — 세무사법 경계 (해외주식 양도세 계산·정리 도구 전용)
 // ==========================================
 //
-// SSOT: docs/TAX_PIVOT_MVP_SPEC.md §법무, docs/LEGAL_CONSULTATION_TAX.md.
+// SSOT: docs/TAX_PIVOT_MVP_SPEC.md §법무, docs/legal-review/LEGAL_CONSULTATION_TAX.md.
 //
 // 세무사법 위반 회피 = 자본시장법 §6만큼 중요. 두 축:
 //  - §20③(2026.1.2 시행): 무자격자의 세무대리 '오인 표시·광고'만으로 형사처벌(1년/1천만).

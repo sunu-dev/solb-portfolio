@@ -8,19 +8,19 @@
 > **최신 sessionary**: `2026-06-03-survival-pivot-and-tax-design.md` (생존 패널 pivot-required + 세무 피봇 설계·법률 질문지)
 > **🔴 전략 전환**: 12인 생존 패널 = **pivot-required**(만장일치, 확신 80%, Q1 11 no·Q2 0 survive). 방향0 관리툴=vitamin·수익 천장 → **세무 비서로 피봇** 권고. 세무가 §6 안 어기고 '실행 가능한 결론' 주는 유일 painkiller. 토스·ChatGPT 구조적 불가. 메모리 [[project_survival_pivot]] [[project_tax_pivot]].
 > **🟢 세무 v1 슬라이스 빌드됨**: "세무사 감수 꼭 필요?" 검토 결과 = **조건부**. **v1 합산기(증권사 제공 세액 합산·정리)는 감수 불요·변호사 약관만**, v2 자체계산만 감수+E&O 필수. 국세청 공식답으로 needs-confirm 2개 해소(환율=결제일·lot=증권사 이동평균). v1 슬라이스(taxRates SSOT·gateTaxAdvice·computeTaxEstimate+vitest9·taxStore·TaxEstimateModal+카드) **브랜치 `tax-v1-slice` 푸시·main 미머지(비공개)**. 골격은 main(`d052787`).
-> **🔴 세무 공개·과금 게이트**: 변호사 약관·카피(§20③ "세무 비서" 금지)는 **공개·과금 직전** 게이트(카나리 검증엔 불요). 질문지 `docs/LEGAL_CONSULTATION_TAX.md`. transactions/fx_rates 마이그는 **Supabase 수동 적용 대기**(v2용).
+> **🔴 세무 공개·과금 게이트**: 변호사 약관·카피(§20③ "세무 비서" 금지)는 **공개·과금 직전** 게이트(카나리 검증엔 불요). 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md`. transactions/fx_rates 마이그는 **Supabase 수동 적용 대기**(v2용).
 > **2026-06-02~03 완료**: 휴장 주말필터 픽스 배포(`f725348`) · 시차 digest P0 배포(`549bda3`, 두 플래그 off=무변화) · 생존 패널 pivot · 세무 설계·질문지(`7a1a3b2`) · 세무 Phase1 골격(`d052787`) · v1 합산기 슬라이스(브랜치 `0ba64e8`).
-> **레버리지 (이전, 배포됨)**: 선배포 결정으로 production 라이브(ccb0ca8) — AI분석 거부+검색노출+전종목 방향0. 사후 변호사 자문 doc ready(`docs/LEGAL_CONSULTATION_LEVERAGE.md`·`DEPLOY_RISK_LEVERAGE.md`).
+> **레버리지 (이전, 배포됨)**: 선배포 결정으로 production 라이브(ccb0ca8) — AI분석 거부+검색노출+전종목 방향0. 사후 변호사 자문 doc ready(`docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md`·`DEPLOY_RISK_LEVERAGE.md`).
 > **정체성**: 주비 = 매매·추천 아닌 **본인 주식 관리·정보 도구, AI 방향 0** ([[project_product_identity]]). 단 생존 패널이 "관리툴만으론 수익 불가" 지적 → 세무로 과금축 이동.
 
 ### 🔴 즉시 우선순위 (BLOCKER)
 
 1. **세무 v1 슬라이스 검증 → 공개 결정** (브랜치 `tax-v1-slice` 푸시됨, 프리뷰)
-   - **다음**: 카나리/지인 데모로 WTP 검증(프리뷰는 공개 아님 — 변호사 불요). 반응 좋으면 → main 머지(공개) + 결제 레일 + **변호사 약관 카피**(§20③ "세무 비서" 금지, 질문지 `docs/LEGAL_CONSULTATION_TAX.md` B섹션).
+   - **다음**: 카나리/지인 데모로 WTP 검증(프리뷰는 공개 아님 — 변호사 불요). 반응 좋으면 → main 머지(공개) + 결제 레일 + **변호사 약관 카피**(§20③ "세무 비서" 금지, 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md` B섹션).
    - v2(자체계산: 환차·필요경비·lot 재계산) = 세무사 감수+E&O 게이트. transactions/fx_rates 마이그 Supabase 수동 적용 + 파운더 결정 4건은 v2 진입 시.
    - 원리: 전문가 감수=책임 이전, 공개·과금 직전 게이트 ([[feedback-professional-review-not-llm]]).
 2. **레버리지 약관 v4 + §8 변호사 사후 자문** (배포됨 → 사후 검증)
-   - production 라이브 상태. 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md`(11건, Q11=적합성). 분쟁 소지 사후 점검.
+   - production 라이브 상태. 질문지 `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md`(11건, Q11=적합성). 분쟁 소지 사후 점검.
 3. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
    - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제

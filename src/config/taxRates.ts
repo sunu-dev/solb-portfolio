@@ -3,7 +3,7 @@
 // ==========================================
 //
 // 출처: 세무 피봇 설계 워크플로 웹 검증 (2026-06-02). 설계 docs/TAX_PIVOT_MVP_SPEC.md.
-// 자문 질문지: docs/LEGAL_CONSULTATION_TAX.md (세무사 A섹션이 아래를 최종 확인).
+// 자문 질문지: docs/legal-review/LEGAL_CONSULTATION_TAX.md (세무사 A섹션이 아래를 최종 확인).
 //
 // ⚠️ 원칙 1: **verified(웹 확인) 사실만** 여기 상수로 박는다. needs-confirm(환율 기준일·lot
 //    취득가법·환차손익·필요경비)은 세무사 확정 전까지 절대 상수로 단정하지 않는다 → TAX_NEEDS_CONFIRM.
@@ -70,7 +70,7 @@ export const SECURITIES_TRANSACTION_TAX_2026 = {
 export const FINANCIAL_INVESTMENT_INCOME_TAX_ABOLISHED = true;
 
 // ─── ⚠️ NEEDS-CONFIRM — 세무사 확정 전까지 상수 단정·계산 사용 금지 ──────────────
-// 아래 항목은 계산에 직접 쓰기 전 docs/LEGAL_CONSULTATION_TAX.md A섹션으로 세무사가 확정한다.
+// 아래 항목은 계산에 직접 쓰기 전 docs/legal-review/LEGAL_CONSULTATION_TAX.md A섹션으로 세무사가 확정한다.
 // 확정 전에는 화면에 'X — 세무사 확인 필요'로 노출하고 숫자를 단정하지 않는다.
 //   - fx-settlement-date          : 환율 환산 기준일 = 체결일 vs 결제일(T+2)  → fx 키를 좌우
 //   - lot-acquisition-cost-method : lot 취득가 산정법(이동평균/총평균/FIFO), mergedAvgCost 근사 허용 여부

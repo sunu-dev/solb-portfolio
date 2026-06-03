@@ -35,7 +35,7 @@
 ## 미해결 TODO
 
 ### 🔴 배포 게이트
-- [ ] **약관 v4 변호사 정식 검토** — 검토 전 production 배포 금지 (의견서 §5). 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md`.
+- [ ] **약관 v4 변호사 정식 검토** — 검토 전 production 배포 금지 (의견서 §5). 질문지 `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md`.
 
 ### 🟡 follow-up (이번 턴 의도적 미포함)
 - [ ] **OCR 게이트 임포트** — `OcrImportModal`은 아직 레버리지 skip(안전하나 검색과 비대칭). 배치 위험 동의 후속.

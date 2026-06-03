@@ -15,14 +15,14 @@
 - **디자인 패널**(4렌즈: UX·카피법무·디자인시스템·인지) → 거부+유도 화면 스펙 도출.
 - **구현**(`ddc1dd6`): AnalysisPanel AI 버튼 → isLev면 API·쿼터·로딩 0 + 앰버 톤. 인라인 거부 카드(🛡️ 보호 프레이밍 + 고위험·적합성 사유 + '보유는 관리됨' 안심 + '다른 종목 검색' 중립 유도[빈 검색창]). 레이더·멘토(mentorId 누수)·BuySimulator·차트 전부 isLev 숨김. `LEVERAGE_ANALYSIS_REFUSAL` 상수. 약관 v4 제5·7조 '해설 제공'→'분석 제외, 관리만'.
 - **16종 검색 노출**(`f0e4bd8`): K-ETF ISIN 검증 코드 16종 KR_LEVERAGE_SEARCHABLE 추가 → "삼성전자" 검색 시 토스처럼 노출(고위험 라벨·게이트).
-- **배포 게이트 검토**: 5렌즈 워크플로 1차 실패(법적 verdict 거부 패턴) → 인라인 변호사 검토 → **NO_GO**(약관 v4 미검토·사전 의견서 부재가 게이트, 코드는 견고). `docs/DEPLOY_RISK_LEVERAGE.md` 작성·갱신.
+- **배포 게이트 검토**: 5렌즈 워크플로 1차 실패(법적 verdict 거부 패턴) → 인라인 변호사 검토 → **NO_GO**(약관 v4 미검토·사전 의견서 부재가 게이트, 코드는 견고). `docs/legal-review/DEPLOY_RISK_LEVERAGE.md` 작성·갱신.
 - **브랜치 푸시**: `leverage-middle-option` (origin/main 대비 19+커밋, 프리뷰). production 불변.
 
 ## 미해결 TODO
 
 ### 🔴 배포 게이트 (production 라이브 전 필수)
-- [ ] **약관 v4 실제 변호사 검토(§8)** + 사전 법률의견서 — 질문지 `docs/LEGAL_CONSULTATION_LEVERAGE.md`(Q11 포함). 클리어 후 `leverage-middle-option` → main 머지 → 배포.
-- [ ] 결정 기록: `docs/DEPLOY_RISK_LEVERAGE.md` §4 (파운더 옵션·서명).
+- [ ] **약관 v4 실제 변호사 검토(§8)** + 사전 법률의견서 — 질문지 `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md`(Q11 포함). 클리어 후 `leverage-middle-option` → main 머지 → 배포.
+- [ ] 결정 기록: `docs/legal-review/DEPLOY_RISK_LEVERAGE.md` §4 (파운더 옵션·서명).
 
 ### 🟡 검증·후속
 - [ ] **프리뷰에서 거부 UX 시각 확인** (Vercel `leverage-middle-option` 배포 URL): AI 버튼 앰버·거부 카드·검색 노출·게이트.
