@@ -1,7 +1,8 @@
 import { STOCK_KR } from '@/config/constants';
 
-// 섹터 분류 (심볼 기반 간이 분류)
-const SECTOR_MAP: Record<string, string> = {
+// 섹터 분류 (심볼 기반 간이 분류). export: 누출 불변식 테스트가 '이 모듈이 인지하는 티커'
+// 전체를 스캔 사전에 포함시키기 위함(STOCK_KR에 없는 ABBV/COP/KO/PEP 등 사각지대 차단).
+export const SECTOR_MAP: Record<string, string> = {
   NVDA: 'IT', AMD: 'IT', INTC: 'IT', MU: 'IT', AVGO: 'IT', QCOM: 'IT', TSM: 'IT',
   AAPL: 'IT', MSFT: 'IT', GOOG: 'IT', GOOGL: 'IT', META: 'IT', AMZN: '소비재',
   TSLA: '자동차', NFLX: '미디어', DIS: '미디어',
@@ -143,15 +144,17 @@ export function calcHealthScore(stocks: HealthStock[]): HealthResult {
     divDetail = `${topSectorName} 섹터에만 집중`;
   }
 
-  // 섹터 갭 진단용 분해 — '추천' 아닌 descriptive. 미분류('기타'+'한국주식') 비중이 크면
-  // SECTOR_MAP(미국 티커 중심)으로 단정 불가 → classifiable=false로 갭 단정 회피.
+  // 섹터 갭 진단용 분해 — '추천' 아닌 descriptive. 미분류('기타'+'한국주식') 비중이 조금이라도
+  // 유의미하면 SECTOR_MAP(미국 티커 중심)으로 '빈 산업'을 단정 불가(그 안에 해당 산업이 숨어 있을 수
+  // 있음 — 예: 삼성전자=한국 IT인데 '한국주식'으로 뭉뚱그려짐). 그래서 임계를 0.15로 보수화:
+  // 보유의 85%+ 가 분류 가능한 미국 섹터일 때만 '빈 산업' 단정. 아니면 일반 안내로 폴백(거울 정확성 보존).
   const unknownWeight = (sectorWeights['기타'] || 0) + (sectorWeights['한국주식'] || 0);
   const sectorBreakdown: SectorBreakdown = {
     present: sectorList.map(([name]) => name),
     topSector: topSectorName,
     topSectorPct: Math.round(topSectorPct),
     absent: DIVERSIFIABLE_SECTORS.filter(s => !(sectorWeights[s] > 0)),
-    classifiable: unknownWeight < 0.5,
+    classifiable: unknownWeight < 0.15,
   };
 
   // ─── 3. 목표 설정 — 설정 + 달성 분리 ────────────────────────────
@@ -310,10 +313,14 @@ export function recommendNextAction(result: HealthResult): HealthAction | null {
     case 'diversification': {
       // 섹터 갭 진단(대안 A) — 비어있는 '산업 카테고리'만 거울처럼 노출(특정 종목 지목 X).
       // 분류 신뢰 가능(classifiable)하고 빈 섹터가 있을 때만 이름을 밝힌다.
+      // topSector가 추상 산업 카테고리일 때만 갭 단정('한국주식'/'기타' 같은 catch-all은 '한 산업 쏠림'으로
+      // 오표기되므로 제외). 카피는 행위-편익 단정('커져요')을 피해 일반론('도움이 될 수 있어요')으로 약화.
       const sb = result.sectorBreakdown;
-      const gapAction = (sb && sb.classifiable && sb.absent.length > 0 && sb.topSector)
-        ? `지금 ${sb.topSector}에 ${sb.topSectorPct}% 쏠려 있어요. 아직 없는 산업(${sb.absent.slice(0, 3).join(' · ')}) 중 하나를 더하면 분산 효과가 커져요. 특정 섹터가 더 낫다는 뜻은 아니에요.`
-        : '섹터가 한 쪽에 쏠려있어요. 다른 산업 종목 1~2개를 추가하면 분산 효과가 커져요.';
+      const namedGapOk = sb && sb.classifiable && sb.absent.length > 0
+        && DIVERSIFIABLE_SECTORS.includes(sb.topSector as typeof DIVERSIFIABLE_SECTORS[number]);
+      const gapAction = namedGapOk
+        ? `지금 ${sb.topSector}에 ${sb.topSectorPct}% 쏠려 있어요. 아직 없는 산업(${sb.absent.slice(0, 3).join(' · ')}) 중 하나를 더하면 한 산업에 쏠린 정도를 낮추는 데 도움이 될 수 있어요. 특정 섹터가 더 낫다는 뜻은 아니에요.`
+        : '섹터가 한 쪽에 쏠려있어요. 다른 산업 종목을 더하면 한 산업에 쏠린 정도를 낮추는 데 도움이 될 수 있어요.';
       return {
         axis: worst.key,
         emoji: '🌐',

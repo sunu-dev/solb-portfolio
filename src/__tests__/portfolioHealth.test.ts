@@ -3,6 +3,7 @@ import {
   calcHealthScore,
   recommendNextAction,
   DIVERSIFIABLE_SECTORS,
+  SECTOR_MAP,
   type HealthStock,
 } from '@/utils/portfolioHealth';
 import { STOCK_KR } from '@/config/constants';
@@ -28,17 +29,24 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** action 텍스트에 STOCK_KR의 티커(단어경계)·종목명(부분일치)이 새지 않았는지 단언 */
+/**
+ * action 텍스트에 종목이 새지 않았는지 단언.
+ * 스캔 사전 = STOCK_KR 티커·종목명 ∪ SECTOR_MAP 티커(STOCK_KR에 없는 ABBV/COP/KO/PEP 등
+ * 이 모듈이 직접 인지하는 티커까지) + bare 6자리 한국 코드. (리뷰 false-negative 보강)
+ */
+const LEAK_TICKERS = Array.from(new Set([...Object.keys(STOCK_KR), ...Object.keys(SECTOR_MAP)]));
 function assertNoStockLeak(text: string) {
   for (const name of Object.values(STOCK_KR)) {
     if (name && name.length >= 2) {
       expect(text.includes(name), `종목명 누출: "${name}" in "${text}"`).toBe(false);
     }
   }
-  for (const ticker of Object.keys(STOCK_KR)) {
+  for (const ticker of LEAK_TICKERS) {
     const re = new RegExp(`\\b${escapeRe(ticker)}\\b`);
     expect(re.test(text), `티커 누출: "${ticker}" in "${text}"`).toBe(false);
   }
+  // bare 6자리 한국 종목코드(예: 005930)
+  expect(/\b\d{6}\b/.test(text), `6자리 종목코드 누출 in "${text}"`).toBe(false);
 }
 
 describe('calcHealthScore — 기본', () => {
@@ -96,6 +104,36 @@ describe('섹터 갭 진단 (대안 A) — 추천 아닌 descriptive', () => {
       expect(action.action).not.toMatch(/아직 없는 산업/);
       assertNoStockLeak(action.title + ' ' + action.action);
     }
+  });
+
+  it('H1 회귀 — 미국 금융 51% + 삼성전자 49%면 "IT 비었다" 거짓 단정 금지', () => {
+    // SECTOR_MAP은 미국 전용 → 삼성전자(한국 IT)는 '한국주식'으로 뭉뚱그려짐.
+    // 한국 49%까지 classifiable=true로 통과하면 "IT가 비었다"고 오진 → 거울 왜곡.
+    const stocks = [
+      mk('JPM', 1020), mk('V', 1020), mk('MA', 1020), mk('BAC', 1020), mk('GS', 1020), // 금융 51%
+      mk('005930.KS', 4900), // 삼성전자(한국 IT) 49%
+    ];
+    const r = calcHealthScore(stocks);
+    expect(r.sectorBreakdown.classifiable).toBe(false); // 한국 49% → 단정 불가
+    const action = recommendNextAction(r);
+    if (action) {
+      expect(action.action).not.toMatch(/아직 없는 산업/); // IT 등 거짓 갭 단정 없음
+      assertNoStockLeak(action.title + ' ' + action.action);
+    }
+  });
+
+  it('topSector가 catch-all(한국주식/기타)이면 갭 단정 안 함', () => {
+    // 미국 7섹터 소량 + 한국 14%가 단일 최대 버킷이 되는 경계 — topSector 가드 검증
+    const r = calcHealthScore([
+      mk('NVDA', 123), mk('JPM', 123), mk('JNJ', 123), mk('XOM', 123),
+      mk('KO', 123), mk('TSLA', 123), mk('NFLX', 123), // 7개 미국 섹터
+      mk('005930.KS', 139), // 한국 단일 최대(14%)
+    ]);
+    const action = recommendNextAction(r);
+    if (action && action.axis === 'diversification' && r.sectorBreakdown.topSector === '한국주식') {
+      expect(action.action).not.toMatch(/아직 없는 산업/);
+    }
+    if (action) assertNoStockLeak(action.title + ' ' + action.action);
   });
 });
 
