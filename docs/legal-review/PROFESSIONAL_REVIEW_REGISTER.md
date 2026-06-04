@@ -1,5 +1,6 @@
 # 전문가 확인 의무 레지스터 (변호사·세무사) — 현행화 SSOT
 
+> 📖 **1차 자료(먼저 읽기)**: `SERVICE_OVERVIEW.md` — 주비가 무엇을 하는/안 하는 서비스인지 전체 정의.
 > 작성 2026-06-03 · 흩어진 게이트(`DEPLOY_RISK_LEVERAGE`·`LEGAL_CONSULTATION_LEVERAGE`·`LEGAL_CONSULTATION_TAX`·`TAX_PIVOT_MVP_SPEC`·`NEXT_ACTIONS`·`BROKER_MERGE_FEATURE`)를 **현 배포 상태 대비** 한 곳에 통합.
 > 원칙: 전문가 감수는 대부분 **법적 강제가 아니라 리스크 완화(분쟁 시 중과실 방어 증거)**다([[feedback-professional-review-not-llm]]). "꼭?"은 **필수(법/게이트)** vs **권장(분쟁 대비)** vs **선택**으로 구분.
 
