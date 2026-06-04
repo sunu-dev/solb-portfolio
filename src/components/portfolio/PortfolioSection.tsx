@@ -392,14 +392,8 @@ export default function PortfolioSection() {
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
-      {/* 증권사별 보유 현황 — Phase B-1/B-2, 클릭 시 필터 활성 */}
-      <BrokerSummaryCard
-        active={brokerFilter as never}
-        onSelect={(b) => setBrokerFilter(b as string | null)}
-      />
-
-      {/* 다중 broker 분산 보유 종목 통합 뷰 — Phase M-2 (multi-broker 종목 1개 이상 시만 노출) */}
-      <MergedHoldingsCard />
+      {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
+          Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (
@@ -1044,6 +1038,16 @@ export default function PortfolioSection() {
             })}
           </div>
         )}
+
+        {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰: 보유 리스트 '아래'로 이동.
+            상단에서 강등해 보유 테이블을 프라임 공간으로 승격(16인 IA 패널 권고). */}
+        <div style={{ marginTop: 24 }}>
+          <BrokerSummaryCard
+            active={brokerFilter as never}
+            onSelect={(b) => setBrokerFilter(b as string | null)}
+          />
+          <MergedHoldingsCard />
+        </div>
 
         {/* 월간 챕터 척추 카드 — 30일 시즌으로 작동하는 투자 일지 (Phase 1+2)
             매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
