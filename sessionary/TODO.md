@@ -25,6 +25,11 @@
    - 가비아 결제 진행 중 (메모리 [solb_status])
    - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제
    - 트리거 단어: "결제 완료", "joobi.kr 진행하자", "Phase A 진행"
+   - [ ] **🔵 joobi.kr 도메인+Resend 검증 완료 시 `solb.kr` 이메일 기본값 교체** (2026-06-04 레거시 sweep):
+     - `noreply@solb.kr` → `noreply@joobi.kr` (`src/utils/email.ts` EMAIL_FROM 기본값 + Vercel env `EMAIL_FROM`)
+     - `admin@solb.kr` (VAPID_EMAIL) → joobi.kr (`morning-brief`·`check-alerts`·`monthly-d3-reminder` route 기본값 + env `VAPID_EMAIL`)
+     - ⚠️ `solb_`/`solb-` localStorage 키·이벤트·CSS 클래스 15종은 **rename 금지**(데이터·상태 손실, 사용자 미노출). 메모리 project_solb_status 가드레일.
+     - (선택) terms의 `github.com/sunu-dev/solb-portfolio` 링크 — repo rename 결정 시
 4. **카나리 24h 페르소나 5명 모집** (사용자 직접)
    - 다증권사 30대 iOS · 1증권사 20대 Android · **Samsung Internet** 30대 · **카카오 인앱브라우저** 20대 · PC desktop 30대
 
