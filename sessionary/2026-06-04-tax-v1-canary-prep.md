@@ -36,7 +36,7 @@
 - [ ] 카나리 결과 → GO(머지+결제+변호사 약관 §20③)/조건부(무료 retention)/NO-GO(v2 자동합산) 판정.
 - [ ] 실기기 점검: iOS 손실(−) 입력·카카오 인앱 입력보존·Samsung 全角−·다크 면책.
 - [ ] (별건, 사전 존재) `formatKRW.test.ts` 4건 실패 — `₩1.0만` 축약 기대 vs `₩10,000` 반환. 테스트/구현 중 무엇이 맞는지 결정.
-- [ ] (메모리 승급 후보) "검증(카나리)엔 측정 장치를 코드에 내장 — 없으면 시연" 방법론.
+- [x] ~~(메모리 승급 후보)~~ **완료**: "검증엔 측정 장치 내장" → 메모리 `feedback_validation_instrumentation` 박제(2026-06-04).
 
 ## 다음 세션 진입점
 프리뷰: `solb-portfolio-git-tax-v1-canary-sunudevelop-1252s-projects.vercel.app`. 카나리 결과가 있으면 판정→다음 단계. 없으면 결과 대기 중이므로 다른 BLOCKER(레버리지 사후 자문·joobi.kr Phase A) 또는 신규 작업.
