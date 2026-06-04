@@ -22,9 +22,6 @@ import { INVESTOR_TYPES } from '@/config/investorTypes';
  *   - ThrowbackCard (과거 비교 — 분석 카테고리)
  *   - TradePatternMirror (메모 통계 — 분석 카테고리)
  *   - PortfolioDNA (캐릭터 분류 — Health와 함께)
- *
- * 종목 탭 시즌 카드로 이동:
- *   - MonthlyReplay (월말~월초만 강조, 시간 적응형)
  */
 
 interface SectionRef {

@@ -8,7 +8,6 @@ import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from 
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
-import PortfolioHeatmap from './PortfolioHeatmap';
 import PortfolioTreemap from './PortfolioTreemap';
 import PortfolioCompactBar from './PortfolioCompactBar';
 import BenchmarkCompare from './BenchmarkCompare';
@@ -28,7 +27,6 @@ import PortfolioValueChart from './PortfolioValueChart';
 import PortfolioDNA from './PortfolioDNA';
 import ThrowbackCard from './ThrowbackCard';
 import TradePatternMirror from './TradePatternMirror';
-import MonthlyReplay from './MonthlyReplay';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
 import ChapterShelf from './ChapterShelf';
@@ -394,12 +392,9 @@ export default function PortfolioSection() {
     <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
 
-      {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
-      <ChapterKeywordPrompt />
-
-      {/* 오늘 아침 브리핑 — 하루 첫 방문 시 자동 펼침, "확인했어요"로 그날 닫기 */}
-      <MorningBriefing />
-
+      {/* IA P0 — '관리·확인'을 먼저: 자산 요약 + 보유 테이블을 상단으로. 시점성 리추얼
+          (챕터 키워드·아침 브리핑)은 화면 하단으로 강등(아래로 이동) — 매일/매월 1회 리추얼이
+          프라임 공간을 점유하지 않게. 16인 IA 패널 권고('황금 땅 포기'). */}
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
@@ -1221,6 +1216,10 @@ export default function PortfolioSection() {
           )}
         </div>
       )}
+
+      {/* 시점성 리추얼 — IA P0로 상단에서 강등(자산·보유가 우선). 각 컴포넌트가 노출 조건을 자체 판단 */}
+      <ChapterKeywordPrompt />
+      <MorningBriefing />
 
       {/* Undo 삭제 토스트 */}
       {undoData && (
