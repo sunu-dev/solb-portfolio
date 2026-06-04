@@ -4,7 +4,7 @@ import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import {
   BarChart3, Sparkles, Newspaper, CalendarDays,
   Search, Bell, Compass, HelpCircle, Settings, ChevronRight,
-  Moon, Sun,
+  Moon, Sun, Star,
 } from 'lucide-react';
 
 /**
@@ -34,14 +34,18 @@ const SECTION_LABEL: React.CSSProperties = {
 };
 
 export default function FeatureDirectory({ onNavigate }: Props) {
-  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore();
+  const { currentSection, setCurrentSection, setCurrentTab, darkMode, toggleDarkMode } = usePortfolioStore();
 
   const go = (section: MainSection) => { setCurrentSection(section); onNavigate(); };
   const emit = (name: string) => { window.dispatchEvent(new CustomEvent(name)); onNavigate(); };
 
+  // 관심 종목 바로가기 — 모바일에서 옛 더보기(RightSidebar)의 watchlist 접근 복원(IA #9).
+  // 포트폴리오 탭의 '관심 종목' 카테고리로 직접 진입(currentTab 스토어).
+  const goWatchlist = () => { setCurrentSection('portfolio'); setCurrentTab('watching'); onNavigate(); };
+
   // 주요 메뉴 — 2열 타일
   const primary: { id: MainSection; label: string; sub: string; Icon: typeof BarChart3 }[] = [
-    { id: 'portfolio', label: '포트폴리오', sub: '보유·관리', Icon: BarChart3 },
+    { id: 'portfolio', label: '포트폴리오', sub: '보유·관심·관리', Icon: BarChart3 },
     { id: 'insights', label: 'AI 인사이트', sub: 'AI 촉·이야기', Icon: Sparkles },
     { id: 'news', label: '뉴스', sub: '내 종목 소식', Icon: Newspaper },
     { id: 'events', label: '이벤트 분석', sub: '실적·배당 일정', Icon: CalendarDays },
@@ -137,6 +141,35 @@ export default function FeatureDirectory({ onNavigate }: Props) {
           );
         })}
       </div>
+
+      {/* 관심 종목 바로가기 — 포트폴리오 '관심 종목' 카테고리로 직접 진입(모바일 watchlist 접근 복원) */}
+      <button
+        onClick={goWatchlist}
+        className="cursor-pointer"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          width: '100%', padding: '14px 16px', marginBottom: 24, minHeight: 56, textAlign: 'left',
+          background: 'var(--bg-subtle, #F8F9FA)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 14,
+        }}
+        aria-label="관심 종목 바로가기"
+      >
+        <span style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--surface, #fff)', color: 'var(--brand-primary)',
+        }}>
+          <Star size={18} strokeWidth={2} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+            관심 종목
+          </span>
+          <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
+            찜한 종목 모아보기
+          </span>
+        </span>
+        <ChevronRight size={16} style={{ color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
+      </button>
 
       {/* 도구 */}
       <div style={SECTION_LABEL}>도구</div>
