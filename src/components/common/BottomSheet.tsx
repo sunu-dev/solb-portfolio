@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -118,7 +119,11 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
               box-shadow: 0 12px 40px rgba(0,0,0,0.18) !important;
               animation: bottomsheetFadeScale 0.2s ease-out !important;
             }
-            .bottomsheet-desktop .bottomsheet-handle { display: none !important; }
+            /* 드래그 그립은 데스크톱에선 무의미 → 숨기되 핸들의 상단 여백은 유지(헤더가 천장에 붙지 않게) */
+            .bottomsheet-desktop .bottomsheet-grip { display: none !important; }
+            .bottomsheet-desktop .bottomsheet-handle { padding-top: 16px !important; padding-bottom: 4px !important; cursor: default !important; }
+            /* 데스크톱 모달엔 닫기(X) — Esc·배경 외 명시적 닫기 어포던스 */
+            .bottomsheet-desktop .bottomsheet-close { display: flex !important; }
           }
         `}</style>
       )}
@@ -143,14 +148,30 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
           paddingBottom: paddingBottom ?? `calc(20px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        {/* Drag handle */}
+        {/* Drag handle (모바일) / 상단 여백+닫기 바 (데스크톱) */}
         <div className="bottomsheet-handle" style={{
-          position: 'sticky', top: 0, zIndex: 1,
+          position: 'sticky', top: 0, zIndex: 2,
           background: 'var(--surface, white)',
           paddingTop: 12, paddingBottom: 8,
           cursor: 'grab',
         }}>
-          <div style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto' }} />
+          <div className="bottomsheet-grip" style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto' }} />
+          {desktopVariant && (
+            <button
+              className="bottomsheet-close"
+              onClick={onClose}
+              aria-label="닫기"
+              style={{
+                display: 'none', position: 'absolute', top: 10, right: 12,
+                width: 32, height: 32, borderRadius: 8,
+                alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-subtle, #F2F4F6)', border: 'none', cursor: 'pointer',
+                color: 'var(--text-secondary, #8B95A1)',
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {children}
