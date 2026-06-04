@@ -275,6 +275,10 @@ export default function AiChokSection() {
     setError(null);
 
     try {
+      // ⚠️ 로그인 토큰 필수 — 서버(ai-chok/route.ts)는 Authorization Bearer로 getUser 검증해
+      // 미인증 시 401 로그인 게이트를 반환한다. 이 헤더를 빠뜨리면 로그인한 유저도 '로그인하세요'가 뜬다(버그).
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
       const portfolioSymbols = getAllSymbols();
       const currentEvent = getAllEvents().find(e => e.id === currentEventId);
       // P3 — 시그널 우선순위 점수화: 핵심 보유 종목 컨텍스트 빌드
@@ -282,7 +286,10 @@ export default function AiChokSection() {
       const holdingsContext = buildHoldingsPromptContext(priorities, 3);
       const res = await fetch('/api/ai-chok', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           portfolioSymbols,
           intent,
