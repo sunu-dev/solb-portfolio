@@ -96,7 +96,7 @@ export interface SectorBreakdown {
   topSector: string;      // 최대 비중 섹터
   topSectorPct: number;   // 0~100 정수
   absent: string[];       // DIVERSIFIABLE_SECTORS 중 미보유 산업
-  classifiable: boolean;  // 미분류('기타'+'한국주식') 비중 < 0.5 → 갭 진단 신뢰 가능
+  classifiable: boolean;  // 미분류('기타'+'한국주식') 비중 < 0.15 → 갭 진단 신뢰 가능
 }
 
 export interface HealthResult {
