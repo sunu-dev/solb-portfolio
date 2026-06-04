@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { Settings, Bell, Search, HelpCircle } from 'lucide-react';
+import { Settings, Bell, Search, HelpCircle, LayoutGrid } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -118,6 +118,24 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               </button>
             );
           })}
+          {/* 전체 메뉴 진입점 — 모바일은 하단 네비 '더보기', PC는 여기(IA P1-a) */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-feature-directory'))}
+            className="cursor-pointer flex items-center"
+            style={{
+              height: '100%',
+              padding: '0 24px',
+              fontSize: '14px',
+              fontWeight: 400,
+              color: 'var(--text-secondary, #8B95A1)',
+              whiteSpace: 'nowrap',
+              gap: 6,
+            }}
+            aria-label="전체 메뉴 열기"
+          >
+            <LayoutGrid className="w-[15px] h-[15px]" />
+            전체
+          </button>
         </nav>
 
         {/* Spacer */}
