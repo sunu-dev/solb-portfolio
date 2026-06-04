@@ -15,6 +15,27 @@ function newId(): string {
   return `tx_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// 인앱브라우저(카카오 등)·시크릿모드는 localStorage 접근이 throw 될 수 있어, 실패 시 in-memory 폴백.
+// persist rehydrate 단계 크래시(빈 화면) 방지 — 세션 한정 보관(새로고침 시 휘발)으로 graceful degrade.
+function safeStorage(): Storage {
+  try {
+    const probe = '__joobi_tax_probe__';
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+    return localStorage;
+  } catch {
+    const mem = new Map<string, string>();
+    return {
+      getItem: (k) => (mem.has(k) ? mem.get(k)! : null),
+      setItem: (k, v) => { mem.set(k, String(v)); },
+      removeItem: (k) => { mem.delete(k); },
+      clear: () => { mem.clear(); },
+      key: () => null,
+      get length() { return mem.size; },
+    } as Storage;
+  }
+}
+
 interface TaxState {
   taxYear: number;
   entries: TaxBrokerEntry[];
@@ -40,7 +61,7 @@ export const useTaxStore = create<TaxState>()(
     }),
     {
       name: 'joobi-tax-storage',
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(() => safeStorage()),
     },
   ),
 );

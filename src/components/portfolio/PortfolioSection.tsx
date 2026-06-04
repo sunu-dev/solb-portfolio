@@ -408,7 +408,7 @@ export default function PortfolioSection() {
         <span style={{ fontSize: 22, flex: '0 0 auto' }} aria-hidden>🧾</span>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>올해 해외주식 세금 한 번에</span>
-          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2, lineHeight: 1.4 }}>여러 증권사 합쳐 예상 양도세·250만 공제 잔여 보기</span>
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2, lineHeight: 1.4 }}>여러 증권사 합쳐 예상 양도세·250만 공제 잔여 추정해 보기</span>
         </span>
         <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)' }}>미리보기 →</span>
       </button>

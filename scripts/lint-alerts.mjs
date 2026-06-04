@@ -79,8 +79,11 @@ const TAX_FORBIDDEN_PHRASES = [
   '환급해드', '환급받아드', '세금 돌려드',
   '세무 비서', '세무비서',
 ];
-/** 세무 기능 소스 파일에만 TAX_FORBIDDEN_PHRASES를 적용 (taxRates·tax UI·tax API) */
+/** 세무 기능 소스 파일에 TAX_FORBIDDEN_PHRASES를 적용 (taxRates·tax UI·tax API) */
 const TAX_FILE_RE = /tax|양도세/i;
+/** 파일 경로가 세무가 아니어도, 세무 문맥 줄(양도세·세무·홈택스·기본공제 언급)이면 게이트 적용.
+ *  PortfolioSection 같은 비-세무 경로에 들어간 세무 카피의 §20③ 사각지대 봉합. */
+const TAX_LINE_RE = /양도세|세무|홈택스|기본공제/;
 
 /**
  * 검사에서 제외할 파일·디렉토리.
@@ -141,6 +144,9 @@ async function lintFile(filePath) {
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
 
+    // 단일 줄 블록 주석 /* ... */ 제거 (주석 안 표현은 허용 — 멀티라인 /* 만 남기면 아래 추적이 처리)
+    line = line.replace(/\/\*.*?\*\//g, '');
+
     // 블록 주석 추적 (단순)
     const blockStart = line.indexOf('/*');
     const blockEnd = line.indexOf('*/');
@@ -182,8 +188,8 @@ async function lintFile(filePath) {
       }
     }
 
-    // 세무 소스 파일 한정 — 세무대리·상담 오인 표현 (세무사법 §20③/§2)
-    if (isTaxFile) {
+    // 세무 소스 파일 OR 세무 문맥 줄 — 세무대리·상담 오인 표현 (세무사법 §20③/§2)
+    if (isTaxFile || TAX_LINE_RE.test(stripped)) {
       for (const phrase of TAX_FORBIDDEN_PHRASES) {
         if (stripped.includes(phrase)) {
           violations.push({

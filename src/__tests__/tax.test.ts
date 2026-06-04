@@ -48,6 +48,34 @@ describe('computeTaxEstimate (v1 합산기)', () => {
     expect(r.totalGainKrw).toBe(3_300_000);
     expect(r.estimatedTaxKrw).toBe(176_000);
   });
+
+  // ── 경계·반올림 (리뷰 med 보강) ──
+  it('정확히 250만 → 공제 소진, 세금 0, 잔여 0', () => {
+    const r = computeTaxEstimate([e('toss', 2_500_000)]);
+    expect(r.deductionUsed).toBe(2_500_000);
+    expect(r.deductionRemaining).toBe(0);
+    expect(r.taxableBaseKrw).toBe(0);
+    expect(r.estimatedTaxKrw).toBe(0);
+  });
+
+  it('250만 + 1만 → 과세표준 1만 × 22% = 2,200', () => {
+    const r = computeTaxEstimate([e('toss', 2_510_000)]);
+    expect(r.taxableBaseKrw).toBe(10_000);
+    expect(r.estimatedTaxKrw).toBe(2_200);
+  });
+
+  it('비-만원 과세표준은 반올림 (1,003원 × 22% = 220.66 → 221)', () => {
+    const r = computeTaxEstimate([e('toss', 2_501_003)]);
+    expect(r.taxableBaseKrw).toBe(1_003);
+    expect(r.estimatedTaxKrw).toBe(221);
+  });
+
+  it('상쇄 [+300만, -300만] = 0 → 세금 0, 공제 잔여 250만', () => {
+    const r = computeTaxEstimate([e('toss', 3_000_000), e('kiwoom', -3_000_000)]);
+    expect(r.totalGainKrw).toBe(0);
+    expect(r.deductionRemaining).toBe(2_500_000);
+    expect(r.estimatedTaxKrw).toBe(0);
+  });
 });
 
 describe('toKrwAtSettle (v2 환산 게이트)', () => {
