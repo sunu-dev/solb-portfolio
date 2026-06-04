@@ -146,8 +146,10 @@ export default function HelpPage() {
         {/* 투어 다시 보기 CTA */}
         <button
           onClick={() => {
+            // 풀 페이지 이동 후 setTimeout으로 open-tour를 쏘면 콜백이 파기돼 투어가 안 떴음.
+            // CoachMark가 마운트 시 읽는 solb_tour_pending 플래그를 세팅해 본 화면 도착 직후 시작.
+            try { localStorage.setItem('solb_tour_pending', '1'); } catch { /* storage full */ }
             window.location.href = '/';
-            setTimeout(() => window.dispatchEvent(new CustomEvent('open-tour')), 400);
           }}
           style={{
             width: '100%', padding: '14px 18px', marginBottom: 24,

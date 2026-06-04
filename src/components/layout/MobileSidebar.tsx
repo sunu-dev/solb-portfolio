@@ -21,10 +21,12 @@ export default function MobileSidebar({ isOpen, onClose }: Props) {
       onClose={onClose}
       maxHeight="85vh"
       paddingBottom="calc(80px + env(safe-area-inset-bottom, 0px))"
+      desktopVariant
     >
       <div style={{ paddingLeft: 20, paddingRight: 20 }}>
         <FeatureDirectory onNavigate={onClose} />
-        <div style={{ marginTop: 28 }}>
+        {/* 배지는 PC에선 우측 사이드바에 상시 노출되므로 시트에선 모바일만(중복 방지) */}
+        <div className="lg:hidden" style={{ marginTop: 28 }}>
           <BadgeSection />
         </div>
       </div>

@@ -9,7 +9,6 @@ import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import PortfolioTreemap from './PortfolioTreemap';
-import PortfolioCompactBar from './PortfolioCompactBar';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
@@ -565,6 +564,34 @@ export default function PortfolioSection() {
           </div>
         </div>
 
+        {/* IA P0-2 보강 — 증권사 필터 활성 시 리스트 '상단'에 인-뷰 칩.
+            필터 컨트롤(BrokerSummaryCard)이 리스트 아래로 강등돼 클릭 효과를 화면에서 놓칠 수 있어
+            결과 위치에서 필터 상태를 인지·해제할 수 있게 보강. */}
+        {brokerFilter !== null && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              marginBottom: 12, padding: '8px 12px', borderRadius: 10,
+              background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary)',
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span aria-hidden>🏦</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 종목만 보는 중
+              </span>
+            </span>
+            <button
+              onClick={() => setBrokerFilter(null)}
+              className="cursor-pointer shrink-0"
+              aria-label="증권사 필터 해제"
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'var(--surface, #fff)', border: '1px solid var(--brand-primary)', borderRadius: 8, padding: '4px 10px', minHeight: 32 }}
+            >
+              전체 보기
+            </button>
+          </div>
+        )}
+
         {/* 기간 탭 + 지연 시세 — 종목 있을 때만 */}
         {displayList.length > 0 && (
           <div className="flex items-center justify-between" style={{ marginBottom: 12, gap: 8 }}>
@@ -606,6 +633,25 @@ export default function PortfolioSection() {
 
         {/* Stock table */}
         {displayList.length === 0 ? (
+          brokerFilter !== null ? (
+            /* 필터 결과 0 — '진짜 보유 0'과 구분(QUICK_ADD 유도 대신 필터 해제 안내) */
+            <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+                이 증권사 종목이 없어요
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 20 }}>
+                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 보유로 등록된 종목이 없어요.<br/>필터를 해제하면 전체 보유를 볼 수 있어요.
+              </div>
+              <button
+                onClick={() => setBrokerFilter(null)}
+                className="cursor-pointer"
+                style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--text-primary, #191F28)', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', minHeight: 44 }}
+              >
+                전체 보기
+              </button>
+            </div>
+          ) : (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>종목을 추가해볼까요?</div>
@@ -687,6 +733,7 @@ export default function PortfolioSection() {
               샘플 포트폴리오로 체험하기
             </button>
           </div>
+          )
         ) : (
           <div>
             {/* Sort selector — 모바일 필수, 데스크톱 보조 */}

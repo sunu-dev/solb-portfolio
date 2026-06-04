@@ -118,10 +118,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               </button>
             );
           })}
-          {/* 전체 메뉴 진입점 — 모바일은 하단 네비 '더보기', PC는 여기(IA P1-a) */}
+          {/* 전체 메뉴 진입점 — lg+ 에서만(하단 네비 '더보기'가 lg:hidden으로 사라지는 구간과 일치).
+              md(768–1023)에서는 하단 '더보기'가 단일 진입점이라 이중 노출 방지. */}
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('open-feature-directory'))}
-            className="cursor-pointer flex items-center"
+            className="cursor-pointer hidden lg:flex items-center"
             style={{
               height: '100%',
               padding: '0 24px',

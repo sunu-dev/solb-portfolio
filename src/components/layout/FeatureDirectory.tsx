@@ -13,9 +13,11 @@ import {
  * IA P1-a: 더보기를 단순 사이드바 복제에서 '검색 내장 카테고리형 기능 디렉터리'로 승격.
  * 모바일은 하단 네비 '더보기', PC는 헤더 '전체' 버튼에서 같은 시트로 진입.
  *
- * 진입점 원칙: 어느 화면에서든 동작하는 트리거만 노출(섹션 전환·항상 마운트된 전역 이벤트).
+ * 진입점 원칙: 어느 화면에서든 동작하는 트리거만 노출(섹션 전환·전역 이벤트).
  *  - setCurrentSection: 스토어 → 항상 동작
- *  - open-search(Header)·open-mobile-alerts/toggle-settings(page)·open-tour(CoachMark): 항상 마운트
+ *  - open-search(Header)·open-mobile-alerts/toggle-settings(page): 항상 마운트
+ *  - open-tour(CoachMark): CoachMark는 온보딩 아닐 때 마운트(허브 진입 시점엔 사실상 항상)
+ *  - 알림 센터: PC는 상시 노출된 우측 사이드바로 스크롤 위임, 모바일은 바텀시트
  *  - 화면 종속 이벤트(예: chapter-shelf)는 데드 메뉴 방지 위해 제외(포트폴리오 탭에서 도달).
  */
 interface Props {
@@ -45,10 +47,20 @@ export default function FeatureDirectory({ onNavigate }: Props) {
     { id: 'events', label: '이벤트 분석', sub: '실적·배당 일정', Icon: CalendarDays },
   ];
 
-  // 도구 — 목록형
+  // 도구 — 목록형 (종목 검색은 상단 필드로 단일화 → 중복 제거)
   const tools: { label: string; sub: string; Icon: typeof Search; onClick: () => void }[] = [
-    { label: '종목 검색', sub: '이름·티커로 빠르게 찾기', Icon: Search, onClick: () => emit('open-search') },
-    { label: '알림 센터', sub: '주비 AI 알림 모아보기', Icon: Bell, onClick: () => emit('open-mobile-alerts') },
+    {
+      label: '알림 센터', sub: '주비 AI 알림 모아보기', Icon: Bell,
+      onClick: () => {
+        // PC: 우측 사이드바 알림센터로 스크롤(상시 노출), 모바일: 바텀시트
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+          onNavigate();
+          document.getElementById('solb-alert-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          emit('open-mobile-alerts');
+        }
+      },
+    },
     { label: '둘러보기', sub: '주요 기능 가이드 투어', Icon: Compass, onClick: () => emit('open-tour') },
     { label: '도움말', sub: '사용법·자주 묻는 질문', Icon: HelpCircle, onClick: () => { onNavigate(); window.location.href = '/help'; } },
   ];

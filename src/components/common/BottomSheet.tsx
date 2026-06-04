@@ -8,12 +8,22 @@ interface Props {
   children: ReactNode;
   maxHeight?: string;
   paddingBottom?: string;
+  /** lg+(데스크톱)에서 풀폭 바텀시트 대신 중앙 모달로 표현(토스/카카오 '전체' 데스크톱 패턴). */
+  desktopVariant?: boolean;
 }
 
-export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom }: Props) {
+export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom, desktopVariant = false }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  // Esc로 닫기(데스크톱 모달 UX, 모바일에서도 무해)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
 
   // iOS-safe body scroll lock: position fixed preserves background scroll position
   useEffect(() => {
@@ -87,10 +97,36 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
         onClick={onClose}
       />
 
+      {/* 데스크톱 모달 변형 — desktopVariant일 때 lg+에서 중앙 모달로 전환 */}
+      {desktopVariant && (
+        <style>{`
+          @keyframes bottomsheetFadeScale {
+            from { opacity: 0; transform: translateX(-50%) scale(0.97); }
+            to   { opacity: 1; transform: translateX(-50%) scale(1); }
+          }
+          @media (min-width: 1024px) {
+            .bottomsheet-desktop {
+              left: 50% !important;
+              right: auto !important;
+              bottom: auto !important;
+              top: 64px !important;
+              width: 440px !important;
+              max-width: calc(100vw - 32px) !important;
+              max-height: 78vh !important;
+              transform: translateX(-50%);
+              border-radius: 20px !important;
+              box-shadow: 0 12px 40px rgba(0,0,0,0.18) !important;
+              animation: bottomsheetFadeScale 0.2s ease-out !important;
+            }
+            .bottomsheet-desktop .bottomsheet-handle { display: none !important; }
+          }
+        `}</style>
+      )}
+
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className="mobile-sidebar-sheet"
+        className={`mobile-sidebar-sheet${desktopVariant ? ' bottomsheet-desktop' : ''}`}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -108,7 +144,7 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
         }}
       >
         {/* Drag handle */}
-        <div style={{
+        <div className="bottomsheet-handle" style={{
           position: 'sticky', top: 0, zIndex: 1,
           background: 'var(--surface, white)',
           paddingTop: 12, paddingBottom: 8,
