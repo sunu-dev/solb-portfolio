@@ -122,7 +122,7 @@ export const KOREAN_UNIVERSE: KoreanStock[] = [
   { symbol: '900140.KQ', krName: '엘브이엠씨홀딩스',   exchange: 'KQ' },
   { symbol: '950140.KQ', krName: '잉글우드랩',         exchange: 'KQ' },
   { symbol: '000250.KQ', krName: '삼천당제약',         exchange: 'KQ' },
-  { symbol: '067160.KQ', krName: '아프리카TV',         exchange: 'KQ' },
+  { symbol: '067160.KQ', krName: 'SOOP',               exchange: 'KQ' },
 ];
 
 // 중복 제거 — 빠른 조회용 Map

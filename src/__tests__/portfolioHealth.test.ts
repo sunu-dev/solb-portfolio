@@ -4,6 +4,7 @@ import {
   recommendNextAction,
   DIVERSIFIABLE_SECTORS,
   SECTOR_MAP,
+  KR_SECTOR_MAP,
   type HealthStock,
 } from '@/utils/portfolioHealth';
 import { STOCK_KR } from '@/config/constants';
@@ -34,7 +35,7 @@ function escapeRe(s: string): string {
  * 스캔 사전 = STOCK_KR 티커·종목명 ∪ SECTOR_MAP 티커(STOCK_KR에 없는 ABBV/COP/KO/PEP 등
  * 이 모듈이 직접 인지하는 티커까지) + bare 6자리 한국 코드. (리뷰 false-negative 보강)
  */
-const LEAK_TICKERS = Array.from(new Set([...Object.keys(STOCK_KR), ...Object.keys(SECTOR_MAP)]));
+const LEAK_TICKERS = Array.from(new Set([...Object.keys(STOCK_KR), ...Object.keys(SECTOR_MAP), ...Object.keys(KR_SECTOR_MAP)]));
 function assertNoStockLeak(text: string) {
   for (const name of Object.values(STOCK_KR)) {
     if (name && name.length >= 2) {
@@ -90,50 +91,76 @@ describe('섹터 갭 진단 (대안 A) — 추천 아닌 descriptive', () => {
     assertNoStockLeak(action!.title + ' ' + action!.action);
   });
 
-  it('한국주식 비중이 크면(분류 불가) 섹터명 단정 없이 일반 안내로 폴백', () => {
-    // 전부 한국주식 → '한국주식'으로 뭉뚱그려짐 → classifiable=false
-    const stocks = ['005930.KS', '000660.KS', '035720.KS'].map(s =>
+  it('한국 종목도 섹터 매핑되어 갭 진단 작동(삼성전자=IT, NAVER=IT…)', () => {
+    // KR_SECTOR_MAP 적용 후 한국 IT 일색도 분류 가능 → 빈 산업 노출(과거엔 '한국주식'으로 묻혔음)
+    const stocks = ['005930.KS', '000660.KS', '035420.KS'].map(s =>
+      mk(s, 1000, { avgCost: 100, currentPrice: 100 })
+    );
+    const r = calcHealthScore(stocks);
+    expect(r.sectorBreakdown.topSector).toBe('IT');
+    expect(r.sectorBreakdown.classifiable).toBe(true);
+    expect(r.sectorBreakdown.absent).toContain('금융');
+    expect(r.sectorBreakdown.absent).not.toContain('IT');
+
+    const action = recommendNextAction(r);
+    if (action && action.axis === 'diversification') {
+      expect(action.action).toMatch(/아직 없는 산업/);
+      assertNoStockLeak(action.title + ' ' + action.action);
+    }
+  });
+
+  it('미등록 한국 종목은 "한국주식" 폴백 → 분류 불가 → 일반 안내', () => {
+    // KR_SECTOR_MAP에 없는 가상 한국 티커 → '한국주식' catch-all → classifiable=false
+    const stocks = ['999991.KS', '999992.KS', '999993.KS'].map(s =>
       mk(s, 1000, { avgCost: 100, currentPrice: 100 })
     );
     const r = calcHealthScore(stocks);
     expect(r.sectorBreakdown.classifiable).toBe(false);
-
     const action = recommendNextAction(r);
     if (action && action.axis === 'diversification') {
-      // 분류 불가 시 '비어있는 산업: 헬스케어…' 식 단정을 하지 않아야 함(오진 방지)
       expect(action.action).not.toMatch(/아직 없는 산업/);
       assertNoStockLeak(action.title + ' ' + action.action);
     }
   });
 
-  it('H1 회귀 — 미국 금융 51% + 삼성전자 49%면 "IT 비었다" 거짓 단정 금지', () => {
-    // SECTOR_MAP은 미국 전용 → 삼성전자(한국 IT)는 '한국주식'으로 뭉뚱그려짐.
-    // 한국 49%까지 classifiable=true로 통과하면 "IT가 비었다"고 오진 → 거울 왜곡.
+  it('H1 — 미국 금융 + 삼성전자(IT)는 매핑으로 "IT 비었다" 오진이 사라짐', () => {
+    // 매핑 후 삼성전자=IT → IT가 present → absent에 IT 없음(과거 거짓 갭 해소)
     const stocks = [
       mk('JPM', 1020), mk('V', 1020), mk('MA', 1020), mk('BAC', 1020), mk('GS', 1020), // 금융 51%
-      mk('005930.KS', 4900), // 삼성전자(한국 IT) 49%
+      mk('005930.KS', 4900), // 삼성전자(IT) 49%
     ];
     const r = calcHealthScore(stocks);
-    expect(r.sectorBreakdown.classifiable).toBe(false); // 한국 49% → 단정 불가
+    expect(r.sectorBreakdown.classifiable).toBe(true);   // 이제 분류 가능
+    expect(r.sectorBreakdown.absent).not.toContain('IT'); // IT 보유 → 거짓 갭 없음
+    expect(r.sectorBreakdown.absent).not.toContain('금융');
     const action = recommendNextAction(r);
-    if (action) {
-      expect(action.action).not.toMatch(/아직 없는 산업/); // IT 등 거짓 갭 단정 없음
-      assertNoStockLeak(action.title + ' ' + action.action);
-    }
+    if (action) assertNoStockLeak(action.title + ' ' + action.action);
   });
 
-  it('topSector가 catch-all(한국주식/기타)이면 갭 단정 안 함', () => {
-    // 미국 7섹터 소량 + 한국 14%가 단일 최대 버킷이 되는 경계 — topSector 가드 검증
-    const r = calcHealthScore([
-      mk('NVDA', 123), mk('JPM', 123), mk('JNJ', 123), mk('XOM', 123),
-      mk('KO', 123), mk('TSLA', 123), mk('NFLX', 123), // 7개 미국 섹터
-      mk('005930.KS', 139), // 한국 단일 최대(14%)
-    ]);
+  it('지주/복합(기타)·미등록 비중이 크면 분류 불가로 폴백', () => {
+    // SK·LG 지주(기타) 다수 → unknownWeight↑ → classifiable=false
+    const r = calcHealthScore(['034730.KS', '003550.KS', '078930.KS'].map(s => mk(s, 1000)));
+    expect(r.sectorBreakdown.classifiable).toBe(false);
     const action = recommendNextAction(r);
-    if (action && action.axis === 'diversification' && r.sectorBreakdown.topSector === '한국주식') {
+    if (action && action.axis === 'diversification') {
       expect(action.action).not.toMatch(/아직 없는 산업/);
     }
     if (action) assertNoStockLeak(action.title + ' ' + action.action);
+  });
+
+  it('다섹터 한국 포트는 분산 점수가 높다(올바른 멀티섹터 분류)', () => {
+    // 과거엔 전부 '한국주식'=1섹터라 divScore≈0. 매핑 후 5섹터 → 분산 점수 상승.
+    const r = calcHealthScore([
+      mk('005930.KS', 1000), // IT
+      mk('105560.KS', 1000), // 금융
+      mk('068270.KS', 1000), // 헬스케어
+      mk('005380.KS', 1000), // 자동차
+      mk('033780.KS', 1000), // 소비재
+    ]);
+    expect(r.sectorBreakdown.present).toEqual(
+      expect.arrayContaining(['IT', '금융', '헬스케어', '자동차', '소비재'])
+    );
+    expect(r.diversification.score).toBeGreaterThan(15); // 5섹터 효과 분산
   });
 });
 
@@ -152,8 +179,10 @@ describe('누출 불변식 — 모든 액션은 종목명/티커 0', () => {
         mk('JPM', 1000, { avgCost: 100, currentPrice: 50 }),
         mk('JNJ', 1000, { avgCost: 100, currentPrice: 105 }),
       ],
-      // 한국주식 일색
+      // 한국 종목(매핑됨: 삼성전자·SK하이닉스=IT)
       ['005930.KS', '000660.KS'].map(s => mk(s, 1000)),
+      // 미등록 한국 종목(한국주식 폴백)
+      ['999991.KS', '999992.KS'].map(s => mk(s, 1000)),
       // 미분류 티커(기타)
       [mk('ZZZZ', 1000), mk('YYYY', 1000)],
       // 균형 잡힌 다섹터(액션 null 가능)
