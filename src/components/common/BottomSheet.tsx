@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -8,12 +9,22 @@ interface Props {
   children: ReactNode;
   maxHeight?: string;
   paddingBottom?: string;
+  /** lg+(데스크톱)에서 풀폭 바텀시트 대신 중앙 모달로 표현(토스/카카오 '전체' 데스크톱 패턴). */
+  desktopVariant?: boolean;
 }
 
-export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom }: Props) {
+export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom, desktopVariant = false }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  // Esc로 닫기(데스크톱 모달 UX, 모바일에서도 무해)
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen]);
 
   // iOS-safe body scroll lock: position fixed preserves background scroll position
   useEffect(() => {
@@ -87,10 +98,40 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
         onClick={onClose}
       />
 
+      {/* 데스크톱 모달 변형 — desktopVariant일 때 lg+에서 중앙 모달로 전환 */}
+      {desktopVariant && (
+        <style>{`
+          @keyframes bottomsheetFadeScale {
+            from { opacity: 0; transform: translateX(-50%) scale(0.97); }
+            to   { opacity: 1; transform: translateX(-50%) scale(1); }
+          }
+          @media (min-width: 1024px) {
+            .bottomsheet-desktop {
+              left: 50% !important;
+              right: auto !important;
+              bottom: auto !important;
+              top: 64px !important;
+              width: 440px !important;
+              max-width: calc(100vw - 32px) !important;
+              max-height: 78vh !important;
+              transform: translateX(-50%);
+              border-radius: 20px !important;
+              box-shadow: 0 12px 40px rgba(0,0,0,0.18) !important;
+              animation: bottomsheetFadeScale 0.2s ease-out !important;
+            }
+            /* 드래그 그립은 데스크톱에선 무의미 → 숨기되 핸들의 상단 여백은 유지(헤더가 천장에 붙지 않게) */
+            .bottomsheet-desktop .bottomsheet-grip { display: none !important; }
+            .bottomsheet-desktop .bottomsheet-handle { padding-top: 16px !important; padding-bottom: 4px !important; cursor: default !important; }
+            /* 데스크톱 모달엔 닫기(X) — Esc·배경 외 명시적 닫기 어포던스 */
+            .bottomsheet-desktop .bottomsheet-close { display: flex !important; }
+          }
+        `}</style>
+      )}
+
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className="mobile-sidebar-sheet"
+        className={`mobile-sidebar-sheet${desktopVariant ? ' bottomsheet-desktop' : ''}`}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -107,14 +148,30 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
           paddingBottom: paddingBottom ?? `calc(20px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
-        {/* Drag handle */}
-        <div style={{
-          position: 'sticky', top: 0, zIndex: 1,
+        {/* Drag handle (모바일) / 상단 여백+닫기 바 (데스크톱) */}
+        <div className="bottomsheet-handle" style={{
+          position: 'sticky', top: 0, zIndex: 2,
           background: 'var(--surface, white)',
           paddingTop: 12, paddingBottom: 8,
           cursor: 'grab',
         }}>
-          <div style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto' }} />
+          <div className="bottomsheet-grip" style={{ width: 40, height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, margin: '0 auto' }} />
+          {desktopVariant && (
+            <button
+              className="bottomsheet-close"
+              onClick={onClose}
+              aria-label="닫기"
+              style={{
+                display: 'none', position: 'absolute', top: 10, right: 12,
+                width: 32, height: 32, borderRadius: 8,
+                alignItems: 'center', justifyContent: 'center',
+                background: 'var(--bg-subtle, #F2F4F6)', border: 'none', cursor: 'pointer',
+                color: 'var(--text-secondary, #8B95A1)',
+              }}
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {children}

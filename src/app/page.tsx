@@ -51,6 +51,13 @@ export default function Home() {
     return () => window.removeEventListener('open-mobile-alerts', handler);
   }, []);
 
+  // 전체 메뉴 시트 — PC 헤더 '전체' 버튼에서 진입(모바일은 하단 네비 '더보기' onMoreClick)
+  useEffect(() => {
+    const handler = () => setShowMobileSidebar(true);
+    window.addEventListener('open-feature-directory', handler);
+    return () => window.removeEventListener('open-feature-directory', handler);
+  }, []);
+
   // 비로그인 종목 추가 시도 → 로그인 모달
   useEffect(() => {
     const handler = () => setShowLogin(true);

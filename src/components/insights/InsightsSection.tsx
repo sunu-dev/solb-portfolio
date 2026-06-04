@@ -9,6 +9,14 @@ import { inferInvestorBehavior } from '@/utils/investorBehavior';
 import EmptyState from '@/components/common/EmptyState';
 import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
+// IA 재정비 — 포트폴리오 탭에서 이관: 시장 발견(MarketMovers) + 회고·성향 6종
+import MarketMovers from '@/components/portfolio/MarketMovers';
+import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
+import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
+import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
+import StockPulse from '@/components/portfolio/StockPulse';
+import InvestmentJournal from '@/components/portfolio/InvestmentJournal';
+import ShareCard from '@/components/portfolio/ShareCard';
 
 /**
  * AI 인사이트 탭 — IA 재정비 (전문가 회의 결과 적용)
@@ -22,9 +30,6 @@ import { INVESTOR_TYPES } from '@/config/investorTypes';
  *   - ThrowbackCard (과거 비교 — 분석 카테고리)
  *   - TradePatternMirror (메모 통계 — 분석 카테고리)
  *   - PortfolioDNA (캐릭터 분류 — Health와 함께)
- *
- * 종목 탭 시즌 카드로 이동:
- *   - MonthlyReplay (월말~월초만 강조, 시간 적응형)
  */
 
 interface SectionRef {
@@ -51,11 +56,17 @@ export default function InsightsSection() {
   const chokRef = useRef<HTMLDivElement>(null);
   const storyRef = useRef<HTMLDivElement>(null);
   const cohortRef = useRef<HTMLDivElement>(null);
+  const marketRef = useRef<HTMLDivElement>(null);
+  const retroRef = useRef<HTMLDivElement>(null);
 
+  // mini-nav는 investingCount>0일 때만 노출 → '회고'는 그 조건에서 항상 동행.
+  // '시장 발견'은 이관된 핵심 탐색 콘텐츠라 nav에 상시 포함.
   const sections: SectionRef[] = [
     { id: 'chok',   label: '촉',       emoji: '🎯', element: chokRef },
     { id: 'story',  label: '이야기',   emoji: '💬', element: storyRef },
     { id: 'cohort', label: '숨은 종목', emoji: '🌐', element: cohortRef },
+    { id: 'market', label: '시장 발견', emoji: '🔥', element: marketRef },
+    { id: 'retro',  label: '회고',     emoji: '🪞', element: retroRef },
   ];
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -209,20 +220,26 @@ export default function InsightsSection() {
         </div>
       )}
 
-      {/* 종목 없을 때 */}
+      {/* 종목 없을 때 — 추가 유도 + '시장 발견'(탐색)은 보유 무관하게 노출.
+          탐색은 신규 사용자가 첫 관심 종목을 심는 진입점이라 빈 상태에서도 제공한다. */}
       {!hasAnyStock ? (
-        <EmptyState
-          icon="🤖"
-          title="아직 분석할 종목이 없어요"
-          description="종목을 추가하면 주비 AI가 맞춤 인사이트를 만들어드려요."
-          primaryAction={{
-            label: '종목 추가하기',
-            onClick: () => {
-              const btn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
-              if (btn) btn.click();
-            },
-          }}
-        />
+        <>
+          <EmptyState
+            icon="🤖"
+            title="아직 분석할 종목이 없어요"
+            description="종목을 추가하면 주비 AI가 맞춤 인사이트를 만들어드려요."
+            primaryAction={{
+              label: '종목 추가하기',
+              onClick: () => {
+                const btn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
+                if (btn) btn.click();
+              },
+            }}
+          />
+          <div className="insight-stagger" style={{ animationDelay: '0.1s', marginTop: 20 }}>
+            <MarketMovers />
+          </div>
+        </>
       ) : (
         <>
           {/* Mini-nav — 섹션 빠른 이동 */}
@@ -294,6 +311,23 @@ export default function InsightsSection() {
           {hasAnyStock && (
             <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.2s' }}>
               <CohortReference onStartQuiz={() => setShowQuiz(true)} />
+            </div>
+          )}
+
+          {/* IA P1-b — 시장 발견(포트폴리오 탭에서 이관): '관리' 화면과 '탐색'을 분리 */}
+          <div ref={marketRef} className="insight-stagger" style={{ animationDelay: '0.3s' }}>
+            <MarketMovers />
+          </div>
+
+          {/* IA P2 — 회고·성향(분석 서브탭에서 이관): 보유 있을 때만 */}
+          {investingCount > 0 && (
+            <div ref={retroRef} className="insight-stagger" style={{ animationDelay: '0.35s' }}>
+              <ThrowbackCard />
+              <TradePatternMirror />
+              <PortfolioDNA />
+              <StockPulse />
+              <InvestmentJournal />
+              <ShareCard />
             </div>
           )}
         </>

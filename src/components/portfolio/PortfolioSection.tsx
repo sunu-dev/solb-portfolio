@@ -8,9 +8,7 @@ import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from 
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
-import PortfolioHeatmap from './PortfolioHeatmap';
 import PortfolioTreemap from './PortfolioTreemap';
-import PortfolioCompactBar from './PortfolioCompactBar';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
@@ -19,21 +17,14 @@ import MorningBriefing from './MorningBriefing';
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
-// AI 촉 → AI 인사이트 탭으로 이동
-import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
-import InvestmentJournal from './InvestmentJournal';
-import StockPulse from './StockPulse';
 import PortfolioValueChart from './PortfolioValueChart';
-import PortfolioDNA from './PortfolioDNA';
-import ThrowbackCard from './ThrowbackCard';
-import TradePatternMirror from './TradePatternMirror';
-import MonthlyReplay from './MonthlyReplay';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
-import MarketMovers from './MarketMovers';
+// 시장 발견(MarketMovers)·회고 6종(ShareCard·InvestmentJournal·StockPulse·PortfolioDNA·
+// ThrowbackCard·TradePatternMirror)은 AI 인사이트 탭으로 이관(IA P1-b/P2). ChapterShelf만 잔류.
 import { autoArchiveLastMonth } from '@/utils/chapterArchive';
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
@@ -394,23 +385,14 @@ export default function PortfolioSection() {
     <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
 
-      {/* Phase 5: 챕터 키워드 입력 — 매월 1~3일 첫 진입 시 1회 노출 */}
-      <ChapterKeywordPrompt />
-
-      {/* 오늘 아침 브리핑 — 하루 첫 방문 시 자동 펼침, "확인했어요"로 그날 닫기 */}
-      <MorningBriefing />
-
+      {/* IA P0 — '관리·확인'을 먼저: 자산 요약 + 보유 테이블을 상단으로. 시점성 리추얼
+          (챕터 키워드·아침 브리핑)은 화면 하단으로 강등(아래로 이동) — 매일/매월 1회 리추얼이
+          프라임 공간을 점유하지 않게. 16인 IA 패널 권고('황금 땅 포기'). */}
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
 
-      {/* 증권사별 보유 현황 — Phase B-1/B-2, 클릭 시 필터 활성 */}
-      <BrokerSummaryCard
-        active={brokerFilter as never}
-        onSelect={(b) => setBrokerFilter(b as string | null)}
-      />
-
-      {/* 다중 broker 분산 보유 종목 통합 뷰 — Phase M-2 (multi-broker 종목 1개 이상 시만 노출) */}
-      <MergedHoldingsCard />
+      {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
+          Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (
@@ -582,6 +564,34 @@ export default function PortfolioSection() {
           </div>
         </div>
 
+        {/* IA P0-2 보강 — 증권사 필터 활성 시 리스트 '상단'에 인-뷰 칩.
+            필터 컨트롤(BrokerSummaryCard)이 리스트 아래로 강등돼 클릭 효과를 화면에서 놓칠 수 있어
+            결과 위치에서 필터 상태를 인지·해제할 수 있게 보강. */}
+        {brokerFilter !== null && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+              marginBottom: 12, padding: '8px 12px', borderRadius: 10,
+              background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary)',
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span aria-hidden>🏦</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 종목만 보는 중
+              </span>
+            </span>
+            <button
+              onClick={() => setBrokerFilter(null)}
+              className="cursor-pointer shrink-0"
+              aria-label="증권사 필터 해제"
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'var(--surface, #fff)', border: '1px solid var(--brand-primary)', borderRadius: 8, padding: '4px 10px', minHeight: 32 }}
+            >
+              전체 보기
+            </button>
+          </div>
+        )}
+
         {/* 기간 탭 + 지연 시세 — 종목 있을 때만 */}
         {displayList.length > 0 && (
           <div className="flex items-center justify-between" style={{ marginBottom: 12, gap: 8 }}>
@@ -623,6 +633,25 @@ export default function PortfolioSection() {
 
         {/* Stock table */}
         {displayList.length === 0 ? (
+          brokerFilter !== null ? (
+            /* 필터 결과 0 — '진짜 보유 0'과 구분(QUICK_ADD 유도 대신 필터 해제 안내) */
+            <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+                이 증권사 종목이 없어요
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 20 }}>
+                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 보유로 등록된 종목이 없어요.<br/>필터를 해제하면 전체 보유를 볼 수 있어요.
+              </div>
+              <button
+                onClick={() => setBrokerFilter(null)}
+                className="cursor-pointer"
+                style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--text-primary, #191F28)', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', minHeight: 44 }}
+              >
+                전체 보기
+              </button>
+            </div>
+          ) : (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>종목을 추가해볼까요?</div>
@@ -704,6 +733,7 @@ export default function PortfolioSection() {
               샘플 포트폴리오로 체험하기
             </button>
           </div>
+          )
         ) : (
           <div>
             {/* Sort selector — 모바일 필수, 데스크톱 보조 */}
@@ -1056,6 +1086,16 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰: 보유 리스트 '아래'로 이동.
+            상단에서 강등해 보유 테이블을 프라임 공간으로 승격(16인 IA 패널 권고). */}
+        <div style={{ marginTop: 24 }}>
+          <BrokerSummaryCard
+            active={brokerFilter as never}
+            onSelect={(b) => setBrokerFilter(b as string | null)}
+          />
+          <MergedHoldingsCard />
+        </div>
+
         {/* 월간 챕터 척추 카드 — 30일 시즌으로 작동하는 투자 일지 (Phase 1+2)
             매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
             클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
@@ -1094,8 +1134,7 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 오늘 시장이 주목한 종목 — 158 universe (chok 58 + 한국 100) */}
-        <MarketMovers />
+        {/* MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관 — '관리'와 '탐색' 분리(IA P1-b) */}
 
         {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
         {displayList.length > 0 && (
@@ -1195,17 +1234,11 @@ export default function PortfolioSection() {
                   <PortfolioHealth stocks={investingData} />
                 </div>
                 <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
-                {/* IA 재정비 — AI 인사이트 탭에서 이동된 회고/통계 컴포넌트 */}
-                <ThrowbackCard />
-                <TradePatternMirror />
-                <PortfolioDNA />
-                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4) */}
+                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4). 나머지 회고·성향(Throwback·TradePatternMirror·
+                    PortfolioDNA·StockPulse·InvestmentJournal·ShareCard)은 AI 인사이트 탭으로 이관(IA P2). */}
                 <div data-slot="chapter-shelf" style={{ marginTop: 24 }}>
                   <ChapterShelf onSelect={() => setWrappedOpen(true)} />
                 </div>
-                <StockPulse />
-                <InvestmentJournal />
-                <ShareCard />
               </>
             );
           })() : (
@@ -1221,6 +1254,10 @@ export default function PortfolioSection() {
           )}
         </div>
       )}
+
+      {/* 시점성 리추얼 — IA P0로 상단에서 강등(자산·보유가 우선). 각 컴포넌트가 노출 조건을 자체 판단 */}
+      <ChapterKeywordPrompt />
+      <MorningBriefing />
 
       {/* Undo 삭제 토스트 */}
       {undoData && (
