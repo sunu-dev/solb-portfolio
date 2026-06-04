@@ -90,8 +90,8 @@ export default function ConversationalTimeline() {
     const sigmaPhrase = (z: number | null): string => {
       if (z === null) return '';
       const abs = Math.abs(z);
-      if (abs >= 3) return ' (극단치 — 평소의 3σ 이상)';
-      if (abs >= 2) return ' (평소 대비 이례적)';
+      if (abs >= 3) return ' (평소 드문 큰 움직임)';
+      if (abs >= 2) return ' (평소보다 이례적)';
       if (abs >= 1.5) return ' (평소보다 큰 움직임)';
       return '';
     };

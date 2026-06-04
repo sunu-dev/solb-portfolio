@@ -296,13 +296,12 @@ export default function PortfolioSection() {
   if (headlineCandidates.length > 0) {
     const top = headlineCandidates[0];
     const kr = STOCK_KR[top.symbol] || top.symbol;
-    // z 표기는 통계 용어라 본문에서 제거 — 자연어 "평소의 N배"로 의역.
-    // 정확한 σ 값은 컨테이너 title 속성에 보존(접근성/툴팁 진입점).
+    // z/σ 통계 용어는 사용자 노출(본문·툴팁) 전부 제거 — 자연어 "평소의 N배"로 의역.
     const reasonText = top.z !== null
       ? `평소의 약 ${Math.abs(top.z).toFixed(1)}배 움직임`
       : '평소보다 큰 움직임';
     const tip = top.z !== null
-      ? `통계상 ${Math.abs(top.z).toFixed(1)}σ — 종목별 변동성으로 표준화한 점수`
+      ? `종목별 평소 변동성 대비 약 ${Math.abs(top.z).toFixed(1)}배 큰 움직임이에요`
       : undefined;
     todayHeadline = top.dp > 0
       ? { emoji: '🔥', text: `${kr} +${top.dp.toFixed(2)}% — ${reasonText}`, tone: 'gain', tip }

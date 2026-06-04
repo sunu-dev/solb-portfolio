@@ -213,8 +213,8 @@ export function checkAllAlerts(
       const alertType: Alert['type'] = isUp ? 'opportunity' : 'risk';
       alerts.push(makeAlert(
         stock.symbol, 'zscore-extreme', alertType, severity,
-        `${name} ${emoji} 평소 ${absZ.toFixed(1)}σ ${direction}`,
-        `오늘 ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}% — 30일 변동성(σ ${baseline.stdReturn.toFixed(1)}%) 대비 ${absZ.toFixed(1)}배. 평소와 다른 움직임이에요.`
+        `${name} ${emoji} 평소보다 ${absZ.toFixed(1)}배 큰 ${direction}`,
+        `오늘 ${q.dp >= 0 ? '+' : ''}${q.dp.toFixed(2)}% — 최근 한 달 평소 움직임보다 약 ${absZ.toFixed(1)}배 큰 폭이에요. 평소와 다른 흐름이라 짚어드려요.`
       ));
     }
   }

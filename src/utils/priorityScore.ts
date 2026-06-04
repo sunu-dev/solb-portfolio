@@ -154,7 +154,7 @@ export function buildHoldingsPromptContext(
     const parts: string[] = [];
     parts.push(`${i + 1}. ${h.symbol} — 비중 ${(h.weight * 100).toFixed(0)}%, 누적 ${h.pnlPct >= 0 ? '+' : ''}${h.pnlPct.toFixed(1)}%, 오늘 ${h.todayDp >= 0 ? '+' : ''}${h.todayDp.toFixed(2)}%`);
     if (h.zScore !== null && Math.abs(h.zScore) >= 1.5) {
-      parts.push(`   · 평소 대비 ${Math.abs(h.zScore).toFixed(1)}σ ${h.zScore > 0 ? '급등' : '급락'} (이례적)`);
+      parts.push(`   · 평소보다 ${Math.abs(h.zScore).toFixed(1)}배 큰 ${h.zScore > 0 ? '급등' : '급락'} (이례적)`);
     }
     if (h.goalProximity >= 0.7) {
       parts.push(`   · 목표 근접도 ${(h.goalProximity * 100).toFixed(0)}% — 수익 실현 검토 신호`);

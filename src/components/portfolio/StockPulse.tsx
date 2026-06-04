@@ -255,7 +255,7 @@ function PulseRow({
           {volLabel.text}
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', fontVariantNumeric: 'tabular-nums' }}>
-          σ {volatilityPct.toFixed(1)}%
+          변동성 {volatilityPct.toFixed(1)}%
         </div>
       </div>
 
