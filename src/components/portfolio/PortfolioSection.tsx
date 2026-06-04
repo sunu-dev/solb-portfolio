@@ -18,20 +18,14 @@ import MorningBriefing from './MorningBriefing';
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
-// AI 촉 → AI 인사이트 탭으로 이동
-import ShareCard from './ShareCard';
 import OcrImportModal from './OcrImportModal';
-import InvestmentJournal from './InvestmentJournal';
-import StockPulse from './StockPulse';
 import PortfolioValueChart from './PortfolioValueChart';
-import PortfolioDNA from './PortfolioDNA';
-import ThrowbackCard from './ThrowbackCard';
-import TradePatternMirror from './TradePatternMirror';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
-import MarketMovers from './MarketMovers';
+// 시장 발견(MarketMovers)·회고 6종(ShareCard·InvestmentJournal·StockPulse·PortfolioDNA·
+// ThrowbackCard·TradePatternMirror)은 AI 인사이트 탭으로 이관(IA P1-b/P2). ChapterShelf만 잔류.
 import { autoArchiveLastMonth } from '@/utils/chapterArchive';
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
@@ -1089,8 +1083,7 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 오늘 시장이 주목한 종목 — 158 universe (chok 58 + 한국 100) */}
-        <MarketMovers />
+        {/* MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관 — '관리'와 '탐색' 분리(IA P1-b) */}
 
         {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
         {displayList.length > 0 && (
@@ -1190,17 +1183,11 @@ export default function PortfolioSection() {
                   <PortfolioHealth stocks={investingData} />
                 </div>
                 <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
-                {/* IA 재정비 — AI 인사이트 탭에서 이동된 회고/통계 컴포넌트 */}
-                <ThrowbackCard />
-                <TradePatternMirror />
-                <PortfolioDNA />
-                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4) */}
+                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4). 나머지 회고·성향(Throwback·TradePatternMirror·
+                    PortfolioDNA·StockPulse·InvestmentJournal·ShareCard)은 AI 인사이트 탭으로 이관(IA P2). */}
                 <div data-slot="chapter-shelf" style={{ marginTop: 24 }}>
                   <ChapterShelf onSelect={() => setWrappedOpen(true)} />
                 </div>
-                <StockPulse />
-                <InvestmentJournal />
-                <ShareCard />
               </>
             );
           })() : (

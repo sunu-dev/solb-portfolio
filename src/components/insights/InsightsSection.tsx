@@ -9,6 +9,14 @@ import { inferInvestorBehavior } from '@/utils/investorBehavior';
 import EmptyState from '@/components/common/EmptyState';
 import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
+// IA 재정비 — 포트폴리오 탭에서 이관: 시장 발견(MarketMovers) + 회고·성향 6종
+import MarketMovers from '@/components/portfolio/MarketMovers';
+import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
+import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
+import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
+import StockPulse from '@/components/portfolio/StockPulse';
+import InvestmentJournal from '@/components/portfolio/InvestmentJournal';
+import ShareCard from '@/components/portfolio/ShareCard';
 
 /**
  * AI 인사이트 탭 — IA 재정비 (전문가 회의 결과 적용)
@@ -291,6 +299,23 @@ export default function InsightsSection() {
           {hasAnyStock && (
             <div ref={cohortRef} className="insight-stagger" style={{ animationDelay: '0.2s' }}>
               <CohortReference onStartQuiz={() => setShowQuiz(true)} />
+            </div>
+          )}
+
+          {/* IA P1-b — 시장 발견(포트폴리오 탭에서 이관): '관리' 화면과 '탐색'을 분리 */}
+          <div className="insight-stagger" style={{ animationDelay: '0.3s' }}>
+            <MarketMovers />
+          </div>
+
+          {/* IA P2 — 회고·성향(분석 서브탭에서 이관): 보유 있을 때만 */}
+          {investingCount > 0 && (
+            <div className="insight-stagger" style={{ animationDelay: '0.35s' }}>
+              <ThrowbackCard />
+              <TradePatternMirror />
+              <PortfolioDNA />
+              <StockPulse />
+              <InvestmentJournal />
+              <ShareCard />
             </div>
           )}
         </>
