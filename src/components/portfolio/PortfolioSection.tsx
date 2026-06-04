@@ -18,6 +18,7 @@ import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 import OcrImportModal from './OcrImportModal';
+import TaxEstimateModal from './TaxEstimateModal';
 import PortfolioValueChart from './PortfolioValueChart';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
@@ -153,6 +154,7 @@ export default function PortfolioSection() {
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
+  const [showTax, setShowTax] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
   const [brokerFilter, setBrokerFilter] = useState<string | null>(null);  // Phase B-2 — broker 필터
 
@@ -384,12 +386,32 @@ export default function PortfolioSection() {
   return (
     <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+      {showTax && <TaxEstimateModal onClose={() => setShowTax(false)} />}
 
       {/* IA P0 — '관리·확인'을 먼저: 자산 요약 + 보유 테이블을 상단으로. 시점성 리추얼
           (챕터 키워드·아침 브리핑)은 화면 하단으로 강등(아래로 이동) — 매일/매월 1회 리추얼이
           프라임 공간을 점유하지 않게. 16인 IA 패널 권고('황금 땅 포기'). */}
       {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
       <Dashboard />
+
+      {/* 해외주식 양도세 계산기 진입 — v1 합산기(docs/TAX_PIVOT_MVP_SPEC.md). 세무 피봇 카나리
+          검증 중이라 Dashboard 직후 가시성 우선 배치. 검증 후 위치/허브 이동 재결정. */}
+      <button
+        onClick={() => setShowTax(true)}
+        data-slot="tax-estimate-trigger"
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+          padding: '14px 16px', marginBottom: 16, cursor: 'pointer',
+          background: 'var(--surface, #fff)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16,
+        }}
+      >
+        <span style={{ fontSize: 22, flex: '0 0 auto' }} aria-hidden>🧾</span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>올해 해외주식 세금 한 번에</span>
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2, lineHeight: 1.4 }}>여러 증권사 합쳐 예상 양도세·250만 공제 잔여 보기</span>
+        </span>
+        <span style={{ flex: '0 0 auto', fontSize: 13, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)' }}>미리보기 →</span>
+      </button>
 
       {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
           Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
