@@ -3,9 +3,13 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-03)
+## 🎯 다음 세션 자동 브리핑 (2026-06-04)
 
-> **최신 sessionary**: `2026-06-03-survival-pivot-and-tax-design.md` (생존 패널 pivot-required + 세무 피봇 설계·법률 질문지)
+> **최신 sessionary**: `2026-06-04-ia-restructure.md` (정보구조 IA 재정비 + 적대적 리뷰 루프)
+> **🟢 IA 재정비 완료(브랜치 `ia-p0`, 프리뷰·미머지)**: "토스/카카오처럼 메뉴 보여줄 필요성" → 16~25인 IA 패널 → 5청크 구현(dead code 5삭제·시장발견+회고 6종을 AI인사이트로 이관·보유테이블 승격·더보기→검색내장 '전체' 허브+PC진입점). 적대적 리뷰 2회로 확정 15건 중 14건 수정(재검증 전부 OK·tsc/lint/build 0). 프리뷰: `solb-portfolio-git-ia-p0-sunudevelop-1252s-projects.vercel.app`. **다음=프리뷰 PC·모바일·태블릿 확인 후 main 머지 결정**(좋으면 `git merge ia-p0`).
+> **2026-06-04 main 직접 배포(사용자 픽스)**: σ용어 평이화(`afb29ee`)·AI촉 로그인버그(`9d15c55`)·온보딩 재노출+솔(松)카피(`fdb55c1`)·기간행 정렬(`b159428`)·레거시 sweep(`44faedc`)·legal-review폴더+SERVICE_OVERVIEW(`3649c43`·`de19ab6`).
+> ---
+> **이전 전략(유효)**: `2026-06-03-survival-pivot-and-tax-design.md` (생존 패널 pivot-required + 세무 피봇 설계·법률 질문지)
 > **🔴 전략 전환**: 12인 생존 패널 = **pivot-required**(만장일치, 확신 80%, Q1 11 no·Q2 0 survive). 방향0 관리툴=vitamin·수익 천장 → **세무 비서로 피봇** 권고. 세무가 §6 안 어기고 '실행 가능한 결론' 주는 유일 painkiller. 토스·ChatGPT 구조적 불가. 메모리 [[project_survival_pivot]] [[project_tax_pivot]].
 > **🟢 세무 v1 슬라이스 빌드됨**: "세무사 감수 꼭 필요?" 검토 결과 = **조건부**. **v1 합산기(증권사 제공 세액 합산·정리)는 감수 불요·변호사 약관만**, v2 자체계산만 감수+E&O 필수. 국세청 공식답으로 needs-confirm 2개 해소(환율=결제일·lot=증권사 이동평균). v1 슬라이스(taxRates SSOT·gateTaxAdvice·computeTaxEstimate+vitest9·taxStore·TaxEstimateModal+카드) **브랜치 `tax-v1-slice` 푸시·main 미머지(비공개)**. 골격은 main(`d052787`).
 > **🔴 세무 공개·과금 게이트**: 변호사 약관·카피(§20③ "세무 비서" 금지)는 **공개·과금 직전** 게이트(카나리 검증엔 불요). 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md`. transactions/fx_rates 마이그는 **Supabase 수동 적용 대기**(v2용).
@@ -14,6 +18,12 @@
 > **정체성**: 주비 = 매매·추천 아닌 **본인 주식 관리·정보 도구, AI 방향 0** ([[project_product_identity]]). 단 생존 패널이 "관리툴만으론 수익 불가" 지적 → 세무로 과금축 이동.
 
 ### 🔴 즉시 우선순위 (BLOCKER)
+
+0. **IA 재정비 `ia-p0` 프리뷰 검토 → main 머지 결정** (2026-06-04, 사용자 확인 대기)
+   - 프리뷰: `solb-portfolio-git-ia-p0-sunudevelop-1252s-projects.vercel.app`
+   - 확인: ① 포트폴리오(Dashboard→보유테이블 프라임, 증권사카드 아래) ② AI인사이트(시장발견+회고, 빈상태에서도 시장발견) ③ 더보기/전체 허브(모바일 바텀시트·PC 헤더'전체'→중앙모달) ④ 증권사 필터 활성 시 상단 칩
+   - 좋으면 `git checkout main && git merge ia-p0 && git push` (5청크 한 번에 production, dead code 삭제로 번들↓)
+   - 세셔너리 `2026-06-04-ia-restructure.md` 참조
 
 1. **세무 v1 슬라이스 검증 → 공개 결정** (브랜치 `tax-v1-slice` 푸시됨, 프리뷰)
    - **다음**: 카나리/지인 데모로 WTP 검증(프리뷰는 공개 아님 — 변호사 불요). 반응 좋으면 → main 머지(공개) + 결제 레일 + **변호사 약관 카피**(§20③ "세무 비서" 금지, 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md` B섹션).
