@@ -32,7 +32,7 @@ import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 
 export default function Home() {
-  const { currentSection, loadPortfolio, analysisSymbol, darkMode } = usePortfolioStore();
+  const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
@@ -159,15 +159,29 @@ export default function Home() {
     }
   }, [user, authLoading]);
 
-  // Show onboarding on first login
+  // Show onboarding only for genuinely NEW users.
+  // ⚠️ 기존: localStorage('solb_onboarded')만 체크 → 기기/브라우저 바뀌거나 캐시 지우면 기존 유저도
+  //    온보딩 재노출(localStorage-only 안티패턴). 수정: 서버 포트폴리오 status로 '기존/신규' 판정.
+  //  - dbPortfolioStatus 'unknown' = 서버 로드 전 → 판정 보류(깜빡 노출 방지)
+  //  - 'ok' = DB에 포트폴리오 있음(기존 유저) → 제외 + 플래그 박제
+  //  - 'empty' = 첫 로그인인데 로컬 보유도 없을 때만 온보딩(로그인 전 사용했으면 제외)
   useEffect(() => {
-    if (user && !authLoading) {
-      const onboarded = localStorage.getItem('solb_onboarded');
-      if (!onboarded) {
-        setShowOnboarding(true);
-      }
+    if (!user || authLoading) return;
+    if (dbPortfolioStatus === 'unknown') return;
+    if (localStorage.getItem('solb_onboarded')) return;
+    if (dbPortfolioStatus === 'ok') {
+      localStorage.setItem('solb_onboarded', 'true');
+      return;
     }
-  }, [user, authLoading]);
+    // dbPortfolioStatus === 'empty'
+    const s = usePortfolioStore.getState().stocks;
+    const hasHoldings = (s.investing?.length || 0) + (s.watching?.length || 0) + (s.sold?.length || 0) > 0;
+    if (hasHoldings) {
+      localStorage.setItem('solb_onboarded', 'true');
+      return;
+    }
+    setShowOnboarding(true);
+  }, [user, authLoading, dbPortfolioStatus]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem('solb_onboarded', 'true');

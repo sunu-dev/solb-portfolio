@@ -134,6 +134,9 @@ interface PortfolioState {
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
   setSnapshotsFromDB: (snapshots: DailySnapshot[]) => void;
+  /** 서버 포트폴리오 로드 상태 — 'ok'=DB에 데이터(기존 유저)·'empty'=첫 로그인. 온보딩 게이트용 (transient, partialize 제외) */
+  dbPortfolioStatus: 'unknown' | 'ok' | 'empty';
+  setDbPortfolioStatus: (s: 'unknown' | 'ok' | 'empty') => void;
   resetPortfolio: () => void;
 
   // Helpers
@@ -438,6 +441,8 @@ export const usePortfolioStore = create<PortfolioState>()(
       // --- Sync ---
       setStocksFromDB: (stocks) => set({ stocks }),
       setSnapshotsFromDB: (snapshots) => set({ dailySnapshots: snapshots }),
+      dbPortfolioStatus: 'unknown',
+      setDbPortfolioStatus: (s) => set({ dbPortfolioStatus: s }),
 
       resetPortfolio: () => set({
         stocks: { investing: [], watching: [], sold: [] },

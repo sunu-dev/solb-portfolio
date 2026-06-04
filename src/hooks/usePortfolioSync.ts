@@ -6,7 +6,7 @@ import { loadPortfolio, savePortfolioToDB } from '@/lib/portfolioSync';
 import type { User } from '@supabase/supabase-js';
 
 export function usePortfolioSync(user: User | null) {
-  const { stocks, dailySnapshots, setStocksFromDB, setSnapshotsFromDB } = usePortfolioStore();
+  const { stocks, dailySnapshots, setStocksFromDB, setSnapshotsFromDB, setDbPortfolioStatus } = usePortfolioStore();
   const lastSyncRef = useRef<string>('');
   const initialLoadDone = useRef(false);
 
@@ -20,7 +20,8 @@ export function usePortfolioSync(user: User | null) {
     loadPortfolio(user.id).then(result => {
       if (cancelled) return;
       if (result.status === 'ok') {
-        // DB에 데이터 있음 → DB를 소스로 사용 (snapshots 포함)
+        // DB에 데이터 있음 → DB를 소스로 사용 (snapshots 포함). 기존 유저 = 온보딩 제외.
+        setDbPortfolioStatus('ok');
         setStocksFromDB(result.stocks);
         if (result.dailySnapshots.length > 0) {
           setSnapshotsFromDB(result.dailySnapshots);
@@ -31,7 +32,8 @@ export function usePortfolioSync(user: User | null) {
         });
         initialLoadDone.current = true;
       } else if (result.status === 'empty') {
-        // 첫 로그인, DB row 없음 → 현재 localStorage 데이터를 DB에 저장
+        // 첫 로그인, DB row 없음 → 현재 localStorage 데이터를 DB에 저장. 신규 후보 = 온보딩 대상.
+        setDbPortfolioStatus('empty');
         savePortfolioToDB(user.id, stocks, dailySnapshots);
         lastSyncRef.current = JSON.stringify({ stocks, snaps: dailySnapshots });
         initialLoadDone.current = true;
@@ -111,6 +113,7 @@ export function usePortfolioSync(user: User | null) {
       initialLoadDone.current = false;
       lastSyncRef.current = '';
       syncUserIdRef.current = null;
+      setDbPortfolioStatus('unknown');
       // 디바운스 대기 중인 save도 취소 — 이전 user의 stale payload 차단
       if (pendingTimerRef.current) {
         clearTimeout(pendingTimerRef.current);
