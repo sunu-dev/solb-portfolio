@@ -374,8 +374,8 @@ export default function Dashboard() {
               )}
               {data.quotesLoaded && periodCompare && (
                 <div
-                  className="flex items-center mt-4"
-                  style={{ flexWrap: 'wrap', rowGap: 6, columnGap: 6 }}
+                  className="flex flex-col mt-4"
+                  style={{ rowGap: 6 }}
                   aria-label="기간별 수익 비교"
                 >
                   {([
@@ -383,43 +383,52 @@ export default function Dashboard() {
                     { key: 'week',  label: '이번주', data: periodCompare.week },
                     { key: 'month', label: '이번달', data: periodCompare.month },
                   ] as const).map(({ key, label, data: d }) => {
+                    const isPrimary = key === 'today';
+                    // 정렬 일관: 모든 행 같은 grid(라벨 left / 금액 right / % 우측 고정폭) + tabular-nums.
+                    // '오늘' 강조는 배경 칩 대신 좌측 accent 바 + 굵기 (정렬을 깨지 않음).
+                    const rowStyle: React.CSSProperties = {
+                      display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'baseline', columnGap: 10,
+                      fontSize: isPrimary ? 12 : 11,
+                      paddingLeft: 8,
+                    };
                     if (!d) {
                       return (
-                        <span key={key} style={{
-                          fontSize: 11, fontWeight: 500, padding: '4px 9px', borderRadius: 8,
-                          color: 'var(--text-tertiary, #B0B8C1)',
-                          background: 'var(--bg-subtle, #F2F4F6)',
-                          whiteSpace: 'nowrap', flexShrink: 0,
-                        }}>
-                          {label} —
-                        </span>
+                        <div key={key} style={{ ...rowStyle, borderLeft: '2px solid transparent' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-secondary, #4E5968)' }}>{label}</span>
+                          <span className="tabular-nums" style={{ textAlign: 'right', color: 'var(--text-tertiary, #B0B8C1)' }}>—</span>
+                          <span style={{ minWidth: 56 }} />
+                        </div>
                       );
                     }
                     const isUp = d.pct >= 0;
                     // week/month는 delta (USD) 계산값, today는 deltaKrw 포함
                     const dollarDelta = 'deltaKrw' in d ? d.delta : d.delta;
                     const krwDelta = 'deltaKrw' in d ? d.deltaKrw : d.delta * data.usdKrw;
-                    // 시각 위계: today만 강조 톤, week/month는 보조 톤(중립 배경 + 회색 라벨)으로 정보 과밀 완화
-                    const isPrimary = key === 'today';
                     const accentColor = isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
                     return (
-                      <span key={key} style={{
-                        fontSize: 11, fontWeight: isPrimary ? 700 : 600, padding: '4px 10px', borderRadius: 8,
-                        color: isPrimary ? accentColor : 'var(--text-secondary, #4E5968)',
-                        background: isPrimary
-                          ? (isUp ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))')
-                          : 'var(--bg-subtle, #F2F4F6)',
-                        whiteSpace: 'nowrap', flexShrink: 0,
-                      }}>
-                        <span style={{ fontWeight: 500, opacity: 0.8, marginRight: 4 }}>{label}</span>
-                        <span style={{ color: isPrimary ? accentColor : (isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)') }}>
-                          {isUp ? '▲' : '▼'}{' '}
+                      <div key={key} style={{ ...rowStyle, borderLeft: `2px solid ${isPrimary ? accentColor : 'transparent'}` }}>
+                        {/* 1열 — 라벨 (left) */}
+                        <span style={{
+                          fontWeight: isPrimary ? 700 : 600,
+                          color: isPrimary ? 'var(--text, #191F28)' : 'var(--text-secondary, #4E5968)',
+                          whiteSpace: 'nowrap',
+                        }}>{label}</span>
+                        {/* 2열 — 금액 (right, tabular-nums) */}
+                        <span className="tabular-nums" style={{
+                          textAlign: 'right', whiteSpace: 'nowrap',
+                          fontWeight: isPrimary ? 700 : 600, color: accentColor,
+                        }}>
+                          <span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>{isUp ? '▲' : '▼'}</span>
                           {currency === 'KRW'
                             ? formatKRW(Math.round(Math.abs(krwDelta)))
                             : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
                         </span>
-                        <span style={{ marginLeft: 4, opacity: 0.85 }}>({isUp ? '+' : ''}{d.pct.toFixed(2)}%)</span>
-                      </span>
+                        {/* 3열 — 퍼센트 (right, 고정폭) */}
+                        <span className="tabular-nums" style={{
+                          minWidth: 56, textAlign: 'right', whiteSpace: 'nowrap',
+                          color: accentColor, opacity: 0.85, fontWeight: isPrimary ? 700 : 600,
+                        }}>({isUp ? '+' : ''}{d.pct.toFixed(2)}%)</span>
+                      </div>
                     );
                   })}
                 </div>
