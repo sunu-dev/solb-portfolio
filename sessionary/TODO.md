@@ -3,9 +3,10 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-04)
+## 🎯 다음 세션 자동 브리핑 (2026-06-05)
 
-> **최신 sessionary**: `2026-06-04-tax-v1-canary-prep.md` (세무 v1 카나리 준비) · `2026-06-04-health-score-gap-feature.md` (건강 점수 섹터 갭+한국 섹터 매핑) · `2026-06-04-ia-restructure.md` (IA 재정비)
+> **최신 sessionary**: `2026-06-05-compliance-filing-research.md` (운영 규제 신고 맵 deep-research) · `2026-06-04-tax-v1-canary-prep.md` (세무 v1 카나리) · `2026-06-04-health-score-gap-feature.md` (건강 점수 섹터 갭) · `2026-06-04-ia-restructure.md` (IA)
+> **🟢 운영 신고 맵 확정(deep-research, 메모리 `project_compliance_filings`)**: "신고하고 서비스?" → 현 구조(방향0+조언 무료)면 **자본시장 신고 불필요**. 핵심선=**'투자조언에 직접 대가 받느냐'**(무료 동일조언=§101 면제, 금융위 해석). 유료화 시 통신판매업(조건부)·부가통신(자본금 1억 초과 시)만. 추천 유료화=§101 신고/§6 등록+형사. **미확정 3건(세무사법§2·전자금융PG·개인정보)→변호사 게이트 등재**(`PROFESSIONAL_REVIEW_REGISTER` T1+/F1/F2). ProPicks형 AI추천=방향0·세무피봇과 정반대라 안 감.
 > **🟡 세무 v1 카나리 준비 완료 — 파운더 액션 대기**: v1 합산기를 현행 main(IA·건강점수)에 **재통합**(브랜치 `tax-v1-canary`, 미머지·프리뷰 READY) + 준비도 리뷰 must-fix 7건(WTP 측정 장치·iOS 손실입력·다크모드·인앱스토리지·§20③ lint 게이트 확장) 반영. **다음=파운더가 프리뷰로 5인 카나리 → 결과 판정**(aha_2brokers 도달률+WTP 위젯). 프리뷰: `solb-portfolio-git-tax-v1-canary-sunudevelop-1252s-projects.vercel.app`.
 > **🟢 건강 점수 섹터 갭 진단 배포(`b997461`·`f2cd8db`, 2026-06-04)**: 파운더 "건강 점수에 종목 추천 기능" → 6인 패널 **NO-GO(추천=§6 위법+자기점수 모순+방향0)** → 대안 '섹터 갭 진단'(비어있는 산업 카테고리만 노출, 종목 지목 0) 구현+누출 불변식 테스트 + 한국 종목 섹터 매핑(KR_SECTOR_MAP 101종, DIVERSIFIABLE 10섹터). 적대적 리뷰 2회. **production 배포 완료**. ⚠️ 재사용 패턴: descriptive(거울) O / prescriptive(추천) X.
 > **🟢 IA 재정비 main 머지·production 배포 완료(`e919dcb`, 2026-06-04)**: "토스/카카오처럼 메뉴 보여줄 필요성" → 16~25인 IA 패널 → 5청크(dead code 5삭제·시장발견+회고 6종을 AI인사이트로 이관·보유테이블 승격·더보기→검색내장 '전체' 허브+PC진입점). 적대적 리뷰 2회(확정15/수정14) + 폴리시(관심종목 바로가기·데스크톱 모달 상단여백·닫기X). 사용자 프리뷰 확인 후 머지 GO. **ia-p0 브랜치는 머지 완료(삭제 가능)**. 후속 없음.
@@ -30,8 +31,11 @@
    - v2(자체계산: 환차·필요경비·lot 재계산) = 세무사 감수+E&O 게이트. transactions/fx_rates 마이그 Supabase 수동 적용 + 파운더 결정 4건은 v2 진입 시.
    - 원리: 전문가 감수=책임 이전, 공개·과금 직전 게이트 ([[feedback-professional-review-not-llm]]). 검증엔 측정 장치 내장 필수(없으면 시연).
    - [ ] (별건, 사전 존재) `formatKRW.test.ts` 4건 실패 — `₩1.0만` 축약 기대 vs `₩10,000` 반환. 테스트/구현 결정 필요.
-2. **레버리지 약관 v4 + §8 변호사 사후 자문** (배포됨 → 사후 검증)
-   - production 라이브 상태. 질문지 `docs/legal-review/LEGAL_CONSULTATION_LEVERAGE.md`(11건, Q11=적합성). 분쟁 소지 사후 점검.
+2. **변호사 1회 상담 묶음** (배포됨 → 사후 + 공개 직전 게이트 통합)
+   - **L1·L2** 레버리지 §6/§101 사후 점검 (production 라이브, `LEGAL_CONSULTATION_LEVERAGE.md` 11건)
+   - **T1+** 세무사법 §2 독점업무 경계 + §20③·약관규제법 §7 (세무 공개·과금 직전)
+   - **F1** 전자금융 PG 위탁 면제 (PRO 결제 출시 전) · **F2** 개인정보보호법 의무 (공개 운영 전)
+   - 레지스터: `docs/legal-review/PROFESSIONAL_REVIEW_REGISTER.md`. 세무 공개 결정 시 1회로 묶기 권장.
 3. **Phase A — joobi.kr 결제 + Vercel Add Domain + DNS + Resend**
    - 가비아 결제 진행 중 (메모리 [solb_status])
    - 결제 완료 후 자동 진행 흐름: sessionary/2026-05-20 + 5/18 박제
