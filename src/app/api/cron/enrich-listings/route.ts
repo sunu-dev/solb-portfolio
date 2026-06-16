@@ -31,6 +31,9 @@ const SLEEP_MS = 1000;
 // Universe 편입 3중 AND 조건 (docs/THRESHOLDS.md §8, ALGORITHM_REVIEW.md §4-#1)
 const UNIVERSE_MIN_MARKET_CAP = 5_000_000_000;  // $5B
 const UNIVERSE_MIN_LISTING_MONTHS = 12;          // 상장 12개월 이상
+// Finnhub이 marketCapitalization을 영영 안 주는 종목이 큐를 영구 점유(HOL)하지 못하도록 상한.
+// (2026-06-16_stock_listings_enrich_cursor.sql — last_enrich_at·enrich_attempts 선행 적용 필요)
+const MAX_ENRICH_ATTEMPTS = 6;
 
 function verifyCronAuth(req: NextRequest): boolean {
   const auth = req.headers.get('authorization');
@@ -83,11 +86,12 @@ export async function GET(req: NextRequest) {
   //    한국 거래소는 Finnhub 미지원이라 스킵
   const { data: pending, error: selErr } = await supabase
     .from('stock_listings')
-    .select('symbol, exchange')
+    .select('symbol, exchange, enrich_attempts')
     .is('market_cap', null)
     .in('status', ['watch', 'eligible'])
     .eq('exchange', 'US')   // KS/KQ 는 별도 우회 (수동 추가)
-    .order('first_seen', { ascending: true })
+    .lt('enrich_attempts', MAX_ENRICH_ATTEMPTS)  // 영구 stuck 종목 제외 (HOL 차단)
+    .order('last_enrich_at', { ascending: true, nullsFirst: true })  // 미시도 우선 → 오래된 시도 순
     .limit(BATCH_SIZE);
 
   if (selErr) {
@@ -112,7 +116,10 @@ export async function GET(req: NextRequest) {
         : null;
       const listedAt = profile.ipo || null;
 
-      const update: Record<string, unknown> = {};
+      const update: Record<string, unknown> = {
+        last_enrich_at: new Date().toISOString(),
+        enrich_attempts: (row.enrich_attempts ?? 0) + 1,
+      };
       if (marketCap !== null) update.market_cap = marketCap;
       if (listedAt) update.listed_at = listedAt;
 
@@ -161,7 +168,12 @@ export async function GET(req: NextRequest) {
         errors++;
       }
     } else {
-      // profile 비어있음 — 무한 재시도 그대로 (후속 검토)
+      // profile 비어있음 — 커서 전진 + 재시도 카운트 증가(영구 stuck HOL 차단).
+      // MAX_ENRICH_ATTEMPTS 초과 시 다음 select에서 제외돼 새 종목이 큐에 진입할 수 있다.
+      await supabase
+        .from('stock_listings')
+        .update({ last_enrich_at: new Date().toISOString(), enrich_attempts: (row.enrich_attempts ?? 0) + 1 })
+        .eq('symbol', row.symbol);
     }
     await new Promise(res => setTimeout(res, SLEEP_MS));
   }

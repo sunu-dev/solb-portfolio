@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { isBlockedLeverage, LEVERAGE_BLOCK_USER_MESSAGE } from '@/utils/leverageGuard';
+import { isBlockedLeverage, LEVERAGE_BLOCK_USER_MESSAGE, classifyAssetClass, isUniverseEligibleClass } from '@/utils/leverageGuard';
 
 /**
  * 한국 종목 (또는 임의 종목) 수동 추가 admin API
@@ -73,6 +73,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 자산 클래스 분류 — universe 적격성 검증 + asset_class 영속(런타임·cron 심층 방어 SSOT).
+  // isBlockedLeverage(단일종목)는 위에서 이미 차단됐고, 여기선 지수 레버리지·ETN·other 등
+  // 'universe 부적격 클래스'가 eligible/universe로 직접 진입하는 비대칭 갭을 막는다.
+  const assetClass = classifyAssetClass(normalized, guardText || body.description || undefined);
+
+  // 요청 status 정규화: eligible/universe 직접 지정은 universe-적격 자산 클래스일 때만 허용.
+  // 부적격인데 상위 status를 요청하면 'watch'로 강등(rejected보다 안전 — 운영자 수동 복구 가능).
+  const requestedStatus = body.status && ['watch', 'eligible', 'universe', 'rejected'].includes(body.status)
+    ? body.status
+    : 'eligible';
+  const finalStatus = (requestedStatus === 'eligible' || requestedStatus === 'universe') && !isUniverseEligibleClass(assetClass)
+    ? 'watch'
+    : requestedStatus;
+
   const row = {
     symbol: normalized,
     exchange: body.exchange,
@@ -80,7 +94,8 @@ export async function POST(req: NextRequest) {
     kr_name: body.kr_name?.trim() || null,
     listed_at: body.listed_at || null,
     market_cap: body.market_cap || null,
-    status: body.status && ['watch', 'eligible', 'universe', 'rejected'].includes(body.status) ? body.status : 'eligible',
+    status: finalStatus,
+    asset_class: assetClass,
     reviewed_at: new Date().toISOString(),
     reviewed_by: auth.userId,
   };
@@ -95,5 +110,11 @@ export async function POST(req: NextRequest) {
     console.error('[admin/listings/add] error:', error);
     return NextResponse.json({ error: 'db error: ' + error.message }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, listing: data });
+  return NextResponse.json({
+    ok: true,
+    listing: data,
+    ...(finalStatus !== requestedStatus
+      ? { notice: `'${assetClass}'는 universe 부적격 클래스라 status를 '${finalStatus}'로 강등했어요.` }
+      : {}),
+  });
 }

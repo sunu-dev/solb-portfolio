@@ -3,7 +3,14 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-05)
+## 🎯 다음 세션 자동 브리핑 (2026-06-16)
+
+> **최신 sessionary**: `2026-06-16-spacex-leverage-coverage.md` (SpaceX IPO+추종 LETF 티커 알고리즘 리뷰 → 레버리지 가드 미국 커버리지 보강)
+> **🟢 레버리지 가드 미국 LETF 커버리지 보강(브랜치 `fix/leverage-guard-us-letf-coverage`, 미커밋·미배포)**: 파운더 "6/12 SpaceX 상장+6/15 추종 레버리지 출시 → 티커 알고리즘 제대로 동작?" → 3렌즈 패널(25에이전트). **루트커즈**: `isSingleStockLeverage`(리터럴 2X+화이트리스트)와 `classifyAssetClass`(한국어 단일종목/3X/LEVERAGED, 2X 미검사)가 별도 정규식·반대 판정 → 미국 1.5X/3X/5X/Bull/Bear SpaceX LETF가 검색라벨·AI거부·알림억제·universe거부 동시 우회(§6 노출). **수정 7단계**: 공유 헬퍼 `detectLeverageProfile` 통합+영어/배수 인식(컨텍스트 AND로 10X Genomics 오탐 차단)·회귀 불변식 테스트 신설·ai-analysis isLev 서버권위화·check-alerts 푸시 asset_class 심층방어·admin add 강등+asset_class 영속·search isLeverage 플래그·enrich asset_class 동기화·HOL 커서. 검증 통과(tsc0·테스트·lint0). **SpaceX 보통주는 12개월 게이트로 정상 보류**.
+> **🔴 배포 전 필수**: ① 마이그 `2026-06-16_stock_listings_enrich_cursor.sql` Supabase 선적용(enrich-listings 코드보다 먼저, 없으면 cron 500) ② 레버리지 정책 전체 약관 v4 변호사 게이트(기존). 머지·배포 타이밍=그 게이트와 함께.
+> ---
+
+## 🎯 이전 브리핑 (2026-06-05)
 
 > **최신 sessionary**: `2026-06-05-compliance-filing-research.md` (운영 규제 신고 맵 deep-research) · `2026-06-04-tax-v1-canary-prep.md` (세무 v1 카나리) · `2026-06-04-health-score-gap-feature.md` (건강 점수 섹터 갭) · `2026-06-04-ia-restructure.md` (IA)
 > **🟢 운영 신고 맵 확정(deep-research, 메모리 `project_compliance_filings`)**: "신고하고 서비스?" → 현 구조(방향0+조언 무료)면 **자본시장 신고 불필요**. 핵심선=**'투자조언에 직접 대가 받느냐'**(무료 동일조언=§101 면제, 금융위 해석). 유료화 시 통신판매업(조건부)·부가통신(자본금 1억 초과 시)만. 추천 유료화=§101 신고/§6 등록+형사. **미확정 3건(세무사법§2·전자금융PG·개인정보)→변호사 게이트 등재**(`PROFESSIONAL_REVIEW_REGISTER` T1+/F1/F2). ProPicks형 AI추천=방향0·세무피봇과 정반대라 안 감.

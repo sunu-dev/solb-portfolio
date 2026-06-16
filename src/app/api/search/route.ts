@@ -20,6 +20,9 @@ interface SearchResultItem {
   description: string;
   isNewListing?: boolean;
   listedAt?: string | null;
+  /** 서버 권위 단일종목 레버리지 플래그 — 클라이언트 라벨/게이트가 로컬 재계산에만 의존하지 않도록.
+   *  클라이언트는 (서버 플래그 OR 로컬 재계산) 합집합으로 표시한다. */
+  isLeverage?: boolean;
 }
 
 export async function GET(req: NextRequest) {
@@ -56,6 +59,8 @@ export async function GET(req: NextRequest) {
       .map((item: { symbol: string; description: string }) => ({
         symbol: item.symbol,
         description: item.description,
+        // 순수 함수 — 비용·부작용 없음. 클라이언트 라벨/게이트의 서버측 SSOT.
+        isLeverage: isSingleStockLeverage(item.symbol, item.description),
       }));
 
     // stock_listings에서 신규 상장 정보 조회 (1 query, in 절)

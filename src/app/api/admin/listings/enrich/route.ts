@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { classifyAssetClass } from '@/utils/leverageGuard';
 
 /**
  * 종목별 즉시 enrich admin API — Finnhub /stock/profile2로 시총·상장일 채움
@@ -77,6 +78,14 @@ export async function POST(req: NextRequest) {
     const update: Record<string, unknown> = {};
     if (marketCap !== null) update.market_cap = marketCap;
     if (listedAt) update.listed_at = listedAt;
+
+    // 자산 클래스 동기화 (cron enrich-listings와 동일 SSOT) — admin이 market_cap을 먼저 채우면
+    // cron 큐(market_cap IS NULL)에서 빠져 asset_class 분류가 영영 누락되던 갭 해소.
+    const assetClass = classifyAssetClass(symbol, profile.name);
+    update.asset_class = assetClass;
+    if (assetClass === 'leveraged_single' || assetClass === 'inverse_single') {
+      update.status = 'rejected';
+    }
 
     const { data, error } = await supabaseAdmin
       .from('stock_listings')

@@ -80,7 +80,7 @@ async function fetchUsdKrw(): Promise<number> {
   }
 }
 
-function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): TriggeredAlert[] {
+function checkStockAlerts(stock: StockItem, price: number, usdKrw: number, forceLeverage = false): TriggeredAlert[] {
   const alerts: TriggeredAlert[] = [];
   if (stock.avgCost <= 0 || stock.shares <= 0 || price <= 0) return alerts;
 
@@ -128,7 +128,8 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number): Trig
 
   // 단일종목 레버리지/인버스: 매매 방향·신규 매수 유인(target-*·buy-zone) 발송 금지 (§6 자본시장법).
   // 보유 위험 고지(stoploss-*)만 남긴다. 지수 레버리지(TQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
-  if (isSingleStockLeverage(sym, stock.name)) {
+  // forceLeverage = stock_listings 권위 asset_class 기반 심층 방어(이름 닉네임 누수 차단).
+  if (forceLeverage || isSingleStockLeverage(sym, stock.name)) {
     return alerts.filter(a => a.alertType === 'stoploss-price' || a.alertType === 'stoploss-pct');
   }
 
@@ -285,7 +286,7 @@ export async function POST(req: NextRequest) {
     const s = row.stocks as PortfolioStocks;
     [...(s.investing || []), ...(s.watching || [])].forEach(st => symbolSet.add(st.symbol));
   }
-  const [priceMap, usdKrw] = await Promise.all([
+  const [priceMap, usdKrw, leverageSymbols] = await Promise.all([
     (async () => {
       const m: Record<string, number> = {};
       await Promise.allSettled([...symbolSet].map(async sym => {
@@ -295,6 +296,21 @@ export async function POST(req: NextRequest) {
       return m;
     })(),
     fetchUsdKrw(),
+    // 심층 방어(§6): 보유 종목명이 한국어 닉네임이라 키워드 탐지(stock.name)를 비껴가도,
+    // stock_listings 권위 asset_class로 단일종목 레버리지를 차단한다. 이름 기반 탐지는 1차 방어.
+    (async (): Promise<Set<string>> => {
+      const set = new Set<string>();
+      try {
+        const { data } = await db
+          .from('stock_listings')
+          .select('symbol, asset_class')
+          .in('symbol', [...symbolSet]);
+        for (const r of (data || []) as Array<{ symbol: string; asset_class: string | null }>) {
+          if (r.asset_class === 'leveraged_single' || r.asset_class === 'inverse_single') set.add(r.symbol);
+        }
+      } catch { /* 테이블 없음/조회 실패 — 이름 기반 1차 방어 유지 */ }
+      return set;
+    })(),
   ]);
 
   let totalSent = 0;
@@ -313,7 +329,7 @@ export async function POST(req: NextRequest) {
     for (const stock of allStocks) {
       const price = priceMap[stock.symbol];
       if (!price) continue;
-      triggered.push(...checkStockAlerts(stock, price, usdKrw));
+      triggered.push(...checkStockAlerts(stock, price, usdKrw, leverageSymbols.has(stock.symbol)));
     }
     if (!triggered.length) continue;
 

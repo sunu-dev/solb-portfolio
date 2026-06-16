@@ -64,7 +64,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
   const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx } = usePortfolioStore();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null }[]>([]);
+  const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [recent, setRecent] = useState<{ symbol: string; description: string }[]>([]);
@@ -129,7 +129,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       // '중간 옵션'(2026-05-29): 단일종목 레버리지도 검색에 노출한다 — 보유 입력을
       // 위해 찾을 수 있어야 하기 때문. 신규 추천이 아님은 결과 라벨 + 등록 게이트로 명시.
       const seen = new Set<string>();
-      const combined: { symbol: string; description: string }[] = [];
+      const combined: { symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[] = [];
       for (const item of [...localMatches, ...krItems, ...usItems]) {
         if (seen.has(item.symbol)) continue;
         seen.add(item.symbol);
@@ -218,14 +218,15 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
   // 등록 진입점 — 단일종목 레버리지면 위험 동의 게이트를 먼저 띄우고,
   // 통과 후 doAdd로 실제 등록 ('중간 옵션': 신규 추천 X, 보유 등록은 게이트 후 허용).
-  const handleAdd = useCallback((symbol: string, name: string) => {
+  const handleAdd = useCallback((symbol: string, name: string, serverLeverage = false) => {
     if (!user) {
       window.dispatchEvent(new CustomEvent('open-login'));
       if (onClose) onClose();
       return;
     }
     const sym = symbol.toUpperCase();
-    if (isSingleStockLeverage(sym, name)) {
+    // 서버 권위 플래그 OR 로컬 재계산 — 둘 중 하나라도 단일종목 레버리지면 위험 게이트.
+    if (serverLeverage || isSingleStockLeverage(sym, name)) {
       setLeverageGate({ symbol: sym, name });
       return;
     }
@@ -319,7 +320,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           {results.map((item, idx) => (
             <button
               key={`${item.symbol}-${idx}`}
-              onClick={() => handleAdd(item.symbol, item.description)}
+              onClick={() => handleAdd(item.symbol, item.description, item.isLeverage)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
               style={{
@@ -351,7 +352,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                       const display = getDisplayName(item);
                       // 단일종목 레버리지 — 앰버 경고 칩 (고위험, 신규 추천 아님).
                       // 위험 맥락이라 경고색 사용 (정보성 칩의 중립 회색과 구분).
-                      if (isSingleStockLeverage(item.symbol, display)) {
+                      // 서버 권위 플래그(item.isLeverage) OR 로컬 재계산 합집합.
+                      if (item.isLeverage || isSingleStockLeverage(item.symbol, display)) {
                         return (
                           <span title={LEVERAGE_SEARCH_LABEL} style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: 'rgba(245,158,11,0.14)', color: '#B45309', letterSpacing: 0.2, flexShrink: 0, whiteSpace: 'nowrap' }}>
                             고위험

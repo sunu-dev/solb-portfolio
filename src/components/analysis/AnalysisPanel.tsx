@@ -252,6 +252,11 @@ export default function AnalysisPanel() {
     };
   }, [symbol, rawCandles]);
 
+  // 신규 상장 등으로 캔들이 구조적으로 부족한 경우 — '잠시 후 재시도'(일시 오류)와 구분.
+  // SpaceX 같은 갓 IPO 종목은 시세 이력이 4~5개뿐이라 분석 신뢰도가 낮음을 명시한다.
+  const candleCount = symbol ? (rawCandles[symbol]?.c?.length ?? 0) : 0;
+  const isThinData = candleCount > 0 && candleCount <= 20;
+
   // USD/KRW
   const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
   const usdKrw = usdKrwEntry?.value || 1400;
@@ -1449,8 +1454,10 @@ export default function AnalysisPanel() {
                 )}
 
                 {!analysis && !loading && (
-                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500' }}>
-                    차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.
+                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
+                    {isThinData
+                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
+                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
                   </div>
                 )}
 

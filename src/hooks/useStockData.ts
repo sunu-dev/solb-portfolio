@@ -114,6 +114,8 @@ export interface StockSearchResult {
   description: string;
   isNewListing?: boolean;
   listedAt?: string | null;
+  /** 서버 권위 단일종목 레버리지 플래그 (api/search) — 클라이언트는 로컬 재계산과 OR 합집합 */
+  isLeverage?: boolean;
 }
 export async function searchStocks(query: string, _apiKey?: string): Promise<StockSearchResult[]> {
   try {

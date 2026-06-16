@@ -25,6 +25,41 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
+// service-role 클라이언트 — stock_listings RLS(select using false)는 service role만 읽는다.
+// isLev 서버 권위화: 클라이언트 body의 description 위변조·누락에 의존하지 않도록 권위 데이터를 조회한다(§6).
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseAdmin = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
+  : null;
+
+/**
+ * 단일종목 레버리지 서버 권위 판정 — 클라이언트 body(description/koreanName) 단독 의존 제거.
+ *
+ * stock_listings.asset_class + 서버 보관 description을 우선 신뢰하고, 행이 없으면(신규 상장 상품)
+ * 클라이언트 키워드 판정을 fallback으로 합집합한다(보호 공백 방지). 어느 한 경로라도 단일종목
+ * 레버리지로 판정하면 isLev=true (안전측). §6 자본시장법.
+ */
+async function resolveIsSingleLeverage(symbol: string, clientDesc: string): Promise<boolean> {
+  if (!symbol) return false;
+  // 클라이언트 신호 (행이 없을 때의 fallback) — 항상 먼저 계산해 보호 공백 방지
+  let result = isSingleStockLeverage(symbol, clientDesc);
+  if (!supabaseAdmin) return result;
+  try {
+    const { data } = await supabaseAdmin
+      .from('stock_listings')
+      .select('description, asset_class')
+      .eq('symbol', symbol)
+      .maybeSingle();
+    if (data) {
+      const cls = (data as { asset_class?: string }).asset_class;
+      if (cls === 'leveraged_single' || cls === 'inverse_single') result = true;
+      const serverDesc = (data as { description?: string | null }).description;
+      if (serverDesc && isSingleStockLeverage(symbol, serverDesc)) result = true;
+    }
+  } catch { /* 테이블 없음/조회 실패 — 클라이언트 판정 유지 */ }
+  return result;
+}
+
 // 한국시간(KST) 기준 오늘 날짜
 function getTodayKST(): string {
   const now = new Date();
@@ -227,9 +262,10 @@ export async function POST(req: NextRequest) {
             description = '',
             timeSeriesContext = '' } = body as typeof body & { investorType?: InvestorType; userNotes?: string[]; description?: string; timeSeriesContext?: string };
 
-    // 단일종목 레버리지·인버스 판정 — symbol-aware. description 보강은 koreanName(종목명)도 포함.
-    // (TSLL·NVDU·520100.KS 등은 symbol만으로 true / 키워드는 종목명에서 검출)
-    const isLev = isSingleStockLeverage(symbol, description || koreanName);
+    // 단일종목 레버리지·인버스 판정 — 서버 권위(stock_listings.asset_class + 서버 description)
+    // 우선, 행 없으면 클라이언트 body(description||koreanName) fallback. 클라이언트 위변조·누락에
+    // 의존하지 않는다 (TSLL·NVDU·520100.KS 등은 symbol만으로도 true).
+    const isLev = await resolveIsSingleLeverage(symbol, description || koreanName);
 
     // 개인화 계산
     const currentPLPct = (avgCost && price && avgCost > 0)
