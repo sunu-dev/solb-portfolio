@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import WatchToggle from '@/components/common/WatchToggle';
 
 /**
  * 오늘 시장이 주목한 종목 — 회의 결과 옵션 C UI.
@@ -32,13 +33,11 @@ interface MoversResp {
 }
 
 export default function MarketMovers() {
-  const { setAnalysisSymbol, addStock, stocks } = usePortfolioStore();
+  const { setAnalysisSymbol } = usePortfolioStore();
   const [data, setData] = useState<MoversResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [market, setMarket] = useState<'US' | 'KR'>('KR');
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
-
-  const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
   useEffect(() => {
     fetch('/api/market-movers')
@@ -125,7 +124,6 @@ export default function MarketMovers() {
           // 한국 핀테크 톤다운 — 진한 빨강/파랑 자제, 채도 낮춤
           const accentColor = isUp ? '#E08585' : '#7AA0E5';
           const accentBg = isUp ? 'rgba(224,133,133,0.06)' : 'rgba(122,160,229,0.06)';
-          const inWatching = watchingSet.has(item.symbol);
 
           return (
             <div
@@ -167,30 +165,10 @@ export default function MarketMovers() {
                 </span>
               </div>
 
-              {/* 관심 추가 — 매수 버튼 NO */}
-              <button
-                onClick={e => {
-                  e.stopPropagation();
-                  if (inWatching) return;
-                  addStock('watching', {
-                    symbol: item.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0,
-                  });
-                }}
-                disabled={inWatching}
-                style={{
-                  marginTop: 4,
-                  padding: '6px 0',
-                  borderRadius: 8,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: inWatching ? 'var(--bg-subtle, #F2F4F6)' : 'rgba(49,130,246,0.08)',
-                  color: inWatching ? 'var(--text-tertiary, #B0B8C1)' : '#3182F6',
-                  border: 'none',
-                  cursor: inWatching ? 'default' : 'pointer',
-                }}
-              >
-                {inWatching ? '✓ 관심' : '관심 추가'}
-              </button>
+              {/* 관심 추가 — 매수 버튼 NO. 단일 컴포넌트(WatchToggle)로 통일(Mossy Teal·토스블루 회피) */}
+              <div style={{ marginTop: 4 }}>
+                <WatchToggle symbol={item.symbol} full />
+              </div>
             </div>
           );
         })}

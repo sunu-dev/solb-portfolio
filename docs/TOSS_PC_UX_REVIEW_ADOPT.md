@@ -52,7 +52,7 @@
 - [x] 관심 사이드바 **'오늘 한 줄'** (4B, dormant) — `buildMoverNote`를 `src/lib/moverNote.ts`로 추출(§6 게이트 SSOT: `DIGEST_RAG_EXPLANATION`+`gateDigestNote`, morning-brief와 공유) + `/api/mover-note` 라우트(서버 게이트) + RightSidebar top-mover 배선. **점검: off→`{note:null}` 무노출 / on→실제 헤드라인 인용 노트 둘 다 확인.** 변호사 후 플래그 켜면 활성
 - [x] 관심 **currency 연동**(글로벌 $/₩ 토글 — 미국 종목만 환산, KR 이중환산 방지) (4C)
 - [ ] 관심 행 **52주 위치 미니바** — ⏸️ 보류: 관심 행에 52주 고저 데이터 소스 부재(종목 열어야 캔들 생성). 종목별 fundamentals 프리페치 파이프라인이 선결
-- [ ] 단일 `WatchToggle` 동사 통일 (관심 추가/해제 어포던스 5곳 통합)
+- [~] 단일 `WatchToggle` 동사 통일 — 컴포넌트 신설(`common/WatchToggle.tsx`, Mossy Teal) + MarketMovers·CohortReference 적용(MarketMovers 토스블루 제거 보너스). 남은 호출부(AiChok 카드·검색)는 후속
 - [ ] PC 복기 작업대(흩어진 회고 집결)·Monthly Wrapped 공유 카드
 - [ ] PC 세무 작업대(통합 양도세 정리 — `tax-v1-canary` 읽기전용 레이아웃 승격, 토스 빈자리)
 

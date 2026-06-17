@@ -7,6 +7,7 @@ import { STOCK_KR } from '@/config/constants';
 import { getSector } from '@/utils/portfolioHealth';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { iGa } from '@/utils/koreanJosa';
+import WatchToggle from '@/components/common/WatchToggle';
 import type { QuoteData } from '@/config/constants';
 
 /**
@@ -25,7 +26,7 @@ interface Props {
 }
 
 export default function CohortReference({ onStartQuiz }: Props = {}) {
-  const { stocks, investorType, investorTypeSetAt, addStock, setAnalysisSymbol, macroData } = usePortfolioStore();
+  const { stocks, investorType, investorTypeSetAt, setAnalysisSymbol, macroData } = usePortfolioStore();
 
   const meta = INVESTOR_TYPES[investorType];
   const hasTypeSet = !!investorTypeSetAt;
@@ -124,10 +125,6 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
       </div>
     );
   }
-
-  const handleAddWatch = (symbol: string) => {
-    addStock('watching', { symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
-  };
 
   return (
     <div
@@ -312,23 +309,9 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                       {pick.reason}
                     </div>
                   </button>
-                  <button
-                    onClick={() => handleAddWatch(pick.symbol)}
-                    aria-label={`${pick.symbol} 관심 종목 추가`}
-                    style={{
-                      flexShrink: 0,
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      background: `${meta.accentColor}15`,
-                      color: meta.accentColor,
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    + 관심
-                  </button>
+                  <div style={{ flexShrink: 0 }}>
+                    <WatchToggle symbol={pick.symbol} />
+                  </div>
                 </div>
               );
             })}
