@@ -337,6 +337,12 @@ code, pre, kbd, samp, .font-mono {
   --text-secondary: #8E8E9A;
   --text-tertiary: #5C5C6A;
   --border-light: #2A2D3D;
+  /* 다크 elevation — 검정 그림자는 어두운 배경에서 죽으므로 hairline 보더 기반으로
+     카드 경계를 확보(surface·surface-hover 동톤 뭉침 방지). 라이트는 :root 그대로. */
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
   /* V1.1 Brand dark variants — 명도↑ 채도↓ (다크에서 형광 회피) */
   --brand-primary: #14B8A6;
   --brand-primary-hover: #2DD4BF;
