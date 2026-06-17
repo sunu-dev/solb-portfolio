@@ -36,15 +36,28 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, recentSymbols, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
+  const [watchSort, setWatchSort] = useState<'added' | 'movement'>('added'); // 관심 점검 순서
   // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
   const [chokPick] = useState<ChokPick | null>(null);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
   const watchingStocks = stocks.watching || [];
+
+  // 점검 순서 정렬 — '많이 움직인 순'(절대 등락률 = abs(dp), 미로딩은 바닥). 추천·서열 아님(방향0).
+  const moveAbs = (sym: string) => {
+    const d = macroData[sym] as QuoteData | undefined;
+    return d?.c ? Math.abs(d.dp ?? 0) : -1;
+  };
+  const sortedWatching = watchSort === 'movement'
+    ? [...watchingStocks].sort((a, b) => moveAbs(b.symbol) - moveAbs(a.symbol))
+    : watchingStocks;
+
+  // 최근 본 종목 — 관심에 이미 있는 건 제외(중복 회피). descriptive 재진입(점수·배지 없음).
+  const recentChips = recentSymbols.filter((s) => !watchingSet.has(s)).slice(0, 6);
 
   const visibleAlerts = alerts
     .filter(a => !dismissedAlerts.includes(a.id))
@@ -60,11 +73,21 @@ export default function RightSidebar() {
       <div className="flex items-center gap-1.5">
         <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>관심 종목</h3>
         <span className="text-[13px] text-[#B0B8C1] font-normal">{watchingStocks.length}</span>
+        {watchingStocks.length > 1 && (
+          <button
+            onClick={() => setWatchSort((s) => (s === 'added' ? 'movement' : 'added'))}
+            aria-label="관심 종목 점검 순서 정렬"
+            className="ml-auto text-[11px] font-medium cursor-pointer hover:text-[var(--text-secondary)]"
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary, #B0B8C1)', padding: '2px 4px' }}
+          >
+            {watchSort === 'added' ? '추가순' : '많이 움직인 순'}
+          </button>
+        )}
       </div>
 
       {/* Watching stock list */}
       <div className="mt-6">
-        {watchingStocks.map((stock, idx) => {
+        {sortedWatching.map((stock, idx) => {
           const q = macroData[stock.symbol] as QuoteData | undefined;
           const price = q?.c ?? 0;
           const dp = q?.dp ?? 0;
@@ -132,6 +155,25 @@ export default function RightSidebar() {
         <Plus className="w-3.5 h-3.5" />
         관심 종목 추가
       </button>
+
+      {/* 최근 본 종목 — descriptive 재진입 칩 (점수·배지·추천 색채 없음) */}
+      {recentChips.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div className="text-[11px] font-semibold text-[#B0B8C1]" style={{ marginBottom: 8 }}>최근 본</div>
+          <div className="flex flex-wrap" style={{ gap: 6 }}>
+            {recentChips.map((sym) => (
+              <button
+                key={sym}
+                onClick={() => setAnalysisSymbol(sym)}
+                className="text-[12px] cursor-pointer hover:bg-[#EDEFF2] dark:hover:bg-[var(--surface-hover)]"
+                style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', whiteSpace: 'nowrap' }}
+              >
+                {STOCK_KR[sym] || sym}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ============================================
           주비 AI 알림센터

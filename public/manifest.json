@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFFFFF",
-  "theme_color": "#3182F6",
+  "theme_color": "#0E7C7B",
   "color_scheme": "light",
   "lang": "ko",
   "categories": ["finance", "utilities"],

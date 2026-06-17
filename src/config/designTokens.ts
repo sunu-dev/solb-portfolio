@@ -28,6 +28,9 @@ export const color = {
   borderRow: 'var(--border-row, #F7F8FA)',
 
   // Brand
+  brandPrimary: 'var(--brand-primary, #0E7C7B)',        // Mossy Teal — 토스블루 회피, AI·CTA 액센트
+  brandPrimaryLight: 'var(--brand-primary-light, rgba(14,124,123,0.08))',
+  brandPrimaryBg: 'var(--brand-primary-bg, rgba(14,124,123,0.06))',
   brandSol: 'var(--brand-sol, #1B6B3A)',
   brandRain: 'var(--brand-rain, #3182F6)',
   brandGold: 'var(--brand-gold, #D4A853)',

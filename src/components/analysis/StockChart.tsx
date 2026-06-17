@@ -1,8 +1,25 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { tsToDate } from '@/store/portfolioStore';
+import { useEffect, useRef, useState } from 'react';
+import { tsToDate, usePortfolioStore } from '@/store/portfolioStore';
 import type { CandleRaw } from '@/config/constants';
+
+// 차트 캔버스 테마 — lightweight-charts는 CSS 변수를 못 받으므로 모드별 concrete hex.
+// globals.css 다크 토큰과 1:1 (surface #1A1D2E / text-secondary #8E8E9A / border-light #2A2D3D).
+// 캔들 상승=빨강/하락=파랑(한국 컨벤션)은 테마와 무관하게 고정.
+const CHART_THEME = {
+  light: { bg: '#FFFFFF', text: '#8B95A1', grid: '#F2F4F6', border: '#E5E8EB' },
+  dark: { bg: '#1A1D2E', text: '#8E8E9A', grid: '#2A2D3D', border: '#2A2D3D' },
+} as const;
+
+// 기준선 색 — 중립 회색(손익색·브랜드색 아님, 신호 오인 차단). 테마 무관 가독.
+const GUIDE_COLOR = 'rgba(139, 149, 161, 0.5)';
+
+const fmtPrice = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+const fmtVol = (n: number) =>
+  n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : `${n}`;
+
+type ChartLegend = { date: string; o: number; h: number; l: number; c: number; v: number; chgPct: number | null };
 
 interface StockChartProps {
   raw: CandleRaw;
@@ -31,9 +48,12 @@ export default function StockChart({
   const rsiContainerRef = useRef<HTMLDivElement>(null);
   const rsiChartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
   const observersRef = useRef<ResizeObserver[]>([]);
+  const darkMode = usePortfolioStore((s) => s.darkMode);
+  const [legend, setLegend] = useState<ChartLegend | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !raw?.t?.length) return;
+    const theme = darkMode ? CHART_THEME.dark : CHART_THEME.light;
 
     let isMounted = true;
 
@@ -51,18 +71,18 @@ export default function StockChart({
         width: containerRef.current.clientWidth,
         height: level === 'basic' ? 280 : 220,
         layout: {
-          background: { type: LightweightCharts.ColorType.Solid, color: '#FFFFFF' },
-          textColor: '#8B95A1',
+          background: { type: LightweightCharts.ColorType.Solid, color: theme.bg },
+          textColor: theme.text,
           fontFamily: "'Pretendard Variable', sans-serif",
           fontSize: 11,
         },
         grid: {
-          vertLines: { color: '#F2F4F6' },
-          horzLines: { color: '#F2F4F6' },
+          vertLines: { color: theme.grid },
+          horzLines: { color: theme.grid },
         },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: '#E5E8EB' },
-        timeScale: { borderColor: '#E5E8EB', timeVisible: false },
+        rightPriceScale: { borderColor: theme.border },
+        timeScale: { borderColor: theme.border, timeVisible: false },
       };
 
       const chart = LightweightCharts.createChart(containerRef.current, chartOpts);
@@ -100,6 +120,23 @@ export default function StockChart({
         color: raw.c[i] >= raw.o[i] ? 'rgba(239,68,82,0.2)' : 'rgba(49,130,246,0.2)',
       }));
       volSeries.setData(volData);
+
+      // 크로스헤어 OHLC 판독(학습용) — 캔들 호버 시 그날 시/고/저/종·거래량·전일대비.
+      // logical index로 매칭(string/BusinessDay time 포맷 차이에 안전).
+      chart.subscribeCrosshairMove((param) => {
+        if (!isMounted) return;
+        const li = param.logical;
+        if (li == null || !param.point || li < 0 || li >= candleData.length) {
+          setLegend(null);
+          return;
+        }
+        const idx = Math.round(li);
+        if (idx < 0 || idx >= candleData.length) { setLegend(null); return; }
+        const d = candleData[idx];
+        const prev = idx > 0 ? candleData[idx - 1].close : null;
+        const chgPct = prev != null && prev !== 0 ? ((d.close - prev) / prev) * 100 : null;
+        setLegend({ date: String(d.time), o: d.open, h: d.high, l: d.low, c: d.close, v: raw.v[idx] ?? 0, chgPct });
+      });
 
       // SMA lines helper
       const addLine = (arr: number[], startIdx: number, color: string, width: number = 1) => {
@@ -153,6 +190,15 @@ export default function StockChart({
           time: tsToDate(raw.t[startIdx + i]) as string,
           value: b.lower,
         })));
+        // 볼린저 중심선(20일 이동평균 기준) — 학습 스캐폴딩, 중립 회색 점선
+        const midLine = chart.addSeries(LightweightCharts.LineSeries, {
+          color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2,
+          priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
+        });
+        midLine.setData(bollingerBands.map((b, i) => ({
+          time: tsToDate(raw.t[startIdx + i]) as string,
+          value: b.middle,
+        })));
       }
 
       // Set visible range: default 3M (60 bars), 0 = fit all
@@ -181,14 +227,14 @@ export default function StockChart({
           width: macdContainerRef.current.clientWidth,
           height: 100,
           layout: {
-            background: { type: LightweightCharts.ColorType.Solid, color: '#FFFFFF' },
-            textColor: '#8B95A1',
+            background: { type: LightweightCharts.ColorType.Solid, color: theme.bg },
+            textColor: theme.text,
             fontFamily: "'Pretendard Variable', sans-serif",
             fontSize: 10,
           },
-          grid: { vertLines: { color: '#F2F4F6' }, horzLines: { color: '#F2F4F6' } },
-          rightPriceScale: { borderColor: '#E5E8EB' },
-          timeScale: { borderColor: '#E5E8EB', timeVisible: false },
+          grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
+          rightPriceScale: { borderColor: theme.border },
+          timeScale: { borderColor: theme.border, timeVisible: false },
         });
         macdChartRef.current = macdChart;
 
@@ -209,6 +255,8 @@ export default function StockChart({
         macdLineSeries.setData(macdData.macd.map((v, i) => ({
           time: tsToDate(raw.t[macdStart + i]) as string, value: v,
         })));
+        // 0 기준선 — MACD가 0 위/아래(추세 전환 참고). 중립 회색 점선.
+        macdLineSeries.createPriceLine({ price: 0, color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '0' });
 
         const signalStart = raw.t.length - macdData.signal.length;
         const signalLineSeries = macdChart.addSeries(LightweightCharts.LineSeries, {
@@ -240,14 +288,14 @@ export default function StockChart({
           width: rsiContainerRef.current.clientWidth,
           height: 80,
           layout: {
-            background: { type: LightweightCharts.ColorType.Solid, color: '#FFFFFF' },
-            textColor: '#8B95A1',
+            background: { type: LightweightCharts.ColorType.Solid, color: theme.bg },
+            textColor: theme.text,
             fontFamily: "'Pretendard Variable', sans-serif",
             fontSize: 10,
           },
-          grid: { vertLines: { color: '#F2F4F6' }, horzLines: { color: '#F2F4F6' } },
-          rightPriceScale: { borderColor: '#E5E8EB' },
-          timeScale: { borderColor: '#E5E8EB', timeVisible: false },
+          grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
+          rightPriceScale: { borderColor: theme.border },
+          timeScale: { borderColor: theme.border, timeVisible: false },
         });
         rsiChartRef.current = rsiChart;
 
@@ -258,6 +306,9 @@ export default function StockChart({
         rsiLineSeries.setData(rsiData.map((v, i) => ({
           time: tsToDate(raw.t[rsiStart + i]) as string, value: v,
         })));
+        // 과열 70 / 과매도 30 기준선 — 중립 회색 점선, 임계값 명칭만(행동 유발 표현 금지)
+        rsiLineSeries.createPriceLine({ price: 70, color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '과열 70' });
+        rsiLineSeries.createPriceLine({ price: 30, color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '과매도 30' });
 
         // Sync visible range
         if (visibleBars > 0 && dataLength > visibleBars) {
@@ -284,11 +335,42 @@ export default function StockChart({
       observersRef.current.forEach(ro => ro.disconnect());
       observersRef.current = [];
     };
-  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars]);
+  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode]);
 
   return (
     <div>
-      <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+      <div className="relative">
+        <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+        {legend && (
+          <div
+            className="absolute pointer-events-none"
+            style={{
+              top: 8, left: 8, zIndex: 2,
+              background: 'var(--surface, #FFFFFF)',
+              border: '1px solid var(--border-light, #F2F4F6)',
+              borderRadius: 8, padding: '6px 10px',
+              fontSize: 11, lineHeight: 1.5,
+              color: 'var(--text-secondary, #8B95A1)',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>{legend.date}</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <span>시 {fmtPrice(legend.o)}</span>
+              <span>고 {fmtPrice(legend.h)}</span>
+              <span>저 {fmtPrice(legend.l)}</span>
+              <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>종 {fmtPrice(legend.c)}</span>
+              {legend.chgPct != null && (
+                <span style={{ color: legend.chgPct >= 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', fontWeight: 700 }}>
+                  {legend.chgPct >= 0 ? '+' : ''}{legend.chgPct.toFixed(2)}%
+                </span>
+              )}
+            </div>
+            <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>거래량 {fmtVol(legend.v)}</div>
+          </div>
+        )}
+      </div>
 
       {level === 'detail' && macdData && (
         <>
