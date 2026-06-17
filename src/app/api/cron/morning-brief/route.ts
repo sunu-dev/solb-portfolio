@@ -9,7 +9,8 @@ import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
-import { DISCLAIMER_DIGEST, gateDigestNote } from '@/utils/alertCompliance';
+import { DISCLAIMER_DIGEST } from '@/utils/alertCompliance';
+import { buildMoverNote } from '@/lib/moverNote';
 
 // ─── 시차 인지 2슬롯 digest (docs/PERSONALIZED_DIGEST_SPEC.md) ───────────────
 // 같은 route를 ?slot= 쿼리로 분기. 국장 07:00(간밤 미장 보유분) / 국장 마감 16:00(오늘 국장).
@@ -239,37 +240,8 @@ function buildPushPayload(brief: BriefData, slot: DigestSlot): { title: string; 
   };
 }
 
-/**
- * '왜 움직였나' 사후 해설 — biggestMover 종목 최근 헤드라인을 비단정 서술로 첨부.
- *
- * ⚠️ 환각·§6 위험의 유일한 지점이라 env 플래그로 게이트한다. 기본 off → null(현행 델타-only).
- * - DIGEST_RAG_EXPLANATION='on'일 때만 동작. 약관 v4 변호사 검토 후 on.
- * - LLM '생성'이 아니라 실제 헤드라인 '인용'(RAG-grounded 사실) — 토스 2026-01 동일티커
- *   환각사고 방어를 위해 한글명으로만 질의.
- * - gateDigestNote()로 인과·방향·미래 단정 검출 시 드롭(omit) — 잘못된 인과보다 무가 안전.
- */
-async function buildMoverNote(symbol: string, name: string): Promise<string | null> {
-  if (process.env.DIGEST_RAG_EXPLANATION !== 'on') return null;
-  if (!name) return null; // 한글명 없으면 질의 안 함 (영문 심볼 폴백 금지 — 동일명 환각 방어)
-  try {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-    if (!appUrl) return null;
-    const res = await fetch(`${appUrl}/api/news?q=${encodeURIComponent(name)}&maxHours=24&locale=ko`, { cache: 'no-store' });
-    if (!res.ok) {
-      console.warn(`[cron/morning-brief] buildMoverNote 뉴스 fetch 실패: ${symbol} status=${res.status}`);
-      return null;
-    }
-    const d = await res.json();
-    const headline: string | undefined = d?.items?.[0]?.title;
-    if (!headline) return null;
-    const { note, droppedFor } = gateDigestNote(`관련 소식: ${headline}`);
-    if (droppedFor) console.warn(`[cron/morning-brief] buildMoverNote §6 게이트 드롭: ${symbol} (${droppedFor})`);
-    return note;
-  } catch (e) {
-    console.warn(`[cron/morning-brief] buildMoverNote 예외: ${symbol} — ${e instanceof Error ? e.message : 'unknown'}`);
-    return null;
-  }
-}
+// '왜 움직였나' 사후 해설(buildMoverNote)은 src/lib/moverNote.ts로 추출 — §6 게이트(DIGEST_RAG_EXPLANATION
+// + gateDigestNote) SSOT를 사이드바 '오늘 한 줄'(/api/mover-note)과 한 곳에서 공유한다.
 
 /** 이메일 본문 (정책 §4.3 면책은 sendEmail이 자동 첨부) */
 function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: string): string {
@@ -457,7 +429,7 @@ export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
       if (brief.biggestMover) {
         const koreanName = STOCK_KR[brief.biggestMover.symbol];
         if (koreanName) {
-          const note = await buildMoverNote(brief.biggestMover.symbol, koreanName);
+          const note = await buildMoverNote(koreanName);
           if (note) body = `${body}\n${note}`;
         }
       }
