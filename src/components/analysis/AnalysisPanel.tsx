@@ -12,7 +12,7 @@ import {
 } from '@/utils/technical';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { supabase } from '@/lib/supabase';
 import { MENTORS, MENTOR_MAP } from '@/config/mentors';
@@ -131,6 +131,7 @@ export default function AnalysisPanel() {
     apiKey,
     currency,
     investorType,
+    getAllSymbols,
   } = usePortfolioStore();
 
   const { fetchCandle, rawCandle } = useCandleData(analysisSymbol);
@@ -277,6 +278,14 @@ export default function AnalysisPanel() {
   // 모달 접근성 — ESC 닫기 + 포커스 트랩 + 복원 (거짓 aria-modal 해소)
   useFocusTrap(!!symbol, dialogRef, close);
 
+  // 종목 스위처로 symbol이 바뀌면 모달이 재마운트되지 않으므로, 이전 종목의 AI/멘토/차트 상태를
+  // 명시적으로 reset(스테일 데이터 노출 방지). fundamentals·tickerNews는 각 per-symbol effect가 재취득.
+  useEffect(() => {
+    setShowAIReport(false); setAiReport(null); setAiLoading(false); setAiError('');
+    setSelectedMentor(null); setMentorReport(null); setMentorLoading(false); setMentorError('');
+    setChartLevel('basic'); setChartRange(60); setFundamentals(null); setTickerNews([]);
+  }, [symbol]);
+
   if (!symbol) return null;
 
   const quote = macroData[symbol] as QuoteData | undefined;
@@ -286,6 +295,11 @@ export default function AnalysisPanel() {
   const cp = quote?.dp || 0;
   const isGain = change >= 0;
   const priceWon = price * usdKrw;
+
+  // 상세 내 종목 스위처 — 보유/관심/매도 종목 순회(검색 살펴보기 등 목록 밖 종목은 미노출).
+  const allSymbols = getAllSymbols();
+  const symIdx = allSymbols.indexOf(symbol);
+  const showSwitcher = symIdx >= 0 && allSymbols.length > 1;
 
   return (
     <>
@@ -334,6 +348,28 @@ export default function AnalysisPanel() {
                 <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · {symbol.endsWith('.KS') ? 'KRX' : symbol.endsWith('.KQ') ? 'KOSDAQ' : 'NASDAQ'}</div>
               </div>
             </div>
+            {showSwitcher && (
+              <div className="flex items-center" style={{ gap: 2, marginLeft: 'auto', marginRight: 4 }}>
+                <button
+                  onClick={() => { if (symIdx > 0) setAnalysisSymbol(allSymbols[symIdx - 1]); }}
+                  disabled={symIdx <= 0}
+                  aria-label="이전 종목"
+                  className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                >
+                  <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                </button>
+                <button
+                  onClick={() => { if (symIdx < allSymbols.length - 1) setAnalysisSymbol(allSymbols[symIdx + 1]); }}
+                  disabled={symIdx >= allSymbols.length - 1}
+                  aria-label="다음 종목"
+                  className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                >
+                  <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                </button>
+              </div>
+            )}
             <button
               onClick={close}
               aria-label="닫기"
