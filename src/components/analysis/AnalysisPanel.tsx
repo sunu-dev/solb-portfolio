@@ -295,7 +295,7 @@ export default function AnalysisPanel() {
       {/* Panel */}
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: 16 }}>
         <div
-          className="flex flex-col"
+          className="flex flex-col analysis-modal"
           style={{
             width: '100%',
             maxWidth: 'min(700px, 95vw)',
@@ -346,7 +346,20 @@ export default function AnalysisPanel() {
 
           {/* Scrollable body */}
           <div className="flex-1 analysis-body" style={{ overflowY: 'auto', padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } }`}</style>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
+            {/* PC 섹션 점프 칩 (lg+ 전용, 실제 렌더된 섹션만) — 모달 스캔성. 토스블루 회피(중립 칩) */}
+            <div className="analysis-anchors" style={{ position: 'sticky', top: 0, zIndex: 3, display: 'flex', gap: 6, padding: '2px 0 10px', background: 'var(--surface, #FFFFFF)' }}>
+              {analysis && !isLev && (
+                <button
+                  onClick={() => document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >차트</button>
+              )}
+              <button
+                onClick={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >뉴스</button>
+            </div>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
@@ -1254,7 +1267,7 @@ export default function AnalysisPanel() {
                 {analysis && !isLev && (
                   <>
                     {/* Chart Tabs */}
-                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
+                    <div id="anchor-chart" className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, scrollMarginTop: 44 }}>
                       차트 분석
                     </div>
 
@@ -1471,7 +1484,7 @@ export default function AnalysisPanel() {
                 )}
 
                 {/* Related news */}
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, marginTop: 24 }}>
+                <div id="anchor-news" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, marginTop: 24, scrollMarginTop: 44 }}>
                   📰 관련 뉴스
                 </div>
                 {tickerNews.length > 0 ? (
