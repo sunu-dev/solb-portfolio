@@ -149,6 +149,7 @@ export default function AnalysisPanel() {
   const [mentorError, setMentorError] = useState('');
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
   const [fundamentals, setFundamentals] = useState<any>(null);
+  const [wideMode, setWideMode] = useState(false); // lg+ 넓게 보기(opt-in, localStorage)
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -286,6 +287,10 @@ export default function AnalysisPanel() {
     setChartLevel('basic'); setChartRange(60); setFundamentals(null); setTickerNews([]);
   }, [symbol]);
 
+  useEffect(() => {
+    try { setWideMode(localStorage.getItem('solb_analysis_wide') === '1'); } catch { /* SSR/비가용 */ }
+  }, []);
+
   if (!symbol) return null;
 
   const quote = macroData[symbol] as QuoteData | undefined;
@@ -309,7 +314,7 @@ export default function AnalysisPanel() {
       {/* Panel */}
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: 16 }}>
         <div
-          className="flex flex-col analysis-modal"
+          className={`flex flex-col analysis-modal${wideMode ? ' wide' : ''}`}
           style={{
             width: '100%',
             maxWidth: 'min(700px, 95vw)',
@@ -348,41 +353,53 @@ export default function AnalysisPanel() {
                 <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · {symbol.endsWith('.KS') ? 'KRX' : symbol.endsWith('.KQ') ? 'KOSDAQ' : 'NASDAQ'}</div>
               </div>
             </div>
-            {showSwitcher && (
-              <div className="flex items-center" style={{ gap: 2, marginLeft: 'auto', marginRight: 4 }}>
-                <button
-                  onClick={() => { if (symIdx > 0) setAnalysisSymbol(allSymbols[symIdx - 1]); }}
-                  disabled={symIdx <= 0}
-                  aria-label="이전 종목"
-                  className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
-                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
-                >
-                  <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
-                </button>
-                <button
-                  onClick={() => { if (symIdx < allSymbols.length - 1) setAnalysisSymbol(allSymbols[symIdx + 1]); }}
-                  disabled={symIdx >= allSymbols.length - 1}
-                  aria-label="다음 종목"
-                  className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
-                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
-                >
-                  <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
-                </button>
-              </div>
-            )}
-            <button
-              onClick={close}
-              aria-label="닫기"
-              className="flex items-center justify-center cursor-pointer transition-colors"
-              style={{ width: 44, height: 44, borderRadius: 8, background: 'transparent', border: 'none' }}
-            >
-              <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
-            </button>
+            <div className="flex items-center" style={{ marginLeft: 'auto', gap: 2 }}>
+              {/* 넓게 보기 — lg+ 전용(CSS로 노출). 차트가 넓어짐. 기본 880 / 넓게 1080. */}
+              <button
+                onClick={() => setWideMode((v) => { try { localStorage.setItem('solb_analysis_wide', v ? '0' : '1'); } catch { /* */ } return !v; })}
+                aria-pressed={wideMode}
+                aria-label={wideMode ? '기본 너비로' : '넓게 보기'}
+                className="analysis-wide-toggle items-center justify-center cursor-pointer"
+                style={{ display: 'none', height: 32, padding: '0 10px', borderRadius: 8, background: wideMode ? 'var(--brand-primary-light, rgba(14,124,123,0.08))' : 'transparent', color: wideMode ? 'var(--brand-primary, #0E7C7B)' : '#8B95A1', border: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+              >
+                {wideMode ? '기본' : '넓게'}
+              </button>
+              {showSwitcher && (
+                <>
+                  <button
+                    onClick={() => { if (symIdx > 0) setAnalysisSymbol(allSymbols[symIdx - 1]); }}
+                    disabled={symIdx <= 0}
+                    aria-label="이전 종목"
+                    className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                  >
+                    <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                  </button>
+                  <button
+                    onClick={() => { if (symIdx < allSymbols.length - 1) setAnalysisSymbol(allSymbols[symIdx + 1]); }}
+                    disabled={symIdx >= allSymbols.length - 1}
+                    aria-label="다음 종목"
+                    className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                  >
+                    <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={close}
+                aria-label="닫기"
+                className="flex items-center justify-center cursor-pointer transition-colors"
+                style={{ width: 44, height: 44, borderRadius: 8, background: 'transparent', border: 'none' }}
+              >
+                <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
+              </button>
+            </div>
           </div>
 
           {/* Scrollable body */}
           <div className="flex-1 analysis-body" style={{ overflowY: 'auto', padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1080px !important; } .analysis-wide-toggle { display: inline-flex !important; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
             {/* PC 섹션 점프 칩 (lg+ 전용, 실제 렌더된 섹션만) — 모달 스캔성. 토스블루 회피(중립 칩) */}
             <div className="analysis-anchors" style={{ position: 'sticky', top: 0, zIndex: 3, display: 'flex', gap: 6, padding: '2px 0 10px', background: 'var(--surface, #FFFFFF)' }}>
               {analysis && !isLev && (
