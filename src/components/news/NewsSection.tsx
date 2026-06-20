@@ -259,7 +259,7 @@ export default function NewsSection() {
           {[0, 1, 2, 3, 4].map(i => <NewsSkeleton key={i} />)}
         </div>
       ) : items.length > 0 ? (
-        <div>
+        <div className="cols-2-xl">
           {items.slice(0, 20).map((item, idx) => {
             const relTime = item.pubDate ? getRelativeTime(item.pubDate) : '';
             // 내 종목 탭: 종목 심볼 뱃지 우선, 없으면 키워드 기반

@@ -1218,8 +1218,12 @@ export default function PortfolioSection() {
                 <div className="portfolio-widgets-grid">
                   <style>{`
                     .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
+                    .portfolio-widgets-grid > * { min-width: 0; }
                     @media (min-width: 1024px) {
-                      .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                      .portfolio-widgets-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+                    }
+                    @media (min-width: 1536px) {
+                      .portfolio-widgets-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 24px; }
                     }
                   `}</style>
                   <BenchmarkCompare />

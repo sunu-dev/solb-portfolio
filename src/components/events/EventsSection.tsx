@@ -590,8 +590,8 @@ export default function EventsSection() {
             <EventTimeline event={currentEvent} />
           </div>
 
-          {/* Stock Impact Cards */}
-          <div style={{ padding: '16px 16px 8px' }}>
+          {/* Stock Impact Cards — 세로 스택 → 와이드 멀티컬럼(표준 .fill-grid) */}
+          <div className="fill-grid fill-grid--md" style={{ padding: '16px 16px 8px' }}>
             {syms.length === 0 ? (
               <EmptyState
                 variant="compact"

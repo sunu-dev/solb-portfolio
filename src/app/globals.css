@@ -469,6 +469,8 @@ code, pre, kbd, samp, .font-mono {
   .fill-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--fill-min, 320px)), 1fr)); }
 }
 @media (min-width: 1280px) { .fill-grid { gap: 24px; } }
+.fill-grid--md { --fill-min: 360px; } /* 카드 넓게(2~3열) */
+.fill-grid--lg { --fill-min: 480px; } /* 카드 더 넓게(2열 지향, 회고/차트 카드) */
 
 /* (3) 순서 보존 2열 (시간순 News 등) — xl부터 2열, 그 전엔 단일. */
 .cols-2-xl { display: grid; gap: 20px; grid-template-columns: 1fr; }
