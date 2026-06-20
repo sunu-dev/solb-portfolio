@@ -102,6 +102,27 @@ export function generateFallbackPicks(opts: {
     }
   }
 
+  // 3차(빈 상태 원천 차단): enriched(PER·52주위치)가 전혀 없으면 score<0로 scored=0 → picks=0가 되어
+  //   "촉이 오는 종목을 찾지 못했어요"가 떴다. enriched 유무와 무관하게 CHOK_UNIVERSE
+  //   (이미 §6·레버리지 검증된 관찰 universe)에서 섹터 다양성 우선으로 3개를 보장한다.
+  if (picks.length < 3) {
+    const pickedSyms = new Set(picks.map(p => p.symbol));
+    const usedSectors = new Set(picks.map(p => p.sector));
+    const pool = CHOK_UNIVERSE.filter(u => !excludedSymbols.has(u.symbol) && !pickedSyms.has(u.symbol));
+    const fillFrom = (preferNewSector: boolean) => {
+      for (const u of pool) {
+        if (picks.find(p => p.symbol === u.symbol)) continue;
+        const lbl = sectorLabel(u.sector);
+        if (preferNewSector && usedSectors.has(lbl)) continue;
+        usedSectors.add(lbl);
+        picks.push({ symbol: u.symbol, krName: u.krName, sector: lbl, reason: '객관 수치 기준', keyMetric: '데이터 부족' });
+        if (picks.length >= 3) return;
+      }
+    };
+    fillFrom(true);       // 새 섹터 우선
+    if (picks.length < 3) fillFrom(false); // 그래도 부족하면 섹터 무시
+  }
+
   return picks;
 }
 
