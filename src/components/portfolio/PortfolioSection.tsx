@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Fragment, type ReactNode } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useHasHydrated } from '@/hooks/useHasHydrated';
-import { resolveHidden } from '@/lib/homeWidgetRegistry';
+import { resolveHidden, resolveWidgetOrder } from '@/lib/homeWidgetRegistry';
 // 내 종목 뉴스는 뉴스 탭으로 이동 — import 제거
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from '@/config/constants';
@@ -23,6 +23,7 @@ import OcrImportModal from './OcrImportModal';
 import PortfolioValueChart from './PortfolioValueChart';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
+import HomeEditSheet from './HomeEditSheet';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
 // 시장 발견(MarketMovers)·회고 6종(ShareCard·InvestmentJournal·StockPulse·PortfolioDNA·
@@ -148,6 +149,10 @@ export default function PortfolioSection() {
     lastUpdate,
     rawCandles,
     hiddenWidgets,
+    widgetOrder,
+    editMode,
+    setHomeEditMode,
+    toggleWidgetHidden,
   } = usePortfolioStore();
 
   // 홈 편집 — 숨김 위젯 적용. 하이드레이션 전엔 전부 표시(서버와 동일 → mismatch 방지), 마운트 후 숨김 반영.
@@ -164,6 +169,18 @@ export default function PortfolioSection() {
   const [showOcr, setShowOcr] = useState(false);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
   const [brokerFilter, setBrokerFilter] = useState<string | null>(null);  // Phase B-2 — broker 필터
+
+  // 홈 편집 — Dashboard 히어로 '편집' 버튼 이벤트 구독.
+  useEffect(() => {
+    const open = () => setHomeEditMode(true);
+    window.addEventListener('solb-open-home-edit', open);
+    return () => window.removeEventListener('solb-open-home-edit', open);
+  }, [setHomeEditMode]);
+  // broker-block 숨김 시 brokerFilter 리셋(orphan-lock 방지 — brokerFilter는 컨테이너 로컬 state라 store setter가 못 건드림).
+  const handleToggleWidget = (id: string) => {
+    if (id === 'broker-block') setBrokerFilter(null);
+    toggleWidgetHidden(id);
+  };
 
   // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
   useEffect(() => {
@@ -1104,58 +1121,52 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* 홈 스택 — 세로 리듬을 부모 .home-stack의 gap 한 곳에서 강제(자식 marginTop 제거).
-            조건부 자식이 빠져도 gap이 자동 정렬(orphan margin 없음). globals.css (7)·docs/PC_DENSITY_LAYOUT_PLAN.md */}
+        {/* 홈 스택(below-core) — widgetOrder 순서로 렌더(홈편집 재정렬). ⚠️ CSS order 아님(JSX 배열 재정렬)
+            → DOM/탭/SR 순서 일치(WCAG 1.3.2/2.4.3). non-hideable(ai-hunch)은 resolveHidden이 drop해 항상 표시(§6).
+            gate-false 위젯은 render fn이 null→flex 자식 부재→gap 없음. 세로 리듬은 부모 .home-stack gap. */}
         <div className="home-stack" style={{ marginTop: 24 }}>
-        {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰. 홈편집 below-core(broker-block). */}
-        {!isHidden('broker-block') && (
-        <div>
-          <BrokerSummaryCard
-            active={brokerFilter as never}
-            onSelect={(b) => setBrokerFilter(b as string | null)}
-          />
-          <MergedHoldingsCard />
-        </div>
-        )}
-
-        {/* 월간 챕터 척추 카드 — 30일 시즌으로 작동하는 투자 일지 (Phase 1+2)
-            매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
-            클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
-        {investingStocks.length > 0 && !isHidden('monthly-chapter') && (
-          <div>
-            <MonthlyChapter
-              onOpenWrapped={() => setWrappedOpen(true)}
-              onOpenPreviousChapter={() => window.dispatchEvent(new CustomEvent('solb-goto-chapter-shelf'))}
-            />
-          </div>
-        )}
-
-        {/* 포트폴리오 맵(compact) 제거 — 분석 서브탭의 full 히트맵과 중복(단일 소스화, IA 2026-06-20).
-            맵은 '분석' 서브탭에서 확인. MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관(IA P1-b). */}
-
-        {/* AI 촉 1줄 슬림 링크 — 영구 무료 AI 촉 발견 경로 보존(풀폭 배너→1줄 다운그레이드, IA 2026-06-20).
-            내 종목 뉴스 CTA는 하단 '뉴스' 탭과 중복이라 제거. */}
-        {displayList.length > 0 && (
-          <button
-            onClick={() => usePortfolioStore.getState().setCurrentSection('insights')}
-            aria-label="AI 인사이트 탭에서 AI 촉 보기"
-            style={{
-              width: '100%', padding: '10px 14px',
-              display: 'flex', alignItems: 'center', gap: 8,
-              borderRadius: 12,
-              background: 'var(--bg-subtle, #F8F9FA)',
-              border: '1px solid var(--border-light, #F2F4F6)',
-              cursor: 'pointer', textAlign: 'left',
-            }}
-          >
-            <span style={{ fontSize: 15 }}>🤖</span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              AI 촉 · 주비의 이야기 보기
-            </span>
-            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
-          </button>
-        )}
-
+          {(() => {
+            const belowCore: Record<string, () => ReactNode> = {
+              'broker-block': () => (
+                <div>
+                  <BrokerSummaryCard active={brokerFilter as never} onSelect={(b) => setBrokerFilter(b as string | null)} />
+                  <MergedHoldingsCard />
+                </div>
+              ),
+              'monthly-chapter': () => investingStocks.length > 0 ? (
+                <div>
+                  <MonthlyChapter
+                    onOpenWrapped={() => setWrappedOpen(true)}
+                    onOpenPreviousChapter={() => window.dispatchEvent(new CustomEvent('solb-goto-chapter-shelf'))}
+                  />
+                </div>
+              ) : null,
+              // AI 촉 1줄 슬림 링크 — 영구 무료 AI 촉 발견 경로(non-hideable, §6).
+              'ai-hunch-link': () => displayList.length > 0 ? (
+                <button
+                  onClick={() => usePortfolioStore.getState().setCurrentSection('insights')}
+                  aria-label="AI 인사이트 탭에서 AI 촉 보기"
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    borderRadius: 12,
+                    background: 'var(--bg-subtle, #F8F9FA)',
+                    border: '1px solid var(--border-light, #F2F4F6)',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>🤖</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    AI 촉 · 주비의 이야기 보기
+                  </span>
+                  <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
+                </button>
+              ) : null,
+            };
+            return resolveWidgetOrder(widgetOrder, 'below-core')
+              .filter((id) => !isHidden(id))
+              .map((id) => <Fragment key={id}>{belowCore[id]?.()}</Fragment>);
+          })()}
         </div>{/* /.home-stack */}
 
       </div>
@@ -1175,7 +1186,7 @@ export default function PortfolioSection() {
             });
             return (
               <>
-                <PortfolioValueChart />
+                {!isHidden('value-chart') && <PortfolioValueChart />}
                 {/* 데스크탑 2-column 그리드 */}
                 <div className="portfolio-widgets-grid">
                   <style>{`
@@ -1188,23 +1199,24 @@ export default function PortfolioSection() {
                       .portfolio-widgets-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 24px; }
                     }
                   `}</style>
-                  <BenchmarkCompare />
-                  <PortfolioTreemap
+                  {!isHidden('benchmark-compare') && <BenchmarkCompare />}
+                  {!isHidden('treemap') && <PortfolioTreemap
                     stocks={investingStocks}
                     macroData={macroData}
                     usdKrw={usdKrw}
                     currency={currency}
                     rawCandles={rawCandles}
                     onCellClick={(sym) => setAnalysisSymbol(sym)}
-                  />
-                  <PortfolioHealth stocks={investingData} />
+                  />}
+                  {!isHidden('portfolio-health') && <PortfolioHealth stocks={investingData} />}
                 </div>
-                <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />
-                {/* 챕터 책장 — 지난 달 회고 누적 (Phase 4). 나머지 회고·성향(Throwback·TradePatternMirror·
-                    PortfolioDNA·StockPulse·InvestmentJournal·ShareCard)은 AI 인사이트 탭으로 이관(IA P2). */}
+                {!isHidden('goal-progress') && <GoalProgress stocks={investingData} currency={currency} usdKrw={usdKrw} />}
+                {/* 챕터 책장 — 지난 달 회고 누적. 홈편집 analysis존(chapter-shelf). */}
+                {!isHidden('chapter-shelf') && (
                 <div data-slot="chapter-shelf" style={{ marginTop: 24 }}>
                   <ChapterShelf onSelect={() => setWrappedOpen(true)} />
                 </div>
+                )}
               </>
             );
           })() : (
@@ -1228,6 +1240,9 @@ export default function PortfolioSection() {
       {/* 월간 Wrapped 풀스크린 모달 — 오버레이군. 홈 편집 시 .home-stack JSX 재정렬 전제로
           비위젯 자식(모달)을 .home-stack 밖으로 분리(홈편집 설계 Phase 0). */}
       <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
+
+      {/* 홈 화면 편집 시트 — Dashboard 히어로 '편집' 버튼으로 진입(solb-open-home-edit). */}
+      <HomeEditSheet isOpen={editMode} onClose={() => setHomeEditMode(false)} onToggleWidget={handleToggleWidget} />
 
       {/* Undo 삭제 토스트 */}
       {undoData && (
