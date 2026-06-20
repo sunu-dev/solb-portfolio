@@ -269,7 +269,7 @@ export default function ThrowbackCard() {
                 fontWeight: isActive ? 700 : 500,
                 color: !hasData
                   ? 'var(--text-tertiary, #B0B8C1)'
-                  : isActive ? '#fff' : 'var(--text-secondary, #4E5968)',
+                  : isActive ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #4E5968)',
                 background: isActive ? 'var(--text-primary, #191F28)' : 'var(--surface, #FFFFFF)',
                 border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #F2F4F6)'}`,
                 cursor: hasData ? 'pointer' : 'not-allowed',

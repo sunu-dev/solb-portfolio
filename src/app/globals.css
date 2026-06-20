@@ -74,6 +74,12 @@
   /* Inverse (배경 대비 텍스트) */
   --text-inverse: #FFFFFF;
 
+  /* 선택/active pill·세그먼트·탭·칩 — 배경·텍스트가 '함께 뒤집히는' 색쌍 (다크 코어).
+     active 배경은 var(--pill-active-bg), 텍스트는 var(--pill-active-fg). 절대 color:'#fff' 리터럴 금지.
+     (라이트: 진한 배경+흰 글자 / 다크: 밝은 배경+진한 글자 → 항상 고대비) */
+  --pill-active-bg: #191F28;
+  --pill-active-fg: #FFFFFF;
+
   /* Dashboard hero gradients */
   --dashboard-hero-gain: linear-gradient(135deg, #F0F7FF 0%, #F5F3FF 100%);
   --dashboard-hero-loss: linear-gradient(135deg, #FFF5F5 0%, #FFF9F0 100%);
@@ -335,7 +341,7 @@ code, pre, kbd, samp, .font-mono {
   --surface-hover: #22253A;
   --text-primary: #E8E8ED;
   --text-secondary: #8E8E9A;
-  --text-tertiary: #5C5C6A;
+  --text-tertiary: #7E8290; /* #5C5C6A는 surface 위 2.54:1로 WCAG 미달 → 3:1+로 상향 */
   --border-light: #2A2D3D;
   /* 다크 elevation — 검정 그림자는 어두운 배경에서 죽으므로 hairline 보더 기반으로
      카드 경계를 확보(surface·surface-hover 동톤 뭉침 방지). 라이트는 :root 그대로. */
@@ -371,6 +377,8 @@ code, pre, kbd, samp, .font-mono {
   --color-purple: #AF52DE;
   --color-purple-bg: rgba(175, 82, 222, 0.15);
   --text-inverse: #191F28;
+  --pill-active-bg: #E8E8ED; /* 다크: active 배경 밝게 */
+  --pill-active-fg: #191F28; /* 다크: active 텍스트 진하게 (배경과 함께 뒤집힘) */
   --border-strong: #2A2D3D;
   --card-bg: #1A1D2E;
 
@@ -511,7 +519,11 @@ code, pre, kbd, samp, .font-mono {
 .dark input, .dark select { background: var(--surface) !important; color: var(--text-primary) !important; border-color: var(--border-light) !important; }
 .dark button { color: var(--text-primary); }
 
-/* Dark mode for background overrides */
+/* Dark mode for background overrides
+   ⚠️ FROZEN(2026-06-20): 하드코딩 색 substring 허용목록은 '사후 추격' 패치라 신규 컴포넌트를 못 따라간다.
+   신규 추가 금지 — 컴포넌트는 var(--token)만 쓰고(인라인 hex 금지), active pill은 --pill-active-bg/fg 색쌍,
+   어두운 배경 위 흰 글자는 --text-inverse를 쓴다. 정적 검출은 scripts/lint-darkmode.mjs(R1~R4)가 강제.
+   이 목록은 잔존 레거시 한정으로만 유지. 관련: project_design_system 다크 코어 표준. */
 .dark [style*="background: white"],
 .dark [style*="background: #fff"],
 .dark [style*="background:#fff"],

@@ -505,7 +505,7 @@ export default function EventsSection() {
                   padding: isCustom ? '8px 4px 8px 14px' : '8px 16px',
                   fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer',
                   background: 'transparent', border: 'none',
-                  color: isActive ? '#FFFFFF' : 'var(--text-secondary, #4E5968)',
+                  color: isActive ? 'var(--pill-active-fg, #FFFFFF)' : 'var(--text-secondary, #4E5968)',
                 }}
               >
                 {ev.emoji} {ev.name}
@@ -734,8 +734,8 @@ function AddEventModal({
             {QUICK_EVENTS.map(q => (
               <button key={q.name} onClick={() => applyQuick(q)} style={{
                 padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                background: name === q.name ? '#191F28' : '#F2F4F6',
-                color: name === q.name ? '#FFFFFF' : '#4E5968',
+                background: name === q.name ? 'var(--pill-active-bg, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
+                color: name === q.name ? 'var(--pill-active-fg, #FFFFFF)' : 'var(--text-secondary, #4E5968)',
                 border: 'none', cursor: 'pointer', transition: 'all 0.15s',
               }}>
                 {q.emoji} {q.name}

@@ -411,7 +411,7 @@ export default function PortfolioSection() {
                 minHeight: 40,
                 fontSize: 14,
                 fontWeight: subTab === key ? 600 : 400,
-                color: subTab === key ? 'var(--surface, #fff)' : 'var(--text-secondary, #8B95A1)',
+                color: subTab === key ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
                 background: subTab === key ? 'var(--text-primary, #191F28)' : 'transparent',
                 border: 'none',
                 borderRadius: 10,
@@ -612,7 +612,7 @@ export default function PortfolioSection() {
                       padding: '4px 10px',
                       fontSize: 12,
                       fontWeight: isActive ? 700 : 400,
-                      color: isActive ? '#fff' : 'var(--text-tertiary, #8B95A1)',
+                      color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--text-tertiary, #8B95A1)',
                       background: isActive ? 'var(--text-primary, #191F28)' : 'transparent',
                       border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #E5E8EB)'}`,
                       borderRadius: 20,
@@ -649,7 +649,7 @@ export default function PortfolioSection() {
               <button
                 onClick={() => setBrokerFilter(null)}
                 className="cursor-pointer"
-                style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--text-primary, #191F28)', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', minHeight: 44 }}
+                style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--text-primary, #191F28)', color: 'var(--text-inverse, #fff)', fontSize: 13, fontWeight: 600, border: 'none', minHeight: 44 }}
               >
                 전체 보기
               </button>
@@ -1226,7 +1226,7 @@ export default function PortfolioSection() {
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'var(--text-primary, #191F28)',
-          color: '#FFFFFF',
+          color: 'var(--text-inverse, #FFFFFF)',
           padding: '12px 20px',
           borderRadius: 12,
           display: 'flex',

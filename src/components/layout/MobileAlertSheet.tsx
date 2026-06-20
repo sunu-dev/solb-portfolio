@@ -109,7 +109,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
                     fontWeight: isActive ? 600 : 400,
                     whiteSpace: 'nowrap',
                     background: isActive ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                    color: isActive ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                    color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
                     border: 'none',
                   }}
                 >

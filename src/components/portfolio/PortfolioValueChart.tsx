@@ -153,7 +153,7 @@ export default function PortfolioValueChart() {
                 style={{
                   padding: '5px 11px', borderRadius: 16, fontSize: 11,
                   fontWeight: active ? 700 : 500,
-                  color: active ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                  color: active ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
                   background: active ? 'var(--text-primary, #191F28)' : 'transparent',
                   border: `1px solid ${active ? 'var(--text-primary, #191F28)' : 'var(--border-light, #F2F4F6)'}`,
                   cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,

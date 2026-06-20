@@ -225,7 +225,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 width: '100%', maxWidth: 320, margin: '0 auto 18px',
                 padding: '14px 20px',
-                borderRadius: 14, background: 'var(--text-primary, #191F28)', color: '#fff',
+                borderRadius: 14, background: 'var(--text-primary, #191F28)', color: 'var(--text-inverse, #fff)',
                 fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
               }}
             >
