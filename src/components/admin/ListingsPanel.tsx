@@ -221,7 +221,7 @@ export default function ListingsPanel() {
         <select
           value={filterExchange}
           onChange={(e) => setFilterExchange(e.target.value)}
-          style={{ padding: '6px 10px', fontSize: 12, borderRadius: 8, border: '1px solid #E5E8EB', background: '#fff' }}
+          style={{ padding: '6px 10px', fontSize: 12, borderRadius: 8, border: '1px solid var(--border-light, #E5E8EB)', background: '#fff' }}
         >
           <option value="">전체 거래소</option>
           <option value="US">미국 (US)</option>
@@ -233,7 +233,7 @@ export default function ListingsPanel() {
           placeholder="symbol / 영문 / 한글 검색"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: 180, padding: '6px 10px', fontSize: 12, borderRadius: 8, border: '1px solid #E5E8EB' }}
+          style={{ flex: 1, minWidth: 180, padding: '6px 10px', fontSize: 12, borderRadius: 8, border: '1px solid var(--border-light, #E5E8EB)' }}
         />
         <button
           onClick={fetchListings}
@@ -243,7 +243,7 @@ export default function ListingsPanel() {
         </button>
         <button
           onClick={() => setShowAddForm(v => !v)}
-          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8, background: showAddForm ? '#F2F4F6' : '#3182F6', color: showAddForm ? '#4E5968' : '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+          style={{ padding: '6px 14px', fontSize: 12, borderRadius: 8, background: showAddForm ? 'var(--bg-subtle, #F2F4F6)' : '#3182F6', color: showAddForm ? '#4E5968' : '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}
         >
           {showAddForm ? '닫기' : '＋ 수동 추가'}
         </button>
@@ -259,7 +259,7 @@ export default function ListingsPanel() {
             <select
               value={addExchange}
               onChange={(e) => setAddExchange(e.target.value as 'KS' | 'KQ' | 'US')}
-              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB', background: '#fff' }}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)', background: '#fff' }}
             >
               <option value="KS">코스피 (KS)</option>
               <option value="KQ">코스닥 (KQ)</option>
@@ -270,14 +270,14 @@ export default function ListingsPanel() {
               placeholder="Symbol (예: 005930 또는 005930.KS)"
               value={addSymbol}
               onChange={(e) => setAddSymbol(e.target.value)}
-              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)' }}
             />
             <input
               type="text"
               placeholder="한국어명 (예: 삼성전자)"
               value={addKrName}
               onChange={(e) => setAddKrName(e.target.value)}
-              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+              style={{ padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)' }}
             />
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -286,7 +286,7 @@ export default function ListingsPanel() {
               placeholder="영문 설명 (선택)"
               value={addDescription}
               onChange={(e) => setAddDescription(e.target.value)}
-              style={{ flex: 1, padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+              style={{ flex: 1, padding: '8px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)' }}
             />
             <button
               onClick={handleManualAdd}
@@ -322,7 +322,7 @@ export default function ListingsPanel() {
                 key={l.symbol}
                 style={{
                   padding: '12px 14px', background: '#fff', borderRadius: 10,
-                  border: '1px solid #F2F4F6',
+                  border: '1px solid var(--border-light, #F2F4F6)',
                   display: 'flex', flexDirection: 'column', gap: 8,
                 }}
               >
@@ -362,14 +362,14 @@ export default function ListingsPanel() {
                       placeholder="한국어명"
                       value={krDraft}
                       onChange={(e) => setKrDraft(e.target.value)}
-                      style={{ flex: 1, minWidth: 140, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+                      style={{ flex: 1, minWidth: 140, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)' }}
                     />
                     <input
                       type="text"
                       placeholder="메모"
                       value={notesDraft}
                       onChange={(e) => setNotesDraft(e.target.value)}
-                      style={{ flex: 2, minWidth: 140, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid #E5E8EB' }}
+                      style={{ flex: 2, minWidth: 140, padding: '6px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border-light, #E5E8EB)' }}
                     />
                     <button
                       onClick={() => saveEdit(l.symbol)}

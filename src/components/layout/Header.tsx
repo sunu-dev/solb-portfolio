@@ -266,7 +266,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                 fontSize: '11px',
                 color: '#B0B8C1',
                 background: 'var(--surface, #fff)',
-                border: '1px solid #F2F4F6',
+                border: '1px solid var(--border-light, #F2F4F6)',
                 borderRadius: '4px',
                 padding: '1px 5px',
                 marginLeft: '4px',

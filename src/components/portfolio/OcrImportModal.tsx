@@ -253,7 +253,7 @@ export default function OcrImportModal({ onClose }: Props) {
                 onDrop={onDrop}
                 onClick={() => fileRef.current?.click()}
                 style={{
-                  border: `2px dashed ${dragOver ? '#3182F6' : '#E5E8EB'}`,
+                  border: `2px dashed ${dragOver ? '#3182F6' : 'var(--border-light, #E5E8EB)'}`,
                   borderRadius: 16, padding: '48px 24px', textAlign: 'center',
                   cursor: 'pointer', background: dragOver ? 'rgba(49,130,246,0.04)' : '#FAFAFA',
                   transition: 'all 0.15s',
@@ -301,7 +301,7 @@ export default function OcrImportModal({ onClose }: Props) {
           {step === 'review' && (
             <div>
               {preview && (
-                <img src={preview} alt="업로드된 이미지" style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, marginBottom: 16, border: '1px solid #F2F4F6' }} />
+                <img src={preview} alt="업로드된 이미지" style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, marginBottom: 16, border: '1px solid var(--border-light, #F2F4F6)' }} />
               )}
 
               {/* 카테고리 선택 */}
@@ -348,7 +348,7 @@ export default function OcrImportModal({ onClose }: Props) {
                       key={i}
                       style={{
                         padding: '12px 14px', borderRadius: 12,
-                        border: `1.5px solid ${dup ? '#E5E8EB' : incomplete && isSelected ? '#FF9500' : isSelected ? '#3182F6' : '#E5E8EB'}`,
+                        border: `1.5px solid ${dup ? 'var(--border-light, #E5E8EB)' : incomplete && isSelected ? '#FF9500' : isSelected ? '#3182F6' : 'var(--border-light, #E5E8EB)'}`,
                         background: dup ? '#F8F9FA' : incomplete && isSelected ? 'rgba(255,149,0,0.04)' : isSelected ? 'rgba(49,130,246,0.04)' : '#fff',
                         opacity: dup ? 0.6 : 1,
                         transition: 'all 0.15s',
@@ -403,7 +403,7 @@ export default function OcrImportModal({ onClose }: Props) {
                                   onChange={e => updateField(i, 'editAvgCost', e.target.value)}
                                   style={{
                                     width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
-                                    border: `1px solid ${s.editAvgCost ? '#E5E8EB' : '#FF9500'}`,
+                                    border: `1px solid ${s.editAvgCost ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
                                     borderRadius: 8, outline: 'none', boxSizing: 'border-box',
                                     background: '#fff',
                                   }}
@@ -419,7 +419,7 @@ export default function OcrImportModal({ onClose }: Props) {
                                   onChange={e => updateField(i, 'editShares', e.target.value)}
                                   style={{
                                     width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
-                                    border: `1px solid ${s.editShares ? '#E5E8EB' : '#FF9500'}`,
+                                    border: `1px solid ${s.editShares ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
                                     borderRadius: 8, outline: 'none', boxSizing: 'border-box',
                                     background: '#fff',
                                   }}
@@ -464,7 +464,7 @@ export default function OcrImportModal({ onClose }: Props) {
                 <img
                   src={preview}
                   alt="업로드 이미지 미리보기"
-                  style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, marginBottom: 16, border: '1px solid #F2F4F6', opacity: 0.55 }}
+                  style={{ width: '100%', maxHeight: 140, objectFit: 'contain', borderRadius: 12, marginBottom: 16, border: '1px solid var(--border-light, #F2F4F6)', opacity: 0.55 }}
                 />
               )}
 

@@ -391,7 +391,7 @@ function BriefingRow({
       alignItems: 'flex-start',
       gap: 10,
       padding: '10px 0',
-      borderTop: '1px solid rgba(242,244,246,0.7)',
+      borderTop: '1px solid var(--border-light, rgba(242,244,246,0.7))',
     }}>
       <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>

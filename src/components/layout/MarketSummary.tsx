@@ -94,7 +94,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
     <div ref={ref} style={{
       position: 'absolute', top: '100%', right: 0, marginTop: 8, zIndex: 1000,
       background: 'white', borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.14)',
-      border: '1px solid #F2F4F6', padding: '16px 20px', minWidth: 240,
+      border: '1px solid var(--border-light, #F2F4F6)', padding: '16px 20px', minWidth: 240,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: status.color }} />
@@ -116,7 +116,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
         return (
           <section
             aria-label="휴장 일정"
-            style={{ borderTop: '1px solid #F2F4F6', paddingTop: 10, marginBottom: 6 }}
+            style={{ borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 10, marginBottom: 6 }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
               <span style={{ fontSize: 12 }}>📅</span>
@@ -164,7 +164,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
         );
       })()}
 
-      <div style={{ borderTop: '1px solid #F2F4F6', paddingTop: 10 }}>
+      <div style={{ borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 10 }}>
         {sessions.map((s, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 12 }}>
             <div>
@@ -176,7 +176,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
         ))}
       </div>
       {!isKR && (
-        <div style={{ fontSize: 10, color: '#B0B8C1', borderTop: '1px solid #F2F4F6', paddingTop: 8, marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: '#B0B8C1', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 8, marginTop: 4 }}>
           서머타임 {dst ? '적용 중' : '미적용'}
         </div>
       )}
@@ -286,7 +286,7 @@ export default function MarketSummary() {
           <button
             onClick={() => setActiveMarket(activeMarket === 'KR' ? null : 'KR')}
             className="flex items-center gap-1.5"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'KR' ? { background: '#F2F4F6' } : {}) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'KR' ? { background: 'var(--bg-subtle, #F2F4F6)' } : {}) }}
           >
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: krHoliday ? '#8B95A1' : ms.kr.color }} />
             <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>국내장</span>
@@ -298,7 +298,7 @@ export default function MarketSummary() {
           <button
             onClick={() => setActiveMarket(activeMarket === 'US' ? null : 'US')}
             className="flex items-center gap-1.5"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'US' ? { background: '#F2F4F6' } : {}) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 6, transition: 'background 0.15s', ...(activeMarket === 'US' ? { background: 'var(--bg-subtle, #F2F4F6)' } : {}) }}
           >
             <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: usHoliday ? '#8B95A1' : ms.us.color }} />
             <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600 }}>미장</span>

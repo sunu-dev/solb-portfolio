@@ -118,7 +118,7 @@ export default function ApiStatsPanel() {
         <Section title="AI Provider 상태">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {/* Gemini */}
-            <div style={{ padding: 14, background: '#fff', border: '1px solid #F2F4F6', borderRadius: 12 }}>
+            <div style={{ padding: 14, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
               <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>🟢 Gemini (primary)</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>
                 {stats.provider.gemini.keys > 0 ? `${stats.provider.gemini.keys}개 키 활성` : '키 없음'}
@@ -132,7 +132,7 @@ export default function ApiStatsPanel() {
             <div style={{
               padding: 14,
               background: stats.provider.claude.available ? '#fff' : '#F8F9FA',
-              border: `1px solid ${stats.provider.claude.available ? '#F2F4F6' : '#E5E8EB'}`,
+              border: `1px solid ${stats.provider.claude.available ? 'var(--border-light, #F2F4F6)' : 'var(--border-light, #E5E8EB)'}`,
               borderRadius: 12,
               opacity: stats.provider.claude.available ? 1 : 0.6,
             }}>
@@ -236,7 +236,7 @@ export default function ApiStatsPanel() {
               style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
                 gap: 8, padding: '10px 14px', borderRadius: 10,
-                background: '#fff', border: '1px solid #F2F4F6',
+                background: '#fff', border: '1px solid var(--border-light, #F2F4F6)',
                 alignItems: 'center', fontSize: 12,
               }}
             >
@@ -263,7 +263,7 @@ export default function ApiStatsPanel() {
               key={u.userKey}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                background: '#fff', borderRadius: 10, border: '1px solid #F2F4F6',
+                background: '#fff', borderRadius: 10, border: '1px solid var(--border-light, #F2F4F6)',
                 fontSize: 12,
               }}
             >
@@ -310,7 +310,7 @@ export default function ApiStatsPanel() {
 
 function StatCard({ label, value, unit, color }: { label: string; value: string | number; unit: string; color: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
       <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, color }}>
         {value}

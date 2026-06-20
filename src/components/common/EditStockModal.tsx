@@ -259,7 +259,7 @@ export default function EditStockModal() {
           }
         `}</style>
         {/* Header */}
-        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid #F2F4F6' }}>
+        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
           </div>
@@ -498,7 +498,7 @@ export default function EditStockModal() {
               </div>
 
               {/* 추가 매수 */}
-              <div style={{ paddingTop: 16, borderTop: '1px solid #F2F4F6' }}>
+              <div style={{ paddingTop: 16, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary, #191F28)' }}>추가 매수 기록</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
                   <div>
@@ -630,7 +630,7 @@ export default function EditStockModal() {
         )}
 
         {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid #F2F4F6', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-light, #F2F4F6)', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
           <button onClick={close}
             style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong, #E5E8EB)', cursor: 'pointer' }}>
             취소

@@ -155,7 +155,7 @@ export default function BuySimulator({
   return (
     <div style={{
       marginTop: 8, padding: '16px 18px', borderRadius: 14,
-      background: 'var(--surface, #FFFFFF)', border: '1px solid #F2F4F6',
+      background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>

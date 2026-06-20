@@ -334,7 +334,7 @@ export default function AnalysisPanel() {
           {/* Header */}
           <div
             className="flex items-center justify-between"
-            style={{ padding: '20px 24px', borderBottom: '1px solid #F2F4F6', flexShrink: 0 }}
+            style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-light, #F2F4F6)', flexShrink: 0 }}
           >
             <div className="flex items-center" style={{ gap: 12 }}>
               <div
@@ -1088,7 +1088,7 @@ export default function AnalysisPanel() {
                       padding: 20,
                       borderRadius: 14,
                       background: '#F8F9FB',
-                      border: '1px solid #F2F4F6',
+                      border: '1px solid var(--border-light, #F2F4F6)',
                       marginBottom: 24,
                     }}>
                       <div className="flex items-center" style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, gap: 8 }}>
@@ -1100,7 +1100,7 @@ export default function AnalysisPanel() {
                       <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.7, marginBottom: 16 }}>
                         {analysis.chartShape.desc}
                       </div>
-                      <div className="flex items-center" style={{ gap: 16, paddingTop: 14, borderTop: '1px solid #F2F4F6' }}>
+                      <div className="flex items-center" style={{ gap: 16, paddingTop: 14, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
                         <span
                           className="inline-flex items-center"
                           style={{
@@ -1177,7 +1177,7 @@ export default function AnalysisPanel() {
                         const plPctVal = ((price - stockData.avgCost) / stockData.avgCost) * 100;
                         const plIsGain = plUsd >= 0;
                         return (
-                          <div className="flex justify-between items-center" style={{ padding: '12px 0 6px', borderTop: '1px solid #F2F4F6', marginTop: 6 }}>
+                          <div className="flex justify-between items-center" style={{ padding: '12px 0 6px', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 6 }}>
                             <span style={{ fontSize: 14, fontWeight: 600, color: '#191F28' }}>수익</span>
                             <span style={{ fontSize: 14, fontWeight: 600, color: plIsGain ? '#EF4452' : '#3182F6' }}>
                               {currency === 'KRW'
@@ -1325,7 +1325,7 @@ export default function AnalysisPanel() {
                     </div>
 
                     {/* Chart level tabs: 2 tabs */}
-                    <div className="flex items-center" style={{ border: '1px solid #F2F4F6', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+                    <div className="flex items-center" style={{ border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
                       {(['basic', 'detail'] as ChartLevel[]).map((lvl, idx) => (
                         <button
                           key={lvl}
@@ -1342,7 +1342,7 @@ export default function AnalysisPanel() {
                             borderTop: 'none',
                             borderBottom: 'none',
                             borderLeft: 'none',
-                            borderRight: idx < 1 ? '1px solid #F2F4F6' : 'none',
+                            borderRight: idx < 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
                           }}
                         >
                           {lvl === 'basic' ? '기본' : '상세'}
@@ -1571,7 +1571,7 @@ export default function AnalysisPanel() {
                 )}
 
                 {/* Disclaimer */}
-                <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid #F2F4F6', marginTop: 16 }}>
+                <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 16 }}>
                   ⚠️ AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
                 </div>
               </>

@@ -34,7 +34,7 @@ function getTodayKST() {
 
 function StatCard({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
       <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 700, color }}>
         {value.toLocaleString()}
@@ -181,14 +181,14 @@ export default function AdminPage() {
         <button
           onClick={fetchStats}
           disabled={refreshing}
-          style={{ padding: '8px 20px', background: refreshing ? '#F2F4F6' : '#3182F6', color: refreshing ? '#8B95A1' : '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+          style={{ padding: '8px 20px', background: refreshing ? 'var(--bg-subtle, #F2F4F6)' : '#3182F6', color: refreshing ? '#8B95A1' : '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer' }}
         >
           {refreshing ? '로딩 중...' : '새로고침'}
         </button>
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #F2F4F6', marginBottom: 32, gap: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: 32, gap: 0 }}>
         {([['stats', '📊 통계'], ['growth', '📈 성장'], ['api', '🛡️ API 관측'], ['listings', '📚 신규 상장'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{
             padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
@@ -236,7 +236,7 @@ export default function AdminPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
 
         {/* Gemini 쿼터 게이지 */}
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, color: '#191F28' }}>Gemini 쿼터 (오늘)</h3>
           {stats.geminiUsage.map(k => (
             <QuotaBar
@@ -247,14 +247,14 @@ export default function AdminPage() {
               color="#3182F6"
             />
           ))}
-          <div style={{ borderTop: '1px solid #F2F4F6', paddingTop: 16, marginTop: 4 }}>
+          <div style={{ borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 16, marginTop: 4 }}>
             <QuotaBar label="전체 합산" used={totalGeminiUsed} total={totalGeminiMax} color="#191F28" />
           </div>
           <p style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>* 다른 Google 계정 키 × 500 RPD</p>
         </div>
 
         {/* AI 한도 현황 */}
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, color: '#191F28' }}>AI 분석 한도 설정</h3>
           {[
             { label: '비로그인 유저', key: 'guest', value: stats.limits.guest, unit: '회/일' },
@@ -279,7 +279,7 @@ export default function AdminPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
 
         {/* 유저별 오늘 AI 사용량 */}
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>유저별 AI 사용량 (오늘)</h3>
           {stats.userAiUsage.length > 0 ? stats.userAiUsage.map((u, i) => (
             <div key={u.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
@@ -296,7 +296,7 @@ export default function AdminPage() {
         </div>
 
         {/* 인기 분석 종목 */}
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>인기 분석 종목 TOP 10</h3>
           {stats.topStocks.length > 0 ? stats.topStocks.map((s, i) => (
             <div key={s.symbol} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
@@ -310,7 +310,7 @@ export default function AdminPage() {
       </div>
 
       {/* 최근 활동 */}
-      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>최근 활동</h3>
         {stats.recentLogs.length > 0 ? stats.recentLogs.map((log, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
@@ -400,13 +400,13 @@ function CodesPanel({ session: _session }: { session: unknown }) {
   return (
     <div>
       {/* 코드 생성 */}
-      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>코드 생성</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>타입</label>
             <select value={type} onChange={e => setType(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13 }}>
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13 }}>
               <option value="invite">invite — 베타 초대</option>
               <option value="referral">referral — 리퍼럴</option>
               <option value="discount">discount — 할인</option>
@@ -416,21 +416,21 @@ function CodesPanel({ session: _session }: { session: unknown }) {
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>생성 수량</label>
             <input type="number" value={count} min={1} max={100} onChange={e => setCount(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>1코드 최대 사용</label>
             <input type="number" value={maxUses} min={1} onChange={e => setMaxUses(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>만료일 (선택)</label>
             <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
           </div>
         </div>
         <input value={description} onChange={e => setDescription(e.target.value)} placeholder="메모 (선택)"
-          style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
+          style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
         <button onClick={handleGenerate} disabled={generating}
           style={{ padding: '10px 24px', background: generating ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer' }}>
           {generating ? '생성 중...' : `코드 ${count}개 생성`}
@@ -438,18 +438,18 @@ function CodesPanel({ session: _session }: { session: unknown }) {
       </div>
 
       {/* 코드 목록 */}
-      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             {['invite', 'referral', 'discount', 'promo'].map(t => (
               <button key={t} onClick={() => { setFilterType(t); loadCodes(t); }}
-                style={{ padding: '6px 14px', background: filterType === t ? '#191F28' : '#F2F4F6', color: filterType === t ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ padding: '6px 14px', background: filterType === t ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: filterType === t ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 {t}
               </button>
             ))}
           </div>
           <button onClick={copyAll}
-            style={{ padding: '6px 14px', background: copied === 'all' ? '#20C997' : '#F2F4F6', color: copied === 'all' ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ padding: '6px 14px', background: copied === 'all' ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === 'all' ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             {copied === 'all' ? '복사됨 ✓' : '미사용 전체 복사'}
           </button>
         </div>
@@ -464,7 +464,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
               <div key={c.code} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 padding: '10px 14px', background: '#F8F9FA', borderRadius: 10,
-                border: '1px solid #F2F4F6', opacity: c.is_active ? 1 : 0.4,
+                border: '1px solid var(--border-light, #F2F4F6)', opacity: c.is_active ? 1 : 0.4,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>{c.code}</span>
@@ -476,7 +476,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
                     {new Date(c.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                   </span>
                   <button onClick={() => { navigator.clipboard.writeText(c.code); setCopied(c.code); setTimeout(() => setCopied(''), 1500); }}
-                    style={{ padding: '4px 10px', background: copied === c.code ? '#20C997' : '#F2F4F6', color: copied === c.code ? '#fff' : '#4E5968', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                    style={{ padding: '4px 10px', background: copied === c.code ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === c.code ? '#fff' : '#4E5968', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
                     {copied === c.code ? '✓' : '복사'}
                   </button>
                   <button onClick={() => toggleCode(c.code, c.is_active)}
@@ -533,7 +533,7 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
   };
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 28 }}>
+    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 28 }}>
       <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 24 }}>서비스 설정</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -542,7 +542,7 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.entries(modeLabels).map(([val, label]) => (
               <button key={val} onClick={() => update('service_mode', val)}
-                style={{ padding: '8px 20px', background: config.service_mode === val ? '#191F28' : '#F2F4F6', color: config.service_mode === val ? '#fff' : '#4E5968', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ padding: '8px 20px', background: config.service_mode === val ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: config.service_mode === val ? '#fff' : '#4E5968', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 {label}
               </button>
             ))}
@@ -560,7 +560,7 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
             <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2 }}>OFF 시 코드 없이 바로 가입 가능</div>
           </div>
           <button onClick={() => update('invite_required', config.invite_required === 'true' ? 'false' : 'true')}
-            style={{ width: 48, height: 26, background: config.invite_required === 'true' ? '#3182F6' : '#E5E8EB', border: 'none', borderRadius: 13, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+            style={{ width: 48, height: 26, background: config.invite_required === 'true' ? '#3182F6' : 'var(--bg-subtle, #E5E8EB)', border: 'none', borderRadius: 13, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
             <span style={{ position: 'absolute', top: 3, left: config.invite_required === 'true' ? 24 : 3, width: 20, height: 20, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
           </button>
         </div>
@@ -569,12 +569,12 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 최대 인원 (0=무제한)</label>
             <input type="number" value={config.beta_max_users || ''} onChange={e => update('beta_max_users', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 자동 종료 날짜</label>
             <input type="date" value={config.beta_end_date || ''} onChange={e => update('beta_end_date', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
           </div>
         </div>
 
@@ -585,7 +585,7 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
               <div key={key}>
                 <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>{label}</label>
                 <input type="number" value={config[key] || ''} onChange={e => update(key, e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #E5E8EB', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
               </div>
             ))}
           </div>
@@ -675,14 +675,14 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         {[7, 14, 30].map(d => (
           <button key={d} onClick={() => setDays(d)}
-            style={{ padding: '6px 16px', background: days === d ? '#191F28' : '#F2F4F6', color: days === d ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ padding: '6px 16px', background: days === d ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: days === d ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             최근 {d}일
           </button>
         ))}
       </div>
 
       {/* 앱스토어 준비도 */}
-      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>앱스토어 출시 준비도</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -694,7 +694,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {data.checks.map(c => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : '#F8F9FA', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : '#F2F4F6'}` }}>
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : '#F8F9FA', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : 'var(--border-light, #F2F4F6)'}` }}>
               <span style={{ fontSize: 16 }}>{c.done ? '✅' : '⬜'}</span>
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.done ? '#20C997' : '#191F28' }}>{c.label}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: c.done ? '#20C997' : '#8B95A1' }}>
@@ -712,7 +712,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
           { label: '오늘 DAU', value: data.todayDau, unit: '명', color: '#00C6BE' },
           { label: '최고 DAU', value: data.peakDau, unit: '명', color: '#FF9500' },
         ].map(c => (
-          <div key={c.label} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+          <div key={c.label} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
             <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: c.color }}>
               {c.value.toLocaleString()}
@@ -727,7 +727,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
           { label: 'D7 리텐션', value: data.d7Retention, unit: '%', color: '#AF52DE' },
           { label: 'AI 사용률', value: aiRate, unit: '%', color: '#34C759' },
         ].map(c => (
-          <div key={c.label} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+          <div key={c.label} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
             <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: c.value === null ? '#B0B8C1' : c.color }}>
               {c.value === null ? '—' : c.value}
@@ -745,7 +745,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
           { title: '일별 DAU', data: data.dauByDate, color: '#00C6BE' },
           { title: '일별 AI 사용', data: data.aiByDate, color: '#AF52DE' },
         ].map(chart => (
-          <div key={chart.title} style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 20 }}>
+          <div key={chart.title} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#191F28', marginBottom: 12 }}>{chart.title}</div>
             <MiniBarChart data={chart.data} color={chart.color} />
             <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 8, textAlign: 'right' }}>
@@ -756,7 +756,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
       </div>
 
       {/* 기능별 사용량 */}
-      <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
         <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>기능별 사용량 (최근 {days}일)</h3>
         {Object.keys(data.actionCount).length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
@@ -784,7 +784,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
 
       {/* P0-6 — 온보딩·투어·도움말 Funnel */}
       {data.onboardingFunnel && (
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
             온보딩·투어 Funnel (최근 {days}일)
           </h3>
@@ -822,7 +822,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
 
       {/* P0-6 — AI 피드백 (👍/👎) */}
       {data.feedbackBySource && Object.keys(data.feedbackBySource).length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid #F2F4F6', borderRadius: 16, padding: 24 }}>
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
             AI 추천 만족도 (최근 {days}일)
           </h3>

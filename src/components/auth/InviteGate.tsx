@@ -95,7 +95,7 @@ export default function InviteGate({ user, onVerified }: Props) {
               fontWeight: 700,
               letterSpacing: 2,
               textAlign: 'center',
-              border: `2px solid ${error ? '#EF4452' : success ? '#20C997' : '#E5E8EB'}`,
+              border: `2px solid ${error ? '#EF4452' : success ? '#20C997' : 'var(--border-light, #E5E8EB)'}`,
               borderRadius: 12,
               outline: 'none',
               background: '#F8F9FA',
@@ -139,7 +139,7 @@ export default function InviteGate({ user, onVerified }: Props) {
           </button>
         </form>
 
-        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #F2F4F6' }}>
+        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
           <p style={{ fontSize: 12, color: '#B0B8C1', marginBottom: 8 }}>
             초대 코드가 없으신가요?
           </p>

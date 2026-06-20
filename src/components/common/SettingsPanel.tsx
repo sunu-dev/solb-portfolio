@@ -291,7 +291,7 @@ export default function SettingsPanel() {
                   height: 24,
                   borderRadius: 9999,
                   border: 'none',
-                  background: autoRefresh ? '#34C759' : 'var(--border-light, #E5E8EB)',
+                  background: autoRefresh ? '#34C759' : 'var(--bg-subtle, #E5E8EB)',
                   cursor: 'pointer',
                   transition: 'background 0.2s',
                   padding: 0,

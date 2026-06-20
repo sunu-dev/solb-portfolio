@@ -174,7 +174,7 @@ export default function InviteSection() {
           onClick={handleCopy}
           style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '11px 0', borderRadius: 10, border: '1px solid #E5E8EB',
+            padding: '11px 0', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
             background: copied ? 'rgba(32,201,151,0.08)' : 'var(--surface, #fff)',
             color: copied ? '#20C997' : 'var(--text-primary, #191F28)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
@@ -210,7 +210,7 @@ export default function InviteSection() {
         onClick={handleOtherShare}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '9px 0', borderRadius: 10, border: '1px solid #E5E8EB',
+          padding: '9px 0', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
           background: 'transparent', color: 'var(--text-secondary, #8B95A1)',
           fontSize: 12, fontWeight: 500, cursor: 'pointer',
         }}
@@ -225,7 +225,7 @@ export default function InviteSection() {
           {data.uses.slice(0, 5).map((u, i) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 0', borderBottom: i < data.uses.length - 1 ? '1px solid #F2F4F6' : 'none',
+              padding: '8px 0', borderBottom: i < data.uses.length - 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
             }}>
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', background: '#F2F4F6',
