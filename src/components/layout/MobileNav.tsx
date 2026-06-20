@@ -1,14 +1,17 @@
 'use client';
 
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { BarChart3, Newspaper, CalendarDays, Menu, Sparkles } from 'lucide-react';
+import { BarChart3, Menu } from 'lucide-react';
+import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
 
+// 하단 탭 — menuRegistry SSOT 4섹션(navLabel 우선=좁은 폭 대응) + '더보기'.
 const TABS: { id: MainSection | 'more'; label: string; Icon: typeof BarChart3 }[] = [
-  { id: 'portfolio', label: '포트폴리오', Icon: BarChart3 },
-  { id: 'insights',  label: 'AI 인사이트', Icon: Sparkles },
-  { id: 'news',      label: '뉴스', Icon: Newspaper },
-  { id: 'events',    label: '이벤트', Icon: CalendarDays },
-  { id: 'more',      label: '더보기', Icon: Menu },
+  ...PRIMARY_SECTIONS.map((m) => ({
+    id: (m.action.kind === 'section' ? m.action.section : 'portfolio') as MainSection | 'more',
+    label: m.navLabel ?? m.label,
+    Icon: m.Icon as typeof BarChart3,
+  })),
+  { id: 'more', label: '더보기', Icon: Menu },
 ];
 
 interface MobileNavProps {

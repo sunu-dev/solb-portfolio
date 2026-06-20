@@ -54,6 +54,8 @@ interface PortfolioState {
   currentSection: MainSection;
   currentNewsMarket: string;
   currentEventId: string;
+  /** '바로가기'(메뉴 즐겨찾기) — menuRegistry PINNABLE_IDS만. localStorage-only(darkMode 선례). */
+  menuFavorites: string[];
   analysisSymbol: string | null;
   recentSymbols: string[]; // 최근 본 종목 (setAnalysisSymbol 시 기록, 최대 8)
 
@@ -93,6 +95,7 @@ interface PortfolioState {
   setCurrentSection: (section: MainSection) => void;
   setCurrentNewsMarket: (market: string) => void;
   setCurrentEventId: (id: string) => void;
+  toggleMenuFavorite: (id: string) => void;
   setAnalysisSymbol: (symbol: string | null) => void;
   setApiKey: (key: string) => void;
   setAutoRefresh: (val: boolean) => void;
@@ -161,6 +164,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       currentSection: 'portfolio',
       currentNewsMarket: 'us',
       currentEventId: 'iran-war',
+      menuFavorites: [],
       analysisSymbol: null,
       recentSymbols: [],
 
@@ -191,6 +195,11 @@ export const usePortfolioStore = create<PortfolioState>()(
       setCurrentSection: (section) => set({ currentSection: section }),
       setCurrentNewsMarket: (market) => set({ currentNewsMarket: market }),
       setCurrentEventId: (id) => set({ currentEventId: id }),
+      toggleMenuFavorite: (id) => set((s) => ({
+        menuFavorites: s.menuFavorites.includes(id)
+          ? s.menuFavorites.filter((x) => x !== id)
+          : [...s.menuFavorites, id],
+      })),
       setAnalysisSymbol: (symbol) => set((state) => {
         if (!symbol) return { analysisSymbol: null };
         const sym = symbol.toUpperCase();
@@ -469,6 +478,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         investorTypeSetAt: null,
         dailySnapshots: [],
         customEvents: [],
+        menuFavorites: [],
       }),
 
       // --- Helpers ---
@@ -564,6 +574,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         dailySnapshots: state.dailySnapshots,
         investorType: state.investorType,
         investorTypeSetAt: state.investorTypeSetAt,
+        menuFavorites: state.menuFavorites,
         // eventCache는 의도적으로 제외 — basePrices 변경 시 자동 재계산
       }),
     }
