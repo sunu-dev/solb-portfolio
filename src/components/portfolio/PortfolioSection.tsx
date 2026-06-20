@@ -1120,9 +1120,6 @@ export default function PortfolioSection() {
           </div>
         )}
 
-        {/* Phase 3: Wrapped 풀스크린 모달 */}
-        <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
-
         {/* 포트폴리오 맵(compact) 제거 — 분석 서브탭의 full 히트맵과 중복(단일 소스화, IA 2026-06-20).
             맵은 '분석' 서브탭에서 확인. MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관(IA P1-b). */}
 
@@ -1217,6 +1214,10 @@ export default function PortfolioSection() {
       {/* 시점성 리추얼 — 챕터 키워드(월 1~3일 시즌 시드)는 하단 유지. 노출 조건 자체 판단.
           ※ 아침 브리핑은 상단(Dashboard 직하)으로 승격 이동함(IA 2026-06-20). */}
       <ChapterKeywordPrompt />
+
+      {/* 월간 Wrapped 풀스크린 모달 — 오버레이군. 홈 편집 시 .home-stack JSX 재정렬 전제로
+          비위젯 자식(모달)을 .home-stack 밖으로 분리(홈편집 설계 Phase 0). */}
+      <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
 
       {/* Undo 삭제 토스트 */}
       {undoData && (
