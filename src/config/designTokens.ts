@@ -100,6 +100,13 @@ export const shadow = {
   card: 'var(--card-shadow, 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06))',
 };
 
+// ─── Breakpoints / Layout (PC 정보밀도 표준, docs/PC_DENSITY_LAYOUT_PLAN.md) ───
+// Tailwind v4 기본 브레이크포인트와 1:1. JS측 반응형 판단·문서 참조용 SSOT.
+// 폰트는 밀도를 위해 줄이지 않는다(가독성) — 좁으면 컬럼을 늘려 채운다.
+export const breakpoint = { md: 768, lg: 1024, xl: 1280, '2xl': 1536 } as const;
+export const container = { base: 1200, xl: 1360, '2xl': 1520 } as const; // .app-shell 단계 폭
+export const gridGap = { base: 20, xl: 24 } as const;                    // .fill-grid / .cols-2-xl
+
 // ─── 축약 export: 한 번에 import ─────────────────────────────────────────────
-export const T = { color, radius, fontSize, spacing, shadow };
+export const T = { color, radius, fontSize, spacing, shadow, breakpoint, container, gridGap };
 export default T;

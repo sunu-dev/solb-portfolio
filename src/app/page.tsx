@@ -267,7 +267,7 @@ export default function Home() {
       <OfflineNotice />
 
       {/* Main body: content + right sidebar */}
-      <div className="flex flex-1 w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="flex flex-1 w-full app-shell" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', margin: '0 auto' }}>
         {/* Main content area */}
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
           <style>{`@media (min-width: 769px) { .main-content { padding: 32px 32px 80px 32px !important; } }`}</style>
