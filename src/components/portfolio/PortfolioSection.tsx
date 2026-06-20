@@ -194,6 +194,20 @@ export default function PortfolioSection() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode]);
 
+  // dead-jump 방지 — 숨긴 위젯으로 점프(Dashboard 건강점수 pill·지난달 회고)가 들어오면 자동 복원 후 스크롤.
+  // 복원=state 업데이트라 re-render 대기 위해 rAF로 최대 4프레임 재시도(없으면 조용히 종료).
+  const jumpToSlot = useCallback((widgetId: string, slot: string) => {
+    const st = usePortfolioStore.getState();
+    if (st.hiddenWidgets.includes(widgetId)) st.toggleWidgetHidden(widgetId); // 숨겨져 있으면 표시(auto-restore)
+    setSubTab('analysis');
+    const tryScroll = (n: number) => requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-slot="${slot}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      else if (n < 3) tryScroll(n + 1);
+    });
+    tryScroll(0);
+  }, []);
+
   // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
   useEffect(() => {
     if (!stocks.investing?.length) return;
@@ -217,32 +231,19 @@ export default function PortfolioSection() {
     }
   }, []);
 
-  // Dashboard 건강점수 pill 클릭 → 분석 탭 전환 + 스크롤
+  // Dashboard 건강점수 pill 클릭 → 분석 탭 + portfolio-health로 스크롤(숨김 시 자동 복원).
   useEffect(() => {
-    const handler = () => {
-      setSubTab('analysis');
-      // 다음 프레임에 PortfolioHealth 위치로 스크롤
-      requestAnimationFrame(() => {
-        const health = document.querySelector('[data-slot="portfolio-health"]');
-        if (health) health.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    };
+    const handler = () => jumpToSlot('portfolio-health', 'portfolio-health');
     window.addEventListener('solb-goto-analysis', handler);
     return () => window.removeEventListener('solb-goto-analysis', handler);
-  }, []);
+  }, [jumpToSlot]);
 
-  // 지난달 회고 진입 — MonthlyChapter "지난달 회고 보기" CTA → ChapterShelf로 스크롤
+  // 지난달 회고 진입 — MonthlyChapter "지난달 회고 보기" → chapter-shelf로 스크롤(숨김 시 자동 복원).
   useEffect(() => {
-    const handler = () => {
-      setSubTab('analysis');
-      requestAnimationFrame(() => {
-        const shelf = document.querySelector('[data-slot="chapter-shelf"]');
-        if (shelf) shelf.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    };
+    const handler = () => jumpToSlot('chapter-shelf', 'chapter-shelf');
     window.addEventListener('solb-goto-chapter-shelf', handler);
     return () => window.removeEventListener('solb-goto-chapter-shelf', handler);
-  }, []);
+  }, [jumpToSlot]);
 
   // 내 종목 뉴스 fetch 로직은 NewsSection으로 이전 — 제거
 

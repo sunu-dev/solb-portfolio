@@ -800,3 +800,17 @@ button, a, [role="button"] {
     @apply font-sans;
   }
 }
+
+/* ==========================================
+   접근성 — prefers-reduced-motion 전역 백스톱 (홈편집 a11y 설계, WCAG 2.2.2)
+   ⚠️ 릴리스 노트: reduced-motion 환경에서만 미가드 키프레임(ticker·shimmer·rowFadeIn 등) 일괄 완화.
+   dead-jump 스크롤은 JS scrollIntoView라 reduced-motion에선 즉시 점프(의도 안전).
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
