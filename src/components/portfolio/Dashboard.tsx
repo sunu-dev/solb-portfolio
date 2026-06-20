@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useState, useRef } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
+import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import type { QuoteData, MacroEntry } from '@/config/constants';
@@ -353,7 +354,17 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
             {/* P&L Display */}
             <div style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
-              <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 4, fontWeight: 500 }}>전체 수익 현황</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>전체 수익 현황</span>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('solb-open-home-edit'))}
+                  aria-label="홈 화면 편집"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', minHeight: 28, borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary, #B0B8C1)', fontSize: 11, fontWeight: 600 }}
+                >
+                  <SlidersHorizontal size={13} />
+                  <span className="hidden md:inline">편집</span>
+                </button>
+              </div>
               {!data.quotesLoaded ? (
                 <div>
                   <div className="skeleton-shimmer" style={{ width: 180, height: 36, borderRadius: 8, marginBottom: 8 }} />

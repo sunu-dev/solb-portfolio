@@ -4,6 +4,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { NON_HIDEABLE_IDS, getWidget, resolveWidgetOrder, type WidgetId } from '@/lib/homeWidgetRegistry';
 import type {
   StockItem, StockCategory, PortfolioStocks,
   MacroEntry, QuoteData, CandleRaw,
@@ -56,6 +57,10 @@ interface PortfolioState {
   currentEventId: string;
   /** '바로가기'(메뉴 즐겨찾기) — menuRegistry PINNABLE_IDS만. localStorage-only(darkMode 선례). */
   menuFavorites: string[];
+  /** 홈 편집 — 사용자 숨김 위젯(블랙리스트, homeWidgetRegistry HIDEABLE_IDS만)·below-core 순서·편집모드(transient). */
+  hiddenWidgets: string[];
+  widgetOrder: string[];
+  editMode: boolean;
   analysisSymbol: string | null;
   recentSymbols: string[]; // 최근 본 종목 (setAnalysisSymbol 시 기록, 최대 8)
 
@@ -96,6 +101,10 @@ interface PortfolioState {
   setCurrentNewsMarket: (market: string) => void;
   setCurrentEventId: (id: string) => void;
   toggleMenuFavorite: (id: string) => void;
+  toggleWidgetHidden: (id: string) => void;
+  moveWidget: (id: string, dir: 'up' | 'down') => void;
+  resetHomeLayout: () => void;
+  setHomeEditMode: (open: boolean) => void;
   setAnalysisSymbol: (symbol: string | null) => void;
   setApiKey: (key: string) => void;
   setAutoRefresh: (val: boolean) => void;
@@ -165,6 +174,9 @@ export const usePortfolioStore = create<PortfolioState>()(
       currentNewsMarket: 'us',
       currentEventId: 'iran-war',
       menuFavorites: [],
+      hiddenWidgets: [],
+      widgetOrder: [],
+      editMode: false,
       analysisSymbol: null,
       recentSymbols: [],
 
@@ -200,6 +212,29 @@ export const usePortfolioStore = create<PortfolioState>()(
           ? s.menuFavorites.filter((x) => x !== id)
           : [...s.menuFavorites, id],
       })),
+      // 홈 편집 — broker-block 숨김 시 brokerFilter 리셋(orphan-lock 방지)은 PortfolioSection 로컬 state라 거기서 처리.
+      toggleWidgetHidden: (id) => set((s) => {
+        if (NON_HIDEABLE_IDS.has(id)) return {}; // §6 박제 — ai-hunch-link은 숨김 불가
+        return {
+          hiddenWidgets: s.hiddenWidgets.includes(id)
+            ? s.hiddenWidgets.filter((x) => x !== id)
+            : [...s.hiddenWidgets, id],
+        };
+      }),
+      moveWidget: (id, dir) => set((s) => {
+        const w = getWidget(id);
+        if (!w || !w.reorderable) return {};
+        const ordered = resolveWidgetOrder(s.widgetOrder, w.zone);
+        const i = ordered.indexOf(id as WidgetId);
+        const j = dir === 'up' ? i - 1 : i + 1;
+        if (i < 0 || j < 0 || j >= ordered.length) return {};
+        const next = [...ordered];
+        [next[i], next[j]] = [next[j], next[i]];
+        const otherZones = s.widgetOrder.filter((x) => { const ww = getWidget(x); return ww && ww.zone !== w.zone; });
+        return { widgetOrder: [...otherZones, ...next] };
+      }),
+      resetHomeLayout: () => set({ hiddenWidgets: [], widgetOrder: [] }),
+      setHomeEditMode: (open) => set({ editMode: open }),
       setAnalysisSymbol: (symbol) => set((state) => {
         if (!symbol) return { analysisSymbol: null };
         const sym = symbol.toUpperCase();
@@ -479,6 +514,8 @@ export const usePortfolioStore = create<PortfolioState>()(
         dailySnapshots: [],
         customEvents: [],
         menuFavorites: [],
+        hiddenWidgets: [],
+        widgetOrder: [],
       }),
 
       // --- Helpers ---
@@ -575,7 +612,9 @@ export const usePortfolioStore = create<PortfolioState>()(
         investorType: state.investorType,
         investorTypeSetAt: state.investorTypeSetAt,
         menuFavorites: state.menuFavorites,
-        // eventCache는 의도적으로 제외 — basePrices 변경 시 자동 재계산
+        hiddenWidgets: state.hiddenWidgets,
+        widgetOrder: state.widgetOrder,
+        // editMode는 transient(partialize 제외) · eventCache 제외(basePrices 변경 시 자동 재계산)
       }),
     }
   )
