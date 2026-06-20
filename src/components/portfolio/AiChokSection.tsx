@@ -8,6 +8,7 @@ import { CHOK_KR_MAP, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse
 import type { MacroEntry, PortfolioStocks } from '@/config/constants';
 import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
 import { supabase } from '@/lib/supabase';
+import { trackChokImpression, trackChokInView, trackChokInteraction } from '@/utils/telemetry/chokEvents';
 
 // ─── 섹터 라벨 헬퍼 — universe 영문 태그 → 한국어 라벨로 통일 ───────────────
 function symbolToSectorLabel(symbol: string): string {
@@ -261,6 +262,8 @@ export default function AiChokSection() {
   const [loginForMore, setLoginForMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const fetchedRef = useRef(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inViewFiredRef = useRef(false);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
@@ -270,6 +273,7 @@ export default function AiChokSection() {
    */
   const fetchChok = async (intent: 'fetch' | 'generate' = 'fetch') => {
     const force = intent === 'generate';
+    if (force) trackChokInteraction('generate');
     if (force) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -312,6 +316,9 @@ export default function AiChokSection() {
       setLimitReached(false);
       setLoginForMore(false);
       setState(data);
+      if (data.picks?.length) {
+        trackChokImpression({ count: data.picks.length, fallback: !!data.fallback, cached: !!data.cached, intent });
+      }
     } catch {
       setError('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
     } finally {
@@ -337,8 +344,26 @@ export default function AiChokSection() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [investorType]);
 
+  // 노출 측정(검증=측정) — 카드가 실제 뷰포트에 절반 이상 들어오면 1회 기록.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || inViewFiredRef.current) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting && e.intersectionRatio >= 0.5 && !inViewFiredRef.current) {
+          inViewFiredRef.current = true;
+          trackChokInView();
+          io.disconnect();
+        }
+      }
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   const handleFeedback = async (symbol: string, rating: 1 | -1) => {
     if (feedbacks[symbol]) return; // 이미 응답함
+    trackChokInteraction('feedback', symbol, { rating });
     setFeedbacks(prev => ({ ...prev, [symbol]: rating }));
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -354,6 +379,7 @@ export default function AiChokSection() {
 
   const handleAddWatch = (pick: ChokPick) => {
     if (watchingSet.has(pick.symbol)) return;
+    trackChokInteraction('watch', pick.symbol);
     addStock('watching', {
       symbol: pick.symbol,
       avgCost: 0,
@@ -364,7 +390,7 @@ export default function AiChokSection() {
   };
 
   return (
-    <section data-tour="ai-chok" style={{ marginBottom: 28 }}>
+    <section ref={sectionRef} data-tour="ai-chok" style={{ marginBottom: 28 }}>
       {/* Header row */}
       <div className="flex items-start justify-between" style={{ marginBottom: 12 }}>
         <div>
@@ -496,7 +522,7 @@ export default function AiChokSection() {
               <div key={pick.symbol} style={{ scrollSnapAlign: 'start' }}>
                 <ChokCard
                   pick={pick}
-                  onAnalyze={() => setAnalysisSymbol(pick.symbol)}
+                  onAnalyze={() => { trackChokInteraction('analyze', pick.symbol); setAnalysisSymbol(pick.symbol); }}
                   onAddWatch={() => handleAddWatch(pick)}
                   inWatching={watchingSet.has(pick.symbol)}
                   onFeedback={(rating) => handleFeedback(pick.symbol, rating)}
