@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
+import { useHasHydrated } from '@/hooks/useHasHydrated';
+import { resolveHidden } from '@/lib/homeWidgetRegistry';
 // 내 종목 뉴스는 뉴스 탭으로 이동 — import 제거
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from '@/config/constants';
@@ -145,7 +147,14 @@ export default function PortfolioSection() {
     currency, setCurrency,
     lastUpdate,
     rawCandles,
+    hiddenWidgets,
   } = usePortfolioStore();
+
+  // 홈 편집 — 숨김 위젯 적용. 하이드레이션 전엔 전부 표시(서버와 동일 → mismatch 방지), 마운트 후 숨김 반영.
+  // resolveHidden이 non-hideable(ai-hunch-link)·미지 id를 drop하므로 §6 발견경로는 어떤 저장값에도 표시.
+  const hydrated = useHasHydrated();
+  const hiddenSet = new Set<string>(hydrated ? resolveHidden(hiddenWidgets) : []);
+  const isHidden = (id: string) => hiddenSet.has(id);
 
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -391,8 +400,8 @@ export default function PortfolioSection() {
       {/* Unified Dashboard — 히어로+출석+알림 통합 */}
       <Dashboard />
 
-      {/* 아침 브리핑 — Dashboard 직하 승격(시점성 리추얼·자체 노출조건/닫기 보유). 모든 서브탭 공통 상단. */}
-      <MorningBriefing />
+      {/* 아침 브리핑 — Dashboard 직하 승격(시점성 리추얼·자체 노출조건/닫기 보유). 모든 서브탭 공통 상단. 홈편집 above-core. */}
+      {!isHidden('morning-briefing') && <MorningBriefing />}
 
       {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
           Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
@@ -1098,8 +1107,8 @@ export default function PortfolioSection() {
         {/* 홈 스택 — 세로 리듬을 부모 .home-stack의 gap 한 곳에서 강제(자식 marginTop 제거).
             조건부 자식이 빠져도 gap이 자동 정렬(orphan margin 없음). globals.css (7)·docs/PC_DENSITY_LAYOUT_PLAN.md */}
         <div className="home-stack" style={{ marginTop: 24 }}>
-        {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰: 보유 리스트 '아래'로 이동.
-            상단에서 강등해 보유 테이블을 프라임 공간으로 승격(16인 IA 패널 권고). */}
+        {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰. 홈편집 below-core(broker-block). */}
+        {!isHidden('broker-block') && (
         <div>
           <BrokerSummaryCard
             active={brokerFilter as never}
@@ -1107,11 +1116,12 @@ export default function PortfolioSection() {
           />
           <MergedHoldingsCard />
         </div>
+        )}
 
         {/* 월간 챕터 척추 카드 — 30일 시즌으로 작동하는 투자 일지 (Phase 1+2)
             매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
             클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
-        {investingStocks.length > 0 && (
+        {investingStocks.length > 0 && !isHidden('monthly-chapter') && (
           <div>
             <MonthlyChapter
               onOpenWrapped={() => setWrappedOpen(true)}
