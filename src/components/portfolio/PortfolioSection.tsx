@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, Fragment, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, Fragment, type ReactNode } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useHasHydrated } from '@/hooks/useHasHydrated';
 import { resolveHidden, resolveWidgetOrder } from '@/lib/homeWidgetRegistry';
@@ -181,6 +181,18 @@ export default function PortfolioSection() {
     if (id === 'broker-block') setBrokerFilter(null);
     toggleWidgetHidden(id);
   };
+  // 편집 진입/이탈 텔레메트리(검증=측정 — 발견율·실사용 측정).
+  const editEnterAt = useRef<number | null>(null);
+  useEffect(() => {
+    if (editMode) {
+      editEnterAt.current = Date.now();
+      logApiCall('home_edit_enter', undefined, { hiddenCount: hiddenWidgets.length });
+    } else if (editEnterAt.current != null) {
+      logApiCall('home_edit_exit', undefined, { durationMs: Date.now() - editEnterAt.current });
+      editEnterAt.current = null;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode]);
 
   // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
   useEffect(() => {
