@@ -360,7 +360,7 @@ export default function Dashboard() {
                   <div className="skeleton-shimmer" style={{ width: 100, height: 20, borderRadius: 6 }} />
                 </div>
               ) : (
-              <div className="flex items-baseline gap-2" style={{ flexWrap: 'wrap' }}>
+              <div className="flex items-baseline gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <span className="tabular-nums" style={{ fontSize: 'clamp(24px, 5.5vw, 34px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                   {currency === 'KRW'
                     ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
