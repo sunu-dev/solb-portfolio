@@ -28,7 +28,7 @@ export default function BottomTicker() {
   return (
     <div
       className="fixed bottom-0 left-0 right-0 z-30 bg-white hidden lg:flex items-center overflow-hidden"
-      style={{ height: '32px', borderTop: '1px solid #F2F4F6', fontSize: '12px' }}
+      style={{ height: '32px', borderTop: '1px solid var(--border-light, #F2F4F6)', fontSize: '12px' }}
     >
       {/* Label */}
       <div className="shrink-0 px-4 border-r border-[#F2F4F6] h-full flex items-center">

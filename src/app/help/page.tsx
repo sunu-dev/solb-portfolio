@@ -294,7 +294,7 @@ function BugReportSection() {
               onClick={() => setCategory(opt.v)}
               style={{
                 padding: '6px 14px', borderRadius: 999,
-                border: category === opt.v ? '1px solid var(--brand-primary, #0E7C7B)' : '1px solid #E5E8EB',
+                border: category === opt.v ? '1px solid var(--brand-primary, #0E7C7B)' : '1px solid var(--border-light, #E5E8EB)',
                 background: category === opt.v ? 'rgba(14,124,123,0.08)' : '#FFFFFF',
                 color: category === opt.v ? 'var(--brand-primary, #0E7C7B)' : '#4E5968',
                 fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -314,7 +314,7 @@ function BugReportSection() {
           maxLength={2000}
           rows={5}
           style={{
-            padding: 12, borderRadius: 10, border: '1px solid #E5E8EB',
+            padding: 12, borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
             fontSize: 13, lineHeight: 1.6, color: '#191F28', resize: 'vertical',
             fontFamily: 'inherit', outline: 'none',
           }}
@@ -327,7 +327,7 @@ function BugReportSection() {
           placeholder="응답 받을 이메일 (선택, 비로그인일 때 권장)"
           maxLength={200}
           style={{
-            padding: '10px 12px', borderRadius: 10, border: '1px solid #E5E8EB',
+            padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
             fontSize: 13, color: '#191F28', outline: 'none',
             fontFamily: 'inherit',
           }}

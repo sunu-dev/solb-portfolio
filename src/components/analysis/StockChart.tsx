@@ -8,7 +8,7 @@ import type { CandleRaw } from '@/config/constants';
 // globals.css 다크 토큰과 1:1 (surface #1A1D2E / text-secondary #8E8E9A / border-light #2A2D3D).
 // 캔들 상승=빨강/하락=파랑(한국 컨벤션)은 테마와 무관하게 고정.
 const CHART_THEME = {
-  light: { bg: '#FFFFFF', text: '#8B95A1', grid: '#F2F4F6', border: '#E5E8EB' },
+  light: { bg: '#FFFFFF', text: '#8B95A1', grid: 'var(--border-light, #F2F4F6)', border: 'var(--border-light, #E5E8EB)' },
   dark: { bg: '#1A1D2E', text: '#8E8E9A', grid: '#2A2D3D', border: '#2A2D3D' },
 } as const;
 

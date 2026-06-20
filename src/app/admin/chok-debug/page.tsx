@@ -104,7 +104,7 @@ export default function ChokDebugPage() {
                 const v = parseFloat(c.pct);
                 const color = v >= 80 ? '#1B6B3A' : v >= 50 ? '#FF9500' : '#EF4452';
                 return (
-                  <div key={c.label} style={{ padding: 14, border: '1px solid #F2F4F6', borderRadius: 10 }}>
+                  <div key={c.label} style={{ padding: 14, border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
                     <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 4 }}>{c.label}</div>
                     <div style={{ fontSize: 20, fontWeight: 700, color }}>
                       {c.pct} <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 500 }}>({c.n}/{data.coverage.total})</span>
@@ -138,7 +138,7 @@ export default function ChokDebugPage() {
               {data.todayGainers.length === 0 ? (
                 <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
               ) : data.todayGainers.map(g => (
-                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted #F2F4F6' }}>
+                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted var(--border-light, #F2F4F6)' }}>
                   <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
                   <span style={{ color: '#C72C2C', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>+{g.todayChangePct?.toFixed(2)}%</span>
                 </div>
@@ -149,7 +149,7 @@ export default function ChokDebugPage() {
               {data.todayLosers.length === 0 ? (
                 <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
               ) : data.todayLosers.map(g => (
-                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted #F2F4F6' }}>
+                <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted var(--border-light, #F2F4F6)' }}>
                   <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
                   <span style={{ color: '#1B5BC9', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{g.todayChangePct?.toFixed(2)}%</span>
                 </div>
@@ -179,18 +179,18 @@ export default function ChokDebugPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: '#F8F9FA', textAlign: 'left' }}>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB' }}>심볼</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB' }}>이름</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB' }}>섹터</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB', textAlign: 'right' }}>현재가</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB', textAlign: 'right' }}>PER</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB', textAlign: 'right' }}>52w 위치</th>
-                    <th style={{ padding: 8, borderBottom: '1px solid #E5E8EB', textAlign: 'right' }}>1Y</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>심볼</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>이름</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>섹터</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)', textAlign: 'right' }}>현재가</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)', textAlign: 'right' }}>PER</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)', textAlign: 'right' }}>52w 위치</th>
+                    <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)', textAlign: 'right' }}>1Y</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.detail.map(d => (
-                    <tr key={d.symbol} style={{ borderBottom: '1px solid #F2F4F6' }}>
+                    <tr key={d.symbol} style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
                       <td style={{ padding: 8, fontFamily: 'monospace', fontWeight: 600 }}>{d.symbol}</td>
                       <td style={{ padding: 8, color: '#4E5968' }}>{d.krName}</td>
                       <td style={{ padding: 8, color: '#8B95A1', fontSize: 11 }}>{d.sectorLabel}</td>

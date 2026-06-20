@@ -73,7 +73,7 @@ export async function sendEmail(opts: SendEmailOpts): Promise<SendResult> {
       : '',
   ].filter(Boolean).join('');
   const htmlBody = opts.html
-    ? (footerHtml ? `${opts.html}<hr style="margin:24px 0;border:0;border-top:1px solid #E5E8EB">${footerHtml}` : opts.html)
+    ? (footerHtml ? `${opts.html}<hr style="margin:24px 0;border:0;border-top:1px solid var(--border-light, #E5E8EB)">${footerHtml}` : opts.html)
     : `<pre style="font-family:Pretendard,system-ui,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap">${textBody}</pre>`;
 
   // RFC 8058 — List-Unsubscribe + List-Unsubscribe-Post 헤더로 메일 클라이언트 1-click

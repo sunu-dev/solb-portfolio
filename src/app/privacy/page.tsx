@@ -46,21 +46,21 @@ export default function PrivacyPage() {
         이용자의 개인정보는 서비스 이용 기간 동안 보유하며, 회원 탈퇴(계정 삭제) 시 지체 없이 파기합니다. 일부 항목은 별도의 보유 기간이 적용됩니다:
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8, fontSize: 13 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #E5E8EB' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>
               <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>데이터</th>
               <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>보유 기간</th>
             </tr>
           </thead>
           <tbody>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>알림 발송 로그</td>
               <td style={{ padding: '8px 4px' }}>발송 후 90일 (분쟁 대응)</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>푸시 구독 정보</td>
               <td style={{ padding: '8px 4px' }}>옵트인 후 무효 응답 발견 시 즉시 삭제</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>AI 피드백 (👍/👎)</td>
               <td style={{ padding: '8px 4px' }}>익명화 후 영구 보관 (priorityScore 개선)</td>
             </tr>
@@ -80,44 +80,44 @@ export default function PrivacyPage() {
         서비스는 원활한 운영을 위해 다음과 같이 개인정보 처리를 위탁하고 있습니다.
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8, fontSize: 13 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #E5E8EB' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>
               <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>수탁업체</th>
               <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>위탁 업무</th>
               <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>서버 위치</th>
             </tr>
           </thead>
           <tbody>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Supabase Inc.</td>
               <td style={{ padding: '8px 4px' }}>인증, 데이터베이스 저장</td>
               <td style={{ padding: '8px 4px' }}>미국</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Vercel Inc.</td>
               <td style={{ padding: '8px 4px' }}>웹 호스팅, API 실행, 에러 로그</td>
               <td style={{ padding: '8px 4px' }}>미국</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Google LLC</td>
               <td style={{ padding: '8px 4px' }}>AI 분석 (Gemini API)</td>
               <td style={{ padding: '8px 4px' }}>미국 — 종목 코드·시세 데이터만 전송, 개인식별정보 미포함</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Anthropic PBC</td>
               <td style={{ padding: '8px 4px' }}>AI 분석 백업 (Claude API, Gemini 장애 시)</td>
               <td style={{ padding: '8px 4px' }}>미국 — 종목 코드·시세 데이터만 전송, 개인식별정보 미포함</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Finnhub Inc.</td>
               <td style={{ padding: '8px 4px' }}>시세·기본 재무 데이터 제공</td>
               <td style={{ padding: '8px 4px' }}>미국 — 종목 코드만 전송, 개인식별정보 미포함</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Resend, Inc.</td>
               <td style={{ padding: '8px 4px' }}>이메일 알림 발송 (모닝브리프, 월말 회고)</td>
               <td style={{ padding: '8px 4px' }}>미국 — 옵트인한 이용자의 이메일·발송 내용</td>
             </tr>
-            <tr style={{ borderBottom: '1px solid #F2F4F6' }}>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Web Push 제공자</td>
               <td style={{ padding: '8px 4px' }}>브라우저 푸시 알림 전달 (FCM/APNs 등 브라우저별 상이)</td>
               <td style={{ padding: '8px 4px' }}>각 브라우저 제공사 — 푸시 endpoint·암호화된 페이로드만 전송</td>

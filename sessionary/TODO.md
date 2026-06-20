@@ -3,7 +3,18 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-17)
+## 🎯 다음 세션 자동 브리핑 (2026-06-21)
+
+> **최신 sessionary**: `2026-06-21-darkcore-ia-favorites-homeedit.md` (다크 코어·IA 슬림·AI촉 캐시워밍·즐겨찾기 B·홈편집 A — 8 PR 운영 머지)
+> **🟢 8 PR 전부 운영 머지·적대적 리뷰 0건**: ①다크모드 색상 코어(`--pill-active-bg/fg` + `lint:darkmode` 가드 R1/R3=0, prebuild) ②포트폴리오=보유관리 슬림화(IA) ③AI촉 `enrich-warm` cron(클릭로드 기각·마운트 AI 미사용) ④메뉴 즐겨찾기 '바로가기'/**Pin** + `menuRegistry` SSOT ⑤**홈 화면 편집(A)** 6단계(`homeWidgetRegistry`·코어 고정·zone 편집·ai-hunch §6 박제·useHasHydrated·dead-jump·누출테스트 5/5). 설계 SSOT: `docs/HOME_EDIT_DESIGN_SPEC.md`·`docs/HOME_CUSTOMIZE_FAVORITES_ANALYSIS.md`.
+> **🔴 다음 후보**: ① 운영 육안 검증(홈편집 시트·디폴트 무변·다크) → announce 채널 보강(선택 폴리시). ② **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 기회비용 1순위, 프리뷰 READY·파운더 액션만. ③ R4 라이트보더 103건 sweep(admin/debug, soft 추적 중→strict 격상).
+> **⚠️ 다크 규칙**: active pill 색은 `--pill-active-bg/fg`만(인라인 hex·`'#fff'` 금지, `lint:darkmode` R1 강제). `#3182F6`=손익색(하락 파랑)이라 일괄 sweep 여전 금지.
+> ---
+
+## ✅ 완료(이번 세션 종결) — 아래 이전 브리핑 2건
+> 2026-06-17 PC UX 채택 7배치 → **PR #1 main 머지 완료**. 2026-06-16 레버리지 가드 US LETF 커버리지 → **머지·배포 완료**(enrich 커서 마이그 선적용). 둘 다 종결.
+
+## 🗄️ (구) 브리핑 (2026-06-17, 종결)
 
 > **최신 sessionary**: `2026-06-17-toss-pc-ux-review-and-adopt.md` (토스 PC vs 주비 PC 20인 패널 → 채택분 7배치 구현)
 > **🟡 PC UX 채택 7배치 — push됨·main 미머지(브랜치 `feat/pc-ux-craft-batch1`)**: 토스 PC(브로커 터미널) vs 주비(관리·학습 도구) 20인 패널 → 정체성 게이트로 거른 채택분 구현. 배치1 토스블루 누출제거+차트 다크 / 배치2 크로스헤어·기준선·모달 a11y(useFocusTrap) / 배치3 딥링크 ?stock=·검색 살펴보기·키보드 / 배치4A 관심 정렬·최근본 / 4B '오늘 한 줄'(**dormant·§6 게이트**, /api/mover-note+lib/moverNote SSOT) / 4C currency / 3.5-A 모달880·점프칩·종목스위처 / 다크 elevation / WatchToggle 통일 / '넓게보기' 토글. 전부 tsc/lint/build/test 통과. 채택 SSOT=`docs/TOSS_PC_UX_REVIEW_ADOPT.md`.

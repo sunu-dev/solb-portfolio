@@ -9,6 +9,8 @@ import {
   type HomeWidget, type WidgetZone,
 } from '@/lib/homeWidgetRegistry';
 import { logApiCall } from '@/lib/apiLogger';
+import { announce } from '@/lib/announce';
+import { withEulReul } from '@/utils/koreanJosa';
 
 /**
  * 홈 화면 편집 시트 — 코어 끼임 3존(상단·보유아래·분석)을 단일 수직 리스트로 평탄화.
@@ -52,18 +54,18 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
         {w.reorderable && order && (
           <>
             <button
-              onClick={() => { logApiCall('widget_reorder', undefined, { id: w.id, dir: 'up' }); moveWidget(w.id, 'up'); }}
+              onClick={() => { logApiCall('widget_reorder', undefined, { id: w.id, dir: 'up' }); moveWidget(w.id, 'up'); announce(`${withEulReul(w.label)} 위로 옮겼어요`); }}
               disabled={order.first} aria-label={`${w.label} 위로 옮기기`} style={ctrlBtn(order.first)}
             ><ChevronUp size={18} /></button>
             <button
-              onClick={() => { logApiCall('widget_reorder', undefined, { id: w.id, dir: 'down' }); moveWidget(w.id, 'down'); }}
+              onClick={() => { logApiCall('widget_reorder', undefined, { id: w.id, dir: 'down' }); moveWidget(w.id, 'down'); announce(`${withEulReul(w.label)} 아래로 옮겼어요`); }}
               disabled={order.last} aria-label={`${w.label} 아래로 옮기기`} style={ctrlBtn(order.last)}
             ><ChevronDown size={18} /></button>
           </>
         )}
         {w.hideable ? (
           <button
-            onClick={() => { logApiCall('widget_toggle', undefined, { id: w.id, to: hidden ? 'shown' : 'hidden' }); onToggleWidget(w.id); }}
+            onClick={() => { logApiCall('widget_toggle', undefined, { id: w.id, to: hidden ? 'shown' : 'hidden' }); onToggleWidget(w.id); announce(`${withEulReul(w.label)} ${hidden ? '다시 표시했어요' : '숨겼어요'}`); }}
             aria-pressed={!hidden}
             aria-label={hidden ? `${w.label} 표시하기` : `${w.label} 숨기기`}
             style={ctrlBtn(false, !hidden)}
@@ -105,7 +107,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
         })}
 
         <button
-          onClick={() => { logApiCall('home_layout_reset', undefined, { hiddenCount: hiddenWidgets.length }); resetHomeLayout(); }}
+          onClick={() => { logApiCall('home_layout_reset', undefined, { hiddenCount: hiddenWidgets.length }); resetHomeLayout(); announce('홈 화면을 기본값으로 되돌렸어요'); }}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             width: '100%', padding: '12px', marginTop: 4, minHeight: 44,

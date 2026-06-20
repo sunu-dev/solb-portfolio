@@ -161,7 +161,7 @@ export default function LandingPage() {
               fontWeight: 600,
               borderRadius: 12,
               textDecoration: 'none',
-              border: '1px solid #E5E8EB',
+              border: '1px solid var(--border-light, #E5E8EB)',
               transition: 'all 0.2s ease',
             }}
           >
