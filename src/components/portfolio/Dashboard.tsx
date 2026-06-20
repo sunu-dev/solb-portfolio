@@ -388,7 +388,7 @@ export default function Dashboard() {
                     // '오늘' 강조는 배경 칩 대신 좌측 accent 바 + 굵기 (정렬을 깨지 않음).
                     const rowStyle: React.CSSProperties = {
                       display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'baseline', columnGap: 10,
-                      fontSize: isPrimary ? 12 : 11,
+                      fontSize: isPrimary ? 14 : 13,
                       paddingLeft: 8,
                     };
                     if (!d) {
@@ -410,7 +410,7 @@ export default function Dashboard() {
                         {/* 1열 — 라벨 (left) */}
                         <span style={{
                           fontWeight: isPrimary ? 700 : 600,
-                          color: isPrimary ? 'var(--text, #191F28)' : 'var(--text-secondary, #4E5968)',
+                          color: isPrimary ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
                           whiteSpace: 'nowrap',
                         }}>{label}</span>
                         {/* 2열 — 금액 (right, tabular-nums) */}
