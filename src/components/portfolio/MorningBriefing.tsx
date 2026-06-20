@@ -183,6 +183,7 @@ export default function MorningBriefing() {
       role="region"
       aria-label="오늘 아침 브리핑"
       style={{
+        marginTop: 24,
         marginBottom: 16,
         padding: '18px 20px',
         borderRadius: 16,

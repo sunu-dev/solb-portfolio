@@ -1150,7 +1150,7 @@ export default function PortfolioSection() {
               setCurrentSection('insights');
             }}
             style={{
-              width: '100%', marginTop: 32, padding: '14px 18px',
+              width: '100%', marginTop: 24, padding: '14px 18px',
               display: 'flex', alignItems: 'center', gap: 10,
               borderRadius: 14,
               background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.06)) 0%, rgba(175,82,222,0.05) 100%)',
