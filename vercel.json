@@ -31,6 +31,14 @@
     {
       "path": "/api/cron/check-alerts",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/enrich-warm",
+      "schedule": "50 21 * * *"
+    },
+    {
+      "path": "/api/cron/enrich-warm",
+      "schedule": "50 12 * * *"
     }
   ]
 }

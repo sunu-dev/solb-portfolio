@@ -153,7 +153,7 @@ async function fetchOne(symbol: string, apiKey: string): Promise<EnrichedStockDa
 }
 
 /**
- * Universe 전체 enriched 데이터 반환. 24h 캐시.
+ * Universe 전체 enriched 데이터 반환. L1/L2 1h 캐시(CACHE_TTL_MS) — cron `enrich-warm`이 세션경계에 선갱신.
  * apiKey 없으면 모든 필드 null인 stub 반환 → AI는 데이터 없음 모드로 동작.
  */
 export async function enrichUniverse(): Promise<EnrichedStockData[]> {
