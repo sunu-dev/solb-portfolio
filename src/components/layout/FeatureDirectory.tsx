@@ -1,24 +1,19 @@
 'use client';
 
-import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
+import { usePortfolioStore } from '@/store/portfolioStore';
+import { Search, Settings, ChevronRight, Moon, Sun, Pin } from 'lucide-react';
 import {
-  BarChart3, Sparkles, Newspaper, CalendarDays,
-  Search, Bell, Compass, HelpCircle, Settings, ChevronRight,
-  Moon, Sun, Star,
-} from 'lucide-react';
+  PRIMARY_SECTIONS, PINNABLE_ITEMS, resolveFavorites, runMenuAction,
+  type MenuItem, type MenuActionContext,
+} from '@/lib/menuRegistry';
+import { logApiCall } from '@/lib/apiLogger';
 
 /**
- * 전체 메뉴 허브 — 토스/카카오 증권의 '전체' 패턴.
+ * 전체 메뉴 허브 — 토스/카카오 증권의 '전체' 패턴. 모바일='더보기'·PC='전체' 같은 시트.
  *
- * IA P1-a: 더보기를 단순 사이드바 복제에서 '검색 내장 카테고리형 기능 디렉터리'로 승격.
- * 모바일은 하단 네비 '더보기', PC는 헤더 '전체' 버튼에서 같은 시트로 진입.
- *
- * 진입점 원칙: 어느 화면에서든 동작하는 트리거만 노출(섹션 전환·전역 이벤트).
- *  - setCurrentSection: 스토어 → 항상 동작
- *  - open-search(Header)·open-mobile-alerts/toggle-settings(page): 항상 마운트
- *  - open-tour(CoachMark): CoachMark는 온보딩 아닐 때 마운트(허브 진입 시점엔 사실상 항상)
- *  - 알림 센터: PC는 상시 노출된 우측 사이드바로 스크롤 위임, 모바일은 바텀시트
- *  - 화면 종속 이벤트(예: chapter-shelf)는 데드 메뉴 방지 위해 제외(포트폴리오 탭에서 도달).
+ * 메뉴 정의는 menuRegistry SSOT에서 파생(Header/MobileNav와 단일 소스). '바로가기'(메뉴 즐겨찾기)는
+ * PINNABLE_ITEMS에 Pin 토글을 달아 사용자가 고정 → 상단 '바로가기' 섹션에 등재순으로 노출.
+ * 진입점 원칙: 화면 비종속 트리거만(섹션 전환·전역 이벤트·href·알림센터) — 데드 메뉴 방지.
  */
 interface Props {
   /** 액션 실행 후 부모 시트를 닫는 콜백 */
@@ -34,40 +29,77 @@ const SECTION_LABEL: React.CSSProperties = {
 };
 
 export default function FeatureDirectory({ onNavigate }: Props) {
-  const { currentSection, setCurrentSection, setCurrentTab, darkMode, toggleDarkMode } = usePortfolioStore();
+  const {
+    currentSection, setCurrentSection, setCurrentTab,
+    darkMode, toggleDarkMode, menuFavorites, toggleMenuFavorite,
+  } = usePortfolioStore();
 
-  const go = (section: MainSection) => { setCurrentSection(section); onNavigate(); };
+  const ctx: MenuActionContext = { setCurrentSection, setCurrentTab, onNavigate };
+  const favorites = resolveFavorites(menuFavorites);
+  const isPinned = (id: string) => menuFavorites.includes(id);
   const emit = (name: string) => { window.dispatchEvent(new CustomEvent(name)); onNavigate(); };
 
-  // 관심 종목 바로가기 — 모바일에서 옛 더보기(RightSidebar)의 watchlist 접근 복원(IA #9).
-  // 포트폴리오 탭의 '관심 종목' 카테고리로 직접 진입(currentTab 스토어).
-  const goWatchlist = () => { setCurrentSection('portfolio'); setCurrentTab('watching'); onNavigate(); };
+  const runItem = (item: MenuItem, viaFavorite: boolean) => {
+    logApiCall(viaFavorite ? 'menu_nav_via_favorite' : 'menu_nav', undefined, { id: item.id });
+    runMenuAction(item.action, ctx);
+  };
+  const togglePin = (item: MenuItem) => {
+    logApiCall(isPinned(item.id) ? 'menu_pin_removed' : 'menu_pin_added', undefined, { id: item.id });
+    toggleMenuFavorite(item.id);
+  };
 
-  // 주요 메뉴 — 2열 타일
-  const primary: { id: MainSection; label: string; sub: string; Icon: typeof BarChart3 }[] = [
-    { id: 'portfolio', label: '포트폴리오', sub: '보유·관심·관리', Icon: BarChart3 },
-    { id: 'insights', label: 'AI 인사이트', sub: 'AI 촉·이야기', Icon: Sparkles },
-    { id: 'news', label: '뉴스', sub: '내 종목 소식', Icon: Newspaper },
-    { id: 'events', label: '이벤트 분석', sub: '실적·배당 일정', Icon: CalendarDays },
-  ];
-
-  // 도구 — 목록형 (종목 검색은 상단 필드로 단일화 → 중복 제거)
-  const tools: { label: string; sub: string; Icon: typeof Search; onClick: () => void }[] = [
-    {
-      label: '알림 센터', sub: '주비 AI 알림 모아보기', Icon: Bell,
-      onClick: () => {
-        // PC: 우측 사이드바 알림센터로 스크롤(상시 노출), 모바일: 바텀시트
-        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-          onNavigate();
-          document.getElementById('solb-alert-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          emit('open-mobile-alerts');
-        }
-      },
-    },
-    { label: '둘러보기', sub: '주요 기능 가이드 투어', Icon: Compass, onClick: () => emit('open-tour') },
-    { label: '도움말', sub: '사용법·자주 묻는 질문', Icon: HelpCircle, onClick: () => { onNavigate(); window.location.href = '/help'; } },
-  ];
+  // 행 — 관심종목/도구/바로가기 공통. 네비 버튼 + 분리된 Pin 토글 버튼.
+  const renderRow = (item: MenuItem, opts: { viaFavorite?: boolean; first?: boolean } = {}) => (
+    <div
+      key={(opts.viaFavorite ? 'fav-' : '') + item.id}
+      style={{
+        display: 'flex', alignItems: 'center',
+        borderTop: opts.first ? 'none' : '1px solid var(--border-light, #F2F4F6)',
+      }}
+    >
+      <button
+        onClick={() => runItem(item, !!opts.viaFavorite)}
+        className="cursor-pointer"
+        style={{
+          flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 8px', minHeight: 56, textAlign: 'left', background: 'none', border: 'none',
+        }}
+        aria-label={item.label}
+      >
+        <span style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)',
+        }}>
+          <item.Icon size={18} strokeWidth={1.9} />
+        </span>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+            {item.label}
+          </span>
+          {item.sub && (
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 1 }}>
+              {item.sub}
+            </span>
+          )}
+        </span>
+      </button>
+      <button
+        onClick={() => togglePin(item)}
+        className="cursor-pointer"
+        aria-pressed={isPinned(item.id)}
+        aria-label={isPinned(item.id) ? `${item.label} 바로가기에서 빼기` : `${item.label} 바로가기에 고정`}
+        style={{
+          flexShrink: 0, width: 44, height: 44, borderRadius: 10,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'none', border: 'none',
+          color: isPinned(item.id) ? 'var(--brand-primary)' : 'var(--text-tertiary, #B0B8C1)',
+        }}
+      >
+        <Pin size={18} strokeWidth={isPinned(item.id) ? 2 : 1.9} fill={isPinned(item.id) ? 'currentColor' : 'none'} />
+      </button>
+    </div>
+  );
 
   return (
     <div>
@@ -100,15 +132,33 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         }} className="hidden md:inline">/</kbd>
       </button>
 
-      {/* 주요 메뉴 */}
+      {/* 바로가기 — 핀으로 고정한 메뉴(등재순). 비었으면 발견 유도 1줄. */}
+      <div style={SECTION_LABEL}>바로가기</div>
+      {favorites.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 24 }}>
+          {favorites.map((item, i) => renderRow(item, { viaFavorite: true, first: i === 0 }))}
+        </div>
+      ) : (
+        <div
+          style={{
+            marginBottom: 24, padding: '14px 16px', minHeight: 48,
+            background: 'var(--bg-subtle, #F8F9FA)', border: '1px dashed var(--border-light, #F2F4F6)',
+            borderRadius: 12, fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.5,
+          }}
+        >
+          자주 쓰는 기능을 핀(📌)으로 꽂아두면 여기서 바로 열 수 있어요.
+        </div>
+      )}
+
+      {/* 주요 메뉴 — 2열 타일 (4탭, 항상 노출이라 핀 대상 아님) */}
       <div style={SECTION_LABEL}>주요 메뉴</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-        {primary.map(({ id, label, sub, Icon }) => {
-          const isActive = currentSection === id;
+        {PRIMARY_SECTIONS.map((item) => {
+          const isActive = item.action.kind === 'section' && currentSection === item.action.section;
           return (
             <button
-              key={id}
-              onClick={() => go(id)}
+              key={item.id}
+              onClick={() => runItem(item, false)}
               className="cursor-pointer"
               style={{
                 display: 'flex', flexDirection: 'column', gap: 8,
@@ -124,17 +174,17 @@ export default function FeatureDirectory({ onNavigate }: Props) {
                   width: 36, height: 36, borderRadius: 10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: isActive ? 'var(--brand-primary)' : 'var(--surface, #fff)',
-                  color: isActive ? '#fff' : 'var(--brand-primary)',
+                  color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--brand-primary)',
                 }}
               >
-                <Icon size={18} strokeWidth={2} />
+                <item.Icon size={18} strokeWidth={2} />
               </span>
               <span>
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                  {label}
+                  {item.label}
                 </span>
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-                  {sub}
+                  {item.sub}
                 </span>
               </span>
             </button>
@@ -142,68 +192,10 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         })}
       </div>
 
-      {/* 관심 종목 바로가기 — 포트폴리오 '관심 종목' 카테고리로 직접 진입(모바일 watchlist 접근 복원) */}
-      <button
-        onClick={goWatchlist}
-        className="cursor-pointer"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          width: '100%', padding: '14px 16px', marginBottom: 24, minHeight: 56, textAlign: 'left',
-          background: 'var(--bg-subtle, #F8F9FA)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 14,
-        }}
-        aria-label="관심 종목 바로가기"
-      >
-        <span style={{
-          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--surface, #fff)', color: 'var(--brand-primary)',
-        }}>
-          <Star size={18} strokeWidth={2} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            관심 종목
-          </span>
-          <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-            찜한 종목 모아보기
-          </span>
-        </span>
-        <ChevronRight size={16} style={{ color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
-      </button>
-
-      {/* 도구 */}
-      <div style={SECTION_LABEL}>도구</div>
+      {/* 더 많은 기능 — 핀 가능(관심 종목·알림 센터·둘러보기·도움말) */}
+      <div style={SECTION_LABEL}>더 많은 기능</div>
       <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 24 }}>
-        {tools.map(({ label, sub, Icon, onClick }, idx) => (
-          <button
-            key={label}
-            onClick={onClick}
-            className="cursor-pointer"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              width: '100%', padding: '14px 8px', minHeight: 56, textAlign: 'left',
-              background: 'none', border: 'none',
-              borderTop: idx > 0 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
-            }}
-          >
-            <span style={{
-              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)',
-            }}>
-              <Icon size={18} strokeWidth={1.9} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                {label}
-              </span>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 1 }}>
-                {sub}
-              </span>
-            </span>
-            <ChevronRight size={16} style={{ color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
-          </button>
-        ))}
+        {PINNABLE_ITEMS.map((item, i) => renderRow(item, { first: i === 0 }))}
       </div>
 
       {/* 환경 */}

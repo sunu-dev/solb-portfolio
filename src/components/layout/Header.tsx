@@ -7,13 +7,13 @@ import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
 import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
+import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
 
-const NAV_ITEMS: { label: string; section: MainSection }[] = [
-  { label: '포트폴리오', section: 'portfolio' },
-  { label: 'AI 인사이트', section: 'insights' },
-  { label: '뉴스', section: 'news' },
-  { label: '이벤트 분석', section: 'events' },
-];
+// 최상위 탭 — menuRegistry SSOT에서 파생(3곳 표류 방지). 풀 라벨 사용(헤더는 폭 여유).
+const NAV_ITEMS: { label: string; section: MainSection }[] = PRIMARY_SECTIONS.map((m) => ({
+  label: m.label,
+  section: m.action.kind === 'section' ? m.action.section : 'portfolio',
+}));
 
 interface HeaderProps {
   user?: User | null;
