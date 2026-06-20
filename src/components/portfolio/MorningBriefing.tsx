@@ -363,7 +363,7 @@ export default function MorningBriefing() {
           padding: '10px 14px',
           borderRadius: 10,
           background: 'var(--text-primary, #191F28)',
-          color: '#FFFFFF',
+          color: 'var(--text-inverse, #FFFFFF)',
           fontSize: 12,
           fontWeight: 600,
           border: 'none',

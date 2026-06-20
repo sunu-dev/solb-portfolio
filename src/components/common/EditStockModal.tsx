@@ -277,7 +277,7 @@ export default function EditStockModal() {
                   style={{
                     padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: mode === m ? 600 : 400,
                     background: mode === m ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                    color: mode === m ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                    color: mode === m ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
                     border: 'none',
                   }}
                 >

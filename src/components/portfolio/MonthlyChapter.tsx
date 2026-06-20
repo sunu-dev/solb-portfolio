@@ -274,7 +274,7 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
                 : w.status === 'active'
                 ? 'rgba(49,130,246,0.15)'
                 : 'var(--bg-subtle, #F2F4F6)',
-              color: w.status === 'done' ? '#FFFFFF' : 'var(--text-tertiary, #B0B8C1)',
+              color: w.status === 'done' ? 'var(--pill-active-fg, #FFFFFF)' : 'var(--text-tertiary, #B0B8C1)',
               fontSize: 9, fontWeight: 700, textAlign: 'center',
               letterSpacing: 0.4,
             }}

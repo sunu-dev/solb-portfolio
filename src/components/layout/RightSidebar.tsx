@@ -281,7 +281,7 @@ export default function RightSidebar() {
                     fontWeight: isActive ? 600 : 400,
                     whiteSpace: 'nowrap',
                     background: isActive ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                    color: isActive ? '#fff' : 'var(--text-secondary, #8B95A1)',
+                    color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
                     border: 'none',
                   }}
                 >
@@ -394,7 +394,7 @@ export default function RightSidebar() {
                   fontSize: 11,
                   fontWeight: 600,
                   background: 'var(--text-primary, #191F28)',
-                  color: '#fff',
+                  color: 'var(--text-inverse, #fff)',
                   border: 'none',
                 }}
               >

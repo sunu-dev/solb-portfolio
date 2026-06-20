@@ -193,7 +193,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
             fontSize: 11,
             fontWeight: 600,
             background: 'var(--text-primary, #191F28)',
-            color: '#fff',
+            color: 'var(--text-inverse, #fff)',
             border: 'none',
           }}
         >

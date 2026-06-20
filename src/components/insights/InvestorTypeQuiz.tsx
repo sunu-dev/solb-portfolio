@@ -205,7 +205,7 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                 style={{
                   padding: '14px 0', borderRadius: 12,
                   fontSize: 14, fontWeight: 700,
-                  color: '#fff',
+                  color: 'var(--text-inverse, #fff)',
                   background: 'var(--text-primary, #191F28)',
                   border: 'none', cursor: 'pointer',
                   minHeight: 48,

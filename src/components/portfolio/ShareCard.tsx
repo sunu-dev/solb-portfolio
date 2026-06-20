@@ -97,7 +97,7 @@ export default function ShareCard() {
         onClick={() => setIsOpen(true)}
         style={{
           width: '100%', padding: '12px 16px', borderRadius: 12,
-          background: 'var(--text-primary, #191F28)', color: '#FFFFFF',
+          background: 'var(--text-primary, #191F28)', color: 'var(--text-inverse, #FFFFFF)',
           fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', marginTop: 8,
         }}
       >

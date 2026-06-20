@@ -37,7 +37,7 @@ export default function UndoToast({ message, onUndo, onDismiss, durationMs = 500
         left: '50%',
         transform: 'translateX(-50%)',
         background: 'var(--text-primary, #191F28)',
-        color: '#FFFFFF',
+        color: 'var(--text-inverse, #FFFFFF)',
         padding: '12px 20px',
         borderRadius: 12,
         display: 'flex',
