@@ -484,6 +484,14 @@ code, pre, kbd, samp, .font-mono {
 /* (5) 오버플로 안전 헬퍼 — 단일행 말줄임(그리드/플렉스 안 긴 텍스트). */
 .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
+/* (6) 보유 테이블 — xl+에서 비중% 보조 컬럼 추가(7컬럼). 비중 셀은 .show-from-xl로 동반.
+   ⚠️ inline gridTemplateColumns(6컬럼)를 !important로 덮어 셀 개수와 정합 유지. */
+@media (min-width: 1280px) {
+  .stock-table-header, .stock-table-row {
+    grid-template-columns: minmax(160px, 1fr) 90px 90px 120px 120px 72px 60px !important;
+  }
+}
+
 /* ==========================================
    Dark mode overrides for inline-styled elements
    ========================================== */

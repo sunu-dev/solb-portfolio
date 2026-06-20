@@ -789,6 +789,7 @@ export default function PortfolioSection() {
               <span onClick={() => handleSort('goal')} className="text-right hide-mobile" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
                 목표 달성 {sortBy === 'goal' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
               </span>
+              <span className="text-right show-from-xl">비중</span>
             </div>
 
             {/* Rows */}
@@ -1053,6 +1054,11 @@ export default function PortfolioSection() {
                     ) : (
                       <span className="text-[11px] text-[#B0B8C1]">-</span>
                     )}
+                  </div>
+
+                  {/* 비중% (와이드 전용, descriptive — 보유 비중 거울) */}
+                  <div className="text-right show-from-xl text-[12px] text-[#8B95A1] tabular-nums">
+                    {totalValue > 0 ? ((price || 0) * stock.shares / totalValue * 100).toFixed(1) : '0.0'}%
                   </div>
 
                   {/* Edit/Delete actions */}

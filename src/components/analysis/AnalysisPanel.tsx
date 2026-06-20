@@ -398,8 +398,8 @@ export default function AnalysisPanel() {
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1 analysis-body" style={{ overflowY: 'auto', padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1080px !important; } .analysis-wide-toggle { display: inline-flex !important; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
+          <div className={`flex-1 analysis-body${wideMode && analysis && !isLev ? ' body-2col' : ''}`} style={{ overflowY: 'auto', padding: 24 }}>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .analysis-anchors { grid-column: 1 / -1; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 2 / span 99; align-self: start; position: sticky; top: 8px; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
             {/* PC 섹션 점프 칩 (lg+ 전용, 실제 렌더된 섹션만) — 모달 스캔성. 토스블루 회피(중립 칩) */}
             <div className="analysis-anchors" style={{ position: 'sticky', top: 0, zIndex: 3, display: 'flex', gap: 6, padding: '2px 0 10px', background: 'var(--surface, #FFFFFF)' }}>
               {analysis && !isLev && (
@@ -1318,7 +1318,7 @@ export default function AnalysisPanel() {
                 })()}
 
                 {analysis && !isLev && (
-                  <>
+                  <div className="detail-chart-col">
                     {/* Chart Tabs */}
                     <div id="anchor-chart" className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, scrollMarginTop: 44 }}>
                       차트 분석
@@ -1525,7 +1525,7 @@ export default function AnalysisPanel() {
                         최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {!analysis && !loading && (
