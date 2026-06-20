@@ -296,7 +296,7 @@ export default function NewsSection() {
                   <div style={{
                     fontSize: '15px',
                     fontWeight: 600,
-                    color: '#191F28',
+                    color: 'var(--text-primary, #191F28)',
                     lineHeight: 1.5,
                     marginBottom: '8px',
                     display: '-webkit-box',
