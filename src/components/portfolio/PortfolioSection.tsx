@@ -385,11 +385,14 @@ export default function PortfolioSection() {
     <div data-tour="portfolio-section">
       {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
 
-      {/* IA P0 — '관리·확인'을 먼저: 자산 요약 + 보유 테이블을 상단으로. 시점성 리추얼
-          (챕터 키워드·아침 브리핑)은 화면 하단으로 강등(아래로 이동) — 매일/매월 1회 리추얼이
-          프라임 공간을 점유하지 않게. 16인 IA 패널 권고('황금 땅 포기'). */}
-      {/* Unified Dashboard — 브리핑+히어로+출석+알림 통합 */}
+      {/* IA(2026-06-20) — 포트폴리오=보유관리 슬림화. 챕터 키워드 리추얼은 하단 유지하되,
+          '아침 브리핑'은 매일 열리는 기본 화면 상단으로 승격(파운더 결정): 자산 요약 직후
+          오늘의 시장 한 줄을 보여줘 아침 복귀 동인을 실제로 노출. (이전 '하단 강등'을 브리핑만 되돌림) */}
+      {/* Unified Dashboard — 히어로+출석+알림 통합 */}
       <Dashboard />
+
+      {/* 아침 브리핑 — Dashboard 직하 승격(시점성 리추얼·자체 노출조건/닫기 보유). 모든 서브탭 공통 상단. */}
+      <MorningBriefing />
 
       {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
           Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
@@ -1120,87 +1123,28 @@ export default function PortfolioSection() {
         {/* Phase 3: Wrapped 풀스크린 모달 */}
         <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
 
-        {/* 포트폴리오 맵 — NASDAQ 스타일 미니 히트맵 */}
-        {investingStocks.length > 0 && (
-          <div>
-            <div style={{
-              fontSize: 12, fontWeight: 700,
-              color: 'var(--text-tertiary, #B0B8C1)',
-              marginBottom: 8, letterSpacing: 0.4,
-            }}>
-              포트폴리오 맵
-            </div>
-            <PortfolioTreemap
-              variant="compact"
-              stocks={investingStocks}
-              macroData={macroData}
-              usdKrw={usdKrw}
-              currency={currency}
-              rawCandles={rawCandles}
-              onExpand={() => setSubTab('analysis')}
-              onCellClick={(sym) => setAnalysisSymbol(sym)}
-            />
-          </div>
-        )}
+        {/* 포트폴리오 맵(compact) 제거 — 분석 서브탭의 full 히트맵과 중복(단일 소스화, IA 2026-06-20).
+            맵은 '분석' 서브탭에서 확인. MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관(IA P1-b). */}
 
-        {/* MarketMovers(시장 발견)는 AI 인사이트 탭으로 이관 — '관리'와 '탐색' 분리(IA P1-b) */}
-
-        {/* AI 촉 안내 CTA — 인사이트 탭으로 유도 */}
+        {/* AI 촉 1줄 슬림 링크 — 영구 무료 AI 촉 발견 경로 보존(풀폭 배너→1줄 다운그레이드, IA 2026-06-20).
+            내 종목 뉴스 CTA는 하단 '뉴스' 탭과 중복이라 제거. */}
         {displayList.length > 0 && (
           <button
-            onClick={() => {
-              const { setCurrentSection } = usePortfolioStore.getState();
-              setCurrentSection('insights');
-            }}
+            onClick={() => usePortfolioStore.getState().setCurrentSection('insights')}
+            aria-label="AI 인사이트 탭에서 AI 촉 보기"
             style={{
-              width: '100%', padding: '14px 18px',
-              display: 'flex', alignItems: 'center', gap: 10,
-              borderRadius: 14,
-              background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.06)) 0%, rgba(175,82,222,0.05) 100%)',
-              border: '1px solid var(--border-light, #F2F4F6)',
-              cursor: 'pointer', textAlign: 'left',
-            }}
-          >
-            <span style={{ fontSize: 22 }}>🤖</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                AI 촉 · 주비의 이야기 · 숨은 종목
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-                주비 AI가 오늘 당신의 포트폴리오를 읽어드려요
-              </div>
-            </div>
-            <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
-          </button>
-        )}
-
-        {/* 내 종목 뉴스는 '뉴스' 탭으로 이동 — 여기서는 간단한 링크만 */}
-        {investingStocks.length > 0 && (
-          <button
-            onClick={() => {
-              const { setCurrentSection, setCurrentNewsMarket } = usePortfolioStore.getState();
-              setCurrentNewsMarket('all');
-              setCurrentSection('news');
-            }}
-            aria-label="뉴스 탭으로 이동해 내 종목 뉴스 보기"
-            style={{
-              width: '100%', padding: '14px 16px',
-              display: 'flex', alignItems: 'center', gap: 10,
-              borderRadius: 14,
+              width: '100%', padding: '10px 14px',
+              display: 'flex', alignItems: 'center', gap: 8,
+              borderRadius: 12,
               background: 'var(--bg-subtle, #F8F9FA)',
               border: '1px solid var(--border-light, #F2F4F6)',
               cursor: 'pointer', textAlign: 'left',
             }}
           >
-            <span style={{ fontSize: 22 }}>📰</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                내 종목 뉴스 보기
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-                뉴스 탭에서 보유 종목 관련 기사를 확인해주세요
-              </div>
-            </div>
+            <span style={{ fontSize: 15 }}>🤖</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              AI 촉 · 주비의 이야기 보기
+            </span>
             <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
           </button>
         )}
@@ -1270,9 +1214,9 @@ export default function PortfolioSection() {
         </div>
       )}
 
-      {/* 시점성 리추얼 — IA P0로 상단에서 강등(자산·보유가 우선). 각 컴포넌트가 노출 조건을 자체 판단 */}
+      {/* 시점성 리추얼 — 챕터 키워드(월 1~3일 시즌 시드)는 하단 유지. 노출 조건 자체 판단.
+          ※ 아침 브리핑은 상단(Dashboard 직하)으로 승격 이동함(IA 2026-06-20). */}
       <ChapterKeywordPrompt />
-      <MorningBriefing />
 
       {/* Undo 삭제 토스트 */}
       {undoData && (
