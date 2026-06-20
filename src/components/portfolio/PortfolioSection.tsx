@@ -1092,9 +1092,12 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {/* 홈 스택 — 세로 리듬을 부모 .home-stack의 gap 한 곳에서 강제(자식 marginTop 제거).
+            조건부 자식이 빠져도 gap이 자동 정렬(orphan margin 없음). globals.css (7)·docs/PC_DENSITY_LAYOUT_PLAN.md */}
+        <div className="home-stack" style={{ marginTop: 24 }}>
         {/* IA P0-2 — 증권사별 보유 현황(필터)·다중 broker 통합 뷰: 보유 리스트 '아래'로 이동.
             상단에서 강등해 보유 테이블을 프라임 공간으로 승격(16인 IA 패널 권고). */}
-        <div style={{ marginTop: 24 }}>
+        <div>
           <BrokerSummaryCard
             active={brokerFilter as never}
             onSelect={(b) => setBrokerFilter(b as string | null)}
@@ -1106,7 +1109,7 @@ export default function PortfolioSection() {
             매일 P1~P4 신선도 엔진으로 새 카피 생성, hedonic adaptation 방어
             클릭 시 풀스크린 회고(Wrapped) 모달 — Phase 3 */}
         {investingStocks.length > 0 && (
-          <div style={{ marginTop: 24 }}>
+          <div>
             <MonthlyChapter
               onOpenWrapped={() => setWrappedOpen(true)}
               onOpenPreviousChapter={() => window.dispatchEvent(new CustomEvent('solb-goto-chapter-shelf'))}
@@ -1119,7 +1122,7 @@ export default function PortfolioSection() {
 
         {/* 포트폴리오 맵 — NASDAQ 스타일 미니 히트맵 */}
         {investingStocks.length > 0 && (
-          <div style={{ marginTop: 24 }}>
+          <div>
             <div style={{
               fontSize: 12, fontWeight: 700,
               color: 'var(--text-tertiary, #B0B8C1)',
@@ -1150,7 +1153,7 @@ export default function PortfolioSection() {
               setCurrentSection('insights');
             }}
             style={{
-              width: '100%', marginTop: 24, padding: '14px 18px',
+              width: '100%', padding: '14px 18px',
               display: 'flex', alignItems: 'center', gap: 10,
               borderRadius: 14,
               background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.06)) 0%, rgba(175,82,222,0.05) 100%)',
@@ -1181,7 +1184,7 @@ export default function PortfolioSection() {
             }}
             aria-label="뉴스 탭으로 이동해 내 종목 뉴스 보기"
             style={{
-              width: '100%', marginTop: 24, padding: '14px 16px',
+              width: '100%', padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 10,
               borderRadius: 14,
               background: 'var(--bg-subtle, #F8F9FA)',
@@ -1201,6 +1204,8 @@ export default function PortfolioSection() {
             <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
           </button>
         )}
+
+        </div>{/* /.home-stack */}
 
       </div>
       )}

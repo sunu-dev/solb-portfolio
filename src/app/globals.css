@@ -492,6 +492,13 @@ code, pre, kbd, samp, .font-mono {
   }
 }
 
+/* (7) 세로 리듬 스택 — 스택형 섹션 카드의 상하 간격을 '부모 gap 한 곳'에서 강제.
+   자식마다 marginTop을 손으로 박으면 드리프트(24/32 혼재)가 생기므로 자식 마진을 0으로 두고
+   부모가 --stack-gap으로 통일한다. 조건부로 빠지는 자식이 있어도 gap이 자동 정렬(orphan margin 없음).
+   --stack-gap 한 값만 바꾸면 전체 리듬이 따라온다(디자인 코어 단일 소스). */
+.home-stack { display: flex; flex-direction: column; gap: var(--stack-gap, 24px); }
+.home-stack > * { min-width: 0; margin-top: 0; margin-bottom: 0; }
+
 /* ==========================================
    Dark mode overrides for inline-styled elements
    ========================================== */
