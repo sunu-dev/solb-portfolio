@@ -3,7 +3,15 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-16)
+## 🎯 다음 세션 자동 브리핑 (2026-06-17)
+
+> **최신 sessionary**: `2026-06-17-toss-pc-ux-review-and-adopt.md` (토스 PC vs 주비 PC 20인 패널 → 채택분 7배치 구현)
+> **🟡 PC UX 채택 7배치 — push됨·main 미머지(브랜치 `feat/pc-ux-craft-batch1`)**: 토스 PC(브로커 터미널) vs 주비(관리·학습 도구) 20인 패널 → 정체성 게이트로 거른 채택분 구현. 배치1 토스블루 누출제거+차트 다크 / 배치2 크로스헤어·기준선·모달 a11y(useFocusTrap) / 배치3 딥링크 ?stock=·검색 살펴보기·키보드 / 배치4A 관심 정렬·최근본 / 4B '오늘 한 줄'(**dormant·§6 게이트**, /api/mover-note+lib/moverNote SSOT) / 4C currency / 3.5-A 모달880·점프칩·종목스위처 / 다크 elevation / WatchToggle 통일 / '넓게보기' 토글. 전부 tsc/lint/build/test 통과. 채택 SSOT=`docs/TOSS_PC_UX_REVIEW_ADOPT.md`.
+> **🔴 다음**: ① 프리뷰 육안 검증(다크차트·크로스헤어·딥링크·스위처·관심토글) → 문제없으면 **main 머지(=production)**. ② **2컬럼 전면 재배치**는 차트블록 중첩으로 blind 위험 → 프리뷰 띄워 파운더와 함께. ③ 52주 미니바(데이터 선결)·복기/세무 작업대(큰 기능)는 백로그.
+> **⚠️ 색 규칙**: `#3182F6`=손익색(하락 파랑)+토스블루 양의 → **일괄 sweep 금지**, 브랜드/AI/CTA만 teal.
+> ---
+
+## 🎯 이전 브리핑 (2026-06-16)
 
 > **최신 sessionary**: `2026-06-16-spacex-leverage-coverage.md` (SpaceX IPO+추종 LETF 티커 알고리즘 리뷰 → 레버리지 가드 미국 커버리지 보강)
 > **🟢 레버리지 가드 미국 LETF 커버리지 보강(브랜치 `fix/leverage-guard-us-letf-coverage`, 미커밋·미배포)**: 파운더 "6/12 SpaceX 상장+6/15 추종 레버리지 출시 → 티커 알고리즘 제대로 동작?" → 3렌즈 패널(25에이전트). **루트커즈**: `isSingleStockLeverage`(리터럴 2X+화이트리스트)와 `classifyAssetClass`(한국어 단일종목/3X/LEVERAGED, 2X 미검사)가 별도 정규식·반대 판정 → 미국 1.5X/3X/5X/Bull/Bear SpaceX LETF가 검색라벨·AI거부·알림억제·universe거부 동시 우회(§6 노출). **수정 7단계**: 공유 헬퍼 `detectLeverageProfile` 통합+영어/배수 인식(컨텍스트 AND로 10X Genomics 오탐 차단)·회귀 불변식 테스트 신설·ai-analysis isLev 서버권위화·check-alerts 푸시 asset_class 심층방어·admin add 강등+asset_class 영속·search isLeverage 플래그·enrich asset_class 동기화·HOL 커서. 검증 통과(tsc0·테스트·lint0). **SpaceX 보통주는 12개월 게이트로 정상 보류**.

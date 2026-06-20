@@ -337,6 +337,12 @@ code, pre, kbd, samp, .font-mono {
   --text-secondary: #8E8E9A;
   --text-tertiary: #5C5C6A;
   --border-light: #2A2D3D;
+  /* 다크 elevation — 검정 그림자는 어두운 배경에서 죽으므로 hairline 보더 기반으로
+     카드 경계를 확보(surface·surface-hover 동톤 뭉침 방지). 라이트는 :root 그대로. */
+  --shadow-sm: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
   /* V1.1 Brand dark variants — 명도↑ 채도↓ (다크에서 형광 회피) */
   --brand-primary: #14B8A6;
   --brand-primary-hover: #2DD4BF;
@@ -439,6 +445,50 @@ code, pre, kbd, samp, .font-mono {
 @media (max-width: 768px) {
   .row-actions {
     opacity: 1 !important;
+  }
+}
+
+/* ==========================================
+   PC 정보밀도 / 와이드 레이아웃 표준 (2026-06-20)
+   docs/PC_DENSITY_LAYOUT_PLAN.md SSOT. 와이드의 빈 여백을 멀티컬럼으로 채우되 톤은 깔끔 유지.
+   원칙: 모든 규칙 lg(1024)/xl(1280)+ 한정 · 모바일/태블릿 불변 · 폰트는 줄이지 않고 컬럼으로 채움.
+   오버플로(삐져나옴) 방지 표준: grid는 minmax(0,..) · 채움카드는 minmax(min(100%,X),1fr) ·
+   grid/flex children은 min-width:0 · 미디어는 max-width:100% · 텍스트는 ellipsis/keep-all.
+   ========================================== */
+
+/* (1) 반응형 앱 셸 컨테이너 — 단계형 폭 (foundation §1). margin auto는 page.tsx 인라인 유지. */
+.app-shell { max-width: 1200px; }
+@media (min-width: 1280px) { .app-shell { max-width: 1360px; } }
+@media (min-width: 1536px) { .app-shell { max-width: 1520px; } }
+
+/* (2) 채움 그리드 — 카드 멀티컬럼 SSOT (Insights·Events 등에서 재사용).
+   --fill-min: 카드 최소폭(기본 320). lg부터 auto-fill. min(100%,X)로 좁은 폭 오버플로 차단. */
+.fill-grid { display: grid; gap: 20px; grid-template-columns: 1fr; }
+.fill-grid > * { min-width: 0; }
+@media (min-width: 1024px) {
+  .fill-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--fill-min, 320px)), 1fr)); }
+}
+@media (min-width: 1280px) { .fill-grid { gap: 24px; } }
+.fill-grid--md { --fill-min: 360px; } /* 카드 넓게(2~3열) */
+.fill-grid--lg { --fill-min: 480px; } /* 카드 더 넓게(2열 지향, 회고/차트 카드) */
+
+/* (3) 순서 보존 2열 (시간순 News 등) — xl부터 2열, 그 전엔 단일. */
+.cols-2-xl { display: grid; gap: 20px; grid-template-columns: 1fr; }
+.cols-2-xl > * { min-width: 0; }
+@media (min-width: 1280px) { .cols-2-xl { grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; } }
+
+/* (4) 와이드 전용 노출 — 테이블 보조 컬럼·부가 정보(xl+에서만). */
+.show-from-xl { display: none; }
+@media (min-width: 1280px) { .show-from-xl { display: revert; } }
+
+/* (5) 오버플로 안전 헬퍼 — 단일행 말줄임(그리드/플렉스 안 긴 텍스트). */
+.truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* (6) 보유 테이블 — xl+에서 비중% 보조 컬럼 추가(7컬럼). 비중 셀은 .show-from-xl로 동반.
+   ⚠️ inline gridTemplateColumns(6컬럼)를 !important로 덮어 셀 개수와 정합 유지. */
+@media (min-width: 1280px) {
+  .stock-table-header, .stock-table-row {
+    grid-template-columns: minmax(160px, 1fr) 90px 90px 120px 120px 72px 60px !important;
   }
 }
 

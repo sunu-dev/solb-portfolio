@@ -44,6 +44,32 @@ export default function Home() {
   const [serviceMode, setServiceMode] = useState<string>('open'); // 기본값 open → 로드 후 업데이트
   const [needsInvite, setNeedsInvite] = useState(false);
 
+  // 종목 상세 딥링크 — analysisSymbol ↔ ?stock= URL 동기화.
+  // PC distribution 복원: 공유·북마크·새 탭·새로고침·뒤로가기로 닫기. (전용 라우트 없이 쿼리만)
+  useEffect(() => {
+    const apply = () => {
+      const s = new URLSearchParams(window.location.search).get('stock');
+      usePortfolioStore.getState().setAnalysisSymbol(s ? s.toUpperCase() : null);
+    };
+    apply(); // 최초 진입: URL → store 복원
+    window.addEventListener('popstate', apply);
+    return () => window.removeEventListener('popstate', apply);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const cur = params.get('stock');
+    if (analysisSymbol && cur !== analysisSymbol) {
+      params.set('stock', analysisSymbol);
+      window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
+    } else if (!analysisSymbol && cur) {
+      params.delete('stock');
+      const qs = params.toString();
+      window.history.replaceState(null, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    }
+  }, [analysisSymbol]);
+
   // Mobile alert sheet open via custom event (from header bell icon)
   useEffect(() => {
     const handler = () => setShowMobileAlerts(true);
@@ -212,7 +238,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, #3182F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>주비</div>
+          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>주비</div>
           <div className="text-[#B0B8C1] text-[12px]">내 주식, 매일 한 줄로 읽어드려요</div>
         </div>
       </div>
@@ -241,7 +267,7 @@ export default function Home() {
       <OfflineNotice />
 
       {/* Main body: content + right sidebar */}
-      <div className="flex flex-1 w-full" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="flex flex-1 w-full app-shell" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', margin: '0 auto' }}>
         {/* Main content area */}
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
           <style>{`@media (min-width: 769px) { .main-content { padding: 32px 32px 80px 32px !important; } }`}</style>

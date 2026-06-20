@@ -62,11 +62,12 @@ interface SearchBarProps {
 
 export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
-  const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx } = usePortfolioStore();
+  const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [activeIdx, setActiveIdx] = useState<number>(-1); // 키보드 내비 활성 행
   const [recent, setRecent] = useState<{ symbol: string; description: string }[]>([]);
   const [showRecent, setShowRecent] = useState(false);
   // 단일종목 레버리지 보유 등록 게이트 — 통과 대기 중인 종목
@@ -146,6 +147,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       combined.sort((a, b) => rank(a) - rank(b));
       setResults(combined.slice(0, 8));
       setShowResults(combined.length > 0);
+      setActiveIdx(-1);
     }, 300);
   }, [apiKey, krToTicker]);
 
@@ -233,6 +235,16 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     doAdd(symbol, name);
   }, [user, onClose, doAdd]);
 
+  // 검색 결과 '살펴보기' — 소유 전 학습(발견 루프 복원). 본문 클릭 → 분석 패널.
+  // 레버리지 종목은 AnalysisPanel이 isLev 분기로 분석 거부 카드를 띄우므로 추가 가드 불요.
+  const openAnalysis = useCallback((symbol: string) => {
+    setAnalysisSymbol(symbol.toUpperCase());
+    setQuery('');
+    setShowResults(false);
+    setResults([]);
+    if (onClose) onClose();
+  }, [setAnalysisSymbol, onClose]);
+
   const handleRemoveRecent = (e: React.MouseEvent, symbol: string) => {
     e.stopPropagation();
     removeRecent(symbol);
@@ -270,7 +282,13 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             if (results.length > 0) setShowResults(true);
             else if (query.length === 0) setShowRecent(true);
           }}
-          onKeyDown={(e) => { if (e.key === 'Escape' && onClose) onClose(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') { if (onClose) onClose(); return; }
+            if (!showResults || results.length === 0) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, results.length - 1)); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
+            else if (e.key === 'Enter' && activeIdx >= 0 && activeIdx < results.length) { e.preventDefault(); openAnalysis(results[activeIdx].symbol); }
+          }}
           placeholder="종목명 또는 심볼 검색"
           style={{
             width: '100%', padding: '14px 16px 14px 44px', fontSize: 16,
@@ -318,18 +336,20 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       {showResults && results.length > 0 && (
         <div style={{ maxHeight: 'min(320px, calc(100vh - 160px))', overflowY: 'auto' }}>
           {results.map((item, idx) => (
-            <button
+            <div
               key={`${item.symbol}-${idx}`}
-              onClick={() => handleAdd(item.symbol, item.description, item.isLeverage)}
+              role="button"
+              tabIndex={-1}
+              aria-label={`${getDisplayName(item)} 살펴보기`}
+              onClick={() => openAnalysis(item.symbol)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', padding: '14px 20px',
-                borderTop: '1px solid #F7F8FA', border: 'none',
-                borderTopStyle: 'solid', borderTopWidth: 1, borderTopColor: '#F7F8FA',
+                borderTop: '1px solid #F7F8FA',
                 cursor: 'pointer',
-                background: hoveredIdx === idx ? 'var(--surface-hover, #F9FAFB)' : 'var(--surface, white)',
+                background: (hoveredIdx === idx || activeIdx === idx) ? 'var(--surface-hover, #F9FAFB)' : 'var(--surface, white)',
                 textAlign: 'left', boxSizing: 'border-box', transition: 'background 0.15s',
               }}
             >
@@ -387,11 +407,15 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                <Plus style={{ width: 14, height: 14, color: '#3182F6' }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#3182F6' }}>추가</span>
-              </div>
-            </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleAdd(item.symbol, item.description, item.isLeverage); }}
+                aria-label={`${getDisplayName(item)} 추가`}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6 }}
+              >
+                <Plus style={{ width: 14, height: 14, color: 'var(--brand-primary, #0E7C7B)' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary, #0E7C7B)' }}>추가</span>
+              </button>
+            </div>
           ))}
         </div>
       )}

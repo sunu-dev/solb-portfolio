@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
@@ -36,15 +36,55 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, recentSymbols, currency, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
+  // 글로벌 통화 토글 연동 — 미국 종목만 환산(한국 종목은 이미 KRW라 이중환산 방지)
+  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
+  const [watchSort, setWatchSort] = useState<'added' | 'movement'>('added'); // 관심 점검 순서
   // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
   const [chokPick] = useState<ChokPick | null>(null);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
   const watchingStocks = stocks.watching || [];
+
+  // 점검 순서 정렬 — '많이 움직인 순'(절대 등락률 = abs(dp), 미로딩은 바닥). 추천·서열 아님(방향0).
+  const moveAbs = (sym: string) => {
+    const d = macroData[sym] as QuoteData | undefined;
+    return d?.c ? Math.abs(d.dp ?? 0) : -1;
+  };
+  const sortedWatching = watchSort === 'movement'
+    ? [...watchingStocks].sort((a, b) => moveAbs(b.symbol) - moveAbs(a.symbol))
+    : watchingStocks;
+
+  // 최근 본 종목 — 관심에 이미 있는 건 제외(중복 회피). descriptive 재진입(점수·배지 없음).
+  const recentChips = recentSymbols.filter((s) => !watchingSet.has(s)).slice(0, 6);
+
+  // '오늘 한 줄' — 관심 top mover의 RAG-grounded descriptive 해설(방향0).
+  // §6 게이트: /api/mover-note가 DIGEST_RAG_EXPLANATION on일 때만 note 반환(아니면 null=무노출, dormant).
+  const topMoverSymbol = useMemo(() => {
+    let best: string | null = null;
+    let bestAbs = 0;
+    for (const s of watchingStocks) {
+      const a = moveAbs(s.symbol);
+      if (a > bestAbs) { bestAbs = a; best = s.symbol; }
+    }
+    return best;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchingStocks, macroData]);
+  const [moverNote, setMoverNote] = useState<{ symbol: string; note: string } | null>(null);
+  useEffect(() => {
+    if (!topMoverSymbol) { setMoverNote(null); return; }
+    const kr = STOCK_KR[topMoverSymbol];
+    if (!kr) { setMoverNote(null); return; } // 한글명 없으면 질의 안 함(동일명 환각 방어)
+    let alive = true;
+    fetch(`/api/mover-note?name=${encodeURIComponent(kr)}`)
+      .then((r) => r.json())
+      .then((d) => { if (alive) setMoverNote(d?.note ? { symbol: topMoverSymbol, note: d.note } : null); })
+      .catch(() => { if (alive) setMoverNote(null); });
+    return () => { alive = false; };
+  }, [topMoverSymbol]);
 
   const visibleAlerts = alerts
     .filter(a => !dismissedAlerts.includes(a.id))
@@ -60,11 +100,28 @@ export default function RightSidebar() {
       <div className="flex items-center gap-1.5">
         <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>관심 종목</h3>
         <span className="text-[13px] text-[#B0B8C1] font-normal">{watchingStocks.length}</span>
+        {watchingStocks.length > 1 && (
+          <button
+            onClick={() => setWatchSort((s) => (s === 'added' ? 'movement' : 'added'))}
+            aria-label="관심 종목 점검 순서 정렬"
+            className="ml-auto text-[11px] font-medium cursor-pointer hover:text-[var(--text-secondary)]"
+            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary, #B0B8C1)', padding: '2px 4px' }}
+          >
+            {watchSort === 'added' ? '추가순' : '많이 움직인 순'}
+          </button>
+        )}
       </div>
+
+      {/* 오늘 한 줄 — top mover RAG 해설(방향0, §6 게이트 통과분만). 플래그 off면 렌더 안 됨 */}
+      {moverNote && (
+        <div className="mt-2" style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary, #8B95A1)', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 8, padding: '8px 10px' }}>
+          <span style={{ fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{STOCK_KR[moverNote.symbol] || moverNote.symbol}</span> · {moverNote.note}
+        </div>
+      )}
 
       {/* Watching stock list */}
       <div className="mt-6">
-        {watchingStocks.map((stock, idx) => {
+        {sortedWatching.map((stock, idx) => {
           const q = macroData[stock.symbol] as QuoteData | undefined;
           const price = q?.c ?? 0;
           const dp = q?.dp ?? 0;
@@ -102,7 +159,11 @@ export default function RightSidebar() {
                 {hasData ? (
                   <>
                     <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
-                      {isKR ? `${Math.round(price).toLocaleString()}원` : `$${price.toFixed(2)}`}
+                      {isKR
+                        ? `${Math.round(price).toLocaleString()}원`
+                        : currency === 'KRW'
+                          ? `${Math.round(price * usdKrw).toLocaleString()}원`
+                          : `$${price.toFixed(2)}`}
                     </div>
                     <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                       {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%
@@ -132,6 +193,25 @@ export default function RightSidebar() {
         <Plus className="w-3.5 h-3.5" />
         관심 종목 추가
       </button>
+
+      {/* 최근 본 종목 — descriptive 재진입 칩 (점수·배지·추천 색채 없음) */}
+      {recentChips.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div className="text-[11px] font-semibold text-[#B0B8C1]" style={{ marginBottom: 8 }}>최근 본</div>
+          <div className="flex flex-wrap" style={{ gap: 6 }}>
+            {recentChips.map((sym) => (
+              <button
+                key={sym}
+                onClick={() => setAnalysisSymbol(sym)}
+                className="text-[12px] cursor-pointer hover:bg-[#EDEFF2] dark:hover:bg-[var(--surface-hover)]"
+                style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', whiteSpace: 'nowrap' }}
+              >
+                {STOCK_KR[sym] || sym}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ============================================
           주비 AI 알림센터

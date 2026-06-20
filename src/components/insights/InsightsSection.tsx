@@ -322,12 +322,15 @@ export default function InsightsSection() {
           {/* IA P2 — 회고·성향(분석 서브탭에서 이관): 보유 있을 때만 */}
           {investingCount > 0 && (
             <div ref={retroRef} className="insight-stagger" style={{ animationDelay: '0.35s' }}>
-              <ThrowbackCard />
-              <TradePatternMirror />
-              <PortfolioDNA />
-              <StockPulse />
-              <InvestmentJournal />
-              <ShareCard />
+              {/* 회고·성향 카드 — 세로 6단 → 와이드 멀티컬럼(표준 .fill-grid, 2열 지향) */}
+              <div className="fill-grid fill-grid--lg">
+                <ThrowbackCard />
+                <TradePatternMirror />
+                <PortfolioDNA />
+                <StockPulse />
+                <InvestmentJournal />
+                <ShareCard />
+              </div>
             </div>
           )}
         </>

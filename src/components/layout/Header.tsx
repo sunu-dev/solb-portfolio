@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
-import { Settings, Bell, Search, HelpCircle, LayoutGrid } from 'lucide-react';
+import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -110,7 +110,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                       left: '24px',
                       right: '24px',
                       height: '2px',
-                      background: 'var(--text-primary, #191F28)',
+                      background: 'var(--brand-primary, #0E7C7B)',
                       borderRadius: '1px',
                     }}
                   />
@@ -162,7 +162,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
           title={darkMode ? '라이트 모드' : '다크 모드'}
         >
-          {darkMode ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+          {darkMode
+            ? <Sun className="w-[17px] h-[17px]" style={{ color: 'var(--text-secondary, #8B95A1)' }} />
+            : <Moon className="w-[17px] h-[17px]" style={{ color: 'var(--text-secondary, #8B95A1)' }} />}
         </button>
 
         {/* Help button — 투어 재시작 + /help 페이지 진입 */}

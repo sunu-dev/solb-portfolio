@@ -55,6 +55,7 @@ interface PortfolioState {
   currentNewsMarket: string;
   currentEventId: string;
   analysisSymbol: string | null;
+  recentSymbols: string[]; // 최근 본 종목 (setAnalysisSymbol 시 기록, 최대 8)
 
   // Settings
   currency: 'KRW' | 'USD';
@@ -161,6 +162,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       currentNewsMarket: 'us',
       currentEventId: 'iran-war',
       analysisSymbol: null,
+      recentSymbols: [],
 
       currency: 'KRW' as 'KRW' | 'USD',
       darkMode: false,
@@ -189,7 +191,13 @@ export const usePortfolioStore = create<PortfolioState>()(
       setCurrentSection: (section) => set({ currentSection: section }),
       setCurrentNewsMarket: (market) => set({ currentNewsMarket: market }),
       setCurrentEventId: (id) => set({ currentEventId: id }),
-      setAnalysisSymbol: (symbol) => set({ analysisSymbol: symbol }),
+      setAnalysisSymbol: (symbol) => set((state) => {
+        if (!symbol) return { analysisSymbol: null };
+        const sym = symbol.toUpperCase();
+        // 최근 본 종목 ring-buffer(중복 제거, 최신 앞, 최대 8) — descriptive 재진입용
+        const recentSymbols = [sym, ...state.recentSymbols.filter((s) => s !== sym)].slice(0, 8);
+        return { analysisSymbol: symbol, recentSymbols };
+      }),
       setApiKey: (key) => set({ apiKey: key }),
       setAutoRefresh: (val) => set({ autoRefresh: val }),
       setRefreshInterval: (ms) => set({ refreshInterval: ms }),
@@ -546,6 +554,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       },
       partialize: (state) => ({
         stocks: state.stocks,
+        recentSymbols: state.recentSymbols,
         currency: state.currency,
         darkMode: state.darkMode,
         apiKey: state.apiKey,

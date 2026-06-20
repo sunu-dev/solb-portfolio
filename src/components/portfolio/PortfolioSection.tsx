@@ -789,6 +789,7 @@ export default function PortfolioSection() {
               <span onClick={() => handleSort('goal')} className="text-right hide-mobile" style={{ cursor: 'pointer' }} onMouseEnter={e => (e.currentTarget.style.color = '#4E5968')} onMouseLeave={e => (e.currentTarget.style.color = '#B0B8C1')}>
                 목표 달성 {sortBy === 'goal' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
               </span>
+              <span className="text-right show-from-xl">비중</span>
             </div>
 
             {/* Rows */}
@@ -1055,6 +1056,11 @@ export default function PortfolioSection() {
                     )}
                   </div>
 
+                  {/* 비중% (와이드 전용, descriptive — 보유 비중 거울) */}
+                  <div className="text-right show-from-xl text-[12px] text-[#8B95A1] tabular-nums">
+                    {totalValue > 0 ? ((price || 0) * stock.shares / totalValue * 100).toFixed(1) : '0.0'}%
+                  </div>
+
                   {/* Edit/Delete actions */}
                   <div className="row-actions flex items-center gap-0">
                     <button
@@ -1218,8 +1224,12 @@ export default function PortfolioSection() {
                 <div className="portfolio-widgets-grid">
                   <style>{`
                     .portfolio-widgets-grid { display: flex; flex-direction: column; gap: 0; }
+                    .portfolio-widgets-grid > * { min-width: 0; }
                     @media (min-width: 1024px) {
-                      .portfolio-widgets-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                      .portfolio-widgets-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+                    }
+                    @media (min-width: 1536px) {
+                      .portfolio-widgets-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 24px; }
                     }
                   `}</style>
                   <BenchmarkCompare />
