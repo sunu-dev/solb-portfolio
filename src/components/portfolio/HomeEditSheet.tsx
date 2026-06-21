@@ -2,7 +2,7 @@
 
 import { type CSSProperties } from 'react';
 import {
-  ChevronUp, ChevronDown, RotateCcw,
+  ChevronUp, ChevronDown, RotateCcw, SlidersHorizontal,
   Sun, Building2, CalendarRange, Sparkles, TrendingUp, BarChart3, LayoutGrid, HeartPulse, Target, BookOpen,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -38,6 +38,20 @@ const WIDGET_ICON: Record<WidgetId, IconType> = {
   'chapter-shelf': BookOpen,
 };
 
+// 위젯 칩 카테고리 컬러(허브 톤 통일·하단 단조 해소). 정의된 토큰만(R3). 손익색 미사용.
+const WIDGET_ACCENT: Record<WidgetId, { bg: string; fg: string }> = {
+  'morning-briefing': { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
+  'broker-block': { bg: 'var(--color-info-bg, rgba(49,130,246,0.08))', fg: 'var(--color-info, #3182F6)' },
+  'monthly-chapter': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
+  'ai-hunch-link': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
+  'value-chart': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
+  'benchmark-compare': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
+  'treemap': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
+  'portfolio-health': { bg: 'var(--brand-primary-light, rgba(14,124,123,0.08))', fg: 'var(--brand-primary)' },
+  'goal-progress': { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
+  'chapter-shelf': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
+};
+
 const ZONES: { zone: WidgetZone; label: string; sub: string }[] = [
   { zone: 'above-core', label: '상단', sub: '자산 요약 바로 아래' },
   { zone: 'below-core', label: '보유 종목 아래', sub: '순서도 바꿀 수 있어요' },
@@ -52,11 +66,16 @@ function ToggleSwitch({ on, onClick, label }: { on: boolean; onClick: () => void
       style={{
         flexShrink: 0, width: 46, height: 28, borderRadius: 999, padding: 3, border: 'none', cursor: 'pointer',
         background: on ? 'var(--brand-primary)' : 'var(--border-strong, #E5E8EB)',
-        display: 'flex', alignItems: 'center', justifyContent: on ? 'flex-end' : 'flex-start',
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
         transition: 'background 0.22s ease',
       }}
     >
-      <span style={{ width: 22, height: 22, borderRadius: 999, background: '#FFFFFF', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+      <span style={{
+        width: 22, height: 22, borderRadius: 999,
+        background: 'var(--switch-knob-bg, #FFFFFF)', boxShadow: 'var(--switch-knob-shadow)',
+        transform: on ? 'translateX(18px)' : 'translateX(0)',
+        transition: 'transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1)',
+      }} />
     </button>
   );
 }
@@ -80,6 +99,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
   const renderRow = (w: HomeWidget, order?: { first: boolean; last: boolean }, isLast?: boolean) => {
     const hidden = isWidgetHidden(w.id, hiddenWidgets); // non-hideable이면 항상 false
     const Icon = WIDGET_ICON[w.id];
+    const ac = WIDGET_ACCENT[w.id];
     return (
       <div
         key={w.id}
@@ -90,9 +110,9 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
       >
         {/* 위젯 정체성 아이콘 */}
         <span style={{
-          flexShrink: 0, width: 38, height: 38, borderRadius: 11,
+          flexShrink: 0, width: 38, height: 38, borderRadius: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--brand-primary-light, rgba(14,124,123,0.08))', color: 'var(--brand-primary)',
+          background: ac.bg, color: ac.fg,
           opacity: hidden ? 0.45 : 1,
         }}>
           {Icon ? <Icon size={19} strokeWidth={2} /> : null}
@@ -139,28 +159,39 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
     <BottomSheet isOpen={isOpen} onClose={onClose} desktopVariant>
       <div style={{ padding: '2px 18px 12px' }}>
         {/* 헤더 */}
-        <div style={{ fontSize: 19, fontWeight: 800, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.03em' }}>
-          홈 화면 편집
+        <div className="edit-stagger stag-0" style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
+          <span style={{
+            flexShrink: 0, width: 44, height: 44, borderRadius: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', color: 'var(--on-brand-fg, #FFFFFF)',
+            boxShadow: 'var(--shadow-md)',
+          }}>
+            <SlidersHorizontal size={22} strokeWidth={2} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.03em' }}>홈 화면 편집</div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', margin: '4px 0 0', lineHeight: 1.5 }}>
+              보조 위젯을 켜고 끄거나 순서를 바꿔요.<br />자산 요약과 보유 종목은 항상 보여요.
+            </p>
+          </div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', margin: '6px 0 20px', lineHeight: 1.5 }}>
-          보조 위젯을 켜고 끄거나 순서를 바꿔요.<br />자산 요약과 보유 종목은 항상 보여요.
-        </p>
 
         {/* zone 그룹 카드 */}
-        {ZONES.map(({ zone, label, sub }) => {
+        {ZONES.map(({ zone, label, sub }, zi) => {
           const widgets = resolveWidgetOrder(widgetOrder, zone)
             .map((id) => getWidget(id))
             .filter((w): w is HomeWidget => !!w);
           if (widgets.length === 0) return null;
           return (
-            <div key={zone} style={{ marginBottom: 22 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, margin: '0 4px 9px' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.01em' }}>{label}</span>
+            <div key={zone} className={`edit-stagger stag-${zi + 1}`} style={{ marginBottom: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '0 6px 10px' }}>
+                <span style={{ width: 3, height: 13, borderRadius: 2, background: 'var(--brand-primary)', flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.01em' }}>{label}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--text-tertiary, #B0B8C1)' }}>{sub}</span>
               </div>
               <div style={{
                 background: 'var(--surface, #FFFFFF)', borderRadius: 16, overflow: 'hidden',
-                boxShadow: 'var(--card-shadow, 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06))',
+                border: '1px solid var(--border-light, #F2F4F6)', boxShadow: 'var(--shadow-md)',
               }}>
                 {widgets.map((w, i) => renderRow(
                   w,
