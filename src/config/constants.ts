@@ -85,6 +85,9 @@ export interface StockItem {
   notes?: StockNote[];
   // Phase B-1 — 증권사별 자산 관리 (선택, 미지정 OK)
   broker?: Broker;
+  // 둘러보기(온보딩 샘플) 종목 마킹 — true면 savePortfolioToDB에서 strip돼 서버에 동기화되지 않는다.
+  // 비로그인/신규자 샘플이 실제 계좌 포트폴리오로 오염되는 것을 차단. 로컬(persist) 표시는 그대로.
+  demo?: boolean;
 }
 
 export interface Transaction {

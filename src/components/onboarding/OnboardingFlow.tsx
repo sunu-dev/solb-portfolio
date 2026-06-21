@@ -28,7 +28,7 @@ const SAMPLE_PORTFOLIO = [
 // 정적 AI 촉 미리보기 (실 API 호출 X — free 한도 보존)
 const CHOK_PREVIEW = [
   { symbol: 'NVDA', krName: '엔비디아',  sector: '반도체',   reason: 'AI 학습 수요 지속, 데이터센터 매출 +112%',     keyMetric: 'PER 38 · 52주 82% 위치' },
-  { symbol: 'JNJ',  krName: '존슨앤존슨', sector: '헬스케어', reason: '경기 방어주 + 배당주, 시장 변동성 헤지 후보',  keyMetric: 'PER 22 · 배당수익률 3.1%' },
+  { symbol: 'JNJ',  krName: '존슨앤존슨', sector: '헬스케어', reason: '헬스케어 대형주 · 안정적 배당 섹터',  keyMetric: 'PER 22 · 배당수익률 3.1%' },
   { symbol: 'XOM',  krName: '엑손모빌',   sector: '에너지',   reason: '유가 강세 수혜 + 자사주 매입 강화',              keyMetric: 'PER 12 · 52주 65% 위치' },
 ];
 
@@ -41,8 +41,8 @@ const VALUE_CARDS = [
   },
   {
     emoji: '🎯',
-    title: 'AI 촉 — 매일 새 종목 추천',
-    desc: '시장 상황과 내 포트폴리오 약점을 분석해 매일 3종목 추천.',
+    title: 'AI 촉 — 매일 새 종목 정보',
+    desc: '시장 흐름에 맞춰 오늘 눈에 띄는 종목 3개를 매일 정리해 보여드려요.',
     color: '#16A34A',
   },
   {
@@ -195,8 +195,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 } catch { /* storage full */ }
                 // 'watching' 카테고리에 추가 — 실제 보유가 아닌 관심 종목으로 명확히 분리.
                 // avgCost·shares는 시뮬레이션 데이터로 유지 (둘러보기용).
+                // demo:true — savePortfolioToDB에서 strip돼 서버 미동기화. 샘플이 실제 계좌로 오염되는 것 차단.
                 SAMPLE_PORTFOLIO.forEach(s => {
-                  const ns: StockItem = { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: 0, buyBelow: 0 };
+                  const ns: StockItem = { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: 0, buyBelow: 0, demo: true };
                   addStock('watching', ns);
                 });
                 setSampleLoaded(true);
@@ -215,7 +216,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               샘플 종목 둘러보기 (관심 목록)
             </button>
             <p style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>
-              실제 보유 X · 관심 목록에 추가돼요. 언제든 삭제 가능.
+              실제 보유 X · 둘러보기 샘플(이 기기에서만). 언제든 삭제 가능.
             </p>
 
             {/* OCR 가져오기 */}
@@ -273,7 +274,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               내일 아침, 주비가 보여드릴 것
             </h1>
             <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 22 }}>
-              매일 시장 상황을 분석해 새 종목 3개를 추천해드려요
+              매일 시장 상황을 정리해 새 종목 3개를 보여드려요
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -299,7 +300,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             </div>
 
             <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(255,149,0,0.08)', fontSize: 11, color: '#FF9500', lineHeight: 1.55, marginBottom: 8 }}>
-              ⚠️ 위는 예시예요. 실제 추천은 본 화면 진입 후 1번 받을 수 있어요 (무료 한도)
+              ⚠️ 위는 예시예요. AI 촉은 추천이 아니라 시장 정보 — 매매 판단은 본인 몫이에요. 실제 정보는 본 화면 진입 후 1번 받아볼 수 있어요 (무료 한도)
             </div>
           </>
         )}
