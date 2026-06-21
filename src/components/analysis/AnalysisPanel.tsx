@@ -14,6 +14,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
 import { MENTORS, MENTOR_MAP } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
@@ -550,6 +551,7 @@ export default function AnalysisPanel() {
                           localStorage.setItem('solb_ai_usage', String(prev + 1));
                         } catch { /* ignore */ }
                         logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
+                        logFeatureFirstUse('analysis');
                       }
                       else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
                     } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }
@@ -901,6 +903,7 @@ export default function AnalysisPanel() {
                                   localStorage.setItem('solb_ai_usage', String(prev + 1));
                                 } catch { /* ignore */ }
                                 logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
+                                logFeatureFirstUse('mentor');
                               } else {
                                 setMentorError(data.error || 'AI 분석 요청에 실패했어요. 잠시 후 다시 시도해주세요.');
                               }

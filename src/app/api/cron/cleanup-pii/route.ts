@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
  * - api_calls.ip  → 30일 후 NULL로 익명화 (관측성 위주, IP 가치 낮음)
  * - 365일+ 이전 행 hard DELETE (저장 비용 + GDPR/개보법)
  * - alert_log    → 365일+ 행 hard DELETE (정책 SSOT: docs/NOTIFICATION_POLICY.md §4.4)
+ * - tour_events  → 30일+ 행 hard DELETE (게스트 텔레메트리 보존 — 2026-06-21_tour_events.sql)
  *
  * 인증: Vercel Cron이 자동 설정하는 Authorization: Bearer ${CRON_SECRET}.
  *      외부에서 임의 호출 차단.
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
     ai_usage_deleted: 0,
     api_calls_deleted: 0,
     alert_log_deleted: 0,
+    tour_events_deleted: 0,
     errors: [] as string[],
   };
 
@@ -103,6 +105,17 @@ export async function GET(req: NextRequest) {
       stats.errors.push(`alert_log delete: ${logDelErr.message}`);
     } else {
       stats.alert_log_deleted = logDel || 0;
+    }
+
+    // 6. tour_events 30일+ hard DELETE — 게스트 텔레메트리 보존 정책(2026-06-21_tour_events.sql 주석을 실집행)
+    const { count: tourDel, error: tourDelErr } = await supabase
+      .from('tour_events')
+      .delete({ count: 'exact' })
+      .lt('created_at', daysAgoIso(30));
+    if (tourDelErr && !/relation .* does not exist/i.test(tourDelErr.message)) {
+      stats.errors.push(`tour_events delete: ${tourDelErr.message}`);
+    } else {
+      stats.tour_events_deleted = tourDel || 0;
     }
 
     return NextResponse.json({
