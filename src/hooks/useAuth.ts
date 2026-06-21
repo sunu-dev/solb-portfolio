@@ -51,6 +51,8 @@ export function useAuth() {
       // 신규 로그인 (anon → authenticated): LoginModal에서 동의한 내용을 user_consents에 INSERT
       // BLOCKER #10 — 동의 시점 DB 로깅 (분쟁 1순위 증거)
       if (!prevId && newId) {
+        // 게스트 체험 데모(demo:true)는 계정으로 이전 금지 — 로컬 keep 정책 전에 먼저 제거.
+        usePortfolioStore.getState().clearGuestDemo();
         try {
           const pending = sessionStorage.getItem('solb_consent_pending');
           if (pending) {

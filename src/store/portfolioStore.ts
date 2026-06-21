@@ -11,6 +11,7 @@ import type {
   NewsItem, EventCacheEntry, PresetEvent,
 } from '@/config/constants';
 import { DEFAULT_STOCKS, STOCK_KR, PRESET_EVENTS } from '@/config/constants';
+import { GUEST_DEMO_STOCKS } from '@/lib/guestDemo';
 import type { Alert } from '@/utils/alertsEngine';
 import { recordDismissal } from '@/utils/alertLearning';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
@@ -151,6 +152,9 @@ interface PortfolioState {
   dbPortfolioStatus: 'unknown' | 'ok' | 'empty';
   setDbPortfolioStatus: (s: 'unknown' | 'ok' | 'empty') => void;
   resetPortfolio: () => void;
+  /** 게스트 체험 데모 보유 주입(demo:true, 빈 포트폴리오에만) / 제거. partialize 제외로 세션 한정. */
+  loadGuestDemo: () => void;
+  clearGuestDemo: () => void;
 
   // Helpers
   getAllSymbols: () => string[];
@@ -459,7 +463,9 @@ export const usePortfolioStore = create<PortfolioState>()(
         const state = get();
         if (!needsNewSnapshot(state.dailySnapshots)) return;
 
-        const investing = state.stocks.investing || [];
+        // 게스트 데모(demo:true)는 스냅샷에서 원천 제외 — 스냅샷엔 demo 플래그가 없어 사후 식별/정화 불가하므로
+        // 생성 시점 차단이 유일한 안전 지점. 이게 빠지면 데모가 dailySnapshots→localStorage persist→로그인 시 서버 누출.
+        const investing = (state.stocks.investing || []).filter(s => !s.demo);
         const stocksSnap = investing
           .filter(s => s.avgCost > 0 && s.shares > 0)
           .map(s => {
@@ -517,6 +523,22 @@ export const usePortfolioStore = create<PortfolioState>()(
         hiddenWidgets: [],
         widgetOrder: [],
       }),
+
+      // 게스트 체험 데모 — 빈 포트폴리오에만 샘플 보유 주입(demo:true). partialize 제외=세션 한정, stripDemoStocks=서버 미동기화.
+      loadGuestDemo: () => set((state) => {
+        const hasReal = state.stocks.investing.some(s => !s.demo)
+          || state.stocks.watching.some(s => !s.demo)
+          || state.stocks.sold.some(s => !s.demo);
+        if (hasReal) return {};
+        return { stocks: { ...state.stocks, investing: GUEST_DEMO_STOCKS.map(s => ({ ...s })) } };
+      }),
+      clearGuestDemo: () => set((state) => ({
+        stocks: {
+          investing: state.stocks.investing.filter(s => !s.demo),
+          watching: state.stocks.watching.filter(s => !s.demo),
+          sold: state.stocks.sold.filter(s => !s.demo),
+        },
+      })),
 
       // --- Helpers ---
       getAllSymbols: () => {
@@ -600,7 +622,12 @@ export const usePortfolioStore = create<PortfolioState>()(
         return persistedState as Record<string, unknown>;
       },
       partialize: (state) => ({
-        stocks: state.stocks,
+        // demo:true(게스트 체험 샘플)는 persist 제외 → localStorage 미저장(세션 한정, 리로드 시 소멸).
+        stocks: {
+          investing: state.stocks.investing.filter(s => !s.demo),
+          watching: state.stocks.watching.filter(s => !s.demo),
+          sold: state.stocks.sold.filter(s => !s.demo),
+        },
         recentSymbols: state.recentSymbols,
         currency: state.currency,
         darkMode: state.darkMode,
