@@ -28,6 +28,15 @@ const SECTION_LABEL: React.CSSProperties = {
   margin: '0 4px 10px',
 };
 
+// 주요 메뉴 타일 — 메뉴별 컬러 아이콘 칩(토스/카카오 전체-그리드 생동감). 다크 자동 플립 토큰.
+const TILE_ACCENT: Record<string, { bg: string; fg: string }> = {
+  portfolio: { bg: 'var(--brand-primary-light, rgba(14,124,123,0.08))', fg: 'var(--brand-primary)' },
+  insights: { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
+  news: { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
+  events: { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
+};
+const accentFor = (id: string) => TILE_ACCENT[id] ?? TILE_ACCENT.portfolio;
+
 export default function FeatureDirectory({ onNavigate }: Props) {
   const {
     currentSection, setCurrentSection, setCurrentTab,
@@ -160,39 +169,40 @@ export default function FeatureDirectory({ onNavigate }: Props) {
 
       {/* 주요 메뉴 — 2열 타일 (4탭, 항상 노출이라 핀 대상 아님) */}
       <div style={SECTION_LABEL}>주요 메뉴</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
         {PRIMARY_SECTIONS.map((item) => {
           const isActive = item.action.kind === 'section' && currentSection === item.action.section;
+          const ac = accentFor(item.id);
           return (
             <button
               key={item.id}
               onClick={() => runItem(item, false)}
-              className="cursor-pointer"
+              className="cursor-pointer feature-tile"
               style={{
-                display: 'flex', flexDirection: 'column', gap: 10,
-                padding: '16px 14px', minHeight: 96, textAlign: 'left',
-                background: isActive ? 'var(--brand-primary-light)' : 'var(--surface, #FFFFFF)',
-                border: `1px solid ${isActive ? 'var(--brand-primary)' : 'transparent'}`,
-                borderRadius: 16,
+                display: 'flex', flexDirection: 'column', gap: 12,
+                padding: '18px 16px', minHeight: 104, textAlign: 'left',
+                background: isActive ? ac.bg : 'var(--surface, #FFFFFF)',
+                border: `1.5px solid ${isActive ? ac.fg : 'transparent'}`,
+                borderRadius: 18,
                 boxShadow: isActive ? 'none' : 'var(--card-shadow, 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06))',
               }}
               aria-current={isActive ? 'page' : undefined}
             >
               <span
                 style={{
-                  width: 38, height: 38, borderRadius: 11,
+                  width: 46, height: 46, borderRadius: 14,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isActive ? 'var(--brand-primary)' : 'var(--brand-primary-light, rgba(14,124,123,0.08))',
-                  color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--brand-primary)',
+                  background: isActive ? ac.fg : ac.bg,
+                  color: isActive ? 'var(--pill-active-fg, #fff)' : ac.fg,
                 }}
               >
-                <item.Icon size={18} strokeWidth={2} />
+                <item.Icon size={22} strokeWidth={2} />
               </span>
               <span>
-                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.02em' }}>
                   {item.label}
                 </span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
+                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 3 }}>
                   {item.sub}
                 </span>
               </span>

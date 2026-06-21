@@ -801,6 +801,10 @@ button, a, [role="button"] {
   }
 }
 
+/* 주요 메뉴 타일 — 누름 피드백(토스풍). reduced-motion에선 아래 백스톱이 transition 무력화. */
+.feature-tile { transition: transform 0.12s ease; }
+.feature-tile:active { transform: scale(0.97); }
+
 /* ==========================================
    접근성 — prefers-reduced-motion 전역 백스톱 (홈편집 a11y 설계, WCAG 2.2.2)
    ⚠️ 릴리스 노트: reduced-motion 환경에서만 미가드 키프레임(ticker·shimmer·rowFadeIn 등) 일괄 완화.
