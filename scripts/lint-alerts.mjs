@@ -93,8 +93,9 @@ const ONBOARDING_FORBIDDEN = [
   '약점을 분석',
   '약점 분석',
 ];
-/** 온보딩/투어 소스 파일(components/onboarding/**)에만 ONBOARDING_FORBIDDEN을 적용 */
-const ONBOARDING_FILE_RE = /onboarding/i;
+/** 온보딩/투어 소스 파일(components/onboarding/** + lib/tourRegistry)에만 ONBOARDING_FORBIDDEN을 적용.
+ *  투어 카피 SSOT가 tourRegistry.ts로 이전됐으므로 함께 커버(누락 시 §6 박제 우회). */
+const ONBOARDING_FILE_RE = /onboarding|tourRegistry/i;
 
 /**
  * 검사에서 제외할 파일·디렉토리.
