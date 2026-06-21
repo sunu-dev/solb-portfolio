@@ -401,7 +401,7 @@ export default function AnalysisPanel() {
 
           {/* Scrollable body */}
           <div className={`flex-1 analysis-body${wideMode && analysis && !isLev ? ' body-2col' : ''}`} style={{ overflowY: 'auto', padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .analysis-anchors { grid-column: 1 / -1; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 2 / span 99; align-self: start; position: sticky; top: 8px; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .analysis-anchors { grid-column: 1 / -1; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 2 / span 99; align-self: start; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
             {/* PC 섹션 점프 칩 (lg+ 전용, 실제 렌더된 섹션만) — 모달 스캔성. 토스블루 회피(중립 칩) */}
             <div className="analysis-anchors" style={{ position: 'sticky', top: 0, zIndex: 3, display: 'flex', gap: 6, padding: '2px 0 10px', background: 'var(--surface, #FFFFFF)' }}>
               {analysis && !isLev && (
@@ -1394,6 +1394,9 @@ export default function AnalysisPanel() {
                     {/* 이 차트, 지금 이런 상태예요 — 초보 해설(chartNarrative SSOT, §6 안전). 차트 직하 약어 범례 대체.
                         level 바인딩 — basic 차트엔 볼린저 띠 미렌더라 볼린저 설명 생략(화면-설명 일치). */}
                     {(() => {
+                      const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
+                      const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
+                      const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
                       const narrative = buildChartNarrative({
                         rsiVal: analysis.rsiVal,
                         bollingerPos: analysis.bollingerStatus
@@ -1402,6 +1405,8 @@ export default function AnalysisPanel() {
                             : analysis.bollingerStatus.status.startsWith('중앙') ? 'middle' : null)
                           : null,
                         price: analysis.closes[analysis.closes.length - 1],
+                        recentHigh,
+                        recentLow,
                         sma20: analysis.sma20.length ? analysis.sma20[analysis.sma20.length - 1] : null,
                         sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
                         volRatio: analysis.volRatio,

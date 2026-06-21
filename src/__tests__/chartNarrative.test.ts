@@ -27,7 +27,9 @@ function allNarrativeInputs(): NarrativeInput[] {
       for (const above of [true, false]) {
         for (const volRatio of [2, 0.5, 1]) {
           for (const level of ['basic', 'detail'] as const) {
-            out.push({ rsiVal, bollingerPos, price: 100, sma20: above ? 90 : 110, sma60: above ? 80 : 120, volRatio, level });
+            for (const [recentHigh, recentLow, price] of [[130, 70, 100], [130, 70, 128], [130, 70, 72], [100, 100, 100]] as [number, number, number][]) {
+              out.push({ rsiVal, bollingerPos, price, recentHigh, recentLow, sma20: above ? 90 : 110, sma60: above ? 80 : 120, volRatio, level });
+            }
           }
         }
       }
@@ -54,9 +56,9 @@ describe('chartNarrative — §6 누출 박제', () => {
   });
 
   it('basic 레벨에선 볼린저 카드를 노출하지 않는다(차트-설명 일치)', () => {
-    const basic = buildChartNarrative({ rsiVal: 72, bollingerPos: 'upper', price: 100, sma20: 90, sma60: 80, volRatio: 2, level: 'basic' });
+    const basic = buildChartNarrative({ rsiVal: 72, bollingerPos: 'upper', price: 100, recentHigh: 130, recentLow: 70, sma20: 90, sma60: 80, volRatio: 2, level: 'basic' });
     expect(basic.cards.some(c => c.term === '볼린저밴드')).toBe(false);
-    const detail = buildChartNarrative({ rsiVal: 72, bollingerPos: 'upper', price: 100, sma20: 90, sma60: 80, volRatio: 2, level: 'detail' });
+    const detail = buildChartNarrative({ rsiVal: 72, bollingerPos: 'upper', price: 100, recentHigh: 130, recentLow: 70, sma20: 90, sma60: 80, volRatio: 2, level: 'detail' });
     expect(detail.cards.some(c => c.term === '볼린저밴드')).toBe(true);
   });
 });
