@@ -7,6 +7,7 @@ import { STOCK_KR } from '@/config/constants';
 import type { StockItem } from '@/config/constants';
 import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { useAuth } from '@/hooks/useAuth';
 import { eunNeun } from '@/utils/koreanJosa';
 import { isSingleStockLeverage, LEVERAGE_SEARCH_LABEL, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
@@ -196,6 +197,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
     addStock(targetCat, ns);
     logApiCall('stock_add', sym);
+    logFeatureFirstUse('stock-add');
 
     const newIdx = (stocks[targetCat] || []).length;
     setEditingCat(targetCat);

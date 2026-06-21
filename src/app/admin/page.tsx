@@ -618,7 +618,10 @@ interface GrowthData {
   readinessPct: number;
   // P0-6 신규 KPI
   onboardingFunnel?: { view: number; complete: number; skip: number; samplePortfolio: number; stockAdd: number };
-  tourFunnel?: { started: number; step: number; completed: number; skipped: number };
+  tourFunnel?: { started: number; step: number; completed: number; skipped: number; anchorMissing?: number };
+  featureAdoption?: Record<string, number>;
+  adoptionCohort?: { tourWatched: { users: number; avgFeatures: number }; notWatched: { users: number; avgFeatures: number } };
+  guestFunnel?: { available: boolean; distinctGuests: number; started: number; sampleLoaded: number; toLogin: number; anchorMissing: number };
   helpOpened?: number;
   feedbackBySource?: Record<string, { positive: number; negative: number; total: number; satisfaction: number }>;
 }
@@ -808,6 +811,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
                 <FunnelRow label="단계 진입" value={data.tourFunnel.step} max={Math.max(data.tourFunnel.started, 1)} />
                 <FunnelRow label="완료" value={data.tourFunnel.completed} max={Math.max(data.tourFunnel.started, 1)} highlight />
                 <FunnelRow label="스킵" value={data.tourFunnel.skipped} max={Math.max(data.tourFunnel.started, 1)} muted />
+                <FunnelRow label="앵커 미마운트" value={data.tourFunnel.anchorMissing ?? 0} max={Math.max(data.tourFunnel.started, 1)} muted />
               </div>
             )}
 
@@ -816,6 +820,65 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
               <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>❓ 도움말</div>
               <FunnelRow label="/help 진입" value={data.helpOpened ?? 0} max={data.totalUsers || 1} />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2 — 기능 채택 · 게스트 funnel */}
+      {(data.featureAdoption || data.adoptionCohort || data.guestFunnel) && (
+        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+            🎯 기능 채택 · 게스트 funnel (최근 {days}일)
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+
+            {/* 기능별 첫 사용(채택) */}
+            {data.featureAdoption && Object.keys(data.featureAdoption).length > 0 && (
+              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>🧩 기능 첫 사용 (유저 수)</div>
+                {Object.entries(data.featureAdoption).sort((a, b) => b[1] - a[1]).map(([fid, n]) => (
+                  <FunnelRow key={fid} label={fid} value={n} max={data.totalUsers || 1} />
+                ))}
+              </div>
+            )}
+
+            {/* 코호트 비교 — 투어 본 vs 안 본 */}
+            {data.adoptionCohort && (
+              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>📊 평균 채택 기능수 — 투어 본 vs 안 본</div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#fff', borderRadius: 8 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#0E7C7B' }}>{data.adoptionCohort.tourWatched.avgFeatures}</div>
+                    <div style={{ fontSize: 11, color: '#8B95A1' }}>투어 봄 ({data.adoptionCohort.tourWatched.users}명)</div>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#fff', borderRadius: 8 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: '#8B95A1' }}>{data.adoptionCohort.notWatched.avgFeatures}</div>
+                    <div style={{ fontSize: 11, color: '#8B95A1' }}>안 봄 ({data.adoptionCohort.notWatched.users}명)</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: '#B0B8C1' }}>※ 로그인 세션 투어 기준 (게스트 선시청 보정은 Phase 3)</div>
+              </div>
+            )}
+
+            {/* 게스트 funnel */}
+            {data.guestFunnel && (
+              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>👤 게스트(비로그인) funnel</div>
+                {data.guestFunnel.available ? (
+                  <>
+                    <FunnelRow label="고유 게스트" value={data.guestFunnel.distinctGuests} max={Math.max(data.guestFunnel.distinctGuests, 1)} />
+                    <FunnelRow label="투어 시작" value={data.guestFunnel.started} max={Math.max(data.guestFunnel.distinctGuests, 1)} />
+                    <FunnelRow label="샘플 로드" value={data.guestFunnel.sampleLoaded} max={Math.max(data.guestFunnel.started, 1)} />
+                    <FunnelRow label="→ 로그인 전환" value={data.guestFunnel.toLogin} max={Math.max(data.guestFunnel.started, 1)} highlight />
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
+                    ⚠️ 게스트 측정 대기 — tour_events 미적용. Supabase에 2026-06-21_tour_events.sql 적용 필요.
+                  </div>
+                )}
+                <div style={{ marginTop: 8, fontSize: 11, color: '#B0B8C1' }}>※ distinctGuests는 클라 anonId 기반 — best-effort(위조 가능, 단독 판단 금지)</div>
+              </div>
+            )}
           </div>
         </div>
       )}

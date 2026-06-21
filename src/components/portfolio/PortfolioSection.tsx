@@ -10,6 +10,7 @@ import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from 
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
+import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import PortfolioTreemap from './PortfolioTreemap';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
@@ -187,6 +188,7 @@ export default function PortfolioSection() {
     if (editMode) {
       editEnterAt.current = Date.now();
       logApiCall('home_edit_enter', undefined, { hiddenCount: hiddenWidgets.length });
+      logFeatureFirstUse('home-edit');
     } else if (editEnterAt.current != null) {
       logApiCall('home_edit_exit', undefined, { durationMs: Date.now() - editEnterAt.current });
       editEnterAt.current = null;

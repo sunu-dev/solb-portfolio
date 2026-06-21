@@ -1,4 +1,5 @@
 import { logApiCall } from '@/lib/apiLogger';
+import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 
 /**
  * AI 촉 노출·상호작용 텔레메트리.
@@ -29,4 +30,5 @@ export function trackChokInteraction(
   meta: ChokMeta = {},
 ) {
   logApiCall(`ai_chok_${kind}`, symbol, meta);
+  logFeatureFirstUse('ai-hunch');
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { logApiCall } from '@/lib/apiLogger';
+import { logTourEvent } from '@/lib/tourTelemetry';
 import { TOUR_STEPS } from '@/lib/tourRegistry';
 
 /**
@@ -26,25 +26,25 @@ export default function CoachMark() {
   const start = useCallback(() => {
     setStepIdx(0);
     setActive(true);
-    logApiCall('tour_started');
+    logTourEvent('tour_started');
   }, []);
 
   const finish = useCallback(() => {
-    logApiCall('tour_completed');
+    logTourEvent('tour_completed');
     try { localStorage.setItem('solb_tour_done', '1'); } catch { /* ignore */ }
     setActive(false);
     setBox(null);
   }, []);
 
   const skip = useCallback(() => {
-    logApiCall('tour_skipped', String(stepIdx));
+    logTourEvent('tour_skipped', { step: stepIdx });
     try { localStorage.setItem('solb_tour_done', '1'); } catch { /* ignore */ }
     setActive(false);
     setBox(null);
   }, [stepIdx]);
 
   const next = useCallback(() => {
-    logApiCall('tour_step', String(stepIdx));
+    logTourEvent('tour_step', { step: stepIdx });
     if (stepIdx < TOUR_STEPS.length - 1) {
       setStepIdx(s => s + 1);
     } else {
@@ -79,7 +79,9 @@ export default function CoachMark() {
     const locate = () => {
       const el = document.querySelector(`[data-tour="${step.anchor}"]`);
       if (!el) {
-        // 타겟 없으면 다음 step (helper 보장)
+        // 앵커 미마운트 — 무음 skip 대신 계측(이탈 vs 미마운트 구분). lint:tour-anchors가 데드앵커는 빌드 차단하나
+        // 런타임 조건부/lazy 마운트로 일시 부재할 수 있어 관측 필요.
+        logTourEvent('tour_anchor_missing', { anchor: step.anchor, step: stepIdx });
         const t = setTimeout(() => {
           if (cancelled) return;
           if (stepIdx < TOUR_STEPS.length - 1) setStepIdx(s => s + 1);

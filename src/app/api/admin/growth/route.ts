@@ -37,10 +37,10 @@ export async function GET(req: NextRequest) {
         .select('created_at')
         .gte('created_at', since + 'T00:00:00+09:00'),
 
-      // 일별 활성 유저 (api_logs의 user_id 기준)
+      // 일별 활성 유저 (api_logs의 user_id 기준) — metadata는 feature_first_use 채택 코호트용
       supabaseAdmin
         .from('api_logs')
-        .select('user_id, action, created_at')
+        .select('user_id, action, created_at, metadata')
         .gte('created_at', since + 'T00:00:00+09:00')
         .not('user_id', 'is', null),
 
@@ -161,7 +161,63 @@ export async function GET(req: NextRequest) {
       step: actionCount['tour_step'] || 0,
       completed: actionCount['tour_completed'] || 0,
       skipped: actionCount['tour_skipped'] || 0,
+      anchorMissing: actionCount['tour_anchor_missing'] || 0,  // 앵커 미마운트(데드앵커 아님)
     };
+
+    // ── 기능 첫 사용(채택) + 투어 코호트 (KPI: 투어 본 코호트가 더 많이 채택하는가) ──
+    const tourUserIds = new Set(
+      (logsRes.data || [])
+        .filter(r => r.action === 'tour_started' || r.action === 'tour_completed')
+        .map(r => r.user_id)
+    );
+    const featUseByUser = new Map<string, Set<string>>();
+    (logsRes.data || []).forEach(row => {
+      if (row.action !== 'feature_first_use' || !row.user_id) return;
+      const fid = (row.metadata as { featureId?: string } | null)?.featureId;
+      if (!fid) return;
+      if (!featUseByUser.has(row.user_id)) featUseByUser.set(row.user_id, new Set());
+      featUseByUser.get(row.user_id)!.add(fid);
+    });
+    // featureId별 채택 유저 수
+    const featureAdoption: Record<string, number> = {};
+    featUseByUser.forEach(set => set.forEach(fid => { featureAdoption[fid] = (featureAdoption[fid] || 0) + 1; }));
+    // 코호트별 평균 채택 기능 수 (활성 유저 전체 기준 — 0건 포함).
+    // ⚠️ tourUserIds는 api_logs(로그인) 기준이라, 게스트로 투어 본 뒤 로그인한 유저는 'notWatched'로 분류될 수 있음
+    //    (게스트 tour_started는 tour_events로 감). Phase 2엔 게스트 투어가 거의 없어 편향 작으나, Phase 3에서 보정 필요.
+    const avgFeatures = (ids: string[]) =>
+      ids.length ? Math.round((ids.reduce((s, u) => s + (featUseByUser.get(u)?.size || 0), 0) / ids.length) * 10) / 10 : 0;
+    const activeArr = [...activeUserIds].filter(Boolean) as string[];
+    const cohortWatched = activeArr.filter(u => tourUserIds.has(u));
+    const cohortNot = activeArr.filter(u => !tourUserIds.has(u));
+    const adoptionCohort = {
+      tourWatched: { users: cohortWatched.length, avgFeatures: avgFeatures(cohortWatched) },
+      notWatched:  { users: cohortNot.length, avgFeatures: avgFeatures(cohortNot) },
+    };
+
+    // ── 게스트(비로그인) 투어 funnel — tour_events. 마이그레이션 적용 전엔 available:false (대시보드 무중단) ──
+    let guestFunnel: {
+      available: boolean; distinctGuests: number;
+      started: number; sampleLoaded: number; toLogin: number; anchorMissing: number;
+    } = { available: false, distinctGuests: 0, started: 0, sampleLoaded: 0, toLogin: 0, anchorMissing: 0 };
+    try {
+      const ge = await supabaseAdmin
+        .from('tour_events')
+        .select('event, anon_id, auth_state')
+        .gte('created_at', since + 'T00:00:00+09:00');
+      if (!ge.error && ge.data) {
+        const guests = new Set<string>();
+        let started = 0, sampleLoaded = 0, toLogin = 0, anchorMissing = 0;
+        (ge.data as { event: string; anon_id: string; auth_state: string }[]).forEach(row => {
+          if (row.auth_state === 'guest' && row.anon_id) guests.add(row.anon_id);
+          // demo_*는 Phase 3 게스트 투어 출시 전엔 call site 0 → started엔 tour_started만 집계(미사용 이벤트 주입 오염 방지)
+          if (row.event === 'tour_started') started++;
+          else if (row.event === 'demo_sample_loaded') sampleLoaded++;
+          else if (row.event === 'demo_to_login') toLogin++;
+          else if (row.event === 'tour_anchor_missing') anchorMissing++;
+        });
+        guestFunnel = { available: true, distinctGuests: guests.size, started, sampleLoaded, toLogin, anchorMissing };
+      }
+    } catch { /* tour_events 테이블 미생성 — 대시보드 무중단 */ }
 
     // ── 도움말 진입 ────────────────────────────────────────────
     const helpOpened = actionCount['help_opened'] || 0;
@@ -198,6 +254,9 @@ export async function GET(req: NextRequest) {
       // P0-6 신규 KPI
       onboardingFunnel,
       tourFunnel,
+      featureAdoption,
+      adoptionCohort,
+      guestFunnel,
       helpOpened,
       feedbackBySource,
     }, {
