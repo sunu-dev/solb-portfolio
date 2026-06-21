@@ -62,6 +62,8 @@ export function logFeatureFirstUse(featureId: string): void {
     if (used.includes(featureId)) return;
     used.push(featureId);
     localStorage.setItem(FEAT_KEY, JSON.stringify(used));
+    // 시작하기 체크리스트(GettingStartedChecklist)가 라이브 갱신하도록 신호
+    window.dispatchEvent(new CustomEvent('solb-feature-used', { detail: { featureId } }));
     void logTourEvent('feature_first_use', { featureId });
   } catch { /* ignore */ }
 }

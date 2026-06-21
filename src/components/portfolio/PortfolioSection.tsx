@@ -17,6 +17,7 @@ import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import MorningBriefing from './MorningBriefing';
+import GettingStartedChecklist from '@/components/onboarding/GettingStartedChecklist';
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
@@ -431,6 +432,9 @@ export default function PortfolioSection() {
           오늘의 시장 한 줄을 보여줘 아침 복귀 동인을 실제로 노출. (이전 '하단 강등'을 브리핑만 되돌림) */}
       {/* Unified Dashboard — 히어로+출석+알림 통합 */}
       <Dashboard />
+
+      {/* 시작하기 체크리스트(Phase 4) — 자가 게이트(로그인·미완료·미디스미스). feature_first_use 자동 체크. */}
+      <GettingStartedChecklist />
 
       {/* 아침 브리핑 — Dashboard 직하 승격(시점성 리추얼·자체 노출조건/닫기 보유). 모든 서브탭 공통 상단. 홈편집 above-core. */}
       {!isHidden('morning-briefing') && <MorningBriefing />}
