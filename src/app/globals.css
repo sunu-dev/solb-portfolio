@@ -80,6 +80,15 @@
   --pill-active-bg: #191F28;
   --pill-active-fg: #FFFFFF;
 
+  /* 디자인 폴리시(5인 패널) — gradient hero·소프트섀도·검색링·토글 (다크 양쪽 정의 필수, R3). */
+  --on-brand-fg: #FFFFFF;                 /* gradient 위 흰 텍스트/아이콘 — pill-active-fg는 다크 플립이라 금지 */
+  --on-brand-muted: rgba(255, 255, 255, 0.82);
+  --shadow-brand-soft: 0 4px 14px rgba(14, 124, 123, 0.12);
+  --search-focus-ring: 0 0 0 3px rgba(14, 124, 123, 0.12);
+  --switch-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(0, 0, 0, 0.06);
+  --switch-knob-bg: #FFFFFF;
+  --inset-subtle: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+
   /* Dashboard hero gradients */
   --dashboard-hero-gain: linear-gradient(135deg, #F0F7FF 0%, #F5F3FF 100%);
   --dashboard-hero-loss: linear-gradient(135deg, #FFF5F5 0%, #FFF9F0 100%);
@@ -379,6 +388,13 @@ code, pre, kbd, samp, .font-mono {
   --text-inverse: #191F28;
   --pill-active-bg: #E8E8ED; /* 다크: active 배경 밝게 */
   --pill-active-fg: #191F28; /* 다크: active 텍스트 진하게 (배경과 함께 뒤집힘) */
+  --on-brand-fg: #FFFFFF;
+  --on-brand-muted: rgba(255, 255, 255, 0.72);
+  --shadow-brand-soft: 0 4px 16px rgba(20, 184, 166, 0.20);
+  --search-focus-ring: 0 0 0 3px rgba(20, 184, 166, 0.22);
+  --switch-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --switch-knob-bg: #E8E8ED;
+  --inset-subtle: inset 0 1px 2px rgba(0, 0, 0, 0.2);
   --border-strong: #2A2D3D;
   --card-bg: #1A1D2E;
 
@@ -802,8 +818,22 @@ button, a, [role="button"] {
 }
 
 /* 주요 메뉴 타일 — 누름 피드백(토스풍). reduced-motion에선 아래 백스톱이 transition 무력화. */
-.feature-tile { transition: transform 0.12s ease; }
+.feature-tile { transition: transform 0.14s ease, box-shadow 0.14s ease; }
 .feature-tile:active { transform: scale(0.97); }
+
+/* 디자인 폴리시(5인 패널) — 진입 스태거·hero 광택·검색 필드·hover lift. reduced-motion 백스톱이 모션 자동 무력화. */
+.fd-stagger { animation: fadeInUp 0.34s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.edit-stagger { animation: fadeInUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stag-0 { animation-delay: 0ms; } .stag-1 { animation-delay: 48ms; } .stag-2 { animation-delay: 96ms; }
+.stag-3 { animation-delay: 144ms; } .stag-4 { animation-delay: 192ms; } .stag-5 { animation-delay: 240ms; }
+.hero-sheen { position: relative; }
+.hero-sheen::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 60%); pointer-events: none; }
+.search-field { transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+.search-field:focus-within { border-color: var(--brand-primary) !important; box-shadow: var(--search-focus-ring) !important; }
+@media (hover: hover) {
+  .feature-tile:hover { transform: translateY(-2px); }
+  .search-field:hover { background: var(--surface-hover) !important; }
+}
 
 /* ==========================================
    접근성 — prefers-reduced-motion 전역 백스톱 (홈편집 a11y 설계, WCAG 2.2.2)

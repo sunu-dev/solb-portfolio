@@ -1,7 +1,7 @@
 'use client';
 
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { Search, Settings, ChevronRight, Moon, Sun, Pin } from 'lucide-react';
+import { Search, Settings, ChevronRight, Moon, Sun, Pin, LayoutGrid } from 'lucide-react';
 import {
   PRIMARY_SECTIONS, PINNABLE_ITEMS, resolveFavorites, runMenuAction,
   type MenuItem, type MenuActionContext,
@@ -112,31 +112,36 @@ export default function FeatureDirectory({ onNavigate }: Props) {
 
   return (
     <div>
-      {/* 허브 헤더 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 4px 16px' }}>
-        <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.03em' }}>
-          전체
-        </span>
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)' }}>주비의 모든 기능</span>
+      {/* 허브 헤더 → gradient hero 앵커 (5인 패널 WOW1) */}
+      <div className="fd-stagger stag-0 hero-sheen" style={{
+        overflow: 'hidden',
+        background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))',
+        borderRadius: 18, padding: '18px', margin: '0 4px 18px', boxShadow: 'var(--shadow-md)',
+      }}>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--on-brand-fg, #FFFFFF)', letterSpacing: '-0.03em' }}>전체</div>
+          <div style={{ fontSize: 12.5, color: 'var(--on-brand-muted, rgba(255,255,255,0.82))', marginTop: 3 }}>주비의 모든 기능을 한눈에</div>
+        </div>
+        <LayoutGrid size={66} strokeWidth={1.5} style={{ position: 'absolute', top: -8, right: -8, color: 'var(--on-brand-fg, #FFFFFF)', opacity: 0.18, transform: 'rotate(-12deg)', pointerEvents: 'none' }} />
       </div>
 
       {/* 검색 내장 — 종목 검색 진입 (필드형 버튼) */}
       <button
         onClick={() => emit('open-search')}
-        className="cursor-pointer"
+        className="cursor-pointer search-field fd-stagger stag-1"
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          width: '100%', padding: '14px 16px', marginBottom: 24, minHeight: 48,
-          background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12,
-          color: 'var(--text-tertiary, #B0B8C1)', fontSize: 14, textAlign: 'left',
+          width: '100%', padding: '14px 16px', marginBottom: 22, minHeight: 50,
+          background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 13,
+          color: 'var(--text-secondary, #8B95A1)', fontSize: 14, textAlign: 'left', boxShadow: 'var(--shadow-sm)',
         }}
         aria-label="종목 검색 열기"
       >
-        <Search size={18} />
+        <Search size={18} style={{ color: 'var(--brand-primary)' }} />
         <span style={{ flex: 1 }}>종목 검색</span>
         <kbd style={{
           fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)',
-          background: 'var(--surface, #fff)', border: '1px solid var(--border-light, #F2F4F6)',
+          background: 'var(--bg-subtle, #F8F9FA)', border: '1px solid var(--border-light, #F2F4F6)',
           borderRadius: 4, padding: '1px 6px',
         }} className="hidden md:inline">/</kbd>
       </button>
@@ -149,15 +154,18 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         </div>
       ) : (
         <div
+          className="fd-stagger stag-2"
           style={{
-            marginBottom: 24, padding: '16px', display: 'flex', alignItems: 'center', gap: 12,
-            background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 14,
+            marginBottom: 26, padding: '16px', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'linear-gradient(135deg, var(--brand-primary-bg, rgba(14,124,123,0.06)), var(--bg-subtle, #F8F9FA))',
+            border: '1px dashed var(--brand-primary-light, rgba(14,124,123,0.08))', borderRadius: 14,
           }}
         >
           <span style={{
-            flexShrink: 0, width: 40, height: 40, borderRadius: 12,
+            flexShrink: 0, width: 42, height: 42, borderRadius: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--brand-primary-light, rgba(14,124,123,0.08))', color: 'var(--brand-primary)',
+            background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', color: 'var(--on-brand-fg, #FFFFFF)',
+            boxShadow: 'var(--shadow-brand-soft)',
           }}>
             <Pin size={18} strokeWidth={2} />
           </span>
@@ -169,7 +177,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
 
       {/* 주요 메뉴 — 2열 타일 (4탭, 항상 노출이라 핀 대상 아님) */}
       <div style={SECTION_LABEL}>주요 메뉴</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
+      <div className="fd-stagger stag-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
         {PRIMARY_SECTIONS.map((item) => {
           const isActive = item.action.kind === 'section' && currentSection === item.action.section;
           const ac = accentFor(item.id);
@@ -181,10 +189,10 @@ export default function FeatureDirectory({ onNavigate }: Props) {
               style={{
                 display: 'flex', flexDirection: 'column', gap: 12,
                 padding: '18px 16px', minHeight: 104, textAlign: 'left',
-                background: isActive ? ac.bg : 'var(--surface, #FFFFFF)',
-                border: `1.5px solid ${isActive ? ac.fg : 'transparent'}`,
+                background: isActive ? ac.bg : 'linear-gradient(180deg, var(--surface, #FFFFFF), var(--bg-subtle, #F8F9FA))',
+                border: `1.5px solid ${isActive ? ac.fg : 'var(--border-light, #F2F4F6)'}`,
                 borderRadius: 18,
-                boxShadow: isActive ? 'none' : 'var(--card-shadow, 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06))',
+                boxShadow: isActive ? 'var(--shadow-brand-soft)' : 'var(--shadow-md)',
               }}
               aria-current={isActive ? 'page' : undefined}
             >
