@@ -141,12 +141,20 @@ export default function FeatureDirectory({ onNavigate }: Props) {
       ) : (
         <div
           style={{
-            marginBottom: 24, padding: '14px 16px', minHeight: 48,
-            background: 'var(--bg-subtle, #F8F9FA)', border: '1px dashed var(--border-light, #F2F4F6)',
-            borderRadius: 12, fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.5,
+            marginBottom: 24, padding: '16px', display: 'flex', alignItems: 'center', gap: 12,
+            background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 14,
           }}
         >
-          자주 쓰는 기능을 핀(📌)으로 꽂아두면 여기서 바로 열 수 있어요.
+          <span style={{
+            flexShrink: 0, width: 40, height: 40, borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--brand-primary-light, rgba(14,124,123,0.08))', color: 'var(--brand-primary)',
+          }}>
+            <Pin size={18} strokeWidth={2} />
+          </span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.55 }}>
+            아래 기능의 <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>핀</span> 버튼을 누르면<br />여기에 바로가기가 생겨요.
+          </span>
         </div>
       )}
 
@@ -161,19 +169,20 @@ export default function FeatureDirectory({ onNavigate }: Props) {
               onClick={() => runItem(item, false)}
               className="cursor-pointer"
               style={{
-                display: 'flex', flexDirection: 'column', gap: 8,
-                padding: '16px 14px', minHeight: 92, textAlign: 'left',
-                background: isActive ? 'var(--brand-primary-light)' : 'var(--bg-subtle, #F8F9FA)',
+                display: 'flex', flexDirection: 'column', gap: 10,
+                padding: '16px 14px', minHeight: 96, textAlign: 'left',
+                background: isActive ? 'var(--brand-primary-light)' : 'var(--surface, #FFFFFF)',
                 border: `1px solid ${isActive ? 'var(--brand-primary)' : 'transparent'}`,
-                borderRadius: 14,
+                borderRadius: 16,
+                boxShadow: isActive ? 'none' : 'var(--card-shadow, 0 2px 6px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06))',
               }}
               aria-current={isActive ? 'page' : undefined}
             >
               <span
                 style={{
-                  width: 36, height: 36, borderRadius: 10,
+                  width: 38, height: 38, borderRadius: 11,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isActive ? 'var(--brand-primary)' : 'var(--surface, #fff)',
+                  background: isActive ? 'var(--brand-primary)' : 'var(--brand-primary-light, rgba(14,124,123,0.08))',
                   color: isActive ? 'var(--pill-active-fg, #fff)' : 'var(--brand-primary)',
                 }}
               >
