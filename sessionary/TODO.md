@@ -3,7 +3,16 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-21)
+## 🎯 다음 세션 자동 브리핑 (2026-06-21 — 투어 강화)
+
+> **최신 sessionary**: `2026-06-21-tour-overhaul.md` (투어/온보딩 강화 전략회의 → Phase 0~3b 6 PR #12~#17 운영 머지)
+> **🟢 투어 6 PR 운영 머지**: §6/브랜드/데이터 핫픽스(#13) → `tourRegistry` SSOT+데드앵커 빌드게이트(#14) → 게스트 텔레메트리+feature_first_use KPI+대시보드(#15) → 챕터형 멀티섹션 투어+둘러보기 시트(#16, 목표A) → 게스트 배너+AI촉 value-first 게이트(#17, 목표B). 각 PR 적대적 다중에이전트 리뷰 후 머지. 메모리 [[project_tour_system]] 승급.
+> **🔴 다음(투어)**: ① ⚠️**`2026-06-21_tour_events.sql` Supabase 수동 적용**(게스트 투어 라이브, 미적용 시 guestFunnel 안 쌓임·대시보드 "측정 대기"로 무중단) ② **3b-2 sessionStorage 데모 포트폴리오**(게스트 populated 보유 거울, watching 미주입·고위험, PortfolioSection 데모 오버레이) ③ Phase 4 진행형 체크리스트(채택 데이터 후).
+> **🔴 상위 painkiller(미진행 유지)**: **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 1순위, 프리뷰 READY·파운더 액션·세무사법 §20③ 감수 게이트.
+> **⚠️ 투어 규칙**: 스텝은 `tourRegistry.ts` SSOT 한 곳. 새 앵커=`data-tour`+레지스트리 등록(`lint:tour-anchors`가 데드앵커 빌드 차단). 투어 카피 descriptive(§6). 게스트 AI촉=티커 없는 설명만(파운더 결정). React 인라인 hex는 다크 allowlist 무효→`var(--token)`만.
+> ---
+
+## 🗄️ (구) 브리핑 (2026-06-21 darkcore — 8 PR 종결)
 
 > **최신 sessionary**: `2026-06-21-darkcore-ia-favorites-homeedit.md` (다크 코어·IA 슬림·AI촉 캐시워밍·즐겨찾기 B·홈편집 A — 8 PR 운영 머지)
 > **🟢 8 PR 전부 운영 머지·적대적 리뷰 0건**: ①다크모드 색상 코어(`--pill-active-bg/fg` + `lint:darkmode` 가드 R1/R3=0, prebuild) ②포트폴리오=보유관리 슬림화(IA) ③AI촉 `enrich-warm` cron(클릭로드 기각·마운트 AI 미사용) ④메뉴 즐겨찾기 '바로가기'/**Pin** + `menuRegistry` SSOT ⑤**홈 화면 편집(A)** 6단계(`homeWidgetRegistry`·코어 고정·zone 편집·ai-hunch §6 박제·useHasHydrated·dead-jump·누출테스트 5/5). 설계 SSOT: `docs/HOME_EDIT_DESIGN_SPEC.md`·`docs/HOME_CUSTOMIZE_FAVORITES_ANALYSIS.md`.
