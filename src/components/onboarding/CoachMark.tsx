@@ -24,7 +24,7 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
   { target: 'macro-strip',       title: '오늘의 시장',       desc: '미국·한국 주요 지수와 환율, 공포지수를 한 번에 확인할 수 있어요.', position: 'bottom' },
   { target: 'portfolio-section', title: '내 종목 한 줄 요약', desc: '오늘 가장 큰 움직임, 52주 위치, 멘토 점수까지 한 줄로 요약해드려요.', position: 'bottom' },
-  { target: 'ai-chok',           title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 3개를 추천받을 수 있어요. 로그인 사용자 무료.', position: 'top' },
+  { target: 'ai-chok',           title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.', position: 'top' },
   { target: 'help-button',       title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.', position: 'bottom' },
 ];
 
@@ -159,7 +159,7 @@ export default function CoachMark() {
           top: box.top - 6, left: box.left - 6,
           width: box.width + 12, height: box.height + 12,
           borderRadius: 14,
-          border: '3px solid #3182F6',
+          border: '3px solid var(--brand-primary)',
           boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)',
           transition: 'all 0.3s ease',
         }}
@@ -171,24 +171,24 @@ export default function CoachMark() {
           position: 'fixed', zIndex: 202,
           left: ttLeft, ...ttStyle,
           width: TOOLTIP_WIDTH,
-          padding: 18, borderRadius: 14, background: '#fff',
+          padding: 18, borderRadius: 14, background: 'var(--surface)',
           boxShadow: '0 16px 40px rgba(0,0,0,0.22)',
         }}
         role="dialog"
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#8B95A1' }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
             {stepIdx + 1} / {TOUR_STEPS.length}
           </span>
           <button
             onClick={skip}
             aria-label="투어 닫기"
-            style={{ fontSize: 18, color: '#B0B8C1', background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+            style={{ fontSize: 18, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
           >
             ×
           </button>
         </div>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
           {step.title}
         </div>
         <div style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6, marginBottom: 16 }}>
@@ -197,13 +197,13 @@ export default function CoachMark() {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
           <button
             onClick={skip}
-            style={{ fontSize: 12, color: '#8B95A1', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}
+            style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0' }}
           >
             건너뛰기
           </button>
           <button
             onClick={next}
-            style={{ padding: '9px 20px', borderRadius: 8, background: '#3182F6', color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--brand-primary)', color: 'var(--on-brand-fg)', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
           >
             {stepIdx < TOUR_STEPS.length - 1 ? '다음 →' : '완료'}
           </button>

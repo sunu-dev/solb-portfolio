@@ -82,6 +82,20 @@ const TAX_FORBIDDEN_PHRASES = [
 /** 세무 기능 소스 파일에만 TAX_FORBIDDEN_PHRASES를 적용 (taxRates·tax UI·tax API) */
 const TAX_FILE_RE = /tax|양도세/i;
 
+// 온보딩/투어 카피 — §6 descriptive 경계. 개인 포트 '약점 분석'→특정 종목 '추천' 누출 차단.
+// 전역엔 '추천' 단독이 과차단('추천이 아니라 시장 정보' 같은 면책 카피까지 잡음)이라 온보딩 소스 파일에만 적용.
+// 가장 많이 노출되는 첫 화면·투어 카피에 prescriptive 표현이 재유입되는 회귀를 빌드에서 차단(2차 그물).
+const ONBOARDING_FORBIDDEN = [
+  '새 종목 추천',
+  '종목 추천',
+  '추천해드',     // 추천해드려요/추천해드릴
+  '추천받',       // 추천받을/추천받기
+  '약점을 분석',
+  '약점 분석',
+];
+/** 온보딩/투어 소스 파일(components/onboarding/**)에만 ONBOARDING_FORBIDDEN을 적용 */
+const ONBOARDING_FILE_RE = /onboarding/i;
+
 /**
  * 검사에서 제외할 파일·디렉토리.
  *
@@ -135,6 +149,7 @@ async function lintFile(filePath) {
   const violations = [];
   const isDigestFile = DIGEST_FILE_RE.test(filePath);
   const isTaxFile = TAX_FILE_RE.test(filePath);
+  const isOnboardingFile = ONBOARDING_FILE_RE.test(filePath);
 
   let inBlockComment = false;
 
@@ -190,6 +205,20 @@ async function lintFile(filePath) {
             file: path.relative(ROOT, filePath),
             line: i + 1,
             phrase: `[세무사법 오인] ${phrase}`,
+            context: lines[i].trim().slice(0, 200),
+          });
+        }
+      }
+    }
+
+    // 온보딩/투어 소스 파일 한정 — §6 prescriptive 누출 (개인 포트→특정 종목 추천)
+    if (isOnboardingFile) {
+      for (const phrase of ONBOARDING_FORBIDDEN) {
+        if (stripped.includes(phrase)) {
+          violations.push({
+            file: path.relative(ROOT, filePath),
+            line: i + 1,
+            phrase: `[§6 온보딩] ${phrase}`,
             context: lines[i].trim().slice(0, 200),
           });
         }

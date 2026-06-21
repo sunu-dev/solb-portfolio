@@ -43,14 +43,28 @@ export async function loadPortfolioFromDB(userId: string): Promise<PortfolioStoc
 
 // Save portfolio to Supabase (upsert)
 // dailySnapshots도 함께 저장 — 신규 컬럼 미존재 시 컬럼 제외 retry
+/**
+ * 데모(둘러보기) 종목은 서버에 저장하지 않는다.
+ * 온보딩/비로그인 샘플(demo:true)이 실제 계좌 포트폴리오로 동기화되는 오염을 차단.
+ * 로컬(Zustand persist) 표시는 그대로 두고, DB upsert 직전에만 걸러낸다.
+ */
+function stripDemoStocks(stocks: PortfolioStocks): PortfolioStocks {
+  return {
+    investing: (stocks.investing ?? []).filter(s => !s.demo),
+    watching: (stocks.watching ?? []).filter(s => !s.demo),
+    sold: (stocks.sold ?? []).filter(s => !s.demo),
+  };
+}
+
 export async function savePortfolioToDB(
   userId: string,
   stocks: PortfolioStocks,
   dailySnapshots?: DailySnapshot[],
 ): Promise<void> {
+  const cleanStocks = stripDemoStocks(stocks);
   const payload: Record<string, unknown> = {
     user_id: userId,
-    stocks,
+    stocks: cleanStocks,
     updated_at: new Date().toISOString(),
   };
   if (dailySnapshots !== undefined) payload.daily_snapshots = dailySnapshots;
@@ -63,7 +77,7 @@ export async function savePortfolioToDB(
     // 신규 컬럼 missing이면 stocks만으로 retry (마이그레이션 전 호환)
     if (dailySnapshots !== undefined && /daily_snapshots/i.test(error.message)) {
       const retry = await supabase.from('user_portfolios').upsert({
-        user_id: userId, stocks, updated_at: new Date().toISOString(),
+        user_id: userId, stocks: cleanStocks, updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
       if (retry.error) console.error('포트폴리오 저장 오류 (fallback):', retry.error);
       return;
