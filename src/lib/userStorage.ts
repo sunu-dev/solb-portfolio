@@ -27,6 +27,7 @@ export const USER_STORAGE_KEYS = [
   'solb_chapter_keyword_prompted',
   'solb_tour_done',
   'solb_tour_pending',
+  'solb_tour_chapters_done',
   // 초대 캐시 (사용자별)
   'solb_invite_cache',
 ] as const;

@@ -295,13 +295,13 @@ export default function InsightsSection() {
           `}</style>
 
           {/* 1. AI 촉 — 오늘의 발견 */}
-          <div ref={chokRef} className="insight-stagger" style={{ animationDelay: '0s' }}>
+          <div ref={chokRef} data-tour="insights-ai-chok" className="insight-stagger" style={{ animationDelay: '0s' }}>
             <AiChokSection />
           </div>
 
           {/* 2. 주비의 이야기 — 오늘 상태 내러티브 */}
           {investingCount > 0 && (
-            <div ref={storyRef} className="insight-stagger" style={{ animationDelay: '0.1s' }}>
+            <div ref={storyRef} data-tour="insights-story" className="insight-stagger" style={{ animationDelay: '0.1s' }}>
               <ConversationalTimeline />
             </div>
           )}

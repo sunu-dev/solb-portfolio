@@ -17,8 +17,8 @@
 
 import type { MainSection } from '@/store/portfolioStore'; // 타입 전용(런타임 erase) → 순수 유지
 
-/** 둘러보기 챕터 — Phase 3에서 'insights'|'news'|'events'|'customize' deep 챕터 추가 예정. */
-export type TourChapterId = 'home';
+/** 둘러보기 챕터 — home(core, 첫 진입 자동) + deep(탭별, 둘러보기 시트에서 주제별 선택 재생). */
+export type TourChapterId = 'home' | 'insights' | 'news' | 'events' | 'customize';
 
 export interface TourChapter {
   id: TourChapterId;
@@ -28,7 +28,11 @@ export interface TourChapter {
 }
 
 export const TOUR_CHAPTERS: TourChapter[] = [
-  { id: 'home', label: '홈 — 오늘 내 주식 읽기', tier: 'core' },
+  { id: 'home',      label: '홈 — 오늘 내 주식 읽기',    tier: 'core' },
+  { id: 'insights',  label: 'AI 인사이트 — 주비의 분석', tier: 'deep' },
+  { id: 'news',      label: '뉴스 — 내 종목 소식',       tier: 'deep' },
+  { id: 'events',    label: '이벤트 — 과거 시점 비교',   tier: 'deep' },
+  { id: 'customize', label: '홈 편집 — 내 방식대로',     tier: 'deep' },
 ];
 
 export interface TourStep {
@@ -65,6 +69,13 @@ export const TOUR_STEPS: TourStep[] = [
   { id: 'portfolio', anchor: 'portfolio-section', chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '내 종목 한 줄 요약', desc: '오늘 가장 큰 움직임, 52주 위치, 멘토 점수까지 한 줄로 요약해드려요.' },
   { id: 'ai-hunch',  anchor: 'ai-chok',           chapter: 'home', section: 'portfolio', tier: 'core', position: 'top',    title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.' },
   { id: 'help',      anchor: 'help-button',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.' },
+
+  // ── deep 챕터 (둘러보기 시트에서 주제별 재생) — 탭 자동전환 + 앵커 폴링 ──
+  { id: 'insights-chok',  anchor: 'insights-ai-chok',      chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: 'AI 인사이트 — AI 촉', desc: '매일 새 종목 정보와 분석을 이 탭에 모아봐요.' },
+  { id: 'insights-story', anchor: 'insights-story',        chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: '주비의 이야기',       desc: '오늘 내 포트폴리오 상태를 한 편의 이야기로 풀어드려요.' },
+  { id: 'news-tabs',      anchor: 'news-tabs',             chapter: 'news',      section: 'news',     tier: 'deep', position: 'bottom', title: '뉴스 필터',           desc: '내 종목·미국·한국 등 시장별로 뉴스를 골라볼 수 있어요.' },
+  { id: 'events-tabs',    anchor: 'events-tabs',           chapter: 'events',    section: 'events',   tier: 'deep', position: 'bottom', title: '과거 이벤트 비교',     desc: '과거 주요 시장 이벤트를 골라 내 종목이 그때 어땠는지 확인해요.' },
+  { id: 'customize-edit', anchor: 'customize-home-edit',   chapter: 'customize', section: 'portfolio', tier: 'deep', position: 'bottom', title: '홈 화면 편집',         desc: "'편집' 버튼으로 홈 위젯을 켜고 끄거나 순서를 바꿀 수 있어요." },
 ];
 
 /** 레지스트리가 가리키는 모든 앵커(화이트리스트). lint:tour-anchors가 코드 data-tour와 대조. */

@@ -44,6 +44,7 @@
   /* Text */
   --text-primary: #191F28;
   --text-secondary: #8B95A1;
+  --text-body: #4E5968;        /* 본문 톤(primary~secondary 사이). 인라인 #4E5968은 다크 미플립이라 토큰 사용 */
   --text-tertiary: #B0B8C1;
   --text-disabled: #B0B8C1;
 
@@ -350,6 +351,7 @@ code, pre, kbd, samp, .font-mono {
   --surface-hover: #22253A;
   --text-primary: #E8E8ED;
   --text-secondary: #8E8E9A;
+  --text-body: #C2C6CE;        /* 다크 본문 — surface 위 충분한 대비(라이트 #4E5968 대응) */
   --text-tertiary: #7E8290; /* #5C5C6A는 surface 위 2.54:1로 WCAG 미달 → 3:1+로 상향 */
   --border-light: #2A2D3D;
   /* 다크 elevation — 검정 그림자는 어두운 배경에서 죽으므로 hairline 보더 기반으로
