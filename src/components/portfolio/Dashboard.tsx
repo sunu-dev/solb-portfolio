@@ -357,6 +357,7 @@ export default function Dashboard() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>전체 수익 현황</span>
                 <button
+                  data-tour="customize-home-edit"
                   onClick={() => window.dispatchEvent(new CustomEvent('solb-open-home-edit'))}
                   aria-label="홈 화면 편집"
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', minHeight: 28, borderRadius: 8, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary, #B0B8C1)', fontSize: 11, fontWeight: 600 }}

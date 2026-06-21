@@ -481,7 +481,7 @@ export default function EventsSection() {
       </div>
 
       {/* Event pill tabs */}
-      <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
+      <div data-tour="events-tabs" className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
         {events.map(ev => {
           const isActive = currentEventId === ev.id;
           const isCustom = ev.id.startsWith('c-');

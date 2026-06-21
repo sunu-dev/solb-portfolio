@@ -218,7 +218,7 @@ export default function NewsSection() {
       </div>
 
       {/* News tabs — 가로 스크롤 지원 */}
-      <div className="overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '24px' }}>
+      <div data-tour="news-tabs" className="overflow-x-auto scrollbar-hide" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 0, minWidth: 'max-content' }}>
           {NEWS_TABS.map((tab, idx) => (
             <button

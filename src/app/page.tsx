@@ -28,6 +28,7 @@ import SettingsPanel from '@/components/common/SettingsPanel';
 import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import CoachMark from '@/components/onboarding/CoachMark';
+import TourChapterSheet from '@/components/onboarding/TourChapterSheet';
 import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 
@@ -316,6 +317,9 @@ export default function Home() {
 
       {/* Coach mark tour — 본 화면 첫 진입 시 자동 시작 + 'open-tour' 이벤트로 재시작 */}
       {!showOnboarding && <CoachMark />}
+
+      {/* 둘러보기 챕터 선택 시트 — 메뉴 '둘러보기'(open-tour)로 열림, 챕터 선택 시 CoachMark 실행 */}
+      <TourChapterSheet />
 
       {/* Mobile bottom navigation (hidden on lg+) */}
       <MobileNav onMoreClick={() => setShowMobileSidebar(true)} />
