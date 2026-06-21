@@ -13,7 +13,8 @@
     "test": "vitest run",
     "lint:darkmode": "node scripts/lint-darkmode.mjs",
     "lint:darkmode:soft": "node scripts/lint-darkmode.mjs --soft",
-    "prebuild": "npm run lint:alerts && npm run lint:korean && npm run lint:darkmode"
+    "lint:tour-anchors": "node scripts/lint-tour-anchors.mjs",
+    "prebuild": "npm run lint:alerts && npm run lint:korean && npm run lint:darkmode && npm run lint:tour-anchors"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

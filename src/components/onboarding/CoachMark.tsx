@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { logApiCall } from '@/lib/apiLogger';
+import { TOUR_STEPS } from '@/lib/tourRegistry';
 
 /**
  * 본 화면 진입 후 핵심 기능 위치를 안내하는 코치마크 투어.
@@ -11,24 +12,11 @@ import { logApiCall } from '@/lib/apiLogger';
  * - window 'open-tour' 이벤트로 수동 시작 (도움말 버튼)
  * - 완료/스킵 시 'solb_tour_done' 기록
  *
- * 타겟 요소는 컴포넌트에 data-tour="key" 속성으로 마킹.
+ * 스텝 데이터는 src/lib/tourRegistry.ts(SSOT)에서 import. 타겟 요소는 data-tour="anchor"로 마킹하며,
+ * lint:tour-anchors가 레지스트리 anchor ↔ 코드 data-tour 일치를 빌드에서 강제(데드 앵커 무음 skip 차단).
  */
 
-interface TourStep {
-  target: string;
-  title: string;
-  desc: string;
-  position?: 'top' | 'bottom';
-}
-
-const TOUR_STEPS: TourStep[] = [
-  { target: 'macro-strip',       title: '오늘의 시장',       desc: '미국·한국 주요 지수와 환율, 공포지수를 한 번에 확인할 수 있어요.', position: 'bottom' },
-  { target: 'portfolio-section', title: '내 종목 한 줄 요약', desc: '오늘 가장 큰 움직임, 52주 위치, 멘토 점수까지 한 줄로 요약해드려요.', position: 'bottom' },
-  { target: 'ai-chok',           title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.', position: 'top' },
-  { target: 'help-button',       title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.', position: 'bottom' },
-];
-
-const TARGET_NOT_FOUND_DELAY = 600; // 타겟 못 찾으면 다음 step으로 (lazy 마운트 컴포넌트 대응)
+const TARGET_NOT_FOUND_DELAY = 600; // 앵커 못 찾으면 다음 step으로 (lazy 마운트 컴포넌트 대응)
 
 export default function CoachMark() {
   const [active, setActive] = useState(false);
@@ -89,7 +77,7 @@ export default function CoachMark() {
     let cancelled = false;
 
     const locate = () => {
-      const el = document.querySelector(`[data-tour="${step.target}"]`);
+      const el = document.querySelector(`[data-tour="${step.anchor}"]`);
       if (!el) {
         // 타겟 없으면 다음 step (helper 보장)
         const t = setTimeout(() => {
@@ -117,7 +105,7 @@ export default function CoachMark() {
     if (!active) return;
     const update = () => {
       const step = TOUR_STEPS[stepIdx];
-      const el = document.querySelector(`[data-tour="${step.target}"]`);
+      const el = document.querySelector(`[data-tour="${step.anchor}"]`);
       if (el) setBox(el.getBoundingClientRect());
     };
     window.addEventListener('resize', update);
