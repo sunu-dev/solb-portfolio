@@ -28,6 +28,8 @@ export interface NarrativeInput {
   rsiVal: number | null;
   bollingerPos: BollingerPos | null;   // 데이터 부족이면 null
   price: number;
+  recentHigh: number;                  // 표시 구간 고점/저점 — '지금 어디쯤인지' 구체 서술용
+  recentLow: number;
   sma20: number | null;
   sma60: number | null;
   volRatio: number;
@@ -37,18 +39,27 @@ export interface NarrativeInput {
 export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
   const rsiHot = i.rsiVal != null && i.rsiVal > 70;
   const rsiCold = i.rsiVal != null && i.rsiVal < 30;
-
-  // ── 항상 노출 요약: 지금 상태를 평이하게 + 앞일은 균형/참고용 ──
-  const rsiWord = rsiHot ? '최근 빠르게 올라 단기적으로 조금 뜨거운 편'
-    : rsiCold ? '최근 많이 내려 단기적으로 조금 차가운 편'
-    : '최근 흐름은 무난한 편';
-  // 볼린저 띠는 상세 차트에서만 보이므로, 띠 위치 언급도 detail일 때만(화면-설명 일치)
+  // 볼린저 띠는 상세 차트에서만 보이므로 카드도 detail일 때만(화면-설명 일치)
   const showBollinger = i.level === 'detail' && i.bollingerPos != null;
-  const bWord = showBollinger && i.bollingerPos === 'upper' ? ' 가격도 평소 오가던 범위의 위쪽에 있어요.'
-    : showBollinger && i.bollingerPos === 'lower' ? ' 가격은 평소 오가던 범위의 아래쪽에 있어요.'
-    : showBollinger && i.bollingerPos === 'middle' ? ' 가격은 평소 범위 안에서 움직이고 있어요.'
-    : '';
-  const summary = `지금 이 종목은 ${rsiWord}이에요.${bWord} 앞으로 위로 갈지 아래로 갈지는 아무도 알 수 없으니, 차트는 '참고용'으로만 봐주세요.`;
+
+  // ── 항상 노출 요약: 지금 차트가 '어떤 상태인지' 구체 서술(가격이 고점/저점·평균선 어디쯤·거래량) + §6 균형 푸터 ──
+  const f = (n: number) => (n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(n >= 100 ? 0 : 2));
+  let posWord: string;
+  if (i.recentHigh > i.recentLow) {
+    const pct = (i.price - i.recentLow) / (i.recentHigh - i.recentLow);
+    const where = pct >= 0.8 ? '고점에 가까운 위쪽' : pct <= 0.2 ? '저점에 가까운 아래쪽' : '중간쯤';
+    posWord = `최근 고점 ${f(i.recentHigh)} · 저점 ${f(i.recentLow)} 사이에서, 지금은 ${where}인 ${f(i.price)}에 있어요`;
+  } else {
+    posWord = `지금 가격은 ${f(i.price)}예요`;
+  }
+  const maParts: string[] = [];
+  if (i.sma20 != null) maParts.push(`20일 평균선 ${i.price >= i.sma20 ? '위' : '아래'}`);
+  if (i.sma60 != null) maParts.push(`60일 평균선 ${i.price >= i.sma60 ? '위' : '아래'}`);
+  const maWord = maParts.length ? ` 가격은 ${maParts.join('·')}에 있어요.` : '';
+  const volWord = i.volRatio > 1.5 ? ' 최근 거래는 평소보다 활발한 편이에요.'
+    : i.volRatio < 0.6 ? ' 최근 거래는 평소보다 조용한 편이에요.' : '';
+  const rsiTail = rsiHot ? ' RSI로는 최근 많이 오른 편이고요.' : rsiCold ? ' RSI로는 최근 많이 내린 편이고요.' : '';
+  const summary = `${posWord}.${maWord}${volWord}${rsiTail} 지금까지의 흐름이 그렇다는 거예요 — 앞으로 위로 갈지 아래로 갈지는 아무도 알 수 없으니 참고만 하세요.`;
 
   const cards: NarrativeCard[] = [];
 
