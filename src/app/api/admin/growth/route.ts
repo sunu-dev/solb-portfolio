@@ -209,8 +209,8 @@ export async function GET(req: NextRequest) {
         let started = 0, sampleLoaded = 0, toLogin = 0, anchorMissing = 0;
         (ge.data as { event: string; anon_id: string; auth_state: string }[]).forEach(row => {
           if (row.auth_state === 'guest' && row.anon_id) guests.add(row.anon_id);
-          // demo_*는 Phase 3 게스트 투어 출시 전엔 call site 0 → started엔 tour_started만 집계(미사용 이벤트 주입 오염 방지)
-          if (row.event === 'tour_started') started++;
+          // 게스트 투어 시작 — 배너(demo_started)·도움말메뉴(tour_started) 모두 집계
+          if (row.event === 'demo_started' || row.event === 'tour_started') started++;
           else if (row.event === 'demo_sample_loaded') sampleLoaded++;
           else if (row.event === 'demo_to_login') toLogin++;
           else if (row.event === 'tour_anchor_missing') anchorMissing++;

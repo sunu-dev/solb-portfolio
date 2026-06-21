@@ -66,8 +66,10 @@ export interface TourStep {
  */
 export const TOUR_STEPS: TourStep[] = [
   { id: 'market',    anchor: 'macro-strip',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '오늘의 시장',       desc: '미국·한국 주요 지수와 환율, 공포지수를 한 번에 확인할 수 있어요.' },
-  { id: 'portfolio', anchor: 'portfolio-section', chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '내 종목 한 줄 요약', desc: '오늘 가장 큰 움직임, 52주 위치, 멘토 점수까지 한 줄로 요약해드려요.' },
-  { id: 'ai-hunch',  anchor: 'ai-chok',           chapter: 'home', section: 'portfolio', tier: 'core', position: 'top',    title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.' },
+  { id: 'portfolio', anchor: 'portfolio-section', chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '내 종목 한 줄 요약', desc: '보유 종목을 오늘 움직임·52주 위치·멘토 점수까지 한 줄로 요약해드려요.' },
+  // section:'insights' — data-tour="ai-chok"(AiChokSection)는 AI 인사이트 탭에 렌더되므로 엔진이 탭 전환해 노출.
+  // 게스트에겐 이 자리가 value-first 로그인 게이트(전환 핵심). 빈 홈 portfolio엔 AI 촉 요소가 없어 insights로 가야 함.
+  { id: 'ai-hunch',  anchor: 'ai-chok',           chapter: 'home', section: 'insights', tier: 'core', position: 'top',    title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.' },
   { id: 'help',      anchor: 'help-button',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.' },
 
   // ── deep 챕터 (둘러보기 시트에서 주제별 재생) — 탭 자동전환 + 앵커 폴링 ──

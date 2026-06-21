@@ -9,6 +9,7 @@ import type { MacroEntry, PortfolioStocks } from '@/config/constants';
 import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
 import { supabase } from '@/lib/supabase';
 import { trackChokImpression, trackChokInView, trackChokInteraction } from '@/utils/telemetry/chokEvents';
+import { logTourEvent } from '@/lib/tourTelemetry';
 
 // ─── 섹터 라벨 헬퍼 — universe 영문 태그 → 한국어 라벨로 통일 ───────────────
 function symbolToSectorLabel(symbol: string): string {
@@ -487,16 +488,25 @@ export default function AiChokSection() {
             {error}
           </p>
           {loginForMore ? (
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
-              style={{
-                marginTop: 14, padding: '8px 20px', borderRadius: 8,
-                background: 'var(--brand-primary)', color: '#fff', border: 'none',
-                fontSize: 13, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              로그인하고 더 받기
-            </button>
+            <div style={{ marginTop: 12 }}>
+              {/* 게스트 value-first 게이트 — 티커 없는 descriptive 설명만(§6: 익명 공개에 종목 예시 비노출) */}
+              <p style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.55, marginBottom: 10 }}>
+                AI 촉은 추천이 아니라 시장 정보예요. 매매 판단은 본인 몫이에요.
+              </p>
+              <button
+                onClick={() => {
+                  logTourEvent('demo_to_login', { from: 'ai-chok' });
+                  window.dispatchEvent(new CustomEvent('open-login'));
+                }}
+                style={{
+                  padding: '9px 22px', borderRadius: 8,
+                  background: 'var(--brand-primary)', color: 'var(--on-brand-fg)', border: 'none',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                로그인하고 시작
+              </button>
+            </div>
           ) : (
             !limitReached && (
               <button

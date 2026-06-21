@@ -29,6 +29,7 @@ import LoginModal from '@/components/auth/LoginModal';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import CoachMark from '@/components/onboarding/CoachMark';
 import TourChapterSheet from '@/components/onboarding/TourChapterSheet';
+import GuestTourBanner from '@/components/onboarding/GuestTourBanner';
 import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 
@@ -272,6 +273,9 @@ export default function Home() {
         {/* Main content area */}
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
           <style>{`@media (min-width: 769px) { .main-content { padding: 32px 32px 80px 32px !important; } }`}</style>
+          {/* 비로그인 방문자 둘러보기 진입(목표 B) — 강제 모달 아닌 디스미스 가능 1줄 배너.
+              !authLoading 가드 — 세션 해석 전 로그인 유저에게 한 프레임 깜빡임 노출 차단 */}
+          {!user && !authLoading && <GuestTourBanner />}
           {currentSection === 'portfolio' && <PortfolioSection />}
           {currentSection === 'insights' && <InsightsSection />}
           {currentSection === 'events' && <EventsSection />}
