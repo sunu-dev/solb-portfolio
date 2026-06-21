@@ -124,34 +124,34 @@ export function getBollingerStatus(
   if (pos <= 0.1) {
     return {
       status: '하단 이탈',
-      desc: '가격이 정상 범위를 벗어났어요. 강한 과매도 상태예요.',
+      desc: '가격이 평소 범위 아래로 벗어나 있어요.',
       signal: 'buy',
     };
   }
   if (pos <= 0.25) {
     return {
       status: '하단 근접',
-      desc: '가격이 정상 범위 아래쪽이에요. 반등 가능성이 있어요.',
+      desc: '가격이 평소 범위의 아래쪽에 있어요.',
       signal: 'buy',
     };
   }
   if (pos >= 0.9) {
     return {
       status: '상단 이탈',
-      desc: '가격이 정상 범위를 위로 벗어났어요. 과열 상태예요.',
+      desc: '가격이 평소 범위 위로 벗어나 있어요.',
       signal: 'sell',
     };
   }
   if (pos >= 0.75) {
     return {
       status: '상단 근접',
-      desc: '가격이 정상 범위 위쪽이에요. 단기 조정이 올 수 있어요.',
+      desc: '가격이 평소 범위의 위쪽에 있어요.',
       signal: 'sell',
     };
   }
   return {
     status: '중앙 구간',
-    desc: '가격이 정상 범위 안에 있어요. 안정적인 상태예요.',
+    desc: '가격이 평소 범위 안에 있어요.',
     signal: 'neutral',
   };
 }
@@ -174,14 +174,14 @@ export function getMACDStatus(
     if (prevHist < 0 && lastHist >= 0) {
       return {
         status: '상향 교차',
-        desc: '단기 흐름의 상승 힘이 세지는 상태예요(상향 교차).',
+        desc: 'MACD가 시그널선을 위로 지났어요(상향 교차).',
         signal: 'buy',
       };
     }
     if (prevHist > 0 && lastHist <= 0) {
       return {
         status: '하향 교차',
-        desc: '하락 힘이 세지고 있어요. 추가 하락에 주의해주세요.',
+        desc: 'MACD가 시그널선을 아래로 지났어요(하향 교차).',
         signal: 'sell',
       };
     }
@@ -190,21 +190,21 @@ export function getMACDStatus(
   if (lastMacd > 0 && lastHist > 0) {
     return {
       status: '상승 모멘텀',
-      desc: '상승 추세가 이어지고 있어요.',
+      desc: 'MACD가 시그널선 위에 있어요.',
       signal: 'buy',
     };
   }
   if (lastMacd < 0 && lastHist < 0) {
     return {
       status: '하락 모멘텀',
-      desc: '하락 추세가 이어지고 있어요.',
+      desc: 'MACD가 시그널선 아래에 있어요.',
       signal: 'sell',
     };
   }
 
   return {
     status: '전환 구간',
-    desc: '추세가 바뀌려는 움직임이에요. 지켜보세요.',
+    desc: 'MACD가 시그널선과 가까이 있어요.',
     signal: 'neutral',
   };
 }
@@ -222,7 +222,7 @@ export function getChartShapeSummary(
     if (pattern.type === 'bullish' && rsiVal < 40) {
       return {
         icon: '📈',
-        title: '바닥에서 반등 시도 중',
+        title: '바닥 구간에서 멈춘 모양',
         desc: `${pattern.name}${iGa(pattern.name)} 형성됐고, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요.`,
         signal: 'positive',
       };
@@ -230,7 +230,7 @@ export function getChartShapeSummary(
     if (pattern.type === 'bearish') {
       return {
         icon: '📉',
-        title: '하락 추세 지속 중',
+        title: '최근 내려온 흐름',
         desc: `${pattern.name} 패턴이에요. ${pattern.desc}`,
         signal: 'caution',
       };
@@ -238,8 +238,8 @@ export function getChartShapeSummary(
     if (pattern.type === 'potentially_bullish') {
       return {
         icon: '📉',
-        title: '하락 추세에서 바닥 다지는 중',
-        desc: `최근 30일간 내려갔지만, 지금 가격이 더 이상 안 떨어지는 바닥 구간이에요. 다만 바닥 패턴이라고 반드시 반등으로 이어지는 건 아니에요.`,
+        title: '내려오다 멈춘 모양',
+        desc: `최근 30일간 내려갔고, 지금은 가격이 더 내려가지 않고 멈춰 있는 모양이에요. 이런 모양이라고 꼭 다시 오르는 건 아니에요.`,
         signal: 'caution',
       };
     }
@@ -257,8 +257,8 @@ export function getChartShapeSummary(
   if (cross === 'death') {
     return {
       icon: '📉',
-      title: '데드크로스 발생, 하락 주의',
-      desc: '단기선이 장기선을 아래로 돌파했어요. 추가 하락에 주의해주세요.',
+      title: '데드크로스 발생',
+      desc: '단기선이 장기선을 아래로 지난 상태예요.',
       signal: 'caution',
     };
   }
@@ -268,14 +268,14 @@ export function getChartShapeSummary(
     if (rsiVal < 30) {
       return {
         icon: '📉',
-        title: '하락 추세에서 바닥 다지는 중',
-        desc: `최근 30일간 내려갔지만, RSI ${rsiVal.toFixed(0)}으로 과매도 구간이에요. 반등 가능성을 지켜볼 구간이에요.`,
+        title: '내려오다 멈춘 모양',
+        desc: `최근 30일간 내려갔고, RSI ${rsiVal.toFixed(0)}으로 최근 많이 내린 과매도 구간이에요.`,
         signal: 'caution',
       };
     }
     return {
       icon: '📉',
-      title: '하락 추세 진행 중',
+      title: '최근 내려오는 흐름',
       desc: '가격이 이동평균선 아래에서 거래 중이에요.',
       signal: 'caution',
     };
@@ -284,23 +284,23 @@ export function getChartShapeSummary(
     if (rsiVal > 70) {
       return {
         icon: '📈',
-        title: '상승 추세이나 과열 주의',
-        desc: `상승 추세가 이어지고 있지만, RSI ${rsiVal.toFixed(0)}으로 과열 구간이에요.`,
+        title: '최근 오른 흐름 · 과열 구간',
+        desc: `최근 올라온 흐름이지만, RSI ${rsiVal.toFixed(0)}으로 최근 많이 오른 과열 구간이에요.`,
         signal: 'caution',
       };
     }
     return {
       icon: '📈',
-      title: '상승 추세 진행 중',
-      desc: '가격이 이동평균선 위에서 건강하게 올라가고 있어요. 추세가 이어질 가능성이 높아요.',
+      title: '최근 올라오는 흐름',
+      desc: '가격이 이동평균선 위에서 올라온 흐름이에요.',
       signal: 'positive',
     };
   }
 
   return {
     icon: '➡️',
-    title: '횡보 구간, 방향 탐색 중',
-    desc: '뚜렷한 방향 없이 일정 범위에서 움직이고 있어요. 돌파 방향을 지켜보세요.',
+    title: '횡보 구간',
+    desc: '뚜렷한 방향 없이 일정 범위에서 움직이는 모양이에요.',
     signal: 'neutral',
   };
 }
@@ -324,18 +324,18 @@ export function generateAIReport(
   let currentStatus = '';
   if (trend === 'down' || trend === 'strong_down') {
     if (rsiVal < 30) {
-      currentStatus = `하락 추세에서 바닥을 다지는 구간이에요. 20일 이동평균선 아래에서 거래 중이지만, RSI ${rsiVal.toFixed(0)}로 과매도 구간이에요.`;
+      currentStatus = `최근 내려온 흐름이고, 20일 이동평균선 아래에서 거래 중이에요. RSI ${rsiVal.toFixed(0)}로 최근 많이 내린 과매도 구간이에요.`;
     } else {
-      currentStatus = `하락 추세가 이어지고 있어요. 가격이 20일선($${sma20Val.toFixed(0)}) 아래에서 거래 중이에요.`;
+      currentStatus = `최근 내려오는 흐름이에요. 가격이 20일선($${sma20Val.toFixed(0)}) 아래에서 거래 중이에요.`;
     }
   } else if (trend === 'up' || trend === 'strong_up') {
     if (rsiVal > 70) {
-      currentStatus = `상승 추세이지만 과열 구간이에요. RSI ${rsiVal.toFixed(0)}로 단기 조정 가능성이 있어요.`;
+      currentStatus = `최근 올라온 흐름이고, RSI ${rsiVal.toFixed(0)}로 최근 많이 오른 과열 구간이에요.`;
     } else {
-      currentStatus = `상승 추세가 이어지고 있어요. 20일선 위에서 안정적으로 거래 중이에요.`;
+      currentStatus = `최근 올라오는 흐름이에요. 20일선 위에서 거래 중이에요.`;
     }
   } else {
-    currentStatus = `뚜렷한 방향 없이 횡보 중이에요. 돌파 방향을 지켜볼 구간이에요.`;
+    currentStatus = `뚜렷한 방향 없이 일정 범위에서 움직이는 모양이에요.`;
   }
 
   // Indicators
@@ -386,11 +386,11 @@ export function generateAIReport(
   // 기존엔 "5번 반등 평균 +12%" 같은 하드코딩 통계가 종목별 사실로 오인될 위험이 있었음.
   let historicalNote = '';
   if (rsiVal < 30) {
-    historicalNote = 'RSI 30 이하는 일반적으로 매도 압력이 누적된 구간이에요. 다만 모든 종목에 같은 양상이 나타나지는 않아요.';
+    historicalNote = 'RSI 30 이하는 단기적으로 많이 내린 구간으로 봐요. 종목마다 양상은 달라요.';
   } else if (rsiVal > 70) {
-    historicalNote = 'RSI 70 이상은 일반적으로 단기 조정 가능성이 있는 구간이에요. 분할 매도를 고려해볼 수 있어요.';
+    historicalNote = 'RSI 70 이상은 단기적으로 많이 오른 구간으로 봐요. 종목마다 양상은 달라요.';
   } else {
-    historicalNote = '현재 RSI는 중립 구간이에요. 다른 지표와 함께 판단하세요.';
+    historicalNote = '현재 RSI는 중간 구간이에요.';
   }
 
   // Conclusion
@@ -402,23 +402,23 @@ export function generateAIReport(
   const negativeCount = indicators.filter(i => i.signal === 'negative').length;
 
   if (positiveCount >= 3) {
-    conclusionLabel = '매수 관심';
+    conclusionLabel = '지표 양호';
     conclusionSignal = 'positive';
-    conclusionDesc = '여러 지표가 긍정적이에요. 분할 매수를 고려해볼 구간이에요.';
+    conclusionDesc = '여러 지표가 양호한 편이에요. 앞일은 아무도 알 수 없으니 참고로만 봐주세요.';
   } else if (negativeCount >= 3) {
     conclusionLabel = '주의';
     conclusionSignal = 'negative';
-    conclusionDesc = '여러 지표가 부정적이에요. 추가 하락에 대비하고 손절 라인을 점검하세요.';
+    conclusionDesc = '여러 지표가 약한 편이에요. 앞일은 아무도 알 수 없으니 참고로만 봐주세요.';
   } else if (rsiVal < 30 && (trend === 'down' || trend === 'strong_down')) {
     conclusionLabel = '관망';
     conclusionSignal = 'neutral';
-    conclusionDesc = '과매도 구간이지만 MACD가 아직 하향 중이에요. 반등 신호(MACD 상향 교차, RSI 반등)가 나오면 분할 매수 구간일 수 있어요.';
+    conclusionDesc = '많이 내린 구간이지만 MACD는 아직 아래쪽에 있어요.';
   } else if (rsiVal > 70 && (trend === 'up' || trend === 'strong_up')) {
     conclusionLabel = '관망';
     conclusionSignal = 'neutral';
-    conclusionDesc = '상승 추세이지만 과열 구간이에요. 일부 이익 실현을 고려해보세요.';
+    conclusionDesc = '최근 많이 올라 과열 구간이에요.';
   } else {
-    conclusionDesc = '현재 뚜렷한 매수/매도 신호가 없어요. 추세 변화를 기다리면서 관망하세요.';
+    conclusionDesc = '지표가 뚜렷한 방향을 보이지 않아요.';
   }
 
   return {
@@ -468,26 +468,26 @@ export function detectPattern(closes: number[]): PatternResult | null {
   if (troughs.length >= 2) {
     const t = troughs.slice(-2);
     if (Math.abs(t[0].v - t[1].v) / t[0].v < 0.03 && t[1].i > t[0].i)
-      return { name: '더블바텀 (W자형)', type: 'bullish', desc: '두 번 바닥을 찍고 반등을 시도하는 모양이에요. 보통 상승 전환의 신호로 봐요.' };
+      return { name: '더블바텀 (W자형)', type: 'bullish', desc: '바닥을 두 번 찍은 모양이에요(더블바텀이라고 불러요).' };
   }
   if (peaks.length >= 2 && troughs.length >= 2) {
     const pDown = peaks[peaks.length - 1].v < peaks[0].v;
     const tDown = troughs[troughs.length - 1].v < troughs[0].v;
     if (pDown && tDown)
-      return { name: '하락 쐐기형', type: 'potentially_bullish', desc: '가격이 점점 좋아지며 내려가고 있어요. 이 패턴은 반등으로 끝나는 경우가 많아요.' };
+      return { name: '하락 쐐기형', type: 'potentially_bullish', desc: '내려가지만 하락 폭이 점점 줄어드는 모양이에요(쐐기형이라고 불러요).' };
     if (pDown && !tDown)
-      return { name: '하락 삼각형', type: 'bearish', desc: '고점은 낮아지는데 저점은 유지 중이에요. 지지선 이탈 시 추가 하락 가능성이 있어요.' };
+      return { name: '하락 삼각형', type: 'bearish', desc: '고점은 낮아지는데 저점은 비슷하게 유지되고 있어요.' };
     if (!pDown && tDown)
-      return { name: '상승 삼각형', type: 'bullish', desc: '저점이 높아지고 있어요. 저항선을 돌파하면 큰 상승이 올 수 있어요.' };
+      return { name: '상승 삼각형', type: 'bullish', desc: '저점이 점점 높아지고 있어요.' };
   }
   // Simple trend
   const first = closes.slice(-30, -20).reduce((a, b) => a + b, 0) / 10;
   const last = closes.slice(-10).reduce((a, b) => a + b, 0) / 10;
   if (last > first * 1.05)
-    return { name: '상승 추세', type: 'bullish', desc: '최근 30일간 꾸준히 올라가는 흐름이에요. 상승 추세가 이어질 수 있어요.' };
+    return { name: '상승 흐름', type: 'bullish', desc: '최근 30일간 꾸준히 올라온 흐름이에요.' };
   if (last < first * 0.95)
-    return { name: '하락 추세', type: 'bearish', desc: '최근 30일간 내려가는 흐름이에요. 반등 신호가 나올 때까지 관망이 좋을 수 있어요.' };
-  return { name: '횡보 (박스권)', type: 'neutral', desc: '일정 범위 안에서 오르내리고 있어요. 방향이 정해지기 전까지 지켜보세요.' };
+    return { name: '하락 흐름', type: 'bearish', desc: '최근 30일간 내려온 흐름이에요.' };
+  return { name: '횡보 (박스권)', type: 'neutral', desc: '일정 범위 안에서 오르내리는 모양이에요(박스권이라고 불러요).' };
 }
 
 export function generateSummary(
@@ -504,15 +504,15 @@ export function generateSummary(
   else if (trend === 'strong_down' || (trend === 'down' && r > 30)) { cls = 'signal-caution'; icon = '🔴'; label = '주의'; }
   if (cross === 'golden') { cls = 'signal-positive'; icon = '🟢'; label = '긍정적'; }
   if (cross === 'death') { cls = 'signal-caution'; icon = '🔴'; label = '주의'; }
-  if (r < 30) { cls = 'signal-positive'; icon = '🟢'; label = '매수 관점 긍정적'; }
-  if (r > 70) { cls = 'signal-caution'; icon = '🔴'; label = '과열 주의'; }
+  if (r < 30) { cls = 'signal-positive'; icon = '🟢'; label = '과매도 구간'; }
+  if (r > 70) { cls = 'signal-caution'; icon = '🔴'; label = '과열 구간'; }
 
   let body = `현재 ${TREND_TEXT[trend] || '분석 중'}이에요. `;
-  if (r < 30) body += `RSI가 ${r.toFixed(0)}으로 과매도 구간이에요. 역사적으로 이 수준에서 반등이 자주 나타났어요. `;
-  else if (r > 70) body += `RSI가 ${r.toFixed(0)}으로 과열 구간이에요. 단기 조정이 올 수 있어요. `;
+  if (r < 30) body += `RSI가 ${r.toFixed(0)}으로 최근 많이 내린 과매도 구간이에요. `;
+  else if (r > 70) body += `RSI가 ${r.toFixed(0)}으로 최근 많이 오른 과열 구간이에요. `;
   else body += `RSI ${r.toFixed(0)}으로 적정 수준이에요. `;
-  if (cross === 'golden') body += '최근 골든크로스(단기선이 장기선을 상향 돌파)가 발생했어요. 상승 신호로 볼 수 있어요.';
-  if (cross === 'death') body += '최근 데드크로스(단기선이 장기선을 하향 돌파)가 발생했어요. 추가 하락에 주의해주세요.';
+  if (cross === 'golden') body += '최근 골든크로스(단기선이 장기선을 위로 지남)가 발생했어요.';
+  if (cross === 'death') body += '최근 데드크로스(단기선이 장기선을 아래로 지남)가 발생했어요.';
 
   return { cls, icon, label, body };
 }
