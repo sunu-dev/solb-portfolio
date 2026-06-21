@@ -25,6 +25,6 @@
 - [ ] formatKRW.test 4건 사전존재 실패(@/utils/formatKRW, 투어 무관) — 별도 정리 후보.
 
 ## 다음 세션 진입점
-투어 Phase 0~3b 완결(3b-2 포함, PR #12~#19). 다음 후보: ① **tour_events 마이그 Supabase 수동 적용**(게스트 funnel 측정 ON) ② **Phase 4 진행형 체크리스트**("주비 시작하기 3/5", homeWidgetRegistry above-core 위젯·featureId 매핑, 채택 데이터 확인 후) ③ 상위 painkiller=세무 v1 카나리(미진행). 메모리 [[project_tour_system]] 참조.
+**투어 강화 Phase 0~4 전부 완결(PR #12~#21, 10 PR)** + tour_events 마이그 적용 완료(파운더). 투어 잔여=소·선택(demo_to_login from 분기·checklist 화이트리스트 통일, 비차단). 다음 후보=상위 painkiller **세무 v1 카나리**(미진행, BLOCKER#1·프리뷰 READY·세무사법 §20③ 감수 게이트). 메모리 [[project_tour_system]] 참조.
 
 > 3b-2 격리 교훈: 데모 격리는 `stocks`만 막으면 안 됨 — `dailySnapshots`처럼 stocks에서 파생돼 별도 persist/sync되는 채널도 demo를 원천 차단해야 함(파생 데이터엔 demo 플래그가 없어 사후 정화 불가). 적대 양렌즈가 독립으로 동일 누출 지목.
