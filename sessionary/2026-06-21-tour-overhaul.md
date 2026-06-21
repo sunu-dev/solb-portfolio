@@ -20,9 +20,11 @@
 
 ## 미해결 TODO
 - [ ] **⚠️ 운영: `supabase/migrations/2026-06-21_tour_events.sql` Supabase 수동 적용** — 게스트 투어 라이브라 demo_started/demo_to_login 생성됨. 미적용 시 guestFunnel 안 쌓임(대시보드 "측정 대기" 무중단). 적용해야 목표B 전환율 측정 ON.
-- [ ] **3b-2 (다음 작업)**: sessionStorage 데모 포트폴리오 — 게스트에게 populated 보유 거울(샘플 데이터로 실제 화면 체감). decision #4: solb_demo_ 격리, watching 미주입, 로그인 전환 시 비우기/가져오기 분기. PortfolioSection 렌더가 데모 오버레이 읽어야 함(고위험).
+- [x] **3b-2 완료(PR #19)**: 게스트 데모 포트폴리오 — GUEST_DEMO_STOCKS(demo:true) + loadGuestDemo/clearGuestDemo, partialize strip(세션 한정), 배너 2상태. 적대 양렌즈 HIGH 누출(데모→dailySnapshots→서버) → recordDailySnapshot 원천 demo 제외로 닫음. **격리는 watching 주입이 아니라 demo 플래그+4중 방어로 해결**(decision #4 의도 충족).
 - [ ] **Phase 4 (백로그)**: 진행형 체크리스트("주비 시작하기 3/5") — 채택 데이터 확인 후.
 - [ ] formatKRW.test 4건 사전존재 실패(@/utils/formatKRW, 투어 무관) — 별도 정리 후보.
 
 ## 다음 세션 진입점
-3b-2부터. 핵심 난제 = "게스트 샘플 종목을 watching(persist)에 안 넣고 PortfolioSection에 표시". 후보: 비-persist 스토어 슬라이스(demoStocks) + partialize 제외 + PortfolioSection이 demo 모드일 때 머지 렌더. 로그인 전환 시 데모 클리어/가져오기 분기(usePortfolioSync userIdRef 가드 정합 확인). 메모리 [[project_tour_system]] 참조.
+투어 Phase 0~3b 완결(3b-2 포함, PR #12~#19). 다음 후보: ① **tour_events 마이그 Supabase 수동 적용**(게스트 funnel 측정 ON) ② **Phase 4 진행형 체크리스트**("주비 시작하기 3/5", homeWidgetRegistry above-core 위젯·featureId 매핑, 채택 데이터 확인 후) ③ 상위 painkiller=세무 v1 카나리(미진행). 메모리 [[project_tour_system]] 참조.
+
+> 3b-2 격리 교훈: 데모 격리는 `stocks`만 막으면 안 됨 — `dailySnapshots`처럼 stocks에서 파생돼 별도 persist/sync되는 채널도 demo를 원천 차단해야 함(파생 데이터엔 demo 플래그가 없어 사후 정화 불가). 적대 양렌즈가 독립으로 동일 누출 지목.
