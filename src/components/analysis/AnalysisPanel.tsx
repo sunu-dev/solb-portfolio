@@ -1411,6 +1411,9 @@ export default function AnalysisPanel() {
                         sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
                         volRatio: analysis.volRatio,
                         level: chartLevel,
+                        cross: analysis.cross,
+                        pattern: analysis.pattern,
+                        closesLen: analysis.closes.length,
                       });
                       return (
                         <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>

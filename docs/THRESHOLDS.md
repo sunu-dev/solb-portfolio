@@ -86,6 +86,10 @@
 | 38 | RSI 과매수 70 / 과매도 30 | 동일 | ✅ 표준 | — |
 | 39 | Bollinger 20일, 2σ | 동일 | ✅ 표준 | — |
 | 40 | MACD 12/26/9 | 동일 | ✅ 표준 | — |
+| 52 | 차트 상황 위치버킷 — 고점 근접 ≥0.85 / 위쪽 ≥0.6 / 중간 / 아래쪽 ≤0.4 / 저점 근접 ≤0.15 (표시 구간 내 (price−low)/(high−low)) | `situationEngine.ts` | 🎯 (5분위 직관) | P1 (텔레메트리 분포로 재검증) |
+| 53 | 차트 상황 거래량 surge >1.5 / quiet <0.6 (20일 평균 대비) | `situationEngine.ts` (기존 chartNarrative 임계 승계) | 🎯 | P2 |
+| 54 | 신선 크로스 = 직전 1봉 sma5×sma20 교차(detectCross non-null) — 하루만 #1/#2 헤드라인(깜빡임 수용, fresh 시의성 우선) | `situationEngine.ts` + `technical.ts:detectCross` | 🎯 (설계 결정 2026-06-22) | P2 (N봉 완화 여부 텔레메트리 후) |
+| 55 | thin data = closes ≤20봉 또는 sma60/sma20 부재 → 상황 분류 억제(thin_data) | `situationEngine.ts` (AnalysisPanel isThinData와 일관) | 🎯 | P3 |
 
 ## 8. 신규 상장 (Universe 편입)
 

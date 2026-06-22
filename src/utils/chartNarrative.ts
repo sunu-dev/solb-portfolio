@@ -8,7 +8,13 @@
  * - '사세요/파세요', 개별 종목 한쪽 예측('오를/내릴 거예요')은 금지.
  * - 앞일 언급은 반드시 '양쪽 다 + 아무도 모름 + 참고용'으로 균형(예측·처방 아님).
  * src/__tests__/chartNarrative.test.ts 가 금지 토큰을 박제.
+ *
+ * 요약(summary)은 situationEngine SSOT에 위임 — 가용 지표를 ChartFeatures로 추출 →
+ * 우선순위 결정트리로 13개 정규 상황 중 1개 → 상황별 헤드라인 + 보조관찰. (조각 나열 폐기)
  */
+
+import type { PatternResult } from '@/config/constants';
+import { extractChartFeatures, classifyChartSituation } from './situationEngine';
 
 export interface NarrativeCard {
   emoji: string;
@@ -34,6 +40,10 @@ export interface NarrativeInput {
   sma60: number | null;
   volRatio: number;
   level: 'basic' | 'detail';           // basic 차트엔 볼린저 띠 미렌더 → 볼린저 설명 생략(화면-설명 일치)
+  // ── 상황 분류 입력(후방호환 optional) — AnalysisPanel.analysis가 이미 보유 ──
+  cross?: 'golden' | 'death' | null;
+  pattern?: PatternResult | null;
+  closesLen?: number;                  // thin data 판정
 }
 
 export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
@@ -42,39 +52,21 @@ export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
   // 볼린저 띠는 상세 차트에서만 보이므로 카드도 detail일 때만(화면-설명 일치)
   const showBollinger = i.level === 'detail' && i.bollingerPos != null;
 
-  // ── 항상 노출 요약: 지금 '어떤 상황인지' 해석해 들려준다 — 고점/저점 대비 위치 + 평균선 포지션의 의미(단기/중기) + RSI/거래량.
-  //    전부 현재 상태 서술·관용적 해석(§6 안전). 미래 예측·매수/매도 권유는 0. (면책은 패널 하단 Disclaimer가 담당, hedge 미사용)
-  const f = (n: number) => (n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(n >= 100 ? 0 : 2));
-  const sentences: string[] = [];
-
-  // 1) 고점/저점 대비 현재 위치(구체 %)
-  if (i.recentHigh > i.recentLow) {
-    const dropFromHigh = Math.round(((i.recentHigh - i.price) / i.recentHigh) * 100);
-    const riseFromLow = Math.round(((i.price - i.recentLow) / i.recentLow) * 100);
-    sentences.push(`최근 고점 ${f(i.recentHigh)} 대비 ${dropFromHigh}% 내려왔고, 저점 ${f(i.recentLow)} 대비로는 ${riseFromLow}% 올라온 자리예요(현재 ${f(i.price)}).`);
-  } else {
-    sentences.push(`지금 가격은 ${f(i.price)}예요.`);
-  }
-
-  // 2) 20·60일 평균선 포지션의 의미(단기/중기) — 관용적 해석, 예측 아님
-  if (i.sma20 != null && i.sma60 != null) {
-    const above20 = i.price >= i.sma20;
-    const above60 = i.price >= i.sma60;
-    sentences.push(
-      above20 && above60 ? '20일·60일 평균선을 모두 위에 둔 자리라, 단기·중기 흐름이 모두 위쪽이에요.'
-      : !above20 && above60 ? '20일 평균선은 아래로 내줬지만 60일 평균선은 지키고 있어, 단기 흐름은 한 풀 꺾이고 중기 흐름은 아직 위쪽이에요.'
-      : above20 && !above60 ? '20일 평균선 위로 올라섰지만 60일 평균선은 아래라, 단기는 살아났어도 중기 흐름은 아직 아래쪽이에요.'
-      : '20일·60일 평균선을 모두 아래에 둔 자리라, 단기·중기 흐름이 모두 아래쪽이에요.'
-    );
-  }
-
-  // 3) RSI / 거래량 — 있을 때만
-  if (rsiHot) sentences.push('RSI는 70 위로 최근 단기 과열 구간이에요.');
-  else if (rsiCold) sentences.push('RSI는 30 아래로 최근 단기 과매도 구간이에요.');
-  if (i.volRatio > 1.5) sentences.push('거래량은 평소보다 늘어 최근 관심이 몰리는 중이에요.');
-  else if (i.volRatio < 0.6) sentences.push('거래량은 평소보다 줄어 조용한 편이에요.');
-
-  const summary = sentences.join(' ');
+  // ── 항상 노출 요약: situationEngine SSOT에 위임. 가용 지표를 ChartFeatures로 추출 →
+  //    우선순위 결정트리로 1상황 선택 → 헤드라인 + 보조관찰. 전부 현재상태 서술(§6 안전).
+  const situation = classifyChartSituation(extractChartFeatures({
+    closesLen: i.closesLen,
+    price: i.price,
+    sma20: i.sma20,
+    sma60: i.sma60,
+    rsiVal: i.rsiVal,
+    volRatio: i.volRatio,
+    recentHigh: i.recentHigh,
+    recentLow: i.recentLow,
+    cross: i.cross ?? null,
+    pattern: i.pattern ?? null,
+  }));
+  const summary = [situation.headline, ...situation.observations].join(' ');
 
   const cards: NarrativeCard[] = [];
 
