@@ -32,6 +32,8 @@ const FORBIDDEN = [
   '되살아', '바닥권', '저점권', '낙폭 과대', '되돌림', '회복 구간',
   '치솟', '바닥을 다', '식어가', '달아오르', '꺾이며', '받치며',
   '두 배 크게 올라', '많이 올라온', '두 배 넘게',
+  // 평이화 R3(2026-06-22) — 쉬운 말 valence 함정(감정 묘사=미래암시) 선제 차단
+  '주춤', '힘이 빠진', '지친', '탄탄한', '숨 고르', '쉬어 가',
 ];
 
 function narrativeText(input: NarrativeInput): string {
@@ -67,12 +69,12 @@ describe('chartNarrative — §6 누출 박제', () => {
     }
   });
 
-  it('요약은 일반론이 아니라 구체 분석(고점 기준 위치 + 평균선 의미)을 담고, raw 저점대비%는 안 쓴다', () => {
-    // 고점·저점·평균선이 주어지면 위치 의미 + 평균선 해석이 나와야 함(일반론 회귀 방지).
+  it('요약은 일반론이 아니라 구체 분석(고점 기준 위치 + 평소가격 대비 의미)을 담고, raw 저점대비%는 안 쓴다', () => {
+    // 고점·저점·평소가격(MA) 대비가 주어지면 위치 의미가 나와야 함(일반론 회귀 방지).
     const { summary } = buildChartNarrative({ rsiVal: 45, bollingerPos: 'lower', price: 56, recentHigh: 72, recentLow: 27, sma20: 60, sma60: 50, volRatio: 1, level: 'basic' });
-    expect(/내려와|대비|높았던/.test(summary)).toBe(true);  // 고점 기준 구체 위치
-    expect(summary.includes('평균선')).toBe(true);          // 20/60일 평균선 포지션
-    expect(summary).not.toContain('아무도');                // hedge 미사용
+    expect(/내려|비쌌|대비|높았던/.test(summary)).toBe(true);  // 고점 기준 구체 위치
+    expect(/평소|평균|한 달|석 달/.test(summary)).toBe(true);  // 평소가격(한 달/석 달 MA) 포지션
+    expect(summary).not.toContain('아무도');                  // hedge 미사용
     // 파운더 지적('저점 26.59 대비 113% 올라온 자리'=무의미) 영구 폐기 박제
     expect(/저점 [\d.,]+ 대비/.test(summary)).toBe(false);
     expect(/\d+% 올라온/.test(summary)).toBe(false);
@@ -146,14 +148,14 @@ describe('situationEngine — 차트 상황 분류 박제', () => {
     }
   });
 
-  it('망라성·결정성 — 알려진 1상황 + 헤드라인·의미읽기 비어있지 않음 + 보조 ≤1 + 재호출 동일', () => {
+  it('망라성·결정성 — 알려진 1상황 + 헤드라인이 의미를 담음 + 보조 ≤1 + 재호출 동일', () => {
     for (const input of allSituationInputs()) {
       const f = extractChartFeatures(input);
       const a = classifyChartSituation(f);
       const b = classifyChartSituation(f);
       expect(KNOWN_IDS.has(a.id), `미지 상황 id: ${a.id}`).toBe(true);
-      expect(a.headline.length, `빈 헤드라인: ${a.id}`).toBeGreaterThan(0);
-      if (a.id !== 'thin_data') expect(a.reading.length, `빈 의미읽기: ${a.id}`).toBeGreaterThan(0); // 메마름 방지
+      // 헤드라인이 위치+뜻을 담아 메마름 방지(reading은 크로스/패턴만 — 헤드라인과 중복 회피)
+      expect(a.headline.length, `빈약한 헤드라인: ${a.id}`).toBeGreaterThan(15);
       expect(a.observations.length).toBeLessThanOrEqual(1); // 헤드라인+2문장 이내
       expect(b).toEqual(a); // 결정성
     }
@@ -184,16 +186,15 @@ describe('situationEngine — 차트 상황 분류 박제', () => {
     expect(id({ sma20: 110, sma60: 80 })).toBe('cooling_lost_20');
   });
 
-  it('하한(메마름 방지) — 파운더 케이스가 의미읽기+위치+고점기준을 담고 raw 저점대비는 0', () => {
+  it('하한(메마름 방지) — 파운더 케이스가 의미+위치+고점기준을 담고 raw 저점대비는 0', () => {
     // 56.55, 26.59~72.07, 20일선 위·60일선 아래 → cooling_lost_20
     const c = classifyChartSituation(extractChartFeatures({ closesLen: 250, price: 56.55, sma20: 58, sma60: 54, rsiVal: 48, volRatio: 1, recentHigh: 72.07, recentLow: 26.59 }));
-    const text = [c.headline, c.reading, ...c.observations].join(' ');
+    const text = [c.headline, c.reading, ...c.observations].filter(Boolean).join(' ');
     expect(c.id).toBe('cooling_lost_20');
-    expect(c.reading.length).toBeGreaterThan(0);
-    expect(/처진|받치|약한|엇갈|팽팽|눌린|자리 잡은/.test(c.reading)).toBe(true); // 상태 의미 존재
-    expect(/위쪽|가운데|아래쪽|고점 가까이|저점 가까이/.test(text)).toBe(true);    // 범위 내 위치
-    expect(/내려와|높았던/.test(text)).toBe(true);                                  // 고점 기준 구체
-    expect(/저점 [\d.,]+ 대비/.test(text)).toBe(false);                             // 저점대비 113% 없음
+    expect(/처진|받치|약한|엇갈|쏠린|머물러|자리 잡은/.test(text)).toBe(true); // 상태 의미 존재
+    expect(/위쪽|가운데|아래쪽|꼭대기|바닥/.test(text)).toBe(true);             // 범위 내 위치
+    expect(/내려|비쌌|높았던/.test(text)).toBe(true);                          // 고점 기준 구체
+    expect(/저점 [\d.,]+ 대비/.test(text)).toBe(false);                        // 저점대비 113% 없음
   });
 
   it('변동성 메타 — WIDE(폭≥80%)면 "움직임이 큰 종목" 부착, NARROW면 미부착', () => {
