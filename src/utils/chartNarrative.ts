@@ -6,15 +6,12 @@
  * §6 안전 불변식(자본시장법 — 매매 방향 0):
  * - 개념 설명·현재 상태 풀이는 자유(서술).
  * - '사세요/파세요', 개별 종목 한쪽 예측('오를/내릴 거예요')은 금지.
- * - 앞일 언급은 반드시 '양쪽 다 + 아무도 모름 + 참고용'으로 균형(예측·처방 아님).
  * src/__tests__/chartNarrative.test.ts 가 금지 토큰을 박제.
  *
- * 요약(summary)은 situationEngine SSOT에 위임 — 가용 지표를 ChartFeatures로 추출 →
- * 우선순위 결정트리로 13개 정규 상황 중 1개 → 상황별 헤드라인 + 보조관찰. (조각 나열 폐기)
+ * 요약(summary) = '여정 + 다음 안내'(2026-06-22 R5, 파운더 결정). 차트 기술상태 받아쓰기(평균선/RSI)
+ * 대신, 비서답게 (1)이 종목이 어떤 종목인지(이 기간 저점~고점 여정 + 변동성 성격 + 지금 위치)를
+ * 사람 말로, (2)더 알 곳(아래 관련 뉴스)을 짚어준다. 전부 현재상태 서술 + 정보 안내(§6 안전).
  */
-
-import type { PatternResult } from '@/config/constants';
-import { extractChartFeatures, classifyChartSituation } from './situationEngine';
 
 export interface NarrativeCard {
   emoji: string;
@@ -40,10 +37,41 @@ export interface NarrativeInput {
   sma60: number | null;
   volRatio: number;
   level: 'basic' | 'detail';           // basic 차트엔 볼린저 띠 미렌더 → 볼린저 설명 생략(화면-설명 일치)
-  // ── 상황 분류 입력(후방호환 optional) — AnalysisPanel.analysis가 이미 보유 ──
-  cross?: 'golden' | 'death' | null;
-  pattern?: PatternResult | null;
-  closesLen?: number;                  // thin data 판정
+  // ── 여정 요약 입력(optional) — AnalysisPanel이 전달 ──
+  periodLabel?: string;                // '최근 석 달' 등 (chartRange 종속 — 여정 기간 표기)
+  hasNews?: boolean;                   // 패널 내 '관련 뉴스'가 있으면 → 안내 한 줄 부착
+}
+
+// (high-low)/low ≥ 80% → '오르내림이 큰' 성격 부착 (THRESHOLDS.md #56)
+const RANGE_WIDE_PCT = 80;
+
+/** 숫자 포맷 — 1000↑ 천단위, 100↑ 정수, 그 외 소수 2자리. */
+const fmtNum = (n: number): string => (n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(n >= 100 ? 0 : 2));
+
+/**
+ * 여정 요약 — "이 종목이 어떤 종목인지(저점~고점 여정 + 성격 + 지금 위치) + 더 볼 곳(뉴스)".
+ * 전부 현재상태 서술 + 정보 안내(§6 안전). 미래 예측·매수/매도 0.
+ */
+function buildJourneySummary(i: NarrativeInput): string {
+  const parts: string[] = [];
+  const lead = i.periodLabel ? `${i.periodLabel} 동안 ` : '';
+  if (i.recentHigh > i.recentLow) {
+    const widthPct = i.recentLow > 0 ? Math.round(((i.recentHigh - i.recentLow) / i.recentLow) * 100) : 0;
+    const wild = widthPct >= RANGE_WIDE_PCT ? ', 오르내림이 큰' : '';
+    parts.push(`${lead}가장 낮을 땐 ${fmtNum(i.recentLow)}, 가장 높을 땐 ${fmtNum(i.recentHigh)}까지 갔던${wild} 종목이에요.`);
+    const dropFromHigh = i.recentHigh > 0 ? Math.round(((i.recentHigh - i.price) / i.recentHigh) * 100) : 0;
+    parts.push(
+      dropFromHigh <= 1
+        // '마침'(시점 강조 뉘앙스) 제거 — 고점 근처는 매도 심리 인접이라 부사 valence 차단(§6 변호사 권고)
+        ? `지금은 ${fmtNum(i.price)}로, 그 제일 높았던 값 근처에 있어요.`
+        : `지금은 ${fmtNum(i.price)}로, 제일 비쌌을 때보다 ${dropFromHigh}%쯤 내려온 자리고요.`
+    );
+  } else {
+    parts.push(`지금 가격은 ${fmtNum(i.price)}예요.`);
+  }
+  // 다음 안내 — 패널 바로 아래에 종목 뉴스가 있을 때만(없는 걸 약속하지 않음)
+  if (i.hasNews) parts.push('왜 이렇게 움직였는지는 아래 관련 뉴스를 같이 보면 도움이 돼요.');
+  return parts.join(' ');
 }
 
 export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
@@ -52,22 +80,7 @@ export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
   // 볼린저 띠는 상세 차트에서만 보이므로 카드도 detail일 때만(화면-설명 일치)
   const showBollinger = i.level === 'detail' && i.bollingerPos != null;
 
-  // ── 항상 노출 요약: situationEngine SSOT에 위임. 가용 지표를 ChartFeatures로 추출 →
-  //    우선순위 결정트리로 1상황 선택 → 헤드라인 + 보조관찰. 전부 현재상태 서술(§6 안전).
-  const situation = classifyChartSituation(extractChartFeatures({
-    closesLen: i.closesLen,
-    price: i.price,
-    sma20: i.sma20,
-    sma60: i.sma60,
-    rsiVal: i.rsiVal,
-    volRatio: i.volRatio,
-    recentHigh: i.recentHigh,
-    recentLow: i.recentLow,
-    cross: i.cross ?? null,
-    pattern: i.pattern ?? null,
-  }));
-  // 헤드라인(어떤 상황) + 의미읽기(그래서 어떤 상태) + 보조 사실(어디쯤) — raw 저점대비% 폐기
-  const summary = [situation.headline, situation.reading, ...situation.observations].filter(Boolean).join(' ');
+  const summary = buildJourneySummary(i);
 
   const cards: NarrativeCard[] = [];
 
