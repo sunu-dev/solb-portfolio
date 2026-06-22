@@ -42,24 +42,39 @@ export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
   // 볼린저 띠는 상세 차트에서만 보이므로 카드도 detail일 때만(화면-설명 일치)
   const showBollinger = i.level === 'detail' && i.bollingerPos != null;
 
-  // ── 항상 노출 요약: 지금 차트가 '어떤 상태인지' 구체 서술(가격이 고점/저점·평균선 어디쯤·거래량) + §6 균형 푸터 ──
+  // ── 항상 노출 요약: 지금 '어떤 상황인지' 해석해 들려준다 — 고점/저점 대비 위치 + 평균선 포지션의 의미(단기/중기) + RSI/거래량.
+  //    전부 현재 상태 서술·관용적 해석(§6 안전). 미래 예측·매수/매도 권유는 0. (면책은 패널 하단 Disclaimer가 담당, hedge 미사용)
   const f = (n: number) => (n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(n >= 100 ? 0 : 2));
-  let posWord: string;
+  const sentences: string[] = [];
+
+  // 1) 고점/저점 대비 현재 위치(구체 %)
   if (i.recentHigh > i.recentLow) {
-    const pct = (i.price - i.recentLow) / (i.recentHigh - i.recentLow);
-    const where = pct >= 0.8 ? '고점에 가까운 위쪽' : pct <= 0.2 ? '저점에 가까운 아래쪽' : '중간쯤';
-    posWord = `최근 고점 ${f(i.recentHigh)} · 저점 ${f(i.recentLow)} 사이에서, 지금은 ${where}인 ${f(i.price)}에 있어요`;
+    const dropFromHigh = Math.round(((i.recentHigh - i.price) / i.recentHigh) * 100);
+    const riseFromLow = Math.round(((i.price - i.recentLow) / i.recentLow) * 100);
+    sentences.push(`최근 고점 ${f(i.recentHigh)} 대비 ${dropFromHigh}% 내려왔고, 저점 ${f(i.recentLow)} 대비로는 ${riseFromLow}% 올라온 자리예요(현재 ${f(i.price)}).`);
   } else {
-    posWord = `지금 가격은 ${f(i.price)}예요`;
+    sentences.push(`지금 가격은 ${f(i.price)}예요.`);
   }
-  const maParts: string[] = [];
-  if (i.sma20 != null) maParts.push(`20일 평균선 ${i.price >= i.sma20 ? '위' : '아래'}`);
-  if (i.sma60 != null) maParts.push(`60일 평균선 ${i.price >= i.sma60 ? '위' : '아래'}`);
-  const maWord = maParts.length ? ` 가격은 ${maParts.join('·')}에 있어요.` : '';
-  const volWord = i.volRatio > 1.5 ? ' 최근 거래는 평소보다 활발한 편이에요.'
-    : i.volRatio < 0.6 ? ' 최근 거래는 평소보다 조용한 편이에요.' : '';
-  const rsiTail = rsiHot ? ' RSI로는 최근 많이 오른 편이고요.' : rsiCold ? ' RSI로는 최근 많이 내린 편이고요.' : '';
-  const summary = `${posWord}.${maWord}${volWord}${rsiTail} 지금까지의 흐름이 그렇다는 거예요 — 앞으로 위로 갈지 아래로 갈지는 아무도 알 수 없으니 참고만 하세요.`;
+
+  // 2) 20·60일 평균선 포지션의 의미(단기/중기) — 관용적 해석, 예측 아님
+  if (i.sma20 != null && i.sma60 != null) {
+    const above20 = i.price >= i.sma20;
+    const above60 = i.price >= i.sma60;
+    sentences.push(
+      above20 && above60 ? '20일·60일 평균선을 모두 위에 둔 자리라, 단기·중기 흐름이 모두 위쪽이에요.'
+      : !above20 && above60 ? '20일 평균선은 아래로 내줬지만 60일 평균선은 지키고 있어, 단기 흐름은 한 풀 꺾이고 중기 흐름은 아직 위쪽이에요.'
+      : above20 && !above60 ? '20일 평균선 위로 올라섰지만 60일 평균선은 아래라, 단기는 살아났어도 중기 흐름은 아직 아래쪽이에요.'
+      : '20일·60일 평균선을 모두 아래에 둔 자리라, 단기·중기 흐름이 모두 아래쪽이에요.'
+    );
+  }
+
+  // 3) RSI / 거래량 — 있을 때만
+  if (rsiHot) sentences.push('RSI는 70 위로 최근 단기 과열 구간이에요.');
+  else if (rsiCold) sentences.push('RSI는 30 아래로 최근 단기 과매도 구간이에요.');
+  if (i.volRatio > 1.5) sentences.push('거래량은 평소보다 늘어 최근 관심이 몰리는 중이에요.');
+  else if (i.volRatio < 0.6) sentences.push('거래량은 평소보다 줄어 조용한 편이에요.');
+
+  const summary = sentences.join(' ');
 
   const cards: NarrativeCard[] = [];
 

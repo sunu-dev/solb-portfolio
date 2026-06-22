@@ -48,11 +48,12 @@ describe('chartNarrative — §6 누출 박제', () => {
     }
   });
 
-  it('요약은 항상 균형/참고 표현을 포함(앞일 한쪽 단정 아님)', () => {
-    for (const input of allNarrativeInputs()) {
-      const { summary } = buildChartNarrative(input);
-      expect(summary.includes('아무도') || summary.includes('참고')).toBe(true);
-    }
+  it('요약은 일반론이 아니라 구체 분석(고점/저점 대비·평균선 포지션)을 담는다', () => {
+    // 고점·저점·평균선이 주어지면 % 위치 + 평균선 해석이 나와야 함(일반론 회귀 방지).
+    const { summary } = buildChartNarrative({ rsiVal: 45, bollingerPos: 'lower', price: 56, recentHigh: 72, recentLow: 27, sma20: 60, sma60: 50, volRatio: 1, level: 'basic' });
+    expect(summary.includes('대비')).toBe(true);       // 고점/저점 대비 %
+    expect(summary.includes('평균선')).toBe(true);     // 20/60일 평균선 포지션
+    expect(summary).not.toContain('아무도');           // hedge('오를지 내릴지 아무도 몰라요') 미사용
   });
 
   it('basic 레벨에선 볼린저 카드를 노출하지 않는다(차트-설명 일치)', () => {
