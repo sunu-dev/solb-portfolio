@@ -90,6 +90,7 @@
 | 53 | 차트 상황 거래량 surge >1.5 / quiet <0.6 (20일 평균 대비) | `situationEngine.ts` (기존 chartNarrative 임계 승계) | 🎯 | P2 |
 | 54 | 신선 크로스 = 직전 1봉 sma5×sma20 교차(detectCross non-null) — 하루만 #1/#2 헤드라인(깜빡임 수용, fresh 시의성 우선) | `situationEngine.ts` + `technical.ts:detectCross` | 🎯 (설계 결정 2026-06-22) | P2 (N봉 완화 여부 텔레메트리 후) |
 | 55 | thin data = closes ≤20봉 또는 sma60/sma20 부재 → 상황 분류 억제(thin_data) | `situationEngine.ts` (AnalysisPanel isThinData와 일관) | 🎯 | P3 |
+| 56 | 변동폭 WIDE = (고점−저점)/저점 ≥80% → '값이 꽤 크게 오르내린 종목' 변동성 메타 부착(저점대비 raw% 폐기 후 변동 큰 종목 정보 회수) | `situationEngine.ts:obsVolatility` | 🎯 (경험값) | P1 (텔레메트리 분포 — 너무 낮으면 노이즈·높으면 미부착) |
 
 ## 8. 신규 상장 (Universe 편입)
 

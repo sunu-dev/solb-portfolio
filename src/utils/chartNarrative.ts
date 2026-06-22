@@ -66,7 +66,8 @@ export function buildChartNarrative(i: NarrativeInput): ChartNarrative {
     cross: i.cross ?? null,
     pattern: i.pattern ?? null,
   }));
-  const summary = [situation.headline, ...situation.observations].join(' ');
+  // 헤드라인(어떤 상황) + 의미읽기(그래서 어떤 상태) + 보조 사실(어디쯤) — raw 저점대비% 폐기
+  const summary = [situation.headline, situation.reading, ...situation.observations].filter(Boolean).join(' ');
 
   const cards: NarrativeCard[] = [];
 

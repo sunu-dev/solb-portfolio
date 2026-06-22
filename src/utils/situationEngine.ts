@@ -34,8 +34,9 @@ export type SituationId =
 export interface PricePos {
   bucket: PricePosBucket;
   posInRange01: number;        // 표시 구간 내 0(저점)~1(고점) 위치
-  dropFromHigh: number | null; // 표시 구간 고점 대비 하락 %
-  riseFromLow: number | null;  // 표시 구간 저점 대비 상승 %
+  dropFromHigh: number | null; // 표시 구간 고점 대비 하락 %(직관적 — 출력 유지)
+  riseFromLow: number | null;  // 표시 구간 저점 대비 상승 %(분모가 화면 좌측끝 우연값 → 직관 0, 출력 안 함·후방호환만)
+  rangeWidthPct: number | null;// (고점-저점)/저점 — 변동성 메타용(WIDE면 '크게 오르내린')
 }
 
 export interface ChartFeatures {
@@ -68,8 +69,9 @@ export interface SituationInput {
 
 export interface ClassifiedSituation {
   id: SituationId;
-  headline: string;
-  observations: string[];
+  headline: string;   // 어떤 상황인가
+  reading: string;    // 그래서 지금 어떤 상태인가(관용적 현재상태 해석, §6 안전) — thin_data는 ''
+  observations: string[]; // 보조 사실 1개(범위 내 위치·변동성·거래량)
 }
 
 // THRESHOLDS.md #52~55 — 표시 구간 내 위치 버킷(🎯 경험, 텔레메트리 후 재검증 P1)
@@ -82,6 +84,17 @@ const RSI_HOT = 70;
 const RSI_COLD = 30;
 const VOL_SURGE = 1.5;
 const VOL_QUIET = 0.6;
+// THRESHOLDS.md #56 — 표시 구간 변동폭 WIDE(저점 대비 고점이 +80%↑면 '크게 오르내린 종목')
+const RANGE_WIDE = 80;
+
+/** 범위 내 위치 버킷 → 사람 말 위치어(raw 저점대비% 대신 '어디쯤'을 의미로). '~에 있고/있어요'로 연결돼 조사 무관. */
+const RANGE_PLACE_WORD: Record<PricePosBucket, string> = {
+  near_high: '고점 가까이',  // 실사용은 obsRangePos near_high 분기
+  upper: '위쪽',
+  mid: '가운데쯤',
+  lower: '아래쪽',
+  near_low: '저점 가까이',
+};
 
 /** 숫자 포맷 — 1000↑ 천단위, 100↑ 정수, 그 외 소수 2자리(기존 chartNarrative와 동일). */
 const fmt = (n: number): string => (n >= 1000 ? Math.round(n).toLocaleString() : n.toFixed(n >= 100 ? 0 : 2));
@@ -107,7 +120,7 @@ export function extractChartFeatures(i: SituationInput): ChartFeatures {
   // 표시 구간 내 위치 — flat이면 중앙 고정
   let pricePos: PricePos;
   if (flat) {
-    pricePos = { bucket: 'mid', posInRange01: 0.5, dropFromHigh: null, riseFromLow: null };
+    pricePos = { bucket: 'mid', posInRange01: 0.5, dropFromHigh: null, riseFromLow: null, rangeWidthPct: null };
   } else {
     const pos = (i.price - i.recentLow) / (i.recentHigh - i.recentLow);
     const bucket: PricePosBucket =
@@ -121,6 +134,7 @@ export function extractChartFeatures(i: SituationInput): ChartFeatures {
       posInRange01: pos,
       dropFromHigh: i.recentHigh > 0 ? Math.round(((i.recentHigh - i.price) / i.recentHigh) * 100) : null,
       riseFromLow: i.recentLow > 0 ? Math.round(((i.price - i.recentLow) / i.recentLow) * 100) : null,
+      rangeWidthPct: i.recentLow > 0 ? Math.round(((i.recentHigh - i.recentLow) / i.recentLow) * 100) : null,
     };
   }
 
@@ -172,32 +186,62 @@ export const SITUATION_HEADLINES: Record<SituationId, (f: ChartFeatures) => stri
   sideways_box: () => '뚜렷한 방향 없이 일정 범위에서 오르내리는, 흔히 "박스권"이라 부르는 모양이에요.',
 };
 
-// ── 보조관찰 조각(전부 §6-안전 현재상태 서술). 헤드라인이 안 쓴 축만 골라 붙임. ──
-function obsHighLow(f: ChartFeatures): string | null {
-  if (f.pricePos.dropFromHigh == null || f.pricePos.riseFromLow == null) return null;
-  return `최근 고점 ${fmt(f.recentHigh)} 대비 ${f.pricePos.dropFromHigh}% 내려왔고, 저점 ${fmt(f.recentLow)} 대비로는 ${f.pricePos.riseFromLow}% 올라온 자리예요(현재 ${fmt(f.price)}).`;
-}
-function obsMaStack(f: ChartFeatures): string | null {
+/** MA 스택의 관용 현재상태 읽기(단기=20일/중기=60일). 크로스·패턴 상황의 'reading'으로 재사용. */
+function maStackReading(f: ChartFeatures): string {
   switch (f.maStack) {
-    case 'above_both': return '현재가가 20일·60일 평균선보다 모두 위에 있는 자리예요.';
-    case 'below_both': return '현재가가 20일·60일 평균선보다 모두 아래에 있는 자리예요.';
-    case 'below20_above60': return '현재가가 60일 평균선보다 위, 20일 평균선보다 아래에 있는 자리예요.';
-    case 'above20_below60': return '현재가가 20일 평균선보다 위, 60일 평균선보다 아래에 있는 자리예요.';
-    default: return null;
+    case 'above_both': return '단기·중기 어느 기준으로 봐도 평균 위에 있는 상태예요.';
+    case 'below_both': return '단기·중기 어느 기준으로 봐도 평균 아래에 있는 상태예요.';
+    case 'below20_above60': return '중기 기준은 평균 위, 단기 기준은 평균 아래인 상태예요.';
+    case 'above20_below60': return '단기 기준은 평균 위, 중기 기준은 평균 아래인 상태예요.';
+    default: return '';
   }
 }
-function obsRsi(f: ChartFeatures): string | null {
-  if (f.rsiZone === 'hot') return 'RSI는 70 위로 과열 구간이에요.';
-  if (f.rsiZone === 'cold') return 'RSI는 30 아래로 과매도 구간이에요.';
-  return null;
-}
-function obsVol(f: ChartFeatures): string | null {
-  // 거래량은 수치 사실로만 — '관심이 높은/조용한' 정서·사회적 증거 라벨 제거(매수 valence 적층 방지)
-  if (f.vol === 'surge') return '거래량은 평소보다 많은 편이에요.';
-  if (f.vol === 'quiet') return '거래량은 평소보다 적은 편이에요.';
-  return null;
-}
 
+/**
+ * 상황별 '의미 읽기' 1줄 — "어디 있나"에 "그래서 지금 어떤 상태인가"를 더한다.
+ * 전부 시간정지 상태형용(받치고 있고/한 발 처진/팽팽한/약한)만 — 미래시제·valence·hedge 0.
+ * §6 SAFE 관용적 현재상태 해석('20일선 아래=단기 약함' 등급, feedback_descriptive_not_prescriptive).
+ * 헤드라인과 격리(정적 카피 lint 사각 방지). thin_data는 빈 문자열.
+ */
+export const SITUATION_READINGS: Record<SituationId, (f: ChartFeatures) => string> = {
+  thin_data: () => '',
+  fresh_golden_cross: maStackReading,
+  fresh_death_cross: maStackReading,
+  overheated_near_high: () => '양쪽(RSI·가격) 다 위로 치우쳐 팽팽한 구간이에요.',
+  oversold_near_low: () => '양쪽(RSI·가격) 다 아래로 치우쳐 눌린 구간이에요.',
+  double_bottom_base: maStackReading,
+  falling_wedge_slowing: maStackReading,
+  descending_triangle: maStackReading,
+  ascending_triangle: maStackReading,
+  above_both_ma: () => '단기·중기 어느 쪽으로 봐도 평균 위에 자리 잡은 상태예요.',
+  below_both_ma: () => '단기·중기 어느 쪽으로 봐도 평균 아래에 있는 약한 자리예요.',
+  recover_reclaim_20: () => '최근 한 달(20일)은 평균 위로 올라섰지만, 더 긴 흐름(60일)은 아직 평균 아래인 엇갈린 자리예요.',
+  cooling_lost_20: () => '더 긴 흐름(60일)은 평균 위, 최근 한 달(20일)은 평균 아래라, 큰 흐름은 받치고 단기는 한 발 처진 상태예요.',
+  sideways_box: () => '일정 폭 안에 머무는 상태예요.',
+};
+
+// ── 보조관찰 조각(전부 §6-안전 현재상태 서술). 한 상황당 1개. ──
+/**
+ * 범위 내 '어디쯤' 읽기 — raw 저점대비%(직관 0) 폐기, 위치어 + 직관적 고점대비% 합성.
+ * @param withHigh 헤드라인이 이미 고점대비를 말하면 false(중복 방지) → 위치어만.
+ */
+function obsRangePos(f: ChartFeatures, withHigh: boolean): string | null {
+  // '(현재 X)' 괄호 raw 제거 — 현재가는 화면 최상단에 이미 있어 잉여(해설은 숫자를 '읽기' 아닌 '풀기').
+  if (f.dataQuality === 'flat') return null;
+  const place = RANGE_PLACE_WORD[f.pricePos.bucket];
+  if (f.pricePos.bucket === 'near_high') {
+    return '표시된 구간 안에서 보면 고점 가까이에 있어요.';
+  }
+  if (withHigh && f.pricePos.dropFromHigh != null) {
+    return `표시된 구간 안에서 보면 ${place}에 있고, 가장 높았던 ${fmt(f.recentHigh)}보다 ${f.pricePos.dropFromHigh}% 내려와 있는 자리예요.`;
+  }
+  return `표시된 구간 안에서 보면 ${place}에 있어요.`;
+}
+/** 변동성 메타 — WIDE면 raw 저점/고점 나열 대신 '움직임이 큰 종목' 성격으로 해석(양방향·valence 0). */
+function obsVolatility(f: ChartFeatures): string | null {
+  if (f.dataQuality === 'flat' || f.pricePos.rangeWidthPct == null || f.pricePos.rangeWidthPct < RANGE_WIDE) return null;
+  return '이 종목은 표시 구간에서 가격이 꽤 크게 출렁인, 움직임이 큰 종목이에요.';
+}
 /** 우선순위 결정트리 — 위→아래 첫 매치 1상황. 모든 입력이 정확히 1개로 매핑(폴백 포함). */
 function pickSituationId(f: ChartFeatures): SituationId {
   // Step0 데이터 가드 — thin/flat이면 패턴·극단 단정 차단
@@ -228,38 +272,27 @@ function pickSituationId(f: ChartFeatures): SituationId {
   return 'sideways_box';
 }
 
-/** 헤드라인이 쓰지 않은 축에서 가장 두드러진 보조관찰 1~2개(중복 금지). */
+/**
+ * 보조 사실 1개만(헤드라인+reading 뒤). '헤드라인+2문장 이내' 보장 위해 정확히 ≤1개.
+ * - RSI 극단: 헤드라인이 위치·reading이 팽팽/눌린 → 거래량 강도만
+ * - below_both: 헤드라인이 이미 고점대비 → 변동성(WIDE) 또는 위치어만(중복 회피)
+ * - 그 외: 범위 내 위치 + 직관적 고점대비%(저점대비 raw% 영구 폐기)
+ */
 function pickObservations(id: SituationId, f: ChartFeatures): string[] {
-  if (id === 'thin_data') return [];
-
-  const out: (string | null)[] = [];
-  const crossOrPattern =
-    id === 'fresh_golden_cross' || id === 'fresh_death_cross' ||
-    id === 'double_bottom_base' || id === 'falling_wedge_slowing' ||
-    id === 'descending_triangle' || id === 'ascending_triangle' ||
-    id === 'sideways_box';
-  const rsiHeadline = id === 'overheated_near_high' || id === 'oversold_near_low';
-
-  if (crossOrPattern) {
-    // 헤드라인=모양/크로스 → 위치(MA스택) + 강도(RSI 또는 거래량)
-    out.push(obsMaStack(f));
-    out.push(obsRsi(f) ?? obsVol(f));
-  } else if (rsiHeadline) {
-    // 헤드라인=RSI 극단 → 고점/저점 대비 % + 거래량
-    out.push(obsHighLow(f));
-    out.push(obsVol(f));
-  } else {
-    // 헤드라인=MA 스택 → 고점/저점 대비 %(below_both는 헤드라인이 이미 하락% 언급=중복 제외) + RSI/거래량
-    if (id !== 'below_both_ma') out.push(obsHighLow(f));
-    out.push(obsRsi(f) ?? obsVol(f));
-  }
-  return out.filter((x): x is string => !!x).slice(0, 2);
+  // RSI 극단: 헤드라인(RSI+위치)+reading(팽팽/눌린)으로 이미 완결 → 보조 없음(거래량 사족 제거)
+  if (id === 'thin_data' || id === 'overheated_near_high' || id === 'oversold_near_low') return [];
+  // below_both: 헤드라인이 이미 고점대비 → 변동성(WIDE) 또는 위치어만(중복 회피)
+  const obs = id === 'below_both_ma'
+    ? (obsVolatility(f) ?? obsRangePos(f, false))
+    : obsRangePos(f, true);
+  return obs ? [obs] : [];
 }
 
-/** 차트 상황 1개 분류 + 헤드라인 + 보조관찰. 순수·결정적. */
+/** 차트 상황 1개 분류 + 헤드라인 + 의미읽기 + 보조 사실. 순수·결정적. */
 export function classifyChartSituation(f: ChartFeatures): ClassifiedSituation {
   const id = pickSituationId(f);
   const headline = SITUATION_HEADLINES[id](f);
+  const reading = SITUATION_READINGS[id](f);
   const observations = pickObservations(id, f);
-  return { id, headline, observations };
+  return { id, headline, reading, observations };
 }
