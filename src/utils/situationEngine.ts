@@ -151,22 +151,24 @@ export const SITUATION_HEADLINES: Record<SituationId, (f: ChartFeatures) => stri
   thin_data: () => '아직 거래된 날이 적어 차트 모양을 읽기엔 정보가 부족한 종목이에요.',
   fresh_golden_cross: () => '짧은 평균선이 긴 평균선을 막 위로 넘어선 자리예요(흔히 "골든크로스"라고 부르는 모양이에요).',
   fresh_death_cross: () => '짧은 평균선이 긴 평균선을 막 아래로 지난 자리예요(흔히 "데드크로스"라고 부르는 모양이에요).',
+  // '단기' 수식어 제거 — '단기적으로 곧 조정' 예측 뉘앙스 차단, 기존 RSI 칩 표준어('과열/과매도 구간')와 일치
   overheated_near_high: (f) =>
-    `RSI ${f.rsiVal != null ? Math.round(f.rsiVal) : ''}로 70을 넘어 최근 단기 과열 구간이고, 가격도 표시 구간 고점 가까이에 있어요.`,
+    `RSI ${f.rsiVal != null ? Math.round(f.rsiVal) : ''}로 70을 넘은 과열 구간이고, 가격도 표시 구간 고점 가까이에 있어요.`,
   oversold_near_low: (f) =>
-    `RSI ${f.rsiVal != null ? Math.round(f.rsiVal) : ''}로 30 아래로 최근 단기 과매도 구간이고, 가격도 표시 구간 저점 가까이에 있어요.`,
+    `RSI ${f.rsiVal != null ? Math.round(f.rsiVal) : ''}로 30을 밑도는 과매도 구간이고, 가격도 표시 구간 저점 가까이에 있어요.`,
   double_bottom_base: () => '바닥을 두 번 비슷한 높이로 찍은, 흔히 "더블바텀"이라 부르는 모양이에요.',
-  falling_wedge_slowing: () =>
-    '내려오긴 했지만 내리는 폭이 점점 줄며 멈칫하는 모양이에요("하락 쐐기형"이라 불러요). 이런 모양이라고 꼭 다시 오르는 건 아니에요.',
-  descending_triangle: () => '고점은 낮아지는데 저점은 비슷하게 눌려 있는 모양이에요.',
-  ascending_triangle: () => '저점이 점점 높아지며 받쳐 올라온 모양이에요.',
-  above_both_ma: () => '20일·60일 평균선을 모두 위에 둔, 최근 올라온 흐름이에요.',
+  // 거울쌍 대칭 + 가치동사 제거(받쳐 올라온/멈칫/꼭 오르는 건 아니에요) — 순수 기하 서술
+  falling_wedge_slowing: () => '내려오긴 했지만 내리는 폭이 점점 줄어드는 모양이에요("하락 쐐기형"이라 불러요).',
+  descending_triangle: () => '고점은 점점 낮아지는데 저점은 비슷한 높이에 모여 있는 모양이에요.',
+  ascending_triangle: () => '저점은 점점 높아지는데 고점은 비슷한 높이에 모여 있는 모양이에요.',
+  // 가치동사(올라온 흐름/살아난/한 풀 꺾인) 제거 → 평균선 대비 위치 사실만(이동평균선 카드 SSOT 표현 계승)
+  above_both_ma: () => '현재가가 20일·60일 평균선보다 모두 위에 있는 자리예요.',
   below_both_ma: (f) =>
     f.pricePos.dropFromHigh != null
-      ? `최근 고점 ${fmt(f.recentHigh)} 대비 ${f.pricePos.dropFromHigh}% 내려와, 20일·60일 평균선을 모두 아래에 둔 자리예요.`
-      : '20일·60일 평균선을 모두 아래에 둔 자리예요.',
-  recover_reclaim_20: () => '60일 평균선 아래에서 20일 평균선 위로는 올라선, 단기 흐름이 살아난 자리예요.',
-  cooling_lost_20: () => '60일 평균선은 지키지만 20일 평균선은 아래로 내준, 단기 흐름이 한 풀 꺾인 자리예요.',
+      ? `최근 고점 ${fmt(f.recentHigh)} 대비 ${f.pricePos.dropFromHigh}% 내려와, 현재가가 20일·60일 평균선보다 모두 아래에 있는 자리예요.`
+      : '현재가가 20일·60일 평균선보다 모두 아래에 있는 자리예요.',
+  recover_reclaim_20: () => '현재가가 20일 평균선보다 위, 60일 평균선보다 아래에 있는 자리예요.',
+  cooling_lost_20: () => '현재가가 60일 평균선보다 위, 20일 평균선보다 아래에 있는 자리예요.',
   sideways_box: () => '뚜렷한 방향 없이 일정 범위에서 오르내리는, 흔히 "박스권"이라 부르는 모양이에요.',
 };
 
@@ -177,21 +179,22 @@ function obsHighLow(f: ChartFeatures): string | null {
 }
 function obsMaStack(f: ChartFeatures): string | null {
   switch (f.maStack) {
-    case 'above_both': return '20일·60일 평균선을 모두 위에 둔 자리예요.';
-    case 'below_both': return '20일·60일 평균선을 모두 아래에 둔 자리예요.';
-    case 'below20_above60': return '60일 평균선은 지키지만 20일 평균선은 아래인 자리예요.';
-    case 'above20_below60': return '60일 평균선 아래에서 20일 평균선 위인 자리예요.';
+    case 'above_both': return '현재가가 20일·60일 평균선보다 모두 위에 있는 자리예요.';
+    case 'below_both': return '현재가가 20일·60일 평균선보다 모두 아래에 있는 자리예요.';
+    case 'below20_above60': return '현재가가 60일 평균선보다 위, 20일 평균선보다 아래에 있는 자리예요.';
+    case 'above20_below60': return '현재가가 20일 평균선보다 위, 60일 평균선보다 아래에 있는 자리예요.';
     default: return null;
   }
 }
 function obsRsi(f: ChartFeatures): string | null {
-  if (f.rsiZone === 'hot') return 'RSI는 70 위로 최근 단기 과열 구간이에요.';
-  if (f.rsiZone === 'cold') return 'RSI는 30 아래로 최근 단기 과매도 구간이에요.';
+  if (f.rsiZone === 'hot') return 'RSI는 70 위로 과열 구간이에요.';
+  if (f.rsiZone === 'cold') return 'RSI는 30 아래로 과매도 구간이에요.';
   return null;
 }
 function obsVol(f: ChartFeatures): string | null {
-  if (f.vol === 'surge') return '거래량은 평소보다 늘어 최근 관심이 높은 편이에요.';
-  if (f.vol === 'quiet') return '거래량은 평소보다 줄어 조용한 편이에요.';
+  // 거래량은 수치 사실로만 — '관심이 높은/조용한' 정서·사회적 증거 라벨 제거(매수 valence 적층 방지)
+  if (f.vol === 'surge') return '거래량은 평소보다 많은 편이에요.';
+  if (f.vol === 'quiet') return '거래량은 평소보다 적은 편이에요.';
   return null;
 }
 
