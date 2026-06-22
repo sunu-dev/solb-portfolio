@@ -27,6 +27,11 @@ const FORBIDDEN = [
   '매수 기회', '상승 여력',
   // 적대 리뷰(2026-06-22) — 회복/상승 서사 가치동사 + 거래량 정서 라벨(매수 valence)
   '살아난', '받쳐 올라', '한 풀 꺾', '관심이 높은', '관심이 낮은', '관심이 몰리',
+  // 의미 읽기 재calibration(2026-06-22 R2) — 저점대비% 서사 회귀 + 미래개시·기회 프레이밍 차단.
+  // 단 관용적 현재상태 읽기('받치고 있고'·'약한 자리'·'한 발 처진'·'팽팽/눌린')는 SAFE라 미금지.
+  '되살아', '바닥권', '저점권', '낙폭 과대', '되돌림', '회복 구간',
+  '치솟', '바닥을 다', '식어가', '달아오르', '꺾이며', '받치며',
+  '두 배 크게 올라', '많이 올라온', '두 배 넘게',
 ];
 
 function narrativeText(input: NarrativeInput): string {
@@ -62,12 +67,15 @@ describe('chartNarrative — §6 누출 박제', () => {
     }
   });
 
-  it('요약은 일반론이 아니라 구체 분석(고점/저점 대비·평균선 포지션)을 담는다', () => {
-    // 고점·저점·평균선이 주어지면 % 위치 + 평균선 해석이 나와야 함(일반론 회귀 방지).
+  it('요약은 일반론이 아니라 구체 분석(고점 기준 위치 + 평균선 의미)을 담고, raw 저점대비%는 안 쓴다', () => {
+    // 고점·저점·평균선이 주어지면 위치 의미 + 평균선 해석이 나와야 함(일반론 회귀 방지).
     const { summary } = buildChartNarrative({ rsiVal: 45, bollingerPos: 'lower', price: 56, recentHigh: 72, recentLow: 27, sma20: 60, sma60: 50, volRatio: 1, level: 'basic' });
-    expect(summary.includes('대비')).toBe(true);       // 고점/저점 대비 %
-    expect(summary.includes('평균선')).toBe(true);     // 20/60일 평균선 포지션
-    expect(summary).not.toContain('아무도');           // hedge('오를지 내릴지 아무도 몰라요') 미사용
+    expect(/내려와|대비|높았던/.test(summary)).toBe(true);  // 고점 기준 구체 위치
+    expect(summary.includes('평균선')).toBe(true);          // 20/60일 평균선 포지션
+    expect(summary).not.toContain('아무도');                // hedge 미사용
+    // 파운더 지적('저점 26.59 대비 113% 올라온 자리'=무의미) 영구 폐기 박제
+    expect(/저점 [\d.,]+ 대비/.test(summary)).toBe(false);
+    expect(/\d+% 올라온/.test(summary)).toBe(false);
   });
 
   it('basic 레벨에선 볼린저 카드를 노출하지 않는다(차트-설명 일치)', () => {
@@ -115,25 +123,38 @@ function allSituationInputs(): SituationInput[] {
 
 const KNOWN_IDS = new Set(Object.keys(SITUATION_HEADLINES) as SituationId[]);
 
+function situationText(input: SituationInput): string {
+  const c = classifyChartSituation(extractChartFeatures(input));
+  return [c.headline, c.reading, ...c.observations].filter(Boolean).join(' ');
+}
+
 describe('situationEngine — 차트 상황 분류 박제', () => {
-  it('전 특징공간에서 헤드라인+보조관찰에 §6 토큰 0', () => {
+  it('전 특징공간에서 헤드라인+의미읽기+보조관찰에 §6 토큰 0', () => {
     for (const input of allSituationInputs()) {
-      const c = classifyChartSituation(extractChartFeatures(input));
-      const text = [c.headline, ...c.observations].join(' ');
+      const text = situationText(input);
       for (const tok of FORBIDDEN) {
-        expect(text.includes(tok), `${c.id} (${JSON.stringify(input)}): §6 토큰 "${tok}" — "${text}"`).toBe(false);
+        expect(text.includes(tok), `(${JSON.stringify(input)}): §6 토큰 "${tok}" — "${text}"`).toBe(false);
       }
     }
   });
 
-  it('망라성·결정성 — 모든 입력이 알려진 1상황 + 비어있지 않은 헤드라인 + 재호출 동일', () => {
+  it('raw 저점대비% 영구 폐기 — 전 특징공간에서 "저점 N 대비"·"% 올라온" 0건', () => {
+    for (const input of allSituationInputs()) {
+      const text = situationText(input);
+      expect(/저점 [\d.,]+ 대비/.test(text), `저점대비 회귀: "${text}"`).toBe(false);
+      expect(/\d+% 올라온/.test(text), `% 올라온 회귀: "${text}"`).toBe(false);
+    }
+  });
+
+  it('망라성·결정성 — 알려진 1상황 + 헤드라인·의미읽기 비어있지 않음 + 보조 ≤1 + 재호출 동일', () => {
     for (const input of allSituationInputs()) {
       const f = extractChartFeatures(input);
       const a = classifyChartSituation(f);
       const b = classifyChartSituation(f);
       expect(KNOWN_IDS.has(a.id), `미지 상황 id: ${a.id}`).toBe(true);
       expect(a.headline.length, `빈 헤드라인: ${a.id}`).toBeGreaterThan(0);
-      expect(a.observations.length).toBeLessThanOrEqual(2);
+      if (a.id !== 'thin_data') expect(a.reading.length, `빈 의미읽기: ${a.id}`).toBeGreaterThan(0); // 메마름 방지
+      expect(a.observations.length).toBeLessThanOrEqual(1); // 헤드라인+2문장 이내
       expect(b).toEqual(a); // 결정성
     }
   });
@@ -161,6 +182,25 @@ describe('situationEngine — 차트 상황 분류 박제', () => {
     expect(id({ sma20: 110, sma60: 120 })).toBe('below_both_ma');
     expect(id({ sma20: 90, sma60: 120 })).toBe('recover_reclaim_20');
     expect(id({ sma20: 110, sma60: 80 })).toBe('cooling_lost_20');
+  });
+
+  it('하한(메마름 방지) — 파운더 케이스가 의미읽기+위치+고점기준을 담고 raw 저점대비는 0', () => {
+    // 56.55, 26.59~72.07, 20일선 위·60일선 아래 → cooling_lost_20
+    const c = classifyChartSituation(extractChartFeatures({ closesLen: 250, price: 56.55, sma20: 58, sma60: 54, rsiVal: 48, volRatio: 1, recentHigh: 72.07, recentLow: 26.59 }));
+    const text = [c.headline, c.reading, ...c.observations].join(' ');
+    expect(c.id).toBe('cooling_lost_20');
+    expect(c.reading.length).toBeGreaterThan(0);
+    expect(/처진|받치|약한|엇갈|팽팽|눌린|자리 잡은/.test(c.reading)).toBe(true); // 상태 의미 존재
+    expect(/위쪽|가운데|아래쪽|고점 가까이|저점 가까이/.test(text)).toBe(true);    // 범위 내 위치
+    expect(/내려와|높았던/.test(text)).toBe(true);                                  // 고점 기준 구체
+    expect(/저점 [\d.,]+ 대비/.test(text)).toBe(false);                             // 저점대비 113% 없음
+  });
+
+  it('변동성 메타 — WIDE(폭≥80%)면 "움직임이 큰 종목" 부착, NARROW면 미부착', () => {
+    const wide = classifyChartSituation(extractChartFeatures({ closesLen: 250, price: 100, sma20: 110, sma60: 120, rsiVal: 45, volRatio: 1, recentHigh: 200, recentLow: 90 }));
+    expect([wide.headline, wide.reading, ...wide.observations].join(' ')).toContain('움직임이 큰 종목');
+    const narrow = classifyChartSituation(extractChartFeatures({ closesLen: 250, price: 100, sma20: 110, sma60: 120, rsiVal: 45, volRatio: 1, recentHigh: 110, recentLow: 100 }));
+    expect([narrow.headline, narrow.reading, ...narrow.observations].join(' ')).not.toContain('움직임이 큰 종목');
   });
 });
 
