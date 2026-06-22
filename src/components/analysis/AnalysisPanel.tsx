@@ -1397,6 +1397,11 @@ export default function AnalysisPanel() {
                       const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
                       const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
                       const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
+                      // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
+                      const periodLabel = chartRange === 22 ? '최근 한 달'
+                        : chartRange === 120 ? '최근 여섯 달'
+                        : chartRange === 0 ? '최근 1년'
+                        : '최근 석 달';
                       const narrative = buildChartNarrative({
                         rsiVal: analysis.rsiVal,
                         bollingerPos: analysis.bollingerStatus
@@ -1411,9 +1416,8 @@ export default function AnalysisPanel() {
                         sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
                         volRatio: analysis.volRatio,
                         level: chartLevel,
-                        cross: analysis.cross,
-                        pattern: analysis.pattern,
-                        closesLen: analysis.closes.length,
+                        periodLabel,
+                        hasNews: tickerNews.length > 0,
                       });
                       return (
                         <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>
