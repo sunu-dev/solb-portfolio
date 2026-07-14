@@ -721,8 +721,13 @@ code, pre, kbd, samp, .font-mono {
    Safe Area Insets (iPhone X+ notch/home bar)
    ========================================== */
 .mobile-bottom-nav {
+  display: flex;
   padding-bottom: env(safe-area-inset-bottom, 0px);
   height: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav { display: none; }
 }
 
 /* ==========================================
