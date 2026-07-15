@@ -30,11 +30,10 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
         right: 0,
         background: 'var(--surface, white)',
         borderTop: '1px solid var(--border-light, #F2F4F6)',
-        display: 'flex',
         zIndex: 50,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
-      className="lg:hidden mobile-bottom-nav"
+      className="mobile-bottom-nav"
       aria-label="하단 내비게이션"
     >
       {TABS.map((tab) => {
@@ -48,6 +47,8 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
             }}
             style={{
               flex: 1,
+              minWidth: 44,
+              minHeight: 56,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
