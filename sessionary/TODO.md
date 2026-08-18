@@ -42,6 +42,18 @@
 > **⚠️ 새 규칙**: `lint-alerts`의 미래단정 어휘(`FORECAST_FORBIDDEN`)는 이제 **전역 검사**다(digest 경로 한정 아님). 인과 어휘만 digest 한정 유지. 새 해설·카피 기능엔 `sec6StaticCopy.test.ts` 패턴의 누출 불변식 테스트를 붙인다.
 > ---
 
+## 🙋 파운더 직접 액션 (내가 해야 하는 일)
+
+> 코드로 해결 불가 — 계정·콘솔·기기가 필요한 항목만 모았다.
+
+- [ ] **🔴 Finnhub API 키 회전** — `/api/ws-token`이 인증 없이 키를 반환했고 전 방문자 localStorage에 영속됐다.
+      코드는 고쳤으나 **기존 키는 유출 간주**. Finnhub 콘솔에서 재발급 → Vercel `FINNHUB_API_KEY` 교체 → 구키 폐기.
+- [ ] **마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용**
+      — 적용 전 `select * from pg_policies where tablename='codes'`로 `codes_select` 존재 확인.
+      코드만으론 RLS가 안 바뀌어 초대코드 전량 덤프가 계속 가능하다.
+- [ ] **비로그인 실시간 WebSocket 미제공 승인** — 폴링 시세는 정상 동작. 되돌리려면 별도 설계 필요.
+- [ ] **표기 변경 육안 검증** — ①만/억 6화면 모바일 좁은 폭(줄바꿈 회귀) ②USD `.00`(목표가·기록·OCR) ③뉴스 갱신 배지·상대 시간
+
 ## 🆕 2026-08-18 — 감사 후속
 
 ### 파운더 액션 (P0)
