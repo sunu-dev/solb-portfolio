@@ -10,8 +10,8 @@
 //      → koreanJosa.ts 유틸 미사용 시그널
 //   2. 격식 종결 어휘 ("있습니다", "됩니다" 등)
 //      → 토스 톤 페르소나 SSOT 위반 (단 약관·Disclaimer·법무 예외)
-//   3. (soft) 통화 금액 raw toLocaleString 직접 포맷
-//      → 표시 SSOT(src/utils/koreanNumber.ts) 우회. 잔량 sweep 전까지 경고만.
+//   3. 통화 금액 raw toLocaleString 직접 포맷
+//      → 표시 SSOT(src/utils/koreanNumber.ts) 우회
 //
 // 사용:
 //   npm run lint:korean           # strict (위반 시 exit 1, CI 차단)
@@ -56,10 +56,13 @@ const FORMAL_TONE_PATTERNS = [
   '확인하세요', '주의하세요', '입력하세요', '선택하세요',
   '시작하세요', '이용하세요',
   '맞습니다', '아닙니다', '같습니다',
+  // 2026-08-18 동기화 — koreanCopy.TOSS_TONE_MAP에는 있는데 여기 빠져 있던 2건.
+  // 리스트가 갈라지면 "lint 통과 = 톤 규약 준수"가 성립하지 않는다.
+  '봅니다', '드립니다',
 ];
 
 // ============================================================
-// 룰 3 (soft) — 통화 금액을 raw toLocaleString으로 직접 포맷
+// 룰 3 — 통화 금액을 raw toLocaleString으로 직접 포맷
 // ============================================================
 //
 // 표시 SSOT: src/utils/koreanNumber.ts (docs/KOREAN_UI_SYSTEM.md §3.4)
@@ -69,8 +72,8 @@ const FORMAL_TONE_PATTERNS = [
 // raw toLocaleString이 얹혀 있었다. 완전히 같은 6개 복제는 formatDisplayAmount()로 통합했지만,
 // 자릿수 옵션이 제각각인 장기 꼬리가 남아 있어 일괄 치환은 위험하다.
 //
-// 그래서 **soft로 시작한다**: 기존 잔량은 통과시키되 새로 늘어나는 것을 눈에 보이게 한다.
-// (lint:korean 격식 어휘도 66건 baseline → sweep → strict 순서를 밟았다. 같은 경로.)
+// 도입 시 20건 baseline이 있어 soft로 시작했고, **같은 날 전부 sweep해 hard로 격상했다.**
+// (lint:korean 격식 어휘가 66건 baseline → sweep → strict를 밟은 것과 같은 경로.)
 const CURRENCY_FORMAT_PATTERNS = [
   { pattern: /\$\$\{[^}]*toLocaleString/, hint: 'formatUsd() 또는 formatDisplayAmount() 사용' },
   { pattern: /₩\$\{[^}]*toLocaleString/, hint: 'formatKrw() 사용' },
@@ -157,7 +160,7 @@ function checkFile(filePath, content, violations) {
       }
     }
 
-    // 룰 3 (soft) — 통화 금액 raw 포맷
+    // 룰 3 — 통화 금액 raw 포맷
     if (!isCurrencyExempt) {
       for (const { pattern, hint } of CURRENCY_FORMAT_PATTERNS) {
         if (pattern.test(line)) {
@@ -167,7 +170,6 @@ function checkFile(filePath, content, violations) {
             rule: 'currency-format',
             phrase: line.trim().slice(0, 60),
             hint,
-            soft: true,
           });
           break;
         }
@@ -189,15 +191,10 @@ async function main() {
     checkFile(file, content, violations);
   }
 
-  const hard = violations.filter(v => !v.soft);
-  const soft = violations.filter(v => v.soft);
-
-  if (soft.length > 0) {
-    console.log(`[lint:korean] ⚠ 통화 raw 포맷 ${soft.length}건 (soft — 통과). SSOT: src/utils/koreanNumber.ts`);
-  }
+  const hard = violations;
 
   if (hard.length === 0) {
-    console.log('[lint:korean] ✓ 위반 없음 (조사 괄호 0건 · 격식 톤 0건)');
+    console.log('[lint:korean] ✓ 위반 없음 (조사 괄호 0건 · 격식 톤 0건 · 통화 raw 포맷 0건)');
     process.exit(0);
   }
 
@@ -210,6 +207,7 @@ async function main() {
   console.error(`[lint:korean] ✗ ${hard.length}건 위반 검출`);
   console.error(`  조사 괄호 표기: ${byRule['josa-bracket'] || 0}건`);
   console.error(`  격식 종결 어휘: ${byRule['formal-tone'] || 0}건`);
+  console.error(`  통화 raw 포맷: ${byRule['currency-format'] || 0}건`);
   console.error('');
 
   // 상위 30건만 출력

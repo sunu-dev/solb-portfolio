@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import { formatKrw } from '@/utils/koreanNumber';
+import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 
 /**
  * 매수 시뮬레이션 — 9인 패널 회의 결과 반영 (Phase 4 후속).
@@ -36,13 +36,13 @@ interface SimulatorProps {
 
 // ─── 단위 헬퍼 ────────────────────────────────────────────────────────────
 function formatPrice(value: number, cur: 'KRW' | 'USD'): string {
-  if (cur === 'KRW') return `${Math.round(value).toLocaleString()}원`;
+  if (cur === 'KRW') return formatKrw(value, { prefix: false, suffix: '원', short: false });
   return `$${value.toFixed(2)}`;
 }
 
 function formatMoney(value: number, cur: 'KRW' | 'USD'): string {
   if (cur === 'KRW') return formatKrw(Math.round(value), { suffix: '원', prefix: false });
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  return formatUsd(value, { max: 0 });
 }
 
 function formatShares(shares: number, market: 'KR' | 'US'): string {

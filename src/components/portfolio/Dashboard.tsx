@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
-import { formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
@@ -390,7 +390,7 @@ export default function Dashboard() {
                 <span className="tabular-nums" style={{ fontSize: 'clamp(24px, 5.5vw, 34px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                   {currency === 'KRW'
                     ? `${isGain ? '+' : '-'}${formatKrw(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
-                    : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : `${isGain ? '+' : '-'}${formatUsd(Math.abs(data.totalPL))}`
                   }
                 </span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', whiteSpace: 'nowrap' }}>
@@ -479,8 +479,8 @@ export default function Dashboard() {
                   </div>
                 ))
               ) : [
-                { label: '총 평가', value: currency === 'KRW' ? formatKrw(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
-                { label: '총 투자', value: currency === 'KRW' ? formatKrw(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
+                { label: '총 평가', value: currency === 'KRW' ? formatKrw(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : formatUsd(data.totalValue, { max: 0 }) },
+                { label: '총 투자', value: currency === 'KRW' ? formatKrw(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : formatUsd(data.totalCost, { max: 0 }) },
                 { label: '보유 종목', value: `${data.holdingCount}개` },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between" style={{ fontSize: 13, gap: 12 }}>

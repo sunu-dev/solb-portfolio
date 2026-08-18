@@ -112,6 +112,16 @@
 ### 3.5 날짜·상대 시간 룰
 
 - **SSOT**: `src/utils/koreanDate.ts`
+
+> ⚠️ 2026-08-18 실태 — `koreanDate.ts`는 **아직 채택되지 않았다**(import 0건).
+> 실제 날짜 표기 11곳은 카드마다 필요한 옵션이 달라
+> (`{month:'short',day:'numeric'}` / `{year,month:'long',day}` / `{month:'long'}` …)
+> `toLocaleDateString('ko-KR', …)`를 직접 쓴다. 이 모듈의 `formatAbsoluteKo`·`formatLongKo`·
+> `formatTimeKo`는 고정 포맷이라 그 자리를 대신하지 못한다.
+>
+> 다만 **상대 시간(`formatRelativeKo`)은 대체제가 없다** — 현재 앱에 "방금 · N분 전" 표기가 없다.
+> 뉴스 갱신 배지 등에 도입할 때 이 함수를 쓴다(TODO 등재).
+> 금액(§3.4)처럼 강제 lint를 걸지 않은 이유도 이것이다: 날짜는 공용 규칙이 아직 하나로 좁혀지지 않았다.
 - **상대 시간** (1시간 이내 작성·갱신):
   - 60초 이내 → "방금"
   - 60초~1시간 → "N분 전"

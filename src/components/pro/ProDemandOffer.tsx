@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { formatKrw } from '@/utils/koreanNumber';
 import { ArrowRight, Check, DatabaseBackup, History, ScanLine, X } from 'lucide-react';
 import { PRO_PLAN } from '@/config/proPlan';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -164,7 +165,7 @@ export default function ProDemandOffer({
         </div>
         <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text-secondary, #4E5968)', fontSize: 12 }}>
-            월 {config.monthlyPriceKrw.toLocaleString()}원 가설 · 지금은 결제되지 않아요
+            월 {formatKrw(config.monthlyPriceKrw, { prefix: false, suffix: '원', short: false })} 가설 · 지금은 결제되지 않아요
           </span>
           <button
             type="button"
@@ -216,11 +217,11 @@ export default function ProDemandOffer({
                   ))}
                 </div>
                 <div style={{ marginTop: 20, padding: 15, borderRadius: 14, border: '1px solid var(--border-light, #E5E8EB)' }}>
-                  <div style={{ color: 'var(--text-primary, #191F28)', fontSize: 20, fontWeight: 800 }}>월 {config.monthlyPriceKrw.toLocaleString()}원</div>
+                  <div style={{ color: 'var(--text-primary, #191F28)', fontSize: 20, fontWeight: 800 }}>월 {formatKrw(config.monthlyPriceKrw, { prefix: false, suffix: '원', short: false })}</div>
                   <div style={{ marginTop: 5, color: 'var(--text-tertiary, #8B95A1)', fontSize: 11 }}>투자정보와 AI는 무료 사용자와 동일해요.</div>
                 </div>
                 <button type="button" onClick={handleStart} style={{ marginTop: 14, width: '100%', minHeight: 50, border: 0, borderRadius: 13, background: 'var(--brand-primary, #0E7C7B)', color: 'var(--surface, #FFFFFF)', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>
-                  월 {config.monthlyPriceKrw.toLocaleString()}원으로 시작
+                  월 {formatKrw(config.monthlyPriceKrw, { prefix: false, suffix: '원', short: false })}으로 시작
                 </button>
                 <p style={{ margin: '9px 0 0', textAlign: 'center', color: 'var(--text-tertiary, #8B95A1)', fontSize: 10 }}>
                   아직 준비 단계라 결제 정보는 받지 않고 비용도 청구하지 않아요.

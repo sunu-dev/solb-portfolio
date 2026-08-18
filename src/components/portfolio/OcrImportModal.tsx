@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 import {
   AlertTriangle,
   Check,
@@ -88,7 +89,7 @@ function actionableIndices(rows: ReconciliationRow[]): Set<number> {
 
 function formatHoldingValue(field: 'avgCost' | 'shares', value: number, currency: 'KRW' | 'USD'): string {
   if (field === 'shares') return `${value.toLocaleString()}주`;
-  return currency === 'KRW' ? `${value.toLocaleString()}원` : `$${value.toLocaleString()}`;
+  return currency === 'KRW' ? formatKrw(value, { prefix: false, suffix: '원', short: false }) : formatUsd(value, { max: 3 });
 }
 
 export default function OcrImportModal({ onClose }: Props) {

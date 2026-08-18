@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { resolveUsdKrw } from '@/utils/koreanNumber';
+import { formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
 import type { StockNote, Broker, StockItem } from '@/config/constants';
@@ -392,7 +392,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 )}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
-                현재 환율: {currentUsdKrw.toLocaleString()}원
+                현재 환율: {formatKrw(currentUsdKrw, { prefix: false, suffix: '원', short: false })}
               </div>
             </div>
           )}
@@ -516,7 +516,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
                   <div style={{ fontSize: 12, color: '#3182F6', marginTop: 4 }}>
                     → 새 평균단가: {unit}{newAvgCost.toFixed(isKR ? 0 : 2)} / 총 {newTotalShares}주
-                    {!isKR && ` / 평균환율 ${newWeightedRate.toLocaleString()}원`}
+                    {!isKR && ` / 평균환율 ${formatKrw(newWeightedRate, { prefix: false, suffix: '원', short: false })}`}
                   </div>
                 )}
               </div>

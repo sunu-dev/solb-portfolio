@@ -166,7 +166,7 @@ function fmtMarketCap(val: number, nativeCurrency: 'KRW' | 'USD'): string {
   if (nativeCurrency === 'KRW') {
     if (val >= 1e12) return `${(val / 1e12).toFixed(1)}조원`;
     if (val >= 1e8) return `${(val / 1e8).toFixed(1)}억원`;
-    return `${Math.round(val).toLocaleString()}원`;
+    return formatKrw(val, { prefix: false, suffix: '원', short: false });
   }
   if (val >= 1e12) return `$${(val / 1e12).toFixed(1)}T`;
   if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
@@ -1305,7 +1305,7 @@ export default function AnalysisPanel() {
                       {isKoreanStock
                         ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
                         : currency === 'KRW'
-                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ₩${usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$를 반영해요.`
+                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
                           : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
                     </div>
                   </div>

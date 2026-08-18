@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { resolveUsdKrw } from '@/utils/koreanNumber';
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
@@ -167,8 +167,8 @@ export default function RightSidebar() {
                   {stock.symbol}
                   {stock.buyBelow
                     ? ` · 목표 ${currency === 'KRW'
-                      ? `${Math.round(targetAmounts.krw).toLocaleString()}원`
-                      : `$${targetAmounts.usd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}`
+                      ? formatKrw(targetAmounts.krw, { prefix: false, suffix: '원', short: false })
+                      : formatUsd(targetAmounts.usd, { max: 2 })}`
                     : ''}
                 </div>
               </div>
@@ -177,11 +177,8 @@ export default function RightSidebar() {
                   <>
                     <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
                       {currency === 'KRW'
-                        ? `${Math.round(priceAmounts.krw).toLocaleString()}원`
-                        : `$${priceAmounts.usd.toLocaleString('en-US', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}`}
+                        ? formatKrw(priceAmounts.krw, { prefix: false, suffix: '원', short: false })
+                        : formatUsd(priceAmounts.usd)}
                     </div>
                     <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                       {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%

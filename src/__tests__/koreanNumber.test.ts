@@ -112,6 +112,23 @@ describe('formatUsd', () => {
   it('음수는 $ 앞에 부호', () => {
     expect(formatUsd(-12.3)).toBe('-$12.30');
   });
+
+  it('{max}만 주면 하한 없이 상한만 — 앱의 세 번째 관례 보존', () => {
+    // 숫자 인자는 min·max 고정, 객체는 상한만. 통합 전 세 관례를 그대로 표현하기 위한 구분.
+    expect(formatUsd(1234.5, { max: 2 })).toBe('$1,234.5');
+    expect(formatUsd(1234.5, 2)).toBe('$1,234.50');
+    expect(formatUsd(480, { max: 2 })).toBe('$480');
+    expect(formatUsd(480, 2)).toBe('$480.00');
+  });
+
+  it('{max:0}은 정수 표기', () => {
+    expect(formatUsd(1234.6, { max: 0 })).toBe('$1,235');
+  });
+
+  it('{max:3}은 기본 toLocaleString과 동일 (기록 화면 보존분)', () => {
+    expect(formatUsd(178.25, { max: 3 })).toBe(`$${(178.25).toLocaleString('en-US')}`);
+    expect(formatUsd(1234.5678, { max: 3 })).toBe(`$${(1234.5678).toLocaleString('en-US')}`);
+  });
 });
 
 describe('formatPct / formatSigned', () => {

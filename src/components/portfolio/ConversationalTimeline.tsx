@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatDisplayAmount, formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
+import { formatDisplayAmount, formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { withIGa } from '@/utils/koreanJosa';
@@ -193,10 +193,7 @@ export default function ConversationalTimeline() {
         );
         const stopLossText = currency === 'KRW'
           ? formatKrw(stopLoss.krw)
-          : `$${stopLoss.usd.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}`;
+          : formatUsd(stopLoss.usd);
         if (distance < 5 && distance >= 0) {
           out.push({
             id: `stop-${s.symbol}`,

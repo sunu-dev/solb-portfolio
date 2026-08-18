@@ -109,15 +109,31 @@ export function formatKrwUnits(value: number): string {
 
 // ─── 금액 (USD) ─────────────────────────────────────────────────────────────
 
-/** 달러 표시 — 콤마 + 소수점 자릿수 지정 (`$1,234.56`) */
-export function formatUsd(value: number, fractionDigits = 2): string {
+/**
+ * 달러 표시 — 콤마 + 소수점 자릿수.
+ *
+ * 숫자를 주면 min·max를 그 값으로 **고정**한다(`formatUsd(1234.5)` → `$1,234.50`).
+ * `{ max }` 만 주면 하한 없이 상한만 건다(`formatUsd(1234.5, { max: 2 })` → `$1,234.5`).
+ *
+ * 왜 두 형태가 필요한가: 앱에 USD 자릿수 관례가 실제로 셋 있다 —
+ * 가격/평단은 2자리 고정, 목표가·수량 표시는 상한만, 합계는 0자리.
+ * 통합하면서 표기를 바꾸지 않으려고 셋 다 표현 가능하게 뒀다.
+ * (하나로 통일할지는 별도 제품 결정 — TODO 등재.)
+ */
+export function formatUsd(
+  value: number,
+  fractionDigits: number | { min?: number; max?: number } = 2,
+): string {
   if (!Number.isFinite(value)) return '$0';
   const sign = value < 0 ? '-' : '';
   const abs = Math.abs(value);
-  return `${sign}$${abs.toLocaleString('en-US', {
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  })}`;
+  const opts = typeof fractionDigits === 'number'
+    ? { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }
+    : {
+      ...(fractionDigits.min !== undefined ? { minimumFractionDigits: fractionDigits.min } : {}),
+      ...(fractionDigits.max !== undefined ? { maximumFractionDigits: fractionDigits.max } : {}),
+    };
+  return `${sign}$${abs.toLocaleString('en-US', opts)}`;
 }
 
 // ─── 표시 통화 변환 ─────────────────────────────────────────────────────────

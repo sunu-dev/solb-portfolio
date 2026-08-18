@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 import {
   AlertTriangle,
   Camera,
@@ -55,8 +56,8 @@ function formatValue(
 ): string {
   if (field === 'shares') return `${value.toLocaleString()}주`;
   return currency === 'KRW'
-    ? `${value.toLocaleString()}원`
-    : `$${value.toLocaleString()}`;
+    ? formatKrw(value, { prefix: false, suffix: '원', short: false })
+    : formatUsd(value, { max: 3 });
 }
 
 function changeSummary(change: PortfolioVersionChange): string {
