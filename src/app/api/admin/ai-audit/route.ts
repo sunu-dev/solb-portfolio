@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { requireAdmin } from '@/lib/adminAuth';
-import { createClient } from '@supabase/supabase-js';
 import { buildAiAuditCoverage } from '@/lib/aiAuditCoverage';
 import { redactAiAuditExport } from '@/lib/aiAuditExport';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
-  { auth: { persistSession: false } },
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 /** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
 async function verifyAdmin(req: NextRequest): Promise<boolean> {
@@ -19,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!await verifyAdmin(req)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
   if (req.nextUrl.searchParams.get('export') === '1') {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin()
       .from('ai_output_audits')
       .select('id, created_at, feature, symbol, output, source_snapshot, flags, severity, reviewed_at, review_note')
       .order('created_at', { ascending: false })
@@ -47,7 +45,7 @@ export async function GET(req: NextRequest) {
   }
 
   const severity = req.nextUrl.searchParams.get('severity') || 'all';
-  let query = supabaseAdmin
+  let query = supabaseAdmin()
     .from('ai_output_audits')
     .select('id, created_at, feature, symbol, output, source_snapshot, flags, severity, reviewed_at, review_note')
     .order('created_at', { ascending: false })
@@ -56,7 +54,7 @@ export async function GET(req: NextRequest) {
 
   const [listResult, summaryResult] = await Promise.all([
     query,
-    supabaseAdmin
+    supabaseAdmin()
       .from('ai_output_audits')
       .select('feature, severity, reviewed_at')
       .order('created_at', { ascending: false })
@@ -100,7 +98,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json() as { id?: number; reviewNote?: string };
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
-  const { error } = await supabaseAdmin
+  const { error } = await supabaseAdmin()
     .from('ai_output_audits')
     .update({ reviewed_at: new Date().toISOString(), review_note: body.reviewNote?.slice(0, 1000) || null })
     .eq('id', body.id);

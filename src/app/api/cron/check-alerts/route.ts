@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient, requireServiceClient } from '@/lib/supabaseServer';
 import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
@@ -15,11 +15,13 @@ import {
 } from '@/utils/stockCurrency';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-  );
+  return requireServiceClient();
 }
 
 function initWebPush() {
@@ -296,7 +298,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.SUPABASE_SERVICE_KEY) {
+  // Supabase 키 판정은 팩토리에 위임한다 — env 이름을 여기서 다시 하드코딩하면
+  // `SUPABASE_SERVICE_ROLE_KEY`만 설정된 환경에서 잘못 503을 내며 알림이 무기한 정지한다.
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !getServiceClient()) {
     return NextResponse.json({ error: 'Missing env vars' }, { status: 503 });
   }
 

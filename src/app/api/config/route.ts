@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { isAdminIdentity, requireAdmin, resolveUser } from '@/lib/adminAuth';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 /**
  * 공개 노출을 허용한 설정 키 화이트리스트.
@@ -24,7 +23,7 @@ async function isAdminRequest(req: NextRequest): Promise<boolean> {
 // GET /api/config — 공개 키만 반환. 관리자 토큰이 있으면 전체 반환.
 export async function GET(req: NextRequest) {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin()
       .from('app_config')
       .select('key, value, description, updated_at');
 
@@ -71,19 +70,19 @@ export async function POST(req: NextRequest) {
 
     // 변경 전 값을 upsert보다 **먼저** 읽는다.
     // 뒤에 읽으면 old_value가 이미 새 값이 되어 감사 로그의 증거력이 사라진다.
-    const oldConfig = await supabaseAdmin.from('app_config').select('key, value').in('key', Object.keys(updates));
+    const oldConfig = await supabaseAdmin().from('app_config').select('key, value').in('key', Object.keys(updates));
     const oldMap: Record<string, string> = {};
     (oldConfig.data || []).forEach(r => { oldMap[r.key] = r.value; });
 
     // upsert 각 키
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseAdmin()
       .from('app_config')
       .upsert(rows, { onConflict: 'key' });
 
     if (error) throw error;
 
     // 감사 로그 (변경 이력)
-    await supabaseAdmin.from('config_audit_log').insert(
+    await supabaseAdmin().from('config_audit_log').insert(
       Object.entries(updates).map(([key, value]) => ({
         changed_by: user.id,
         key,

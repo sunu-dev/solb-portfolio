@@ -20,6 +20,7 @@ vi.mock('web-push', () => ({
 }));
 
 import { POST } from '@/app/api/cron/check-alerts/route';
+import { resetSupabaseServerClientsForTests } from '@/lib/supabaseServer';
 
 interface AlertLogRow {
   alert_type: string;
@@ -110,6 +111,9 @@ async function runCron(stock: StockItem, fetchMock: ReturnType<typeof vi.fn>) {
 describe('check-alerts currency reliability', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // 팩토리 싱글턴을 비운다 — 안 그러면 첫 케이스의 mock 클라이언트가 고정돼
+    // 이후 케이스가 stale을 받는다.
+    resetSupabaseServerClientsForTests();
     process.env.CRON_SECRET = 'test-cron-secret';
     process.env.VAPID_PUBLIC_KEY = 'test-public-key';
     process.env.VAPID_PRIVATE_KEY = 'test-private-key';

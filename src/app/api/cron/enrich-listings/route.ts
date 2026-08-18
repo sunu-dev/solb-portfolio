@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { defineRoute } from '@/lib/apiRoute';
-import { createClient } from '@supabase/supabase-js';
 import { classifyAssetClass, isUniverseEligibleClass } from '@/utils/leverageGuard';
 
 /**
@@ -36,12 +36,13 @@ const UNIVERSE_MIN_LISTING_MONTHS = 12;          // 상장 12개월 이상
 // (2026-06-16_stock_listings_enrich_cursor.sql — last_enrich_at·enrich_attempts 선행 적용 필요)
 const MAX_ENRICH_ATTEMPTS = 6;
 
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return requireServiceClient();
 }
 
 interface Profile2Response {

@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { defineRoute } from '@/lib/apiRoute';
 import { getClaudeUsageToday, getProviderStatus } from '@/lib/aiProvider';
 import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
 import { getAiSafetyStatus } from '@/lib/aiSafetyStatus';
 import { monthStartKstIso, projectAiMonthlyCost } from '@/lib/aiCostProjection';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 interface ApiCallRow {
   endpoint: string;
@@ -46,18 +45,18 @@ export const GET = defineRoute({
   try {
     // 독립 쿼리는 병렬 실행. 비용 원장 마이그레이션 전에도 기존 API 통계는 정상 제공한다.
     const [apiCallsResult, aiCostsResult, monthCostsResult] = await Promise.all([
-      supabaseAdmin
+      supabaseAdmin()
         .from('api_calls')
         .select('endpoint, user_key, user_id, ip, status, latency_ms, error_code, created_at')
         .gte('created_at', sinceIso)
         .order('created_at', { ascending: false })
         .limit(50000),
-      supabaseAdmin
+      supabaseAdmin()
         .from('ai_cost_ledger')
         .select('feature, provider, model, input_tokens, output_tokens, cached_input_tokens, reasoning_tokens, estimated_cost_usd, latency_ms, cache_hit, success')
         .gte('created_at', sinceIso)
         .limit(50000),
-      supabaseAdmin
+      supabaseAdmin()
         .from('ai_cost_ledger')
         .select('estimated_cost_usd')
         .gte('created_at', monthStartKstIso())

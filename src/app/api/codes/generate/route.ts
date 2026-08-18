@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { isAdminIdentity } from '@/lib/adminAuth';
-import { createClient } from '@supabase/supabase-js';
 
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 function generateCode(prefix: string): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리는 문자 제외 (0,O,I,1)
@@ -22,7 +21,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
@@ -58,7 +57,7 @@ export async function POST(req: NextRequest) {
       const code = generateCode(prefix);
       if (!generated.includes(code)) {
         // DB 중복 확인
-        const { data } = await supabaseAdmin.from('codes').select('id').eq('code', code).single();
+        const { data } = await supabaseAdmin().from('codes').select('id').eq('code', code).single();
         if (!data) generated.push(code);
       }
     }
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
       description,
     }));
 
-    const { data: inserted, error } = await supabaseAdmin
+    const { data: inserted, error } = await supabaseAdmin()
       .from('codes')
       .insert(rows)
       .select('code, type, max_uses, expires_at, created_at');
@@ -94,14 +93,14 @@ export async function GET(req: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const type = req.nextUrl.searchParams.get('type');
 
-    let query = supabaseAdmin
+    let query = supabaseAdmin()
       .from('codes')
       .select('*, code_uses(used_by, used_at, context)')
       .order('created_at', { ascending: false })
@@ -126,14 +125,14 @@ export async function PATCH(req: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
     if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const { code, is_active } = await req.json() as { code: string; is_active: boolean };
 
-    const { error } = await supabaseAdmin
+    const { error } = await supabaseAdmin()
       .from('codes')
       .update({ is_active })
       .eq('code', code);

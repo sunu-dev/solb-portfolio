@@ -27,7 +27,10 @@
 - [x] ~~**cron 라우트를 `defineRoute({auth:'cron'})`로 이관**~~ — 8개 이관 완료. `check-alerts`만 QStash 서명 분기 때문에 자체 인증 유지(미설정 가드는 보유). 규약을 `cronAuthBoundary.test.ts`가 박제 (2026-08-18)
 - [x] ~~**`npm test`를 prebuild 편입**~~ — prebuild 마지막에 배선. §6 누출 불변식 테스트가 깨지면 배포가 막힌다 (2026-08-18)
 - [x] ~~**GitHub Actions CI 신설**~~ — `.github/workflows/ci.yml`. verify(typecheck·게이트4·eslint·test) → build 2잡. `npm run verify` 통합 스크립트도 추가 (2026-08-18)
-- [ ] **모듈 스코프 `createClient` 38곳 → 지연 생성** — 빌드가 런타임 비밀에 의존한다. service key 없으면 `Error: supabaseKey is required`로 **빌드 전체가 실패**(서비스키 없는 프리뷰는 빌드조차 불가). CI는 placeholder로 우회 중이며, `getServiceClient()`로 옮기면 placeholder를 지울 수 있다
+- [x] ~~**모듈 스코프 `createClient` → 지연 생성**~~ — 무가드 12곳 제거, **service key 없이 빌드 통과**(CI에서 placeholder 비밀 제거). cron 7곳의 `SUPABASE_SERVICE_KEY` 단독 의존도 팩토리로 통일(새 이름만 설정 시 '웹은 정상, cron만 죽는' 부분 장애였음). 적대적 검증 3렌즈 + 판정관 (2026-08-18)
+- [ ] **가드형 모듈 스코프 `createClient` 13곳 lint 룰** — `url && key ? createClient(...) : null` 형태는 비밀 없이도 빌드를 통과해 CI가 못 잡는다. 키 누락 시 영구 null(조용한 no-op)이라 [[feedback_rls_anon_antipattern]]과 같은 실패 모드. eslint `no-restricted-syntax` 또는 `scripts/lint-*.mjs`로
+- [ ] **지연 thunk 불변식 테스트** — `const x = () => requireServiceClient()`에서 `() =>` 다섯 글자가 빠지면 프리뷰 빌드가 다시 깨진다. `cronAuthBoundary.test.ts` 방식의 정규식 스캔 추가
+- [ ] **`adminAuth.resolveUser`의 null 축약** — service client 부재를 '토큰 무효'와 같은 null로 뭉개서, 서비스키 누락 시 admin 라우트 전부가 401 '로그인이 필요해요'를 낸다(진단성 문제, 정상 환경 무영향). `admin/pro-demand:15`의 503 패턴이 정답
 - [x] ~~**`chokDataEnricher` anon 키 → service-role**~~ — L2 캐시가 영구 무력이던 것 해소. 쓰기 실패를 삼키던 fire-and-forget에 경고 로그 추가 (2026-08-18)
 - [x] ~~**`market-movers` 부호 미검사**~~ — 정렬 양 끝 대신 부호로 게이트. 유효 종목 10개 미만 시 양쪽 동시 노출도 함께 해소 (2026-08-18)
 - [ ] **PII 보존기간 불일치** — 처리방침 `알림 발송 로그 90일` vs `cleanup-pii` `alert_log` 365일

@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
 import { isFounderEmail } from '@/lib/adminAuth';
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 const DEFAULT_MAX_USES = 3;
 
@@ -22,14 +21,14 @@ export async function GET(req: NextRequest) {
   const token = authHeader?.replace('Bearer ', '');
   if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   const isFounder = isFounderEmail(user.email);
   const maxUses = isFounder ? null : DEFAULT_MAX_USES;
 
   // 기존 코드 조회
-  const { data: existing } = await supabaseAdmin
+  const { data: existing } = await supabaseAdmin()
     .from('codes')
     .select('*, code_uses(used_by, used_at)')
     .eq('created_by', user.id)
@@ -52,12 +51,12 @@ export async function GET(req: NextRequest) {
   let code = '';
   for (let i = 0; i < 10; i++) {
     const candidate = generateCode();
-    const { data } = await supabaseAdmin.from('codes').select('id').eq('code', candidate).single();
+    const { data } = await supabaseAdmin().from('codes').select('id').eq('code', candidate).single();
     if (!data) { code = candidate; break; }
   }
   if (!code) return NextResponse.json({ error: 'code generation failed' }, { status: 500 });
 
-  const { data: created, error: createError } = await supabaseAdmin
+  const { data: created, error: createError } = await supabaseAdmin()
     .from('codes')
     .insert({
       code,

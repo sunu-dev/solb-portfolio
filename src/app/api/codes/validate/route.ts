@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireServiceClient } from '@/lib/supabaseServer';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
       try {
-        const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+        const { data: { user } } = await supabaseAdmin().auth.getUser(token);
         userId = user?.id;
       } catch { /* 토큰 검증 실패 — userId 미설정 */ }
     }
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest) {
     const normalized = code.trim().toUpperCase();
 
     // 코드 조회
-    const { data: codeRow, error } = await supabaseAdmin
+    const { data: codeRow, error } = await supabaseAdmin()
       .from('codes')
       .select('*')
       .eq('code', normalized)
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest) {
     // 최종 방어는 applyCode()의 유니크 제약이다(.single()은 0행일 때도 error를 내므로
     // 여기서 error를 근거로 판단하면 안 된다 — data 유무만 본다).
     if (userId) {
-      const { data: existing } = await supabaseAdmin
+      const { data: existing } = await supabaseAdmin()
         .from('code_uses')
         .select('id')
         .eq('code', normalized)
@@ -95,7 +94,7 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
   //    동시 요청 중 하나만 성공한다. 실패(23505)하면 이미 사용한 것이므로 보상 지급까지
   //    전부 중단한다. 예전에는 insert 결과를 확인하지 않아 use_count 증가와 크레딧 지급이
   //    중복 실행될 수 있었다.
-  const { error: insertError } = await supabaseAdmin.from('code_uses').insert({
+  const { error: insertError } = await supabaseAdmin().from('code_uses').insert({
     code_id: codeRow.id,
     code: codeRow.code,
     used_by: userId,
@@ -111,13 +110,13 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
   }
 
   // 2. use_count 증가
-  await supabaseAdmin
+  await supabaseAdmin()
     .from('codes')
     .update({ use_count: (codeRow.use_count as number) + 1 })
     .eq('id', codeRow.id);
 
   // 3. 가입 코드 기록
-  await supabaseAdmin
+  await supabaseAdmin()
     .from('user_portfolios')
     .update({ invited_by_code: codeRow.code })
     .eq('user_id', userId);
@@ -128,7 +127,7 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
 
     // 피추천인 보상
     if (referralRewards.referee?.type === 'ai_credits') {
-      await supabaseAdmin.from('user_credits').insert({
+      await supabaseAdmin().from('user_credits').insert({
         user_id: userId,
         amount: referralRewards.referee.amount,
         source: 'referral',
@@ -138,7 +137,7 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
 
     // 추천인 보상
     if (codeRow.created_by && referralRewards.referrer?.type === 'ai_credits') {
-      await supabaseAdmin.from('user_credits').insert({
+      await supabaseAdmin().from('user_credits').insert({
         user_id: codeRow.created_by,
         amount: referralRewards.referrer.amount,
         source: 'referral',
@@ -148,7 +147,7 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
   }
 
   // 5. 보상 지급 완료 표시
-  await supabaseAdmin
+  await supabaseAdmin()
     .from('code_uses')
     .update({ reward_granted: true })
     .eq('code', codeRow.code)
