@@ -63,6 +63,7 @@ export const BROKER_DISCOVERY_THRESHOLD = 2;
 export interface StockItem {
   symbol: string;
   name?: string;                // 종목명 (등록 시점 영속화) — 리로드 후 표시·leverage 분류용. 없으면 STOCK_KR fallback
+  currency?: 'KRW' | 'USD';     // CSV/OCR 원통화 보존. 기존 데이터는 symbol로 안전 추론
   avgCost: number;
   shares: number;
   targetReturn: number;         // 목표 수익률 (%)
@@ -308,7 +309,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2026-02-27',
     endDate: null,
     description: '미국-이스라엘 연합 이란 공습. 유가 급등, 글로벌 증시 급락.',
-    insight: '전쟁 충격은 보통 1~3개월 내 안정화돼요. 현재 보유 종목은 10~15% 할인된 상태로, 분쟁 종료 시 강하게 반등할 가능성이 높아요.',
+    insight: '미국·이스라엘 연합의 이란 공습으로 유가가 급등하고 글로벌 증시가 함께 급락한 시점이에요. 아래 표는 그때부터 지금까지 보유 종목이 실제로 얼마나 움직였는지만 보여줘요. 앞으로 어느 쪽으로 갈지는 아무도 알 수 없어요.',
     keyFacts: ['WTI 유가 급등', '글로벌 증시 동반 급락', '방산주 급등'],
     basePrices: { MU: 487, MSFT: 418, AVGO: 349, AMZN: 223, ASTX: 62.5, BEX: 31.2 },
     baseMacro: { 'S&P 500': 6878.88, NASDAQ: 19850, KOSPI: 7050, 'USD/KRW': 1420, 'WTI Oil': 66.81, VIX: 14.2 },
@@ -321,7 +322,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2026-01-19',
     endDate: null,
     description: '트럼프 2기 관세 확대. Q1 S&P 500 -5.1%, NASDAQ -7.1%. 역대 7번째 빠른 조정 국면.',
-    insight: '관세 불확실성이 장기화될수록 기술주 밸류에이션 압박이 커집니다. 무역 협상 진전 시 빠른 반등이 기대되지만, 공급망 재편 비용은 실적에 반영돼요.',
+    insight: '트럼프 2기 관세 확대로 1분기에 S&P 500이 -5.1%, 나스닥이 -7.1% 조정받은 국면이에요. 아래 표는 그 이후 보유 종목의 실제 변화예요. 앞으로 어느 쪽으로 갈지는 아무도 알 수 없어요.',
     keyFacts: ['S&P 500 Q1 -5.1%', 'NASDAQ -7.1%', '역대 7번째 빠른 조정'],
     basePrices: {},
     baseMacro: { 'S&P 500': 5980, NASDAQ: 19600, 'USD/KRW': 1468, 'WTI Oil': 73, VIX: 18 },
@@ -334,7 +335,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2022-02-23',
     endDate: null,
     description: '러시아 우크라이나 침공. 에너지/곡물 급등.',
-    insight: 'S&P 500은 약 -13% 하락 후 6개월 내 회복을 시작했습니다. 반도체 섹터는 공급망 우려로 변동이 컸지만 장기 상승 추세를 유지했어요.',
+    insight: 'S&P 500이 약 -13% 내린 뒤 6개월 안에 회복을 시작한 국면이에요. 반도체 업종은 공급망 우려로 변동 폭이 특히 컸어요. 과거에 그랬다는 기록일 뿐, 앞으로도 같으리란 보장은 없어요.',
     keyFacts: ['S&P 500 -13%', 'VIX 39 돌파', 'WTI 유가 +28%', '3년째 진행중'],
     // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
     basePrices: { MU: 89.16, MSFT: 287.93, AVGO: 57.16, AMZN: 152.60 },
@@ -354,7 +355,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2022-01-03',
     endDate: '2022-10-13',
     description: '연준 급격한 금리 인상(0.25%→5.25%) 공포. NASDAQ -35%, S&P 500 -27% 하락.',
-    insight: '금리 인상 사이클 정점이 주식 저점이었습니다. "금리 인하 전환"이 확실시됐을 때가 매수 타이밍이었고, 이후 1년 내 대부분 종목이 신고가를 경신했어요.', // lint-alerts-ignore — 과거 사례 교육 컨텍스트
+    insight: '금리 인상 사이클의 정점 부근과 주가의 저점 부근이 겹쳤던 국면이에요. 이후 1년 안에 대부분 종목이 이전 고점을 다시 넘었어요. 과거에 그랬다는 기록일 뿐, 앞으로도 같으리란 보장은 없어요.',
     keyFacts: ['NASDAQ -35%', 'S&P 500 -27%', '9개월 지속', '0.25% → 5.25%'],
     // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
     basePrices: { MU: 92.77, MSFT: 336.32, AVGO: 64.28, AMZN: 170.40 },
@@ -374,7 +375,7 @@ export const PRESET_EVENTS: PresetEvent[] = [
     baseDate: '2020-02-19',
     endDate: '2020-06-08',
     description: 'S&P 500 -34% 급락 후 5개월 만에 회복.',
-    insight: '코로나 최저점(3/23)에서 매수한 투자자는 1년 내 +70% 이상 수익을 달성했습니다. 패닉 속 분할 매수 전략이 효과적이었어요.',
+    insight: 'S&P 500이 -34% 급락한 뒤 약 5개월 만에 회복한 국면이에요. 지수의 최저점은 3월 23일이었고 이후 1년 동안 +70% 넘게 올랐어요. 다만 어디가 최저점이었는지는 지나고 나서야 알 수 있었어요.',
     keyFacts: ['S&P 500 -34%', '최저점까지 33일', '회복까지 115일', '이후 1년 +70%'],
     // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
     basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 30.90, AMZN: 108.51 },

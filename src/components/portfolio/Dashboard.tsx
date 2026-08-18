@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useState, useRef } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
@@ -12,16 +12,25 @@ import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfol
 import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
+import { useHasHydrated } from '@/hooks/useHasHydrated';
+import { useNow } from '@/hooks/useNow';
+import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
+import {
+  convertStockAmount,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 
 export default function Dashboard() {
   const {
-    stocks, macroData, alerts, dismissedAlerts,
+    stocks, macroData,
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
     rawCandles, recordDailySnapshot,
     investorType, investorTypeSetAt, setCurrentSection,
   } = usePortfolioStore();
   const typeMeta = INVESTOR_TYPES[investorType];
   const hasTypeSet = !!investorTypeSetAt;
+  const currentTime = useNow();
+  const hasHydrated = useHasHydrated();
 
   // 최근 알림 미리보기용 — top severity 1~2 (정책 §8)
   const topAlerts = useActiveAlerts({ maxSeverity: 2 });
@@ -34,13 +43,14 @@ export default function Dashboard() {
   }, [macroData, recordDailySnapshot]);
 
   // 출석 데이터
-  const [streak, setStreak] = useState(0);
-  useEffect(() => {
+  const streak = useMemo(() => {
+    if (!hasHydrated) return 0;
     try {
       const raw = localStorage.getItem('solb_streak');
-      if (raw) setStreak(JSON.parse(raw).count || 0);
+      return raw ? JSON.parse(raw).count || 0 : 0;
     } catch { /* ignore */ }
-  }, []);
+    return 0;
+  }, [hasHydrated]);
 
   // 미장 개장/마감 상태 — 1분마다 업데이트
   const [marketState, setMarketState] = useState(() => getMarketStatus());
@@ -54,13 +64,8 @@ export default function Dashboard() {
     const investing = stocks.investing || [];
     const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
 
-    let totalValue = 0, totalCost = 0, holdingCount = 0;
-    let todayChange = 0;
     let bestSymbol = '', bestDp = -Infinity;
     let worstSymbol = '', worstDp = Infinity;
-    let totalCostKrw = 0;
-    let totalValueKrw = 0;
-    let hasFxData = false;
     let hasPortfolioStocks = false;
 
     investing.forEach(s => {
@@ -70,76 +75,60 @@ export default function Dashboard() {
       const dp = q.dp || 0;
       if (dp > bestDp) { bestDp = dp; bestSymbol = s.symbol; }
       if (dp < worstDp) { worstDp = dp; worstSymbol = s.symbol; }
-      if (s.avgCost > 0 && s.shares > 0) {
-        totalValue += q.c * s.shares;
-        totalCost += s.avgCost * s.shares;
-        holdingCount++;
-        todayChange += (q.d || 0) * s.shares;
-        const isKR = s.symbol.endsWith('.KS') || s.symbol.endsWith('.KQ');
-        // 정합성 결함 H1-calc 수정 — 모든 종목을 KRW 누적에 포함 (분모 일관성)
-        // 기존엔 purchaseRate 있는 미국 종목만 totalCostKrw에 들어가 분모 누락 발생.
-        if (isKR) {
-          // 한국 종목: 가격이 이미 원화 단위 → 환율 적용 안 함
-          totalCostKrw += s.avgCost * s.shares;
-          totalValueKrw += q.c * s.shares;
-        } else {
-          // 미국 종목: purchaseRate 있으면 환차익 분리 추적, 없으면 현재 환율 fallback
-          const buyRate = (s.purchaseRate && s.purchaseRate > 0) ? s.purchaseRate : usdKrw;
-          totalCostKrw += s.avgCost * s.shares * buyRate;
-          totalValueKrw += q.c * s.shares * usdKrw;
-          if (s.purchaseRate && s.purchaseRate > 0) hasFxData = true;
-        }
-      }
     });
 
-    const totalPL = totalValue - totalCost;
-    // 항상 KRW 누적값 사용 — 모든 종목 포함된 정확한 분자/분모
-    const totalPLWon = totalValueKrw - totalCostKrw;
-    const totalPLPct = totalCostKrw > 0 ? (totalPLWon / totalCostKrw) * 100 : 0;
-    const prevValue = totalValue - todayChange;
-    const todayPctRaw = prevValue > 0 ? (todayChange / prevValue) * 100 : 0;
-    const todayPct = Math.max(-999, Math.min(999, todayPctRaw));
+    const summary = summarizePortfolioCurrency(
+      investing.map((stock) => {
+        const quote = macroData[stock.symbol] as QuoteData | undefined;
+        return {
+          symbol: stock.symbol,
+          currency: stock.currency,
+          avgCost: stock.avgCost,
+          shares: stock.shares,
+          currentPrice: quote?.c || 0,
+          dayChange: quote?.d || 0,
+          purchaseRate: stock.purchaseRate,
+        };
+      }),
+      usdKrw,
+    );
 
     return {
-      totalPL, totalPLPct, totalValue, totalCost, holdingCount,
-      todayChange, todayPct,
-      totalPLWon,
-      // 정합성 H1-calc — 항상 KRW 누적값. 한국 종목 + 미국 종목 모두 포함
-      totalValueWon: totalValueKrw,
-      totalCostWon: totalCostKrw,
-      todayChangeWon: todayChange * usdKrw,
+      totalPL: summary.totalPnlUsd,
+      totalPLWon: summary.totalPnlKrw,
+      totalPLPctUsd: summary.totalPnlPctUsd,
+      totalPLPctKrw: summary.totalPnlPctKrw,
+      totalValue: summary.totalValueUsd,
+      totalCost: summary.totalCostUsd,
+      totalValueWon: summary.totalValueKrw,
+      totalCostWon: summary.totalCostKrw,
+      todayChange: summary.todayChangeUsd,
+      todayChangeWon: summary.todayChangeKrw,
+      todayPctUsd: Math.max(-999, Math.min(999, summary.todayChangePctUsd)),
+      todayPctKrw: Math.max(-999, Math.min(999, summary.todayChangePctKrw)),
+      holdingCount: summary.holdingCount,
       usdKrw,
       bestSymbol, bestDp, worstSymbol, worstDp,
       hasInvestment: hasPortfolioStocks,
-      quotesLoaded: totalCost > 0,
+      quotesLoaded: summary.holdingCount > 0,
       sp: macroData['S&P 500'] as MacroEntry | undefined,
       nasdaq: macroData['NASDAQ'] as MacroEntry | undefined,
     };
   }, [stocks, macroData]);
 
-  const isGain = data.totalPL >= 0;
-  const todayGain = data.todayChange >= 0;
-  const significantLoss = data.totalPLPct < -5;
+  const displayTotalPL = currency === 'KRW' ? data.totalPLWon : data.totalPL;
+  const displayTotalPLPct = currency === 'KRW' ? data.totalPLPctKrw : data.totalPLPctUsd;
+  const isGain = displayTotalPL >= 0;
+  const significantLoss = displayTotalPLPct < -5;
 
-  const [greetData, setGreetData] = useState(() => getGreeting(false));
-  const greetInitialized = useRef(false);
-  useEffect(() => {
-    if (!greetInitialized.current && data.hasInvestment) {
-      greetInitialized.current = true;
-      setGreetData(getGreeting(!isGain));
-    }
-  }, [data.hasInvestment, isGain]);
+  const greetData = useMemo(
+    () => hasHydrated
+      ? getGreeting(data.hasInvestment && !isGain)
+      : { text: '오늘도 주비와 함께해요', emoji: '✨' },
+    [data.hasInvestment, hasHydrated, isGain],
+  );
 
   const [dailyTerm] = useState(() => getDailyTerm());
-
-  const spCp = data.sp?.changePercent || 0;
-  const nasdaqCp = data.nasdaq?.changePercent || 0;
-  const avgMarket = (spCp + nasdaqCp) / 2;
-  let marketLabel = '보합';
-  if (avgMarket > 1) marketLabel = '상승';
-  else if (avgMarket > 0.3) marketLabel = '소폭 상승';
-  else if (avgMarket < -1) marketLabel = '하락';
-  else if (avgMarket < -0.3) marketLabel = '소폭 하락';
 
   const bestKr = STOCK_KR[data.bestSymbol] || data.bestSymbol;
   const worstKr = STOCK_KR[data.worstSymbol] || data.worstSymbol;
@@ -147,53 +136,73 @@ export default function Dashboard() {
   // 기간별 포트폴리오 비교 (retrospective: 현재 보유 수량 × N일 전 종가)
   // 주의: 과거 매매 이력 반영 안 함 (근사치), 실제 스냅샷 저장 전까지는 참고용
   const periodCompare = useMemo(() => {
-    if (!data.hasInvestment) return null;
+    if (!data.hasInvestment || currentTime === 0) return null;
     const investing = stocks.investing || [];
 
     const priceAtDaysAgo = (symbol: string, days: number): number | null => {
       const c = rawCandles[symbol];
       if (!c?.t?.length || !c?.c?.length) return null;
-      const targetTs = Date.now() / 1000 - days * 86400;
+      const targetTs = currentTime / 1000 - days * 86400;
       for (let i = c.t.length - 1; i >= 0; i--) {
         if (c.t[i] <= targetTs) return c.c[i] || null;
       }
       return null;
     };
 
-    const computePastTotal = (days: number): number | null => {
-      let total = 0;
-      let coverage = 0;
-      for (const s of investing) {
-        if (s.avgCost <= 0 || s.shares <= 0) continue;
-        const price = priceAtDaysAgo(s.symbol, days);
-        if (price != null) {
-          total += price * s.shares;
-          coverage++;
-        }
+    /**
+     * 기간 비교는 **같은 종목 집합**의 과거·현재를 짝지어 계산한다.
+     *
+     * 예전에는 과거 합계를 '캔들이 있는 종목'만으로 구하고, 비교 상대로는 전 종목 현재
+     * 평가액(data.totalValueWon)을 썼다. 커버리지가 100%가 아니면
+     * (전체 현재 − 일부 과거) / 일부 과거 가 되어 실제와 무관한 수치가 확정 숫자로 렌더됐다
+     * (예: 5종목 중 3종목만 캔들 보유 → '이번주 +66.7%').
+     */
+    const computePair = (days: number): { pastKrw: number; nowKrw: number; partial: boolean } | null => {
+      const eligible = investing.filter(s => s.avgCost > 0 && s.shares > 0);
+      if (eligible.length === 0) return null;
+
+      let pastKrw = 0;
+      let nowKrw = 0;
+      let covered = 0;
+
+      for (const s of eligible) {
+        const pastPrice = priceAtDaysAgo(s.symbol, days);
+        const nowPrice = (macroData[s.symbol] as QuoteData | undefined)?.c;
+        // 과거·현재 둘 다 있어야 한 종목으로 센다 — 한쪽만 있으면 비교 자체가 성립하지 않는다.
+        if (pastPrice == null || !nowPrice) continue;
+        pastKrw += convertStockAmount(s.symbol, pastPrice, data.usdKrw, s.currency).krw * s.shares;
+        nowKrw += convertStockAmount(s.symbol, nowPrice, data.usdKrw, s.currency).krw * s.shares;
+        covered++;
       }
+
       // 커버리지가 50% 미만이면 신뢰 불가
-      const totalStocks = investing.filter(s => s.avgCost > 0 && s.shares > 0).length;
-      if (totalStocks === 0 || coverage / totalStocks < 0.5) return null;
-      return total;
+      if (covered / eligible.length < 0.5) return null;
+      return { pastKrw, nowKrw, partial: covered < eligible.length };
     };
 
-    const current = data.totalValue;
-    const pastWeek  = computePastTotal(7);
-    const pastMonth = computePastTotal(31);
-
-    const fmt = (curr: number, past: number | null) => {
-      if (past == null || past === 0) return null;
-      const delta = curr - past;
-      const pct = (delta / past) * 100;
-      return { delta, pct };
+    const fmt = (pair: { pastKrw: number; nowKrw: number; partial: boolean } | null) => {
+      if (pair == null || pair.pastKrw === 0) return null;
+      const deltaKrw = pair.nowKrw - pair.pastKrw;
+      const pct = (deltaKrw / pair.pastKrw) * 100;
+      return { deltaKrw, pct, partial: pair.partial };
     };
 
     return {
-      today: { delta: data.todayChange, pct: data.todayPct, deltaKrw: data.todayChangeWon },
-      week:  fmt(current, pastWeek),
-      month: fmt(current, pastMonth),
+      today: { deltaKrw: data.todayChangeWon, pct: data.todayPctKrw, partial: false },
+      week: fmt(computePair(7)),
+      month: fmt(computePair(31)),
     };
-  }, [data.hasInvestment, data.totalValue, data.todayChange, data.todayPct, data.todayChangeWon, stocks.investing, rawCandles]);
+  }, [
+    data.hasInvestment,
+    data.todayChangeWon,
+    data.todayPctKrw,
+    data.totalValueWon,
+    data.usdKrw,
+    currentTime,
+    stocks.investing,
+    rawCandles,
+    macroData,
+  ]);
 
   // 포트폴리오 건강 점수
   const health = useMemo(() => {
@@ -206,11 +215,16 @@ export default function Dashboard() {
         shares: s.shares,
         targetReturn: s.targetReturn,
         currentPrice: q?.c || 0,
-        value: (q?.c || 0) * s.shares,
+        value: convertStockAmount(
+          s.symbol,
+          q?.c || 0,
+          data.usdKrw,
+          s.currency,
+        ).krw * s.shares,
       };
     });
     return calcHealthScore(investingStocks);
-  }, [data.hasInvestment, stocks.investing, macroData]);
+  }, [data.hasInvestment, data.usdKrw, stocks.investing, macroData]);
 
   return (
     <div className="card-enter overflow-hidden" style={{ borderRadius: 24, background: 'var(--surface, white)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.03)' }}>
@@ -272,7 +286,7 @@ export default function Dashboard() {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <span style={{ fontSize: 13 }}>{typeMeta.emoji}</span>
+                    <InvestorTypeIcon type={typeMeta.id} size={14} color={typeMeta.accentColor} />
                     <span>{typeMeta.nameKr}</span>
                   </button>
                 )}
@@ -380,7 +394,7 @@ export default function Dashboard() {
                   }
                 </span>
                 <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', whiteSpace: 'nowrap' }}>
-                  ({isGain ? '+' : '-'}{Math.abs(data.totalPLPct).toFixed(2)}%)
+                  ({isGain ? '+' : '-'}{Math.abs(displayTotalPLPct).toFixed(2)}%)
                 </span>
               </div>
               )}
@@ -413,9 +427,8 @@ export default function Dashboard() {
                       );
                     }
                     const isUp = d.pct >= 0;
-                    // week/month는 delta (USD) 계산값, today는 deltaKrw 포함
-                    const dollarDelta = 'deltaKrw' in d ? d.delta : d.delta;
-                    const krwDelta = 'deltaKrw' in d ? d.deltaKrw : d.delta * data.usdKrw;
+                    const krwDelta = d.deltaKrw;
+                    const dollarDelta = data.usdKrw > 0 ? krwDelta / data.usdKrw : 0;
                     const accentColor = isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
                     return (
                       <div key={key} style={{ ...rowStyle, borderLeft: `2px solid ${isPrimary ? accentColor : 'transparent'}` }}>
@@ -424,7 +437,16 @@ export default function Dashboard() {
                           fontWeight: isPrimary ? 700 : 600,
                           color: isPrimary ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
                           whiteSpace: 'nowrap',
-                        }}>{label}</span>
+                        }}>
+                          {label}
+                          {/* 과거 시세가 없는 종목이 섞여 있으면 일부만 비교했다고 밝힌다. */}
+                          {d.partial && (
+                            <span
+                              title="과거 시세를 받지 못한 종목이 있어 일부 종목만 비교했어요"
+                              style={{ marginLeft: 4, fontSize: 11, fontWeight: 500, color: 'var(--text-tertiary, #B0B8C1)' }}
+                            >일부</span>
+                          )}
+                        </span>
                         {/* 2열 — 금액 (right, tabular-nums) */}
                         <span className="tabular-nums" style={{
                           textAlign: 'right', whiteSpace: 'nowrap',

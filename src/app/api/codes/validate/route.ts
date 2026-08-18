@@ -53,14 +53,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ valid: false, error: '이미 모두 사용된 코드예요.' });
     }
 
-    // 중복 사용 확인 (같은 유저가 같은 코드 재사용 방지)
+    // 중복 사용 확인 (같은 유저가 같은 코드 재사용 방지) — 빠른 실패용 사전 검사.
+    // 최종 방어는 applyCode()의 유니크 제약이다(.single()은 0행일 때도 error를 내므로
+    // 여기서 error를 근거로 판단하면 안 된다 — data 유무만 본다).
     if (userId) {
       const { data: existing } = await supabaseAdmin
         .from('code_uses')
         .select('id')
         .eq('code', normalized)
         .eq('used_by', userId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return NextResponse.json({ valid: false, error: '이미 사용한 코드예요.' });
@@ -88,8 +90,12 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
   // 트랜잭션처럼 처리 (Supabase는 RPC로 트랜잭션 가능하나 여기선 순차 처리)
   const rewards = (codeRow.rewards as Record<string, unknown>) || {};
 
-  // 1. 사용 기록 삽입
-  await supabaseAdmin.from('code_uses').insert({
+  // 1. 사용 기록 삽입 — 여기가 **경합 방어선**이다.
+  //    유니크 인덱스 uniq_code_uses_code_user (마이그 20260818000100)가 1인 1코드를 강제하므로,
+  //    동시 요청 중 하나만 성공한다. 실패(23505)하면 이미 사용한 것이므로 보상 지급까지
+  //    전부 중단한다. 예전에는 insert 결과를 확인하지 않아 use_count 증가와 크레딧 지급이
+  //    중복 실행될 수 있었다.
+  const { error: insertError } = await supabaseAdmin.from('code_uses').insert({
     code_id: codeRow.id,
     code: codeRow.code,
     used_by: userId,
@@ -97,6 +103,12 @@ async function applyCode(codeRow: Record<string, unknown>, userId: string, conte
     reward_granted: false,
     reward_data: rewards,
   });
+
+  if (insertError) {
+    // 23505 = unique_violation (이미 사용) / 그 외 오류도 보상 지급 없이 중단한다.
+    console.warn('[codes/validate] code_uses insert 실패 — 보상 지급 중단:', insertError.code);
+    return;
+  }
 
   // 2. use_count 증가
   await supabaseAdmin

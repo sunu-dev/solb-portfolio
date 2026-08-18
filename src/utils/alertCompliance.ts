@@ -140,7 +140,7 @@ export function validateAlertMessage(
 // AI 응답 라우트에서 사용.
 
 /** 금지 어휘 → 안전 대체 표현 매핑 */
-const SAFE_REPLACEMENTS: Record<string, string> = {
+export const SAFE_REPLACEMENTS: Record<string, string> = {
   '지금 사세요': '지금 관찰해보세요',
   '지금 매수': '지금 관찰',
   '지금 매도': '지금 점검',
@@ -174,7 +174,8 @@ const SAFE_REPLACEMENTS: Record<string, string> = {
 
 export interface SanitizeResult {
   text: string;
-  replaced: string[];  // 교체된 어휘 목록 (audit용)
+  replaced: string[];  // 처리된 어휘 목록 (교체 + 드롭, audit용)
+  dropped: string[];   // 안전 대체어가 없어 문장째 제거된 어휘
 }
 
 /**
@@ -183,27 +184,72 @@ export interface SanitizeResult {
  * @param raw AI 원본 응답 (JSON 문자열 또는 일반 텍스트)
  * @returns 교체된 텍스트 + 교체 기록
  */
+/**
+ * 긴 문구 우선 검사 순서.
+ *
+ * FORBIDDEN_PHRASES에는 서로 겹치는 항목이 있다(예: '레버리지 추천' ⊂ '2배 레버리지 추천').
+ * 선언 순서대로 돌면 짧은 쪽이 먼저 매칭돼 긴 문구를 부숴버리고, 감사 기록(replaced)에는
+ * 모델이 실제로 낸 문구가 아니라 짧은 쪽이 남는다. 길이 내림차순으로 훑어 최장 일치를 보장한다.
+ */
+const PHRASES_LONGEST_FIRST: readonly string[] =
+  [...FORBIDDEN_PHRASES].sort((a, b) => b.length - a.length);
+
 export function sanitizeAiOutput(raw: string): SanitizeResult {
   let text = raw;
   const replaced: string[] = [];
+  const dropped: string[] = [];
 
-  for (const phrase of FORBIDDEN_PHRASES) {
-    if (text.includes(phrase)) {
-      const safe = SAFE_REPLACEMENTS[phrase] ?? phrase.replace(/매수|매도|사야|팔아야/g, '관찰');
+  for (const phrase of PHRASES_LONGEST_FIRST) {
+    if (!text.includes(phrase)) continue;
+
+    const mapped = SAFE_REPLACEMENTS[phrase];
+    if (mapped !== undefined) {
       // 한국어 단어 경계 (공백·구두점) 고려 — String.prototype.replaceAll 전역
-      text = text.split(phrase).join(safe);
+      text = text.split(phrase).join(mapped);
       replaced.push(phrase);
+      continue;
+    }
+
+    // 매핑이 없는 문구 — '매수/매도/사야/팔아야' 토큰이 들어 있으면 그 토큰만 중립화한다.
+    const tokenNeutralized = phrase.replace(/매수|매도|사야|팔아야/g, '관찰');
+    if (tokenNeutralized !== phrase) {
+      text = text.split(phrase).join(tokenNeutralized);
+      replaced.push(phrase);
+      continue;
+    }
+
+    // 매핑도 없고 토큰 치환도 no-op인 경우(유사투자자문 신호·군집 유인·소프트 방향 동사 등).
+    // 예전에는 `safe === phrase`라 split/join이 아무것도 바꾸지 않았는데도 replaced에 기록돼
+    // '정화됨'으로 보이면서 원문이 그대로 나갔다. 문장 단위로 **드롭**한다 —
+    // gateDigestNote·gateTaxAdvice와 같은 원칙(잘못된 문장보다 없는 편이 안전),
+    // governAiAnalysisReport의 '문장 통째 제거'와 같은 처리.
+    text = dropSentencesContaining(text, phrase);
+    dropped.push(phrase);
+  }
+
+  if ((replaced.length > 0 || dropped.length > 0) && process.env.NODE_ENV !== 'production') {
+    if (replaced.length > 0) {
+      console.warn(`[AI SANITIZE] ${replaced.length}개 금지 어휘 교체:`, replaced.join(', '));
+    }
+    if (dropped.length > 0) {
+      console.warn(`[AI SANITIZE] ${dropped.length}개 금지 어휘 문장 드롭:`, dropped.join(', '));
     }
   }
 
-  if (replaced.length > 0 && process.env.NODE_ENV !== 'production') {
-    console.warn(
-      `[AI SANITIZE] ${replaced.length}개 금지 어휘 자동 교체:`,
-      replaced.join(', '),
-    );
-  }
+  return { text, replaced: [...replaced, ...dropped], dropped };
+}
 
-  return { text, replaced };
+/**
+ * 금지 문구가 들어 있는 문장만 제거한다.
+ *
+ * 문장 경계: `.`·`!`·`?`·`。`·개행. 경계가 전혀 없는 짧은 라벨(예: 카드 제목)이면
+ * 문자열 전체가 위반이므로 빈 문자열을 돌려준다 — 부분만 남겨 오독되는 편보다 안전하다.
+ */
+function dropSentencesContaining(text: string, phrase: string): string {
+  const parts = text.split(/(?<=[.!?。\n])/);
+  if (parts.length === 1) return '';
+  const kept = parts.filter(p => !p.includes(phrase));
+  return kept.join('').trim();
 }
 
 /**

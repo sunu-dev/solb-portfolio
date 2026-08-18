@@ -7,6 +7,11 @@ import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { MessageCircle } from 'lucide-react';
+import {
+  convertStockAmount,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 
 /**
  * Conversational Timeline
@@ -40,9 +45,24 @@ export default function ConversationalTimeline() {
     if (investing.length === 0) return [];
 
     const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
-    const fmt = (usd: number) => currency === 'KRW'
-      ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-      : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const fmtKrw = (krw: number) => currency === 'KRW'
+      ? formatKRW(Math.round(Math.abs(krw)))
+      : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const summary = summarizePortfolioCurrency(
+      investing.map((stock) => {
+        const quote = macroData[stock.symbol] as QuoteData | undefined;
+        return {
+          symbol: stock.symbol,
+          currency: stock.currency,
+          avgCost: stock.avgCost,
+          shares: stock.shares,
+          currentPrice: quote?.c || 0,
+          dayChange: quote?.d || 0,
+          purchaseRate: stock.purchaseRate,
+        };
+      }),
+      usdKrw,
+    );
 
     // ─── 1. 인사 ─────────────────────────────────────────────────────────
     const hour = new Date().getHours();
@@ -61,22 +81,26 @@ export default function ConversationalTimeline() {
     type Mover = {
       symbol: string;
       dp: number;
-      dollarChange: number;
+      changeKrw: number;
       z: number | null;
       magnitude: number;
     };
     const movers: Mover[] = [];
-    let totalTodayChange = 0;
 
     investing.forEach(s => {
       const q = macroData[s.symbol] as QuoteData | undefined;
       if (!q?.c || q.dp == null) return;
       const shareChange = (q.d || 0) * s.shares;
-      totalTodayChange += shareChange;
+      const changeKrw = convertStockAmount(
+        s.symbol,
+        shareChange,
+        usdKrw,
+        s.currency,
+      ).krw;
       const baseline = computeVolBaseline(rawCandles[s.symbol]);
       const z = computeZScore(q.dp, baseline);
       movers.push({
-        symbol: s.symbol, dp: q.dp, dollarChange: shareChange, z,
+        symbol: s.symbol, dp: q.dp, changeKrw, z,
         // 정렬 키 — z 있으면 z, 없으면 dp 자체 (단위 다름 명시 위해 z null로 구분)
         magnitude: z !== null ? z : q.dp / 3, // fallback: 3% = 약 1σ 가정
       });
@@ -105,7 +129,7 @@ export default function ConversationalTimeline() {
       out.push({
         id: 'best-today',
         type: 'story',
-        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}%${sigmaPhrase(bestMover.z)} 올라서 ${fmt(bestMover.dollarChange)}가 더해졌어요 ✨`,
+        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}%${sigmaPhrase(bestMover.z)} 올라서 ${fmtKrw(bestMover.changeKrw)}가 더해졌어요 ✨`,
         symbol: bestMover.symbol,
         emphasis: 'positive',
       });
@@ -119,7 +143,7 @@ export default function ConversationalTimeline() {
       out.push({
         id: 'worst-today',
         type: 'story',
-        text: `${kr}는 ${worstMover.dp.toFixed(2)}%${sigmaPhrase(worstMover.z)} 내려서 ${fmt(worstMover.dollarChange)} 줄었어요. 긴 호흡으로 보세요`,
+        text: `${kr}는 ${worstMover.dp.toFixed(2)}%${sigmaPhrase(worstMover.z)} 내려서 ${fmtKrw(worstMover.changeKrw)} 줄었어요. 긴 호흡으로 보세요`,
         symbol: worstMover.symbol,
         emphasis: 'negative',
       });
@@ -142,7 +166,7 @@ export default function ConversationalTimeline() {
           out.push({
             id: `target-${s.symbol}`,
             type: 'alert',
-            text: `🎯 ${kr} 목표 수익률까지 거의 다 왔어요! (현재 ${currentPct.toFixed(1)}% / 목표 ${s.targetReturn}%)`,
+            text: `${kr} 목표 수익률까지 거의 다 왔어요. (현재 ${currentPct.toFixed(1)}% / 목표 ${s.targetReturn}%)`,
             symbol: s.symbol,
             emphasis: 'positive',
           });
@@ -150,7 +174,9 @@ export default function ConversationalTimeline() {
           out.push({
             id: `target-reached-${s.symbol}`,
             type: 'alert',
-            text: `🎉 ${kr} 목표 수익률 달성! 수익 실현을 고민해볼 시점이에요`,
+            // §6 — 본인이 설정한 목표 도달 '사실'만 알린다.
+            // '수익 실현을 고민해볼 시점'은 개별 보유 종목에 대한 매도 유인이라 금지.
+            text: `🎉 ${kr}가 직접 정한 목표 수익률에 도달했어요. (현재 ${currentPct.toFixed(1)}% / 목표 ${s.targetReturn}%)`,
             symbol: s.symbol,
             emphasis: 'positive',
           });
@@ -160,11 +186,23 @@ export default function ConversationalTimeline() {
       // 손절가 근접
       if (s.stopLoss && s.stopLoss > 0) {
         const distance = ((q.c - s.stopLoss) / q.c) * 100;
+        const stopLoss = convertStockAmount(
+          s.symbol,
+          s.stopLoss,
+          usdKrw,
+          s.currency,
+        );
+        const stopLossText = currency === 'KRW'
+          ? formatKRW(stopLoss.krw)
+          : `$${stopLoss.usd.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`;
         if (distance < 5 && distance >= 0) {
           out.push({
             id: `stop-${s.symbol}`,
             type: 'alert',
-            text: `⚠️ ${kr}가 손절가($${s.stopLoss})까지 ${distance.toFixed(1)}% 남았어요. 지켜보세요`,
+            text: `${kr}가 손절가(${stopLossText})까지 ${distance.toFixed(1)}% 남았어요. 변화를 확인해보세요.`,
             symbol: s.symbol,
             emphasis: 'warning',
           });
@@ -172,7 +210,8 @@ export default function ConversationalTimeline() {
           out.push({
             id: `stop-hit-${s.symbol}`,
             type: 'alert',
-            text: `🔴 ${kr}가 손절가를 하회했어요. 원칙대로 판단하세요`,
+            // §6 — 본인이 설정한 기준선 하회 '사실'만. 행동 지시는 붙이지 않는다.
+            text: `🔴 ${kr}가 직접 정한 손절가(${stopLossText}) 아래로 내려왔어요.`,
             symbol: s.symbol,
             emphasis: 'negative',
           });
@@ -193,20 +232,22 @@ export default function ConversationalTimeline() {
       const highDist = ((high52 - q.c) / q.c) * 100;
       const lowDist = ((q.c - low52) / q.c) * 100;
 
+      // §6 — 고점·저점 모두 '지금 어디에 있는지'까지만 서술한다.
+      // 앞으로의 방향(추가 상승 여력 / 분할 매수 기회)은 전 종목에서 금지.
+      // 레버리지 가드는 별도 정책이라 유지한다.
       if (highDist < 3) {
         out.push({
           id: `52h-${s.symbol}`,
           type: 'insight',
-          text: `${kr}는 52주 고점에 거의 닿았어요. 추가 상승 여력은 신중히 판단`,
+          text: `${kr}는 최근 1년 최고가 근처에 있어요.`,
           symbol: s.symbol,
           emphasis: 'neutral',
         });
       } else if (lowDist < 3 && !isSingleStockLeverage(s.symbol, kr)) {
-        // 52주 저점 '분할 매수 기회'는 매수 유인 → 단일종목 레버리지면 생성 금지(§6).
         out.push({
           id: `52l-${s.symbol}`,
           type: 'insight',
-          text: `${kr}는 52주 저점 근처예요. 분할 매수 기회가 될 수도 있어요`,
+          text: `${kr}는 최근 1년 최저가 근처에 있어요.`,
           symbol: s.symbol,
           emphasis: 'neutral',
         });
@@ -214,18 +255,19 @@ export default function ConversationalTimeline() {
     });
 
     // ─── 5. 오늘 포트폴리오 요약 (마지막) ────────────────────────────────
+    const totalTodayChange = currency === 'KRW'
+      ? summary.todayChangeKrw
+      : summary.todayChangeUsd;
+    const totalTodayChangeKrw = summary.todayChangeKrw;
+    const pctChange = currency === 'KRW'
+      ? summary.todayChangePctKrw
+      : summary.todayChangePctUsd;
     if (totalTodayChange !== 0) {
-      const pct = investing.reduce((total, s) => {
-        const q = macroData[s.symbol] as QuoteData | undefined;
-        return total + (q?.c || 0) * s.shares;
-      }, 0);
-      const basePct = pct - totalTodayChange;
-      const pctChange = basePct > 0 ? (totalTodayChange / basePct) * 100 : 0;
-      const dir = totalTodayChange >= 0 ? '🔥 불타는' : '🧊 조용한';
+      const dir = totalTodayChange >= 0 ? '움직임이 큰' : '조용한';
       out.push({
         id: 'summary',
         type: 'summary',
-        text: `오늘 포트폴리오는 ${dir} 하루였어요. 총 ${totalTodayChange >= 0 ? '+' : '-'}${fmt(totalTodayChange)} (${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}%)`,
+        text: `오늘 포트폴리오는 ${dir} 하루였어요. 총 ${totalTodayChange >= 0 ? '+' : '-'}${fmtKrw(totalTodayChangeKrw)} (${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(2)}%)`,
         emphasis: totalTodayChange >= 0 ? 'positive' : 'negative',
       });
     }
@@ -286,8 +328,9 @@ export default function ConversationalTimeline() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', flexShrink: 0 }}>
-            💬 주비의 이야기
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', flexShrink: 0 }}>
+            <MessageCircle size={17} strokeWidth={1.75} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+            주비의 이야기
           </span>
           <span style={{
             fontSize: 11, fontWeight: 600,

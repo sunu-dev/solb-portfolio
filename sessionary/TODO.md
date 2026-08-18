@@ -3,7 +3,80 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-21 — 차트 해설·§6 정화)
+## 🎯 다음 세션 자동 브리핑 (2026-08-18 — 전수 감사 이중 실행 · P0 10건 수정)
+
+> **최신 sessionary**: `2026-08-18-full-feature-audit-and-p0-fixes.md`
+> **완료**: 공용 루브릭 고정 후 Claude(12영역·25에이전트·적대적 검증)와 Codex를 독립 실행한 이중 전수 감사. Claude 102기능 평균 66.7 / Codex 66기능 평균 72.5로 같은 밴드 수렴, 바닥 순위도 일치. 검증관이 치명 9건 포함 신규 결함 125건 추가 발굴. **P0 10건 전건 수정 완료.**
+> **P0 수정분**: §6 위반 4건(주비의 이야기 매수·매도 유인 / PRESET_EVENTS 예측문구 / lint 우회 pragma / sanitizeAiOutput no-op) · 보안 4건(ws-token 무인증 키배포 / codes RLS 전량공개 / config 무인증 전량노출 / check-alerts CRON_SECRET 가드) · 데이터 무결성 2건(샘플 포트폴리오 실계좌 오염 / 대시보드 기간비교 허위 %).
+> **검증**: prebuild 4게이트 통과 · **테스트 317 통과(236→+81)** · tsc 소스오류 0 · build 성공 · eslint 0 error. 클라이언트 Finnhub 직접호출 0건.
+> **🔴 다음 1건(파운더 액션)**: **Finnhub API 키 회전** — `/api/ws-token`으로 공개 배포됐던 기존 키는 유출 간주.
+> **🔴 후속 2건**: 마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용(코드만으론 RLS 안 바뀜) · 비로그인 실시간 WebSocket 미제공 트레이드오프 승인.
+> **⚠️ 새 규칙**: `lint-alerts`의 미래단정 어휘(`FORECAST_FORBIDDEN`)는 이제 **전역 검사**다(digest 경로 한정 아님). 인과 어휘만 digest 한정 유지. 새 해설·카피 기능엔 `sec6StaticCopy.test.ts` 패턴의 누출 불변식 테스트를 붙인다.
+> ---
+
+## 🆕 2026-08-18 — 감사 후속
+
+### 파운더 액션 (P0)
+- [ ] **Finnhub API 키 회전** — 기존 키 유출 간주
+- [ ] **마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용** — 적용 전 `pg_policies`로 `codes_select` 실제 존재 확인
+- [ ] **비로그인 실시간 WebSocket 미제공** 트레이드오프 승인 (폴링 시세는 정상 동작)
+
+### 코드 후속 (P1)
+- [ ] **관리자 허용목록 15파일 복제 + 클라이언트 번들 노출** — `src/lib/apiRoute.ts` 공통 가드 래퍼로 일괄 해소
+- [ ] **미인증 라우트에 rateLimiter 적용** — `/api/search`·`/api/quotes`·`/api/event-candles`·`/api/feedback/report`
+- [ ] **`npm test`를 prebuild 편입** — 배포 차단 정책이 바뀌므로 승인 필요
+- [ ] **GitHub Actions CI 신설** — `.github` 부재, 현재 어떤 게이트도 CI에 없음
+- [ ] **`chokDataEnricher` anon 키 → service-role** — `ai_chok_cache`가 `service-only` RLS라 L2 캐시가 영구 무력 (메모리 [[feedback_rls_anon_antipattern]] 재발)
+- [ ] **`market-movers:176` 부호 미검사** — 전 종목 상승일에 상승 종목이 '하락' 탭에 노출
+- [ ] **PII 보존기간 불일치** — 처리방침 `알림 발송 로그 90일` vs `cleanup-pii` `alert_log` 365일
+- [ ] **표시 SSOT 3계층 분열** — `koreanNumber`/`koreanDate`/`koreanCopy` importer 0인데 SSOT 선언. 실사용은 `formatKRW` + raw `toLocaleString` 82곳
+- [ ] **`docs/CRONS.md` 현행화** — 7종 문서화 / 실제 9종 (`enrich-warm`·`morning-brief-close` 누락)
+- [ ] **`d3-hierarchy` + `@types/d3-hierarchy` 제거** — src 참조 0 (Treemap 자체 구현)
+
+## 🗄️ (직전) 브리핑 (2026-07-29 — 개인 주식비서·기록 신뢰성·배포)
+
+> **최신 sessionary**: `2026-07-29-personal-stock-assistant-record-reliability-deploy.md`
+> **완료**: 개인 주식비서 중심 IA 재정렬, 기록 기본 접힘, durable outbox·CAS 충돌 보존·JSON v2 백업/복원·계층형 장기 보존, 운영 DB owner guard v2 및 Vercel 프로덕션 배포. 한글 비교 폰트를 정리해 `public/fonts`를 약 78MB에서 1MB로 축소하고 Vercel CLI를 58.0.0으로 업데이트.
+> **검증**: 236개 테스트 통과, TypeScript·Next.js 16.2.1 로컬/원격 빌드 통과, 운영 랜딩·`/api/config` HTTP 200, 배포 `READY`, 최근 오류 로그 0건.
+> **다음 1건**: 현재 대규모 미커밋 운영 소스를 release commit/tag로 고정해 정확한 롤백이 가능하게 만든다.
+> **후속**: 카카오 로그인된 모바일·데스크톱에서 백업→복원·충돌·로그아웃까지 운영 E2E를 검증한다.
+> ---
+
+## 🆕 2026-07-29 — 출시 신뢰성 후속
+
+- [ ] **P0 운영 배포 소스를 release commit/tag로 고정** — 현재 기준 HEAD `07e7ac4`에 대규모 미커밋 작업본을 더해 배포해 정확한 롤백 재현성이 낮음
+- [ ] **P0 카카오 로그인 운영 E2E** — 모바일·데스크톱에서 브리핑, 큰 금액 한 줄 표시, 기록 기본 접힘, JSON 백업→복원, 충돌 선택, 로그아웃 검증
+- [ ] **P0 OCR 정책 정합화** — 무료 Gemini MVP 의도와 현재 `NEXT_PUBLIC_OCR_ENABLED && GEMINI_PAID_SERVICE` fail-closed 게이트를 맞추고 실제 운영 상태 확인
+- [ ] **P1 다중 탭 오프라인 분기 보존** — 현재 사용자별 outbox 한 키를 탭/branch별 append-only 구조로 확장
+- [ ] **P1 앱 미접속일 자동 스냅샷** 검토
+- [ ] **P1 기기 전용 기록 클라우드화 범위 결정** — 홈 설정·챕터·키워드 등
+- [ ] **P1 Supabase canonical baseline과 fresh reset 복구 훈련** — 오래된 invalid/pending migration chain 정리
+
+## 🆕 2026-07-19 — 가격 가설 검증 후속
+
+- [ ] 한글 주비 로고 15번 Single Day 운영 화면 모바일·데스크톱 최종 육안 승인
+- [ ] `/brand-preview`의 영문 JOOBI 브랜드 방향 55안 중 5개 이하 1차 쇼트리스트 선택 후 실사용 크기 비교·최종 적용·미선택 자산 제거·라이선스 보관
+- [ ] `/brand-preview/lockup-30`의 확정 락업 폰트 30종 중 3개 이하 후보 선택 후 실제 헤더·로그인·모바일 크기 비교
+- [ ] AI 인사이트 외 기존 화면(설정·도움말·대시보드·온보딩)의 장식용 네이티브 이모지 전수 Lucide 전환
+- [ ] 로컬 `/admin` → `PRO 준비`에서 가격 카드·상세·대기 신청 화면을 모바일·다크모드로 육안 확인
+- [ ] OCR 비용 없이 새 항목·변경·그대로·확인 필요·복구를 재현하는 개발자 미리보기 추가
+- [ ] 여러 파일 누적 작업함과 중복 후보 직접 해결 UI
+- [ ] 첫 안전 기록 완료까지 3분 텔레메트리 검증
+- [ ] 적격 사용자 기준(증권사 2개·보유 15개·14일 방문 2일·관리 행동 2회)과 월 4,900원 문구 파운더 승인
+- [ ] 운영 실험 전 개인정보 처리방침에 이벤트 목적·항목·최대 180일 보관 반영 및 동의 버전 처리 검토
+- [ ] 승인 후에만 `20260719000100_pro_demand_events.sql` 적용 및 두 수요 검증 플래그 설정
+- [ ] 첫 유료 MVP 후보: 서버 장기 버전 보관·다중 파일 대조/중복 해결·월간 가치 영수증 WTP 검증
+
+## 🔴 무료 베타 출시 게이트
+
+1. [ ] 로컬 화면 육안 검증: 관리자 비용·감사, AI 분석·AI 촉 출처/기준시각, 좁은 화면·다크모드
+2. [ ] 모의 의견 P0 구현: [x] 개인화 분석 방향 제거 [x] 시장 관찰판 비개인화 [x] PRO AI 차등 제거 [ ] 알림 중립화
+3. [ ] 자본시장법 전문변호사 정식 서면 의견: 개인화 AI, AI 촉, 무료·광고·도구 유료화, BYOK, 규칙 알림
+4. [ ] 변호사 의견 반영 후 금융위 법령해석 질의서 제출 여부 결정
+5. [ ] 파운더 승인 후 운영 Supabase 마이그레이션·Vercel 환경변수·프리뷰 배포
+6. [ ] 베타 중 AI 분석·AI 촉 각각 익명 감사 표본 100건 수집·수동 검토
+
+## 🗄️ (직전) 브리핑 (2026-06-21 — 차트 해설·§6 정화)
 
 > **최신 sessionary**: `2026-06-21-chart-literacy-sec6.md` (종목 분석 초보 차트 해설 + 분석 패널 §6 대규모 정화 + $/₩ 정렬, PR #23)
 > **🟢 PR #23 운영 머지**: ①차트 직하 초보 해설(chartNarrative.ts SSOT, 비유·요약+접힘, level 바인딩) ②**분석 패널 라이브 §6 정화**(명시적 매수/매도 추천·예측·매수/매도 색칩 전수 제거 — generateAIReport·getChartShapeSummary·기술지표 desc·GLOSSARY) ③$/₩ grid 2컬럼 정렬. 누출 불변식 테스트(chartNarrative.test.ts) 신설. 적대 3렌즈가 놓친 치명 §6 2건 반영. 메모리 [[descriptive-not-prescriptive]] 보강.
@@ -27,7 +100,7 @@
 
 > **최신 sessionary**: `2026-06-21-darkcore-ia-favorites-homeedit.md` (다크 코어·IA 슬림·AI촉 캐시워밍·즐겨찾기 B·홈편집 A — 8 PR 운영 머지)
 > **🟢 8 PR 전부 운영 머지·적대적 리뷰 0건**: ①다크모드 색상 코어(`--pill-active-bg/fg` + `lint:darkmode` 가드 R1/R3=0, prebuild) ②포트폴리오=보유관리 슬림화(IA) ③AI촉 `enrich-warm` cron(클릭로드 기각·마운트 AI 미사용) ④메뉴 즐겨찾기 '바로가기'/**Pin** + `menuRegistry` SSOT ⑤**홈 화면 편집(A)** 6단계(`homeWidgetRegistry`·코어 고정·zone 편집·ai-hunch §6 박제·useHasHydrated·dead-jump·누출테스트 5/5). 설계 SSOT: `docs/HOME_EDIT_DESIGN_SPEC.md`·`docs/HOME_CUSTOMIZE_FAVORITES_ANALYSIS.md`.
-> **🔴 다음 후보**: ① 운영 육안 검증(홈편집 시트·디폴트 무변·다크) → announce 채널 보강(선택 폴리시). ② **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 기회비용 1순위, 프리뷰 READY·파운더 액션만. ③ R4 라이트보더 103건 sweep(admin/debug, soft 추적 중→strict 격상).
+> **🔴 다음 후보**: ① 운영 육안 검증(홈편집 시트·디폴트 무변·다크) → announce 채널 보강(선택 폴리시). ② **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 기회비용 1순위, 프리뷰 READY·파운더 액션만. ③ ~~R4 라이트보더 103건 sweep~~ — **2026-08-18 실측 `lint:darkmode` R4 0건**. 이미 완료된 스테일 항목.
 > **⚠️ 다크 규칙**: active pill 색은 `--pill-active-bg/fg`만(인라인 hex·`'#fff'` 금지, `lint:darkmode` R1 강제). `#3182F6`=손익색(하락 파랑)이라 일괄 sweep 여전 금지.
 > ---
 
@@ -76,7 +149,7 @@
    - 판정: GO(main 머지 공개 + 결제 레일 + **변호사 약관 §20③** 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md` B섹션) / 조건부(무료 retention) / NO-GO(v2 자동합산 설계로).
    - v2(자체계산: 환차·필요경비·lot 재계산) = 세무사 감수+E&O 게이트. transactions/fx_rates 마이그 Supabase 수동 적용 + 파운더 결정 4건은 v2 진입 시.
    - 원리: 전문가 감수=책임 이전, 공개·과금 직전 게이트 ([[feedback-professional-review-not-llm]]). 검증엔 측정 장치 내장 필수(없으면 시연).
-   - [ ] (별건, 사전 존재) `formatKRW.test.ts` 4건 실패 — `₩1.0만` 축약 기대 vs `₩10,000` 반환. 테스트/구현 결정 필요.
+   - [x] ~~(별건) `formatKRW.test.ts` 4건 실패~~ — **2026-08-18 실측 결과 0건 실패**. 이미 해소된 스테일 항목이었음.
 2. **변호사 1회 상담 묶음** (배포됨 → 사후 + 공개 직전 게이트 통합)
    - **L1·L2** 레버리지 §6/§101 사후 점검 (production 라이브, `LEGAL_CONSULTATION_LEVERAGE.md` 11건)
    - **T1+** 세무사법 §2 독점업무 경계 + §20③·약관규제법 §7 (세무 공개·과금 직전)
@@ -106,6 +179,7 @@
 ### 🟡 위 후속 (2026-05-29 (3))
 - [x] ~~칩 색상 최종 확정~~ — **중립 회색 확정** (사용자 결정 2026-05-29, 디자인 메모리 부합)
 - [ ] **검색 커버리지 더 확장** — 채권혼합 ETF 등 → KRX 마스터 CSV (V1.2)
+- [x] ~~`docs/UNIVERSE_INCLUSION_CRITERIA.md` 작성~~ — **파일 이미 존재**(2026-08-18 확인). 스테일 항목이었음.
 - [ ] **기존 사용자 약관 v3 재동의 고지 확인** — 로그인 유지 중 사용자는 재로그인 전까지 DB v2. 변경 고지 이력 점검
 
 ### 📋 2026-05-29 오늘 누적 (7 커밋)

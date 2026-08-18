@@ -1,10 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  Activity,
+  BarChart3,
+  ChartNoAxesCombined,
+  CheckCircle2,
+  Circle,
+  LibraryBig,
+  SearchCheck,
+  Settings,
+  Ticket,
+  TriangleAlert,
+  WalletCards,
+} from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import ApiStatsPanel from '@/components/admin/ApiStatsPanel';
 import ListingsPanel from '@/components/admin/ListingsPanel';
+import AiAuditPanel from '@/components/admin/AiAuditPanel';
+import ProReadinessPanel from '@/components/admin/ProReadinessPanel';
 
 const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
@@ -64,7 +79,18 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-type AdminTab = 'stats' | 'growth' | 'api' | 'listings' | 'codes' | 'config';
+type AdminTab = 'stats' | 'growth' | 'api' | 'audit' | 'listings' | 'codes' | 'config' | 'pro';
+
+const ADMIN_TABS = [
+  { id: 'stats', label: '통계', Icon: BarChart3 },
+  { id: 'growth', label: '성장', Icon: ChartNoAxesCombined },
+  { id: 'api', label: 'API 관측', Icon: Activity },
+  { id: 'audit', label: 'AI 감사', Icon: SearchCheck },
+  { id: 'listings', label: '신규 상장', Icon: LibraryBig },
+  { id: 'codes', label: '코드 관리', Icon: Ticket },
+  { id: 'config', label: '서비스 설정', Icon: Settings },
+  { id: 'pro', label: 'PRO 준비', Icon: WalletCards },
+] satisfies { id: AdminTab; label: string; Icon: typeof BarChart3 }[];
 
 export default function AdminPage() {
   const { user, loading } = useAuth();
@@ -189,21 +215,26 @@ export default function AdminPage() {
 
       {/* 탭 */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: 32, gap: 0 }}>
-        {([['stats', '📊 통계'], ['growth', '📈 성장'], ['api', '🛡️ API 관측'], ['listings', '📚 신규 상장'], ['codes', '🎟 코드 관리'], ['config', '⚙️ 서비스 설정']] as [AdminTab, string][]).map(([id, label]) => (
+        {ADMIN_TABS.map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{
             padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
             color: activeTab === id ? '#191F28' : '#8B95A1',
             background: 'none', border: 'none', borderBottom: activeTab === id ? '2px solid #191F28' : '2px solid transparent',
-            cursor: 'pointer', marginBottom: -1,
-          }}>{label}</button>
+            cursor: 'pointer', marginBottom: -1, display: 'inline-flex', alignItems: 'center', gap: 6,
+          }}>
+            <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
+            {label}
+          </button>
         ))}
       </div>
 
-      {activeTab === 'growth' && <GrowthPanel session={user} />}
+      {activeTab === 'growth' && <GrowthPanel />}
       {activeTab === 'api' && <ApiStatsPanel />}
+      {activeTab === 'audit' && <AiAuditPanel />}
       {activeTab === 'listings' && <ListingsPanel />}
-      {activeTab === 'codes' && <CodesPanel session={user} />}
-      {activeTab === 'config' && <ConfigPanel session={user} />}
+      {activeTab === 'codes' && <CodesPanel />}
+      {activeTab === 'config' && <ConfigPanel />}
+      {activeTab === 'pro' && <ProReadinessPanel />}
 
       {activeTab === 'stats' && <>
       {/* 쿼터 경고 배너 */}
@@ -214,7 +245,7 @@ export default function AdminPage() {
           borderRadius: 12, padding: '12px 16px', marginBottom: 24,
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 16 }}>{quotaWarnPct >= 90 ? '🚨' : '⚠️'}</span>
+          <TriangleAlert size={16} strokeWidth={2} aria-hidden="true" color={quotaWarnPct >= 90 ? '#EF4452' : '#FF9500'} />
           <span style={{ fontSize: 13, fontWeight: 600, color: quotaWarnPct >= 90 ? '#EF4452' : '#FF9500' }}>
             오늘 Gemini 쿼터 {quotaWarnPct}% 사용됨 — {quotaWarnPct >= 90 ? '즉시 확인 필요' : '주의 필요'}
           </span>
@@ -229,7 +260,7 @@ export default function AdminPage() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 32 }}>
         <StatCard label="오늘 AI 분석 (클릭)" value={stats.todayAiCalls} unit="회" color="#FF9500" />
-        <StatCard label="오늘 AI 촉 (자동)" value={stats.todayChokCalls} unit="회" color="#34C759" />
+        <StatCard label="오늘 시장 관찰판 갱신" value={stats.todayChokCalls} unit="회" color="#34C759" />
       </div>
 
       {/* Gemini 쿼터 + 한도 설정 */}
@@ -334,7 +365,7 @@ export default function AdminPage() {
 
 // ── 코드 관리 패널 ────────────────────────────────────────────────────────────
 
-function CodesPanel({ session: _session }: { session: unknown }) {
+function CodesPanel() {
   const [type, setType] = useState('invite');
   const [count, setCount] = useState(10);
   const [maxUses, setMaxUses] = useState(1);
@@ -372,7 +403,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`✅ ${data.codes.length}개 코드 생성 완료`);
+      alert(`${data.codes.length}개 코드 생성 완료`);
       loadCodes(type);
     } else {
       alert('오류: ' + data.error);
@@ -450,7 +481,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
           </div>
           <button onClick={copyAll}
             style={{ padding: '6px 14px', background: copied === 'all' ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === 'all' ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {copied === 'all' ? '복사됨 ✓' : '미사용 전체 복사'}
+            {copied === 'all' ? '복사됨' : '미사용 전체 복사'}
           </button>
         </div>
 
@@ -477,7 +508,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
                   </span>
                   <button onClick={() => { navigator.clipboard.writeText(c.code); setCopied(c.code); setTimeout(() => setCopied(''), 1500); }}
                     style={{ padding: '4px 10px', background: copied === c.code ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === c.code ? '#fff' : '#4E5968', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
-                    {copied === c.code ? '✓' : '복사'}
+                    {copied === c.code ? '복사됨' : '복사'}
                   </button>
                   <button onClick={() => toggleCode(c.code, c.is_active)}
                     style={{ padding: '4px 10px', background: c.is_active ? 'rgba(239,68,82,0.08)' : 'rgba(32,201,151,0.08)', color: c.is_active ? '#EF4452' : '#20C997', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
@@ -495,7 +526,7 @@ function CodesPanel({ session: _session }: { session: unknown }) {
 
 // ── 서비스 설정 패널 ──────────────────────────────────────────────────────────
 
-function ConfigPanel({ session: _session }: { session: unknown }) {
+function ConfigPanel() {
   const [config, setConfig] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -506,7 +537,15 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
   };
 
   useEffect(() => {
-    fetch('/api/config').then(r => r.json()).then(({ config: c }) => setConfig(c || {}));
+    // GET /api/config는 토큰이 없으면 공개 키만 준다. 관리자 편집기는 전체가 필요하므로 토큰을 붙인다.
+    (async () => {
+      const token = await getToken();
+      const r = await fetch('/api/config', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const { config: c } = await r.json();
+      setConfig(c || {});
+    })().catch(() => setConfig({}));
   }, []);
 
   const update = (key: string, value: string) => setConfig(prev => ({ ...prev, [key]: value }));
@@ -526,10 +565,10 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
   };
 
   const modeLabels: Record<string, string> = {
-    beta: '🔒 베타',
-    waitlist: '📋 대기자',
-    open: '🌐 오픈',
-    maintenance: '🛠 점검',
+    beta: '베타',
+    waitlist: '대기자',
+    open: '오픈',
+    maintenance: '점검',
   };
 
   return (
@@ -593,7 +632,7 @@ function ConfigPanel({ session: _session }: { session: unknown }) {
 
         <button onClick={save} disabled={saving}
           style={{ padding: '12px 32px', background: saved ? '#20C997' : saving ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start', transition: 'background 0.2s' }}>
-          {saved ? '저장됨 ✓' : saving ? '저장 중...' : '설정 저장'}
+          {saved ? '저장됨' : saving ? '저장 중...' : '설정 저장'}
         </button>
       </div>
     </div>
@@ -644,28 +683,29 @@ function MiniBarChart({ data, color }: { data: { date: string; count: number }[]
   );
 }
 
-function GrowthPanel({ session: _session }: { session: unknown }) {
+function GrowthPanel() {
   const [data, setData] = useState<GrowthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(14);
 
-  const getToken = async () => {
-    const { supabase: sb } = await import('@/lib/supabase');
-    return (await sb.auth.getSession()).data.session?.access_token ?? '';
-  };
-
-  const load = async (d: number) => {
-    setLoading(true);
-    const token = await getToken();
-    const res = await fetch(`/api/admin/growth?days=${d}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const json = await res.json();
-    setData(json);
-    setLoading(false);
-  };
-
-  useEffect(() => { load(days); }, [days]);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const { supabase: sb } = await import('@/lib/supabase');
+      const token = (await sb.auth.getSession()).data.session?.access_token ?? '';
+      const res = await fetch(`/api/admin/growth?days=${days}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!cancelled) {
+        setData(json);
+        setLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [days]);
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>성장 데이터 불러오는 중...</div>;
   if (!data) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>불러오기 실패</div>;
@@ -698,7 +738,9 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {data.checks.map(c => (
             <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : '#F8F9FA', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : 'var(--border-light, #F2F4F6)'}` }}>
-              <span style={{ fontSize: 16 }}>{c.done ? '✅' : '⬜'}</span>
+              {c.done
+                ? <CheckCircle2 size={16} color="#20C997" aria-label="완료" />
+                : <Circle size={16} color="#B0B8C1" aria-label="미완료" />}
               <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.done ? '#20C997' : '#191F28' }}>{c.label}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: c.done ? '#20C997' : '#8B95A1' }}>
                 {c.current}{c.unit} / {c.target}{c.unit}
@@ -794,7 +836,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
             {/* 온보딩 */}
             <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>📚 온보딩</div>
+              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>온보딩</div>
               <FunnelRow label="가입 (총)" value={data.totalUsers} max={data.totalUsers || 1} />
               <FunnelRow label="step view (모든 단계 합산)" value={data.onboardingFunnel.view} max={Math.max(data.onboardingFunnel.view, data.totalUsers, 1)} />
               <FunnelRow label="샘플 사용" value={data.onboardingFunnel.samplePortfolio} max={data.totalUsers || 1} />
@@ -806,7 +848,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
             {/* 본 화면 투어 */}
             {data.tourFunnel && (
               <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>🎬 본 화면 투어</div>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>본 화면 투어</div>
                 <FunnelRow label="시작" value={data.tourFunnel.started} max={data.totalUsers || 1} />
                 <FunnelRow label="단계 진입" value={data.tourFunnel.step} max={Math.max(data.tourFunnel.started, 1)} />
                 <FunnelRow label="완료" value={data.tourFunnel.completed} max={Math.max(data.tourFunnel.started, 1)} highlight />
@@ -817,7 +859,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
 
             {/* 도움말 */}
             <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>❓ 도움말</div>
+              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>도움말</div>
               <FunnelRow label="/help 진입" value={data.helpOpened ?? 0} max={data.totalUsers || 1} />
             </div>
           </div>
@@ -828,14 +870,14 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
       {(data.featureAdoption || data.adoptionCohort || data.guestFunnel) && (
         <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
-            🎯 기능 채택 · 게스트 funnel (최근 {days}일)
+            기능 채택 · 게스트 funnel (최근 {days}일)
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
 
             {/* 기능별 첫 사용(채택) */}
             {data.featureAdoption && Object.keys(data.featureAdoption).length > 0 && (
               <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>🧩 기능 첫 사용 (유저 수)</div>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>기능 첫 사용 (유저 수)</div>
                 {Object.entries(data.featureAdoption).sort((a, b) => b[1] - a[1]).map(([fid, n]) => (
                   <FunnelRow key={fid} label={fid} value={n} max={data.totalUsers || 1} />
                 ))}
@@ -845,7 +887,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
             {/* 코호트 비교 — 투어 본 vs 안 본 */}
             {data.adoptionCohort && (
               <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>📊 평균 채택 기능수 — 투어 본 vs 안 본</div>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>평균 채택 기능수 — 투어 본 vs 안 본</div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#fff', borderRadius: 8 }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#0E7C7B' }}>{data.adoptionCohort.tourWatched.avgFeatures}</div>
@@ -863,7 +905,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
             {/* 게스트 funnel */}
             {data.guestFunnel && (
               <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>👤 게스트(비로그인) funnel</div>
+                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>게스트(비로그인) funnel</div>
                 {data.guestFunnel.available ? (
                   <>
                     <FunnelRow label="고유 게스트" value={data.guestFunnel.distinctGuests} max={Math.max(data.guestFunnel.distinctGuests, 1)} />
@@ -873,7 +915,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
                   </>
                 ) : (
                   <div style={{ fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
-                    ⚠️ 게스트 측정 대기 — tour_events 미적용. Supabase에 2026-06-21_tour_events.sql 적용 필요.
+                    게스트 측정 대기 — tour_events 미적용. Supabase에 2026-06-21_tour_events.sql 적용 필요.
                   </div>
                 )}
                 <div style={{ marginTop: 8, fontSize: 11, color: '#B0B8C1' }}>※ distinctGuests는 클라 anonId 기반 — best-effort(위조 가능, 단독 판단 금지)</div>
@@ -883,7 +925,7 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
         </div>
       )}
 
-      {/* P0-6 — AI 피드백 (👍/👎) */}
+      {/* P0-6 — AI 피드백 */}
       {data.feedbackBySource && Object.keys(data.feedbackBySource).length > 0 && (
         <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
@@ -902,13 +944,13 @@ function GrowthPanel({ session: _session }: { session: unknown }) {
                   </span>
                 </div>
                 <span style={{ fontSize: 11, color: '#8B95A1' }}>
-                  👍 {f.positive} · 👎 {f.negative} (총 {f.total})
+                  긍정 {f.positive} · 부정 {f.negative} (총 {f.total})
                 </span>
               </div>
             ))}
           </div>
           <div style={{ marginTop: 12, fontSize: 11, color: '#B0B8C1' }}>
-            ※ 70%+ 만족도 = 알고리즘 정당성 ✅ / 50% 미만 = 가중치 재검토 필요
+            ※ 70%+ 만족도 = 알고리즘 정당성 확인 / 50% 미만 = 가중치 재검토 필요
           </div>
         </div>
       )}

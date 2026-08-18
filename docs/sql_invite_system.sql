@@ -65,10 +65,10 @@ CREATE INDEX IF NOT EXISTS idx_codes_created_by ON codes(created_by);
 CREATE INDEX IF NOT EXISTS idx_codes_is_active ON codes(is_active);
 
 ALTER TABLE codes ENABLE ROW LEVEL SECURITY;
--- 코드 검증: 누구나 조회 가능 (validate API에서 사용)
-CREATE POLICY "codes_select" ON codes FOR SELECT USING (true);
--- 삽입: 관리자 API(service_role)만
--- 업데이트: 관리자 API(service_role)만
+-- 조회·삽입·수정 전부 service_role 전용 (정책 없음 = anon/authenticated 차단).
+-- validate/generate/my-invite API가 모두 service_role 클라이언트를 쓰므로 공개 SELECT 정책이 필요 없다.
+-- ⚠️ 예전엔 `codes_select USING (true)`가 있었다. anon 키가 클라이언트 번들에 실리기 때문에
+--    누구나 전체 코드를 덤프할 수 있어 초대 게이트가 무효였다 (마이그 20260818000100에서 제거).
 
 
 -- 3. 코드 사용 이력
@@ -86,6 +86,9 @@ CREATE TABLE IF NOT EXISTS code_uses (
 
 CREATE INDEX IF NOT EXISTS idx_code_uses_code_id ON code_uses(code_id);
 CREATE INDEX IF NOT EXISTS idx_code_uses_used_by ON code_uses(used_by);
+-- 1인 1코드 강제 — 동시 요청으로 보상이 중복 지급되는 경합을 DB 레벨에서 차단.
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_code_uses_code_user
+  ON code_uses (code, used_by) WHERE used_by IS NOT NULL;
 
 ALTER TABLE code_uses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "code_uses_select" ON code_uses FOR SELECT USING (auth.uid() = used_by);

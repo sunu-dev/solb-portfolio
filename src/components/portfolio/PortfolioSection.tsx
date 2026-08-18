@@ -9,6 +9,7 @@ import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
+import ProDemandOffer from '@/components/pro/ProDemandOffer';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import PortfolioTreemap from './PortfolioTreemap';
@@ -22,12 +23,20 @@ import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 import OcrImportModal from './OcrImportModal';
+import PortfolioRecordCenter from './PortfolioRecordCenter';
 import PortfolioValueChart from './PortfolioValueChart';
 import MonthlyChapter from './MonthlyChapter';
 import MonthlyWrapped from './MonthlyWrapped';
 import HomeEditSheet from './HomeEditSheet';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
+import { OCR_DISABLED_COPY, OCR_UI_ENABLED } from '@/config/ocrFeature';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+  getStockCurrency,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 // 시장 발견(MarketMovers)·회고 6종(ShareCard·InvestmentJournal·StockPulse·PortfolioDNA·
 // ThrowbackCard·TradePatternMirror)은 AI 인사이트 탭으로 이관(IA P1-b/P2). ChapterShelf만 잔류.
 import { autoArchiveLastMonth } from '@/utils/chapterArchive';
@@ -136,9 +145,14 @@ function getAlertBadgeText(alert: Alert): string {
 }
 
 // 원화 포맷 — 공통 유틸 사용
-import { formatKRW, formatKRWChange } from '@/utils/formatKRW';
-function fmtWon(val: number): string { return formatKRW(val, { suffix: '원', prefix: false }); }
+import { formatKRW } from '@/utils/formatKRW';
 function fmtWonShort(val: number): string { return formatKRW(val); }
+function fmtUsd(val: number): string {
+  return `$${val.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export default function PortfolioSection() {
   const {
@@ -146,13 +160,15 @@ export default function PortfolioSection() {
     setCurrentTab, setAnalysisSymbol,
     deleteStock, setEditingCat, setEditingIdx,
     addStock,
-    alerts, dismissedAlerts, dismissAlert,
-    currency, setCurrency,
+    alerts, dismissedAlerts,
+    currency,
     lastUpdate,
     rawCandles,
+    dailySnapshots,
     hiddenWidgets,
     widgetOrder,
     editMode,
+    portfolioSyncStatus,
     setHomeEditMode,
     toggleWidgetHidden,
   } = usePortfolioStore();
@@ -169,6 +185,8 @@ export default function PortfolioSection() {
   const [wrappedOpen, setWrappedOpen] = useState(false);
   const [undoData, setUndoData] = useState<{ cat: 'investing' | 'watching' | 'sold'; stock: StockItem; timer: NodeJS.Timeout } | null>(null);
   const [showOcr, setShowOcr] = useState(false);
+  const openOcr = useCallback(() => setShowOcr(true), []);
+  const closeOcr = useCallback(() => setShowOcr(false), []);
   const [periodTab, setPeriodTab] = useState<PeriodKey>('1d');
   const [brokerFilter, setBrokerFilter] = useState<string | null>(null);  // Phase B-2 — broker 필터
 
@@ -211,14 +229,20 @@ export default function PortfolioSection() {
     tryScroll(0);
   }, []);
 
-  // 챕터 자동 아카이브 — 매월 1일 첫 진입 시 지난달 챕터 책장에 저장
+  // 챕터 자동 아카이브 — 비동기 캔들/스냅샷이 준비된 뒤 지난달 책장에 저장한다.
+  // 데이터가 추가될 때마다 재평가하되 chapterId 멱등성으로 중복 저장을 막는다.
   useEffect(() => {
     if (!stocks.investing?.length) return;
-    autoArchiveLastMonth({
-      stocks, macroData, rawCandles, snapshots: usePortfolioStore.getState().dailySnapshots,
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const timer = window.setTimeout(() => {
+      autoArchiveLastMonth({
+        stocks,
+        macroData,
+        rawCandles,
+        snapshots: dailySnapshots,
+      });
+    }, 1_500);
+    return () => window.clearTimeout(timer);
+  }, [dailySnapshots, macroData, rawCandles, stocks]);
 
   // D-3 푸시 클릭 → ?openWrapped=1 → Wrapped 모달 자동 오픈 (Phase 6)
   useEffect(() => {
@@ -260,43 +284,23 @@ export default function PortfolioSection() {
   const soldStocks = stocks.sold || [];
   const allStocksList = [...investingStocks, ...watchingStocks, ...soldStocks];
 
-  let totalValue = 0, totalCost = 0, holdingCount = 0;
-
-  investingStocks.forEach(stock => {
-    const d = macroData[stock.symbol] as QuoteData | undefined;
-    const price = d?.c || 0;
-    if (stock.avgCost > 0 && stock.shares > 0 && price > 0) {
-      totalValue += price * stock.shares;
-      totalCost += stock.avgCost * stock.shares;
-      holdingCount++;
-    }
-  });
-
-  const totalPL = totalValue - totalCost;
-  const totalPLPercent = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
-  const isGain = totalPL >= 0;
-  const totalValueWon = totalValue * usdKrw;
-  const totalCostWon = totalCost * usdKrw;
-  const totalPLWon = totalPL * usdKrw;
-  const hasInvestment = totalCost > 0;
-
-  // 오늘 변동 계산 (투자중 종목의 당일 변동 합산)
-  let todayChange = 0;
-  let winCount = 0;
-  let bestStock = { symbol: '', dp: -Infinity };
-  let worstStock = { symbol: '', dp: Infinity };
-  investingStocks.forEach(stock => {
-    const d = macroData[stock.symbol] as QuoteData | undefined;
-    if (!d?.c || !stock.shares) return;
-    todayChange += (d.d || 0) * stock.shares;
-    if (d.c > stock.avgCost && stock.avgCost > 0) winCount++;
-    const dp = d.dp || 0;
-    if (dp > bestStock.dp) bestStock = { symbol: stock.symbol, dp };
-    if (dp < worstStock.dp) worstStock = { symbol: stock.symbol, dp };
-  });
-  const todayChangeWon = todayChange * usdKrw;
-  const todayChangePct = totalValue > 0 ? (todayChange / (totalValue - todayChange)) * 100 : 0;
-  const todayGain = todayChange >= 0;
+  const portfolioCurrency = summarizePortfolioCurrency(
+    investingStocks.map((stock) => {
+      const quote = macroData[stock.symbol] as QuoteData | undefined;
+      return {
+        symbol: stock.symbol,
+        currency: stock.currency,
+        avgCost: stock.avgCost,
+        shares: stock.shares,
+        currentPrice: quote?.c || 0,
+        dayChange: quote?.d || 0,
+        purchaseRate: stock.purchaseRate,
+      };
+    }),
+    usdKrw,
+  );
+  const totalValueKrw = portfolioCurrency.totalValueKrw;
+  const hasInvestment = portfolioCurrency.totalCostKrw > 0;
 
   // 오늘의 한 줄 헤드라인 — 첫 화면 정보 위계 강화 (이상 신호 우선)
   // P2 알고리즘 업그레이드: 절대값(|dp|≥3%) → z-score(종목별 변동성 정규화)
@@ -404,12 +408,37 @@ export default function PortfolioSection() {
     let va = 0, vb = 0;
     switch (sortBy) {
       case 'name': return sortDir === 'asc' ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
-      case 'price': va = qa?.c || 0; vb = qb?.c || 0; break;
-      case 'change': va = qa?.dp || 0; vb = qb?.dp || 0; break;
-      case 'pnl':
-        va = a.avgCost > 0 && (qa?.c || 0) > 0 ? ((qa!.c - a.avgCost) / a.avgCost * 100) : -999;
-        vb = b.avgCost > 0 && (qb?.c || 0) > 0 ? ((qb!.c - b.avgCost) / b.avgCost * 100) : -999;
+      case 'price':
+        va = convertStockAmount(a.symbol, qa?.c || 0, usdKrw, a.currency).krw;
+        vb = convertStockAmount(b.symbol, qb?.c || 0, usdKrw, b.currency).krw;
         break;
+      case 'change': va = qa?.dp || 0; vb = qb?.dp || 0; break;
+      case 'pnl': {
+        const pnlPct = (stock: DisplayStock, quote?: QuoteData) => {
+          if (stock.avgCost <= 0 || !quote?.c) return -999;
+          const current = convertStockAmount(
+            stock.symbol,
+            quote.c,
+            usdKrw,
+            stock.currency,
+          );
+          const cost = convertStockCostAmount(
+            stock.symbol,
+            stock.avgCost,
+            usdKrw,
+            stock.purchaseRate,
+            stock.currency,
+          );
+          const currentAmount = currency === 'KRW' ? current.krw : current.usd;
+          const costAmount = currency === 'KRW' ? cost.krw : cost.usd;
+          return costAmount > 0
+            ? ((currentAmount - costAmount) / costAmount) * 100
+            : -999;
+        };
+        va = pnlPct(a, qa);
+        vb = pnlPct(b, qb);
+        break;
+      }
       case 'goal':
         va = a.targetReturn > 0 && a.avgCost > 0 && (qa?.c || 0) > 0 ? ((qa!.c - a.avgCost) / a.avgCost * 100) / a.targetReturn : -999;
         vb = b.targetReturn > 0 && b.avgCost > 0 && (qb?.c || 0) > 0 ? ((qb!.c - b.avgCost) / b.avgCost * 100) / b.targetReturn : -999;
@@ -418,26 +447,50 @@ export default function PortfolioSection() {
     return sortDir === 'asc' ? va - vb : vb - va;
   });
 
-  // Urgent inline banners (severity 1 only)
-  const urgentAlerts = alerts
-    .filter(a => a.severity <= 1 && !dismissedAlerts.includes(a.id))
-    .slice(0, 2);
-
   return (
     <div data-tour="portfolio-section">
-      {showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
+      {OCR_UI_ENABLED && showOcr && <OcrImportModal onClose={closeOcr} />}
 
-      {/* IA(2026-06-20) — 포트폴리오=보유관리 슬림화. 챕터 키워드 리추얼은 하단 유지하되,
-          '아침 브리핑'은 매일 열리는 기본 화면 상단으로 승격(파운더 결정): 자산 요약 직후
-          오늘의 시장 한 줄을 보여줘 아침 복귀 동인을 실제로 노출. (이전 '하단 강등'을 브리핑만 되돌림) */}
-      {/* Unified Dashboard — 히어로+출석+알림 통합 */}
+      {/* 개인 주식비서의 1차 약속 — 오늘 챙길 일과 내 자산을 먼저 보여준다. */}
+      {!isHidden('morning-briefing') && <MorningBriefing />}
       <Dashboard />
 
-      {/* 시작하기 체크리스트(Phase 4) — 자가 게이트(로그인·미완료·미디스미스). feature_first_use 자동 체크. */}
-      <GettingStartedChecklist />
-
-      {/* 아침 브리핑 — Dashboard 직하 승격(시점성 리추얼·자체 노출조건/닫기 보유). 모든 서브탭 공통 상단. 홈편집 above-core. */}
-      {!isHidden('morning-briefing') && <MorningBriefing />}
+      {(portfolioSyncStatus === 'conflict'
+        || portfolioSyncStatus === 'storage-error'
+        || portfolioSyncStatus === 'error') && (
+        <button
+          type="button"
+          onClick={() => document.querySelector('[data-tour="record-center"]')
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+          style={{
+            width: '100%',
+            minHeight: 44,
+            marginBottom: 14,
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            border: '1px solid rgba(201,108,0,0.2)',
+            borderRadius: 11,
+            background: 'rgba(255,149,0,0.07)',
+            color: 'var(--color-warning, #A85B00)',
+            fontSize: 11,
+            fontWeight: 700,
+            textAlign: 'left',
+            cursor: 'pointer',
+          }}
+        >
+          <span>
+            {portfolioSyncStatus === 'conflict'
+              ? '다른 기기의 최신 기록과 충돌했어요. 두 기록 모두 보존 중이에요.'
+              : portfolioSyncStatus === 'storage-error'
+              ? '이 기기 저장 공간을 확인해주세요. 클라우드에 즉시 저장 중이에요.'
+              : '클라우드 저장을 다시 시도하고 있어요. 이 기기 기록은 보존 중이에요.'}
+          </span>
+          <span aria-hidden="true" style={{ flexShrink: 0 }}>기록 상태 보기 →</span>
+        </button>
+      )}
 
       {/* IA P0-2 — 증권사 요약·통합 보유 카드는 '종목' 탭의 보유 리스트 아래로 강등 이동.
           Dashboard 직후 프라임 공간은 '보유 테이블'(관리·확인 1번)이 차지하도록. */}
@@ -449,11 +502,12 @@ export default function PortfolioSection() {
             <button
               key={key}
               onClick={() => setSubTab(key)}
+              aria-pressed={subTab === key}
               className="cursor-pointer"
               style={{
                 flex: 1,
                 padding: '10px 0',
-                minHeight: 40,
+                minHeight: 44,
                 fontSize: 14,
                 fontWeight: subTab === key ? 600 : 400,
                 color: subTab === key ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
@@ -490,14 +544,23 @@ export default function PortfolioSection() {
           </div>
           <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
             종목을 추가해보세요
-          </div>          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요</div>
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>
+            {OCR_UI_ENABLED ? '이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요' : '종목을 검색해서 직접 추가할 수 있어요'}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-            <button
-              onClick={() => setShowOcr(true)}
-              style={{ padding: '12px 28px', borderRadius: 12, background: '#191F28', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <span style={{ fontSize: 16 }}>📸</span> 증권앱에서 가져오기
-            </button>
+            {OCR_UI_ENABLED ? (
+              <button
+                onClick={openOcr}
+                style={{ padding: '12px 28px', borderRadius: 12, background: '#191F28', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                <span style={{ fontSize: 16 }}>📸</span> 증권앱에서 가져오기
+              </button>
+            ) : (
+              <div role="note" style={{ maxWidth: 340, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-subtle, #F8F9FA)', color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, lineHeight: 1.5 }}>
+                {OCR_DISABLED_COPY.title} 개인정보 보호 기준을 충족한 뒤 제공할게요.
+              </div>
+            )}
             <button
               onClick={() => {
                 const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
@@ -591,14 +654,16 @@ export default function PortfolioSection() {
           })}
           </div>
           <div style={{ display: 'flex', gap: 6, marginLeft: 8, marginBottom: 4 }}>
-            <button
-              onClick={() => setShowOcr(true)}
-              className="cursor-pointer shrink-0"
-              style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: '#4E5968', background: '#F2F4F6', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
-              title="MTS 스크린샷으로 한번에 가져오기"
-            >
-              📸
-            </button>
+            {OCR_UI_ENABLED && (
+              <button
+                onClick={openOcr}
+                className="cursor-pointer shrink-0"
+                style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: '#4E5968', background: '#F2F4F6', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
+                title="MTS 스크린샷으로 한번에 가져오기"
+              >
+                📸
+              </button>
+            )}
             <button
               onClick={() => {
                 const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
@@ -747,23 +812,18 @@ export default function PortfolioSection() {
             {/* 샘플 포트폴리오 체험 */}
             <button
               onClick={() => {
+                // demo:true 필수 — 3중 격리(partialize strip / stripDemoStocks 서버 미동기화 /
+                // clearGuestDemo 제거)를 타야 체험용 샘플이 실계좌 기록을 오염시키지 않는다.
+                // 시세는 실제 /api/quotes 응답만 쓴다(과거 하드코딩 시세 주입은 '현재가' 오표시라 제거).
                 const samples = [
-                  { symbol: 'NVDA', avgCost: 95, shares: 10, targetReturn: 30, fallback: { c: 165, d: 2.4, dp: 1.48 } },
-                  { symbol: 'AAPL', avgCost: 175, shares: 5, targetReturn: 15, fallback: { c: 195, d: 1.5, dp: 0.78 } },
-                  { symbol: 'MSFT', avgCost: 380, shares: 3, targetReturn: 20, fallback: { c: 445, d: 3.2, dp: 0.73 } },
+                  { symbol: 'NVDA', avgCost: 95, shares: 10, targetReturn: 30 },
+                  { symbol: 'AAPL', avgCost: 175, shares: 5, targetReturn: 15 },
+                  { symbol: 'MSFT', avgCost: 380, shares: 3, targetReturn: 20 },
                 ];
-                // 시세 캐시 즉시 주입 — 빈 화면 방지
-                try {
-                  const prev = localStorage.getItem('solb_quote_cache');
-                  const parsed = prev ? JSON.parse(prev) : { data: {}, ts: Date.now() };
-                  samples.forEach(s => { parsed.data[s.symbol] = s.fallback; });
-                  parsed.ts = Date.now();
-                  localStorage.setItem('solb_quote_cache', JSON.stringify(parsed));
-                } catch { /* storage full */ }
                 samples.forEach(s => {
                   const existing = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
                   if (!existing.some(st => st.symbol === s.symbol)) {
-                    addStock('investing', { symbol: s.symbol, avgCost: s.avgCost, shares: s.shares, targetReturn: s.targetReturn });
+                    addStock('investing', { ...s, demo: true });
                   }
                 });
               }}
@@ -815,7 +875,7 @@ export default function PortfolioSection() {
             <div
               className="stock-table-header grid items-center"
               style={{
-                gridTemplateColumns: 'minmax(160px, 1fr) 90px 90px 120px 120px 60px',
+                gridTemplateColumns: 'minmax(160px, 1fr) 120px 96px 120px 120px 60px',
                 padding: '0 0 12px',
                 fontSize: '12px',
                 color: 'var(--text-tertiary, #B0B8C1)',
@@ -847,10 +907,35 @@ export default function PortfolioSection() {
               const change = d?.d || 0;
               const dp = d?.dp || 0;
               const kr = STOCK_KR[stock.symbol] || stock.symbol;
-              const isStockGain = dp >= 0;
               const avatarColor = getAvatarColor(stock.symbol);
               const badge = CAT_BADGES[stock.category];
-              const priceWon = price * usdKrw;
+              const nativeCurrency = getStockCurrency(stock.symbol, stock.currency);
+              const isKR = nativeCurrency === 'KRW';
+              const priceAmounts = convertStockAmount(
+                stock.symbol,
+                price,
+                usdKrw,
+                stock.currency,
+              );
+              const changeAmounts = convertStockAmount(
+                stock.symbol,
+                Math.abs(change),
+                usdKrw,
+                stock.currency,
+              );
+              const avgCostAmounts = convertStockCostAmount(
+                stock.symbol,
+                stock.avgCost,
+                usdKrw,
+                stock.purchaseRate,
+                stock.currency,
+              );
+              const buyBelowAmounts = convertStockAmount(
+                stock.symbol,
+                stock.buyBelow || 0,
+                usdKrw,
+                stock.currency,
+              );
 
               // Find highest-severity alert for this symbol
               const stockAlert = alerts
@@ -860,40 +945,58 @@ export default function PortfolioSection() {
               // P&L calculation (환차익 포함)
               let plWon = 0;
               let plUsd = 0;
-              let plPct = 0;
+              let plWonPct = 0;
+              let plUsdPct = 0;
+              let stockReturnPct = 0;
               let stockPnLWon = 0;
               let fxPnLWon = 0;
               let hasFxData = false;
               let hasPosition = false;
               if (stock.avgCost > 0 && stock.shares > 0 && price > 0) {
                 hasPosition = true;
-                const costUsd = stock.avgCost * stock.shares;
-                const valUsd = price * stock.shares;
-                plUsd = valUsd - costUsd;
-                const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
-                if (!isKR && stock.purchaseRate && stock.purchaseRate > 0) {
+                const localPL = (price - stock.avgCost) * stock.shares;
+                stockReturnPct = ((price - stock.avgCost) / stock.avgCost) * 100;
+
+                if (isKR) {
+                  const convertedPL = convertStockAmount(
+                    stock.symbol,
+                    localPL,
+                    usdKrw,
+                    stock.currency,
+                  );
+                  plWon = convertedPL.krw;
+                  plUsd = convertedPL.usd;
+                  plWonPct = stockReturnPct;
+                  plUsdPct = stockReturnPct;
+                } else if (stock.purchaseRate && stock.purchaseRate > 0) {
                   // 실제 원화 P&L = 현재평가 - 원화매수비용
                   const purchaseCostKrw = stock.avgCost * stock.shares * stock.purchaseRate;
                   const currentValueKrw = price * stock.shares * usdKrw;
                   plWon = currentValueKrw - purchaseCostKrw;
-                  plPct = (plWon / purchaseCostKrw) * 100;
+                  plWonPct = (plWon / purchaseCostKrw) * 100;
+                  plUsd = localPL;
+                  plUsdPct = stockReturnPct;
                   // 분리: 주식 수익 vs 환율 수익
                   stockPnLWon = plUsd * usdKrw;
                   fxPnLWon = stock.avgCost * stock.shares * (usdKrw - stock.purchaseRate);
                   hasFxData = true;
                 } else {
-                  plWon = plUsd * usdKrw;
-                  plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
+                  plUsd = localPL;
+                  plWon = localPL * usdKrw;
+                  plWonPct = stockReturnPct;
+                  plUsdPct = stockReturnPct;
                 }
               }
-              const plGain = plPct >= 0;
+              const displayPL = currency === 'KRW' ? plWon : plUsd;
+              const displayPLPct = currency === 'KRW' ? plWonPct : plUsdPct;
+              const plGain = displayPL >= 0;
 
               // Goal progress
               let goalPct = 0;
               let hasGoal = false;
               if (stock.targetReturn > 0 && hasPosition) {
                 hasGoal = true;
-                goalPct = plPct;
+                goalPct = stockReturnPct;
               }
 
               return (
@@ -902,7 +1005,7 @@ export default function PortfolioSection() {
                   onClick={() => setAnalysisSymbol(stock.symbol)}
                   className="stock-row stock-table-row grid items-center cursor-pointer transition-all"
                   style={{
-                    gridTemplateColumns: 'minmax(160px, 1fr) 90px 90px 120px 120px 60px',
+                    gridTemplateColumns: 'minmax(160px, 1fr) 120px 96px 120px 120px 60px',
                     padding: '14px 0',
                     animationDelay: `${i * 30}ms`,
                     borderTop: '1px solid var(--border-light, #F2F4F6)',
@@ -961,31 +1064,36 @@ export default function PortfolioSection() {
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}
                         {stock.shares > 0 && stock.avgCost > 0
-                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? `${fmtWonShort(stock.avgCost * usdKrw)}` : `$${stock.avgCost.toFixed(2)}`}`
+                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? fmtWonShort(avgCostAmounts.krw) : fmtUsd(avgCostAmounts.usd)}`
                           : stock.shares > 0
                             ? ` · ${stock.shares}주`
                             : ''}
                         {!stock.shares && stock.buyBelow
-                          ? ` · 목표 ${currency === 'KRW' ? `${fmtWonShort(stock.buyBelow * usdKrw)}` : `$${stock.buyBelow}`}`
+                          ? ` · 목표 ${currency === 'KRW' ? fmtWonShort(buyBelowAmounts.krw) : fmtUsd(buyBelowAmounts.usd)}`
                           : ''}
                       </div>
                     </div>
                   </div>
 
                   {/* Price cell */}
-                  <div className="text-right">
-                    <div className="text-[15px] font-semibold text-[#191F28] tabular-nums">
+                  <div
+                    className="stock-price-cell text-right"
+                    title={price > 0
+                      ? `현재가 ${formatKRW(priceAmounts.krw, { short: false })} · ${fmtUsd(priceAmounts.usd)}`
+                      : undefined}
+                  >
+                    <div className="stock-price-primary text-[15px] font-semibold text-[#191F28] tabular-nums">
                       {price
                         ? currency === 'KRW'
-                          ? `${fmtWonShort(priceWon)}`
-                          : `$${price.toFixed(2)}`
+                          ? fmtWonShort(priceAmounts.krw)
+                          : fmtUsd(priceAmounts.usd)
                         : <span className="skeleton-shimmer inline-block" style={{ width: 60, height: 16, borderRadius: 4 }} />}
                     </div>
-                    <div className="text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
+                    <div className="stock-price-secondary text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
                       {price > 0
                         ? currency === 'KRW'
-                          ? `$${price.toFixed(2)}`
-                          : `${fmtWonShort(priceWon)}`
+                          ? fmtUsd(priceAmounts.usd)
+                          : fmtWonShort(priceAmounts.krw)
                         : ''}
                     </div>
                   </div>
@@ -1007,8 +1115,8 @@ export default function PortfolioSection() {
                         {periodTab === '1d' && price > 0 && (
                           <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                             {currency === 'KRW'
-                              ? `${change >= 0 ? '+' : ''}${fmtWonShort(Math.abs(change * usdKrw))}`
-                              : `${change >= 0 ? '+' : ''}$${change.toFixed(2)}`}
+                              ? `${change >= 0 ? '+' : ''}${fmtWonShort(changeAmounts.krw)}`
+                              : `${change >= 0 ? '+' : ''}${fmtUsd(changeAmounts.usd)}`}
                           </div>
                         )}
                       </div>
@@ -1027,9 +1135,9 @@ export default function PortfolioSection() {
                             color: plGain ? '#EF4452' : '#3182F6',
                           }}
                         >
-                          {stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ') || currency === 'KRW'
-                            ? `${plGain ? '+' : '-'}${fmtWonShort(Math.abs(plWon))}`
-                            : `${plGain ? '+' : '-'}$${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          {currency === 'KRW'
+                            ? `${plGain ? '+' : '-'}${fmtWonShort(Math.abs(displayPL))}`
+                            : `${plGain ? '+' : '-'}${fmtUsd(Math.abs(displayPL))}`
                           }
                         </div>
                         <div
@@ -1041,7 +1149,7 @@ export default function PortfolioSection() {
                             color: plGain ? 'rgba(239,68,82,0.7)' : 'rgba(49,130,246,0.7)',
                           }}
                         >
-                          ({plGain ? '+' : ''}{plPct.toFixed(2)}%)
+                          ({plGain ? '+' : ''}{displayPLPct.toFixed(2)}%)
                         </div>
                         {/* 환차익 분리 표시 */}
                         {hasFxData && currency === 'KRW' && (
@@ -1070,13 +1178,13 @@ export default function PortfolioSection() {
                           <>
                             <span aria-label="목표 달성" style={{ fontSize: '7px', color: '#6B48FF', lineHeight: 1 }}>●</span>
                             <span className="tabular-nums" style={{ fontSize: '12px', color: '#6B48FF', whiteSpace: 'nowrap', fontWeight: 700 }}>
-                              {plPct.toFixed(1)}/{stock.targetReturn}%
+                              {stockReturnPct.toFixed(1)}/{stock.targetReturn}%
                             </span>
                           </>
                         ) : goalPct < 0 ? (
                           // 마이너스: 바 없이 텍스트만
                           <span className="tabular-nums" style={{ fontSize: '12px', color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
-                            {plPct.toFixed(1)}/{stock.targetReturn}%
+                            {stockReturnPct.toFixed(1)}/{stock.targetReturn}%
                           </span>
                         ) : (
                           // 진행 중: 진행 바 + 텍스트.
@@ -1094,7 +1202,7 @@ export default function PortfolioSection() {
                               />
                             </div>
                             <span className="tabular-nums" style={{ fontSize: '12px', color: '#8B95A1', whiteSpace: 'nowrap' }}>
-                              {plPct.toFixed(1)}/{stock.targetReturn}%
+                              {stockReturnPct.toFixed(1)}/{stock.targetReturn}%
                             </span>
                           </>
                         )}
@@ -1106,7 +1214,9 @@ export default function PortfolioSection() {
 
                   {/* 비중% (와이드 전용, descriptive — 보유 비중 거울) */}
                   <div className="text-right show-from-xl text-[12px] text-[#8B95A1] tabular-nums">
-                    {totalValue > 0 ? ((price || 0) * stock.shares / totalValue * 100).toFixed(1) : '0.0'}%
+                    {totalValueKrw > 0
+                      ? (priceAmounts.krw * stock.shares / totalValueKrw * 100).toFixed(1)
+                      : '0.0'}%
                   </div>
 
                   {/* Edit/Delete actions */}
@@ -1176,7 +1286,7 @@ export default function PortfolioSection() {
                 >
                   <span style={{ fontSize: 15 }}>🤖</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    AI 촉 · 주비의 이야기 보기
+                    오늘 시장 흐름 · 주비의 이야기 보기
                   </span>
                   <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
                 </button>
@@ -1187,6 +1297,11 @@ export default function PortfolioSection() {
               .map((id) => <Fragment key={id}>{belowCore[id]?.()}</Fragment>);
           })()}
         </div>{/* /.home-stack */}
+
+        {/* 결제 없는 가격 가설 검증 — 로그인·적격 사용자·서버 플래그가 모두 맞을 때만 노출. */}
+        <div style={{ marginTop: 12 }}>
+          <ProDemandOffer placement="backup" />
+        </div>
 
       </div>
       )}
@@ -1200,7 +1315,12 @@ export default function PortfolioSection() {
               return {
                 symbol: s.symbol, avgCost: s.avgCost, shares: s.shares,
                 targetReturn: s.targetReturn, currentPrice: q?.c || 0,
-                value: (q?.c || 0) * s.shares,
+                value: convertStockAmount(
+                  s.symbol,
+                  q?.c || 0,
+                  usdKrw,
+                  s.currency,
+                ).krw * s.shares,
               };
             });
             return (
@@ -1252,8 +1372,18 @@ export default function PortfolioSection() {
         </div>
       )}
 
+      {/* 기록관리는 핵심 자산·종목 경험 뒤의 선택 도구다.
+          전역 이벤트와 recordPreview 딥링크를 유지하려고 탭과 무관하게 항상 마운트한다. */}
+      <div style={{ marginTop: 28 }}>
+        <PortfolioRecordCenter
+          ocrEnabled={OCR_UI_ENABLED}
+          onOpenOcr={openOcr}
+        />
+        <GettingStartedChecklist />
+      </div>
+
       {/* 시점성 리추얼 — 챕터 키워드(월 1~3일 시즌 시드)는 하단 유지. 노출 조건 자체 판단.
-          ※ 아침 브리핑은 상단(Dashboard 직하)으로 승격 이동함(IA 2026-06-20). */}
+          ※ 오늘의 브리핑은 개인 주식비서의 첫 화면으로 상단에 유지한다. */}
       <ChapterKeywordPrompt />
 
       {/* 월간 Wrapped 풀스크린 모달 — 오버레이군. 홈 편집 시 .home-stack JSX 재정렬 전제로
@@ -1299,4 +1429,3 @@ export default function PortfolioSection() {
     </div>
   );
 }
-
