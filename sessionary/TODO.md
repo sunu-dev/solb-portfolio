@@ -30,7 +30,11 @@
 - [ ] **`chokDataEnricher` anon 키 → service-role** — `ai_chok_cache`가 `service-only` RLS라 L2 캐시가 영구 무력 (메모리 [[feedback_rls_anon_antipattern]] 재발)
 - [ ] **`market-movers:176` 부호 미검사** — 전 종목 상승일에 상승 종목이 '하락' 탭에 노출
 - [ ] **PII 보존기간 불일치** — 처리방침 `알림 발송 로그 90일` vs `cleanup-pii` `alert_log` 365일
-- [ ] **표시 SSOT 3계층 분열** — `koreanNumber`/`koreanDate`/`koreanCopy` importer 0인데 SSOT 선언. 실사용은 `formatKRW` + raw `toLocaleString` 82곳
+- [x] ~~**표시 SSOT 3계층 분열 (금액)**~~ — `formatKRW.ts` 삭제, `koreanNumber.ts` 단일 모듈로 통합(임포터 0→14). KRW→표시통화 변환 6곳 중복·`fmtUsd` 2곳·환율 폴백 21곳 제거. 출력은 보존. `lint:korean` 룰3(soft) + `koreanNumber.test.ts` 25건 (2026-08-18)
+- [ ] **통화 raw 포맷 20건 sweep 후 룰3 strict 격상** — 자릿수 옵션이 제각각이라 일괄 치환 위험, 화면 확인하며 개별 이관
+- [ ] **`formatKrwUnits` 채택 여부 결정 (파운더)** — 만/억/조 표기로 바꾸면 앱의 모든 금액 표기가 변경됨 (`₩276,000` → `27만 6,000원`). 문서 §3.4 원안이나 현재 미채택
+- [ ] **`koreanDate`/`koreanCopy` importer 0** — 금액과 별개 축(날짜·톤). 채택하거나 삭제 결정 필요
+- [ ] **환율 미확인 상태 표시** — `DEFAULT_USD_KRW` 폴백이 이제 1곳이라 수정도 1곳. '틀린 숫자를 자신 있게' 대신 '—' 표시로
 - [ ] **`docs/CRONS.md` 현행화** — 7종 문서화 / 실제 9종 (`enrich-warm`·`morning-brief-close` 누락)
 - [ ] **`d3-hierarchy` + `@types/d3-hierarchy` 제거** — src 참조 0 (Treemap 자체 구현)
 

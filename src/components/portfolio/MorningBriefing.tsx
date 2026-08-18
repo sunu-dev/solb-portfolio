@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 import {
@@ -103,7 +103,7 @@ export default function MorningBriefing() {
     }
 
     // 현재 자산 + 가장 큰 움직임
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
     const portfolio = summarizePortfolioCurrency(
       investing.map((stock) => {
         const quote = macroData[stock.symbol] as QuoteData | undefined;
@@ -186,10 +186,8 @@ export default function MorningBriefing() {
     setHidden(true);
   };
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
-  const fmtMoney = (krw: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(krw)))
-    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const usdKrw = resolveUsdKrw(macroData);
+  const fmtMoney = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
   const today = new Date(currentTime);
   const dateLabel = `${today.getMonth() + 1}월 ${today.getDate()}일`;

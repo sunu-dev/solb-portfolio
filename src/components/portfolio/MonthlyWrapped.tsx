@@ -2,9 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import { STOCK_KR } from '@/config/constants';
-import type { MacroEntry } from '@/config/constants';
 import { computeChapterTime, buildChapterStats } from '@/utils/monthlyChapter';
 import {
   getSnapshotKrwTotals,
@@ -63,11 +62,9 @@ export default function MonthlyWrapped({ isOpen, onClose }: Props) {
   if (!isOpen || !data) return null;
   const { time, stats } = data;
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
   const isGain = stats.totalAbsReturn >= 0;
-  const fmt = (krw: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(krw)))
-    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
   // 30일 전 비교
   const prev30Snap = dailySnapshots.filter(isCanonicalKrwSnapshot).find(s => {

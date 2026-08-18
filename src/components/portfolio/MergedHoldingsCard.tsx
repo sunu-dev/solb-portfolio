@@ -12,8 +12,9 @@
  */
 
 import { useMemo, useState } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { BROKER_LABELS, STOCK_KR, type MacroEntry } from '@/config/constants';
+import { BROKER_LABELS, STOCK_KR } from '@/config/constants';
 import { mergeHoldings } from '@/utils/mergedHoldings';
 import {
   convertStockAmount,
@@ -32,7 +33,7 @@ export default function MergedHoldingsCard() {
 
   if (merged.length === 0) return null;
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   return (
     <section style={{

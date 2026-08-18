@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
@@ -62,7 +62,7 @@ export default function Dashboard() {
 
   const data = useMemo(() => {
     const investing = stocks.investing || [];
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
 
     let bestSymbol = '', bestDp = -Infinity;
     let worstSymbol = '', worstDp = Infinity;
@@ -389,7 +389,7 @@ export default function Dashboard() {
               <div className="flex items-baseline gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <span className="tabular-nums" style={{ fontSize: 'clamp(24px, 5.5vw, 34px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                   {currency === 'KRW'
-                    ? `${isGain ? '+' : '-'}${formatKRW(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
+                    ? `${isGain ? '+' : '-'}${formatKrw(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
                     : `${isGain ? '+' : '-'}$${Math.abs(data.totalPL).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                   }
                 </span>
@@ -454,7 +454,7 @@ export default function Dashboard() {
                         }}>
                           <span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>{isUp ? '▲' : '▼'}</span>
                           {currency === 'KRW'
-                            ? formatKRW(Math.round(Math.abs(krwDelta)))
+                            ? formatKrw(Math.round(Math.abs(krwDelta)))
                             : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
                         </span>
                         {/* 3열 — 퍼센트 (right, 고정폭) */}
@@ -479,8 +479,8 @@ export default function Dashboard() {
                   </div>
                 ))
               ) : [
-                { label: '총 평가', value: currency === 'KRW' ? formatKRW(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
-                { label: '총 투자', value: currency === 'KRW' ? formatKRW(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
+                { label: '총 평가', value: currency === 'KRW' ? formatKrw(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : `$${data.totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
+                { label: '총 투자', value: currency === 'KRW' ? formatKrw(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : `$${data.totalCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
                 { label: '보유 종목', value: `${data.holdingCount}개` },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between" style={{ fontSize: 13, gap: 12 }}>

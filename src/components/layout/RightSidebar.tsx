@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
@@ -39,7 +40,7 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 export default function RightSidebar() {
   const { stocks, macroData, setAnalysisSymbol, recentSymbols, currency, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
   // 글로벌 통화 토글 연동 — 미국 종목만 환산(한국 종목은 이미 KRW라 이중환산 방지)
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   const [watchSort, setWatchSort] = useState<'added' | 'movement'>('added'); // 관심 점검 순서

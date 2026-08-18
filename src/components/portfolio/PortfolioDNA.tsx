@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData } from '@/config/constants';
 import { calcPortfolioDNA } from '@/utils/portfolioDNA';
@@ -27,7 +28,7 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
 
   const dna = useMemo(() => {
     const investing = stocks.investing || [];
-    const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
     const dnaStocks = investing
       .filter(s => s.avgCost > 0 && s.shares > 0)
       .map(s => {

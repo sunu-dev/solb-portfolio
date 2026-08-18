@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { STOCK_KR } from '@/config/constants';
@@ -8,7 +9,7 @@ import { getSector } from '@/utils/portfolioHealth';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { iGa } from '@/utils/koreanJosa';
 import WatchToggle from '@/components/common/WatchToggle';
-import type { QuoteData, MacroEntry } from '@/config/constants';
+import type { QuoteData } from '@/config/constants';
 import { CheckCircle2, Lightbulb, UsersRound } from 'lucide-react';
 import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
 import { convertStockAmount } from '@/utils/stockCurrency';
@@ -43,7 +44,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
 
     // 1. 본인 섹터 분포 (현재 보유 기준)
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
     let totalValue = 0;
     const userSectorWeights: Record<string, number> = {};
     for (const s of investing) {

@@ -11,7 +11,7 @@
 
 import type { CandleRaw } from '@/config/constants';
 import { calcSMA, calcRSI } from './technical';
-import { formatKRW } from './formatKRW';
+import { formatKrw } from './koreanNumber';
 import type { StockCurrency } from './stockCurrency';
 
 /**
@@ -96,8 +96,8 @@ export function extract52wPosition(
 
   const highDistPct = ((high - current) / current) * 100;
   const lowDistPct = ((current - low) / current) * 100;
-  const highText = currency === 'KRW' ? formatKRW(high) : `$${high.toFixed(2)}`;
-  const lowText = currency === 'KRW' ? formatKRW(low) : `$${low.toFixed(2)}`;
+  const highText = currency === 'KRW' ? formatKrw(high) : `$${high.toFixed(2)}`;
+  const lowText = currency === 'KRW' ? formatKrw(low) : `$${low.toFixed(2)}`;
 
   if (highDistPct < 3) {
     return `52주 고점 근접 (${daysSinceHigh}거래일 전 ${highText} 도달, 현재 -${highDistPct.toFixed(1)}%)`;

@@ -20,7 +20,7 @@ import {
   getStockCurrency,
   summarizePortfolioCurrency,
 } from '@/utils/stockCurrency';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 
 export type { AlertChannel, AlertCategory };
 
@@ -46,7 +46,7 @@ function formatNativePrice(
   currency?: 'KRW' | 'USD',
 ): string {
   return getStockCurrency(symbol, currency) === 'KRW'
-    ? formatKRW(value)
+    ? formatKrw(value)
     : `$${value.toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -445,7 +445,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'target-profit-krw', 'celebrate', 2,
           `${name} 목표 수익금 달성!`,
-          `현재 수익 ${formatKRW(plKRW)}으로 목표(${formatKRW(stock.targetProfitKRW ?? 0)})를 달성했어요!`
+          `현재 수익 ${formatKrw(plKRW)}으로 목표(${formatKrw(stock.targetProfitKRW ?? 0)})를 달성했어요!`
         ));
       }
     }

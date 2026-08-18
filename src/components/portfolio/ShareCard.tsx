@@ -1,8 +1,9 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import type { QuoteData, MacroEntry } from '@/config/constants';
+import type { QuoteData } from '@/config/constants';
 import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 
 export default function ShareCard() {
@@ -42,7 +43,7 @@ export default function ShareCard() {
     }
   });
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
   const summary = summarizePortfolioCurrency(
     investingStocks.map((stock) => {
       const quote = macroData[stock.symbol] as QuoteData | undefined;

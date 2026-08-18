@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
-import type { MacroEntry, StockNote, Broker, StockItem } from '@/config/constants';
+import type { StockNote, Broker, StockItem } from '@/config/constants';
 import { createNoteDate } from '@/utils/noteId';
 import { getStockCurrency } from '@/utils/stockCurrency';
 
@@ -41,7 +42,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   } = usePortfolioStore();
 
   // 현재 USD/KRW 환율 (macroData에서)
-  const currentUsdKrw = Math.round((macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400);
+  const currentUsdKrw = Math.round(resolveUsdKrw(macroData));
 
   // 편집 대상을 key로 remount해 파생 상태를 effect 없이 한 번만 초기화한다.
   const [avgCost, setAvgCost] = useState(() => initialStock.avgCost ? String(initialStock.avgCost) : '');

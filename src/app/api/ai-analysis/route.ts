@@ -16,7 +16,7 @@ import { createAiAnalysisParseFallback, governAiAnalysisReport } from '@/lib/aiA
 import { toPublicAiAnalysisInput } from '@/lib/aiInputPrivacy';
 import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 import { getStockCurrency } from '@/utils/stockCurrency';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -309,7 +309,7 @@ export async function POST(req: NextRequest) {
             timeSeriesContext = '' } = publicInput;
     const nativeCurrency = getStockCurrency(symbol, inputCurrency);
     const formatNativeAmount = (value: number) => nativeCurrency === 'KRW'
-      ? formatKRW(value)
+      ? formatKrw(value)
       : `$${value.toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,

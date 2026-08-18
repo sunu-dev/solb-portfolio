@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import { useNow } from '@/hooks/useNow';
 import { convertStockAmount } from '@/utils/stockCurrency';
 
@@ -24,7 +24,7 @@ export default function PortfolioValueChart() {
   const { stocks, macroData, rawCandles, currency } = usePortfolioStore();
   const [range, setRange] = useState<RangeKey>('3m');
   const currentTime = useNow();
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   const chartData = useMemo(() => {
     if (currentTime === 0) return null;
@@ -130,9 +130,7 @@ export default function PortfolioValueChart() {
   const accent = isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
   const accentBg = isGain ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))';
 
-  const fmt = (krw: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(krw)))
-    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
   // SVG 파라미터
   const svgWidth = 600;

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import { findCanonicalSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
 import { Clock3, MessageSquareText, Minus, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
 import { convertStockAmount } from '@/utils/stockCurrency';
@@ -35,7 +35,7 @@ const PERIODS: Period[] = [
 export default function ThrowbackCard() {
   const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('1d');
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   // 공통: 특정 일수 전 가격 조회
   const priceAtDaysAgo = (symbol: string, days: number): { price: number; ts: number } | null => {
@@ -232,10 +232,7 @@ export default function ThrowbackCard() {
   const active = allData[activePeriod];
   const activeNotes = periodNotes[activePeriod];
 
-  const formatMoney = (krw: number) => {
-    if (currency === 'KRW') return formatKRW(Math.round(Math.abs(krw)));
-    return `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
-  };
+  const formatMoney = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
   return (
     <div

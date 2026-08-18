@@ -71,13 +71,28 @@
 
 ### 3.4 숫자·통화 포맷 룰
 
-- **SSOT**: `src/utils/koreanNumber.ts`
-- **한국 통화 (KRW)**: 만/억/조 단위 한국어 표기 — `formatKrw(123456789)` → "1억 2,345만원"
-- **대시보드 숫자형 표시 예외**: 좁은 카드·차트에서는 `src/utils/formatKRW.ts`를 사용 — 10억 미만은 콤마로 전부 표시하고 10억 이상만 억 단위로 축약
-- **미국 통화 (USD)**: "$1,234.56" 표기 (콤마 + 소수점 2자리)
+- **SSOT**: `src/utils/koreanNumber.ts` — **금액·비율·부호·손익색 전부 이 한 파일**
+
+> ⚠️ 2026-08-18 정정. 이전 판은 `koreanNumber.ts`를 SSOT로 선언하면서 만/억/조 표기를 규정하고
+> `formatKRW.ts`를 "좁은 카드·차트 예외"로 적었다. 실제로는 **정반대**였다 —
+> `koreanNumber.ts`는 import 0건이었고, 예외로 적힌 쪽이 유일한 구현(15곳)이었으며
+> 그 위에 컴포넌트 로컬 래퍼 12개와 raw `toLocaleString` 82곳이 얹혀 있었다.
+> 문서가 코드와 반대로 진술하던 상태라 두 모듈을 하나로 합치고, **실제 배포된 표기를 정답으로** 삼았다.
+
+- **한국 통화 (KRW)**: `formatKrw(276000)` → `₩276,000` / `formatKrw(1.5e9)` → `₩15억`
+  (10억 미만 풀숫자+콤마, 10억 이상 억 축약)
+- **만/억/조 표기안**: `formatKrwUnits(276000)` → `27만 6,000원`. **미채택** —
+  전환하면 앱의 모든 금액 표기가 바뀌므로 파운더 결정 사항. 의도를 잃지 않으려고 코드에는 남겨뒀다.
+- **미국 통화 (USD)**: `formatUsd(1234.5)` → `$1,234.50` (자릿수 인자 가변)
+- **표시 통화 변환**: `formatDisplayAmount(krw, currency, usdKrw)` —
+  "원화 금액을 현재 표시 통화로" 렌더. 통합 전 6개 컴포넌트에 바이트 단위로 동일 복제돼 있었다.
+- **환율 폴백**: `resolveUsdKrw(macroData)` / `DEFAULT_USD_KRW`.
+  ⚠️ 환율 미확인과 "1,400원"이 구분되지 않는 알려진 결함이 있다. 이제 한 곳이라 수정도 한 곳.
 - **퍼센트**: 소수점 2자리 + 부호 — `formatPct(3.21)` → "+3.21%"
 - **손익 부호**: 양수 "+", 음수 "−" (en-dash 가독성), 0 "" (부호 없음)
-- **단위 변환**: USD → KRW은 별도 환율 컨텍스트, formatter는 통화 인자 받기
+- **손익 색**: `pnlColor(v)` — 디자인 토큰(`var(--color-gain/loss)`) 반환. 인라인 hex 금지(다크모드 allowlist 무효)
+- **강제**: `lint:korean` 룰3(currency-format, soft) — 컴포넌트에서 통화 raw `toLocaleString` 검출.
+  잔량 sweep 후 strict 격상 예정. 계약은 `src/__tests__/koreanNumber.test.ts`가 박제.
 
 ### 3.5 날짜·상대 시간 룰
 

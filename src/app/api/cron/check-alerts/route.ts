@@ -6,7 +6,7 @@ import type { PortfolioStocks, StockItem } from '@/config/constants';
 import { isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 import {
   convertStockAmount,
   convertStockCostAmount,
@@ -97,7 +97,7 @@ async function fetchUsdKrw(): Promise<number | null> {
 
 function formatNativePrice(stock: StockItem, value: number): string {
   return getStockCurrency(stock.symbol, stock.currency) === 'KRW'
-    ? formatKRW(value, { short: false })
+    ? formatKrw(value, { short: false })
     : `$${value.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -145,8 +145,8 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number | null
     && plKRW !== null
     && plKRW >= (stock.targetProfitKRW ?? 0))
     alerts.push({ symbol: sym, alertType: 'target-profit-krw', emoji: '💰',
-      message: `${sym} 수익금 ${formatKRW(stock.targetProfitKRW ?? 0)} 달성!`,
-      detail: `현재 수익 ${formatKRW(plKRW)}` });
+      message: `${sym} 수익금 ${formatKrw(stock.targetProfitKRW ?? 0)} 달성!`,
+      detail: `현재 수익 ${formatKrw(plKRW)}` });
 
   if ((stock.targetSell ?? 0) > 0 && price >= (stock.targetSell ?? 0))
     alerts.push({ symbol: sym, alertType: 'target-sell', emoji: '🎯',

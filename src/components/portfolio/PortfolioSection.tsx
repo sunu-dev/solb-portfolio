@@ -6,7 +6,7 @@ import { useHasHydrated } from '@/hooks/useHasHydrated';
 import { resolveHidden, resolveWidgetOrder } from '@/lib/homeWidgetRegistry';
 // 내 종목 뉴스는 뉴스 탭으로 이동 — import 제거
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { StockCategory, QuoteData, MacroEntry, StockItem, CandleRaw } from '@/config/constants';
+import type { StockCategory, QuoteData, StockItem, CandleRaw } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import ProDemandOffer from '@/components/pro/ProDemandOffer';
@@ -145,14 +145,8 @@ function getAlertBadgeText(alert: Alert): string {
 }
 
 // 원화 포맷 — 공통 유틸 사용
-import { formatKRW } from '@/utils/formatKRW';
-function fmtWonShort(val: number): string { return formatKRW(val); }
-function fmtUsd(val: number): string {
-  return `$${val.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
+
 
 export default function PortfolioSection() {
   const {
@@ -275,8 +269,7 @@ export default function PortfolioSection() {
   // 내 종목 뉴스 fetch 로직은 NewsSection으로 이전 — 제거
 
   // USD/KRW rate
-  const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
-  const usdKrw = usdKrwEntry?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   // Calculate totals (investing only)
   const investingStocks = stocks.investing || [];
@@ -1064,12 +1057,12 @@ export default function PortfolioSection() {
                       <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
                         {stock.symbol}
                         {stock.shares > 0 && stock.avgCost > 0
-                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? fmtWonShort(avgCostAmounts.krw) : fmtUsd(avgCostAmounts.usd)}`
+                          ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? formatKrw(avgCostAmounts.krw) : formatUsd(avgCostAmounts.usd)}`
                           : stock.shares > 0
                             ? ` · ${stock.shares}주`
                             : ''}
                         {!stock.shares && stock.buyBelow
-                          ? ` · 목표 ${currency === 'KRW' ? fmtWonShort(buyBelowAmounts.krw) : fmtUsd(buyBelowAmounts.usd)}`
+                          ? ` · 목표 ${currency === 'KRW' ? formatKrw(buyBelowAmounts.krw) : formatUsd(buyBelowAmounts.usd)}`
                           : ''}
                       </div>
                     </div>
@@ -1079,21 +1072,21 @@ export default function PortfolioSection() {
                   <div
                     className="stock-price-cell text-right"
                     title={price > 0
-                      ? `현재가 ${formatKRW(priceAmounts.krw, { short: false })} · ${fmtUsd(priceAmounts.usd)}`
+                      ? `현재가 ${formatKrw(priceAmounts.krw, { short: false })} · ${formatUsd(priceAmounts.usd)}`
                       : undefined}
                   >
                     <div className="stock-price-primary text-[15px] font-semibold text-[#191F28] tabular-nums">
                       {price
                         ? currency === 'KRW'
-                          ? fmtWonShort(priceAmounts.krw)
-                          : fmtUsd(priceAmounts.usd)
+                          ? formatKrw(priceAmounts.krw)
+                          : formatUsd(priceAmounts.usd)
                         : <span className="skeleton-shimmer inline-block" style={{ width: 60, height: 16, borderRadius: 4 }} />}
                     </div>
                     <div className="stock-price-secondary text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
                       {price > 0
                         ? currency === 'KRW'
-                          ? fmtUsd(priceAmounts.usd)
-                          : fmtWonShort(priceAmounts.krw)
+                          ? formatUsd(priceAmounts.usd)
+                          : formatKrw(priceAmounts.krw)
                         : ''}
                     </div>
                   </div>
@@ -1115,8 +1108,8 @@ export default function PortfolioSection() {
                         {periodTab === '1d' && price > 0 && (
                           <div className={`text-[11px] font-normal mt-0.5 tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                             {currency === 'KRW'
-                              ? `${change >= 0 ? '+' : ''}${fmtWonShort(changeAmounts.krw)}`
-                              : `${change >= 0 ? '+' : ''}${fmtUsd(changeAmounts.usd)}`}
+                              ? `${change >= 0 ? '+' : ''}${formatKrw(changeAmounts.krw)}`
+                              : `${change >= 0 ? '+' : ''}${formatUsd(changeAmounts.usd)}`}
                           </div>
                         )}
                       </div>
@@ -1136,8 +1129,8 @@ export default function PortfolioSection() {
                           }}
                         >
                           {currency === 'KRW'
-                            ? `${plGain ? '+' : '-'}${fmtWonShort(Math.abs(displayPL))}`
-                            : `${plGain ? '+' : '-'}${fmtUsd(Math.abs(displayPL))}`
+                            ? `${plGain ? '+' : '-'}${formatKrw(Math.abs(displayPL))}`
+                            : `${plGain ? '+' : '-'}${formatUsd(Math.abs(displayPL))}`
                           }
                         </div>
                         <div
@@ -1154,9 +1147,9 @@ export default function PortfolioSection() {
                         {/* 환차익 분리 표시 */}
                         {hasFxData && currency === 'KRW' && (
                           <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.5 }}>
-                            <div>주식 {stockPnLWon >= 0 ? '+' : ''}{fmtWonShort(stockPnLWon)}</div>
+                            <div>주식 {stockPnLWon >= 0 ? '+' : ''}{formatKrw(stockPnLWon)}</div>
                             <div style={{ color: fxPnLWon >= 0 ? 'rgba(239,68,82,0.6)' : 'rgba(49,130,246,0.6)' }}>
-                              환율 {fxPnLWon >= 0 ? '+' : ''}{fmtWonShort(fxPnLWon)}
+                              환율 {fxPnLWon >= 0 ? '+' : ''}{formatKrw(fxPnLWon)}
                             </div>
                           </div>
                         )}

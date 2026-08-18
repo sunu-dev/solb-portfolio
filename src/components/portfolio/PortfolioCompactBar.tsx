@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import type { QuoteData, MacroEntry } from '@/config/constants';
+import type { QuoteData } from '@/config/constants';
 import { convertStockAmount } from '@/utils/stockCurrency';
 
 /**
@@ -71,7 +72,7 @@ export default function PortfolioCompactBar({ onExpand }: Props) {
 
   const { items, totalValue } = useMemo(() => {
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
     const built: Item[] = [];
     let total = 0;
     for (const s of investing) {

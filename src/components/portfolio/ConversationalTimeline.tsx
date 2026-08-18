@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { MessageCircle } from 'lucide-react';
@@ -44,10 +44,8 @@ export default function ConversationalTimeline() {
     const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
     if (investing.length === 0) return [];
 
-    const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
-    const fmtKrw = (krw: number) => currency === 'KRW'
-      ? formatKRW(Math.round(Math.abs(krw)))
-      : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    const usdKrw = resolveUsdKrw(macroData);
+    const fmtKrw = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
     const summary = summarizePortfolioCurrency(
       investing.map((stock) => {
         const quote = macroData[stock.symbol] as QuoteData | undefined;
@@ -193,7 +191,7 @@ export default function ConversationalTimeline() {
           s.currency,
         );
         const stopLossText = currency === 'KRW'
-          ? formatKRW(stopLoss.krw)
+          ? formatKrw(stopLoss.krw)
           : `$${stopLoss.usd.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,

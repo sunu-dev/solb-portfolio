@@ -17,9 +17,9 @@ import type {
   CandleRaw,
   StockNote,
   Broker,
-  MacroEntry,
 } from '@/config/constants';
 import { BROKER_LABELS } from '@/config/constants';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import {
   getSnapshotKrwTotals,
   isCanonicalKrwSnapshot,
@@ -204,7 +204,7 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   const { stocks, macroData, rawCandles, snapshots, now = new Date() } = input;
   const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
   if (investing.length === 0) return null;
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   monthStart.setHours(0, 0, 0, 0);

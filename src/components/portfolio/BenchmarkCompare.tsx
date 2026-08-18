@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { findCanonicalSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
@@ -25,7 +26,7 @@ export default function BenchmarkCompare() {
     const investing = stocks.investing || [];
     if (investing.length === 0) return null;
 
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
     const summary = summarizePortfolioCurrency(
       investing.map((stock) => {
         const quote = macroData[stock.symbol] as QuoteData | undefined;

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { STOCK_KR } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 import { getSector } from '@/utils/portfolioHealth';
 import {
   convertStockAmount,
@@ -244,10 +244,10 @@ export default function PortfolioTreemap({
       const todayPct = q?.dp || 0;
       const label = STOCK_KR[stock.symbol] || stock.symbol;
       const valFormatted = currency === 'KRW'
-        ? formatKRW(Math.round(displayValue))
+        ? formatKrw(Math.round(displayValue))
         : fmtShort(displayValue);
       const profitFmt = currency === 'KRW'
-        ? formatKRW(Math.round(Math.abs(profit)))
+        ? formatKrw(Math.round(Math.abs(profit)))
         : fmtShort(Math.abs(profit));
       return {
         symbol: stock.symbol, value: valueKrw, pnlPct, todayPct, label, valFormatted,
@@ -303,10 +303,10 @@ export default function PortfolioTreemap({
     const wToday = hidden.reduce((s, n) => s + n.todayPct * n.value, 0) / restValue;
     const restProfit = hidden.reduce((s, n) => s + n.profit, 0);
     const valFormatted = currency === 'KRW'
-      ? formatKRW(Math.round(restValue))
+      ? formatKrw(Math.round(restValue))
       : fmtShort(usdKrw > 0 ? restValue / usdKrw : 0);
     const profitFmt = currency === 'KRW'
-      ? formatKRW(Math.round(Math.abs(restProfit)))
+      ? formatKrw(Math.round(Math.abs(restProfit)))
       : fmtShort(Math.abs(restProfit));
     const layoutValue = Math.max(restValue, minLayoutValue);
 

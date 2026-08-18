@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 
 /**
  * 매수 시뮬레이션 — 9인 패널 회의 결과 반영 (Phase 4 후속).
@@ -41,7 +41,7 @@ function formatPrice(value: number, cur: 'KRW' | 'USD'): string {
 }
 
 function formatMoney(value: number, cur: 'KRW' | 'USD'): string {
-  if (cur === 'KRW') return formatKRW(Math.round(value), { suffix: '원', prefix: false });
+  if (cur === 'KRW') return formatKrw(Math.round(value), { suffix: '원', prefix: false });
   return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 

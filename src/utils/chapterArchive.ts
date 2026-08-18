@@ -1,3 +1,5 @@
+import { resolveUsdKrw } from '@/utils/koreanNumber';
+
 /**
  * Chapter Archive — 지난 달 회고 책장.
  *
@@ -9,7 +11,6 @@ import type {
   PortfolioStocks,
   QuoteData,
   CandleRaw,
-  MacroEntry,
 } from '@/config/constants';
 import {
   getSnapshotKrwTotals,
@@ -107,7 +108,7 @@ export function autoArchiveLastMonth(input: {
   // 지난달 데이터 — 스냅샷 + 종목별 평가
   const investing = (input.stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
   if (investing.length === 0) return null;
-  const usdKrw = (input.macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(input.macroData);
 
   // 지난달 시작 시점 vs 말일 가격 — 챕터 수익률
   type Perf = { symbol: string; pctReturn: number; absReturn: number };

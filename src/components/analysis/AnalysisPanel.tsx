@@ -12,7 +12,7 @@ import {
 } from '@/utils/technical';
 import { buildChartNarrative } from '@/utils/chartNarrative';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { AIReport, StockItem, QuoteData, NewsItem, MacroEntry } from '@/config/constants';
+import type { AIReport, StockItem, QuoteData, NewsItem } from '@/config/constants';
 import { BarChart3, Check, ChevronLeft, ChevronRight, ShieldAlert, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
@@ -155,18 +155,12 @@ export function clearAnalysisCache() {
 
 type ChartLevel = 'basic' | 'detail';
 
-import { formatKRW } from '@/utils/formatKRW';
-function fmtWonShort(val: number): string { return formatKRW(val); }
-function fmtUsd(val: number): string {
-  return `$${val.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
+
 function fmtNativePrice(val: number, nativeCurrency: 'KRW' | 'USD'): string {
   return nativeCurrency === 'KRW'
-    ? fmtWonShort(val)
-    : fmtUsd(val);
+    ? formatKrw(val)
+    : formatUsd(val);
 }
 function fmtMarketCap(val: number, nativeCurrency: 'KRW' | 'USD'): string {
   if (nativeCurrency === 'KRW') {
@@ -324,8 +318,7 @@ export default function AnalysisPanel() {
   const isThinData = candleCount > 0 && candleCount <= 20;
 
   // USD/KRW
-  const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
-  const usdKrw = usdKrwEntry?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -542,22 +535,22 @@ export default function AnalysisPanel() {
                   <div style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                     {price
                       ? currency === 'KRW'
-                        ? fmtWonShort(priceAmounts.krw)
-                        : fmtUsd(priceAmounts.usd)
+                        ? formatKrw(priceAmounts.krw)
+                        : formatUsd(priceAmounts.usd)
                       : '--'}
                   </div>
                   <div style={{ fontSize: 14, color: '#8B95A1', marginTop: 4 }}>
                     {price
                       ? currency === 'KRW'
-                        ? fmtUsd(priceAmounts.usd)
-                        : fmtWonShort(priceAmounts.krw)
+                        ? formatUsd(priceAmounts.usd)
+                        : formatKrw(priceAmounts.krw)
                       : '--'}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 500, marginTop: 4, color: isGain ? '#EF4452' : '#3182F6' }}>
                     {isGain ? '▲' : '▼'} {displayChange >= 0 ? '+' : '-'}
                     {currency === 'KRW'
-                      ? fmtWonShort(Math.abs(displayChange))
-                      : fmtUsd(Math.abs(displayChange))}{' '}
+                      ? formatKrw(Math.abs(displayChange))
+                      : formatUsd(Math.abs(displayChange))}{' '}
                     ({cp >= 0 ? '+' : ''}{cp.toFixed(2)}%) 오늘
                   </div>
                   <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 6 }}>
@@ -1264,45 +1257,45 @@ export default function AnalysisPanel() {
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? fmtWonShort(avgCostAmounts.krw)
-                          : fmtUsd(avgCostAmounts.usd)}
+                          ? formatKrw(avgCostAmounts.krw)
+                          : formatUsd(avgCostAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? `(${fmtUsd(avgCostAmounts.usd)})`
-                          : `(${fmtWonShort(avgCostAmounts.krw)})`}
+                          ? `(${formatUsd(avgCostAmounts.usd)})`
+                          : `(${formatKrw(avgCostAmounts.krw)})`}
                       </span>
 
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? fmtWonShort(costAmounts.krw)
-                          : fmtUsd(costAmounts.usd)}
+                          ? formatKrw(costAmounts.krw)
+                          : formatUsd(costAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? `(${fmtUsd(costAmounts.usd)})`
-                          : `(${fmtWonShort(costAmounts.krw)})`}
+                          ? `(${formatUsd(costAmounts.usd)})`
+                          : `(${formatKrw(costAmounts.krw)})`}
                       </span>
 
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? fmtWonShort(valueAmounts.krw)
-                          : fmtUsd(valueAmounts.usd)}
+                          ? formatKrw(valueAmounts.krw)
+                          : formatUsd(valueAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
                         {currency === 'KRW'
-                          ? `(${fmtUsd(valueAmounts.usd)})`
-                          : `(${fmtWonShort(valueAmounts.krw)})`}
+                          ? `(${formatUsd(valueAmounts.usd)})`
+                          : `(${formatKrw(valueAmounts.krw)})`}
                       </span>
 
                       <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
                         {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
-                          ? fmtWonShort(Math.abs(displayPnl))
-                          : fmtUsd(Math.abs(displayPnl))}`}
+                          ? formatKrw(Math.abs(displayPnl))
+                          : formatUsd(Math.abs(displayPnl))}`}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
                         ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
@@ -1367,8 +1360,8 @@ export default function AnalysisPanel() {
                         <span style={{ fontSize: 13, color: '#191F28', flex: 1 }}>{stockData.shares}주</span>
                         <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
                           {currency === 'KRW'
-                            ? fmtWonShort(avgCostAmounts.krw)
-                            : fmtUsd(avgCostAmounts.usd)}
+                            ? formatKrw(avgCostAmounts.krw)
+                            : formatUsd(avgCostAmounts.usd)}
                         </span>
                       </div>
                     </div>

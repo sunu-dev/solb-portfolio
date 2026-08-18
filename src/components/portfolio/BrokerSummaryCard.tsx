@@ -11,10 +11,11 @@
  */
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import {
   BROKER_LABELS, BROKER_ORDER, BROKER_DISCOVERY_THRESHOLD,
-  type Broker, type MacroEntry,
+  type Broker,
 } from '@/config/constants';
 import {
   convertStockAmount,
@@ -42,7 +43,7 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
 
   const stats = useMemo<BrokerStat[]>(() => {
     const investing = stocks.investing || [];
-    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const usdKrw = resolveUsdKrw(macroData);
 
     // broker별 집계
     const acc: Record<string, BrokerStat> = {};
