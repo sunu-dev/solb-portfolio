@@ -63,6 +63,20 @@
 - **ws-token은 '제거'가 아니라 '노출면 축소'로 갔다.** 브라우저가 `wss://ws.finnhub.io`에 직접 붙는 구조라 키는 인증된 사용자 브라우저까지는 도달한다. 완전 제거하려면 서버 WebSocket 프록시가 필요하고 그건 별건. 대신 앱 전체 데이터 경로에서 클라이언트 키 의존을 없애 **비로그인 사용자에게는 키가 전혀 나가지 않게** 했다.
 - **테스트 픽스처를 lint:korean 격식톤 예외 경로에 추가했다.** 금지 어휘를 '검사 대상'으로 의도 보유하는 파일이므로 사용자 노출 카피와 구분한다.
 
+## 메모리 승급 (완료)
+
+아래 4건은 메모리로 이동됨 — 영속 룰은 메모리를 SSOT로 보고, 여기서는 이번 세션의 발견 경위만 남긴다.
+
+- **신규** `feedback_guard_false_green.md` — 가드가 '처리했다'고 기록하면서 통과시키는 거짓 초록불 패턴.
+  가드 기본값은 통과가 아니라 차단·드롭. 게이트가 초록이면 게이트 자체를 의심.
+  (이번 세션에서 같은 계열 4건 동시 발견: sanitizeAiOutput no-op · lint 경로제한 · chokDataEnricher anon RLS · config 감사로그 순서역전)
+- **신규** `project_client_api_key_policy.md` — 외부 API 키는 브라우저에 안 내려보낸다.
+  시세·캔들·검색은 서버 라우트 경유가 아키텍처 불변식. 실시간 WebSocket 토큰만 예외(인증 필수·지연 요청·미저장).
+- **보강** `feedback_descriptive_not_prescriptive.md` — 미래단정 lint 전역 승격(인과 어휘만 digest 한정),
+  "코드가 스스로 §6이라 부른 문구는 전 종목 금지", `lint-alerts-ignore`는 테스트 픽스처 전용.
+- **보강** `feedback_panel_audit_methodology.md` — 이중 독립 감사(루브릭 선고정 → Claude/Codex 독립 실행 → 영역별 적대적 검증),
+  두 감사기 주장의 직접 재검증 의무, 교차분석 입력 압축 스키마 필요.
+
 ## 검증
 
 - `npm run prebuild` — lint:alerts ✓ / lint:korean ✓ / lint:darkmode ✓ / lint:tour-anchors ✓(기존 고아앵커 경고 1)
