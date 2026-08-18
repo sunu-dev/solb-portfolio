@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { formatRelativeKo } from '@/utils/koreanDate';
+import { useNow } from '@/hooks/useNow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNewsData, fetchKoreanNews } from '@/hooks/useStockData';
 import { STOCK_KR } from '@/config/constants';
@@ -80,6 +82,10 @@ export default function NewsSection() {
   const portfolioFetchIdRef = useRef(0);
 
   const STALE_MS = 30 * 60 * 1000; // 30분
+
+  // 상대 시간 배지는 1분마다 다시 그려야 "5분 전"이 멈춰 있지 않다.
+  const now = useNow();
+  const lastFetchedAt = newsCacheTimes[currentNewsMarket === 'all' ? 'us' : currentNewsMarket] || 0;
 
   const loadNews = useCallback(async (market: string) => {
     const m = market === 'all' ? 'us' : market;
@@ -214,7 +220,18 @@ export default function NewsSection() {
       {/* Page title */}
       <div style={{ marginBottom: '24px' }}>
         <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: '4px' }}>뉴스</h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary, #8B95A1)' }}>투자에 영향을 주는 최신 뉴스를 확인해주세요</p>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary, #8B95A1)', margin: 0 }}>투자에 영향을 주는 최신 뉴스를 확인해주세요</p>
+          {/* 뉴스는 30분 SWR 캐시라 화면의 것이 방금 받은 것인지 알기 어렵다.
+              캐시 시각(newsCacheTimes)은 이미 store에 있었는데 표시된 적이 없었다. */}
+          {lastFetchedAt > 0 && (
+            <span
+              style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}
+            >
+              {formatRelativeKo(lastFetchedAt, now)} 갱신
+            </span>
+          )}
+        </div>
       </div>
 
       {/* News tabs — 가로 스크롤 지원 */}

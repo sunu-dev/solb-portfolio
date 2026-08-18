@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
@@ -403,6 +404,7 @@ export default function MorningBriefing() {
       >
         확인했어요 →
       </button>
+      <FxStaleNotice style={{ marginTop: 10 }} />
     </div>
   );
 }

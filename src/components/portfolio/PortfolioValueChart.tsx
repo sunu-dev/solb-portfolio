@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData } from '@/config/constants';
 import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
@@ -292,6 +293,7 @@ export default function PortfolioValueChart() {
           </div>
         )}
       </div>
+      <FxStaleNotice style={{ marginTop: 8 }} />
     </div>
   );
 }

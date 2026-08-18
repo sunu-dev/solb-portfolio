@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
-import { DEFAULT_USD_KRW, formatKrw, formatUsd, resolveUsdKrwState } from '@/utils/koreanNumber';
+import { formatKrw, formatUsd, resolveUsdKrwState } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
@@ -17,7 +18,6 @@ import { useNow } from '@/hooks/useNow';
 import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
 import {
   convertStockAmount,
-  isKoreanStockSymbol,
   summarizePortfolioCurrency,
 } from '@/utils/stockCurrency';
 
@@ -63,10 +63,8 @@ export default function Dashboard() {
 
   const data = useMemo(() => {
     const investing = stocks.investing || [];
-    const { rate: usdKrw, stale: usdKrwStale } = resolveUsdKrwState(macroData);
-    // 환율 미확인이 실제로 문제가 되는 건 'USD 종목을 원화로 환산해 보여줄 때'뿐이다.
-    // 한국 종목만 있거나 달러로 보고 있으면 환산 자체가 없으므로 경고하지 않는다.
-    const hasUsdHolding = investing.some(s => s.avgCost > 0 && s.shares > 0 && !isKoreanStockSymbol(s.symbol));
+    // 환율 미확인 고지는 <FxStaleNotice />가 스스로 판정한다(조건 3개를 한 곳에 두기 위해).
+    const usdKrw = resolveUsdKrwState(macroData).rate;
 
     let bestSymbol = '', bestDp = -Infinity;
     let worstSymbol = '', worstDp = Infinity;
@@ -112,8 +110,6 @@ export default function Dashboard() {
       todayPctKrw: Math.max(-999, Math.min(999, summary.todayChangePctKrw)),
       holdingCount: summary.holdingCount,
       usdKrw,
-      usdKrwStale,
-      hasUsdHolding,
       bestSymbol, bestDp, worstSymbol, worstDp,
       hasInvestment: hasPortfolioStocks,
       quotesLoaded: summary.holdingCount > 0,
@@ -494,19 +490,7 @@ export default function Dashboard() {
                   <strong className="tabular-nums" style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600, whiteSpace: 'nowrap' }}>{item.value}</strong>
                 </div>
               ))}
-              {/* 환율을 못 받았는데 원화 환산을 보여주는 중이면 밝힌다.
-                  숫자를 감추면 화면이 비어 더 불안하므로, 계산은 유지하고 '임시 기준'임을 알린다. */}
-              {data.quotesLoaded && data.usdKrwStale && data.hasUsdHolding && currency === 'KRW' && (
-                <div
-                  role="note"
-                  style={{
-                    marginTop: 4, fontSize: 11, lineHeight: 1.5,
-                    color: 'var(--text-tertiary, #B0B8C1)', wordBreak: 'keep-all',
-                  }}
-                >
-                  환율을 아직 못 받아 임시 기준({formatKrw(DEFAULT_USD_KRW, { prefix: false, suffix: '원', short: false })})으로 환산했어요. 달러로 보면 정확해요.
-                </div>
-              )}
+              <FxStaleNotice style={{ marginTop: 4 }} />
             </div>
           </div>
         ) : (
