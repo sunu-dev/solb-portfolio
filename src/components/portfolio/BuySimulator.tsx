@@ -42,7 +42,7 @@ function formatPrice(value: number, cur: 'KRW' | 'USD'): string {
 
 function formatMoney(value: number, cur: 'KRW' | 'USD'): string {
   if (cur === 'KRW') return formatKrw(Math.round(value), { suffix: '원', prefix: false });
-  return formatUsd(value, { max: 0 });
+  return formatUsd(value, 0);
 }
 
 function formatShares(shares: number, market: 'KR' | 'US'): string {

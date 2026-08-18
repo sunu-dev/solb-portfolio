@@ -112,28 +112,22 @@ export function formatKrwUnits(value: number): string {
 /**
  * 달러 표시 — 콤마 + 소수점 자릿수.
  *
- * 숫자를 주면 min·max를 그 값으로 **고정**한다(`formatUsd(1234.5)` → `$1,234.50`).
- * `{ max }` 만 주면 하한 없이 상한만 건다(`formatUsd(1234.5, { max: 2 })` → `$1,234.5`).
+ * **관례는 둘뿐이다** (2026-08-18 통일):
+ * - `formatUsd(v)` → 2자리 고정. 가격·평단·목표가·손익 등 **개별 금액**.
+ * - `formatUsd(v, 0)` → 정수. 총 평가·총 투자 등 **합계·요약** (센트는 노이즈).
  *
- * 왜 두 형태가 필요한가: 앱에 USD 자릿수 관례가 실제로 셋 있다 —
- * 가격/평단은 2자리 고정, 목표가·수량 표시는 상한만, 합계는 0자리.
- * 통합하면서 표기를 바꾸지 않으려고 셋 다 표현 가능하게 뒀다.
- * (하나로 통일할지는 별도 제품 결정 — TODO 등재.)
+ * 통일 전에는 `{ maximumFractionDigits }`만 건 세 번째 관례가 섞여 있었다.
+ * 그건 값에 따라 소수 자리 수가 **달라져서**(`$480` · `$1,234.5` · `$178.25`)
+ * tabular-nums로 세로 정렬한 열이 어긋났다. 자릿수가 고정이어야 숫자가 줄 맞는다.
  */
-export function formatUsd(
-  value: number,
-  fractionDigits: number | { min?: number; max?: number } = 2,
-): string {
+export function formatUsd(value: number, fractionDigits: 0 | 2 = 2): string {
   if (!Number.isFinite(value)) return '$0';
   const sign = value < 0 ? '-' : '';
   const abs = Math.abs(value);
-  const opts = typeof fractionDigits === 'number'
-    ? { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }
-    : {
-      ...(fractionDigits.min !== undefined ? { minimumFractionDigits: fractionDigits.min } : {}),
-      ...(fractionDigits.max !== undefined ? { maximumFractionDigits: fractionDigits.max } : {}),
-    };
-  return `${sign}$${abs.toLocaleString('en-US', opts)}`;
+  return `${sign}$${abs.toLocaleString('en-US', {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  })}`;
 }
 
 // ─── 표시 통화 변환 ─────────────────────────────────────────────────────────
@@ -148,10 +142,32 @@ export function formatUsd(
  */
 export const DEFAULT_USD_KRW = 1400;
 
-/** macroData에서 USD/KRW를 꺼낸다. 없으면 `DEFAULT_USD_KRW`. */
-export function resolveUsdKrw(macroData: Record<string, unknown> | undefined): number {
+export interface UsdKrwState {
+  /** 계산에 쓸 환율. 미확인이면 `DEFAULT_USD_KRW`. */
+  rate: number;
+  /** true면 실제 환율을 못 받아 임시값을 쓰고 있다는 뜻 — 화면에 밝혀야 한다. */
+  stale: boolean;
+}
+
+/**
+ * macroData에서 USD/KRW 상태를 꺼낸다.
+ *
+ * `resolveUsdKrw`는 숫자만 돌려주므로 호출부가 "이게 진짜 환율인지" 알 수 없었다.
+ * 그 결과 환율을 못 받아도 1,400원 기준 원화 평가액이 **확정 숫자처럼** 표시됐다 —
+ * 감사가 "틀린 숫자를 자신 있게 보여주는 최악의 실패 모드"로 지목한 지점이다.
+ * 계산은 계속 진행하되(빈 화면보다 낫다), `stale`을 화면에 밝힌다.
+ */
+export function resolveUsdKrwState(macroData: Record<string, unknown> | undefined): UsdKrwState {
   const entry = macroData?.['USD/KRW'] as { value?: number } | undefined;
-  return entry?.value || DEFAULT_USD_KRW;
+  const value = entry?.value;
+  return typeof value === 'number' && value > 0
+    ? { rate: value, stale: false }
+    : { rate: DEFAULT_USD_KRW, stale: true };
+}
+
+/** 숫자만 필요할 때. 미확인 여부를 화면에 밝혀야 하면 `resolveUsdKrwState`를 쓸 것. */
+export function resolveUsdKrw(macroData: Record<string, unknown> | undefined): number {
+  return resolveUsdKrwState(macroData).rate;
 }
 
 export type DisplayCurrency = 'KRW' | 'USD';

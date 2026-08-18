@@ -57,7 +57,7 @@ function formatValue(
   if (field === 'shares') return `${value.toLocaleString()}주`;
   return currency === 'KRW'
     ? formatKrw(value, { prefix: false, suffix: '원', short: false })
-    : formatUsd(value, { max: 3 });
+    : formatUsd(value);
 }
 
 function changeSummary(change: PortfolioVersionChange): string {

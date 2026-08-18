@@ -11,6 +11,7 @@ import {
   formatDisplayAmount,
   formatNativeAmount,
   resolveUsdKrw,
+  resolveUsdKrwState,
   pnlColor,
   DEFAULT_USD_KRW,
 } from '@/utils/koreanNumber';
@@ -113,21 +114,17 @@ describe('formatUsd', () => {
     expect(formatUsd(-12.3)).toBe('-$12.30');
   });
 
-  it('{max}만 주면 하한 없이 상한만 — 앱의 세 번째 관례 보존', () => {
-    // 숫자 인자는 min·max 고정, 객체는 상한만. 통합 전 세 관례를 그대로 표현하기 위한 구분.
-    expect(formatUsd(1234.5, { max: 2 })).toBe('$1,234.5');
-    expect(formatUsd(1234.5, 2)).toBe('$1,234.50');
-    expect(formatUsd(480, { max: 2 })).toBe('$480');
-    expect(formatUsd(480, 2)).toBe('$480.00');
+  it('관례는 둘뿐 — 개별 금액 2자리 고정 / 합계 정수', () => {
+    expect(formatUsd(178.25)).toBe('$178.25');
+    expect(formatUsd(480)).toBe('$480.00');
+    expect(formatUsd(1234.6, 0)).toBe('$1,235');
   });
 
-  it('{max:0}은 정수 표기', () => {
-    expect(formatUsd(1234.6, { max: 0 })).toBe('$1,235');
-  });
-
-  it('{max:3}은 기본 toLocaleString과 동일 (기록 화면 보존분)', () => {
-    expect(formatUsd(178.25, { max: 3 })).toBe(`$${(178.25).toLocaleString('en-US')}`);
-    expect(formatUsd(1234.5678, { max: 3 })).toBe(`$${(1234.5678).toLocaleString('en-US')}`);
+  it('자릿수가 고정이라 값이 달라도 소수 자리 수가 같다 (tabular 정렬 전제)', () => {
+    // 통일 전 `{ maximumFractionDigits: 2 }` 관례는 $480 · $1,234.5 · $178.25 처럼
+    // 값마다 소수 자리 수가 달라져 세로 정렬이 어긋났다.
+    const decimals = (v: number) => (formatUsd(v).split('.')[1] ?? '').length;
+    expect(new Set([480, 1234.5, 178.25, 1_000_000].map(decimals)).size).toBe(1);
   });
 });
 
@@ -182,6 +179,17 @@ describe('resolveUsdKrw — 환율 폴백 단일화', () => {
     expect(resolveUsdKrw(undefined)).toBe(DEFAULT_USD_KRW);
     expect(resolveUsdKrw({})).toBe(DEFAULT_USD_KRW);
     expect(resolveUsdKrw({ 'USD/KRW': { value: 0 } })).toBe(DEFAULT_USD_KRW);
+  });
+
+  it('stale 플래그로 임시값 사용을 구분할 수 있다', () => {
+    // 숫자만 돌려주면 호출부가 "이게 진짜 환율인지" 알 수 없어
+    // 1,400원 기준 환산이 확정 숫자처럼 표시됐다.
+    expect(resolveUsdKrwState({ 'USD/KRW': { value: 1325.5 } }))
+      .toEqual({ rate: 1325.5, stale: false });
+    expect(resolveUsdKrwState(undefined)).toEqual({ rate: DEFAULT_USD_KRW, stale: true });
+    expect(resolveUsdKrwState({})).toEqual({ rate: DEFAULT_USD_KRW, stale: true });
+    expect(resolveUsdKrwState({ 'USD/KRW': { value: 0 } })).toEqual({ rate: DEFAULT_USD_KRW, stale: true });
+    expect(resolveUsdKrwState({ 'USD/KRW': { value: -1 } })).toEqual({ rate: DEFAULT_USD_KRW, stale: true });
   });
 });
 

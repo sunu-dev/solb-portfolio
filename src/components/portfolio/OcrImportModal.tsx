@@ -89,7 +89,7 @@ function actionableIndices(rows: ReconciliationRow[]): Set<number> {
 
 function formatHoldingValue(field: 'avgCost' | 'shares', value: number, currency: 'KRW' | 'USD'): string {
   if (field === 'shares') return `${value.toLocaleString()}주`;
-  return currency === 'KRW' ? formatKrw(value, { prefix: false, suffix: '원', short: false }) : formatUsd(value, { max: 3 });
+  return currency === 'KRW' ? formatKrw(value, { prefix: false, suffix: '원', short: false }) : formatUsd(value);
 }
 
 export default function OcrImportModal({ onClose }: Props) {

@@ -57,7 +57,7 @@ export default function PrivacyPage() {
           <tbody>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>알림 발송 로그</td>
-              <td style={{ padding: '8px 4px' }}>발송 후 90일 (분쟁 대응)</td>
+              <td style={{ padding: '8px 4px' }}>발송 후 365일 (컴플라이언스 분쟁 대응)</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>푸시 구독 정보</td>

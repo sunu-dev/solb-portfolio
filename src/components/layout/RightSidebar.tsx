@@ -168,7 +168,7 @@ export default function RightSidebar() {
                   {stock.buyBelow
                     ? ` · 목표 ${currency === 'KRW'
                       ? formatKrw(targetAmounts.krw, { prefix: false, suffix: '원', short: false })
-                      : formatUsd(targetAmounts.usd, { max: 2 })}`
+                      : formatUsd(targetAmounts.usd)}`
                     : ''}
                 </div>
               </div>
