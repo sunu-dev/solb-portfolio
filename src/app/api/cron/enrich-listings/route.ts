@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import { classifyAssetClass, isUniverseEligibleClass } from '@/utils/leverageGuard';
 
@@ -35,13 +36,6 @@ const UNIVERSE_MIN_LISTING_MONTHS = 12;          // 상장 12개월 이상
 // (2026-06-16_stock_listings_enrich_cursor.sql — last_enrich_at·enrich_attempts 선행 적용 필요)
 const MAX_ENRICH_ATTEMPTS = 6;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
-
 function getAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -70,10 +64,11 @@ async function fetchProfile(symbol: string, apiKey: string): Promise<Profile2Res
   }
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/enrich-listings',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   if (!apiKey) {
@@ -187,4 +182,5 @@ export async function GET(req: NextRequest) {
     errors,
     sample,
   });
-}
+},
+});

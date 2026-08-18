@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
@@ -28,13 +29,6 @@ import { sendEmail } from '@/utils/email';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
 
 function getAdmin() {
   return createClient(
@@ -121,10 +115,11 @@ function buildPushPayload(brief: ChapterBrief, monthLabel: string, daysRemaining
   };
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/monthly-d3-reminder',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const time = computeKstDaysRemaining();
   // D-3만 발송 (운영 안정성: 월말 D-3 ±0)
@@ -252,4 +247,5 @@ export async function GET(req: NextRequest) {
       ...stats,
     }, { status: 500 });
   }
-}
+},
+});

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -21,16 +22,6 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    // 보안: secret 미설정 시 외부 호출 차단 (Vercel은 자동 설정)
-    return false;
-  }
-  return auth === `Bearer ${secret}`;
-}
-
 function getAdmin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,10 +34,11 @@ function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86400 * 1000).toISOString();
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/cleanup-pii',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const stats = {
     ai_usage_anonymized: 0,
@@ -127,4 +119,5 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
-}
+},
+});

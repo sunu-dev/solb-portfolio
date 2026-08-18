@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import {
   countUnsupportedFinnhubSecurityTypes,
@@ -30,13 +31,6 @@ export const maxDuration = 60;
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
-
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
 
 function getAdmin() {
   return createClient(
@@ -91,10 +85,11 @@ async function sendSlackAlert(title: string, body: string) {
   } catch { /* silent */ }
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/sync-listings',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   if (!apiKey) {
@@ -252,4 +247,5 @@ export async function GET(req: NextRequest) {
     diagnostics: { excludedTypes },
     diff: { newCount, delistedCount, universeDelisted },
   });
-}
+},
+});

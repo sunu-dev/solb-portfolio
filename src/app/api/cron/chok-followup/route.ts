@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 
 /**
@@ -19,13 +20,6 @@ import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
 
 function getAdmin() {
   return createClient(
@@ -57,10 +51,11 @@ interface RecRow {
   filled_90d_at: string | null;
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/chok-followup',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) {
@@ -158,4 +153,5 @@ export async function GET(req: NextRequest) {
       ...stats,
     }, { status: 500 });
   }
-}
+},
+});

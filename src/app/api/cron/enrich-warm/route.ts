@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { enrichUniverse } from '@/utils/chokDataEnricher';
 
 /**
@@ -19,17 +20,11 @@ import { enrichUniverse } from '@/utils/chokDataEnricher';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
-
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/enrich-warm',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
   const t0 = Date.now();
   try {
     const enriched = await enrichUniverse();
@@ -45,4 +40,5 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
-}
+},
+});

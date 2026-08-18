@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
@@ -64,13 +65,6 @@ const SLOT_FRAMING: Record<DigestSlot, SlotFraming> = {
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
-
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
 
 function getAdmin() {
   return createClient(
@@ -280,9 +274,12 @@ function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: s
 }
 
 // 국장 아침 슬롯 (KST 07:00 = UTC 22:00). vercel.json "0 22 * * *".
-export async function GET(req: NextRequest) {
-  return runDigest(req, 'morning');
-}
+export const GET = defineRoute({
+  name: '/api/cron/morning-brief',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async ({ req }) => runDigest(req, 'morning'),
+});
 
 /**
  * digest 발송 본체. 슬롯은 호출 라우트가 결정론적으로 주입한다(defaultSlot).
@@ -293,10 +290,8 @@ export async function GET(req: NextRequest) {
  * 각자 자기 슬롯을 고정 주입한다. ?slot=는 수동 테스트 override만.
  */
 export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  // 인증은 호출 라우트의 defineRoute({ auth: 'cron' })가 담당한다.
+  // (morning-brief GET / morning-brief-close GET 둘 다 cron 가드를 통과한 뒤에만 여기 도달)
   initWebPush();
   const db = getAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';

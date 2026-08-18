@@ -1,5 +1,5 @@
-import type { NextRequest } from 'next/server';
 import { runDigest } from '../morning-brief/route';
+import { defineRoute } from '@/lib/apiRoute';
 
 /**
  * 국장 마감 digest 슬롯 (KST 16:00 = UTC 07:00). vercel.json "0 7 * * *".
@@ -10,6 +10,9 @@ import { runDigest } from '../morning-brief/route';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-export async function GET(req: NextRequest) {
-  return runDigest(req, 'close');
-}
+export const GET = defineRoute({
+  name: '/api/cron/morning-brief-close',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async ({ req }) => runDigest(req, 'close'),
+});
