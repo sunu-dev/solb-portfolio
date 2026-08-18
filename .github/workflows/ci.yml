@@ -1,0 +1,92 @@
+name: CI
+
+# 2026-08-18 전수 감사 후속.
+# 감사 전까지 이 저장소에는 CI가 없었고(.github 부재), 4개 lint는 prebuild에만,
+# 테스트 236개는 **어떤 게이트에도 배선되지 않은** 상태였다.
+# §6 누출 불변식 테스트가 깨져도 배포가 나갈 수 있었다는 뜻이다.
+#
+# prebuild에도 npm test를 넣었지만(배포 직전 관문), CI는 그와 별개로
+# **머지 전에** 실패를 보여주는 역할을 한다. 빌드까지 가지 않고 PR에서 막힌다.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # 같은 브랜치에 새 푸시가 오면 이전 실행은 취소 — 큐 낭비 방지
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: 타입·게이트·테스트
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      # 게이트는 개별 스텝으로 나눈다 — 어느 규약이 깨졌는지 로그에서 바로 보이게.
+      - name: 컴플라이언스 어휘 (§6)
+        run: npm run lint:alerts
+
+      - name: 한국어 UI 규약
+        run: npm run lint:korean
+
+      - name: 다크모드 토큰
+        run: npm run lint:darkmode
+
+      - name: 투어 앵커 정합
+        run: npm run lint:tour-anchors
+
+      - name: ESLint
+        run: npx eslint .
+
+      - name: 테스트
+        run: npm test
+
+  build:
+    name: 프로덕션 빌드
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # ⚠️ placeholder 값이 필요한 이유 (실제 비밀 아님)
+      #
+      # 여러 라우트가 모듈 스코프에서 `createClient(url!, serviceKey!)`를 호출한다.
+      # Next가 빌드 중 page data를 수집하면서 이 모듈을 import하므로, 키가 없으면
+      # `Error: supabaseKey is required`로 **빌드 전체가 실패**한다.
+      # 즉 빌드가 런타임 비밀에 의존하는 상태다(서비스키 없는 프리뷰 환경은 빌드조차 못 함).
+      #
+      # 올바른 해법은 이들을 `getServiceClient()`(src/lib/supabaseServer.ts)처럼 지연 생성으로
+      # 바꾸는 것이고, 그때 이 placeholder는 지울 수 있다. TODO에 등재돼 있다.
+      - name: next build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+          SUPABASE_SERVICE_KEY: placeholder-service-key

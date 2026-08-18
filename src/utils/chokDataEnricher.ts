@@ -12,8 +12,8 @@
  * 호출 비용: Finnhub 58종목 × 2 call = 116. 무료 tier 60/min 안전.
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
+import { getServiceClient } from '@/lib/supabaseServer';
 
 export interface EnrichedStockData {
   symbol: string;
@@ -43,11 +43,20 @@ let cache: { data: EnrichedStockData[]; ts: number } | null = null;
 const L2_KEY = '__enrich_universe__';
 const L2_DATE = 'persistent';
 
+/**
+ * L2 캐시 접근용 클라이언트.
+ *
+ * ⚠️ 예전엔 여기서 **anon 키**로 클라이언트를 만들었다. 그런데 `ai_chok_cache`의 RLS는
+ * `create policy "service-only" ... using (false)`라(마이그 2026-05-10) anon으로는
+ * 읽기가 항상 빈 결과, 쓰기는 조용히 실패했다. `.then(()=>{}, ()=>{})` fire-and-forget과
+ * 겹쳐 아무 신호도 남지 않았고, 결과적으로 **L2 캐시가 영구 무력**이었다 —
+ * enrich-warm cron이 예열해도 저장되지 않고, 매 요청이 Finnhub로 나갔다.
+ *
+ * 이 모듈은 서버에서만 호출된다(ai-chok 라우트·cron·admin). service-role을 쓴다.
+ * 같은 안티패턴이 2026-05-20에 ai-chok 라우트에서 한 번 고쳐졌는데 이 모듈이 누락돼 있었다.
+ */
 function makeSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key);
+  return getServiceClient();
 }
 
 async function readL2(): Promise<EnrichedStockData[] | null> {
@@ -74,7 +83,13 @@ function writeL2(items: EnrichedStockData[]) {
   sb.from('ai_chok_cache').upsert(
     { user_key: L2_KEY, date: L2_DATE, picks: { ts: Date.now(), items }, use_count: 0 },
     { onConflict: 'user_key,date' }
-  ).then(() => {}, () => {}); // fire-and-forget
+  ).then(
+    () => {},
+    (e) => {
+      // 실패를 완전히 삼키면 캐시가 죽어도 알 길이 없다(위 주석의 사고가 정확히 그랬다).
+      console.warn('[chokDataEnricher] L2 캐시 쓰기 실패 — Finnhub 직접 조회로 폴백:', e?.message ?? e);
+    },
+  );
 }
 
 interface FinnhubMetric {

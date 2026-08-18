@@ -174,9 +174,14 @@ export async function GET() {
       && Math.abs(i.todayChangePct) < 50  // outlier 차단 (delisting 등)
     );
     const sorted = [...valid].sort((a, b) => (b.todayChangePct! - a.todayChangePct!));
+    // 부호로 게이트한다 — 정렬 결과의 양 끝을 그대로 쓰면
+    // 전 종목 상승일에 '가장 덜 오른 종목'이 하락 탭에 실린다(역도 성립).
+    // 유효 종목이 10개 미만일 때 같은 종목이 양쪽에 동시 노출되던 것도 함께 막힌다.
+    const up = sorted.filter(i => i.todayChangePct! > 0);
+    const down = sorted.filter(i => i.todayChangePct! < 0);
     return {
-      gainers: sorted.slice(0, 5),
-      losers: sorted.slice(-5).reverse(),
+      gainers: up.slice(0, 5),
+      losers: down.slice(-5).reverse(),
     };
   }
 
