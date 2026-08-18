@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 import { GoogleGenAI } from '@google/genai';
-import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
 import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
@@ -28,16 +28,9 @@ const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10
 const CHOK_USAGE_TAG = 'ai-chok';
 
 // Supabase server client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // service-role 클라이언트 — stock_listings RLS(select using false)는 service role만 읽는다.
 // isLev 서버 권위화: 클라이언트 body의 description 위변조·누락에 의존하지 않도록 권위 데이터를 조회한다(§6).
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
-  : null;
 
 /**
  * 단일종목 레버리지 서버 권위 판정 — 클라이언트 body(description/koreanName) 단독 의존 제거.
@@ -50,6 +43,7 @@ async function resolveIsSingleLeverage(symbol: string, clientDesc: string): Prom
   if (!symbol) return false;
   // 클라이언트 신호 (행이 없을 때의 fallback) — 항상 먼저 계산해 보호 공백 방지
   let result = isSingleStockLeverage(symbol, clientDesc);
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return result;
   try {
     const { data } = await supabaseAdmin
@@ -78,6 +72,7 @@ function getTodayKST(): string {
 async function getAnalysisUsage(userId: string): Promise<{ available: boolean; userCount: number; totalCount: number }> {
   // 사용량은 전체 사용자 합산을 포함하므로 service role로만 조회한다.
   // anon client에 맡기면 RLS 정책에 따라 0으로 집계되거나 요청 전체가 503으로 닫힌다.
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return { available: false, userCount: 0, totalCount: 0 };
   const today = getTodayKST();
   try {
@@ -98,7 +93,7 @@ async function getAnalysisUsage(userId: string): Promise<{ available: boolean; u
 }
 
 async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string) {
-  const client = supabaseAdmin || supabase;
+  const client = getServiceClient() ?? getAuthClient();
   if (!client) return false;
   try {
     const { error } = await client.from('ai_usage').insert({
@@ -116,6 +111,7 @@ async function recordUsage(ip: string, symbol: string, mentorId: string | undefi
 }
 
 async function recordGeminiKeyUsage(keyIndex: number) {
+  const supabase = getAuthClient();
   if (!supabase) return;
   try {
     await supabase.from('gemini_key_usage').insert({
@@ -196,6 +192,7 @@ export async function POST(req: NextRequest) {
   // 비로그인 요청이 AI 상태를 추측하거나 잘못된 본문으로 500을 만들지 않게 한다.
   let userId: string | undefined;
   const authHeader = req.headers.get('authorization');
+  const supabase = getAuthClient();
   if (authHeader?.startsWith('Bearer ') && supabase) {
     try {
       const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
@@ -210,7 +207,7 @@ export async function POST(req: NextRequest) {
       loginForMore: true,
     }, { status: 401 });
   }
-  if (!await hasCurrentAdultAiConsent(supabaseAdmin, userId)) {
+  if (!await hasCurrentAdultAiConsent(getServiceClient(), userId)) {
     return NextResponse.json({
       error: '만 18세 이상 확인 후 AI 분석을 이용할 수 있어요.',
       code: 'adult_consent_required',

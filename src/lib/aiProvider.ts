@@ -12,8 +12,8 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
+import { getAuthClient } from '@/lib/supabaseServer';
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
 import { recordAiCost, type AiTokenUsage } from '@/lib/aiCostLedger';
 
 // ─── 설정 ────────────────────────────────────────────────────────────────────
@@ -34,15 +34,13 @@ const claudeClient = CLAUDE_ENABLED && ANTHROPIC_API_KEY
 const CLAUDE_DAILY_LIMIT = parseInt(process.env.CLAUDE_DAILY_LIMIT || '500', 10);
 
 // Supabase (호출 수 카운트용)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 /**
  * 오늘 Claude 호출 수 조회 (api_calls 테이블 기반)
  * error_code = 'claude_fallback' 로 마킹된 호출만 카운트
  */
 async function getTodayClaudeCount(): Promise<number> {
+  const supabase = getAuthClient();
   if (!supabase) return 0;
   try {
     const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -59,6 +57,7 @@ async function getTodayClaudeCount(): Promise<number> {
  * Claude 호출 마킹 (api_calls 테이블에 카운트용 레코드 insert)
  */
 async function markClaudeCall() {
+  const supabase = getAuthClient();
   if (!supabase) return;
   try {
     await supabase.from('api_calls').insert({

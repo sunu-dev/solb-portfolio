@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isAdminIdentity, resolveUser, type ResolvedUser } from '@/lib/adminAuth';
+import { isAdminIdentity, resolveUserOutcome, type ResolvedUser } from '@/lib/adminAuth';
 import {
   POLICIES,
   checkRateLimit,
@@ -108,7 +108,12 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
     if (config.auth === 'cron') {
       if (!verifyCron(req)) return jsonError(401, 'unauthorized', 'Unauthorized');
     } else if (config.auth !== 'public') {
-      user = await resolveUser(req);
+      const outcome = await resolveUserOutcome(req);
+      if (outcome.status === 'unavailable') {
+        // 설정 오류(서비스키 누락)를 401로 내보내면 "전부 로그아웃됐다"는 오진을 부른다.
+        return jsonError(503, 'storage_unavailable', '일시적으로 이용할 수 없어요. 잠시 후 다시 시도해주세요.');
+      }
+      user = outcome.status === 'ok' ? outcome.user : null;
       isAdmin = isAdminIdentity(user);
 
       if (config.auth === 'user' && !user) {

@@ -1,7 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { isAdminIdentity } from '@/lib/adminAuth';
+import { NextRequest } from 'next/server';
+import { isAdminIdentity, resolveUserOutcome } from '@/lib/adminAuth';
+import { resetSupabaseServerClientsForTests } from '@/lib/supabaseServer';
 
 /**
  * 관리자 신원 경계 불변식 — 2026-08-18 감사 후속.
@@ -110,5 +112,46 @@ describe('isAdminIdentity 판정 규칙', () => {
     process.env.ADMIN_IDS = 'id-allowed';
     expect(isAdminIdentity({ id: 'x', email: '' })).toBe(false);
     expect(isAdminIdentity({ id: 'x' })).toBe(false);
+  });
+});
+
+
+describe('resolveUserOutcome — 설정 오류와 인증 오류 분리', () => {
+  const savedUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const savedRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const savedKey = process.env.SUPABASE_SERVICE_KEY;
+
+  const restore = (name: string, v: string | undefined) => {
+    if (v === undefined) delete process.env[name];
+    else process.env[name] = v;
+  };
+
+  afterEach(() => {
+    restore('NEXT_PUBLIC_SUPABASE_URL', savedUrl);
+    restore('SUPABASE_SERVICE_ROLE_KEY', savedRole);
+    restore('SUPABASE_SERVICE_KEY', savedKey);
+    resetSupabaseServerClientsForTests();
+  });
+
+  const req = (headers: Record<string, string> = {}) =>
+    new NextRequest('https://example.test/api/x', { headers });
+
+  it("service client을 만들 수 없으면 'unavailable' — 401로 축약하지 않는다", async () => {
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.SUPABASE_SERVICE_KEY;
+    resetSupabaseServerClientsForTests();
+
+    // 토큰이 있어도 없어도 '설정 오류'가 인증 결과를 덮어써서는 안 된다.
+    expect((await resolveUserOutcome(req())).status).toBe('unavailable');
+    expect((await resolveUserOutcome(req({ authorization: 'Bearer whatever' }))).status).toBe('unavailable');
+  });
+
+  it("클라이언트는 있고 토큰이 없으면 'anonymous'", async () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-key';
+    resetSupabaseServerClientsForTests();
+
+    expect((await resolveUserOutcome(req())).status).toBe('anonymous');
+    expect((await resolveUserOutcome(req({ authorization: 'Basic nope' }))).status).toBe('anonymous');
   });
 });

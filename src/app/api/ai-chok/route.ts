@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 import { CHOK_UNIVERSE, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
 import { isBlockedLeverage } from '@/utils/leverageGuard';
 import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
@@ -16,14 +16,9 @@ import { attachAiResultMeta, type AiResultMeta } from '@/lib/aiResultMeta';
 import { analyzeMarketFlow, type MarketFlowResult } from '@/utils/marketFlow';
 import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
 // auth.getUser는 anon client로 (token 검증)
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 // ai_chok_cache(RLS: service-only) / ai_chok_recommendations(INSERT policy 없음) 등 RLS-보호 테이블은
 // service-role admin client로 접근해야 캐시 hit / 백테스트 누적이 실제 작동함.
-const supabaseAdmin = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 const CHOK_USAGE_TAG = 'ai-chok';
 const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
@@ -64,6 +59,7 @@ function getTodayKST(): string {
 }
 
 async function getDailyChokUsage(userId: string): Promise<{ available: boolean; userCount: number; totalCount: number }> {
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return { available: false, userCount: 0, totalCount: 0 };
   try {
     const [userResult, totalResult] = await Promise.all([
@@ -84,6 +80,7 @@ async function getDailyChokUsage(userId: string): Promise<{ available: boolean; 
 
 // ─── 캐시 (다양성 트래킹용 — 한도 카운팅과 분리) ────────────────────────────
 async function getCachedPicks(userKey: string, dateKey: string) {
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return null;
   try {
     const { data } = await supabaseAdmin
@@ -101,6 +98,7 @@ async function getCachedPicks(userKey: string, dateKey: string) {
  * 새 세션 진입 직후에도 어제 캐시 그대로 표시 가능 → 빈 화면 방지.
  */
 async function getRecentCachedPicks(userKey: string) {
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return null;
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -117,6 +115,7 @@ async function getRecentCachedPicks(userKey: string) {
 }
 
 async function upsertCache(userKey: string, dateKey: string, picks: unknown, useCount: number, excludedRecent: string[]) {
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return;
   try {
     await supabaseAdmin.from('ai_chok_cache').upsert(
@@ -153,6 +152,7 @@ async function logRecommendations(opts: {
   vixBucketStr: string;
   enrichedMap: Map<string, { currentPrice: number | null; peRatio: number | null; week52Position: number | null }>;
 }) {
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return;
   try {
     // 단일종목 레버리지·인버스 ETF/ETN은 백테스트 통계 왜곡 위험(생존편향) — 누적 차단 (P1, leverageGuard SSOT)
@@ -194,6 +194,8 @@ export async function POST(req: NextRequest) {
 
   let userId: string | undefined;
   const authHeader = req.headers.get('authorization');
+  const supabase = getAuthClient();
+  const supabaseAdmin = getServiceClient();
   if (authHeader?.startsWith('Bearer ') && supabase) {
     try {
       const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));

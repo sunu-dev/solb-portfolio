@@ -57,26 +57,53 @@ export interface ResolvedUser {
 }
 
 /**
+ * 신원 확인 결과 — **세 상태를 구분**한다.
+ *
+ * 예전에는 `ResolvedUser | null` 하나로 뭉갰다. 그래서 서비스키가 없을 때
+ * '토큰 무효'와 구분되지 않아 **정상 로그인한 관리자에게 401 '로그인이 필요해요'** 가 나갔다.
+ * 운영자가 보는 증상은 "전부 로그아웃된 것 같다"인데 실제 원인은 env 미설정 —
+ * 가장 오래 헤매는 오진 조합이라 상태를 분리한다.
+ */
+export type ResolveOutcome =
+  /** 토큰이 유효하고 사용자를 특정했다 */
+  | { status: 'ok'; user: ResolvedUser }
+  /** 토큰이 없거나 무효하다 — 정상적인 비로그인 */
+  | { status: 'anonymous' }
+  /** Supabase 클라이언트를 만들 수 없다 — **설정 오류**이지 인증 오류가 아니다 */
+  | { status: 'unavailable' };
+
+/**
  * Bearer 토큰으로 요청자 신원을 확인한다.
  *
  * 토큰 검증에는 service-role 클라이언트를 쓴다(`auth.getUser(token)`은 키 종류와 무관하게
  * 토큰 자체를 검증하며, 여기서는 클라이언트 재사용으로 커넥션을 아낀다).
- * 토큰이 없거나 무효면 null.
  */
-export async function resolveUser(req: NextRequest): Promise<ResolvedUser | null> {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-
+export async function resolveUserOutcome(req: NextRequest): Promise<ResolveOutcome> {
   const supabase = getServiceClient();
-  if (!supabase) return null;
+  if (!supabase) {
+    console.error('[adminAuth] Supabase service client 사용 불가 — SUPABASE_SERVICE_ROLE_KEY 확인 필요');
+    return { status: 'unavailable' };
+  }
+
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return { status: 'anonymous' };
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser(authHeader.slice(7));
-    if (error || !user) return null;
-    return { id: user.id, email: user.email ?? null };
+    if (error || !user) return { status: 'anonymous' };
+    return { status: 'ok', user: { id: user.id, email: user.email ?? null } };
   } catch {
-    return null;
+    return { status: 'anonymous' };
   }
+}
+
+/**
+ * 신원만 필요할 때 쓰는 축약형 — 설정 오류와 비로그인을 구분하지 않는다.
+ * **설정 오류를 사용자 오류로 오분류하면 안 되는 게이트에서는 `resolveUserOutcome`을 쓸 것.**
+ */
+export async function resolveUser(req: NextRequest): Promise<ResolvedUser | null> {
+  const outcome = await resolveUserOutcome(req);
+  return outcome.status === 'ok' ? outcome.user : null;
 }
 
 /**
@@ -95,7 +122,13 @@ export async function resolveUser(req: NextRequest): Promise<ResolvedUser | null
 export async function requireAdmin(
   req: NextRequest,
 ): Promise<{ ok: true; userId: string; email: string | null } | { ok: false; res: NextResponse }> {
-  const user = await resolveUser(req);
+  const outcome = await resolveUserOutcome(req);
+  if (outcome.status === 'unavailable') {
+    // 설정 오류를 401로 내보내면 "로그인이 안 된다"는 오진을 유발한다.
+    return { ok: false, res: NextResponse.json(
+      { error: 'storage unavailable', code: 'storage_unavailable' }, { status: 503 }) };
+  }
+  const user = outcome.status === 'ok' ? outcome.user : null;
   if (!user) {
     return { ok: false, res: NextResponse.json({ error: 'unauthorized', code: 'unauthorized' }, { status: 401 }) };
   }

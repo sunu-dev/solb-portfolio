@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient } from '@/lib/supabaseServer';
 import { PRO_PLAN } from '@/config/proPlan';
 import {
   isProDemandPlacement,
@@ -7,11 +7,6 @@ import {
   type ProDemandEventName,
 } from '@/lib/proDemandValidation';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const supabase = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } })
-  : null;
 const MAX_EVENTS_PER_MINUTE = 20;
 
 interface ProDemandEventBody {
@@ -28,6 +23,7 @@ function isUuid(value: unknown): value is string {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = getServiceClient();
   if (process.env.PRO_DEMAND_TEST_ENABLED !== 'true'
     || process.env.PRO_DEMAND_POLICY_READY !== 'true'
     || !supabase) {

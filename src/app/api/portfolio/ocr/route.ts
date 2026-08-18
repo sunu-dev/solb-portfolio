@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 import { GoogleGenAI } from '@google/genai';
-import { createClient } from '@supabase/supabase-js';
 import { enforceRateLimit, getUserIdFromAuth, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { recordAiCost } from '@/lib/aiCostLedger';
@@ -14,13 +14,6 @@ const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY2,
 ].filter(Boolean) as string[];
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
-  : null;
 const DAILY_LIMIT_TOTAL = Number.parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
 const OCR_DAILY_LIMIT_USER = Number.parseInt(process.env.OCR_DAILY_LIMIT_USER || '5', 10);
 
@@ -29,7 +22,7 @@ function getTodayKST(): string {
 }
 
 async function recordOcrUsage(ip: string, stockCount: number, source: string, userId?: string) {
-  const client = supabaseAdmin || supabase;
+  const client = getServiceClient() ?? getAuthClient();
   if (!client) return false;
   try {
     const { error } = await client.from('ai_usage').insert({
@@ -47,6 +40,7 @@ async function recordOcrUsage(ip: string, stockCount: number, source: string, us
 }
 
 async function recordGeminiKeyUsage(keyIndex: number) {
+  const supabase = getAuthClient();
   if (!supabase) return;
   try {
     await supabase.from('gemini_key_usage').insert({
@@ -58,6 +52,7 @@ async function recordGeminiKeyUsage(keyIndex: number) {
 
 async function getOcrDailyUsage(userId: string) {
   // 전체 사용량과 사용자별 사용량은 RLS 영향 없이 동일한 기준으로 집계해야 한다.
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return { available: false, requesterCount: 0, totalCount: 0 };
   try {
     const requesterQuery = supabaseAdmin
@@ -228,7 +223,7 @@ export async function POST(req: NextRequest) {
       401,
     );
   }
-  if (!await hasCurrentAdultAiConsent(supabaseAdmin, userId)) {
+  if (!await hasCurrentAdultAiConsent(getServiceClient(), userId)) {
     return errJson(
       'unauthorized',
       '만 18세 이상 확인 후 이용할 수 있어요.',

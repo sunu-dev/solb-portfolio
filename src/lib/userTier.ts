@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 
 export type UserTier = 'free' | 'pro';
 
@@ -7,11 +7,9 @@ export interface MembershipRow {
   pro_until?: string | null;
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 export async function getUserTier(userId: string | undefined): Promise<UserTier> {
+  const supabase = getServiceClient() ?? getAuthClient();
   if (!userId || !supabase) return 'free';
   try {
     const { data, error } = await supabase
