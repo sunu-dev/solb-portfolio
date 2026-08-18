@@ -63,33 +63,48 @@ export function formatKrwChange(val: number): string {
 }
 
 /**
- * 만/억/조 한국어 단위 표기 — docs §3.4 **원안, 현재 미채택**.
+ * 만/억/조 한국어 단위 표기 — **서술·요약 경로의 표준** (2026-08-18 채택).
  *
- * `formatKrw`와 출력이 다르다(`276000` → 이쪽은 "27만 6,000원", 저쪽은 "₩276,000").
- * 전환하면 앱의 모든 금액 표기가 바뀌므로 파운더 결정 전까지 채택하지 않는다.
- * 지우지 않고 남겨두는 이유: 문서에 적힌 의도를 코드에서 잃지 않기 위해서.
+ * `₩123,456,789`에서 자릿수를 세어 "1억 2천만원대"를 파악하는 인지 부하가 실재한다.
+ * 한국 개인투자자 대상이면 만/억 표기가 확실히 빠르게 읽힌다.
+ *
+ * **정밀도**: 1억 미만은 완전 정확(`5만 3,900원` = 53,900). 1억 이상은 만 단위로 **반올림**한다
+ * (원래 구현은 `Math.floor`라 항상 실제보다 작게 표시되는 체계적 편향이 있었다).
+ * 참고로 현행 `formatKrw`의 10억 축약(`₩12억`)은 3,456만원을 버리므로, 이쪽이 오히려 더 정확하다.
+ *
+ * **어디에 쓰나**: `formatDisplayAmount`를 통해 이야기·회고·브리핑·차트 요약에만 적용된다.
+ * 사용자가 숫자를 **검증**하는 화면(보유 테이블·평단·편집 모달·알림 detail)은 `formatKrw` 정확 표기를 쓴다.
  */
 export function formatKrwUnits(value: number): string {
   if (!Number.isFinite(value)) return '0원';
   const sign = value < 0 ? '−' : '';
-  const abs = Math.abs(Math.round(value));
+  const abs0 = Math.abs(Math.round(value));
 
-  if (abs >= 1e12) {
+  if (abs0 >= 1e12) {
+    // 억 단위 반올림 후 분해 — 나눠서 반올림하면 자리올림(9999억→1조)이 자연히 처리된다.
+    const abs = Math.round(abs0 / 1e8) * 1e8;
     const jo = Math.floor(abs / 1e12);
     const eok = Math.floor((abs % 1e12) / 1e8);
     return eok > 0 ? `${sign}${jo}조 ${eok.toLocaleString('ko-KR')}억원` : `${sign}${jo}조원`;
   }
-  if (abs >= 1e8) {
+  if (abs0 >= 1e8) {
+    // 만 단위 반올림 후 분해
+    const abs = Math.round(abs0 / 1e4) * 1e4;
+    const jo = Math.floor(abs / 1e12);
+    if (jo > 0) {
+      const eok = Math.floor((abs % 1e12) / 1e8);
+      return eok > 0 ? `${sign}${jo}조 ${eok.toLocaleString('ko-KR')}억원` : `${sign}${jo}조원`;
+    }
     const eok = Math.floor(abs / 1e8);
     const man = Math.floor((abs % 1e8) / 1e4);
     return man > 0 ? `${sign}${eok}억 ${man.toLocaleString('ko-KR')}만원` : `${sign}${eok}억원`;
   }
-  if (abs >= 1e4) {
-    const man = Math.floor(abs / 1e4);
-    const won = abs % 1e4;
+  if (abs0 >= 1e4) {
+    const man = Math.floor(abs0 / 1e4);
+    const won = abs0 % 1e4;
     return won > 0 ? `${sign}${man}만 ${won.toLocaleString('ko-KR')}원` : `${sign}${man}만원`;
   }
-  return `${sign}${abs.toLocaleString('ko-KR')}원`;
+  return `${sign}${abs0.toLocaleString('ko-KR')}원`;
 }
 
 // ─── 금액 (USD) ─────────────────────────────────────────────────────────────
@@ -126,18 +141,22 @@ export function resolveUsdKrw(macroData: Record<string, unknown> | undefined): n
 export type DisplayCurrency = 'KRW' | 'USD';
 
 /**
- * 원화 기준 금액을 **현재 표시 통화**로 렌더한다.
+ * 원화 기준 금액을 **현재 표시 통화**로 렌더한다 — **서술·요약 경로 전용**.
  *
  * 절대값으로 표시한다 — 부호는 호출부가 색·화살표로 표현하는 것이 이 앱의 관례라서다.
  * 통합 전에는 이 로직이 ConversationalTimeline·MonthlyChapter·MorningBriefing·
  * PortfolioValueChart·MonthlyWrapped·ThrowbackCard에 **바이트 단위로 동일하게** 복제돼 있었다.
+ *
+ * KRW는 만/억 표기(`27만 6,000원`)를 쓴다 — 이야기·회고·브리핑처럼 **훑어보는** 문맥에서
+ * `₩276,000`보다 빠르게 읽히기 때문. 사용자가 숫자를 **검증**하는 화면
+ * (보유 테이블·평단·편집 모달·알림 detail)은 이 함수를 쓰지 말고 `formatKrw`를 직접 쓴다.
  */
 export function formatDisplayAmount(
   krw: number,
   currency: DisplayCurrency,
   usdKrw: number,
 ): string {
-  if (currency === 'KRW') return formatKrw(Math.round(Math.abs(krw)));
+  if (currency === 'KRW') return formatKrwUnits(Math.abs(krw));
   const usd = Math.abs(usdKrw > 0 ? krw / usdKrw : 0);
   return `$${usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }

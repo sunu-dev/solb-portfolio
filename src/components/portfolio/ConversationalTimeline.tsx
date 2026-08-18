@@ -7,6 +7,7 @@ import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatDisplayAmount, formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { withIGa } from '@/utils/koreanJosa';
 import { MessageCircle } from 'lucide-react';
 import {
   convertStockAmount,
@@ -127,7 +128,7 @@ export default function ConversationalTimeline() {
       out.push({
         id: 'best-today',
         type: 'story',
-        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}%${sigmaPhrase(bestMover.z)} 올라서 ${fmtKrw(bestMover.changeKrw)}가 더해졌어요 ✨`,
+        text: `오늘 ${kr}가 +${bestMover.dp.toFixed(2)}%${sigmaPhrase(bestMover.z)} 올라서 ${withIGa(fmtKrw(bestMover.changeKrw))} 더해졌어요 ✨`,
         symbol: bestMover.symbol,
         emphasis: 'positive',
       });

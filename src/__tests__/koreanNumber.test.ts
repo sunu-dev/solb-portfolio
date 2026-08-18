@@ -68,16 +68,34 @@ describe('formatKrwChange — 변동 금액', () => {
   });
 });
 
-describe('formatKrwUnits — 만/억/조 표기 (docs §3.4 원안, 미채택)', () => {
-  it('formatKrw와 다른 출력을 낸다 — 전환은 제품 결정 사항', () => {
+describe('formatKrwUnits — 만/억/조 표기 (서술·요약 경로 표준)', () => {
+  it('1억 미만은 완전 정확하다 — 원 단위까지 보존', () => {
+    expect(formatKrwUnits(7250)).toBe('7,250원');
+    expect(formatKrwUnits(53900)).toBe('5만 3,900원');
     expect(formatKrwUnits(276000)).toBe('27만 6,000원');
-    expect(formatKrw(276000)).toBe('₩276,000');
-    expect(formatKrwUnits(276000)).not.toBe(formatKrw(276000));
+    expect(formatKrwUnits(99_999_999)).toBe('9999만 9,999원');
   });
 
-  it('억·조 단위를 분리한다', () => {
-    expect(formatKrwUnits(123456789)).toBe('1억 2,345만원');
+  it('1억 이상은 만 단위 반올림 — floor가 아니라 round (체계적 과소표시 제거)', () => {
+    // 123,456,789 → 만 단위 반올림 12,346만 → 1억 2,346만원 (floor였다면 2,345만)
+    expect(formatKrwUnits(123_456_789)).toBe('1억 2,346만원');
+    expect(formatKrwUnits(100_004_999)).toBe('1억원');
+    expect(formatKrwUnits(100_005_000)).toBe('1억 1만원');
+  });
+
+  it('반올림이 자리올림을 넘길 때 단위가 올라간다', () => {
+    expect(formatKrwUnits(199_999_999)).toBe('2억원');
+    expect(formatKrwUnits(999_999_999_999)).toBe('1조원');
+  });
+
+  it('조 단위를 분리한다', () => {
     expect(formatKrwUnits(1e12)).toBe('1조원');
+    expect(formatKrwUnits(1.23e12)).toBe('1조 2,300억원');
+  });
+
+  it('formatKrw(정확 표기)와는 계속 다른 출력이다 — 경로가 다르다', () => {
+    expect(formatKrw(276000)).toBe('₩276,000');
+    expect(formatKrwUnits(276000)).not.toBe(formatKrw(276000));
   });
 });
 
@@ -110,10 +128,14 @@ describe('formatPct / formatSigned', () => {
   });
 });
 
-describe('formatDisplayAmount — 표시 통화 변환 (6곳 중복 통합분)', () => {
-  it('KRW 모드는 formatKrw 절대값', () => {
-    expect(formatDisplayAmount(276000, 'KRW', 1400)).toBe('₩276,000');
-    expect(formatDisplayAmount(-276000, 'KRW', 1400)).toBe('₩276,000');
+describe('formatDisplayAmount — 서술·요약 경로 (6곳 중복 통합분)', () => {
+  it('KRW 모드는 만/억 표기 절대값', () => {
+    expect(formatDisplayAmount(276000, 'KRW', 1400)).toBe('27만 6,000원');
+    expect(formatDisplayAmount(-276000, 'KRW', 1400)).toBe('27만 6,000원');
+  });
+
+  it('검증 경로(formatKrw)와 표기가 다르다 — 의도된 경로 분리', () => {
+    expect(formatDisplayAmount(276000, 'KRW', 1400)).not.toBe(formatKrw(276000));
   });
 
   it('USD 모드는 환율로 나눈 절대값, 소수점 없음', () => {
