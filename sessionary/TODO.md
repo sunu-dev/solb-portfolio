@@ -22,8 +22,9 @@
 - [ ] **비로그인 실시간 WebSocket 미제공** 트레이드오프 승인 (폴링 시세는 정상 동작)
 
 ### 코드 후속 (P1)
-- [ ] **관리자 허용목록 15파일 복제 + 클라이언트 번들 노출** — `src/lib/apiRoute.ts` 공통 가드 래퍼로 일괄 해소
-- [ ] **미인증 라우트에 rateLimiter 적용** — `/api/search`·`/api/quotes`·`/api/event-candles`·`/api/feedback/report`
+- [x] ~~**관리자 허용목록 15파일 복제 + 클라이언트 번들 노출**~~ — `src/lib/adminAuth.ts` SSOT + `useIsAdmin()`(→`/api/me/admin`)로 해소. **빌드 산출물 노출 0 확인**, 누출 불변식 테스트 `adminAuthBoundary.test.ts` 신설 (2026-08-18)
+- [x] ~~**미인증 라우트에 rateLimiter 적용**~~ — 4개 라우트를 `defineRoute({auth:'public', rateLimit})`로 이관 (2026-08-18)
+- [ ] **cron 라우트를 `defineRoute({auth:'cron'})`로 이관** — 래퍼에 모드는 있으나 기존 9개 cron은 미이관(`check-alerts`는 QStash 분기 때문에 별도 검토)
 - [ ] **`npm test`를 prebuild 편입** — 배포 차단 정책이 바뀌므로 승인 필요
 - [ ] **GitHub Actions CI 신설** — `.github` 부재, 현재 어떤 게이트도 CI에 없음
 - [ ] **`chokDataEnricher` anon 키 → service-role** — `ai_chok_cache`가 `service-only` RLS라 L2 캐시가 영구 무력 (메모리 [[feedback_rls_anon_antipattern]] 재발)

@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/adminAuth';
 import { createClient } from '@supabase/supabase-js';
 import { buildAiAuditCoverage } from '@/lib/aiAuditCoverage';
 import { redactAiAuditExport } from '@/lib/aiAuditExport';
 
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
   { auth: { persistSession: false } },
 );
 
-async function verifyAdmin(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return false;
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  return !!user && (ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id));
+/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
+async function verifyAdmin(req: NextRequest): Promise<boolean> {
+  return (await requireAdmin(req)).ok;
 }
 
 export async function GET(req: NextRequest) {

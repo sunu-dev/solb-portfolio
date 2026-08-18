@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isFounderEmail } from '@/lib/adminAuth';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseAdmin = createClient(
@@ -6,7 +7,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
 );
 
-const FOUNDER_EMAILS = ['sunu.develop@gmail.com'];
 const DEFAULT_MAX_USES = 3;
 
 function generateCode(): string {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const isFounder = FOUNDER_EMAILS.includes(user.email || '');
+  const isFounder = isFounderEmail(user.email);
   const maxUses = isFounder ? null : DEFAULT_MAX_USES;
 
   // 기존 코드 조회

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminIdentity, requireAdmin, resolveUser } from '@/lib/adminAuth';
 import { createClient } from '@supabase/supabase-js';
-
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,12 +16,9 @@ const supabaseAdmin = createClient(
  */
 const PUBLIC_CONFIG_KEYS = new Set(['service_mode', 'invite_required']);
 
+/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
 async function isAdminRequest(req: NextRequest): Promise<boolean> {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return false;
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !user) return false;
-  return ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
+  return isAdminIdentity(await resolveUser(req));
 }
 
 // GET /api/config — 공개 키만 반환. 관리자 토큰이 있으면 전체 반환.
@@ -58,16 +53,9 @@ export async function GET(req: NextRequest) {
 // POST /api/config — 설정 변경 (관리자 전용)
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-    // 토큰으로 유저 확인
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-    if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return auth.res;
+    const user = { id: auth.userId };
 
     const { updates } = await req.json() as { updates: Record<string, string> };
     if (!updates || typeof updates !== 'object') {

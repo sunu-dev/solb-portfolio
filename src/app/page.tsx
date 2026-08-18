@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import type { MacroEntry, QuoteData } from '@/config/constants';
@@ -41,6 +42,7 @@ export default function Home() {
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -174,9 +176,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!user || authLoading) return;
-    const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-    const isAdmin = ADMIN_IDS.includes(user.id);
+    if (!user || authLoading || adminLoading) return;
+    // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
+    // (예전엔 여기 ID만 검사하는 변종이 있어 이메일 기준 관리자는 초대 게이트에 걸렸다.)
     if (isAdmin) { setNeedsInvite(false); return; }
 
     // 초대코드 필수 모드이면 사용 이력 확인
@@ -196,7 +198,7 @@ export default function Home() {
         })
         .catch(() => {});
     }
-  }, [user, authLoading, serviceMode]);
+  }, [user, authLoading, serviceMode, isAdmin, adminLoading]);
 
   // Log login event
   useEffect(() => {

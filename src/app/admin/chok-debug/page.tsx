@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 
 interface DetailRow {
   symbol: string;
@@ -38,7 +36,8 @@ export default function ChokDebugPage() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const isAdmin = !!user && (ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id));
+  // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
+  const { isAdmin } = useIsAdmin();
 
   async function fetchDebug() {
     setBusy(true); setErr(null);

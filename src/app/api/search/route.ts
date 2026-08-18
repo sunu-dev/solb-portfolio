@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import { logServerApi } from '@/lib/serverLogger';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
@@ -26,7 +27,12 @@ interface SearchResultItem {
   isLeverage?: boolean;
 }
 
-export async function GET(req: NextRequest) {
+// 미인증 공개 라우트 — 유료 Finnhub 쿼터를 소모하고 stock_listings insert까지 유발하므로 상한 필수.
+export const GET = defineRoute({
+  name: '/api/search',
+  auth: 'public',
+  rateLimit: POLICIES.general,
+  handler: async ({ req }) => {
   const query = req.nextUrl.searchParams.get('q');
   if (!query) {
     return NextResponse.json({ result: [] });
@@ -115,4 +121,5 @@ export async function GET(req: NextRequest) {
   } catch {
     return NextResponse.json({ result: [] });
   }
-}
+},
+});

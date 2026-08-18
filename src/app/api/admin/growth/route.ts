@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
+import { defineRoute } from '@/lib/apiRoute';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,15 +15,10 @@ function getDaysAgo(days: number): string {
   return getKSTDateString(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
 }
 
-export async function GET(req: NextRequest) {
-  // 관리자 인증
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-
+export const GET = defineRoute({
+  name: '/api/admin/growth',
+  auth: 'admin',
+  handler: async ({ req }) => {
   const days = parseInt(req.nextUrl.searchParams.get('days') || '14');
   const since = getDaysAgo(days);
 
@@ -266,4 +259,5 @@ export async function GET(req: NextRequest) {
     console.error('Growth API error:', e);
     return NextResponse.json({ error: 'internal error' }, { status: 500 });
   }
-}
+},
+});

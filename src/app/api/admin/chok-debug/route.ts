@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { enrichUniverse } from '@/utils/chokDataEnricher';
 import { CHOK_UNIVERSE, sectorLabel } from '@/config/chokUniverse';
 
@@ -18,22 +18,10 @@ import { CHOK_UNIVERSE, sectorLabel } from '@/config/chokUniverse';
  * 목적: Finnhub free tier에서 PER/52w가 실제로 들어오는지 확인.
  */
 
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
-
-export async function GET(req: NextRequest) {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-
+export const GET = defineRoute({
+  name: '/api/admin/chok-debug',
+  auth: 'admin',
+  handler: async () => {
   try {
     const enriched = await enrichUniverse();
 
@@ -102,4 +90,5 @@ export async function GET(req: NextRequest) {
       error: e instanceof Error ? e.message : String(e),
     }, { status: 500 });
   }
-}
+},
+});

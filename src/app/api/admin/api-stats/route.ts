@@ -1,12 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { defineRoute } from '@/lib/apiRoute';
 import { getClaudeUsageToday, getProviderStatus } from '@/lib/aiProvider';
 import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
 import { getAiSafetyStatus } from '@/lib/aiSafetyStatus';
 import { monthStartKstIso, projectAiMonthlyCost } from '@/lib/aiCostProjection';
-
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,15 +36,10 @@ interface AiCostRow {
   success: boolean;
 }
 
-export async function GET(req: NextRequest) {
-  // 관리자 인증
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-
+export const GET = defineRoute({
+  name: '/api/admin/api-stats',
+  auth: 'admin',
+  handler: async ({ req }) => {
   const hours = parseInt(req.nextUrl.searchParams.get('hours') || '24');
   const sinceIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
@@ -276,4 +269,5 @@ export async function GET(req: NextRequest) {
     console.error('API stats error:', e);
     return NextResponse.json({ error: 'internal error' }, { status: 500 });
   }
-}
+},
+});

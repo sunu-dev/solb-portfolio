@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import {
   Activity,
   BarChart3,
@@ -21,8 +22,6 @@ import ListingsPanel from '@/components/admin/ListingsPanel';
 import AiAuditPanel from '@/components/admin/AiAuditPanel';
 import ProReadinessPanel from '@/components/admin/ProReadinessPanel';
 
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 const GEMINI_RPD_PER_KEY = 500;
 
 interface GeminiKeyUsage { key_index: number; count: number }
@@ -99,13 +98,16 @@ export default function AdminPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<AdminTab>('stats');
 
+  // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
+
   useEffect(() => {
-    if (loading) return;
+    if (loading || adminLoading) return;
     if (!user) { setError('로그인이 필요해요.'); return; }
-    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
     if (!isAdmin) { setError('관리자 권한이 없어요.'); return; }
+    setError('');
     fetchStats();
-  }, [user, loading]);
+  }, [user, loading, isAdmin, adminLoading]);
 
   async function fetchStats() {
     setRefreshing(true);

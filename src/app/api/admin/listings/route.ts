@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/adminAuth';
 import { createClient } from '@supabase/supabase-js';
 import { callAiJson } from '@/lib/aiProvider';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
@@ -14,8 +15,6 @@ import { isSingleStockLeverage } from '@/utils/leverageGuard';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,15 +22,8 @@ const supabaseAdmin = createClient(
   { auth: { persistSession: false } },
 );
 
-async function verifyAdmin(req: NextRequest): Promise<{ ok: true; userId: string } | { ok: false; res: NextResponse }> {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return { ok: false, res: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
-  return { ok: true, userId: user.id };
-}
+/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
+const verifyAdmin = requireAdmin;
 
 // ─── GET: 목록 조회 ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {

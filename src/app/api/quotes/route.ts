@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { logServerApi } from '@/lib/serverLogger';
 import {
   getYahooSymbolCandidates,
@@ -79,7 +80,12 @@ async function fetchBareKoreanCode(symbol: string): Promise<QuoteResult | null> 
   return null;
 }
 
-export async function POST(req: NextRequest) {
+// 미인증 공개 라우트 — 요청당 최대 50종목 Finnhub 호출.
+export const POST = defineRoute({
+  name: '/api/quotes',
+  auth: 'public',
+  rateLimit: POLICIES.general,
+  handler: async ({ req }) => {
   try {
     const { symbols, macro } = await req.json() as {
       symbols: string[];
@@ -143,4 +149,5 @@ export async function POST(req: NextRequest) {
     console.error('Batch quotes error:', e);
     return NextResponse.json({ error: 'internal error' }, { status: 500 });
   }
-}
+},
+});

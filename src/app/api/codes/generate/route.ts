@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminIdentity } from '@/lib/adminAuth';
 import { createClient } from '@supabase/supabase-js';
 
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,8 +25,7 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-    if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const {
       type = 'invite',
@@ -99,8 +97,7 @@ export async function GET(req: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-    if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const type = req.nextUrl.searchParams.get('type');
 
@@ -132,8 +129,7 @@ export async function PATCH(req: NextRequest) {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-    if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const { code, is_active } = await req.json() as { code: string; is_active: boolean };
 
