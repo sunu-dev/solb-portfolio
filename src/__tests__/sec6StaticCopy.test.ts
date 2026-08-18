@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PRESET_EVENTS } from '@/config/constants';
 import { FORBIDDEN_PHRASES, SAFE_REPLACEMENTS, sanitizeAiOutput } from '@/utils/alertCompliance';
+import { GLOSSARY } from '@/utils/alertGlossary';
 
 /**
  * §6 정적 카피 누출 불변식 — 2026-08-18 전수 감사 후속.
@@ -64,6 +65,33 @@ describe('§6 — PRESET_EVENTS 이벤트 해설 카피', () => {
     for (const ev of PRESET_EVENTS) {
       const hits = FORBIDDEN_PHRASES.filter(p => ev.insight.includes(p));
       expect(hits, `${ev.id}`).toEqual([]);
+    }
+  });
+});
+
+/**
+ * 알림 용어사전(alertGlossary) — 사용자에게 툴팁으로 직접 렌더되는 정적 카피.
+ * 2026-08-19 적대적 검증이 라이브 처방 카피 발견('강력한 매도 신호예요'·
+ * '분할 매도로 이익을 확정하는 게 원칙'·'일부 익절을 고려할 타이밍') → 정화 후 박제.
+ * 원칙: 서술까지만 · 앞일은 양쪽+아무도모름 · 행동/타이밍 지시는 본인 기준 환기로 대체.
+ */
+const GLOSSARY_FORBIDDEN = [
+  ...FORECAST_FORBIDDEN,
+  ...STRATEGY_FORBIDDEN,
+  '매도 신호', '매수 신호', '익절', '좋은 타이밍', '할 타이밍', '시점이에요', '추천해', '가치 매수',
+];
+
+describe('§6 — 알림 용어사전 카피', () => {
+  const entries = Object.entries(GLOSSARY);
+
+  it('용어사전이 비어 있지 않다', () => {
+    expect(entries.length).toBeGreaterThan(20);
+  });
+
+  it.each(GLOSSARY_FORBIDDEN)('전 항목의 term·oneLine·detail에 "%s"가 없다', phrase => {
+    for (const [key, entry] of entries) {
+      const joined = `${entry.term} ${entry.oneLine} ${entry.detail}`;
+      expect(joined.includes(phrase), `${key}: "${phrase}" 발견`).toBe(false);
     }
   });
 });
