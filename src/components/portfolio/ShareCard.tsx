@@ -2,13 +2,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import type { QuoteData } from '@/config/constants';
-
-declare global {
-  interface Window {
-    Kakao: any;
-  }
-}
+import type { QuoteData, MacroEntry } from '@/config/constants';
+import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 
 export default function ShareCard() {
   const { stocks, macroData } = usePortfolioStore();
@@ -38,19 +33,33 @@ export default function ShareCard() {
 
   const investingStocks = stocks.investing || [];
 
-  let totalValue = 0, totalCost = 0, winCount = 0;
+  let winCount = 0;
   investingStocks.forEach(s => {
     const q = macroData[s.symbol] as QuoteData | undefined;
     const price = q?.c || 0;
     if (s.avgCost > 0 && s.shares > 0 && price > 0) {
-      totalValue += price * s.shares;
-      totalCost += s.avgCost * s.shares;
       if (price > s.avgCost) winCount++;
     }
   });
 
-  const totalPL = totalValue - totalCost;
-  const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
+  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const summary = summarizePortfolioCurrency(
+    investingStocks.map((stock) => {
+      const quote = macroData[stock.symbol] as QuoteData | undefined;
+      return {
+        symbol: stock.symbol,
+        currency: stock.currency,
+        avgCost: stock.avgCost,
+        shares: stock.shares,
+        currentPrice: quote?.c || 0,
+        dayChange: quote?.d || 0,
+        purchaseRate: stock.purchaseRate,
+      };
+    }),
+    usdKrw,
+  );
+  const totalPL = summary.totalPnlKrw;
+  const totalPLPct = summary.totalPnlPctKrw;
   const isGain = totalPL >= 0;
   const holdingCount = investingStocks.filter(s => s.avgCost > 0 && s.shares > 0).length;
   const winRate = holdingCount > 0 ? Math.round((winCount / holdingCount) * 100) : 0;

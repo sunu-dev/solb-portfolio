@@ -1,23 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { Check, CircleAlert, RefreshCw, Target, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { getAvatarColor, STOCK_KR } from '@/config/constants';
-import { CHOK_KR_MAP, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
-import type { MacroEntry, PortfolioStocks } from '@/config/constants';
-import { computeHoldingPriorities, buildHoldingsPromptContext } from '@/utils/priorityScore';
+import { CHOK_KR_MAP } from '@/config/chokUniverse';
+import type { MacroEntry } from '@/config/constants';
 import { supabase } from '@/lib/supabase';
 import { trackChokImpression, trackChokInView, trackChokInteraction } from '@/utils/telemetry/chokEvents';
 import { logTourEvent } from '@/lib/tourTelemetry';
-
-// ─── 섹터 라벨 헬퍼 — universe 영문 태그 → 한국어 라벨로 통일 ───────────────
-function symbolToSectorLabel(symbol: string): string {
-  const tag = CHOK_SECTOR_MAP[symbol];
-  if (tag) return sectorLabel(tag);
-  if (symbol.endsWith('.KS') || symbol.endsWith('.KQ')) return '한국주식';
-  return '기타';
-}
+import AiResultMeta from '@/components/common/AiResultMeta';
+import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
+import type { MarketFlowResult } from '@/utils/marketFlow';
 
 function buildMacroContext(macroData: Record<string, MacroEntry | unknown>): string {
   const vix = macroData['VIX'] as MacroEntry | undefined;
@@ -39,21 +33,6 @@ function buildMacroContext(macroData: Record<string, MacroEntry | unknown>): str
   return parts.length ? parts.join(' / ') : '시장 데이터 로드 중';
 }
 
-function buildSectorConcentration(stocks: PortfolioStocks): string {
-  const all = [...(stocks.investing || []), ...(stocks.watching || [])];
-  if (!all.length) return '포트폴리오 없음';
-  const cnt: Record<string, number> = {};
-  for (const s of all) {
-    const sec = symbolToSectorLabel(s.symbol);
-    cnt[sec] = (cnt[sec] || 0) + 1;
-  }
-  return Object.entries(cnt)
-    .sort((a, b) => b[1] - a[1])
-    .map(([sec, n]) => `${sec} ${Math.round(n / all.length * 100)}%`)
-    .slice(0, 4)
-    .join(', ');
-}
-
 interface ChokPick {
   symbol: string;
   krName: string;
@@ -72,6 +51,38 @@ interface ChokState {
   dailyLimit?: number;
   tier?: 'free' | 'pro';
   sessionLabel?: string;
+  _meta?: AiResultMetaValue;
+  marketFlow?: MarketFlowResult;
+}
+
+function MarketFlowSummary({ flow }: { flow: MarketFlowResult }) {
+  const confidenceLabel = flow.rotation.detected
+    ? flow.rotation.confidence === 'high' ? '뚜렷한 순환 신호' : '순환 신호'
+    : '상대 강도 비교';
+
+  return (
+    <div style={{ marginBottom: 14, padding: '14px 16px', borderRadius: 14, background: 'var(--surface, #fff)', border: '1px solid var(--border-light, #E5E8EB)' }}>
+      <div className="flex items-center justify-between" style={{ gap: 10, marginBottom: 8 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>오늘 흐름 한 줄</span>
+        <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--bg-subtle, #F2F4F6)', padding: '3px 7px', borderRadius: 6 }}>
+          {confidenceLabel}
+        </span>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.65, marginBottom: 10 }}>
+        {flow.summary}
+      </p>
+      <div className="flex flex-wrap" style={{ gap: 6 }}>
+        {flow.evidence.map(item => (
+          <span key={item} style={{ fontSize: 10.5, color: 'var(--text-secondary, #4E5968)', background: 'var(--bg-subtle, #F2F4F6)', padding: '4px 7px', borderRadius: 6 }}>
+            {item}
+          </span>
+        ))}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--text-tertiary, #8B95A1)', marginTop: 9, lineHeight: 1.5 }}>
+        종목 {flow.coverage.available}/{flow.coverage.total}개 당일 등락률 · 섹터 중앙값과 상승 종목 비율 기준 · 순환 신호는 관측값 해석이며 확정 판단이 아니에요
+      </div>
+    </div>
+  );
 }
 
 // ==========================================
@@ -95,6 +106,7 @@ function SkeletonCard() {
           <div style={{ height: 10, width: '40%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4 }} />
         </div>
       </div>
+
       <div style={{ height: 10, width: '85%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 6 }} />
       <div style={{ height: 10, width: '70%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 16 }} />
       <div style={{ height: 24, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 6, marginBottom: 8 }} />
@@ -109,9 +121,8 @@ function SkeletonCard() {
 // ==========================================
 // Chok card
 // ==========================================
-function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbackGiven }: {
+function ChokCard({ pick, onAddWatch, inWatching, onFeedback, feedbackGiven }: {
   pick: ChokPick;
-  onAnalyze: () => void;
   onAddWatch: () => void;
   inWatching: boolean;
   onFeedback: (rating: 1 | -1) => void;
@@ -186,22 +197,6 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
       {/* Actions */}
       <div className="flex gap-2 mt-auto">
         <button
-          onClick={onAnalyze}
-          className="cursor-pointer transition-opacity hover:opacity-80"
-          style={{
-            flex: 1,
-            padding: '8px 0',
-            borderRadius: 8,
-            fontSize: 11,
-            fontWeight: 600,
-            background: 'var(--text-primary, #191F28)',
-            color: 'var(--text-inverse, #fff)',
-            border: 'none',
-          }}
-        >
-          분석 보기
-        </button>
-        <button
           onClick={onAddWatch}
           disabled={inWatching}
           className="cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-60"
@@ -216,7 +211,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
             border: 'none',
           }}
         >
-          {inWatching ? '✓ 둘러봄' : '둘러보기'}
+          {inWatching ? <span className="inline-flex items-center gap-1"><Check size={12} aria-hidden="true" />둘러봄</span> : '둘러보기'}
         </button>
       </div>
 
@@ -233,7 +228,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
             cursor: feedbackGiven !== null ? 'default' : 'pointer',
           }}
           aria-label="도움됐어요"
-        >👍</button>
+        ><ThumbsUp size={13} aria-hidden="true" /></button>
         <button
           onClick={() => onFeedback(-1)}
           disabled={feedbackGiven !== null}
@@ -244,7 +239,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
             cursor: feedbackGiven !== null ? 'default' : 'pointer',
           }}
           aria-label="별로예요"
-        >👎</button>
+        ><ThumbsDown size={13} aria-hidden="true" /></button>
       </div>
     </div>
   );
@@ -254,7 +249,7 @@ function ChokCard({ pick, onAnalyze, onAddWatch, inWatching, onFeedback, feedbac
 // Main section
 // ==========================================
 export default function AiChokSection() {
-  const { getAllSymbols, setAnalysisSymbol, addStock, stocks, macroData, rawCandles, currentEventId, getAllEvents, investorType } = usePortfolioStore();
+  const { addStock, stocks, macroData, currentEventId, getAllEvents } = usePortfolioStore();
   const [state, setState] = useState<ChokState | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -280,15 +275,11 @@ export default function AiChokSection() {
     setError(null);
 
     try {
-      // ⚠️ 로그인 토큰 필수 — 서버(ai-chok/route.ts)는 Authorization Bearer로 getUser 검증해
+      // 로그인 토큰 필수 — 서버(ai-chok/route.ts)는 Authorization Bearer로 getUser 검증해
       // 미인증 시 401 로그인 게이트를 반환한다. 이 헤더를 빠뜨리면 로그인한 유저도 '로그인하세요'가 뜬다(버그).
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      const portfolioSymbols = getAllSymbols();
       const currentEvent = getAllEvents().find(e => e.id === currentEventId);
-      // P3 — 시그널 우선순위 점수화: 핵심 보유 종목 컨텍스트 빌드
-      const priorities = computeHoldingPriorities(stocks.investing || [], macroData, rawCandles);
-      const holdingsContext = buildHoldingsPromptContext(priorities, 3);
       const res = await fetch('/api/ai-chok', {
         method: 'POST',
         headers: {
@@ -296,20 +287,16 @@ export default function AiChokSection() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          portfolioSymbols,
           intent,
           forceRefresh: force,
           macroContext: buildMacroContext(macroData),
           currentEvent: currentEvent ? `${currentEvent.emoji} ${currentEvent.name}` : '없음',
-          sectorConcentration: buildSectorConcentration(stocks),
-          investorType,
-          holdingsContext, // 시그널 우선순위 기반 핵심 종목 + 메모 + z-score
         }),
       });
       const data = await res.json() as ChokState & { error?: string; limitReached?: boolean; loginForMore?: boolean };
 
       if (!res.ok) {
-        setError(data.error || 'AI 촉 서비스에 오류가 발생했어요.');
+        setError(data.error || '시장 관찰판을 불러오지 못했어요.');
         setLimitReached(!!data.limitReached);
         setLoginForMore(!!data.loginForMore);
         return;
@@ -336,15 +323,6 @@ export default function AiChokSection() {
   }, []);
 
   // 투자자 유형 변경 시 자동 재조회 — fetch intent 유지 (한도 차감 X)
-  const prevTypeRef = useRef(investorType);
-  useEffect(() => {
-    if (prevTypeRef.current !== investorType && fetchedRef.current) {
-      prevTypeRef.current = investorType;
-      fetchChok('fetch');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [investorType]);
-
   // 노출 측정(검증=측정) — 카드가 실제 뷰포트에 절반 이상 들어오면 1회 기록.
   useEffect(() => {
     const el = sectionRef.current;
@@ -373,7 +351,7 @@ export default function AiChokSection() {
       await fetch('/api/ai-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ source: 'ai-chok', symbol, rating, context: { investorType } }),
+        body: JSON.stringify({ source: 'ai-chok', symbol, rating, context: { surface: 'shared-market-observation' } }),
       });
     } catch { /* silent */ }
   };
@@ -396,23 +374,23 @@ export default function AiChokSection() {
       <div className="flex items-start justify-between" style={{ marginBottom: 12 }}>
         <div>
           <div className="flex items-center" style={{ gap: 6 }}>
-            <span style={{ fontSize: 16 }}>🎯</span>
+            <Target size={16} aria-hidden="true" color="var(--brand-primary)" />
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              AI 촉
+              오늘 시장 흐름
             </h2>
             {state && (state.fallback || state.stale || state.cached) && (() => {
               // 우선순위: fallback > stale > cached
               const isFallback = state.fallback;
               const isStale = !isFallback && state.stale;
               const label = isFallback
-                ? '기준 추천'
+                ? '공개 기준'
                 : isStale
                   ? `이전 ${state.sessionLabel || ''}`.trim()
                   : (state.sessionLabel || '오늘 기준');
               const fg = isFallback ? '#FF9500' : isStale ? '#8B95A1' : 'var(--text-tertiary, #B0B8C1)';
               const bg = isFallback ? 'rgba(255,149,0,0.10)' : 'var(--bg-subtle, #F2F4F6)';
               const tip = isFallback
-                ? '객관 수치 기준 기본 추천이에요. AI에게 새로 받아보려면 오른쪽 버튼을 눌러주세요.'
+                ? '모든 사용자에게 같은 객관 수치 기준을 적용한 목록이에요.'
                 : isStale
                   ? '직전 세션 캐시예요. 새 세션 결과는 새로 받아보세요.'
                   : undefined;
@@ -434,7 +412,7 @@ export default function AiChokSection() {
             })()}
           </div>
           <p style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-            AI의 관찰 후보예요 · 추천이 아닌 정보 제공 · 투자 판단은 본인이
+            지수·섹터 등락률과 상승 종목 비율로 시장의 상대 강약을 설명해요
           </p>
         </div>
 
@@ -455,13 +433,15 @@ export default function AiChokSection() {
             }}
           >
             <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
-            {state.fallback || state.stale ? 'AI에게 받기' : '새로 촉 받기'}
+            시장 데이터 갱신
             <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 2 }}>
               · 오늘 {state.remaining}/{state.dailyLimit ?? 1}
             </span>
           </button>
         )}
       </div>
+
+      {!loading && !error && state?.marketFlow && <MarketFlowSummary flow={state.marketFlow} />}
 
       {/* Loading skeletons */}
       {loading && (
@@ -483,7 +463,11 @@ export default function AiChokSection() {
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 8 }}>{limitReached ? '🎯' : '😔'}</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+            {limitReached
+              ? <Target size={20} aria-hidden="true" color="var(--brand-primary)" />
+              : <CircleAlert size={20} aria-hidden="true" color="var(--text-tertiary, #8B95A1)" />}
+          </div>
           <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
             {error}
           </p>
@@ -491,7 +475,7 @@ export default function AiChokSection() {
             <div style={{ marginTop: 12 }}>
               {/* 게스트 value-first 게이트 — 티커 없는 descriptive 설명만(§6: 익명 공개에 종목 예시 비노출) */}
               <p style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', lineHeight: 1.55, marginBottom: 10 }}>
-                AI 촉은 추천이 아니라 시장 정보예요. 매매 판단은 본인 몫이에요.
+                오늘 시장 흐름은 모든 사용자에게 같은 공개 지표로 설명해요.
               </p>
               <button
                 onClick={() => {
@@ -524,6 +508,9 @@ export default function AiChokSection() {
       {/* Cards */}
       {!loading && !error && state && state.picks.length > 0 && (
         <>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary, #4E5968)', marginBottom: 8 }}>
+            함께 확인할 시장 항목
+          </div>
           <div
             className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0"
             style={{ scrollSnapType: 'x mandatory' }}
@@ -532,7 +519,6 @@ export default function AiChokSection() {
               <div key={pick.symbol} style={{ scrollSnapAlign: 'start' }}>
                 <ChokCard
                   pick={pick}
-                  onAnalyze={() => { trackChokInteraction('analyze', pick.symbol); setAnalysisSymbol(pick.symbol); }}
                   onAddWatch={() => handleAddWatch(pick)}
                   inWatching={watchingSet.has(pick.symbol)}
                   onFeedback={(rating) => handleFeedback(pick.symbol, rating)}
@@ -555,6 +541,7 @@ export default function AiChokSection() {
               {state.context}
             </p>
           )}
+          <AiResultMeta meta={state._meta} source="ai-chok" />
         </>
       )}
 
@@ -568,16 +555,16 @@ export default function AiChokSection() {
             textAlign: 'center',
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 6 }}>🎯</div>
+          <Target size={20} aria-hidden="true" color="var(--text-tertiary, #8B95A1)" style={{ margin: '0 auto 6px' }} />
           <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>
-            촉이 오는 종목을 찾지 못했어요.
+            현재 기준에 맞는 관찰 항목을 찾지 못했어요.
           </p>
           <button
             onClick={() => fetchChok('generate')}
             className="cursor-pointer"
             style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: 'none', padding: 0 }}
           >
-            다시 촉 받기
+            시장 데이터 다시 확인
           </button>
         </div>
       )}

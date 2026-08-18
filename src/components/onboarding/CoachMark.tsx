@@ -106,12 +106,15 @@ export default function CoachMark() {
     if (!step) return;
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let clearBoxFrame: number | undefined;
 
     // 1) 필요 시 탭 전환 — 전환 중엔 이전 위치 숨김(백드롭만)
     const store = usePortfolioStore.getState();
     if (step.section !== store.currentSection) {
       store.setCurrentSection(step.section);
-      setBox(null);
+      clearBoxFrame = requestAnimationFrame(() => {
+        if (!cancelled) setBox(null);
+      });
     }
 
     // 2) 앵커 폴링 (탭 전환·lazy 마운트 대응)
@@ -136,7 +139,11 @@ export default function CoachMark() {
     };
     timer = setTimeout(poll, 60); // 탭 전환 DOM 반영 여유
 
-    return () => { cancelled = true; if (timer) clearTimeout(timer); };
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      if (clearBoxFrame !== undefined) cancelAnimationFrame(clearBoxFrame);
+    };
   }, [active, stepIdx, steps, finish]);
 
   // 윈도우 리사이즈/스크롤 시 위치 갱신

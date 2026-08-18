@@ -1,4 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+
+const subscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 /**
  * 클라이언트 하이드레이션 완료 여부.
@@ -9,7 +13,5 @@ import { useState, useEffect } from 'react';
  * 그때부터 숨김/순서를 적용한다(WidgetCard·zone 렌더가 이 플래그로 게이트).
  */
 export function useHasHydrated(): boolean {
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => { setHydrated(true); }, []);
-  return hydrated;
+  return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
 }

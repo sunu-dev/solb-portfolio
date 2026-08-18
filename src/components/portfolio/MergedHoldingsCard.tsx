@@ -15,6 +15,10 @@ import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { BROKER_LABELS, STOCK_KR, type MacroEntry } from '@/config/constants';
 import { mergeHoldings } from '@/utils/mergedHoldings';
+import {
+  convertStockAmount,
+  getStockCurrency,
+} from '@/utils/stockCurrency';
 
 interface Quote { c?: number; dp?: number }
 
@@ -55,14 +59,20 @@ export default function MergedHoldingsCard() {
         {merged.map(h => {
           const isOpen = expanded === h.symbol;
           const kr = STOCK_KR[h.symbol] || h.symbol;
-          const isKR = h.symbol.endsWith('.KS') || h.symbol.endsWith('.KQ');
+          const explicitCurrency = h.lots.find((lot) => lot.currency)?.currency;
+          const isKR = getStockCurrency(h.symbol, explicitCurrency) === 'KRW';
           const unit = isKR ? '₩' : '$';
           const quote = macroData[h.symbol] as Quote | undefined;
           const currentPrice = quote?.c || h.mergedAvgCost;
           const pnlPct = h.mergedAvgCost > 0 ? ((currentPrice - h.mergedAvgCost) / h.mergedAvgCost) * 100 : 0;
           const pnlColor = pnlPct > 0 ? '#EF4452' : pnlPct < 0 ? '#3182F6' : '#8B95A1';
           const totalValueLocal = currentPrice * h.totalShares;
-          const totalValueKrw = isKR ? totalValueLocal : totalValueLocal * usdKrw;
+          const totalValueKrw = convertStockAmount(
+            h.symbol,
+            totalValueLocal,
+            usdKrw,
+            explicitCurrency,
+          ).krw;
           const brokerLabels = h.brokers.map(b => BROKER_LABELS[b]).join(' + ');
           const brokerSummary = h.hasUnspecifiedBroker
             ? `${brokerLabels}${brokerLabels ? ' + ' : ''}미지정`

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
@@ -8,6 +9,7 @@ import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
 import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
 import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
+import JoobiLockup from '@/components/brand/JoobiLockup';
 
 // 최상위 탭 — menuRegistry SSOT에서 파생(3곳 표류 방지). 풀 라벨 사용(헤더는 폭 여유).
 const NAV_ITEMS: { label: string; section: MainSection }[] = PRIMARY_SECTIONS.map((m) => ({
@@ -53,34 +55,15 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
         {/* Logo */}
         <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
-          {/* J 로고 — 짧은 상단 가로획 + 수직 하강 + 우상향 훅 + 상승 ▲ */}
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="24" height="24" rx="6" fill="#0E7C7B"/>
-            {/* J: 짧은 가로획(왼쪽으로만) + 수직 하강 + 우상향 훅 */}
-            <path
-              d="M 7 5 L 12 5 L 12 16 C 12 21 20 21 20 12"
-              stroke="white"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            {/* 상승 삼각형 ▲ — 훅 끝점에 */}
-            <polygon points="20,8 22.5,13 17.5,13" fill="white"/>
-          </svg>
-          <span style={{
-            fontSize: '18px',
-            fontWeight: 800,
-            letterSpacing: '-0.03em',
-            fontFamily: 'Pretendard, sans-serif',
-            lineHeight: 1,
-            background: 'linear-gradient(135deg, #0E7C7B 0%, #0A6362 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
-            주비
-          </span>
+          <Image
+            src="/icon-192.png"
+            alt=""
+            width={24}
+            height={24}
+            priority
+            style={{ width: 24, height: 24, borderRadius: 6 }}
+          />
+          <JoobiLockup variant="header" />
         </div>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}

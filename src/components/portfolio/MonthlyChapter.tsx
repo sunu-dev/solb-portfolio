@@ -47,9 +47,9 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
 
   const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
   const isGain = stats.totalAbsReturn >= 0;
-  const fmt = (usd: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-    : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => currency === 'KRW'
+    ? formatKRW(Math.round(Math.abs(krw)))
+    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   // 어제 대비 델타 (있을 때만)
   const deltaPct = stats.prevTotalPctReturn !== null

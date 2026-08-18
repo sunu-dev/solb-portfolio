@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  countUnsupportedFinnhubSecurityTypes,
+  isSupportedFinnhubSecurityType,
+} from '@/utils/securityTypePolicy';
 
 /**
  * 신규 상장 종목 감지 cron — 매일 KST 09:00 (UTC 00:00)
@@ -49,7 +53,12 @@ interface FinnhubSymbol {
   mic?: string;
 }
 
-async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string): Promise<FinnhubSymbol[]> {
+interface ExchangeSymbolResult {
+  symbols: FinnhubSymbol[];
+  excludedTypes: Record<string, number>;
+}
+
+async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string): Promise<ExchangeSymbolResult> {
   try {
     const r = await fetch(
       `${FINNHUB_BASE}/stock/symbol?exchange=${exchange}&token=${apiKey}`,
@@ -57,17 +66,17 @@ async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string
     );
     if (!r.ok) {
       console.error(`[sync-listings] ${exchange} fetch failed:`, r.status);
-      return [];
+      return { symbols: [], excludedTypes: {} };
     }
     const data = (await r.json()) as FinnhubSymbol[];
-    // ETF는 별도 type 'ETP', 일반 주식 'Common Stock' 만 통과
-    return (data || []).filter(s => {
-      const t = s.type;
-      return t === 'Common Stock' || t === 'ETP' || t === 'ETF';
-    });
+    const rows = data || [];
+    return {
+      symbols: rows.filter(s => isSupportedFinnhubSecurityType(s.type)),
+      excludedTypes: countUnsupportedFinnhubSecurityTypes(rows),
+    };
   } catch (e) {
     console.error(`[sync-listings] ${exchange} fetch error:`, e);
-    return [];
+    return { symbols: [], excludedTypes: {} };
   }
 }
 
@@ -95,11 +104,23 @@ export async function GET(req: NextRequest) {
   const supabase = getAdmin();
 
   // 1. Finnhub에서 현재 상장 목록 받기 (병렬)
-  const [us, ks, kq] = await Promise.all([
+  const [usResult, ksResult, kqResult] = await Promise.all([
     fetchExchangeSymbols('US', apiKey),
     fetchExchangeSymbols('KS', apiKey),
     fetchExchangeSymbols('KQ', apiKey),
   ]);
+  const us = usResult.symbols;
+  const ks = ksResult.symbols;
+  const kq = kqResult.symbols;
+  const excludedTypes = {
+    US: usResult.excludedTypes,
+    KS: ksResult.excludedTypes,
+    KQ: kqResult.excludedTypes,
+  };
+
+  if (Object.values(excludedTypes).some(counts => Object.keys(counts).length > 0)) {
+    console.info('[sync-listings] excluded Finnhub security types:', excludedTypes);
+  }
 
   const incoming: Array<{ symbol: string; exchange: string; description: string }> = [
     ...us.map(s => ({ symbol: s.symbol, exchange: 'US', description: s.description || '' })),
@@ -228,6 +249,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     fetched: { us: us.length, ks: ks.length, kq: kq.length, total: incoming.length },
+    diagnostics: { excludedTypes },
     diff: { newCount, delistedCount, universeDelisted },
   });
 }

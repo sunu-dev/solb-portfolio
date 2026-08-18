@@ -16,6 +16,10 @@ import {
   BROKER_LABELS, BROKER_ORDER, BROKER_DISCOVERY_THRESHOLD,
   type Broker, type MacroEntry,
 } from '@/config/constants';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+} from '@/utils/stockCurrency';
 
 interface BrokerStat {
   broker: Broker | 'unspecified';
@@ -44,11 +48,21 @@ export default function BrokerSummaryCard({ active = null, onSelect }: Props = {
     const acc: Record<string, BrokerStat> = {};
     for (const s of investing) {
       if (!s.shares || s.shares <= 0) continue;
-      const isKR = s.symbol.endsWith('.KS') || s.symbol.endsWith('.KQ');
       const quote = macroData[s.symbol] as { c?: number } | undefined;
       const currentPrice = quote?.c || s.avgCost;
-      const value = currentPrice * s.shares * (isKR ? 1 : usdKrw);
-      const cost = s.avgCost * s.shares * (isKR ? 1 : (s.purchaseRate || usdKrw));
+      const value = convertStockAmount(
+        s.symbol,
+        currentPrice,
+        usdKrw,
+        s.currency,
+      ).krw * s.shares;
+      const cost = convertStockCostAmount(
+        s.symbol,
+        s.avgCost,
+        usdKrw,
+        s.purchaseRate,
+        s.currency,
+      ).krw * s.shares;
 
       const key = s.broker || 'unspecified';
       const label = s.broker ? BROKER_LABELS[s.broker as Broker] : '미지정';

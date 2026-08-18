@@ -5,7 +5,7 @@ import { ImageResponse } from 'next/og';
 // (그로스 패널: K-factor 무료 채널의 핵심)
 
 export const runtime = 'edge';
-export const alt = '주비 — 내 주식 쉽게 읽어주는 AI 비서';
+export const alt = '주비 — 오늘 내 주식을 챙기는 개인 주식비서';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -58,7 +58,7 @@ export default async function OG() {
             marginBottom: 16,
           }}
         >
-          내 주식, 쉽게 읽어주는
+          판단은 내가 하고,
         </div>
         <div
           style={{
@@ -69,7 +69,7 @@ export default async function OG() {
             opacity: 0.95,
           }}
         >
-          AI 주식 비서
+          오늘의 변화와 챙길 일은 주비가 정리해요
         </div>
         <div
           style={{
@@ -81,10 +81,10 @@ export default async function OG() {
             opacity: 0.75,
           }}
         >
-          <span>📊 시세</span>
-          <span>🎯 AI 촉</span>
-          <span>🧑‍🏫 멘토 6명</span>
-          <span>🏦 증권사 통합</span>
+          <span>내 자산</span>
+          <span>오늘의 변화</span>
+          <span>내 종목 소식</span>
+          <span>안전한 기록</span>
         </div>
       </div>
     ),

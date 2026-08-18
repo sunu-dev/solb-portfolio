@@ -14,7 +14,8 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { resetPortfolio } = usePortfolioStore();
+  const resetPortfolio = usePortfolioStore((state) => state.resetPortfolio);
+  const portfolioSyncStatus = usePortfolioStore((state) => state.portfolioSyncStatus);
 
   // Close on outside click
   useEffect(() => {
@@ -40,10 +41,15 @@ export default function UserMenu({ user, onSignOut }: UserMenuProps) {
 
   const handleSignOut = useCallback(() => {
     setOpen(false);
-    const ok = window.confirm('로그아웃하면 로컬 데이터가 초기화돼요.\n데이터는 계정에 안전하게 저장되어 있어 다시 로그인하면 복원돼요.');
+    const hasUnsyncedRecords = portfolioSyncStatus !== 'synced';
+    const ok = window.confirm(
+      hasUnsyncedRecords
+        ? '아직 클라우드 동기화가 끝나지 않은 기록이 있어요.\n지금 로그아웃하면 이 기기의 미동기 기록을 잃을 수 있어요. 그래도 로그아웃할까요?'
+        : '종목·일일 스냅샷·가져오기 복구 지점은 클라우드에 동기화됐어요.\n로그아웃하면 이 기기의 홈 설정과 기기 전용 기록은 초기화돼요. 로그아웃할까요?',
+    );
     if (!ok) return;
     onSignOut();
-  }, [onSignOut]);
+  }, [onSignOut, portfolioSyncStatus]);
 
   return (
     <div ref={ref} style={{ position: 'relative', marginLeft: '8px' }}>

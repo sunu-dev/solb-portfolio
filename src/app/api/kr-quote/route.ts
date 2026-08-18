@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
+import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
 // ==========================================
 // 검색 카탈로그 — 9인 패널 P0 (2026-05-29): 검색 커버리지 30 → 110+종
@@ -89,56 +90,49 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'symbol parameter required' }, { status: 400 });
   }
 
-  // Find Yahoo symbol
-  let yahooSymbol = symbol;
-  let stockName = symbol;
+  let fetchFailed = false;
+  for (const yahooSymbol of getYahooSymbolCandidates(symbol)) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=5d&interval=1d`;
+      const resp = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+        signal: AbortSignal.timeout(8000),
+      });
+      const data = await resp.json();
+      const result = data?.chart?.result?.[0];
+      if (!result) continue;
 
-  if (/^\d{6}$/.test(symbol)) {
-    // 6-digit code → KRX (KOSPI 기본)
-    yahooSymbol = `${symbol}.KS`;
-  } else if (symbol.endsWith('.KS') || symbol.endsWith('.KQ')) {
-    yahooSymbol = symbol;
-  }
-  // 카탈로그에 있으면 한국어 표시명 사용 (없으면 Yahoo meta 이름으로 fallback)
-  if (KR_NAME_BY_SYMBOL[yahooSymbol]) {
-    stockName = KR_NAME_BY_SYMBOL[yahooSymbol];
-  }
+      const meta = result.meta;
+      const closes = result.indicators?.quote?.[0]?.close || [];
+      const prevClose = meta.previousClose || closes[closes.length - 2] || meta.regularMarketPrice;
+      const price = meta.regularMarketPrice;
+      const change = price - prevClose;
+      const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+      const stockName = KR_NAME_BY_SYMBOL[yahooSymbol]
+        || meta.longName
+        || meta.shortName
+        || symbol;
 
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=5d&interval=1d`;
-    const resp = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
-      signal: AbortSignal.timeout(8000),
-    });
-    const data = await resp.json();
-    const result = data?.chart?.result?.[0];
-
-    if (!result) {
-      return NextResponse.json({ error: 'No data found' }, { status: 404 });
+      return NextResponse.json({
+        symbol: yahooSymbol,
+        name: stockName,
+        c: price,
+        d: change,
+        dp: changePercent,
+        h: meta.regularMarketDayHigh || meta.fiftyTwoWeekHigh,
+        l: meta.regularMarketDayLow || meta.fiftyTwoWeekLow,
+        pc: prevClose,
+        currency: meta.currency,
+        exchange: meta.exchangeName,
+      });
+    } catch {
+      fetchFailed = true;
     }
-
-    const meta = result.meta;
-    const closes = result.indicators?.quote?.[0]?.close || [];
-    const prevClose = meta.previousClose || closes[closes.length - 2] || meta.regularMarketPrice;
-    const price = meta.regularMarketPrice;
-    const change = price - prevClose;
-    const changePercent = prevClose ? (change / prevClose) * 100 : 0;
-
-    return NextResponse.json({
-      symbol: yahooSymbol,
-      name: meta.longName || meta.shortName || stockName,
-      c: price,
-      d: change,
-      dp: changePercent,
-      h: meta.regularMarketDayHigh || meta.fiftyTwoWeekHigh,
-      l: meta.regularMarketDayLow || meta.fiftyTwoWeekLow,
-      pc: prevClose,
-      currency: meta.currency,
-      exchange: meta.exchangeName,
-    });
-  } catch (e) {
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
   }
+
+  return fetchFailed
+    ? NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
+    : NextResponse.json({ error: 'No data found' }, { status: 404 });
 }
 
 // Search Korean stocks

@@ -1,0 +1,219 @@
+@font-face {
+  font-family: "Joobi Lexend";
+  src: url("/fonts/brand-preview/lexend-700.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face { font-family: "Joobi Instrument"; src: url("/fonts/brand-preview/instrument-sans-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Manrope"; src: url("/fonts/brand-preview/manrope-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Sora"; src: url("/fonts/brand-preview/sora-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Space"; src: url("/fonts/brand-preview/space-grotesk-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Bricolage"; src: url("/fonts/brand-preview/bricolage-grotesque-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Syne"; src: url("/fonts/brand-preview/syne-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Urbanist"; src: url("/fonts/brand-preview/urbanist-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Outfit"; src: url("/fonts/brand-preview/outfit-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Archivo"; src: url("/fonts/brand-preview/archivo-black.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Joobi Fraunces"; src: url("/fonts/brand-preview/fraunces-600.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Joobi DM Serif"; src: url("/fonts/brand-preview/dm-serif-display.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Joobi Cormorant"; src: url("/fonts/brand-preview/cormorant-garamond-600.ttf") format("truetype"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Joobi Playfair"; src: url("/fonts/brand-preview/playfair-display-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Montserrat Alt"; src: url("/fonts/brand-preview/montserrat-alternates-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Unbounded"; src: url("/fonts/brand-preview/unbounded-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Righteous"; src: url("/fonts/brand-preview/righteous.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Joobi Chakra"; src: url("/fonts/brand-preview/chakra-petch-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Bebas"; src: url("/fonts/brand-preview/bebas-neue.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Joobi Black Ops"; src: url("/fonts/brand-preview/black-ops-one.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Joobi Onest"; src: url("/fonts/brand-preview/onest-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Inter Tight"; src: url("/fonts/brand-preview/inter-tight-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Figtree"; src: url("/fonts/brand-preview/figtree-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Epilogue"; src: url("/fonts/brand-preview/epilogue-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Red Hat"; src: url("/fonts/brand-preview/red-hat-display-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi League Spartan"; src: url("/fonts/brand-preview/league-spartan-800.ttf") format("truetype"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Joobi Space Mono"; src: url("/fonts/brand-preview/space-mono-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi IBM Plex Mono"; src: url("/fonts/brand-preview/ibm-plex-mono-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Bodoni Moda"; src: url("/fonts/brand-preview/bodoni-moda-700.ttf") format("truetype"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Joobi Yeseva"; src: url("/fonts/brand-preview/yeseva-one.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+
+.page { min-height: 100vh; padding: 18px; background: #f2f4f6; color: #19202b; }
+.inner { max-width: 1440px; margin: 0 auto; }
+.header { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 12px; }
+.header h1 { margin: 0; font-size: clamp(23px,2.4vw,31px); font-weight: 850; letter-spacing: -.04em; }
+.header > p { max-width: 480px; margin: 0; color: #687281; font-size: 11px; line-height: 1.5; text-align: right; }
+.kicker { margin: 0 0 3px; color: #cf3949; font-size: 9px; font-weight: 800; letter-spacing: .14em; }
+.grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.card { position: relative; display: flex; min-height: 166px; padding: 12px; overflow: hidden; border: 1px solid rgba(25,32,43,.1); border-radius: 16px; flex-direction: column; justify-content: space-between; }
+.cardHeader { position: relative; z-index: 2; display: flex; align-items: center; gap: 6px; font-size: 8px; letter-spacing: .03em; text-transform: uppercase; }
+.cardHeader > span { font-weight: 850; }
+.cardHeader strong { font-weight: 780; }
+.cardHeader small { margin-left: auto; font-size: 8px; font-weight: 650; opacity: .58; text-transform: none; }
+.brandStage { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; }
+.icon { width: 34px; height: 34px; flex: 0 0 auto; border-radius: 10px; }
+.lockup { display: grid; width: max-content; margin-left: -28px; grid-template-columns: max-content max-content max-content; column-gap: 4px; row-gap: 4px; align-items: end; }
+.word { grid-row: 1; font-size: 24px; font-weight: 700; line-height: .9; letter-spacing: -.1em; white-space: nowrap; }
+.joo { grid-column: 2; }
+.bi { grid-column: 3; }
+.fontLexend { font-family: "Joobi Lexend", sans-serif; }
+.fontInstrument { font-family: "Joobi Instrument", sans-serif; }
+.fontManrope { font-family: "Joobi Manrope", sans-serif; }
+.fontSora { font-family: "Joobi Sora", sans-serif; }
+.fontSpace { font-family: "Joobi Space", sans-serif; }
+.fontBricolage { font-family: "Joobi Bricolage", sans-serif; }
+.fontSyne { font-family: "Joobi Syne", sans-serif; }
+.fontUrbanist { font-family: "Joobi Urbanist", sans-serif; font-weight: 800; }
+.fontOutfit { font-family: "Joobi Outfit", sans-serif; font-weight: 800; }
+.fontArchivo { font-family: "Joobi Archivo", sans-serif; font-weight: 400; }
+.fontFraunces { font-family: "Joobi Fraunces", serif; font-weight: 600; }
+.fontDmSerif { font-family: "Joobi DM Serif", serif; font-weight: 400; }
+.fontCormorant { font-family: "Joobi Cormorant", serif; font-weight: 600; }
+.fontPlayfair { font-family: "Joobi Playfair", serif; }
+.fontMontserratAlt { font-family: "Joobi Montserrat Alt", sans-serif; }
+.fontUnbounded { font-family: "Joobi Unbounded", sans-serif; }
+.fontRighteous { font-family: "Joobi Righteous", sans-serif; font-weight: 400; }
+.fontChakra { font-family: "Joobi Chakra", sans-serif; }
+.fontBebas { font-family: "Joobi Bebas", sans-serif; font-weight: 400; }
+.fontBlackOps { font-family: "Joobi Black Ops", sans-serif; font-weight: 400; }
+.fontOnest { font-family: "Joobi Onest", sans-serif; }
+.fontInterTight { font-family: "Joobi Inter Tight", sans-serif; font-weight: 800; }
+.fontFigtree { font-family: "Joobi Figtree", sans-serif; font-weight: 800; }
+.fontEpilogue { font-family: "Joobi Epilogue", sans-serif; font-weight: 800; }
+.fontRedHat { font-family: "Joobi Red Hat", sans-serif; font-weight: 800; }
+.fontLeagueSpartan { font-family: "Joobi League Spartan", sans-serif; font-weight: 800; }
+.fontSpaceMono { font-family: "Joobi Space Mono", monospace; }
+.fontIbmPlexMono { font-family: "Joobi IBM Plex Mono", monospace; }
+.fontBodoniModa { font-family: "Joobi Bodoni Moda", serif; }
+.fontYeseva { font-family: "Joobi Yeseva", serif; font-weight: 400; }
+.meaning { grid-row: 2; font-family: "Pretendard Variable", Pretendard, sans-serif; font-size: 15px; font-weight: 700; line-height: 1; letter-spacing: -.04em; white-space: nowrap; opacity: .72; }
+.mine { grid-column: 1; align-self: center; font-size: 10px; font-weight: 600; letter-spacing: -.02em; opacity: .78; transform: translateX(21px); }
+.stock { grid-column: 2; justify-self: end; }
+.secretary { grid-column: 3; justify-self: start; }
+
+.mintCore { background: #dff2e8; color: #24624c; }
+.mintCore::after { position: absolute; right: 12px; bottom: 12px; width: 38px; height: 22px; border: 1px solid rgba(36,98,76,.16); border-radius: 999px; content: ""; }
+
+.inkEditorial { border-radius: 0; background: #e8eef7; color: #173d71; }
+.inkEditorial::after { position: absolute; inset: 8px; border: 1px solid rgba(23,61,113,.18); content: ""; }
+.inkEditorial .icon { border-radius: 50%; }
+
+.electricBlue { border-color: #2457ea; background: #2457ea; color: #fff; }
+.electricBlue::before { position: absolute; right: -25px; bottom: -35px; width: 110px; height: 110px; border: 16px solid rgba(255,255,255,.12); border-radius: 50%; content: ""; }
+.electricBlue .icon { box-shadow: 0 0 0 5px rgba(255,255,255,.18); }
+
+.warmPaper { border-color: #d7cab5; background: #f2eadb; color: #6b4033; }
+.warmPaper::after { position: absolute; inset: 0; background-image: radial-gradient(rgba(107,64,51,.13) .7px,transparent .7px); background-size: 7px 7px; content: ""; opacity: .36; }
+.warmPaper .icon { border-radius: 3px; }
+
+.monoUtility { border: 2px solid #171717; border-radius: 2px; background: #fff; color: #171717; box-shadow: 4px 4px 0 #171717; }
+.monoUtility .cardHeader { border-bottom: 1px solid currentColor; padding-bottom: 5px; }
+.monoUtility .icon { border: 1px solid #171717; border-radius: 0; }
+
+.coralPop { border: 0; border-radius: 28px 8px 28px 8px; background: #ff756f; color: #542e55; }
+.coralPop::after { position: absolute; top: -35px; right: -15px; width: 90px; height: 90px; border-radius: 45% 55% 60% 40%; background: #ffc8b9; content: ""; }
+.coralPop .icon { transform: rotate(-5deg); }
+
+.violetIntelligence { border: 0; background: radial-gradient(circle at 86% 10%,#9f79ff,#3d257e 58%,#25154f); color: #fff; }
+.violetIntelligence::after { position: absolute; right: 18px; bottom: 16px; width: 52px; height: 1px; background: #fff; box-shadow: 0 6px rgba(255,255,255,.5),0 12px rgba(255,255,255,.2); content: ""; opacity: .34; }
+.violetIntelligence .icon { box-shadow: 0 8px 22px rgba(20,0,60,.38); }
+
+.citrusLabel { border-color: #2f3d19; border-radius: 4px; background: #e6ef61; color: #2f3d19; }
+.citrusLabel::before { position: absolute; top: 0; right: 0; width: 46px; height: 46px; border-radius: 0 0 0 46px; background: #ff8a55; content: ""; }
+.citrusLabel .brandStage { padding: 7px; border: 1px solid currentColor; background: rgba(255,255,255,.2); }
+
+.aquaGlass { border-color: rgba(24,99,102,.24); background: linear-gradient(145deg,#e8ffff,#bfe8e9); color: #185e61; }
+.aquaGlass::after { position: absolute; inset: -40% -20% auto 40%; height: 120px; border-radius: 50%; background: rgba(255,255,255,.48); content: ""; filter: blur(12px); }
+.aquaGlass .brandStage { padding: 7px 10px; border: 1px solid rgba(255,255,255,.8); border-radius: 14px; background: rgba(255,255,255,.28); backdrop-filter: blur(8px); }
+
+.navyGold { border-color: #d7b76b; background: #10223e; color: #e7cc8a; }
+.navyGold::after { position: absolute; inset: 7px; border: 1px solid rgba(231,204,138,.24); border-radius: 10px; content: ""; }
+.navyGold .icon { box-shadow: 0 0 0 1px #d7b76b; }
+
+.paperGrid { background: #f8f8f4; color: #343b40; }
+.paperGrid::before { position: absolute; inset: 0; background-image: linear-gradient(rgba(52,59,64,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(52,59,64,.07) 1px,transparent 1px); background-size: 18px 18px; content: ""; }
+.paperGrid .brandStage { width: max-content; padding: 6px; background: #f8f8f4; }
+
+.softLilac { border: 0; border-radius: 32px; background: linear-gradient(145deg,#f0e9ff,#dfd3ff); color: #6247a4; }
+.softLilac::after { position: absolute; right: 12px; bottom: 12px; width: 42px; height: 42px; border-radius: 50%; background: rgba(98,71,164,.1); content: ""; }
+.softLilac .icon { border-radius: 50%; }
+
+.terminalGreen { border-color: #1f4c41; border-radius: 5px; background: #0b2823; color: #6ce0af; }
+.terminalGreen::before { position: absolute; inset: 0; background: repeating-linear-gradient(0deg,transparent 0 8px,rgba(108,224,175,.035) 8px 9px); content: ""; }
+.terminalGreen .cardHeader { font-family: ui-monospace,monospace; }
+.terminalGreen .brandStage::after { margin-left: 4px; content: "_"; animation: none; }
+
+.slateModule { border-radius: 8px; background: #dce2e8; color: #34475c; }
+.slateModule::after { position: absolute; right: 0; bottom: 0; width: 74px; height: 74px; background: #bdc8d2; clip-path: polygon(100% 0,100% 100%,0 100%); content: ""; }
+.slateModule .icon { border-radius: 4px; }
+
+.redSignal { border-color: #d33d4a; background: #fff4f3; color: #b52938; }
+.redSignal::before { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: #d33d4a; content: ""; }
+.redSignal::after { position: absolute; right: 10px; top: 47px; width: 56px; height: 2px; background: #d33d4a; box-shadow: 0 8px rgba(211,61,74,.45),0 16px rgba(211,61,74,.18); content: ""; opacity: .5; }
+
+.skySystem { border-color: #a9d5ef; background: #e7f6ff; color: #215d82; }
+.skySystem::after { position: absolute; top: -45px; right: -32px; width: 120px; height: 120px; border: 1px solid rgba(33,93,130,.14); border-radius: 50%; content: ""; }
+.skySystem .icon { box-shadow: 0 7px 17px rgba(33,93,130,.16); }
+
+.peachHuman { border: 0; border-radius: 24px; background: #ffe1d2; color: #99523f; }
+.peachHuman::after { position: absolute; right: -28px; bottom: -30px; width: 95px; height: 95px; border-radius: 44% 56% 32% 68%; background: #ffc2b1; content: ""; }
+.peachHuman .icon { border-radius: 50% 50% 45% 45%; }
+
+.forestArchive { border-color: #607c65; border-radius: 0 22px 0 22px; background: #d9e2d2; color: #2f5036; }
+.forestArchive::before { position: absolute; right: 24px; top: 33px; bottom: 14px; width: 1px; background: rgba(47,80,54,.24); content: ""; }
+.forestArchive::after { position: absolute; right: 15px; top: 51px; width: 18px; height: 18px; border: 1px solid rgba(47,80,54,.35); border-radius: 50% 0 50% 50%; content: ""; transform: rotate(45deg); }
+
+.chromeProduct { border-color: #aeb5bd; background: linear-gradient(135deg,#f7f8f9,#cbd1d8 52%,#f4f5f6); color: #30363d; }
+.chromeProduct::after { position: absolute; inset: 0; background: linear-gradient(105deg,transparent 25%,rgba(255,255,255,.7) 43%,transparent 61%); content: ""; opacity: .52; }
+.chromeProduct .icon { border: 1px solid rgba(48,54,61,.18); box-shadow: inset 0 0 0 2px rgba(255,255,255,.6); }
+
+.midnightGlow { border: 0; background: radial-gradient(circle at 75% 0,#274f91,#101b38 58%,#090f22); color: #e8f2ff; }
+.midnightGlow::after { position: absolute; right: 20px; bottom: 18px; width: 5px; height: 5px; border-radius: 50%; background: #7cc8ff; box-shadow: 18px -10px #9b8cff,34px 3px #fff; content: ""; opacity: .7; }
+.midnightGlow .icon { box-shadow: 0 0 24px rgba(124,200,255,.38); }
+
+.sandAtelier { border-color: #c8b99e; border-radius: 0; background: #e8dfcf; color: #554839; }
+.sandAtelier::after { position: absolute; inset: 9px; border-top: 1px solid rgba(85,72,57,.25); border-bottom: 1px solid rgba(85,72,57,.25); content: ""; }
+.sandAtelier .icon { border-radius: 50%; filter: sepia(.12); }
+
+.cobaltFrame { border: 5px solid #164fc8; border-radius: 2px; background: #eef3ff; color: #164fc8; }
+.cobaltFrame .cardHeader { margin: -4px -4px 0; padding: 4px 6px; background: #164fc8; color: #fff; }
+.cobaltFrame .brandStage { padding-left: 3px; }
+
+.roseStudio { border-color: #ecb7c5; background: linear-gradient(145deg,#fff4f7,#f4cfda); color: #963b59; }
+.roseStudio::after { position: absolute; right: -10px; top: 37px; width: 66px; height: 66px; border: 12px solid rgba(150,59,89,.08); border-radius: 50%; content: ""; }
+.roseStudio .icon { transform: rotate(4deg); box-shadow: 0 7px 16px rgba(150,59,89,.14); }
+
+.yolkPoster { border: 0; border-radius: 0; background: #ffd733; color: #2c2a24; }
+.yolkPoster::before { position: absolute; right: 0; top: 0; width: 38%; height: 100%; background: #ff6a45; content: ""; opacity: .88; }
+.yolkPoster .brandStage { width: max-content; padding: 7px; background: #ffd733; box-shadow: 5px 5px 0 #2c2a24; }
+
+.icePrecision { border-color: #a8c9d8; border-radius: 7px; background: #eaf7fa; color: #235568; }
+.icePrecision::before { position: absolute; inset: 0; background: linear-gradient(120deg,transparent 48%,rgba(255,255,255,.75) 49% 51%,transparent 52%); content: ""; }
+.icePrecision .brandStage { border-left: 2px solid #78aec3; padding-left: 7px; }
+
+.clayCraft { border: 0; border-radius: 38px 12px 28px 10px; background: #d88f6f; color: #512f28; }
+.clayCraft::after { position: absolute; right: 14px; bottom: 14px; width: 42px; height: 25px; border: 2px solid rgba(81,47,40,.18); border-radius: 50%; content: ""; transform: rotate(-12deg); }
+.clayCraft .icon { border-radius: 14px 7px 14px 7px; }
+
+.graphiteSignal { border-color: #3d444a; border-radius: 3px; background: #262c31; color: #f0f3f5; }
+.graphiteSignal::after { position: absolute; right: 11px; bottom: 11px; width: 48px; height: 6px; background: repeating-linear-gradient(90deg,#ec4e4e 0 3px,transparent 3px 7px); content: ""; }
+.graphiteSignal .icon { border-radius: 3px; filter: saturate(.8); }
+
+.tealWave { border: 0; background: linear-gradient(145deg,#c7f0e9,#6fcec2); color: #175f59; }
+.tealWave::after { position: absolute; right: -25px; bottom: -40px; width: 150px; height: 85px; border: 10px solid rgba(23,95,89,.13); border-radius: 50%; content: ""; transform: rotate(-12deg); }
+.tealWave .icon { border-radius: 50%; }
+
+.indigoOrbit { border-color: #8178ca; border-radius: 50px 12px 50px 12px; background: #302a65; color: #eeeaff; }
+.indigoOrbit::before { position: absolute; right: 17px; top: 44px; width: 50px; height: 50px; border: 1px solid rgba(238,234,255,.3); border-radius: 50%; content: ""; }
+.indigoOrbit::after { position: absolute; right: 36px; top: 62px; width: 7px; height: 7px; border-radius: 50%; background: #b6a8ff; content: ""; box-shadow: 14px 12px #ff9bb2; }
+
+.whiteEssential { border-color: #e5e7eb; background: #fff; color: #1f2937; }
+.whiteEssential .cardHeader { color: #7b8491; }
+.whiteEssential .brandStage { padding-bottom: 5px; border-bottom: 1px solid #e5e7eb; }
+.whiteEssential .icon { box-shadow: 0 4px 12px rgba(31,41,55,.08); }
+
+@media (max-width:1200px) { .grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media (max-width:900px) {
+  .page { padding: 22px 16px 48px; }
+  .header { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .header > p { text-align: left; }
+  .grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .card { min-height: 178px; }
+}
+@media (max-width:560px) { .grid { grid-template-columns: 1fr; } .card { min-height: 185px; } }

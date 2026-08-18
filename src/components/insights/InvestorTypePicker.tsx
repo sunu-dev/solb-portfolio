@@ -1,6 +1,7 @@
 'use client';
 
 import { INVESTOR_TYPES, type InvestorType } from '@/config/investorTypes';
+import InvestorTypeIcon from './InvestorTypeIcon';
 
 interface Props {
   currentType?: InvestorType;
@@ -36,7 +37,9 @@ export default function InvestorTypePicker({ currentType, onSelect }: Props) {
               transition: 'all 0.15s',
             }}
           >
-            <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{meta.emoji}</span>
+            <span style={{ flexShrink: 0, color: meta.accentColor }}>
+              <InvestorTypeIcon type={meta.id} size={28} color={meta.accentColor} strokeWidth={1.6} />
+            </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                 <span style={{

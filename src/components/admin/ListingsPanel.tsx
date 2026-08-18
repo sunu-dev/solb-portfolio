@@ -253,7 +253,7 @@ export default function ListingsPanel() {
       {showAddForm && (
         <div style={{ marginBottom: 14, padding: 14, borderRadius: 10, background: '#FAFBFF', border: '1px solid rgba(49,130,246,0.15)' }}>
           <div style={{ fontSize: 12, color: '#3182F6', fontWeight: 700, marginBottom: 10 }}>
-            🇰🇷 한국 종목 수동 추가 (Finnhub 미지원 우회)
+            한국 종목 수동 추가 (Finnhub 미지원 우회)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', gap: 8, marginBottom: 8 }}>
             <select
@@ -349,7 +349,7 @@ export default function ListingsPanel() {
                       disabled={isBusy}
                       style={{ padding: '2px 8px', fontSize: 10, color: '#3182F6', background: 'rgba(49,130,246,0.08)', border: 'none', borderRadius: 4, cursor: isBusy ? 'default' : 'pointer' }}
                     >
-                      📊 데이터 채움
+                      데이터 채움
                     </button>
                   )}
                 </div>
@@ -384,9 +384,9 @@ export default function ListingsPanel() {
                 ) : (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', fontSize: 12 }}>
                     <span style={{ color: l.kr_name ? '#191F28' : '#B0B8C1', fontWeight: l.kr_name ? 600 : 400 }}>
-                      🇰🇷 {l.kr_name || '미정'}
+                      한국어명 {l.kr_name || '미정'}
                     </span>
-                    {l.notes && <span style={{ color: '#8B95A1', fontSize: 11 }}>📝 {l.notes}</span>}
+                    {l.notes && <span style={{ color: '#8B95A1', fontSize: 11 }}>메모 {l.notes}</span>}
                     <button
                       onClick={() => startEdit(l)}
                       style={{ padding: '2px 8px', fontSize: 10, color: '#3182F6', background: 'none', border: '1px solid rgba(49,130,246,0.2)', borderRadius: 4, cursor: 'pointer' }}
@@ -396,7 +396,7 @@ export default function ListingsPanel() {
                       disabled={isBusy}
                       style={{ padding: '2px 8px', fontSize: 10, color: '#FF9500', background: 'none', border: '1px solid rgba(255,149,0,0.3)', borderRadius: 4, cursor: isBusy ? 'default' : 'pointer' }}
                     >
-                      🤖 한국어 자동
+                      한국어 자동
                     </button>
                   </div>
                 )}
@@ -427,7 +427,7 @@ export default function ListingsPanel() {
                       }}
                       disabled={isBusy}
                       style={{ padding: '4px 10px', fontSize: 10, color: '#fff', background: '#16A34A', border: 'none', borderRadius: 6, cursor: isBusy ? 'default' : 'pointer' }}
-                    >✓ Universe 편입</button>
+                    >Universe 편입</button>
                   )}
                 </div>
               </div>

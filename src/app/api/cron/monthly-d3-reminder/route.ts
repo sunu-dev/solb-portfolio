@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
-import type { DailySnapshot } from '@/utils/dailySnapshot';
+import {
+  getSnapshotKrwTotals,
+  isCanonicalKrwSnapshot,
+  type DailySnapshot,
+} from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 
 /**
@@ -80,15 +84,24 @@ function buildChapterBrief(
 
   if (snapshots.length < 2) return { totalPctReturn: 0, hasData: false };
 
-  const sorted = [...snapshots].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = snapshots
+    .filter(isCanonicalKrwSnapshot)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const monthSnaps = sorted.filter(s => new Date(s.date).getTime() >= monthStart.getTime());
   if (monthSnaps.length < 2) return { totalPctReturn: 0, hasData: false };
 
   const start = monthSnaps[0];
   const latest = monthSnaps[monthSnaps.length - 1];
-  if (start.totalValue <= 0) return { totalPctReturn: 0, hasData: false };
+  const startTotals = getSnapshotKrwTotals(start);
+  const latestTotals = getSnapshotKrwTotals(latest);
+  if (!startTotals || !latestTotals || startTotals.totalValueKrw <= 0) {
+    return { totalPctReturn: 0, hasData: false };
+  }
 
-  const pct = ((latest.totalValue - start.totalValue) / start.totalValue) * 100;
+  const pct = (
+    (latestTotals.totalValueKrw - startTotals.totalValueKrw)
+    / startTotals.totalValueKrw
+  ) * 100;
   return { totalPctReturn: pct, hasData: true };
 }
 

@@ -8,12 +8,6 @@ import { snoozeAlert, getSnoozeLabel, type SnoozeDuration } from '@/utils/alertS
 import { getAlertExplanation } from '@/utils/alertGlossary';
 import { DISCLAIMER_SHORT } from '@/utils/alertCompliance';
 
-declare global {
-  interface Window {
-    Kakao: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  }
-}
-
 interface Style {
   icon: string;
   label: string;

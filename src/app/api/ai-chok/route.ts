@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { CHOK_UNIVERSE, CHOK_SECTOR_MAP, sectorLabel } from '@/config/chokUniverse';
 import { isBlockedLeverage } from '@/utils/leverageGuard';
-import { CHOK_SYSTEM_PROMPT, buildUserTypeContext } from '@/config/analysisPrompt';
-import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes';
+import { CHOK_SYSTEM_PROMPT } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError, getProviderStatus } from '@/lib/aiProvider';
@@ -11,6 +10,11 @@ import { enrichUniverse, formatStockLine } from '@/utils/chokDataEnricher';
 import { generateFallbackPicks, deterministicSlice } from '@/utils/chokFallback';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
 import { sanitizeAiObject } from '@/utils/alertCompliance';
+import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
+import { sampleAiOutput } from '@/lib/aiOutputAudit';
+import { attachAiResultMeta, type AiResultMeta } from '@/lib/aiResultMeta';
+import { analyzeMarketFlow, type MarketFlowResult } from '@/utils/marketFlow';
+import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -22,6 +26,7 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 const supabaseAdmin = supabaseUrl && supabaseServiceKey ? createClient(supabaseUrl, supabaseServiceKey) : null;
 
 const CHOK_USAGE_TAG = 'ai-chok';
+const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
 
 // ─── 세션 라벨 (UX용 — 카운팅과 무관) ────────────────────────────────────────
 // day  세션: 09:00 ~ 22:29 KST (미장 개장 전)
@@ -58,18 +63,22 @@ function getTodayKST(): string {
   return kst.toISOString().split('T')[0];
 }
 
-async function getDailyChokCount(userId: string): Promise<number> {
-  if (!supabaseAdmin) return 0;
+async function getDailyChokUsage(userId: string): Promise<{ available: boolean; userCount: number; totalCount: number }> {
+  if (!supabaseAdmin) return { available: false, userCount: 0, totalCount: 0 };
   try {
-    const { count } = await supabaseAdmin
-      .from('ai_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('date', getTodayKST())
-      .eq('user_id', userId)
-      .eq('mentor_id', CHOK_USAGE_TAG);
-    return count || 0;
+    const [userResult, totalResult] = await Promise.all([
+      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true })
+        .eq('date', getTodayKST()).eq('user_id', userId).eq('mentor_id', CHOK_USAGE_TAG),
+      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true })
+        .eq('date', getTodayKST()),
+    ]);
+    if (userResult.error || totalResult.error) {
+      console.error('[AI chok] usage guard unavailable:', userResult.error?.message || totalResult.error?.message);
+      return { available: false, userCount: 0, totalCount: 0 };
+    }
+    return { available: true, userCount: userResult.count || 0, totalCount: totalResult.count || 0 };
   } catch {
-    return 0;
+    return { available: false, userCount: 0, totalCount: 0 };
   }
 }
 
@@ -127,6 +136,14 @@ async function upsertCache(userKey: string, dateKey: string, picks: unknown, use
 // ─── 추천 로깅 (백테스트용) ─────────────────────────────────────────────────
 interface PickRecord {
   symbol: string; krName: string; sector: string; reason: string; keyMetric: string;
+}
+interface ChokResult {
+  picks: PickRecord[];
+  context: string;
+  marketFlow?: MarketFlowResult;
+  _meta?: AiResultMeta;
+  _provider?: string;
+  _model?: string;
 }
 async function logRecommendations(opts: {
   userId?: string;
@@ -189,49 +206,49 @@ export async function POST(req: NextRequest) {
   // ── 비로그인 차단 (정책: AI 촉은 로그인 사용자 전용) ─────────────
   if (!isLoggedIn) {
     return NextResponse.json({
-      error: 'AI 촉은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
+      error: '시장 관찰판은 로그인 후 이용할 수 있어요.',
       limitReached: true,
       loginForMore: true,
     }, { status: 401 });
+  }
+  if (!await hasCurrentAdultAiConsent(supabaseAdmin, userId!)) {
+    return NextResponse.json({
+      error: '만 18세 이상 확인 후 시장 관찰판을 이용할 수 있어요.',
+      code: 'adult_consent_required',
+    }, { status: 403 });
   }
 
   // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
   const tier = await getUserTier(userId);
   const dailyLimit = getTierLimits(tier).chokDaily;
 
-  const userKey = userId!;
   const { date, session } = getSessionKey();
 
   const body = await req.json() as {
-    portfolioSymbols?: string[];
     forceRefresh?: boolean;
     intent?: 'fetch' | 'generate';
     macroContext?: string;
     currentEvent?: string;
-    sectorConcentration?: string;
-    investorType?: InvestorType;
-    holdingsContext?: string;
   };
   const {
-    portfolioSymbols = [],
     forceRefresh = false,
     // 호환: intent 미지정 시 forceRefresh로 추정 — 신규 클라이언트는 intent 명시 권장
     intent = forceRefresh ? 'generate' : 'fetch',
     macroContext,
     currentEvent,
-    sectorConcentration,
-    investorType = DEFAULT_INVESTOR_TYPE,
-    holdingsContext,
   } = body;
 
   // 캐시 키 — VIX bucket까지 포함해 macro regime 변동 시 자동 invalidate
   const vixBucketStr = vixBucket(macroContext || '');
   const cacheDateKey = `${date}_${session}_${vixBucketStr}`;
-  const userKeyWithType = `${userKey}:${investorType}`;
-  const cached = await getCachedPicks(userKeyWithType, cacheDateKey);
+  // 시장 관찰판 결과는 사용자별로 달라지지 않는다. 같은 시장 세션에는 같은 캐시·목록을 사용한다.
+  const sharedMarketKey = 'shared-market-observation';
+  const cached = await getCachedPicks(sharedMarketKey, cacheDateKey);
+  const enriched = await enrichUniverse();
+  const marketFlow = analyzeMarketFlow(enriched);
 
   // 일일 사용량 조회 (캐시 히트 분기에서도 잔여 횟수 응답에 사용)
-  const dailyCount = await getDailyChokCount(userId!);
+  const { available: usageAvailable, userCount: dailyCount, totalCount } = await getDailyChokUsage(userId!);
   const remaining = Math.max(0, dailyLimit - dailyCount);
 
   // ── 2-A. intent='fetch' → AI 호출 절대 X (마운트/타입변경 시) ───
@@ -242,6 +259,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
         context: (cached.picks as { context: string }).context ?? '',
+        marketFlow: (cached.picks as { marketFlow?: MarketFlowResult }).marketFlow ?? marketFlow,
+        _meta: (cached.picks as { _meta?: AiResultMeta })._meta,
         cached: true,
         fallback: false,
         sessionLabel: sessionLabel(session),
@@ -251,11 +270,13 @@ export async function POST(req: NextRequest) {
       });
     }
     // 24h 이내 가장 최근 캐시 (다른 session/vix bucket이라도 사용)
-    const recent = await getRecentCachedPicks(userKeyWithType);
+    const recent = await getRecentCachedPicks(sharedMarketKey);
     if (recent?.picks) {
       return NextResponse.json({
         picks: (recent.picks as { picks: unknown }).picks ?? recent.picks,
         context: (recent.picks as { context: string }).context ?? '',
+        marketFlow: (recent.picks as { marketFlow?: MarketFlowResult }).marketFlow ?? marketFlow,
+        _meta: (recent.picks as { _meta?: AiResultMeta })._meta,
         cached: true,
         fallback: false,
         stale: true,
@@ -266,12 +287,11 @@ export async function POST(req: NextRequest) {
       });
     }
     // 폴백 — 객관 수치 기반 결정론적 선택 (AI 호출 X)
-    const enriched = await enrichUniverse();
-    const excluded = new Set(portfolioSymbols.map(s => s.toUpperCase()));
-    const fbPicks = generateFallbackPicks({ enriched, excludedSymbols: excluded });
+    const fbPicks = generateFallbackPicks({ enriched, excludedSymbols: new Set() });
     return NextResponse.json({
       picks: fbPicks,
-      context: '객관 수치(PER·52주 위치) 기준의 기본 추천이에요. AI에게 새로 받아보려면 위 버튼을 눌러주세요.',
+      context: '모든 사용자에게 동일한 PER·52주 위치 기준을 적용한 시장 관찰 목록이에요.',
+      marketFlow,
       cached: false,
       fallback: true,
       sessionLabel: sessionLabel(session),
@@ -286,6 +306,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       picks: (cached.picks as { picks: unknown }).picks ?? cached.picks,
       context: (cached.picks as { context: string }).context ?? '',
+      marketFlow: (cached.picks as { marketFlow?: MarketFlowResult }).marketFlow ?? marketFlow,
+      _meta: (cached.picks as { _meta?: AiResultMeta })._meta,
       cached: true,
       fallback: false,
       sessionLabel: sessionLabel(session),
@@ -306,11 +328,26 @@ export async function POST(req: NextRequest) {
     return circuitOpenResponse(circuit, '/api/ai-chok');
   }
 
+  if (!usageAvailable) {
+    await gate.finalize(503, 'daily_usage_unavailable');
+    return NextResponse.json({
+      error: 'AI 사용량 확인 시스템을 점검하고 있어요. 잠시 후 다시 시도해주세요.',
+      code: 'daily_usage_unavailable',
+    }, { status: 503 });
+  }
+
   // 일일 한도 (tier 기반)
+  if (totalCount >= DAILY_LIMIT_TOTAL) {
+    await gate.finalize(429, 'daily_total_limit');
+    return NextResponse.json({
+      error: '오늘 전체 AI 이용량이 한도에 도달했어요. 내일 다시 이용해주세요.',
+      limitReached: true,
+      remaining: 0,
+    }, { status: 429 });
+  }
+
   if (dailyCount >= dailyLimit) {
-    const msg = tier === 'pro'
-      ? `오늘 AI 촉 횟수를 모두 사용했어요 (${dailyLimit}회/일). 내일 다시 이용해주세요.`
-      : `오늘 AI 촉 횟수를 모두 사용했어요 (${dailyLimit}회/일). 내일 0시 이후 다시 받을 수 있어요!`;
+    const msg = `오늘 시장 관찰판 갱신 횟수를 모두 사용했어요 (${dailyLimit}회/일). 내일 다시 이용해주세요.`;
     await gate.finalize(429, 'daily_limit');
     return NextResponse.json({
       error: msg,
@@ -321,16 +358,41 @@ export async function POST(req: NextRequest) {
     }, { status: 429 });
   }
 
+  const budget = await getAiMonthlyBudgetStatus();
+  if (!budget.allowed) {
+    // 새 추론 대신 24시간 내 캐시를 우선 제공한다.
+    const recent = await getRecentCachedPicks(sharedMarketKey);
+    if (recent?.picks) {
+      await gate.finalize(200, 'monthly_budget_cache_fallback');
+      return NextResponse.json({
+        picks: (recent.picks as { picks: unknown }).picks ?? recent.picks,
+        context: (recent.picks as { context: string }).context ?? '',
+        marketFlow: (recent.picks as { marketFlow?: MarketFlowResult }).marketFlow ?? marketFlow,
+        _meta: (recent.picks as { _meta?: AiResultMeta })._meta,
+        cached: true,
+        stale: true,
+        budgetLimited: true,
+        sessionLabel: sessionLabel(session),
+        remaining,
+        dailyLimit,
+        tier,
+      });
+    }
+
+    await gate.finalize(503, budget.reason || 'monthly_budget_limit');
+    return NextResponse.json({
+      error: budget.reason === 'ledger_unavailable'
+        ? 'AI 비용 확인 시스템을 점검하고 있어요. 잠시 후 다시 시도해주세요.'
+        : '이번 달 AI 이용 한도에 도달했어요. 다음 달에 다시 이용해주세요.',
+      code: budget.reason || 'monthly_budget_limit',
+      budgetLimited: true,
+    }, { status: 503 });
+  }
+
   // ── Finnhub로 universe 객관 데이터 enrich (캐시 24h)
-  const enriched = await enrichUniverse();
   const enrichedMap = new Map(enriched.map(e => [e.symbol, e]));
 
-  // A안 — exclude 누적: 보유 종목 + 직전 추천 종목 (다양성 강제)
-  const recentExcluded = (cached?.excluded_recent || []).map(s => s.toUpperCase());
-  const excluded = new Set([
-    ...portfolioSymbols.map(s => s.toUpperCase()),
-    ...recentExcluded,
-  ]);
+  const excluded = new Set<string>();
   // chokUniverse는 미국 우량주 + 글로벌 ETF만 하드코딩되어 단일종목 레버리지 없음 (영구 안전).
   // 보강: 향후 chokUniverse에 실수로 추가되어도 leverageGuard SSOT가 차단.
   const allowedUniverse = CHOK_UNIVERSE.filter(
@@ -338,7 +400,7 @@ export async function POST(req: NextRequest) {
   );
 
   // G안 — universe deterministic slice: 매 호출마다 다른 35종 풀 노출
-  const sliceSeed = `${userKeyWithType}:${cacheDateKey}:${cached?.use_count ?? 0}`;
+  const sliceSeed = `${cacheDateKey}:${cached?.use_count ?? 0}`;
   const slicedUniverse = deterministicSlice(allowedUniverse, 35, sliceSeed);
 
   // 객관 수치 블록 — 한 종목 1줄 (slice된 풀만)
@@ -357,28 +419,26 @@ export async function POST(req: NextRequest) {
     const sorted = [...withDp].sort((a, b) => (b.e!.todayChangePct! - a.e!.todayChangePct!));
     const gainers = sorted.slice(0, 3).map(x => `${x.u.symbol} ${x.e!.todayChangePct! >= 0 ? '+' : ''}${x.e!.todayChangePct!.toFixed(1)}%`).join(', ');
     const losers = sorted.slice(-3).reverse().map(x => `${x.u.symbol} ${x.e!.todayChangePct!.toFixed(1)}%`).join(', ');
-    return `\n\n## 오늘 universe 내 변동 상위 (참고용)\n상승 TOP 3: ${gainers}\n하락 TOP 3: ${losers}\n위 변동 정보는 사이클·모멘텀 판단의 보조 신호입니다. 다만 단기 변동만으로 추천 결정하지 마세요.`;
+    return `\n\n## 오늘 universe 내 변동 상위 (참고용)\n상승 TOP 3: ${gainers}\n하락 TOP 3: ${losers}\n단기 변동을 그대로 보여주는 공개 시장 정보이며 종목 평가나 선정 기준으로 사용하지 않아요.`;
   })();
 
-  const excludeSymbols = portfolioSymbols.length ? portfolioSymbols.join(', ') : '없음';
-
   const prompt = CHOK_SYSTEM_PROMPT
-    .replace('{USER_TYPE_CONTEXT}', buildUserTypeContext(investorType))
     .replace('{MACRO_CONTEXT}', macroContext || '데이터 없음')
     .replace('{CURRENT_EVENT}', currentEvent || '없음')
-    .replace('{SECTOR_CONCENTRATION}', sectorConcentration || '데이터 없음')
     .replace('{ENRICHED_UNIVERSE}', enrichedBlock)
-    .replace('{EXCLUDE_SYMBOLS}', excludeSymbols)
     + todayMovers
-    + (holdingsContext
-        ? `\n\n${holdingsContext}\n\n사용자가 위 핵심 종목들에 어떤 비중·신호·메모를 갖고 있는지 인지하고, 관찰 후보 종목이 사용자 포트폴리오의 약점(누락 섹터, 분산 부족, 고베타 편중 등)을 보완하거나 사용자 메모/관심 흐름에 자연스럽게 이어지도록 골라주세요.`
-        : '')
-    + `\n\n위 객관 수치 표와 시장 컨텍스트를 종합하여, 서로 다른 섹터 3개에 촉을 잡아주세요.`;
+    + `\n\n위 객관 수치 표와 시장 컨텍스트만 사용해 서로 다른 섹터 3개의 관찰 항목을 고르세요. 이 결과는 모든 사용자에게 동일해야 합니다.`;
 
   // ── AI 호출 + 검증 + 재시도 (서로 다른 섹터 3개 강제)
-  async function callAndValidate(extraInstruction = ''): Promise<{ picks: PickRecord[]; context: string } | null> {
+  async function callAndValidate(extraInstruction = ''): Promise<ChokResult | null> {
     const finalPrompt = prompt + extraInstruction;
-    const aiRes = await callAiJson({ prompt: finalPrompt, temperature: 0.6, maxTokens: 2048 });
+    const aiRes = await callAiJson({
+      prompt: finalPrompt,
+      temperature: 0.6,
+      maxTokens: 2048,
+      feature: 'ai-chok',
+      userId,
+    });
     const parsed = JSON.parse(aiRes.text) as { picks: Array<PickRecord>; context: string };
 
     // universe 필터 + 제외 필터
@@ -398,7 +458,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (diverse.length < 3) return null;
-    return { picks: diverse, context: parsed.context || '' };
+    return {
+      picks: diverse,
+      context: parsed.context || '',
+      _provider: aiRes.provider,
+      _model: aiRes.model,
+    };
   }
 
   try {
@@ -428,7 +493,28 @@ export async function POST(req: NextRequest) {
 
     // AI 응답 컴플라이언스 후처리 (FORBIDDEN_PHRASES 자동 교체)
     const { result: sanitized } = sanitizeAiObject(result);
-    result = sanitized;
+    const { _provider, _model, ...publicResult } = sanitized;
+    result = attachAiResultMeta({ ...publicResult, marketFlow }, 'ai-chok', {
+      aiProvider: _provider || 'deterministic',
+      aiModel: _model || 'rule-based-fallback',
+    });
+    const auditSnapshot = {
+      capturedAt: new Date().toISOString(),
+      marketContext: macroContext || null,
+      currentEvent: currentEvent || null,
+      picks: result.picks.map(pick => {
+        const source = enrichedMap.get(pick.symbol);
+        return {
+          symbol: pick.symbol,
+          currentPrice: source?.currentPrice ?? null,
+          todayChangePct: source?.todayChangePct ?? null,
+          peRatio: source?.peRatio ?? null,
+          week52Position: source?.week52Position ?? null,
+          sector: pick.sector,
+        };
+      }),
+    };
+    await sampleAiOutput({ feature: 'ai-chok', output: result, sourceSnapshot: auditSnapshot });
 
     const newCount = (cached?.use_count || 0) + 1;
 
@@ -438,17 +524,19 @@ export async function POST(req: NextRequest) {
       ...result.picks.map(p => p.symbol),
     ]));
 
-    await Promise.all([
-      upsertCache(userKeyWithType, cacheDateKey, result, newCount, newExcludedRecent),
-      Promise.resolve(supabaseAdmin?.from('ai_usage').insert({
-        ip,
-        user_id: userId || null,
-        date,
-        symbol: null,
-        mentor_id: CHOK_USAGE_TAG,
-      })).catch(() => {}),
+    const [, usageResult] = await Promise.all([
+      upsertCache(sharedMarketKey, cacheDateKey, result, newCount, newExcludedRecent),
+      supabaseAdmin
+        ? supabaseAdmin.from('ai_usage').insert({
+            ip,
+            user_id: userId || null,
+            date,
+            symbol: null,
+            mentor_id: CHOK_USAGE_TAG,
+          })
+        : Promise.resolve({ error: new Error('Supabase admin client unavailable') }),
       logRecommendations({
-        userId, ip, investorType,
+        userId, ip, investorType: 'balanced',
         picks: result.picks,
         vixBucketStr,
         enrichedMap: new Map(
@@ -460,7 +548,8 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    await gate.finalize(200);
+    if (usageResult.error) console.error('[AI chok] usage record failed:', usageResult.error.message);
+    await gate.finalize(200, usageResult.error ? 'usage_record_failed' : undefined);
     return NextResponse.json({
       ...result,
       cached: false,
@@ -477,7 +566,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         error: isQuota
           ? 'AI 서비스 오늘 할당량을 모두 사용했어요. 내일 다시 시도해주세요.'
-          : 'AI 촉 서비스에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.',
+          : '시장 관찰판에 잠시 문제가 생겼어요. 잠시 후 다시 시도해주세요.',
       }, { status: 503 });
     }
     const msg = e instanceof Error ? e.message : String(e);

@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import type { QuoteData, CandleRaw } from '@/config/constants';
+import type { QuoteData } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
+import { useNow } from '@/hooks/useNow';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 type RangeKey = '1m' | '3m' | '6m' | '1y';
 const RANGES: { key: RangeKey; label: string; days: number }[] = [
@@ -21,53 +23,86 @@ const RANGES: { key: RangeKey; label: string; days: number }[] = [
 export default function PortfolioValueChart() {
   const { stocks, macroData, rawCandles, currency } = usePortfolioStore();
   const [range, setRange] = useState<RangeKey>('3m');
+  const currentTime = useNow();
+  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
 
   const chartData = useMemo(() => {
+    if (currentTime === 0) return null;
     const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
     if (investing.length === 0) return null;
 
     const rangeDays = RANGES.find(r => r.key === range)!.days;
-    const cutoffTs = Date.now() / 1000 - rangeDays * 86400;
+    const cutoffTs = currentTime / 1000 - rangeDays * 86400;
 
     // 공통 timestamp 세트 구성 (첫 종목의 timestamps 기준, 이후 교집합 체크)
     const firstSymbol = investing.find(s => rawCandles[s.symbol]?.t?.length);
     if (!firstSymbol) return null;
     const firstCandles = rawCandles[firstSymbol.symbol];
 
-    // timestamps: cutoff 이후만
-    const timestamps: number[] = [];
+    // 거래소별 캔들 timestamp 시각이 달라도 같은 거래일끼리 합칠 수 있게 날짜 키를 쓴다.
+    const points: Array<{ date: string; ts: number }> = [];
+    const seenDates = new Set<string>();
     for (const ts of firstCandles.t) {
-      if (ts >= cutoffTs) timestamps.push(ts);
+      if (ts < cutoffTs) continue;
+      const date = new Date(ts * 1000).toISOString().slice(0, 10);
+      if (!seenDates.has(date)) {
+        seenDates.add(date);
+        points.push({ date, ts });
+      }
     }
-    if (timestamps.length < 2) return null;
+    if (points.length < 2) return null;
 
-    // 각 timestamp에 대해 총 포트폴리오 가치 계산
+    const closeBySymbol = new Map<string, Map<string, number>>();
+    investing.forEach((stock) => {
+      const candles = rawCandles[stock.symbol];
+      const closes = new Map<string, number>();
+      candles?.t?.forEach((ts, index) => {
+        const close = candles.c[index];
+        if (close) closes.set(new Date(ts * 1000).toISOString().slice(0, 10), close);
+      });
+      closeBySymbol.set(stock.symbol, closes);
+    });
+
+    // 각 거래일에 대해 KRW 기준 총 포트폴리오 가치 계산
     const values: Array<{ ts: number; value: number }> = [];
-    for (const ts of timestamps) {
-      let total = 0;
+    for (const point of points) {
+      let totalKrw = 0;
       let coverage = 0;
       for (const s of investing) {
-        const c: CandleRaw | undefined = rawCandles[s.symbol];
-        if (!c?.t?.length) continue;
-        const idx = c.t.indexOf(ts);
-        if (idx >= 0 && c.c[idx]) {
-          total += c.c[idx] * s.shares;
+        const close = closeBySymbol.get(s.symbol)?.get(point.date);
+        if (close) {
+          totalKrw += convertStockAmount(
+            s.symbol,
+            close,
+            usdKrw,
+            s.currency,
+          ).krw * s.shares;
           coverage++;
         }
       }
-      if (coverage > investing.length * 0.5) values.push({ ts, value: total });
+      if (coverage > investing.length * 0.5) {
+        values.push({ ts: point.ts, value: totalKrw });
+      }
     }
     if (values.length < 2) return null;
 
     // 현재가 포인트 추가
-    let nowValue = 0;
+    let nowValueKrw = 0;
     let nowCoverage = 0;
     for (const s of investing) {
       const q = macroData[s.symbol] as QuoteData | undefined;
-      if (q?.c) { nowValue += q.c * s.shares; nowCoverage++; }
+      if (q?.c) {
+        nowValueKrw += convertStockAmount(
+          s.symbol,
+          q.c,
+          usdKrw,
+          s.currency,
+        ).krw * s.shares;
+        nowCoverage++;
+      }
     }
     if (nowCoverage > investing.length * 0.5) {
-      values.push({ ts: Date.now() / 1000, value: nowValue });
+      values.push({ ts: currentTime / 1000, value: nowValueKrw });
     }
 
     const startValue = values[0].value;
@@ -87,18 +122,17 @@ export default function PortfolioValueChart() {
       totalDelta,
       coverage: nowCoverage / investing.length,
     };
-  }, [stocks.investing, macroData, rawCandles, range]);
+  }, [stocks.investing, macroData, rawCandles, range, currentTime, usdKrw]);
 
   if (!chartData) return null;
 
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
   const isGain = chartData.totalReturn >= 0;
   const accent = isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
   const accentBg = isGain ? 'var(--color-gain-bg, rgba(239,68,82,0.06))' : 'var(--color-loss-bg, rgba(49,130,246,0.06))';
 
-  const fmt = (usd: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-    : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => currency === 'KRW'
+    ? formatKRW(Math.round(Math.abs(krw)))
+    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   // SVG 파라미터
   const svgWidth = 600;

@@ -4,25 +4,34 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Geist } from "next/font/google";
+import localFont from 'next/font/local';
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
+const joobiWordmark = localFont({
+  src: '../../public/fonts/brand/joobi-single-day-regular.ttf',
+  weight: '400',
+  variable: '--font-wordmark',
+  display: 'swap',
+  fallback: ['Pretendard', 'sans-serif'],
+  adjustFontFallback: false,
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://solb-portfolio.vercel.app'),
-  title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
-  description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉(관찰 후보)·멘토 6명 분석·증권사 통합 평단가. 베타 무료.',
+  title: '주비 — 오늘 내 주식을 챙기는 개인 주식비서',
+  description: '내 자산과 종목 변화, 시장 흐름, 알림을 한곳에서 정리하고 기록까지 안전하게 관리하는 개인 주식비서.',
   openGraph: {
-    title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
-    description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉·멘토 6명·증권사 통합. 베타 무료.',
+    title: '주비 — 오늘 내 주식을 챙기는 개인 주식비서',
+    description: '내 자산과 종목 변화, 시장 흐름, 챙길 일을 한곳에서 확인해요.',
     type: 'website',
     locale: 'ko_KR',
     siteName: '주비',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '주비 — 내 주식 쉽게 읽어주는 AI 비서',
-    description: '내 주식 포트폴리오를 한 줄로 요약. AI 촉·멘토 6명·증권사 통합. 베타 무료.',
+    title: '주비 — 오늘 내 주식을 챙기는 개인 주식비서',
+    description: '내 자산과 종목 변화, 시장 흐름, 챙길 일을 한곳에서 확인해요.',
   },
 };
 
@@ -32,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable)} style={{ colorScheme: 'light' }}>
+    <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable, joobiWordmark.variable)} style={{ colorScheme: 'light' }}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
@@ -53,16 +62,31 @@ export default function RootLayout({
           src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js"
           strategy="afterInteractive"
         />
-        {/* PWA Service Worker 등록 */}
-        <Script id="sw-register" strategy="afterInteractive">{`
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                console.warn('SW registration failed:', err);
+        {process.env.NODE_ENV === 'production' ? (
+          <Script id="sw-register" strategy="afterInteractive">{`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(function(err) {
+                  console.warn('SW registration failed:', err);
+                });
               });
-            });
-          }
-        `}</Script>
+            }
+          `}</Script>
+        ) : (
+          <Script id="sw-dev-cleanup" strategy="beforeInteractive">{`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                return Promise.all(registrations.map(function(registration) { return registration.unregister(); }));
+              }).then(function() {
+                if ('caches' in window) {
+                  return caches.keys().then(function(keys) {
+                    return Promise.all(keys.map(function(key) { return caches.delete(key); }));
+                  });
+                }
+              }).catch(function() {});
+            }
+          `}</Script>
+        )}
       </body>
     </html>
   );

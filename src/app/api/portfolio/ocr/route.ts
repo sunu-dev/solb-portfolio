@@ -1,33 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
-import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
+import { enforceRateLimit, getUserIdFromAuth, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
+import { recordAiCost } from '@/lib/aiCostLedger';
+import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
+import { isOcrProviderEnabled } from '@/lib/ocrAvailability';
+import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
+import { getStockCurrency } from '@/utils/stockCurrency';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY2,
 ].filter(Boolean) as string[];
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseAdmin = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
+  : null;
+const DAILY_LIMIT_TOTAL = Number.parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
+const OCR_DAILY_LIMIT_USER = Number.parseInt(process.env.OCR_DAILY_LIMIT_USER || '5', 10);
 
 function getTodayKST(): string {
   return new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
 }
 
 async function recordOcrUsage(ip: string, stockCount: number, source: string, userId?: string) {
-  if (!supabase) return;
+  const client = supabaseAdmin || supabase;
+  if (!client) return false;
   try {
-    await supabase.from('ai_usage').insert({
+    const { error } = await client.from('ai_usage').insert({
       ip,
       user_id: userId || null,
       date: getTodayKST(),
       symbol: `ocr:${stockCount}stocks`,
       mentor_id: 'ocr-import',
     });
-  } catch { /* silent */ }
+    if (error) console.error('[OCR] usage record failed:', error.message);
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 async function recordGeminiKeyUsage(keyIndex: number) {
@@ -38,6 +54,35 @@ async function recordGeminiKeyUsage(keyIndex: number) {
       date: getTodayKST(),
     });
   } catch { /* silent */ }
+}
+
+async function getOcrDailyUsage(userId: string) {
+  // 전체 사용량과 사용자별 사용량은 RLS 영향 없이 동일한 기준으로 집계해야 한다.
+  if (!supabaseAdmin) return { available: false, requesterCount: 0, totalCount: 0 };
+  try {
+    const requesterQuery = supabaseAdmin
+      .from('ai_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('date', getTodayKST())
+      .eq('mentor_id', 'ocr-import');
+
+    const [requesterResult, totalResult] = await Promise.all([
+      requesterQuery.eq('user_id', userId),
+      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', getTodayKST()),
+    ]);
+
+    if (requesterResult.error || totalResult.error) {
+      console.error('[OCR] usage guard unavailable:', requesterResult.error?.message || totalResult.error?.message);
+      return { available: false, requesterCount: 0, totalCount: 0 };
+    }
+    return {
+      available: true,
+      requesterCount: requesterResult.count || 0,
+      totalCount: totalResult.count || 0,
+    };
+  } catch {
+    return { available: false, requesterCount: 0, totalCount: 0 };
+  }
 }
 
 const PROMPT = `이 이미지는 증권사 앱(MTS/HTS)의 보유종목 화면 스크린샷입니다.
@@ -114,16 +159,84 @@ export interface OcrResult {
   source: string;
 }
 
+function normalizeOcrStock(value: unknown): OcrStock | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const symbol = typeof row.symbol === 'string'
+    ? row.symbol.trim().toUpperCase()
+    : '';
+  if (!/^[A-Z0-9.^-]{1,20}$/.test(symbol)) return null;
+
+  const parsedCurrency = row.currency === 'KRW' || row.currency === 'USD'
+    ? row.currency
+    : null;
+  if (!parsedCurrency) return null;
+  const currency = getStockCurrency(symbol, parsedCurrency);
+
+  const numberOrNull = (input: unknown, max: number): number | null =>
+    typeof input === 'number'
+      && Number.isFinite(input)
+      && input > 0
+      && input <= max
+      ? input
+      : null;
+  const avgCost = numberOrNull(row.avgCost, 1_000_000_000_000_000);
+  const shares = numberOrNull(row.shares, 1_000_000_000_000);
+  if (avgCost === null && shares === null) return null;
+
+  const name = typeof row.name === 'string'
+    ? row.name.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80)
+    : '';
+  return { symbol, name, avgCost, shares, currency };
+}
+
+const VALID_BROKER_KEYS = new Set([
+  'toss', 'kiwoom', 'mirae', 'kis', 'samsung', 'nh', 'kb', 'shinhan',
+  'meritz', 'hana', 'daishin', 'yuanta', 'sk', 'eugene', 'kakaopay', 'other',
+]);
+
 // 에러 코드 정의 (클라이언트가 UI 분기에 사용)
 type OcrErrorCode =
   | 'no_file' | 'too_large' | 'bad_type' | 'service_down'
-  | 'rate_limit' | 'parse_failed' | 'image_empty' | 'unknown';
+  | 'rate_limit' | 'daily_limit' | 'parse_failed' | 'image_empty'
+  | 'unauthorized' | 'disabled' | 'unknown';
 
 function errJson(code: OcrErrorCode, error: string, hint: string, status: number) {
   return NextResponse.json({ error, code, hint }, { status });
 }
 
 export async function POST(req: NextRequest) {
+  // 무료 Gemini 서비스에는 개인정보가 포함될 수 있는 증권사 이미지를 보내지 않는다.
+  // UI 플래그와 유료 서비스 확인 플래그가 모두 true여야만 아래 처리로 진입한다.
+  if (!isOcrProviderEnabled()) {
+    return errJson(
+      'disabled',
+      '스크린샷 가져오기는 준비 중이에요.',
+      '개인정보 보호 기준을 충족한 AI 처리 환경을 준비하고 있어요. 지금은 종목을 직접 추가해주세요.',
+      503,
+    );
+  }
+
+  // OCR 이미지는 외부 AI 처리로 전달되므로 개인정보처리방침에 동의한
+  // 로그인 사용자만 사용할 수 있다. 클라이언트 상태를 신뢰하지 않고 서버에서 검증한다.
+  const userId = await getUserIdFromAuth(req);
+  if (!userId) {
+    return errJson(
+      'unauthorized',
+      '이미지 인식은 로그인 후 이용할 수 있어요.',
+      '로그인한 뒤 다시 시도해주세요.',
+      401,
+    );
+  }
+  if (!await hasCurrentAdultAiConsent(supabaseAdmin, userId)) {
+    return errJson(
+      'unauthorized',
+      '만 18세 이상 확인 후 이용할 수 있어요.',
+      '성인 확인과 필수 동의를 마친 뒤 다시 시도해주세요.',
+      403,
+    );
+  }
+
   // Rate limit 게이트 (OCR은 이미지 토큰 비용이 가장 큼 → 시간당 로그인 5회)
   const gate = await enforceRateLimit(req, '/api/portfolio/ocr', POLICIES.ocr);
   if (!gate.ok) return gate.response;
@@ -143,7 +256,48 @@ export async function POST(req: NextRequest) {
   };
 
   try {
-    const formData = await req.formData();
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const dailyLimit = OCR_DAILY_LIMIT_USER;
+    const { available: usageAvailable, requesterCount, totalCount } = await getOcrDailyUsage(userId);
+
+    if (!usageAvailable) {
+      return await fail(
+        'service_down',
+        'AI 사용량 확인 시스템을 점검하고 있어요.',
+        '직접 입력을 이용하거나 잠시 후 다시 시도해주세요.',
+        503,
+      );
+    }
+
+    if (totalCount >= DAILY_LIMIT_TOTAL) {
+      return await fail(
+        'daily_limit',
+        '오늘 전체 AI 이용량이 한도에 도달했어요.',
+        '종목을 직접 입력하거나 내일 다시 시도해주세요.',
+        429,
+      );
+    }
+
+    if (requesterCount >= dailyLimit) {
+      return await fail(
+        'daily_limit',
+        `오늘 이미지 인식 횟수를 모두 사용했어요 (${dailyLimit}회/일).`,
+        '종목을 직접 입력하거나 내일 다시 시도해주세요.',
+        429,
+      );
+    }
+
+    const contentType = req.headers.get('content-type')?.toLowerCase() || '';
+    if (!contentType.startsWith('multipart/form-data')) {
+      return await fail('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 선택하거나 드래그해서 올려주세요.', 400);
+    }
+
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return await fail('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 다시 선택해서 올려주세요.', 400);
+    }
     const file = formData.get('image') as File | null;
 
     if (!file) {
@@ -163,10 +317,18 @@ export async function POST(req: NextRequest) {
       return await fail('service_down', 'AI 분석 서비스가 준비 중이에요.', '잠시 후 다시 시도해주세요.', 503);
     }
 
+    const budget = await getAiMonthlyBudgetStatus();
+    if (!budget.allowed) {
+      return await fail(
+        'service_down',
+        'AI 이미지 인식 사용량을 점검하고 있어요.',
+        '직접 입력을 이용하거나 잠시 후 다시 시도해주세요.',
+        503,
+      );
+    }
+
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
-
     // 키 로테이션: 실패 시 다른 키로 재시도
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
@@ -175,6 +337,7 @@ export async function POST(req: NextRequest) {
     for (const apiKey of shuffledKeys) {
       const keyIndex = GEMINI_KEYS.indexOf(apiKey);
       try {
+        const startedAt = Date.now();
         const ai = new GoogleGenAI({ apiKey });
 
         const response = await ai.models.generateContent({
@@ -200,6 +363,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        const metadata = response.usageMetadata;
+        await recordAiCost({
+          feature: 'portfolio-ocr',
+          provider: 'gemini',
+          model: 'gemini-2.5-flash',
+          inputTokens: metadata?.promptTokenCount ?? 0,
+          outputTokens: metadata?.candidatesTokenCount ?? 0,
+          cachedInputTokens: metadata?.cachedContentTokenCount ?? 0,
+          reasoningTokens: metadata?.thoughtsTokenCount ?? 0,
+          latencyMs: Date.now() - startedAt,
+        });
+
         const raw = response.text || '';
         const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
@@ -207,33 +382,50 @@ export async function POST(req: NextRequest) {
           return await fail('parse_failed', 'AI가 이미지를 읽지 못했어요.', '이미지가 흐릿하거나 글자가 너무 작은지 확인 후 고화질로 다시 캡처해주세요.', 422);
         }
 
-        let result: OcrResult;
+        let parsed: unknown;
         try {
-          result = JSON.parse(text);
+          parsed = JSON.parse(text);
         } catch {
           return await fail('parse_failed', '이미지에서 종목 정보를 찾지 못했어요.', '보유종목 목록이 선명하게 보이도록 캡처 후 다시 시도해주세요.', 422);
         }
 
-        if (!result.stocks || result.stocks.length === 0) {
+        if (!parsed || typeof parsed !== 'object') {
+          return await fail('parse_failed', '이미지 분석 결과를 확인하지 못했어요.', '보유종목 화면을 선명하게 다시 캡처해주세요.', 422);
+        }
+        const result = parsed as Record<string, unknown>;
+        if (!Array.isArray(result.stocks) || result.stocks.length === 0) {
           return await fail('image_empty', '보유 종목을 인식하지 못했어요.', '증권앱의 "보유종목" 또는 "계좌" 화면을 전체 캡처해주세요. 종목명과 수량이 모두 보여야 해요.', 422);
         }
 
-        const valid = result.stocks.filter(s => s.symbol && (s.avgCost !== null || s.shares !== null));
+        const valid = result.stocks
+          .slice(0, 100)
+          .map(normalizeOcrStock)
+          .filter((stock): stock is OcrStock => stock !== null);
 
         if (valid.length === 0) {
           return await fail('image_empty', '인식된 종목이 있지만 정보가 부족해요.', '종목명·보유수량이 잘리지 않도록 전체 화면을 캡처해주세요.', 422);
         }
 
         // 성공: 사용량 기록 (병렬)
-        await Promise.all([
-          recordOcrUsage(ip, valid.length, result.source || 'unknown'),
+        const [usageRecorded] = await Promise.all([
+          recordOcrUsage(
+            ip,
+            valid.length,
+            typeof result.source === 'string' ? result.source.slice(0, 80) : 'unknown',
+            userId || undefined,
+          ),
           recordGeminiKeyUsage(keyIndex),
-          gate.finalize(200),
         ]);
+        await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
 
         return NextResponse.json({
           stocks: valid,
-          source: result.source || '알 수 없음',
+          brokerKey: typeof result.brokerKey === 'string' && VALID_BROKER_KEYS.has(result.brokerKey)
+            ? result.brokerKey
+            : '',
+          source: typeof result.source === 'string'
+            ? result.source.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80) || '알 수 없음'
+            : '알 수 없음',
           total: valid.length,
         });
       } catch (e) {

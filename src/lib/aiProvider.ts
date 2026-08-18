@@ -14,11 +14,12 @@
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@supabase/supabase-js';
+import { recordAiCost, type AiTokenUsage } from '@/lib/aiCostLedger';
 
 // ─── 설정 ────────────────────────────────────────────────────────────────────
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY2,
 ].filter(Boolean) as string[];
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
@@ -81,6 +82,10 @@ export interface AiJsonOptions {
   maxTokens?: number;
   /** Gemini 모델 (기본 gemini-2.5-flash-lite) */
   geminiModel?: string;
+  /** 비용 원장 기능 구분 */
+  feature?: string;
+  /** 비용 귀속용 사용자 ID (프롬프트/응답은 저장하지 않음) */
+  userId?: string;
 }
 
 export interface AiJsonResult {
@@ -92,6 +97,8 @@ export interface AiJsonResult {
   model: string;
   /** 응답 시간 (ms) */
   latencyMs: number;
+  /** 공급자가 반환한 실제 토큰 사용량 */
+  usage: AiTokenUsage;
 }
 
 export class AiProviderError extends Error {
@@ -147,7 +154,23 @@ async function callGemini(opts: AiJsonOptions): Promise<AiJsonResult> {
       const text = stripMarkdownCodeBlock(raw);
       if (!text) throw new Error('empty response from Gemini');
 
-      return { text, provider: 'gemini', model, latencyMs: Date.now() - started };
+      const metadata = response.usageMetadata;
+      const usage: AiTokenUsage = {
+        inputTokens: metadata?.promptTokenCount ?? 0,
+        outputTokens: metadata?.candidatesTokenCount ?? 0,
+        cachedInputTokens: metadata?.cachedContentTokenCount ?? 0,
+        reasoningTokens: metadata?.thoughtsTokenCount ?? 0,
+      };
+      const latencyMs = Date.now() - started;
+      await recordAiCost({
+        ...usage,
+        feature: opts.feature || 'unknown',
+        userId: opts.userId,
+        provider: 'gemini',
+        model,
+        latencyMs,
+      });
+      return { text, provider: 'gemini', model, latencyMs, usage };
     } catch (e) {
       lastError = e;
       // 할당량 에러는 즉시 Claude로 넘어감 (다음 키도 같은 결과일 확률 높음)
@@ -197,7 +220,26 @@ async function callClaude(opts: AiJsonOptions): Promise<AiJsonResult> {
   const text = stripMarkdownCodeBlock(textBlock.text);
   if (!text) throw new Error('empty response from Claude');
 
-  return { text, provider: 'claude', model, latencyMs: Date.now() - started };
+  const usage: AiTokenUsage = {
+    // Anthropic은 일반/캐시 생성/캐시 읽기 토큰을 별도 반환한다.
+    // 원장 inputTokens는 전체 입력량, cachedInputTokens는 그중 캐시 읽기분으로 정규화한다.
+    inputTokens:
+      response.usage.input_tokens
+      + (response.usage.cache_creation_input_tokens ?? 0)
+      + (response.usage.cache_read_input_tokens ?? 0),
+    outputTokens: response.usage.output_tokens,
+    cachedInputTokens: response.usage.cache_read_input_tokens ?? 0,
+  };
+  const latencyMs = Date.now() - started;
+  await recordAiCost({
+    ...usage,
+    feature: opts.feature || 'unknown',
+    userId: opts.userId,
+    provider: 'claude',
+    model,
+    latencyMs,
+  });
+  return { text, provider: 'claude', model, latencyMs, usage };
 }
 
 // ─── 공개 API: JSON 응답 AI 호출 ──────────────────────────────────────────────

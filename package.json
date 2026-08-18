@@ -11,6 +11,7 @@
     "lint:korean": "node scripts/lint-korean.mjs",
     "lint:korean:soft": "node scripts/lint-korean.mjs --soft",
     "test": "vitest run",
+    "test:market-flow:history": "MARKET_FLOW_BACKTEST=1 vitest run scripts/market-flow-backtest.test.ts --reporter=verbose",
     "lint:darkmode": "node scripts/lint-darkmode.mjs",
     "lint:darkmode:soft": "node scripts/lint-darkmode.mjs --soft",
     "lint:tour-anchors": "node scripts/lint-tour-anchors.mjs",

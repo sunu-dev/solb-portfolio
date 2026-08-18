@@ -5,7 +5,9 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatKRW } from '@/utils/formatKRW';
-import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { findCanonicalSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { Clock3, MessageSquareText, Minus, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 type PeriodKey = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 interface Period {
@@ -33,6 +35,7 @@ const PERIODS: Period[] = [
 export default function ThrowbackCard() {
   const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('1d');
+  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
 
   // 공통: 특정 일수 전 가격 조회
   const priceAtDaysAgo = (symbol: string, days: number): { price: number; ts: number } | null => {
@@ -79,7 +82,7 @@ export default function ThrowbackCard() {
     for (const period of PERIODS) {
       // ① 스냅샷 우선 조회 (±3일 허용)
       const targetDate = getDateDaysAgo(period.days);
-      const snap = findSnapshotNearDate(dailySnapshots, targetDate, 3);
+      const snap = findCanonicalSnapshotNearDate(dailySnapshots, targetDate, 3);
 
       if (snap && snap.stocks.length > 0) {
         const perfs: PerfEntry[] = [];
@@ -89,9 +92,21 @@ export default function ThrowbackCard() {
           const q = macroData[snapStock.symbol] as QuoteData | undefined;
           const now = q?.c || 0;
           if (!now) continue;
-          totalNow += now * snapStock.shares;
-          totalPast += snapStock.currentPrice * snapStock.shares;
-          const deltaAbs = (now - snapStock.currentPrice) * snapStock.shares;
+          const nowKrw = convertStockAmount(
+            snapStock.symbol,
+            now,
+            usdKrw,
+            snapStock.currency,
+          ).krw;
+          const pastKrw = convertStockAmount(
+            snapStock.symbol,
+            snapStock.currentPrice,
+            usdKrw,
+            snapStock.currency,
+          ).krw;
+          totalNow += nowKrw * snapStock.shares;
+          totalPast += pastKrw * snapStock.shares;
+          const deltaAbs = (nowKrw - pastKrw) * snapStock.shares;
           const deltaPct = snapStock.currentPrice > 0
             ? ((now - snapStock.currentPrice) / snapStock.currentPrice) * 100 : 0;
           perfs.push({
@@ -134,11 +149,13 @@ export default function ThrowbackCard() {
         const past = priceAtDaysAgo(s.symbol, period.days);
         if (!now || !past) continue;
 
-        hypotheticalNow += now * s.shares;
-        hypotheticalPast += past.price * s.shares;
+        const nowKrw = convertStockAmount(s.symbol, now, usdKrw, s.currency).krw;
+        const pastKrw = convertStockAmount(s.symbol, past.price, usdKrw, s.currency).krw;
+        hypotheticalNow += nowKrw * s.shares;
+        hypotheticalPast += pastKrw * s.shares;
         earliestTs = earliestTs == null ? past.ts : Math.max(earliestTs, past.ts);
 
-        const deltaAbs = (now - past.price) * s.shares;
+        const deltaAbs = (nowKrw - pastKrw) * s.shares;
         const deltaPct = ((now - past.price) / past.price) * 100;
         perfs.push({
           symbol: s.symbol, shares: s.shares,
@@ -170,7 +187,7 @@ export default function ThrowbackCard() {
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stocks.investing, macroData, rawCandles, dailySnapshots]);
+  }, [stocks.investing, macroData, rawCandles, dailySnapshots, usdKrw]);
 
   // 기간별 "그때 메모" — 활성 기간의 ±50% 범위 내 작성된 노트
   interface PeriodNote {
@@ -215,10 +232,9 @@ export default function ThrowbackCard() {
   const active = allData[activePeriod];
   const activeNotes = periodNotes[activePeriod];
 
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
-  const formatMoney = (usd: number) => {
-    if (currency === 'KRW') return formatKRW(Math.round(Math.abs(usd) * usdKrw));
-    return `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const formatMoney = (krw: number) => {
+    if (currency === 'KRW') return formatKRW(Math.round(Math.abs(krw)));
+    return `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   };
 
   return (
@@ -233,7 +249,7 @@ export default function ThrowbackCard() {
     >
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <span style={{ fontSize: 18 }}>🕰️</span>
+        <Clock3 size={18} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
             THROWBACK
@@ -395,7 +411,7 @@ function ActiveBody({
       {data.best && data.worst && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <PerfHighlight
-            icon="🚀"
+            icon={TrendingUp}
             label={data.best.deltaPct > 0 ? '가장 많이 오른' : '가장 덜 내린'}
             symbol={data.best.symbol}
             pct={data.best.deltaPct}
@@ -403,7 +419,7 @@ function ActiveBody({
           />
           {data.best.symbol !== data.worst.symbol && (
             <PerfHighlight
-              icon={data.worst.deltaPct < 0 ? '📉' : '🐢'}
+              icon={data.worst.deltaPct < 0 ? TrendingDown : Minus}
               label={data.worst.deltaPct < 0 ? '가장 많이 내린' : '가장 덜 오른'}
               symbol={data.worst.symbol}
               pct={data.worst.deltaPct}
@@ -422,7 +438,10 @@ function ActiveBody({
             letterSpacing: 0.4,
             marginBottom: 8,
           }}>
-            💭 그때의 결정
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <MessageSquareText size={13} strokeWidth={1.75} aria-hidden="true" />
+              그때의 결정
+            </span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {notes.map((n, i) => {
@@ -478,9 +497,9 @@ function ActiveBody({
 }
 
 function PerfHighlight({
-  icon, label, symbol, pct, isGain,
+  icon: Icon, label, symbol, pct, isGain,
 }: {
-  icon: string;
+  icon: LucideIcon;
   label: string;
   symbol: string;
   pct: number;
@@ -500,7 +519,10 @@ function PerfHighlight({
       }}
     >
       <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 6 }}>
-        {icon} {label}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon size={12} strokeWidth={1.75} aria-hidden="true" />
+          {label}
+        </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
         <div style={{

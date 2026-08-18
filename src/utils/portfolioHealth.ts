@@ -1,4 +1,5 @@
 import { STOCK_KR } from '@/config/constants';
+import { isKoreanStockSymbol } from './stockCurrency';
 
 // 섹터 분류 (심볼 기반 간이 분류). export: 누출 불변식 테스트가 '이 모듈이 인지하는 티커'
 // 전체를 스캔 사전에 포함시키기 위함(STOCK_KR에 없는 ABBV/COP/KO/PEP 등 사각지대 차단).
@@ -60,7 +61,7 @@ export const KR_SECTOR_MAP: Record<string, string> = {
 };
 
 export function getSector(symbol: string): string {
-  if (symbol.endsWith('.KS') || symbol.endsWith('.KQ')) return KR_SECTOR_MAP[symbol] || '한국주식';
+  if (isKoreanStockSymbol(symbol)) return KR_SECTOR_MAP[symbol] || '한국주식';
   return SECTOR_MAP[symbol] || '기타';
 }
 

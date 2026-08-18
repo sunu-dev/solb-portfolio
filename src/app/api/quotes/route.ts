@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerApi } from '@/lib/serverLogger';
+import {
+  getYahooSymbolCandidates,
+  isKoreanStockSymbol,
+} from '@/utils/stockCurrency';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
@@ -67,6 +71,14 @@ async function fetchFromFinnhub(symbol: string, apiKey: string): Promise<QuoteRe
   } catch { return null; }
 }
 
+async function fetchBareKoreanCode(symbol: string): Promise<QuoteResult | null> {
+  for (const candidate of getYahooSymbolCandidates(symbol)) {
+    const quote = await fetchFromYahoo(candidate);
+    if (quote) return quote;
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { symbols, macro } = await req.json() as {
@@ -89,7 +101,7 @@ export async function POST(req: NextRequest) {
     // 되고, 배치가 (미국 종목으로) 성공 처리되면 useStockData의 KR fallback이 스킵돼
     // 한국 종목 시세가 영영 안 채워진다(무한 스켈레톤). Yahoo는 .KS를 정상 처리(kr-quote와 동일).
     const isYahooSym = (s: string) =>
-      s.startsWith('^') || !!YAHOO_INDEX_MAP[s] || s.endsWith('.KS') || s.endsWith('.KQ');
+      s.startsWith('^') || !!YAHOO_INDEX_MAP[s] || isKoreanStockSymbol(s);
     const indexSymbols = syms.filter(isYahooSym);
     const stockSymbols = syms.filter(s => !isYahooSym(s));
 
@@ -98,7 +110,9 @@ export async function POST(req: NextRequest) {
     await Promise.all([
       // Index quotes via Yahoo Finance (Finnhub free tier doesn't support indices)
       ...indexSymbols.map(async (symbol) => {
-        results[symbol] = await fetchFromYahoo(symbol);
+        results[symbol] = /^\d{6}$/.test(symbol)
+          ? await fetchBareKoreanCode(symbol)
+          : await fetchFromYahoo(symbol);
       }),
       // Stock quotes via Finnhub
       ...stockSymbols.map(async (symbol) => {

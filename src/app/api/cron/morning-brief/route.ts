@@ -4,13 +4,22 @@ import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
 import { STOCK_KR } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
-import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import {
+  findCanonicalSnapshotNearDate,
+  getDateDaysAgo,
+  getSnapshotKrwTotals,
+} from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { DISCLAIMER_DIGEST } from '@/utils/alertCompliance';
 import { buildMoverNote } from '@/lib/moverNote';
+import {
+  getStockCurrency,
+  isKoreanStockSymbol,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 
 // ─── 시차 인지 2슬롯 digest (docs/PERSONALIZED_DIGEST_SPEC.md) ───────────────
 // 같은 route를 ?slot= 쿼리로 분기. 국장 07:00(간밤 미장 보유분) / 국장 마감 16:00(오늘 국장).
@@ -81,7 +90,7 @@ function initWebPush() {
 
 async function fetchPrice(symbol: string): Promise<{ c: number; d: number; dp: number } | null> {
   try {
-    const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+    const isKR = isKoreanStockSymbol(symbol);
     if (isKR) {
       const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/kr-quote?symbol=${symbol}`;
       const res = await fetch(url, { cache: 'no-store' });
@@ -137,9 +146,24 @@ async function buildBrief(
   if (investing.length === 0) return null;
 
   // 캐시에서 시세 조회 (cron 시작 시 unique 심볼 한 번에 fetch했음)
-  let totalValue = 0;
-  let todayDelta = 0;
-  let prevValue = 0;
+  const summary = summarizePortfolioCurrency(
+    investing.map((stock) => {
+      const quote = priceCache[stock.symbol];
+      return {
+        symbol: stock.symbol,
+        currency: stock.currency,
+        avgCost: stock.avgCost,
+        shares: stock.shares,
+        currentPrice: quote?.c || 0,
+        dayChange: quote?.d || 0,
+        purchaseRate: stock.purchaseRate,
+      };
+    }),
+    usdKrw,
+  );
+  const totalValue = summary.totalValueKrw;
+  const todayDelta = summary.todayChangeKrw;
+  const prevValue = totalValue - todayDelta;
   // 주목 종목 후보: 슬롯 시장 매칭(close=국장 KR / morning=간밤 미장 US) 우선, 없으면 전체 fallback.
   type Mover = { symbol: string; dp: number; absDp: number };
   let biggestMatch: Mover | null = null;
@@ -147,11 +171,7 @@ async function buildBrief(
   for (const stock of investing) {
     const q = priceCache[stock.symbol];
     if (!q) continue;
-    const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
-    const rate = isKR ? 1 : usdKrw;
-    totalValue += q.c * stock.shares * rate;
-    todayDelta += q.d * stock.shares * rate;
-    prevValue += (q.c - q.d) * stock.shares * rate;
+    const isKR = getStockCurrency(stock.symbol, stock.currency) === 'KRW';
     // 레버리지는 손익엔 반영하되 '오늘의 주목 종목'으로는 띄우지 않음 (유인 억제).
     if (isSingleStockLeverage(stock.symbol, stock.name || STOCK_KR[stock.symbol])) continue;
     const absDp = Math.abs(q.dp);
@@ -170,13 +190,11 @@ async function buildBrief(
   let yesterdayPct: number | null = null;
   if (snapshots.length > 0) {
     const yDate = getDateDaysAgo(1);
-    const ySnap = findSnapshotNearDate(snapshots, yDate, 2);
-    if (ySnap && ySnap.totalValue > 0) {
-      // 스냅샷 totalValue는 캡처 시점 단위(USD 혼합 가능). 정확한 비교를 위해
-      // 스냅샷 stocks를 다시 평가하면 좋지만 — MVP는 totalValue 직접 비교.
-      // (Dashboard.tsx가 totalValueWon = KRW 누적으로 캡처하므로 KRW 가정 가능)
-      yesterdayDelta = totalValue - ySnap.totalValue;
-      yesterdayPct = (yesterdayDelta / ySnap.totalValue) * 100;
+    const ySnap = findCanonicalSnapshotNearDate(snapshots, yDate, 2);
+    const yTotals = ySnap ? getSnapshotKrwTotals(ySnap) : null;
+    if (yTotals && yTotals.totalValueKrw > 0) {
+      yesterdayDelta = totalValue - yTotals.totalValueKrw;
+      yesterdayPct = (yesterdayDelta / yTotals.totalValueKrw) * 100;
     }
   }
 

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logServerApi } from '@/lib/serverLogger';
+import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
 const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
+
+interface YahooMeta {
+  marketCap?: number;
+  currency?: string;
+}
 
 export interface FundamentalData {
   per: number | null;        // PER (주가수익비율)
@@ -12,6 +18,8 @@ export interface FundamentalData {
   week52Low: number | null;  // 52주 최저가
   sector: string | null;     // 섹터
   industry: string | null;   // 산업
+  currency: 'KRW' | 'USD';
+  resolvedSymbol: string;
 }
 
 export async function GET(req: NextRequest) {
@@ -21,21 +29,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Yahoo Finance quoteSummary (key statistics + profile)
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=1d`;
-    const r = await fetch(url, {
-      headers: { 'User-Agent': YAHOO_UA },
-      signal: AbortSignal.timeout(8000),
-    });
-    const data = await r.json();
-    const meta = data?.chart?.result?.[0]?.meta;
-
-    if (!meta) {
-      return NextResponse.json({ data: null });
+    let resolvedSymbol = '';
+    let meta: YahooMeta | null = null;
+    for (const candidate of getYahooSymbolCandidates(symbol)) {
+      try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(candidate)}?range=1d&interval=1d`;
+        const r = await fetch(url, {
+          headers: { 'User-Agent': YAHOO_UA },
+          signal: AbortSignal.timeout(8000),
+        });
+        const data = await r.json();
+        const candidateMeta = data?.chart?.result?.[0]?.meta;
+        if (candidateMeta) {
+          resolvedSymbol = candidate;
+          meta = candidateMeta as YahooMeta;
+          break;
+        }
+      } catch {
+        // 접미사 없는 한국 종목은 다음 거래소 후보를 계속 확인한다.
+      }
     }
+    if (!meta || !resolvedSymbol) return NextResponse.json({ data: null });
 
     // quoteSummary for PE, EPS, dividendYield, sector
-    const summaryUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics,summaryDetail,assetProfile`;
+    const summaryUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(resolvedSymbol)}?modules=defaultKeyStatistics,summaryDetail,assetProfile`;
     let per: number | null = null;
     let eps: number | null = null;
     let dividendYield: number | null = null;
@@ -76,9 +93,11 @@ export async function GET(req: NextRequest) {
       week52Low,
       sector,
       industry,
+      currency: meta.currency === 'KRW' ? 'KRW' : 'USD',
+      resolvedSymbol,
     };
 
-    logServerApi('api_fundamentals', { symbol });
+    logServerApi('api_fundamentals', { symbol, resolved_symbol: resolvedSymbol });
 
     return NextResponse.json(
       { data: result },

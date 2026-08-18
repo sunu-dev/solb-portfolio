@@ -2,15 +2,15 @@
  * 원화 포맷팅 유틸 — 서비스 전체 통일 규칙 (Toss 스타일)
  *
  * 규칙:
- * - 1억 미만: 풀숫자 + 콤마 (276,000원)
- * - 1억 이상: 억 축약 (2.1억원)
+ * - 10억 미만: 풀숫자 + 콤마 (276,000원)
+ * - 10억 이상: 억 축약 (12억원)
  * - 음수: -₩ 형태
  */
 
 interface FormatOptions {
   prefix?: boolean;    // ₩ 접두어 (default: true)
   suffix?: string;     // 접미어 (예: "원")
-  short?: boolean;     // 억 축약 (default: true) — 1억 미만은 항상 풀숫자
+  short?: boolean;     // 억 축약 (default: true) — 10억 미만은 항상 풀숫자
 }
 
 export function formatKRW(val: number, opts?: FormatOptions): string {

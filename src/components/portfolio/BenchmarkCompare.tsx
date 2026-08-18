@@ -3,7 +3,8 @@
 import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData, MacroEntry } from '@/config/constants';
-import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { findCanonicalSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 
 /**
  * 시장 대비 내 성과 비교.
@@ -24,24 +25,24 @@ export default function BenchmarkCompare() {
     const investing = stocks.investing || [];
     if (investing.length === 0) return null;
 
-    // 포트폴리오 오늘 일일 변동 — 시장 대비 직접 비교 가능한 유일한 시간 축
-    let todayDelta = 0;
-    let prevValue = 0;
-    let currentValue = 0;
-    let totalCost = 0;
-    investing.forEach(s => {
-      const q = macroData[s.symbol] as QuoteData | undefined;
-      if (!q?.c || s.shares <= 0) return;
-      const dailyDeltaPerShare = q.d || 0;
-      const prevPrice = q.c - dailyDeltaPerShare;
-      todayDelta += dailyDeltaPerShare * s.shares;
-      prevValue += prevPrice * s.shares;
-      currentValue += q.c * s.shares;
-      if (s.avgCost > 0) totalCost += s.avgCost * s.shares;
-    });
-
-    if (prevValue === 0) return null;
-    const myTodayPct = (todayDelta / prevValue) * 100;
+    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+    const summary = summarizePortfolioCurrency(
+      investing.map((stock) => {
+        const quote = macroData[stock.symbol] as QuoteData | undefined;
+        return {
+          symbol: stock.symbol,
+          currency: stock.currency,
+          avgCost: stock.avgCost,
+          shares: stock.shares,
+          currentPrice: quote?.c || 0,
+          dayChange: quote?.d || 0,
+          purchaseRate: stock.purchaseRate,
+        };
+      }),
+      usdKrw,
+    );
+    if (summary.totalValueKrw <= 0) return null;
+    const myTodayPct = summary.todayChangePctKrw;
 
     // S&P 500 오늘 일일 변동 — 같은 시간 축
     const sp = macroData['S&P 500'] as MacroEntry | undefined;
@@ -52,8 +53,8 @@ export default function BenchmarkCompare() {
 
     // 보조 정보: 어제 스냅샷 기반 1일 비교 (가능하면 누적 손익도 별도 표시)
     const yDate = getDateDaysAgo(1);
-    const ySnap = findSnapshotNearDate(dailySnapshots, yDate, 2);
-    const cumulativeReturn = totalCost > 0 ? ((currentValue - totalCost) / totalCost) * 100 : null;
+    const ySnap = findCanonicalSnapshotNearDate(dailySnapshots, yDate, 2);
+    const cumulativeReturn = summary.totalCostKrw > 0 ? summary.totalPnlPctKrw : null;
 
     return {
       myTodayPct,

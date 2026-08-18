@@ -3,7 +3,8 @@
 import { useState, useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import type { QuoteData } from '@/config/constants';
+import type { QuoteData, MacroEntry } from '@/config/constants';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 /**
  * 포트폴리오 한눈에 — 가로 스택 바(비중) + 손익 분포 막대(±편차).
@@ -70,13 +71,19 @@ export default function PortfolioCompactBar({ onExpand }: Props) {
 
   const { items, totalValue } = useMemo(() => {
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
+    const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
     const built: Item[] = [];
     let total = 0;
     for (const s of investing) {
       const q = macroData[s.symbol] as QuoteData | undefined;
       const price = q?.c || 0;
       if (price <= 0) continue;
-      const value = price * s.shares;
+      const value = convertStockAmount(
+        s.symbol,
+        price,
+        usdKrw,
+        s.currency,
+      ).krw * s.shares;
       total += value;
       const pnlPct = ((price - s.avgCost) / s.avgCost) * 100;
       const todayPct = q?.dp || 0;

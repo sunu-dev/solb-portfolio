@@ -7,6 +7,7 @@ import type { PresetEvent, QuoteData, EventCacheEntry } from '@/config/constants
 import { Plus, CheckCircle2, Clock, XCircle, Info, X } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import EmptyState from '@/components/common/EmptyState';
+import { useNow } from '@/hooks/useNow';
 
 // ─── Severity helper ────────────────────────────────────────────────────────
 function getSeverity(maxDrop: number) {
@@ -18,12 +19,13 @@ function getSeverity(maxDrop: number) {
 
 // ─── EventTimeline ───────────────────────────────────────────────────────────
 function EventTimeline({ event }: { event: PresetEvent }) {
+  const currentTime = useNow();
   const startMs = new Date(event.startDate).getTime();
-  const endMs   = event.endDate ? new Date(event.endDate).getTime() : Date.now();
-  const nowMs   = Math.min(Date.now(), endMs);
+  const endMs   = event.endDate ? new Date(event.endDate).getTime() : (currentTime || startMs);
+  const nowMs   = Math.min(currentTime || startMs, endMs);
   const total   = Math.max(1, Math.round((endMs - startMs) / 86400000));
   const elapsed = Math.round((nowMs - startMs) / 86400000);
-  const pct     = Math.min(Math.round((elapsed / total) * 100), 100);
+  const pct     = Math.max(0, Math.min(Math.round((elapsed / total) * 100), 100));
   const ongoing = !event.endDate;
 
   // 구간 마커: 90일 초과 → 3개월 단위, 365일 초과 → 6개월 단위
@@ -179,8 +181,7 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
   const maxDropDate  = entry.maxDropDate;
 
   // Recovery cell
-  const RecoveryCellContent = () => {
-    if (entry.recovered) return (
+  const recoveryCellContent = entry.recovered ? (
       <div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#34C759', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -188,16 +189,14 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
           {entry.recoveryDays ? `${entry.recoveryDays}일` : '완료'}
         </div>
       </div>
-    );
-    if (ongoing) return (
+    ) : ongoing ? (
       <div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#FF9500', display: 'flex', alignItems: 'center', gap: 3 }}>
           <Clock style={{ width: 12, height: 12 }} /> 진행중
         </div>
       </div>
-    );
-    return (
+    ) : (
       <div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#EF4452', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -205,7 +204,6 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
         </div>
       </div>
     );
-  };
 
   return (
     <div style={{
@@ -292,7 +290,7 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
         </div>
 
         <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          <RecoveryCellContent />
+          {recoveryCellContent}
         </div>
       </div>
 
@@ -449,8 +447,12 @@ export default function EventsSection() {
   }, [eventCache, macroData, getAllSymbols, updateEventCache, updateEventCacheEntry]);
 
   useEffect(() => {
-    if (currentEvent) fetchEventData(currentEvent);
-  }, [currentEventId]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!currentEvent) return;
+    const frame = requestAnimationFrame(() => {
+      void fetchEventData(currentEvent);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [currentEvent, fetchEventData]);
 
   const handleSaveEvent = (data: { name: string; startDate: string; endDate: string; description: string }) => {
     if (!data.name || !data.startDate) { alert('이름과 시작일은 필수입니다.'); return; }

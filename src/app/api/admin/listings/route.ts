@@ -159,7 +159,13 @@ JSON으로만 응답:
 { "kr_name": "한국어 표기", "is_etf": true/false, "is_confident": true/false }`;
 
   try {
-    const aiRes = await callAiJson({ prompt, temperature: 0.1, maxTokens: 200 });
+    const aiRes = await callAiJson({
+      prompt,
+      temperature: 0.1,
+      maxTokens: 200,
+      feature: 'admin-listing-name',
+      userId: auth.userId,
+    });
     const parsed = JSON.parse(aiRes.text) as { kr_name: string; is_etf: boolean; is_confident: boolean };
     return NextResponse.json({ ok: true, ...parsed, provider: aiRes.provider });
   } catch (e) {

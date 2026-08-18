@@ -2,7 +2,7 @@
  * 투자자 유형 시스템
  *
  * 유저의 선호 투자 스타일을 5가지로 분류.
- * AI 촉/분석이 이 유형에 맞춰 톤·관점·추천 기준을 조정.
+ * AI 분석이 이 유형에 맞춰 말투·용어 난이도·설명 순서만 조정.
  *
  * PortfolioDNA(현재 보유 기반 자동 분류)와 구분:
  * - DNA = 지금 있는 당신 (descriptive)
@@ -20,7 +20,7 @@ export interface InvestorTypeMeta {
   keyTraits: string[];
   /** AI 프롬프트용 baseline 가이드 (시스템 레이어 삽입) */
   aiGuide: string;
-  /** AI 촉 종목 선택 시 우선 키워드 (서버측 가중치) */
+  /** 레거시 UI 설명용 선호 키워드. 시장 관찰판·종목 선정에는 사용 금지. */
   chokPreference: string[];
   /** UI 색상 (CSS var or hex) */
   accentColor: string;
@@ -264,3 +264,9 @@ export function calculateInvestorType(
 
 /** 기본 유형 (선택 안 한 유저) */
 export const DEFAULT_INVESTOR_TYPE: InvestorType = 'diversified';
+
+export function normalizeInvestorType(value: unknown): InvestorType {
+  return typeof value === 'string' && value in INVESTOR_TYPES
+    ? value as InvestorType
+    : DEFAULT_INVESTOR_TYPE;
+}

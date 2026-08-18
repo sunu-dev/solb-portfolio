@@ -28,6 +28,12 @@ export const USER_STORAGE_KEYS = [
   'solb_tour_done',
   'solb_tour_pending',
   'solb_tour_chapters_done',
+  'solb_feat_used',
+  'solb_checklist_dismissed',
+  'solb_checklist_done_logged',
+  // PRO 수요 검증 활동/숨김 — 계정 간 섞이면 적격·전환 지표가 오염됨
+  'solb_pro_demand_activity_v1',
+  'solb_pro_demand_dismissed_v1',
   // 초대 캐시 (사용자별)
   'solb_invite_cache',
 ] as const;
@@ -38,10 +44,14 @@ export const USER_STORAGE_KEYS = [
  */
 export const USER_STORAGE_KEY_PREFIXES = [
   'solb_chapter_keyword_',
+  'solb_portfolio_sync_outbox_v1:',
 ] as const;
 
 /** 모든 사용자 데이터 키 정리 */
 export function clearUserStorage(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('solb-user-storage-clearing'));
+  }
   // 1. 고정 키 정리
   for (const key of USER_STORAGE_KEYS) {
     try { localStorage.removeItem(key); } catch { /* quota / privacy mode 등 */ }
@@ -63,6 +73,12 @@ export function clearUserStorage(): void {
   // 3. sessionStorage의 사용자별 키 (consent 흐름 중간 상태)
   try {
     sessionStorage.removeItem('solb_consent_pending');
+    const sessionKeys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith('solb_pro_demand_exposed_v1')) sessionKeys.push(key);
+    }
+    for (const key of sessionKeys) sessionStorage.removeItem(key);
   } catch { /* ignore */ }
 
   // 4. 사용자별 candle 캐시 — 동적 키 (candle_AAPL, candle_TSLA 등)

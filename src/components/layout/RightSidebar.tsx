@@ -10,6 +10,7 @@ import { Plus } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import { isAlertSuppressed } from '@/utils/alertLearning';
 import AlertGroup from '@/components/common/AlertGroup';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 interface ChokPick {
   symbol: string;
@@ -126,10 +127,21 @@ export default function RightSidebar() {
           const price = q?.c ?? 0;
           const dp = q?.dp ?? 0;
           const isGain = dp >= 0;
-          const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
           const kr = STOCK_KR[stock.symbol] || stock.symbol;
           const avatarColor = getAvatarColor(stock.symbol);
           const hasData = price > 0;
+          const priceAmounts = convertStockAmount(
+            stock.symbol,
+            price,
+            usdKrw,
+            stock.currency,
+          );
+          const targetAmounts = convertStockAmount(
+            stock.symbol,
+            stock.buyBelow || 0,
+            usdKrw,
+            stock.currency,
+          );
 
           return (
             <button
@@ -152,18 +164,23 @@ export default function RightSidebar() {
                 <div className="text-[14px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] truncate">{kr}</div>
                 <div className="text-[11px] text-[#B0B8C1]">
                   {stock.symbol}
-                  {stock.buyBelow ? ` · 목표 $${stock.buyBelow}` : ''}
+                  {stock.buyBelow
+                    ? ` · 목표 ${currency === 'KRW'
+                      ? `${Math.round(targetAmounts.krw).toLocaleString()}원`
+                      : `$${targetAmounts.usd.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}`
+                    : ''}
                 </div>
               </div>
               <div className="text-right shrink-0">
                 {hasData ? (
                   <>
                     <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
-                      {isKR
-                        ? `${Math.round(price).toLocaleString()}원`
-                        : currency === 'KRW'
-                          ? `${Math.round(price * usdKrw).toLocaleString()}원`
-                          : `$${price.toFixed(2)}`}
+                      {currency === 'KRW'
+                        ? `${Math.round(priceAmounts.krw).toLocaleString()}원`
+                        : `$${priceAmounts.usd.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`}
                     </div>
                     <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                       {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%
@@ -329,7 +346,7 @@ export default function RightSidebar() {
           <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div className="flex items-center" style={{ gap: 6 }}>
               <span style={{ fontSize: 14 }}>🎯</span>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>AI 촉</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>오늘 시장 흐름</h3>
             </div>
           </div>
 

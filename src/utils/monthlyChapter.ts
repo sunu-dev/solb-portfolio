@@ -11,9 +11,24 @@
  *   P4 — Fallback: 컨텍스트 리프레이밍 (30일 전 오늘 vs 지금) — 항상 존재
  */
 
-import type { PortfolioStocks, QuoteData, CandleRaw, StockNote, Broker } from '@/config/constants';
+import type {
+  PortfolioStocks,
+  QuoteData,
+  CandleRaw,
+  StockNote,
+  Broker,
+  MacroEntry,
+} from '@/config/constants';
 import { BROKER_LABELS } from '@/config/constants';
-import type { DailySnapshot } from '@/utils/dailySnapshot';
+import {
+  getSnapshotKrwTotals,
+  isCanonicalKrwSnapshot,
+  type DailySnapshot,
+} from '@/utils/dailySnapshot';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+} from '@/utils/stockCurrency';
 
 // ─── Phase 결정 (D-카운트다운 라벨) ────────────────────────────────────────
 //
@@ -115,7 +130,7 @@ export function buildChapterRecap(stats: ChapterStats, time: ChapterTime): Chapt
   // 누적 수익률
   if (!isFlat) {
     const sign = totalPctReturn >= 0 ? '+' : '';
-    bullets.push(`누적 ${sign}${totalPctReturn.toFixed(1)}% (${totalAbsReturn >= 0 ? '+' : ''}$${Math.abs(totalAbsReturn).toFixed(0)})`);
+    bullets.push(`누적 ${sign}${totalPctReturn.toFixed(1)}% (${totalAbsReturn >= 0 ? '+' : ''}₩${Math.abs(totalAbsReturn).toLocaleString('ko-KR', { maximumFractionDigits: 0 })})`);
   } else {
     bullets.push('큰 움직임은 없었어요 — 인내의 시간');
   }
@@ -159,7 +174,7 @@ export function buildChapterRecap(stats: ChapterStats, time: ChapterTime): Chapt
 
 // ─── 챕터 통계 ─────────────────────────────────────────────────────────────
 export interface ChapterStats {
-  totalAbsReturn: number;       // 누적 손익 (USD)
+  totalAbsReturn: number;       // 누적 손익 (KRW 기준)
   totalPctReturn: number;        // 누적 수익률 %
   prevTotalAbsReturn: number | null;  // 어제까지의 누적 (델타 비교용)
   prevTotalPctReturn: number | null;
@@ -189,6 +204,7 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   const { stocks, macroData, rawCandles, snapshots, now = new Date() } = input;
   const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
   if (investing.length === 0) return null;
+  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
 
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   monthStart.setHours(0, 0, 0, 0);
@@ -213,7 +229,12 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
     }
     if (!monthStartPrice || monthStartPrice <= 0) continue;
     const pctReturn = ((q.c - monthStartPrice) / monthStartPrice) * 100;
-    const absReturn = (q.c - monthStartPrice) * s.shares;
+    const absReturn = convertStockAmount(
+      s.symbol,
+      (q.c - monthStartPrice) * s.shares,
+      usdKrw,
+      s.currency,
+    ).krw;
     perfs.push({ symbol: s.symbol, pctReturn, absReturn, broker: s.broker });
     totalAbsReturn += absReturn;
     dataCoverage++;
@@ -221,7 +242,13 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   const coverage = dataCoverage / investing.length;
   if (coverage < 0.4) return null;
 
-  const totalCost = investing.reduce((sum, s) => sum + s.avgCost * s.shares, 0);
+  const totalCost = investing.reduce((sum, s) => sum + convertStockCostAmount(
+    s.symbol,
+    s.avgCost,
+    usdKrw,
+    s.purchaseRate,
+    s.currency,
+  ).krw * s.shares, 0);
   const totalPctReturn = totalCost > 0 ? (totalAbsReturn / totalCost) * 100 : 0;
 
   // 2. 챔피언 — 수익률 1위
@@ -249,11 +276,12 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   let bestDay: { date: string; absChange: number; pctChange: number } | null = null;
   if (snapshots.length >= 2) {
     const monthSnaps = snapshots
+      .filter(isCanonicalKrwSnapshot)
       .filter(s => new Date(s.date).getTime() >= monthStart.getTime())
       .sort((a, b) => a.date.localeCompare(b.date));
     for (let i = 1; i < monthSnaps.length; i++) {
-      const prev = monthSnaps[i - 1].totalValue;
-      const curr = monthSnaps[i].totalValue;
+      const prev = getSnapshotKrwTotals(monthSnaps[i - 1])?.totalValueKrw || 0;
+      const curr = getSnapshotKrwTotals(monthSnaps[i])?.totalValueKrw || 0;
       if (prev > 0) {
         const change = curr - prev;
         const pctChange = (change / prev) * 100;
@@ -270,10 +298,13 @@ export function buildChapterStats(input: BuildStatsInput): ChapterStats | null {
   if (snapshots.length > 0) {
     const ydate = new Date(now.getTime() - 86400 * 1000);
     const ydateStr = ydate.toISOString().split('T')[0];
-    const ySnap = snapshots.find(s => s.date === ydateStr || s.date.startsWith(ydateStr.slice(0, 8)));
-    if (ySnap && ySnap.totalCost > 0) {
-      prevTotalAbsReturn = ySnap.totalValue - ySnap.totalCost;
-      prevTotalPctReturn = (prevTotalAbsReturn / ySnap.totalCost) * 100;
+    const ySnap = snapshots
+      .filter(isCanonicalKrwSnapshot)
+      .find(s => s.date === ydateStr || s.date.startsWith(ydateStr.slice(0, 8)));
+    const yTotals = ySnap ? getSnapshotKrwTotals(ySnap) : null;
+    if (yTotals && yTotals.totalCostKrw > 0) {
+      prevTotalAbsReturn = yTotals.totalValueKrw - yTotals.totalCostKrw;
+      prevTotalPctReturn = (prevTotalAbsReturn / yTotals.totalCostKrw) * 100;
     }
   }
 
@@ -435,9 +466,15 @@ export function buildTodayLine(input: TodayLineInput): TodayLine {
   if (snapshots.length > 0) {
     const ts30 = Date.now() - 30 * 86400 * 1000;
     const date30 = new Date(ts30).toISOString().split('T')[0];
-    const snap30 = snapshots.find(s => Math.abs(new Date(s.date).getTime() - ts30) < 2 * 86400 * 1000);
-    if (snap30 && snap30.totalCost > 0) {
-      const ret30 = ((snap30.totalValue - snap30.totalCost) / snap30.totalCost) * 100;
+    const snap30 = snapshots
+      .filter(isCanonicalKrwSnapshot)
+      .find(s => Math.abs(new Date(s.date).getTime() - ts30) < 2 * 86400 * 1000);
+    const snap30Totals = snap30 ? getSnapshotKrwTotals(snap30) : null;
+    if (snap30Totals && snap30Totals.totalCostKrw > 0) {
+      const ret30 = (
+        (snap30Totals.totalValueKrw - snap30Totals.totalCostKrw)
+        / snap30Totals.totalCostKrw
+      ) * 100;
       const sign30 = ret30 >= 0 ? '+' : '';
       const signNow = totalPctReturn >= 0 ? '+' : '';
       void date30;

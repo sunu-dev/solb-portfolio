@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
+import { History } from 'lucide-react';
+import { useNow } from '@/hooks/useNow';
 
 /**
  * 매매 패턴 거울 — "당신의 결정"을 거울로 비춰주는 컴포넌트.
@@ -55,6 +57,7 @@ interface Decision {
 
 export default function TradePatternMirror() {
   const { stocks, macroData, rawCandles, setAnalysisSymbol } = usePortfolioStore();
+  const currentTime = useNow();
 
   const stats = useMemo(() => {
     const all = [
@@ -94,9 +97,8 @@ export default function TradePatternMirror() {
     // 시간 가중치 — EWMA 스타일: 최근 90일 가중치 1.0, 그 이전 지수 감쇠
     // weight = exp(-max(0, daysAgo - 90) / 180)
     // 90일 이내: 1.0, 270일: ~0.37, 450일: ~0.14, 1년+: 무게 ↓
-    const now = Date.now();
     const timeWeight = (date: Date): number => {
-      const daysAgo = (now - date.getTime()) / (1000 * 86400);
+      const daysAgo = ((currentTime || date.getTime()) - date.getTime()) / (1000 * 86400);
       if (daysAgo <= 90) return 1.0;
       return Math.exp(-(daysAgo - 90) / 180);
     };
@@ -165,7 +167,7 @@ export default function TradePatternMirror() {
       withOutcomeCount: withOutcome.length,
       confidence,
     };
-  }, [stocks.investing, stocks.sold, macroData, rawCandles]);
+  }, [stocks.investing, stocks.sold, macroData, rawCandles, currentTime]);
 
   // 메모 0건 — 컴포넌트 자체 숨김 (인사이트 탭의 다른 섹션이 채워줌)
   if (stats.total === 0) return null;
@@ -209,7 +211,7 @@ export default function TradePatternMirror() {
     >
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 18 }}>🪞</span>
+        <History size={18} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
             DECISION MIRROR
@@ -380,6 +382,7 @@ export default function TradePatternMirror() {
               icon={stats.best.outcomePct! >= 0 ? '🏆' : '🌱'}
               label={stats.best.outcomePct! >= 0 ? '가장 좋았던' : '가장 덜 내린'}
               decision={stats.best}
+              currentTime={currentTime}
               onClick={() => setAnalysisSymbol(stats.best!.symbol)}
             />
           )}
@@ -388,6 +391,7 @@ export default function TradePatternMirror() {
               icon={stats.worst.outcomePct! < 0 ? '💧' : '🐢'}
               label={stats.worst.outcomePct! < 0 ? '가장 아팠던' : '가장 덜 오른'}
               decision={stats.worst}
+              currentTime={currentTime}
               onClick={() => setAnalysisSymbol(stats.worst!.symbol)}
             />
           )}
@@ -460,11 +464,12 @@ function StatCard({
 
 // ─── Sub: 결정 하이라이트 카드 ───────────────────────────────────────────────
 function DecisionHighlight({
-  icon, label, decision, onClick,
+  icon, label, decision, currentTime, onClick,
 }: {
   icon: string;
   label: string;
   decision: Decision;
+  currentTime: number;
   onClick: () => void;
 }) {
   const kr = STOCK_KR[decision.symbol] || decision.symbol;
@@ -476,7 +481,9 @@ function DecisionHighlight({
   const userPart = decision.text.replace(/^\[[^\]]+\]\s*/, '').trim();
   const display = userPart.length > 22 ? userPart.slice(0, 22) + '…' : userPart;
 
-  const daysAgo = Math.round((Date.now() - decision.date.getTime()) / (1000 * 86400));
+  const daysAgo = currentTime > 0
+    ? Math.max(0, Math.round((currentTime - decision.date.getTime()) / (1000 * 86400)))
+    : 0;
 
   return (
     <button

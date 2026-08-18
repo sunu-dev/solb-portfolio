@@ -6,6 +6,10 @@ import { formatKRW } from '@/utils/formatKRW';
 import { STOCK_KR } from '@/config/constants';
 import type { MacroEntry } from '@/config/constants';
 import { computeChapterTime, buildChapterStats } from '@/utils/monthlyChapter';
+import {
+  getSnapshotKrwTotals,
+  isCanonicalKrwSnapshot,
+} from '@/utils/dailySnapshot';
 
 /**
  * Monthly Wrapped — Spotify Wrapped 스타일 풀스크린 회고 모달.
@@ -61,18 +65,22 @@ export default function MonthlyWrapped({ isOpen, onClose }: Props) {
 
   const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
   const isGain = stats.totalAbsReturn >= 0;
-  const fmt = (usd: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-    : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => currency === 'KRW'
+    ? formatKRW(Math.round(Math.abs(krw)))
+    : `$${Math.abs(usdKrw > 0 ? krw / usdKrw : 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
   // 30일 전 비교
-  const prev30Snap = dailySnapshots.find(s => {
+  const prev30Snap = dailySnapshots.filter(isCanonicalKrwSnapshot).find(s => {
     const ts = new Date(s.date).getTime();
     const target = Date.now() - 30 * 86400 * 1000;
     return Math.abs(ts - target) < 2 * 86400 * 1000;
   });
-  const prev30Pct = prev30Snap && prev30Snap.totalCost > 0
-    ? ((prev30Snap.totalValue - prev30Snap.totalCost) / prev30Snap.totalCost) * 100
+  const prev30Totals = prev30Snap ? getSnapshotKrwTotals(prev30Snap) : null;
+  const prev30Pct = prev30Totals && prev30Totals.totalCostKrw > 0
+    ? (
+      (prev30Totals.totalValueKrw - prev30Totals.totalCostKrw)
+      / prev30Totals.totalCostKrw
+    ) * 100
     : null;
 
   // 챕터 키워드 (Phase 5 연동 — localStorage)

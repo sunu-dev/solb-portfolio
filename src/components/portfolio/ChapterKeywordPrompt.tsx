@@ -28,9 +28,11 @@ export default function ChapterKeywordPrompt() {
       if (existing) return;
       const seenList = (localStorage.getItem(SEEN_KEY) || '').split(',');
       if (seenList.includes(time.chapterId)) return;
-      setChapterId(time.chapterId);
       // 진입 후 약간 딜레이 — 다른 모달과 충돌 방지
-      const timer = setTimeout(() => setOpen(true), 1200);
+      const timer = setTimeout(() => {
+        setChapterId(time.chapterId);
+        setOpen(true);
+      }, 1200);
       return () => clearTimeout(timer);
     } catch { /* ignore */ }
   }, []);

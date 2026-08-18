@@ -33,13 +33,13 @@ export interface MenuItem {
 }
 
 export const MENU_ITEMS: MenuItem[] = [
-  { id: 'portfolio', label: '포트폴리오', sub: '보유·관심·관리', Icon: BarChart3, action: { kind: 'section', section: 'portfolio' }, primaryNav: true, pinnable: false },
-  { id: 'insights', label: 'AI 인사이트', sub: 'AI 촉·이야기', Icon: Sparkles, action: { kind: 'section', section: 'insights' }, primaryNav: true, pinnable: false },
-  { id: 'news', label: '뉴스', sub: '내 종목 소식', Icon: Newspaper, action: { kind: 'section', section: 'news' }, primaryNav: true, pinnable: false },
-  { id: 'events', label: '이벤트 분석', navLabel: '이벤트', sub: '실적·배당 일정', Icon: CalendarDays, action: { kind: 'section', section: 'events' }, primaryNav: true, pinnable: false },
+  { id: 'portfolio', label: '내 주식', sub: '자산·손익·챙길 일', Icon: BarChart3, action: { kind: 'section', section: 'portfolio' }, primaryNav: true, pinnable: false },
+  { id: 'insights', label: '주비 리포트', sub: '시장 흐름·내 종목 설명', Icon: Sparkles, action: { kind: 'section', section: 'insights' }, primaryNav: true, pinnable: false },
+  { id: 'news', label: '내 종목 소식', navLabel: '소식', sub: '보유·관심 종목 뉴스', Icon: Newspaper, action: { kind: 'section', section: 'news' }, primaryNav: true, pinnable: false },
+  { id: 'events', label: '과거 비교', navLabel: '비교', sub: '과거 시장 시점과 내 기록 비교', Icon: CalendarDays, action: { kind: 'section', section: 'events' }, primaryNav: true, pinnable: false },
   // ── 화면 비종속 도착지/도구 — '바로가기' 핀 후보 ──
   { id: 'watchlist', label: '관심 종목', sub: '찜한 종목 모아보기', Icon: Star, action: { kind: 'section', section: 'portfolio', tab: 'watching' }, primaryNav: false, pinnable: true },
-  { id: 'alerts', label: '알림 센터', sub: '주비 AI 알림 모아보기', Icon: Bell, action: { kind: 'alert-center' }, primaryNav: false, pinnable: true },
+  { id: 'alerts', label: '알림 센터', sub: '주비가 챙긴 알림 모아보기', Icon: Bell, action: { kind: 'alert-center' }, primaryNav: false, pinnable: true },
   { id: 'tour', label: '둘러보기', sub: '주요 기능 가이드 투어', Icon: Compass, action: { kind: 'event', event: 'open-tour' }, primaryNav: false, pinnable: true },
   { id: 'help', label: '도움말', sub: '사용법·자주 묻는 질문', Icon: HelpCircle, action: { kind: 'href', href: '/help' }, primaryNav: false, pinnable: true },
 ];

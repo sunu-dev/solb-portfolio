@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { StockNote, QuoteData } from '@/config/constants';
+import { NotebookPen } from 'lucide-react';
+import { useNow } from '@/hooks/useNow';
 
 type JournalEntry = StockNote & {
   symbol: string;
@@ -19,6 +21,7 @@ type JournalEntry = StockNote & {
  */
 export default function InvestmentJournal() {
   const { stocks, macroData, setAnalysisSymbol } = usePortfolioStore();
+  const currentTime = useNow();
 
   const entries = useMemo(() => {
     const all: JournalEntry[] = [];
@@ -46,8 +49,9 @@ export default function InvestmentJournal() {
   return (
     <div style={{ marginBottom: 32, background: 'var(--surface, #FFFFFF)', borderRadius: 16, padding: '20px', border: '1px solid var(--border-light, #F2F4F6)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-          📝 나의 투자 일기
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          <NotebookPen size={17} strokeWidth={1.75} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+          나의 투자 일기
         </span>
         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', padding: '2px 8px', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 10 }}>
           {entries.length}개
@@ -62,7 +66,9 @@ export default function InvestmentJournal() {
           const dateRaw = entry.date.split('_')[0];
           const d = new Date(dateRaw);
           const dateStr = `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
-          const daysSince = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+          const daysSince = currentTime > 0
+            ? Math.max(0, Math.floor((currentTime - d.getTime()) / (24 * 60 * 60 * 1000)))
+            : 0;
           const kr = STOCK_KR[entry.symbol] || entry.symbol;
           const avatarColor = getAvatarColor(entry.symbol);
 

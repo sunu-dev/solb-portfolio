@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logServerApi } from '@/lib/serverLogger';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { isSupportedFinnhubSecurityType } from '@/utils/securityTypePolicy';
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
     // 단 아래 universe 자동 등록(koreanNewRows)에서는 제외 — 신규 발굴 표면이므로 차단.
     const baseResults: SearchResultItem[] = (d.result || [])
       .filter((item: { type: string; symbol: string; description?: string }) => {
-        if (item.type !== 'Common Stock' && item.type !== 'ETP') return false;
+        if (!isSupportedFinnhubSecurityType(item.type)) return false;
         const sym = String(item.symbol || '');
         if (sym.includes('.')) {
           if (!(sym.endsWith('.KS') || sym.endsWith('.KQ'))) return false;

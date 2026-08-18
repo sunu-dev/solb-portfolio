@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
+import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
 /**
  * 오늘 시장이 주목한 종목 — 회의 결과 옵션 C 구현.
@@ -15,8 +16,10 @@ import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
  *   - 모듈 레벨 in-memory 캐시 (TTL 10분)
  *   - 사용자가 새로고침해도 무료 — cron pull, 사용자 read
  *
- * 데이터 source: Finnhub /quote (한미 동일 endpoint, .KS/.KQ suffix 지원)
- * 무료 tier 60/min — 158 calls는 batch 처리 (12씩, 200ms 간격)
+ * 데이터 source:
+ *   - 미국: Finnhub /quote
+ *   - 한국: Yahoo Finance chart (Finnhub 무료 티어는 한국 종목 미지원)
+ * 무료 API 보호를 위해 12개씩 batch 처리한다.
  */
 
 export const runtime = 'nodejs';
@@ -28,6 +31,8 @@ interface FinnhubQuote {
   d?: number;
   dp?: number;
 }
+
+const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
 
 interface MoverItem {
   symbol: string;
@@ -63,13 +68,69 @@ async function fetchQuote(symbol: string, apiKey: string): Promise<FinnhubQuote 
   }
 }
 
+async function fetchYahooQuote(symbol: string): Promise<FinnhubQuote | null> {
+  for (const candidate of getYahooSymbolCandidates(symbol)) {
+    try {
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(candidate)}?range=5d&interval=1d`,
+        {
+          cache: 'no-store',
+          headers: { 'User-Agent': YAHOO_UA },
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+      if (!res.ok) continue;
+
+      const json = await res.json() as {
+        chart?: {
+          result?: Array<{
+            meta?: {
+              regularMarketPrice?: number;
+              chartPreviousClose?: number;
+              previousClose?: number;
+            };
+            indicators?: {
+              quote?: Array<{ close?: Array<number | null> }>;
+            };
+          }>;
+        };
+      };
+      const result = json.chart?.result?.[0];
+      const price = result?.meta?.regularMarketPrice;
+      if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) continue;
+
+      const closes = result?.indicators?.quote?.[0]?.close || [];
+      const historicalCloses = closes.filter(
+        (close): close is number => typeof close === 'number' && Number.isFinite(close),
+      );
+      const previousClose = result?.meta?.chartPreviousClose
+        || result?.meta?.previousClose
+        || historicalCloses.at(-2)
+        || price;
+      const change = price - previousClose;
+
+      return {
+        c: price,
+        pc: previousClose,
+        d: +change.toFixed(2),
+        dp: previousClose > 0 ? +((change / previousClose) * 100).toFixed(2) : 0,
+      };
+    } catch {
+      // 접미사 없는 종목은 .KS 실패 뒤 .KQ 후보를 계속 조회한다.
+    }
+  }
+  return null;
+}
+
 async function fetchBatch(symbols: { symbol: string; krName: string; market: 'US' | 'KR' }[], apiKey: string): Promise<MoverItem[]> {
   const BATCH = 12;
   const results: MoverItem[] = [];
   for (let i = 0; i < symbols.length; i += BATCH) {
     const slice = symbols.slice(i, i + BATCH);
     const batch = await Promise.all(slice.map(async s => {
-      const q = await fetchQuote(s.symbol, apiKey);
+      const q = s.market === 'KR'
+        ? await fetchYahooQuote(s.symbol)
+        : await fetchQuote(s.symbol, apiKey);
       return {
         symbol: s.symbol,
         krName: s.krName,
@@ -87,7 +148,7 @@ async function fetchBatch(symbols: { symbol: string; krName: string; market: 'US
   return results;
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const now = Date.now();
   if (cache && now - cache.ts < TTL) {
     return NextResponse.json({ ...cache.data, cached: true });

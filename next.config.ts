@@ -22,9 +22,9 @@ const securityHeaders = [
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://t1.kakaocdn.net https://developers.kakao.com",
-      "style-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
+      "font-src 'self' data: https://cdn.jsdelivr.net",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://finnhub.io wss://ws.finnhub.io https://open.er-api.com https://news.google.com https://generativelanguage.googleapis.com",
       "frame-src 'none'",
       "object-src 'none'",
@@ -36,6 +36,13 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   async headers() {
     return [
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
       {
         source: '/(.*)',
         headers: securityHeaders,

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
-import type { MacroEntry, StockNote, Broker } from '@/config/constants';
+import type { MacroEntry, StockNote, Broker, StockItem } from '@/config/constants';
 import { createNoteDate } from '@/utils/noteId';
+import { getStockCurrency } from '@/utils/stockCurrency';
 
 // 메모 감정 태그 (InvestmentNotes와 동일 세트 사용)
 const MEMO_TAGS = [
@@ -16,29 +17,53 @@ const MEMO_TAGS = [
 ];
 
 export default function EditStockModal() {
+  const stocks = usePortfolioStore(state => state.stocks);
+  const editingCat = usePortfolioStore(state => state.editingCat);
+  const editingIdx = usePortfolioStore(state => state.editingIdx);
+  const isOpen = editingCat !== '' && editingIdx >= 0;
+  const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
+
+  if (!isOpen || !stock) return null;
+
+  return (
+    <EditStockModalContent
+      key={`${editingCat}:${editingIdx}:${stock.symbol}`}
+      initialStock={stock}
+    />
+  );
+}
+
+function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   const {
     stocks, editingCat, editingIdx,
     setEditingCat, setEditingIdx, updateStock, moveStock,
     macroData,
   } = usePortfolioStore();
 
-  const [avgCost, setAvgCost] = useState('');
-  const [shares, setShares] = useState('');
-  const [targetReturn, setTargetReturn] = useState('');
-  const [targetProfitUSD, setTargetProfitUSD] = useState('');
-  const [targetProfitKRW, setTargetProfitKRW] = useState('');
-  const [targetSell, setTargetSell] = useState('');
-  const [stopLoss, setStopLoss] = useState('');
-  const [stopLossPct, setStopLossPct] = useState('');
-  const [buyZones, setBuyZones] = useState('');
-  const [weight, setWeight] = useState('');
-  const [buyBelow, setBuyBelow] = useState('');
-  const [purchaseRate, setPurchaseRate] = useState('');
-  const [broker, setBroker] = useState<Broker | ''>('');
+  // 현재 USD/KRW 환율 (macroData에서)
+  const currentUsdKrw = Math.round((macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400);
+
+  // 편집 대상을 key로 remount해 파생 상태를 effect 없이 한 번만 초기화한다.
+  const [avgCost, setAvgCost] = useState(() => initialStock.avgCost ? String(initialStock.avgCost) : '');
+  const [shares, setShares] = useState(() => initialStock.shares ? String(initialStock.shares) : '');
+  const [targetReturn, setTargetReturn] = useState(() => initialStock.targetReturn ? String(initialStock.targetReturn) : '');
+  const [targetProfitUSD, setTargetProfitUSD] = useState(() => initialStock.targetProfitUSD ? String(initialStock.targetProfitUSD) : '');
+  const [targetProfitKRW, setTargetProfitKRW] = useState(() => initialStock.targetProfitKRW ? String(initialStock.targetProfitKRW) : '');
+  const [targetSell, setTargetSell] = useState(() => initialStock.targetSell ? String(initialStock.targetSell) : '');
+  const [stopLoss, setStopLoss] = useState(() => initialStock.stopLoss ? String(initialStock.stopLoss) : '');
+  const [stopLossPct, setStopLossPct] = useState(() => initialStock.stopLossPct ? String(initialStock.stopLossPct) : '');
+  const [buyZones, setBuyZones] = useState(() => initialStock.buyZones ? initialStock.buyZones.join(',') : '');
+  const [weight, setWeight] = useState(() => initialStock.weight ? String(initialStock.weight) : '');
+  const [buyBelow, setBuyBelow] = useState(() => initialStock.buyBelow ? String(initialStock.buyBelow) : '');
+  const [purchaseRate, setPurchaseRate] = useState(() => (
+    initialStock.purchaseRate ? String(initialStock.purchaseRate) : String(currentUsdKrw)
+  ));
+  const [broker, setBroker] = useState<Broker | ''>(() => (initialStock.broker as Broker) || '');
   const [addBuyPrice, setAddBuyPrice] = useState('');
   const [addBuyShares, setAddBuyShares] = useState('');
-  const [addBuyRate, setAddBuyRate] = useState('');
+  const [addBuyRate, setAddBuyRate] = useState(() => String(currentUsdKrw));
   const [mode, setMode] = useState<'basic' | 'detail'>('basic');
+  const [saved, setSaved] = useState(false);
 
   // 메모 프롬프트 상태 (저장 직후 변경 감지 시 활성화)
   const [memoContext, setMemoContext] = useState<string | null>(null);
@@ -46,46 +71,18 @@ export default function EditStockModal() {
   const [memoEmoji, setMemoEmoji] = useState('🤔');
   const [pendingSaveContext, setPendingSaveContext] = useState<{ cat: 'investing' | 'watching' | 'sold'; idx: number } | null>(null);
 
-  // 현재 USD/KRW 환율 (macroData에서)
-  const currentUsdKrw = Math.round((macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400);
-
-  const isOpen = editingCat !== '' && editingIdx >= 0;
-  const stock = isOpen ? stocks[editingCat as keyof typeof stocks]?.[editingIdx] : null;
+  const stock = editingCat !== '' && editingIdx >= 0
+    ? stocks[editingCat as keyof typeof stocks]?.[editingIdx]
+    : null;
   const kr = stock ? (STOCK_KR[stock.symbol] || stock.symbol) : '';
-  const isKR = stock ? (stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ')) : false;
+  const isKR = stock ? getStockCurrency(stock.symbol, stock.currency) === 'KRW' : false;
   const unit = isKR ? '₩' : '$';
 
-  // Scroll lock when modal is open
+  // 컴포넌트가 열린 동안 body scroll lock
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      setSaved(false);
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!stock) return;
-    setAvgCost(stock.avgCost ? String(stock.avgCost) : '');
-    setShares(stock.shares ? String(stock.shares) : '');
-    setTargetReturn(stock.targetReturn ? String(stock.targetReturn) : '');
-    setTargetProfitUSD(stock.targetProfitUSD ? String(stock.targetProfitUSD) : '');
-    setTargetProfitKRW(stock.targetProfitKRW ? String(stock.targetProfitKRW) : '');
-    setTargetSell(stock.targetSell ? String(stock.targetSell) : '');
-    setStopLoss(stock.stopLoss ? String(stock.stopLoss) : '');
-    setStopLossPct(stock.stopLossPct ? String(stock.stopLossPct) : '');
-    setBuyZones(stock.buyZones ? stock.buyZones.join(',') : '');
-    setWeight(stock.weight ? String(stock.weight) : '');
-    setBuyBelow(stock.buyBelow ? String(stock.buyBelow) : '');
-    // purchaseRate: 저장된 값 우선, 없으면 현재 환율로 초기화 (신규 입력 편의)
-    setPurchaseRate(stock.purchaseRate ? String(stock.purchaseRate) : String(currentUsdKrw));
-    setBroker((stock.broker as Broker) || '');
-    setAddBuyPrice('');
-    setAddBuyShares('');
-    setAddBuyRate(String(currentUsdKrw));
-  }, [stock, currentUsdKrw]);
+  }, []);
 
   const close = () => {
     setEditingCat('');
@@ -110,8 +107,6 @@ export default function EditStockModal() {
   const newWeightedRate = newTotalShares > 0
     ? Math.round((oldSharesNum * oldRateNum + addSharesNum * addRateNum) / newTotalShares)
     : oldRateNum;
-
-  const [saved, setSaved] = useState(false);
 
   const save = () => {
     if (!editingCat || editingIdx < 0 || !stock) return;
@@ -219,8 +214,6 @@ export default function EditStockModal() {
     setPendingSaveContext(null);
     close();
   };
-
-  if (!isOpen) return null;
 
   return (
     <>

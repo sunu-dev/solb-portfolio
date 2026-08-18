@@ -66,9 +66,6 @@ export default function BuySimulator({
   const [amountStr, setAmountStr] = useState(() => currency === 'KRW' ? '1,000,000' : '1,000');
   const [isOpen, setIsOpen] = useState(false);
 
-  // 가드 — 가격 무효 / 환율 무효
-  if (!currentPrice || currentPrice <= 0) return null;
-
   const kr = STOCK_KR[symbol] || symbol;
   const amountNum = Math.max(0, parseFloat(digitsOnly(amountStr) || '0'));
 
@@ -129,6 +126,9 @@ export default function BuySimulator({
       return { label: formatMoney(rounded, currency).replace(/원$/, '').replace(/^\$/, ''), val: rounded, prefix: currency === 'USD' ? '$' : '', suffix: currency === 'KRW' ? '원' : '' };
     }).filter(p => p.val > 0);
   }, [currentPrice, market, currency, priceCurrency, usdKrw]);
+
+  // 모든 Hook 호출 뒤에 가드해 렌더마다 Hook 순서를 동일하게 유지한다.
+  if (!currentPrice || currentPrice <= 0) return null;
 
   if (!isOpen) {
     return (

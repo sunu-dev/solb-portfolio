@@ -39,6 +39,51 @@ interface ProviderInfo {
   };
 }
 
+interface AiCostBreakdown {
+  feature: string;
+  provider: string;
+  model: string;
+  calls: number;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  reasoningTokens: number;
+  avgLatencyMs: number;
+  cacheHitRate: number;
+}
+
+interface AiCostStats {
+  available: boolean;
+  message: string | null;
+  calls: number;
+  totalCostUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedInputTokens: number;
+  reasoningTokens: number;
+  avgLatencyMs: number;
+  cacheHitRate: number;
+  breakdown: AiCostBreakdown[];
+  monthlyBudget: {
+    enabled: boolean;
+    allowed: boolean;
+    budgetUsd: number;
+    stopAtUsd: number;
+    spentUsd: number;
+    remainingUsd: number;
+    usagePercent: number;
+    reason?: 'budget_reached' | 'ledger_unavailable';
+  };
+  projection: {
+    monthSpentUsd: number;
+    monthCalls: number;
+    avgCostPerCallUsd: number | null;
+    projectedMonthEndUsd: number | null;
+    remainingCallsAtBudget: number | null;
+  } | null;
+}
+
 interface ApiStats {
   hours: number;
   total: number;
@@ -50,7 +95,22 @@ interface ApiStats {
   errorDist: ErrorDist[];
   timeline: TimeBucket[];
   provider?: ProviderInfo;
+  aiCost?: AiCostStats;
+  safety?: {
+    overall: 'good' | 'warning' | 'danger';
+    checks: Array<{ id: string; label: string; value: string; level: 'good' | 'warning' | 'danger'; detail: string }>;
+  };
 }
+
+const formatUsd = (value: number) => value < 0.01
+  ? `$${value.toFixed(6)}`
+  : `$${value.toFixed(2)}`;
+
+const formatTokens = (value: number) => value >= 1_000_000
+  ? `${(value / 1_000_000).toFixed(2)}M`
+  : value >= 1_000
+    ? `${(value / 1_000).toFixed(1)}K`
+    : value.toLocaleString();
 
 export default function ApiStatsPanel() {
   const [stats, setStats] = useState<ApiStats | null>(null);
@@ -114,12 +174,39 @@ export default function ApiStatsPanel() {
       </div>
 
       {/* AI Provider 상태 */}
+      {stats.safety && (
+        <Section title="무료 베타 운영 안전 상태">
+          <div style={{ padding: 14, marginBottom: 10, borderRadius: 12, background: stats.safety.overall === 'good' ? '#EDFCF2' : stats.safety.overall === 'danger' ? '#FFF0F0' : '#FFF8E8', color: stats.safety.overall === 'good' ? '#16803C' : stats.safety.overall === 'danger' ? '#C92A3A' : '#8A5A00', fontSize: 13, fontWeight: 700 }}>
+            {stats.safety.overall === 'good' ? '모든 핵심 비용 가드가 보수적으로 설정돼 있어요.' : stats.safety.overall === 'danger' ? '즉시 확인할 안전 설정이 있어요.' : '확인하거나 설정할 비용 가드가 있어요.'}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+            {stats.safety.checks.map(check => {
+              const color = check.level === 'good' ? '#16A34A' : check.level === 'danger' ? '#EF4452' : '#FF9500';
+              return (
+                <div key={check.id} style={{ padding: 12, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
+                    <strong style={{ color: '#191F28' }}>{check.label}</strong>
+                    <span style={{ color, fontWeight: 700 }}>{check.level === 'good' ? '정상' : check.level === 'danger' ? '위험' : '확인'}</span>
+                  </div>
+                  <div style={{ marginTop: 5, fontSize: 13, fontWeight: 700, color }}>{check.value}</div>
+                  <div style={{ marginTop: 4, fontSize: 10.5, color: '#8B95A1', lineHeight: 1.5 }}>{check.detail}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {/* AI Provider 상태 */}
       {stats.provider && (
         <Section title="AI Provider 상태">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {/* Gemini */}
             <div style={{ padding: 14, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
-              <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>🟢 Gemini (primary)</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
+                <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A' }} />
+                Gemini (primary)
+              </div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>
                 {stats.provider.gemini.keys > 0 ? `${stats.provider.gemini.keys}개 키 활성` : '키 없음'}
               </div>
@@ -136,8 +223,9 @@ export default function ApiStatsPanel() {
               borderRadius: 12,
               opacity: stats.provider.claude.available ? 1 : 0.6,
             }}>
-              <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
-                🟣 Claude Haiku (fallback)
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
+                <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#AF52DE' }} />
+                Claude Haiku (fallback)
               </div>
               {stats.provider.claude.available ? (
                 <>
@@ -169,6 +257,108 @@ export default function ApiStatsPanel() {
               )}
             </div>
           </div>
+        </Section>
+      )}
+
+      {/* 실제 토큰 기반 AI 비용 */}
+      {stats.aiCost && (
+        <Section title="AI 비용 원장">
+          {!stats.aiCost.available ? (
+            <div style={{ padding: 16, background: '#FFF8E8', border: '1px solid rgba(255,149,0,0.2)', borderRadius: 12, color: '#8A5A00', fontSize: 13 }}>
+              {stats.aiCost.message}
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 12 }}>
+                <StatCard label="추정 비용" value={formatUsd(stats.aiCost.totalCostUsd)} unit="" color="#AF52DE" />
+                <StatCard label="계측된 AI 호출" value={stats.aiCost.calls.toLocaleString()} unit="회" color="#3182F6" />
+                <StatCard label="평균 지연시간" value={stats.aiCost.avgLatencyMs.toLocaleString()} unit="ms" color="#FF9500" />
+                <StatCard label="캐시 적중률" value={`${stats.aiCost.cacheHitRate}%`} unit="" color="#16A34A" />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 12 }}>
+                <StatCard
+                  label="이번 달 누적 비용"
+                  value={stats.aiCost.projection ? formatUsd(stats.aiCost.projection.monthSpentUsd) : '계산 대기'}
+                  unit=""
+                  color="#191F28"
+                />
+                <StatCard
+                  label="월말 예상 비용"
+                  value={stats.aiCost.projection?.projectedMonthEndUsd == null ? '계산 대기' : formatUsd(stats.aiCost.projection.projectedMonthEndUsd)}
+                  unit=""
+                  color="#AF52DE"
+                />
+                <StatCard
+                  label="예산 내 예상 잔여 호출"
+                  value={stats.aiCost.projection?.remainingCallsAtBudget == null ? '계산 대기' : stats.aiCost.projection.remainingCallsAtBudget.toLocaleString()}
+                  unit={stats.aiCost.projection?.remainingCallsAtBudget == null ? '' : '회'}
+                  color="#3182F6"
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, fontSize: 11, color: '#4E5968' }}>
+                <TokenPill label="입력" value={stats.aiCost.inputTokens} />
+                <TokenPill label="출력" value={stats.aiCost.outputTokens} />
+                <TokenPill label="캐시 입력" value={stats.aiCost.cachedInputTokens} />
+                <TokenPill label="추론" value={stats.aiCost.reasoningTokens} />
+              </div>
+
+              <div style={{ padding: 12, marginBottom: 12, background: '#F8F9FA', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+                  <strong style={{ color: '#191F28' }}>월 예산 하드캡</strong>
+                  {stats.aiCost.monthlyBudget.enabled ? (
+                    <span style={{ color: stats.aiCost.monthlyBudget.allowed ? '#16A34A' : '#EF4452', fontWeight: 700 }}>
+                      {formatUsd(stats.aiCost.monthlyBudget.spentUsd)} / {formatUsd(stats.aiCost.monthlyBudget.budgetUsd)}
+                      {' '}({stats.aiCost.monthlyBudget.usagePercent}%)
+                    </span>
+                  ) : (
+                    <span style={{ color: '#8B95A1' }}>비활성 · AI_MONTHLY_BUDGET_USD 설정 필요</span>
+                  )}
+                </div>
+                {stats.aiCost.monthlyBudget.enabled && (
+                  <div style={{ height: 5, marginTop: 8, background: '#E5E8EB', borderRadius: 3, overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${Math.min(100, stats.aiCost.monthlyBudget.usagePercent)}%`,
+                      height: '100%',
+                      background: stats.aiCost.monthlyBudget.allowed ? '#3182F6' : '#EF4452',
+                    }} />
+                  </div>
+                )}
+              </div>
+
+              {stats.aiCost.breakdown.length === 0 ? (
+                <div style={{ padding: 16, color: '#8B95A1', fontSize: 13 }}>선택한 기간에 계측된 AI 호출이 없어요.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <div style={{ minWidth: 820, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {stats.aiCost.breakdown.map(row => (
+                      <div
+                        key={`${row.feature}:${row.provider}:${row.model}`}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '1.1fr 1.5fr 0.7fr 0.8fr 1fr 0.8fr 0.8fr',
+                          gap: 8, padding: '10px 12px', alignItems: 'center',
+                          background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10,
+                          fontSize: 11,
+                        }}
+                      >
+                        <strong style={{ color: '#191F28' }}>{row.feature}</strong>
+                        <code style={{ color: '#4E5968' }}>{row.model}</code>
+                        <span>{row.calls.toLocaleString()}회</span>
+                        <strong style={{ color: '#AF52DE' }}>{formatUsd(row.costUsd)}</strong>
+                        <span style={{ color: '#8B95A1' }}>in {formatTokens(row.inputTokens)} / out {formatTokens(row.outputTokens)}</span>
+                        <span style={{ color: '#8B95A1' }}>{row.avgLatencyMs.toLocaleString()}ms</span>
+                        <span style={{ color: row.cacheHitRate > 0 ? '#16A34A' : '#8B95A1' }}>캐시 {row.cacheHitRate}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p style={{ fontSize: 10, color: '#B0B8C1', marginTop: 8 }}>
+                월말 비용과 잔여 호출은 이번 달 실제 호출당 평균 비용을 기준으로 계산해요. 청구서와 소폭 다를 수 있어요.
+              </p>
+            </>
+          )}
         </Section>
       )}
 
@@ -317,6 +507,14 @@ function StatCard({ label, value, unit, color }: { label: string; value: string 
         {unit && <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{unit}</span>}
       </div>
     </div>
+  );
+}
+
+function TokenPill({ label, value }: { label: string; value: number }) {
+  return (
+    <span style={{ padding: '5px 9px', background: '#F8F9FA', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 8 }}>
+      {label} <strong style={{ color: '#191F28' }}>{formatTokens(value)}</strong>
+    </span>
   );
 }
 
