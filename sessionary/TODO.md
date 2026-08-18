@@ -28,7 +28,12 @@
 - [x] ~~**`npm test`를 prebuild 편입**~~ — prebuild 마지막에 배선. §6 누출 불변식 테스트가 깨지면 배포가 막힌다 (2026-08-18)
 - [x] ~~**GitHub Actions CI 신설**~~ — `.github/workflows/ci.yml`. verify(typecheck·게이트4·eslint·test) → build 2잡. `npm run verify` 통합 스크립트도 추가 (2026-08-18)
 - [x] ~~**모듈 스코프 `createClient` → 지연 생성**~~ — 무가드 12곳 제거, **service key 없이 빌드 통과**(CI에서 placeholder 비밀 제거). cron 7곳의 `SUPABASE_SERVICE_KEY` 단독 의존도 팩토리로 통일(새 이름만 설정 시 '웹은 정상, cron만 죽는' 부분 장애였음). 적대적 검증 3렌즈 + 판정관 (2026-08-18)
-- [ ] **가드형 모듈 스코프 `createClient` 13곳 lint 룰** — `url && key ? createClient(...) : null` 형태는 비밀 없이도 빌드를 통과해 CI가 못 잡는다. 키 누락 시 영구 null(조용한 no-op)이라 [[feedback_rls_anon_antipattern]]과 같은 실패 모드. eslint `no-restricted-syntax` 또는 `scripts/lint-*.mjs`로
+- [x] ~~**가드형 모듈 스코프 `createClient` lint 룰**~~ — eslint `no-restricted-syntax` 3선택자(무가드형·가드형·지연누락). 신규 위반은 **error로 CI 차단**, 기존 14건은 baseline(warn)으로 가시화. 음성 테스트로 4형태 판정 확인 (2026-08-18)
+  - ⚠️ 강제 지점은 **CI의 `npx eslint .`** 다. `next build`는 eslint를 돌리지 않으므로 로컬 빌드는 안 막힌다.
+- [ ] **baseline 14건 sweep 후 error 격상** — `eslint.config.mjs`의 baseline 목록 11파일.
+  모듈 상수를 지연 함수로 바꾸면 `if (!supabase)` 가드가 항상 false가 되고, `supabase()`를 두 번 부르면
+  TS가 두 번째를 non-null로 못 좁힌다 → 각 함수에서 `const db = getServiceClient(); if (!db) ...` 지역 변수 필요(약 30곳).
+  목록은 **줄어들기만 해야 한다** — 항목 추가는 새 위반을 숨기는 것이므로 금지
 - [ ] **지연 thunk 불변식 테스트** — `const x = () => requireServiceClient()`에서 `() =>` 다섯 글자가 빠지면 프리뷰 빌드가 다시 깨진다. `cronAuthBoundary.test.ts` 방식의 정규식 스캔 추가
 - [ ] **`adminAuth.resolveUser`의 null 축약** — service client 부재를 '토큰 무효'와 같은 null로 뭉개서, 서비스키 누락 시 admin 라우트 전부가 401 '로그인이 필요해요'를 낸다(진단성 문제, 정상 환경 무영향). `admin/pro-demand:15`의 503 패턴이 정답
 - [x] ~~**`chokDataEnricher` anon 키 → service-role**~~ — L2 캐시가 영구 무력이던 것 해소. 쓰기 실패를 삼키던 fire-and-forget에 경고 로그 추가 (2026-08-18)
