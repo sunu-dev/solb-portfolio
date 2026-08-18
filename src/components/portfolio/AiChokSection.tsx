@@ -21,7 +21,7 @@ function buildMacroContext(macroData: Record<string, MacroEntry | unknown>): str
   const parts: string[] = [];
   if (vix?.value != null) {
     const v = Number(vix.value);
-    const regime = v > 30 ? '극도의 공포(저점 가능)'
+    const regime = v > 30 ? '극도의 공포'
       : v > 25 ? '공포 구간'
       : v > 20 ? '불안 구간'
       : v < 15 ? '안정/과열'

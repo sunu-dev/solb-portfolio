@@ -87,6 +87,12 @@
 - [x] ~~**환율 미확인 상태 표시**~~ — `resolveUsdKrwState()`가 `{rate, stale}` 반환. 대시보드에서 **USD 보유 + 원화 표시 + 환율 미확인** 3조건일 때만 임시 기준임을 고지. 숫자를 감추면 화면이 비어 더 불안하므로 계산은 유지 (2026-08-18)
 - [x] ~~**환율 미확인 고지 확대**~~ — `<FxStaleNotice />` 공용 컴포넌트로 추출(조건 3개를 한 곳에서 판정). 대시보드·모닝브리핑·자산 추이 차트에 부착. 서술 표면(이야기·월간챕터·Wrapped)은 개별 금액이 아닌 요약이라 제외 (2026-08-18)
 - [ ] **`docs/CRONS.md` 현행화** — 7종 문서화 / 실제 9종 (`enrich-warm`·`morning-brief-close` 누락)
+
+### 🆕 2026-08-18 밤 — 수급 기능 분석 중 발견 (분석 자체는 sessionary 참조)
+- [x] ~~**`analysisPrompt.ts` 수급 환각 유도**~~ — 한국 종목 규칙이 "외국인 수급과 원달러 환율이 단기 주가에 큰 영향"이라 지시했는데 앱은 수급 데이터를 한 건도 안 가짐 → 모델이 근거 없는 수급 서술 생성하는 구조. 입력에 있는 것(환율)만 언급, 수급 서술 금지로 재작성 (2026-08-18)
+- [x] ~~**`AiChokSection.tsx` VIX 라벨 `극도의 공포(저점 가능)`**~~ — "저점 가능"은 관찰값을 매매 시점 힌트로 바꾸는 표현. ai-chok 프롬프트 `{MACRO_CONTEXT}`로 주입되던 것 제거. `저점 가능`·`고점 가능`을 FORECAST_FORBIDDEN(전역 lint) + sec6StaticCopy 불변식에 추가, 음성 프로브 통과 (2026-08-18)
+- [x] ~~**marketFlow·MorningBriefing 임계 THRESHOLDS.md 미등재**~~ — #52~57로 등재 (2026-08-18)
+- [ ] **시장 판정 엔진 이중화 해소** — `marketFlow.ts`(섹터 상대강도, spread≥1.5)와 `MorningBriefing.tsx`(S&P vs NASDAQ, spread≥0.7)가 데이터·임계 모두 달라 같은 날 홈과 리포트 탭이 다른 판정을 낼 수 있음. 수급 등 새 판정 축 추가 전에 통합이 먼저 (THRESHOLDS.md §11 경고 참조)
 - [x] ~~**`d3-hierarchy` 제거**~~ — `@types/web-push`·`shadcn`도 devDependencies로 이동. dependencies 25→21 (2026-08-18)
 
 ## 🗄️ (직전) 브리핑 (2026-07-29 — 개인 주식비서·기록 신뢰성·배포)
