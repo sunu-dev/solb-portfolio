@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { MACRO_IND } from '@/config/constants';
 import type { MacroEntry } from '@/config/constants';
 import type { FearGreedData } from '@/app/api/fear-greed/route';
+import type { UsTreasuryResponse } from '@/app/api/us-treasury/route';
 
 // ─── Fear & Greed helpers ────────────────────────────────────────────────────
 function fgColor(score: number): string {
@@ -67,12 +68,18 @@ function FgBar({ score }: { score: number }) {
 export default function MacroStrip() {
   const { macroData } = usePortfolioStore();
   const [fg, setFg] = useState<FearGreedData | null>(null);
+  // undefined=로딩(자리 예약) · null=실패(숨김) · 값=표시
+  const [us10y, setUs10y] = useState<UsTreasuryResponse | null | undefined>(undefined);
 
   useEffect(() => {
     fetch('/api/fear-greed')
       .then(r => r.ok ? r.json() : null)
       .then((d: FearGreedData | null) => { if (d?.score) setFg(d); })
       .catch(() => {});
+    fetch('/api/us-treasury')
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: UsTreasuryResponse | null) => setUs10y(d && typeof d.yield10y === 'number' ? d : null))
+      .catch(() => setUs10y(null));
   }, []);
 
   return (
@@ -103,6 +110,39 @@ export default function MacroStrip() {
           </div>
         );
       })}
+
+      {/* ── 미 국채 10년물 — 중립색 고정: 금리 등락은 손익이 아니다.
+           손익색을 입히면 '금리 상승=나쁨' 신호가 돼 valence가 오염된다
+           (docs/MARKET_RECAP_FEATURE_REVIEW_2026-08-19.md §5-5) ── */}
+      {us10y === undefined ? (
+        <div className="flex items-center shrink-0">
+          <div className="px-5 py-1.5" style={{ minWidth: 96 }}>
+            <div className="text-[12px] text-[#8B95A1] font-medium whitespace-nowrap dark:text-[var(--text-tertiary)]">미 국채 10년</div>
+            <div style={{ height: 20, width: 72, background: '#F2F4F6', borderRadius: 4, marginTop: 4 }} />
+          </div>
+          <div className="w-px h-8 bg-[#F2F4F6] dark:bg-[var(--border-light)] shrink-0" />
+        </div>
+      ) : us10y ? (
+        <div className="flex items-center shrink-0">
+          <div className="px-5 py-1.5">
+            <div className="text-[12px] text-[#8B95A1] font-medium whitespace-nowrap dark:text-[var(--text-tertiary)]">미 국채 10년</div>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-[15px] font-bold text-[#191F28] tabular-nums whitespace-nowrap dark:text-[var(--text-primary)]">
+                {us10y.yield10y.toFixed(2)}%
+              </span>
+              {us10y.changePp != null && (
+                <span className="text-[12px] font-semibold tabular-nums whitespace-nowrap text-[#8B95A1] dark:text-[var(--text-tertiary)]">
+                  {us10y.changePp >= 0 ? '+' : ''}{us10y.changePp.toFixed(2)}%p
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 10, color: '#B0B8C1', marginTop: 2 }}>
+              {(() => { const [, m, d] = us10y.asOfDate.split('-'); return `${Number(m)}.${Number(d)} 기준`; })()} · 미 재무부
+            </div>
+          </div>
+          <div className="w-px h-8 bg-[#F2F4F6] dark:bg-[var(--border-light)] shrink-0" />
+        </div>
+      ) : null}
 
       {/* ── Fear & Greed Index ── */}
       {fg ? (

@@ -92,6 +92,8 @@
 - [x] ~~**`analysisPrompt.ts` 수급 환각 유도**~~ — 한국 종목 규칙이 "외국인 수급과 원달러 환율이 단기 주가에 큰 영향"이라 지시했는데 앱은 수급 데이터를 한 건도 안 가짐 → 모델이 근거 없는 수급 서술 생성하는 구조. 입력에 있는 것(환율)만 언급, 수급 서술 금지로 재작성 (2026-08-18)
 - [x] ~~**`AiChokSection.tsx` VIX 라벨 `극도의 공포(저점 가능)`**~~ — "저점 가능"은 관찰값을 매매 시점 힌트로 바꾸는 표현. ai-chok 프롬프트 `{MACRO_CONTEXT}`로 주입되던 것 제거. `저점 가능`·`고점 가능`을 FORECAST_FORBIDDEN(전역 lint) + sec6StaticCopy 불변식에 추가, 음성 프로브 통과 (2026-08-18)
 - [x] ~~**marketFlow·MorningBriefing 임계 THRESHOLDS.md 미등재**~~ — #52~57로 등재 (2026-08-18)
+- [x] ~~**수급·매크로 기능 v1 (미 10년물)**~~ — 파운더가 범위 축소(사실 표시+교육 카드) 수용 후 착수. 미 재무부 XML 직접 수집(`usTreasury.ts`, 퍼블릭 도메인·키 불요·cron 불요), `/api/us-treasury`(defineRoute public+CDN 30분/SWR 1일), MacroStrip 칩+리포트 탭 교육 카드(`MacroRateCard`) — **중립색 고정·기준일 상시 표시**. 카피는 `macroContextCopy.ts` SSOT(양방향+아무도모름+참고용), 누출 불변식+양성 공식 테스트, `feature_first_use('macro-rate-card')` 텔레메트리 (2026-08-19)
+- [ ] **미 10년물 육안 검증** — MacroStrip 칩(모바일 가로 스크롤·다크모드)과 리포트 탭 카드 확인. 실측 기준값: 8/18 4.71%·전일 -0.01%p
 - [ ] **시장 판정 엔진 이중화 해소** — `marketFlow.ts`(섹터 상대강도, spread≥1.5)와 `MorningBriefing.tsx`(S&P vs NASDAQ, spread≥0.7)가 데이터·임계 모두 달라 같은 날 홈과 리포트 탭이 다른 판정을 낼 수 있음. 수급 등 새 판정 축 추가 전에 통합이 먼저 (THRESHOLDS.md §11 경고 참조)
 - [x] ~~**`d3-hierarchy` 제거**~~ — `@types/web-push`·`shadcn`도 devDependencies로 이동. dependencies 25→21 (2026-08-18)
 

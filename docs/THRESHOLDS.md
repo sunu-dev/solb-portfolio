@@ -77,6 +77,7 @@
 | 34 | candle 캐시: 일별 (날짜 키) | `useStockData.ts:269-288` | ✅ | — |
 | 35 | macro 캐시 5분 | `useStockData.ts:159` | 🎯 | P3 |
 | 36 | 뉴스 24h 우선, fallback 72h | `useStockData.ts:62-69` | 🎯 | P3 |
+| 36a | 미 10년물: 서버 L1 30분 + CDN s-maxage 30분/SWR 1일 | `usTreasury.ts` · `us-treasury/route.ts` | 🎯 (일별 데이터 — 영업일 1회 갱신) | P3 |
 
 ## 7. 기술 지표 (모두 표준 ✅)
 

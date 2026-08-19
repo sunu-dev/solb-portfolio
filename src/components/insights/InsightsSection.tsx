@@ -11,6 +11,7 @@ import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 // IA 재정비 — 포트폴리오 탭에서 이관: 시장 발견(MarketMovers) + 회고·성향 6종
 import MarketMovers from '@/components/portfolio/MarketMovers';
+import MacroRateCard from './MacroRateCard';
 import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
 import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
@@ -316,6 +317,12 @@ export default function InsightsSection() {
           {/* 1. AI 촉 — 오늘의 발견 */}
           <div ref={chokRef} data-tour="insights-ai-chok" className="insight-stagger" style={{ animationDelay: '0s' }}>
             <AiChokSection />
+          </div>
+
+          {/* 1.5 시장 맥락 — 미 국채 10년물 사실+교육 카드.
+              실패·로딩 시 컴포넌트가 null을 반환하므로 래퍼는 여백을 갖지 않는다 */}
+          <div className="insight-stagger" style={{ animationDelay: '0.05s' }}>
+            <MacroRateCard />
           </div>
 
           {/* 2. 주비의 이야기 — 오늘 상태 내러티브 */}
