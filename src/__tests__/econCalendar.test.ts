@@ -35,6 +35,11 @@ describe('econCalendar', () => {
     expect(formatReleaseKst(r)).toBe('12.10(목) 22:30');
   });
 
+  it('BOJ 금정위 KST 표기 — 03:00Z는 정오', () => {
+    const r = ECON_RELEASES.find(x => x.id === 'boj' && x.at.startsWith('2026-09-18'))!;
+    expect(formatReleaseKst(r)).toBe('9.18(금) 12:00');
+  });
+
   it('모든 발표 id에 축약 라벨이 있다 (배지 오버플로 방지)', () => {
     for (const r of ECON_RELEASES) {
       expect(ECON_SHORT_LABEL[r.id], r.id).toBeTruthy();

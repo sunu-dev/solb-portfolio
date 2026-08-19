@@ -7,6 +7,8 @@
  * 출처 (2026-08-19 확인):
  *  - FOMC: federalreserve.gov/monetarypolicy/fomccalendars.htm (직접 확인, 결정 발표 14:00 ET)
  *  - CPI·고용보고서: BLS 공개 일정 (08:30 ET)
+ *  - BOJ 금정위: boj.or.jp/en/mopo/mpmsche_minu (직접 확인). 결정은 회의 이틀째 정오 전후로
+ *    **시각이 고정돼 있지 않다** — 12:00 JST(03:00Z)를 기준으로 두되, 시각 정밀도를 주장하지 않는다.
  *
  * 시각은 **UTC ISO**로 저장한다 — 미 동부는 서머타임(2026년은 11/1 종료)이 있어
  * "08:30 ET"를 그대로 저장하면 KST 환산이 애매해진다. UTC 고정이면 표시가 기계적이다.
@@ -15,7 +17,7 @@
  * UI는 발표 예고 줄을 숨긴다 — 낡은 일정을 보여주는 것보다 안 보여주는 게 낫다.
  */
 
-export type EconReleaseId = 'fomc' | 'us-cpi' | 'us-jobs';
+export type EconReleaseId = 'fomc' | 'us-cpi' | 'us-jobs' | 'boj';
 
 export interface EconRelease {
   id: EconReleaseId;
@@ -33,6 +35,7 @@ export const ECON_SHORT_LABEL: Record<EconReleaseId, string> = {
   fomc: 'FOMC',
   'us-cpi': '미국 CPI',
   'us-jobs': '미국 고용',
+  boj: '일본 금정위',
 };
 
 // 2026년 잔여 일정 (과거분은 '다음 발표' 계산에 불필요해 미등재)
@@ -51,6 +54,10 @@ export const ECON_RELEASES: EconRelease[] = [
   { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-09-16T18:00:00Z' },
   { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-10-28T18:00:00Z' },
   { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-12-09T19:00:00Z' },
+  // BOJ 금융정책결정회의 — 회의 이틀째 (JST 정오 전후, 03:00Z 기준)
+  { id: 'boj', label: '일본은행 금정위', at: '2026-09-18T03:00:00Z' },
+  { id: 'boj', label: '일본은행 금정위', at: '2026-10-30T03:00:00Z' },
+  { id: 'boj', label: '일본은행 금정위', at: '2026-12-18T03:00:00Z' },
 ];
 
 /** 다음 발표 1건. 미래 일정이 없으면 null — 호출부는 줄 자체를 숨긴다. */

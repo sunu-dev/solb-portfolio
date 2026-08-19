@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import {
-  US10Y_EDU_CARD, FED_EDU_CARD, CPI_EDU_CARD, JOBS_EDU_CARD,
+  US10Y_EDU_CARD, FED_EDU_CARD, CPI_EDU_CARD, JOBS_EDU_CARD, JP_RATE_EDU_CARD,
   MACRO_CARD_HEADER, MACRO_VALUE_LABELS as L,
 } from '@/config/macroContextCopy';
 import { nextEconRelease, formatReleaseKst, ECON_SHORT_LABEL } from '@/config/econCalendar';
@@ -79,6 +79,17 @@ function buildRows(data: MacroIndicatorsResponse): Row[] {
       ].filter(Boolean).join(' · '),
     });
   }
+  if (data.jpRate) {
+    const j = data.jpRate;
+    rows.push({
+      key: 'jpRate', edu: JP_RATE_EDU_CARD,
+      value: `${j.rate.toFixed(2)}%`,
+      meta: [
+        j.changePp == null || j.changePp === 0 ? null : `${L.dayChange} ${signed(j.changePp, 2)}%p`,
+        dayLabel(j.asOfDate),
+      ].filter(Boolean).join(' · '),
+    });
+  }
   if (data.jobs) {
     rows.push({
       key: 'jobs', edu: JOBS_EDU_CARD,
@@ -119,7 +130,7 @@ export default function MacroRateCard() {
     return (
       <div style={CARD_STYLE}>
         <div style={{ height: 20, width: 110, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 6 }} />
-        {[0, 1, 2, 3].map(i => (
+        {[0, 1, 2, 3, 4].map(i => (
           <div key={i} style={{ height: 44, display: 'flex', alignItems: 'center', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ height: 14, width: i % 2 ? 150 : 130, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4 }} />
           </div>
