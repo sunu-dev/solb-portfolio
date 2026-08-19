@@ -52,3 +52,18 @@ export const MACRO_CARD_HEADER = {
   title: '주요 시장 지표',
   nextReleasePrefix: '다음 발표',
 } as const;
+
+/**
+ * 값 표시 라벨 SSOT — 컴포넌트가 문장을 조립하지 않게 여기 둔다.
+ * (컴포넌트에 흩어지면 macroContextCopy 한정 lint의 사각이 된다 — 2026-08-19 재감사 지적)
+ *
+ * `cpiPrev`는 '전월 발표'로 쓴다: cpi.prevYoy는 '전월 발표분의 전년 동월 대비'인데
+ * '전월 +3.5%'로 줄이면 초보자가 **월간 3.5% 상승**(초인플레)으로 오독한다.
+ */
+export const MACRO_VALUE_LABELS = {
+  yoyPrefix: '전년 대비',
+  cpiPrev: '전월 발표',
+  prev: '전월',
+  dayChange: '전일 대비',
+  expandHint: '설명 보기',
+} as const;

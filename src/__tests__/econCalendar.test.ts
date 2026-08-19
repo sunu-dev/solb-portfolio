@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ECON_RELEASES, nextEconRelease, formatReleaseKst } from '@/config/econCalendar';
+import { ECON_RELEASES, ECON_SHORT_LABEL, nextEconRelease, formatReleaseKst } from '@/config/econCalendar';
 
 describe('econCalendar', () => {
   it('전 항목이 UTC ISO이고 시간순 정합적이다', () => {
@@ -33,6 +33,14 @@ describe('econCalendar', () => {
   it('KST 표기 — 표준시 구간(12월)은 22:30', () => {
     const r = ECON_RELEASES.find(x => x.at === '2026-12-10T13:30:00Z')!;
     expect(formatReleaseKst(r)).toBe('12.10(목) 22:30');
+  });
+
+  it('모든 발표 id에 축약 라벨이 있다 (배지 오버플로 방지)', () => {
+    for (const r of ECON_RELEASES) {
+      expect(ECON_SHORT_LABEL[r.id], r.id).toBeTruthy();
+      // 배지는 좁은 폭에서 렌더되므로 축약 라벨은 짧게 유지한다
+      expect(ECON_SHORT_LABEL[r.id].length).toBeLessThanOrEqual(7);
+    }
   });
 
   it('FOMC 결정은 KST 새벽에 떨어진다 (9/16 18:00Z → 9/17 03:00 KST)', () => {

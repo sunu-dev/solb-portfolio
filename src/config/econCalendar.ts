@@ -25,6 +25,16 @@ export interface EconRelease {
   at: string;
 }
 
+/**
+ * 배지용 축약 라벨 — 좁은 폭(320px)에서 전체 라벨은 카드를 넘친다.
+ * '미국 FOMC 금리 결정'(≈207px)이 최장 케이스라 축약이 필요하다 (2026-08-19 재감사).
+ */
+export const ECON_SHORT_LABEL: Record<EconReleaseId, string> = {
+  fomc: 'FOMC',
+  'us-cpi': '미국 CPI',
+  'us-jobs': '미국 고용',
+};
+
 // 2026년 잔여 일정 (과거분은 '다음 발표' 계산에 불필요해 미등재)
 export const ECON_RELEASES: EconRelease[] = [
   // 고용보고서(실업률) — 08:30 ET (EDT=12:30Z, EST=13:30Z)

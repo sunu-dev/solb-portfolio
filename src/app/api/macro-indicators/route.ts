@@ -24,9 +24,15 @@ export const GET = defineRoute({
         { status: 503, headers: { 'Cache-Control': 'no-store' } },
       );
     }
-    // 저빈도 데이터(일별·월별) — CDN 30분, 만료 후 하루까지 stale 서빙
+    // 부분 실패 응답을 오래 캐시하면, 소스가 즉시 복구돼도 그 시간 내내 지표 행이
+    // 숨는다. 전 지표가 모인 응답만 길게 캐시하고 반쪽은 짧게 둬 곧 재검증되게 한다.
+    const complete = !!(body.fed && body.cpi && body.jobs && body.us10y);
     return NextResponse.json(body, {
-      headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=86400' },
+      headers: {
+        'Cache-Control': complete
+          ? 's-maxage=1800, stale-while-revalidate=86400'
+          : 's-maxage=120, stale-while-revalidate=600',
+      },
     });
   },
 });

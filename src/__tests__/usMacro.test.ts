@@ -1,26 +1,61 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
-  parseFedTargetCsv, toCpiYoY, toUnemployment, fetchUsMacro, resetUsMacroCacheForTests,
+  parseFredSeriesCsv, toFedTarget, toCpiYoY, toUnemployment, fetchUsMacro, resetUsMacroCacheForTests,
 } from '@/lib/usMacro';
 
-describe('parseFedTargetCsv', () => {
-  it('마지막 유효 행에서 목표 상단·하단을 뽑는다', () => {
-    const csv = 'observation_date,DFEDTARU,DFEDTARL\n2026-08-18,3.75,3.50\n2026-08-19,3.75,3.50';
-    expect(parseFedTargetCsv(csv)).toEqual({ upper: 3.75, lower: 3.5, asOfDate: '2026-08-19' });
+describe('parseFredSeriesCsv', () => {
+  it('마지막 유효 행의 값과 날짜를 뽑는다', () => {
+    const csv = 'observation_date,DFEDTARU\n2026-08-18,3.75\n2026-08-19,3.75';
+    expect(parseFredSeriesCsv(csv, 'DFEDTARU')).toEqual({ value: 3.75, date: '2026-08-19' });
   });
 
-  it("결측('.')·형식 이탈 행은 건너뛰고 그 앞의 유효 행을 쓴다", () => {
-    const csv = 'observation_date,DFEDTARU,DFEDTARL\n2026-08-18,3.75,3.50\n2026-08-19,.,.';
-    expect(parseFedTargetCsv(csv)?.asOfDate).toBe('2026-08-18');
+  /**
+   * 적대 재감사(2026-08-19)가 잡은 결함의 회귀 박제.
+   * fredgraph의 실제 결측 표기는 **빈 문자열**이고(`2008-12-16,,0.00` 실측),
+   * `Number('')===0`이라 초판 가드는 결측을 0.00%로 통과시켰다.
+   */
+  it("빈 문자열 결측을 0으로 읽지 않는다 (실제 FRED 결측 포맷)", () => {
+    const csv = 'observation_date,DFEDTARU\n2026-08-18,3.75\n2026-08-20,';
+    expect(parseFredSeriesCsv(csv, 'DFEDTARU')).toEqual({ value: 3.75, date: '2026-08-18' });
   });
 
-  it('컬럼 순서가 바뀌어도 헤더 기준으로 읽는다', () => {
-    const csv = 'observation_date,DFEDTARL,DFEDTARU\n2026-08-19,3.50,3.75';
-    expect(parseFedTargetCsv(csv)).toEqual({ upper: 3.75, lower: 3.5, asOfDate: '2026-08-19' });
+  it("공백만 있는 칸도 결측으로 본다", () => {
+    const csv = 'observation_date,DFEDTARU\n2026-08-18,3.75\n2026-08-20,   ';
+    expect(parseFredSeriesCsv(csv, 'DFEDTARU')?.date).toBe('2026-08-18');
   });
 
-  it('기대 컬럼이 없으면 null', () => {
-    expect(parseFedTargetCsv('observation_date,OTHER\n2026-08-19,1')).toBeNull();
+  it("'.' 결측·형식 이탈 행도 건너뛴다", () => {
+    const csv = 'observation_date,DFEDTARU\n2026-08-18,3.75\nbad-row,9\n2026-08-19,.';
+    expect(parseFredSeriesCsv(csv, 'DFEDTARU')?.date).toBe('2026-08-18');
+  });
+
+  it('전 행이 결측이면 null', () => {
+    expect(parseFredSeriesCsv('observation_date,DFEDTARU\n2026-08-19,', 'DFEDTARU')).toBeNull();
+  });
+
+  it('기대 시리즈 컬럼이 없으면 null', () => {
+    expect(parseFredSeriesCsv('observation_date,OTHER\n2026-08-19,1', 'DFEDTARU')).toBeNull();
+  });
+});
+
+describe('toFedTarget', () => {
+  it('두 시리즈를 목표 범위로 합친다', () => {
+    expect(toFedTarget({ value: 3.75, date: '2026-08-19' }, { value: 3.5, date: '2026-08-19' }))
+      .toEqual({ upper: 3.75, lower: 3.5, asOfDate: '2026-08-19' });
+  });
+
+  it('한쪽이 없으면 null — 반쪽 범위(0.00~3.50)를 만들지 않는다', () => {
+    expect(toFedTarget(null, { value: 3.5, date: '2026-08-19' })).toBeNull();
+    expect(toFedTarget({ value: 3.75, date: '2026-08-19' }, null)).toBeNull();
+  });
+
+  it('기준일이 다르면 이른 쪽을 쓴다 (오래된 값 섞임을 숨기지 않는다)', () => {
+    expect(toFedTarget({ value: 3.75, date: '2026-08-19' }, { value: 3.5, date: '2026-08-15' })?.asOfDate)
+      .toBe('2026-08-15');
+  });
+
+  it('상단 < 하단이면 데이터 이상으로 보고 표시를 거부한다', () => {
+    expect(toFedTarget({ value: 1.0, date: '2026-08-19' }, { value: 3.5, date: '2026-08-19' })).toBeNull();
   });
 });
 
@@ -74,7 +109,7 @@ describe('toUnemployment', () => {
 });
 
 describe('fetchUsMacro — 소스 개별 실패·캐시', () => {
-  const FED_CSV = 'observation_date,DFEDTARU,DFEDTARL\n2026-08-19,3.75,3.50';
+  const fedCsv = (id: string, v: string) => `observation_date,${id}\n2026-08-19,${v}`;
   const BLS_OK = JSON.stringify({
     status: 'REQUEST_SUCCEEDED',
     Results: { series: [
@@ -84,7 +119,12 @@ describe('fetchUsMacro — 소스 개별 실패·캐시', () => {
   });
   const route = (impl: { fred?: () => Promise<Response> | Response; bls?: () => Promise<Response> | Response }) =>
     vi.fn((url: string) => {
-      if (String(url).includes('fred')) return Promise.resolve(impl.fred ? impl.fred() : new Response(FED_CSV));
+      const u = String(url);
+      if (u.includes('fred')) {
+        if (impl.fred) return Promise.resolve(impl.fred());
+        // 단일 시리즈 2회 요청 — 상단/하단을 각각 돌려준다
+        return Promise.resolve(new Response(u.includes('DFEDTARU') ? fedCsv('DFEDTARU', '3.75') : fedCsv('DFEDTARL', '3.50')));
+      }
       return Promise.resolve(impl.bls ? impl.bls() : new Response(BLS_OK));
     });
 
@@ -115,7 +155,8 @@ describe('fetchUsMacro — 소스 개별 실패·캐시', () => {
     blsFail = false;
     const r2 = await fetchUsMacro();            // fed 캐시 히트, bls 재시도 성공
     expect(r2.cpi?.yoy).toBe(3.4);
+    // fed는 첫 호출에서만 나간다(시리즈 2개 = 2요청), 이후 캐시 히트
     const fredCalls = mock.mock.calls.filter(c => String(c[0]).includes('fred')).length;
-    expect(fredCalls).toBe(1);                  // fed는 한 번만 나감
+    expect(fredCalls).toBe(2);
   });
 });

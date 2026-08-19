@@ -5,7 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
 import { isTodayHoliday, getUpcomingHolidaysForMarket } from '@/config/marketHolidays';
-import type { UsTreasuryResponse } from '@/app/api/us-treasury/route';
+import type { MacroIndicatorsResponse } from '@/app/api/macro-indicators/route';
 
 type MarketKey = 'KR' | 'US';
 
@@ -207,12 +207,16 @@ export default function MarketSummary() {
   const sp = macroData['S&P 500'] as MacroEntry | undefined;
   const nasdaq = macroData['NASDAQ'] as MacroEntry | undefined;
 
-  // 미 국채 10년물 — 미 재무부 원천(/api/us-treasury). 실패 시 항목 자체를 생략
-  const [us10y, setUs10y] = useState<UsTreasuryResponse | null>(null);
+  // 미 국채 10년물 — 리포트 탭 지표 카드와 **같은 엔드포인트**를 읽는다.
+  // 각각 다른 URL을 쓰면 CDN 엔트리가 분리돼 같은 화면에 다른 기준일이 병존할 수 있다
+  // (2026-08-19 재감사). 실패 시 항목 자체를 생략.
+  const [us10y, setUs10y] = useState<MacroIndicatorsResponse['us10y']>(null);
   useEffect(() => {
-    fetch('/api/us-treasury')
+    fetch('/api/macro-indicators')
       .then(r => (r.ok ? r.json() : null))
-      .then((d: UsTreasuryResponse | null) => { if (d && typeof d.yield10y === 'number') setUs10y(d); })
+      .then((d: MacroIndicatorsResponse | null) => {
+        if (d?.us10y && typeof d.us10y.yield10y === 'number') setUs10y(d.us10y);
+      })
       .catch(() => {});
   }, []);
 
