@@ -17,6 +17,10 @@ export const TOUR_EVENT_NAMES = [
   'demo_started',
   'demo_sample_loaded',
   'demo_to_login',
+  // 기록 신뢰 샘플 funnel — 실제 계좌/종목 데이터 없이 게스트도 체험
+  'record_preview_started',
+  'record_preview_approved',
+  'record_preview_restored',
 ] as const;
 
 export type TourEventName = typeof TOUR_EVENT_NAMES[number];

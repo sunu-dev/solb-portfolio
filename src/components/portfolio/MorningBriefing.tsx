@@ -1,12 +1,20 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
-import { findSnapshotNearDate, getDateDaysAgo, getTodayKST } from '@/utils/dailySnapshot';
+import {
+  findCanonicalSnapshotNearDate,
+  getDateDaysAgo,
+  getSnapshotKrwTotals,
+  getTodayKST,
+} from '@/utils/dailySnapshot';
+import { useNow } from '@/hooks/useNow';
+import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 
 const STORAGE_KEY = 'solb_briefing_seen';
 
@@ -34,19 +42,24 @@ const STORAGE_KEY = 'solb_briefing_seen';
 export default function MorningBriefing() {
   const { stocks, macroData, dailySnapshots, currency, setAnalysisSymbol } = usePortfolioStore();
   const activeAlerts = useActiveAlerts();
+  const currentTime = useNow();
   const [hidden, setHidden] = useState(true); // 초기 hidden(깜빡임 방지) — useEffect에서 결정
 
   useEffect(() => {
-    try {
-      const seen = localStorage.getItem(STORAGE_KEY);
-      const today = getTodayKST();
-      setHidden(seen === today);
-    } catch {
-      setHidden(false);
-    }
+    const frame = requestAnimationFrame(() => {
+      try {
+        const seen = localStorage.getItem(STORAGE_KEY);
+        const today = getTodayKST();
+        setHidden(seen === today);
+      } catch {
+        setHidden(false);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   const data = useMemo(() => {
+    if (currentTime === 0) return null;
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
     if (investing.length === 0) return null;
 
@@ -91,12 +104,27 @@ export default function MorningBriefing() {
     }
 
     // 현재 자산 + 가장 큰 움직임
-    let currentValue = 0;
+    const usdKrw = resolveUsdKrw(macroData);
+    const portfolio = summarizePortfolioCurrency(
+      investing.map((stock) => {
+        const quote = macroData[stock.symbol] as QuoteData | undefined;
+        return {
+          symbol: stock.symbol,
+          currency: stock.currency,
+          avgCost: stock.avgCost,
+          shares: stock.shares,
+          currentPrice: quote?.c || 0,
+          dayChange: quote?.d || 0,
+          purchaseRate: stock.purchaseRate,
+        };
+      }),
+      usdKrw,
+    );
+    const currentValueKrw = portfolio.totalValueKrw;
     let biggestMove: { symbol: string; dp: number; absDp: number } | null = null;
     for (const s of investing) {
       const q = macroData[s.symbol] as QuoteData | undefined;
       if (!q?.c) continue;
-      currentValue += q.c * s.shares;
       const dp = q.dp || 0;
       const absDp = Math.abs(dp);
       if (!biggestMove || absDp > biggestMove.absDp) {
@@ -106,18 +134,19 @@ export default function MorningBriefing() {
 
     // 어제 vs 오늘 (스냅샷)
     const yDate = getDateDaysAgo(1);
-    const ySnap = findSnapshotNearDate(dailySnapshots, yDate, 2);
+    const ySnap = findCanonicalSnapshotNearDate(dailySnapshots, yDate, 2);
     let deltaVsYesterday: { delta: number; pct: number } | null = null;
-    if (ySnap && ySnap.totalValue > 0) {
-      const delta = currentValue - ySnap.totalValue;
-      const pct = (delta / ySnap.totalValue) * 100;
+    const yTotals = ySnap ? getSnapshotKrwTotals(ySnap) : null;
+    if (yTotals && yTotals.totalValueKrw > 0) {
+      const delta = currentValueKrw - yTotals.totalValueKrw;
+      const pct = (delta / yTotals.totalValueKrw) * 100;
       deltaVsYesterday = { delta, pct };
     }
 
     // 가장 최근 메모 (7일 이내)
     let latestNote: { symbol: string; text: string; emoji: string; date: Date } | null = null;
     const all = [...(stocks.investing || []), ...(stocks.sold || [])];
-    const sevenDaysAgo = Date.now() - 7 * 86400 * 1000;
+    const sevenDaysAgo = currentTime - 7 * 86400 * 1000;
     for (const s of all) {
       for (const note of (s.notes || [])) {
         const isoPart = note.date.split('_')[0];
@@ -131,7 +160,6 @@ export default function MorningBriefing() {
     }
 
     return {
-      currentValue,
       biggestMove,
       deltaVsYesterday,
       latestNote,
@@ -141,7 +169,7 @@ export default function MorningBriefing() {
       nasdaqCp,
       topAlerts: activeAlerts.slice(0, 2),
     };
-  }, [stocks.investing, stocks.sold, macroData, dailySnapshots, activeAlerts]);
+  }, [stocks.investing, stocks.sold, macroData, dailySnapshots, activeAlerts, currentTime]);
 
   if (hidden || !data) return null;
 
@@ -159,12 +187,10 @@ export default function MorningBriefing() {
     setHidden(true);
   };
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
-  const fmtMoney = (usd: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-    : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const usdKrw = resolveUsdKrw(macroData);
+  const fmtMoney = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
-  const today = new Date();
+  const today = new Date(currentTime);
   const dateLabel = `${today.getMonth() + 1}월 ${today.getDate()}일`;
   const hour = today.getHours();
   const greeting = hour < 6 ? '🌙 새벽까지 깨어 계시네요'
@@ -180,8 +206,9 @@ export default function MorningBriefing() {
 
   return (
     <div
+      className="joobi-morning-briefing"
       role="region"
-      aria-label="오늘 아침 브리핑"
+      aria-label="오늘의 주비 브리핑"
       style={{
         marginTop: 24,
         marginBottom: 16,
@@ -198,6 +225,9 @@ export default function MorningBriefing() {
           from { opacity: 0; transform: translateY(-6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          .joobi-morning-briefing { animation: none !important; }
+        }
       `}</style>
 
       {/* 닫기 X */}
@@ -206,8 +236,8 @@ export default function MorningBriefing() {
         aria-label="브리핑 닫기"
         style={{
           position: 'absolute',
-          top: 10, right: 10,
-          width: 28, height: 28,
+          top: 4, right: 4,
+          width: 44, height: 44,
           borderRadius: '50%',
           background: 'transparent',
           border: 'none',
@@ -275,7 +305,7 @@ export default function MorningBriefing() {
             <button
               onClick={() => setAnalysisSymbol(data.biggestMove!.symbol)}
               style={{
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                minHeight: 44, background: 'transparent', border: 'none', padding: '8px 0', cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'baseline', gap: 6,
               }}
             >
@@ -331,7 +361,7 @@ export default function MorningBriefing() {
             <button
               onClick={() => setAnalysisSymbol(data.latestNote!.symbol)}
               style={{
-                background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+                minHeight: 44, background: 'transparent', border: 'none', padding: '8px 0', cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
@@ -369,10 +399,12 @@ export default function MorningBriefing() {
           border: 'none',
           cursor: 'pointer',
           width: '100%',
+          minHeight: 44,
         }}
       >
         확인했어요 →
       </button>
+      <FxStaleNotice style={{ marginTop: 10 }} />
     </div>
   );
 }

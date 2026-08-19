@@ -3,7 +3,168 @@
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
 
-## 🎯 다음 세션 자동 브리핑 (2026-06-21 — 차트 해설·§6 정화)
+## 🎯 다음 세션 자동 브리핑 (2026-08-19 — 수급·매크로 이중 분석 → 미 10년물 v1 출시)
+
+> **최신 sessionary**: `2026-08-19-market-recap-dual-analysis-and-us10y-v1.md`
+>
+> **완료**: 파운더 아이디어(수급·국채금리 분석·조언)를 Codex+Claude(5렌즈×적대검증) 이중 독립 분석 →
+> 양측 **조건부 GO 수렴, 단 원문의 1/4만**(한국 수급 = 합법 소스 부재로 불가 · 조언 = §6 불가 ·
+> 미 국채금리만 즉시 가능). 결정 SSOT: `docs/MARKET_RECAP_FEATURE_REVIEW_2026-08-19.md`.
+> 파운더 범위 축소 수용 → **미 10년물 v1 출시**(재무부 XML·MarketSummary 티커 중립색·리포트 탭 교육 카드).
+> 부수 정화: alertGlossary 처방 카피 14건 등 라이브 §6 결함 + 적대 재감사 실재 8건 수정.
+> **교훈**: MacroStrip이 import 0건 죽은 컴포넌트 — 세 분석 주체 전부 라이브로 가정했었다.
+>
+> **검증**: verify exit 0 · 테스트 **476 통과**(352→476) · 미커밋 0 · 원격 동기화.
+>
+> **🔴 다음 1건(파운더)**: **Finnhub API 키 회전** — 여전히 유출 간주 상태, 최우선.
+> **후속(파운더)**: 미 10년물 육안 검증(기준값 8/18 4.71%·-0.01%p) · 아래 결정 3건.
+> ---
+
+## 🗄️ (직전) 브리핑 (2026-08-18 — 전수 감사 + 교차 절단면 해소, 커밋 14개)
+
+> **최신 sessionary**: `2026-08-18-z-audit-followup-guards-ssot-ci.md` (후속) · `2026-08-18-full-feature-audit-and-p0-fixes.md` (감사 본편)
+>
+> **완료 — 감사**: 공용 루브릭 고정 후 Claude(12영역·25에이전트·적대적 검증)와 Codex를 독립 실행.
+> Claude 102기능 66.7 / Codex 66기능 72.5로 수렴, 바닥 순위 일치. 검증관이 치명 9 포함 신규 결함 125건 추가 발굴.
+>
+> **완료 — P0 10건**: §6 4건(주비의 이야기 매수·매도 유인 / PRESET_EVENTS 예측문구 / lint 우회 pragma / sanitizeAiOutput no-op) ·
+> 보안 4건(ws-token 무인증 키배포 / codes RLS 전량공개 / config 무인증 노출 / check-alerts CRON_SECRET 가드) ·
+> 데이터 무결성 2건(샘플 포트폴리오 실계좌 오염 / 대시보드 기간비교 허위 %).
+>
+> **완료 — 교차 절단면**: ①API 공통 가드 `defineRoute`(관리자 리터럴 15파일→1곳, **번들 노출 0**) ·
+> ②표시 SSOT 통합(`formatKRW.ts` 삭제, 폴백 21곳→1곳, 만/억 경로별 채택) ·
+> ③CI 신설 + 테스트를 배포 게이트에 배선 · ④빌드를 런타임 비밀에서 분리(무가드 12 + 가드형 14 전부 지연 생성, eslint 룰로 차단).
+>
+> **검증**: `npm run verify` exit 0 · **테스트 352 통과**(시작 236) · eslint **0 error** ·
+> 런타임 비밀 없이 `next build` 통과 · 미커밋 0.
+>
+> **🔴 다음 1건(파운더)**: **Finnhub API 키 회전** — `/api/ws-token`으로 공개 배포됐던 기존 키는 유출 간주.
+> **🔴 후속(파운더)**: 마이그 `20260818000100` 운영 적용 · 비로그인 WebSocket 트레이드오프 승인 · 표기 변경 3종 육안 검증.
+>
+> **⚠️ 새 규칙 4개**
+> 1. cron·admin·미인증 라우트는 `defineRoute`(`src/lib/apiRoute.ts`)로 감싼다. 인증 자체 구현 금지.
+> 2. 모듈 스코프에서 Supabase 클라이언트를 만들지 않는다(eslint error). 팩토리는 `src/lib/supabaseServer.ts`.
+> 3. 금액·비율·손익색은 `src/utils/koreanNumber.ts` 경유(`lint:korean` 룰3 hard). 서술 경로=만/억, 검증 경로=콤마.
+> 4. §6 미래단정 lint는 **전역**이다(digest 경로 한정 아님). 새 카피 기능엔 누출 불변식 테스트 필수.
+> ---
+
+## 🗄️ (직전) 브리핑 (2026-08-18 — 전수 감사 이중 실행 · P0 10건 수정)
+
+> **최신 sessionary**: `2026-08-18-full-feature-audit-and-p0-fixes.md`
+> **완료**: 공용 루브릭 고정 후 Claude(12영역·25에이전트·적대적 검증)와 Codex를 독립 실행한 이중 전수 감사. Claude 102기능 평균 66.7 / Codex 66기능 평균 72.5로 같은 밴드 수렴, 바닥 순위도 일치. 검증관이 치명 9건 포함 신규 결함 125건 추가 발굴. **P0 10건 전건 수정 완료.**
+> **P0 수정분**: §6 위반 4건(주비의 이야기 매수·매도 유인 / PRESET_EVENTS 예측문구 / lint 우회 pragma / sanitizeAiOutput no-op) · 보안 4건(ws-token 무인증 키배포 / codes RLS 전량공개 / config 무인증 전량노출 / check-alerts CRON_SECRET 가드) · 데이터 무결성 2건(샘플 포트폴리오 실계좌 오염 / 대시보드 기간비교 허위 %).
+> **검증**: prebuild 4게이트 통과 · **테스트 317 통과(236→+81)** · tsc 소스오류 0 · build 성공 · eslint 0 error. 클라이언트 Finnhub 직접호출 0건.
+> **🔴 다음 1건(파운더 액션)**: **Finnhub API 키 회전** — `/api/ws-token`으로 공개 배포됐던 기존 키는 유출 간주.
+> **🔴 후속 2건**: 마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용(코드만으론 RLS 안 바뀜) · 비로그인 실시간 WebSocket 미제공 트레이드오프 승인.
+> **⚠️ 새 규칙**: `lint-alerts`의 미래단정 어휘(`FORECAST_FORBIDDEN`)는 이제 **전역 검사**다(digest 경로 한정 아님). 인과 어휘만 digest 한정 유지. 새 해설·카피 기능엔 `sec6StaticCopy.test.ts` 패턴의 누출 불변식 테스트를 붙인다.
+> ---
+
+## 🙋 파운더 직접 액션 (내가 해야 하는 일)
+
+### 🆕 2026-08-19 — 수급·매크로 기능 잔여 결정 (docs/MARKET_RECAP_FEATURE_REVIEW_2026-08-19.md §8)
+- [ ] **한국 수급 유료 견적 시점 결정** — KRX datasale/Koscom 견적 문의를 지금 넣을지, 유료화 검증 후로 미룰지 (양측 분석 권고: 후자. 단 공공데이터포털·KOFIA 무료 경로 배제 확인 1시간짜리는 선행 가능)
+- [ ] **P2 영구 금기(KIS·KRX OpenAPI) 명문화** — '영구 금기'의 근거 문서가 저장소에 없음. 유지든 번복이든 사유와 함께 문서화 (KRX OpenAPI엔 수급 데이터 자체가 없어 해제 실익 0은 실측됨)
+- [ ] **과거 통계(등락 분포) 기능의 운명** — "외국인 순매수일의 68% 상승" 류. 약관 v4 변호사 게이트에 묶어 질의할지, 영구 포기할지
+- [ ] **미 10년물 육안 검증** — 홈 상단 티커 '미 국채 10년'(중립 회색·다크모드) + 리포트 탭 카드(스켈레톤 전환·펼침). 기준값 8/18 4.71%·전일 -0.01%p
+
+> 코드로 해결 불가 — 계정·콘솔·기기가 필요한 항목만 모았다.
+
+- [ ] **🔴 Finnhub API 키 회전** — `/api/ws-token`이 인증 없이 키를 반환했고 전 방문자 localStorage에 영속됐다.
+      코드는 고쳤으나 **기존 키는 유출 간주**. Finnhub 콘솔에서 재발급 → Vercel `FINNHUB_API_KEY` 교체 → 구키 폐기.
+- [ ] **마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용**
+      — 적용 전 `select * from pg_policies where tablename='codes'`로 `codes_select` 존재 확인.
+      코드만으론 RLS가 안 바뀌어 초대코드 전량 덤프가 계속 가능하다.
+- [ ] **비로그인 실시간 WebSocket 미제공 승인** — 폴링 시세는 정상 동작. 되돌리려면 별도 설계 필요.
+- [ ] **표기 변경 육안 검증** — ①만/억 6화면 모바일 좁은 폭(줄바꿈 회귀) ②USD `.00`(목표가·기록·OCR) ③뉴스 갱신 배지·상대 시간
+
+## 🆕 2026-08-18 — 감사 후속
+
+### 파운더 액션 (P0)
+- [ ] **Finnhub API 키 회전** — 기존 키 유출 간주
+- [ ] **마이그 `20260818000100_invite_codes_rls_hardening.sql` 운영 적용** — 적용 전 `pg_policies`로 `codes_select` 실제 존재 확인
+- [ ] **비로그인 실시간 WebSocket 미제공** 트레이드오프 승인 (폴링 시세는 정상 동작)
+
+### 코드 후속 (P1)
+- [x] ~~**관리자 허용목록 15파일 복제 + 클라이언트 번들 노출**~~ — `src/lib/adminAuth.ts` SSOT + `useIsAdmin()`(→`/api/me/admin`)로 해소. **빌드 산출물 노출 0 확인**, 누출 불변식 테스트 `adminAuthBoundary.test.ts` 신설 (2026-08-18)
+- [x] ~~**미인증 라우트에 rateLimiter 적용**~~ — 4개 라우트를 `defineRoute({auth:'public', rateLimit})`로 이관 (2026-08-18)
+- [x] ~~**cron 라우트를 `defineRoute({auth:'cron'})`로 이관**~~ — 8개 이관 완료. `check-alerts`만 QStash 서명 분기 때문에 자체 인증 유지(미설정 가드는 보유). 규약을 `cronAuthBoundary.test.ts`가 박제 (2026-08-18)
+- [x] ~~**`npm test`를 prebuild 편입**~~ — prebuild 마지막에 배선. §6 누출 불변식 테스트가 깨지면 배포가 막힌다 (2026-08-18)
+- [x] ~~**GitHub Actions CI 신설**~~ — `.github/workflows/ci.yml`. verify(typecheck·게이트4·eslint·test) → build 2잡. `npm run verify` 통합 스크립트도 추가 (2026-08-18)
+- [x] ~~**모듈 스코프 `createClient` → 지연 생성**~~ — 무가드 12곳 제거, **service key 없이 빌드 통과**(CI에서 placeholder 비밀 제거). cron 7곳의 `SUPABASE_SERVICE_KEY` 단독 의존도 팩토리로 통일(새 이름만 설정 시 '웹은 정상, cron만 죽는' 부분 장애였음). 적대적 검증 3렌즈 + 판정관 (2026-08-18)
+- [x] ~~**가드형 모듈 스코프 `createClient` lint 룰**~~ — eslint `no-restricted-syntax` 3선택자(무가드형·가드형·지연누락). 신규 위반은 **error로 CI 차단**, 기존 14건은 baseline(warn)으로 가시화. 음성 테스트로 4형태 판정 확인 (2026-08-18)
+  - ⚠️ 강제 지점은 **CI의 `npx eslint .`** 다. `next build`는 eslint를 돌리지 않으므로 로컬 빌드는 안 막힌다.
+- [x] ~~**baseline 14건 sweep 후 error 격상**~~ — 11파일 전부 함수 내 지역 클라이언트로 전환, eslint 룰 **전 파일 error**(예외 2곳만). 선택자 결함(`export const` 미검출)도 프로브로 발견해 수정, 6형태 검출 확인 (2026-08-18)
+- [x] ~~**지연 thunk 불변식 테스트**~~ — eslint 선택자 #3(`require*Client` 즉시 호출 금지)이 동일 역할. 별도 테스트 불요 (2026-08-18)
+- [x] ~~**`adminAuth.resolveUser`의 null 축약**~~ — `resolveUserOutcome`으로 ok/anonymous/**unavailable** 3상태 분리. 설정 오류는 503+로그, 인증 실패만 401. `defineRoute`·`requireAdmin` 양쪽 적용 + 테스트 2건 (2026-08-18)
+- [x] ~~**`chokDataEnricher` anon 키 → service-role**~~ — L2 캐시가 영구 무력이던 것 해소. 쓰기 실패를 삼키던 fire-and-forget에 경고 로그 추가 (2026-08-18)
+- [x] ~~**`market-movers` 부호 미검사**~~ — 정렬 양 끝 대신 부호로 게이트. 유효 종목 10개 미만 시 양쪽 동시 노출도 함께 해소 (2026-08-18)
+- [x] ~~**PII 보존기간 불일치**~~ — 처리방침 `알림 발송 로그` 90일 → **365일**로 정정(파운더 결정). `NOTIFICATION_POLICY.md §4.4`가 이미 '1년 보관'이었으므로 처리방침 쪽이 outlier였다 (2026-08-18)
+- [x] ~~**표시 SSOT 3계층 분열 (금액)**~~ — `formatKRW.ts` 삭제, `koreanNumber.ts` 단일 모듈로 통합(임포터 0→14). KRW→표시통화 변환 6곳 중복·`fmtUsd` 2곳·환율 폴백 21곳 제거. 출력은 보존. `lint:korean` 룰3(soft) + `koreanNumber.test.ts` 25건 (2026-08-18)
+- [x] ~~**통화 raw 포맷 20건 sweep + 룰3 strict 격상**~~ — 9파일 전부 SSOT 경유. `formatUsd`가 `{min,max}` 형태를 받도록 확장해 앱의 **USD 자릿수 관례 3종**(2자리 고정/상한만/0자리)을 출력 변경 없이 표현. 룰3 hard 격상 + 음성 테스트 (2026-08-18)
+- [x] ~~**USD 자릿수 통일**~~ — 3종 → **2종**(개별 금액 2자리 고정 / 합계 정수). 가변 자릿수(`{max:2}`·`{max:3}`)를 없앴다 — `$480`·`$1,234.5`·`$178.25`가 섞이면 tabular-nums 세로 정렬이 어긋난다. `formatUsd` 시그니처도 `0 | 2`로 단순화 (2026-08-18)
+- [x] ~~**`formatKrwUnits` 채택 여부 결정**~~ — **경로별 채택**. 서술·요약 6화면(이야기·월간챕터/Wrapped·모닝브리핑·자산추이·어제의당신)은 만/억, 검증 화면(보유테이블·평단·편집모달·매수시뮬·알림·트리맵)은 콤마 유지. floor→round로 체계적 과소표시 제거, 조사는 `withIGa` 경유 (2026-08-18)
+- [ ] **만/억 표기 육안 검증** — 6개 화면 모바일 좁은 폭에서 줄바꿈 확인 (1억 미만 구간에서 +1~2자 길어짐). 직전 세션이 고친 '금액 두 줄 밀림' 회귀 여부
+- [x] ~~**`koreanCopy` lint 드리프트**~~ — `TOSS_TONE_MAP`(18) vs lint 패턴(16) 불일치 해소('봅니다'·'드립니다' 추가). 리스트가 갈라지면 "lint 통과 = 톤 규약 준수"가 성립하지 않는다 (2026-08-18)
+- [x] ~~**`koreanDate` SSOT 선언 정정**~~ — 미채택 실태를 docs §3.5에 명시. 날짜 11곳은 카드마다 옵션이 달라 고정 포맷 함수로 대체 불가. 다만 **상대 시간(`formatRelativeKo`)은 대체제가 없음** (2026-08-18)
+- [x] ~~**`formatRelativeKo` 도입**~~ — 뉴스 탭 '{N}분 전 갱신' 배지 신설(캐시 시각이 store에 있었는데 표시된 적 없었다) + 시장 주목종목 조회 시각을 상대 표기로. 둘 다 `useNow()`로 1분마다 갱신 (2026-08-18)
+- [x] ~~**환율 미확인 상태 표시**~~ — `resolveUsdKrwState()`가 `{rate, stale}` 반환. 대시보드에서 **USD 보유 + 원화 표시 + 환율 미확인** 3조건일 때만 임시 기준임을 고지. 숫자를 감추면 화면이 비어 더 불안하므로 계산은 유지 (2026-08-18)
+- [x] ~~**환율 미확인 고지 확대**~~ — `<FxStaleNotice />` 공용 컴포넌트로 추출(조건 3개를 한 곳에서 판정). 대시보드·모닝브리핑·자산 추이 차트에 부착. 서술 표면(이야기·월간챕터·Wrapped)은 개별 금액이 아닌 요약이라 제외 (2026-08-18)
+- [ ] **`docs/CRONS.md` 현행화** — 7종 문서화 / 실제 9종 (`enrich-warm`·`morning-brief-close` 누락)
+
+### 🆕 2026-08-18 밤 — 수급 기능 분석 중 발견 (분석 자체는 sessionary 참조)
+- [x] ~~**`analysisPrompt.ts` 수급 환각 유도**~~ — 한국 종목 규칙이 "외국인 수급과 원달러 환율이 단기 주가에 큰 영향"이라 지시했는데 앱은 수급 데이터를 한 건도 안 가짐 → 모델이 근거 없는 수급 서술 생성하는 구조. 입력에 있는 것(환율)만 언급, 수급 서술 금지로 재작성 (2026-08-18)
+- [x] ~~**`AiChokSection.tsx` VIX 라벨 `극도의 공포(저점 가능)`**~~ — "저점 가능"은 관찰값을 매매 시점 힌트로 바꾸는 표현. ai-chok 프롬프트 `{MACRO_CONTEXT}`로 주입되던 것 제거. `저점 가능`·`고점 가능`을 FORECAST_FORBIDDEN(전역 lint) + sec6StaticCopy 불변식에 추가, 음성 프로브 통과 (2026-08-18)
+- [x] ~~**marketFlow·MorningBriefing 임계 THRESHOLDS.md 미등재**~~ — #52~57로 등재 (2026-08-18)
+- [x] ~~**수급·매크로 기능 v1 (미 10년물)**~~ — 파운더가 범위 축소(사실 표시+교육 카드) 수용 후 착수. 미 재무부 XML 직접 수집(`usTreasury.ts`, 퍼블릭 도메인·키 불요·cron 불요), `/api/us-treasury`(defineRoute public+CDN 30분/SWR 1일), MacroStrip 칩+리포트 탭 교육 카드(`MacroRateCard`) — **중립색 고정·기준일 상시 표시**. 카피는 `macroContextCopy.ts` SSOT(양방향+아무도모름+참고용), 누출 불변식+양성 공식 테스트, `feature_first_use('macro-rate-card')` 텔레메트리 (2026-08-19)
+- [ ] **react-hooks 신규 4룰 sweep** — 플러그인 7.1.1 드리프트로 켜진 set-state-in-effect(14)·purity(4)·refs(4)·immutability(2) = 24건을 warn baseline으로 유예 중(eslint.config.mjs 주석 참조). 전부 기존 코드. React 동작 변경 수반이라 별도 세션에서 파일별 수정 후 baseline 블록 제거·error 격상
+- [ ] **MacroStrip 죽은 컴포넌트 정리** — import 0건 고아(토스 리디자인 12a6007에서 제거된 후 방치). 적대 재감사가 발견 — v1 칩을 여기 얹었다가 도달 불가임을 확인하고 MarketSummary로 이전함. 파일 삭제 여부는 별건 판단
+- [ ] **시장 판정 엔진 이중화 해소** — `marketFlow.ts`(섹터 상대강도, spread≥1.5)와 `MorningBriefing.tsx`(S&P vs NASDAQ, spread≥0.7)가 데이터·임계 모두 달라 같은 날 홈과 리포트 탭이 다른 판정을 낼 수 있음. 수급 등 새 판정 축 추가 전에 통합이 먼저 (THRESHOLDS.md §11 경고 참조)
+- [x] ~~**`d3-hierarchy` 제거**~~ — `@types/web-push`·`shadcn`도 devDependencies로 이동. dependencies 25→21 (2026-08-18)
+
+## 🗄️ (직전) 브리핑 (2026-07-29 — 개인 주식비서·기록 신뢰성·배포)
+
+> **최신 sessionary**: `2026-07-29-personal-stock-assistant-record-reliability-deploy.md`
+> **완료**: 개인 주식비서 중심 IA 재정렬, 기록 기본 접힘, durable outbox·CAS 충돌 보존·JSON v2 백업/복원·계층형 장기 보존, 운영 DB owner guard v2 및 Vercel 프로덕션 배포. 한글 비교 폰트를 정리해 `public/fonts`를 약 78MB에서 1MB로 축소하고 Vercel CLI를 58.0.0으로 업데이트.
+> **검증**: 236개 테스트 통과, TypeScript·Next.js 16.2.1 로컬/원격 빌드 통과, 운영 랜딩·`/api/config` HTTP 200, 배포 `READY`, 최근 오류 로그 0건.
+> **다음 1건**: 현재 대규모 미커밋 운영 소스를 release commit/tag로 고정해 정확한 롤백이 가능하게 만든다.
+> **후속**: 카카오 로그인된 모바일·데스크톱에서 백업→복원·충돌·로그아웃까지 운영 E2E를 검증한다.
+> ---
+
+## 🆕 2026-07-29 — 출시 신뢰성 후속
+
+- [ ] **P0 운영 배포 소스를 release commit/tag로 고정** — 현재 기준 HEAD `07e7ac4`에 대규모 미커밋 작업본을 더해 배포해 정확한 롤백 재현성이 낮음
+- [ ] **P0 카카오 로그인 운영 E2E** — 모바일·데스크톱에서 브리핑, 큰 금액 한 줄 표시, 기록 기본 접힘, JSON 백업→복원, 충돌 선택, 로그아웃 검증
+- [ ] **P0 OCR 정책 정합화** — 무료 Gemini MVP 의도와 현재 `NEXT_PUBLIC_OCR_ENABLED && GEMINI_PAID_SERVICE` fail-closed 게이트를 맞추고 실제 운영 상태 확인
+- [ ] **P1 다중 탭 오프라인 분기 보존** — 현재 사용자별 outbox 한 키를 탭/branch별 append-only 구조로 확장
+- [ ] **P1 앱 미접속일 자동 스냅샷** 검토
+- [ ] **P1 기기 전용 기록 클라우드화 범위 결정** — 홈 설정·챕터·키워드 등
+- [ ] **P1 Supabase canonical baseline과 fresh reset 복구 훈련** — 오래된 invalid/pending migration chain 정리
+
+## 🆕 2026-07-19 — 가격 가설 검증 후속
+
+- [ ] 한글 주비 로고 15번 Single Day 운영 화면 모바일·데스크톱 최종 육안 승인
+- [ ] `/brand-preview`의 영문 JOOBI 브랜드 방향 55안 중 5개 이하 1차 쇼트리스트 선택 후 실사용 크기 비교·최종 적용·미선택 자산 제거·라이선스 보관
+- [ ] `/brand-preview/lockup-30`의 확정 락업 폰트 30종 중 3개 이하 후보 선택 후 실제 헤더·로그인·모바일 크기 비교
+- [ ] AI 인사이트 외 기존 화면(설정·도움말·대시보드·온보딩)의 장식용 네이티브 이모지 전수 Lucide 전환
+- [ ] 로컬 `/admin` → `PRO 준비`에서 가격 카드·상세·대기 신청 화면을 모바일·다크모드로 육안 확인
+- [ ] OCR 비용 없이 새 항목·변경·그대로·확인 필요·복구를 재현하는 개발자 미리보기 추가
+- [ ] 여러 파일 누적 작업함과 중복 후보 직접 해결 UI
+- [ ] 첫 안전 기록 완료까지 3분 텔레메트리 검증
+- [ ] 적격 사용자 기준(증권사 2개·보유 15개·14일 방문 2일·관리 행동 2회)과 월 4,900원 문구 파운더 승인
+- [ ] 운영 실험 전 개인정보 처리방침에 이벤트 목적·항목·최대 180일 보관 반영 및 동의 버전 처리 검토
+- [ ] 승인 후에만 `20260719000100_pro_demand_events.sql` 적용 및 두 수요 검증 플래그 설정
+- [ ] 첫 유료 MVP 후보: 서버 장기 버전 보관·다중 파일 대조/중복 해결·월간 가치 영수증 WTP 검증
+
+## 🔴 무료 베타 출시 게이트
+
+1. [ ] 로컬 화면 육안 검증: 관리자 비용·감사, AI 분석·AI 촉 출처/기준시각, 좁은 화면·다크모드
+2. [ ] 모의 의견 P0 구현: [x] 개인화 분석 방향 제거 [x] 시장 관찰판 비개인화 [x] PRO AI 차등 제거 [ ] 알림 중립화
+3. [ ] 자본시장법 전문변호사 정식 서면 의견: 개인화 AI, AI 촉, 무료·광고·도구 유료화, BYOK, 규칙 알림
+4. [ ] 변호사 의견 반영 후 금융위 법령해석 질의서 제출 여부 결정
+5. [ ] 파운더 승인 후 운영 Supabase 마이그레이션·Vercel 환경변수·프리뷰 배포
+6. [ ] 베타 중 AI 분석·AI 촉 각각 익명 감사 표본 100건 수집·수동 검토
+
+## 🗄️ (직전) 브리핑 (2026-06-21 — 차트 해설·§6 정화)
 
 > **최신 sessionary**: `2026-06-21-chart-literacy-sec6.md` (종목 분석 초보 차트 해설 + 분석 패널 §6 대규모 정화 + $/₩ 정렬, PR #23)
 > **🟢 PR #23 운영 머지**: ①차트 직하 초보 해설(chartNarrative.ts SSOT, 비유·요약+접힘, level 바인딩) ②**분석 패널 라이브 §6 정화**(명시적 매수/매도 추천·예측·매수/매도 색칩 전수 제거 — generateAIReport·getChartShapeSummary·기술지표 desc·GLOSSARY) ③$/₩ grid 2컬럼 정렬. 누출 불변식 테스트(chartNarrative.test.ts) 신설. 적대 3렌즈가 놓친 치명 §6 2건 반영. 메모리 [[descriptive-not-prescriptive]] 보강.
@@ -27,7 +188,7 @@
 
 > **최신 sessionary**: `2026-06-21-darkcore-ia-favorites-homeedit.md` (다크 코어·IA 슬림·AI촉 캐시워밍·즐겨찾기 B·홈편집 A — 8 PR 운영 머지)
 > **🟢 8 PR 전부 운영 머지·적대적 리뷰 0건**: ①다크모드 색상 코어(`--pill-active-bg/fg` + `lint:darkmode` 가드 R1/R3=0, prebuild) ②포트폴리오=보유관리 슬림화(IA) ③AI촉 `enrich-warm` cron(클릭로드 기각·마운트 AI 미사용) ④메뉴 즐겨찾기 '바로가기'/**Pin** + `menuRegistry` SSOT ⑤**홈 화면 편집(A)** 6단계(`homeWidgetRegistry`·코어 고정·zone 편집·ai-hunch §6 박제·useHasHydrated·dead-jump·누출테스트 5/5). 설계 SSOT: `docs/HOME_EDIT_DESIGN_SPEC.md`·`docs/HOME_CUSTOMIZE_FAVORITES_ANALYSIS.md`.
-> **🔴 다음 후보**: ① 운영 육안 검증(홈편집 시트·디폴트 무변·다크) → announce 채널 보강(선택 폴리시). ② **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 기회비용 1순위, 프리뷰 READY·파운더 액션만. ③ R4 라이트보더 103건 sweep(admin/debug, soft 추적 중→strict 격상).
+> **🔴 다음 후보**: ① 운영 육안 검증(홈편집 시트·디폴트 무변·다크) → announce 채널 보강(선택 폴리시). ② **세무 v1 카나리(BLOCKER#1·유일 painkiller)** — 14인 패널 기회비용 1순위, 프리뷰 READY·파운더 액션만. ③ ~~R4 라이트보더 103건 sweep~~ — **2026-08-18 실측 `lint:darkmode` R4 0건**. 이미 완료된 스테일 항목.
 > **⚠️ 다크 규칙**: active pill 색은 `--pill-active-bg/fg`만(인라인 hex·`'#fff'` 금지, `lint:darkmode` R1 강제). `#3182F6`=손익색(하락 파랑)이라 일괄 sweep 여전 금지.
 > ---
 
@@ -76,7 +237,7 @@
    - 판정: GO(main 머지 공개 + 결제 레일 + **변호사 약관 §20③** 질문지 `docs/legal-review/LEGAL_CONSULTATION_TAX.md` B섹션) / 조건부(무료 retention) / NO-GO(v2 자동합산 설계로).
    - v2(자체계산: 환차·필요경비·lot 재계산) = 세무사 감수+E&O 게이트. transactions/fx_rates 마이그 Supabase 수동 적용 + 파운더 결정 4건은 v2 진입 시.
    - 원리: 전문가 감수=책임 이전, 공개·과금 직전 게이트 ([[feedback-professional-review-not-llm]]). 검증엔 측정 장치 내장 필수(없으면 시연).
-   - [ ] (별건, 사전 존재) `formatKRW.test.ts` 4건 실패 — `₩1.0만` 축약 기대 vs `₩10,000` 반환. 테스트/구현 결정 필요.
+   - [x] ~~(별건) `formatKRW.test.ts` 4건 실패~~ — **2026-08-18 실측 결과 0건 실패**. 이미 해소된 스테일 항목이었음.
 2. **변호사 1회 상담 묶음** (배포됨 → 사후 + 공개 직전 게이트 통합)
    - **L1·L2** 레버리지 §6/§101 사후 점검 (production 라이브, `LEGAL_CONSULTATION_LEVERAGE.md` 11건)
    - **T1+** 세무사법 §2 독점업무 경계 + §20③·약관규제법 §7 (세무 공개·과금 직전)
@@ -106,6 +267,7 @@
 ### 🟡 위 후속 (2026-05-29 (3))
 - [x] ~~칩 색상 최종 확정~~ — **중립 회색 확정** (사용자 결정 2026-05-29, 디자인 메모리 부합)
 - [ ] **검색 커버리지 더 확장** — 채권혼합 ETF 등 → KRX 마스터 CSV (V1.2)
+- [x] ~~`docs/UNIVERSE_INCLUSION_CRITERIA.md` 작성~~ — **파일 이미 존재**(2026-08-18 확인). 스테일 항목이었음.
 - [ ] **기존 사용자 약관 v3 재동의 고지 확인** — 로그인 유지 중 사용자는 재로그인 전까지 DB v2. 변경 고지 이력 점검
 
 ### 📋 2026-05-29 오늘 누적 (7 커밋)

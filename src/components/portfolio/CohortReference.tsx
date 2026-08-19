@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { STOCK_KR } from '@/config/constants';
@@ -9,6 +10,9 @@ import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { iGa } from '@/utils/koreanJosa';
 import WatchToggle from '@/components/common/WatchToggle';
 import type { QuoteData } from '@/config/constants';
+import { CheckCircle2, Lightbulb, UsersRound } from 'lucide-react';
+import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 /**
  * 숨은 종목 — 같은 유형 투자자가 자주 보는 (큐레이션, 추천 아님)
@@ -40,13 +44,19 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
 
     // 1. 본인 섹터 분포 (현재 보유 기준)
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
+    const usdKrw = resolveUsdKrw(macroData);
     let totalValue = 0;
     const userSectorWeights: Record<string, number> = {};
     for (const s of investing) {
       const q = macroData[s.symbol] as QuoteData | undefined;
       const price = q?.c || 0;
       if (price <= 0) continue;
-      const value = price * s.shares;
+      const value = convertStockAmount(
+        s.symbol,
+        price,
+        usdKrw,
+        s.currency,
+      ).krw * s.shares;
       totalValue += value;
       const sector = getSector(s.symbol);
       userSectorWeights[sector] = (userSectorWeights[sector] || 0) + value;
@@ -96,7 +106,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 22 }}>🌐</span>
+          <UsersRound size={22} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
             HIDDEN PICKS
           </div>
@@ -138,7 +148,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
     >
       {/* 헤더 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontSize: 18 }}>🌐</span>
+        <UsersRound size={18} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
             HIDDEN PICKS
@@ -148,13 +158,14 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
           </div>
         </div>
         <span style={{
-          fontSize: 14,
           padding: '3px 8px',
           borderRadius: 10,
           background: `${meta.accentColor}15`,
           color: meta.accentColor,
+          display: 'inline-flex',
+          alignItems: 'center',
         }}>
-          {meta.emoji}
+          <InvestorTypeIcon type={meta.id} size={15} color={meta.accentColor} />
         </span>
       </div>
 
@@ -168,7 +179,10 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
         color: 'var(--text-tertiary, #B0B8C1)',
         lineHeight: 1.5,
       }}>
-        💡 큐레이션 참고자료 · 추천·권유 아님 · 실제 투자 판단은 본인이 하세요
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <Lightbulb size={13} strokeWidth={1.75} aria-hidden="true" />
+          큐레이션 참고자료 · 추천·권유 아님 · 실제 투자 판단은 본인이 하세요
+        </span>
       </div>
 
       {/* 1. 섹터 비교 */}
@@ -331,7 +345,10 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
           color: 'var(--text-tertiary, #B0B8C1)',
           lineHeight: 1.5,
         }}>
-          ✨ 숨은 종목 모두 이미 추적 중이에요
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <CheckCircle2 size={14} strokeWidth={1.75} aria-hidden="true" />
+            숨은 종목 모두 이미 추적 중이에요
+          </span>
         </div>
       )}
     </div>

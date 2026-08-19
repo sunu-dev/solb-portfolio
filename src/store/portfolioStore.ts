@@ -15,9 +15,23 @@ import { GUEST_DEMO_STOCKS } from '@/lib/guestDemo';
 import type { Alert } from '@/utils/alertsEngine';
 import { recordDismissal } from '@/utils/alertLearning';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
-import { getTodayKST, needsNewSnapshot, prune } from '@/utils/dailySnapshot';
+import { getTodayKST, needsNewSnapshot, pruneForLongTerm } from '@/utils/dailySnapshot';
 import type { InvestorType } from '@/config/investorTypes';
 import { DEFAULT_INVESTOR_TYPE } from '@/config/investorTypes';
+import { recordProDemandManagementAction } from '@/lib/proDemandActivity';
+import {
+  clonePortfolioStocks,
+  emptyReconciliationSummary,
+  normalizePortfolioVersions,
+  prependPortfolioVersion,
+  type PortfolioImportCommitMeta,
+  type PortfolioImportCheckpoint,
+  type PortfolioVersionEntry,
+} from '@/lib/portfolioReconciliation';
+import {
+  getStockCurrency,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 
 // --- Utility functions ---
 export function tsToDate(ts: number): string {
@@ -34,9 +48,20 @@ export function delay(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
+function notifyLocalRecordStorage(
+  kind: 'history-pruned' | 'snapshots-pruned' | 'failed',
+): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('solb-local-record-storage-warning', {
+    detail: { kind },
+  }));
+}
+
 // --- Store types ---
 
 export type MainSection = 'portfolio' | 'events' | 'news' | 'insights';
+export type PortfolioSyncStatus = 'idle' | 'saving' | 'synced' | 'local-only' | 'error' | 'storage-error' | 'conflict';
+export type PortfolioCloudLoadStatus = 'guest' | 'loading' | 'ready' | 'error';
 
 // Categories that hold actual stock arrays (excludes 'all')
 type StockCategoryKey = 'investing' | 'watching' | 'sold';
@@ -76,6 +101,10 @@ interface PortfolioState {
 
   // Daily snapshots (과거의 나 비교용)
   dailySnapshots: DailySnapshot[];
+  /** 최근 가져오기 직전 복구 지점. 기존 즉시 되돌리기 UI 호환용. */
+  lastImportCheckpoint: PortfolioImportCheckpoint | null;
+  /** 가져오기 전 기록과 변경 요약. 최근 20개를 로컬·로그인 시 서버에 보관한다. */
+  portfolioImportHistory: PortfolioVersionEntry[];
 
   // 투자자 유형 (AI 개인화 baseline)
   investorType: InvestorType;
@@ -141,6 +170,18 @@ interface PortfolioState {
 
   // Snapshots
   recordDailySnapshot: () => void;
+  commitPortfolioImport: (
+    stocks: PortfolioStocks,
+    source: string,
+    meta?: PortfolioImportCommitMeta,
+  ) => string;
+  restoreLastPortfolioImport: (checkpointId: string) => boolean;
+  restorePortfolioVersion: (versionId: string) => boolean;
+  restorePortfolioBackup: (backup: {
+    stocks: PortfolioStocks;
+    snapshots: DailySnapshot[];
+    history: PortfolioVersionEntry[];
+  }) => void;
 
   // Investor type
   setInvestorType: (type: InvestorType) => void;
@@ -148,9 +189,16 @@ interface PortfolioState {
   // Sync
   setStocksFromDB: (stocks: PortfolioStocks) => void;
   setSnapshotsFromDB: (snapshots: DailySnapshot[]) => void;
+  setPortfolioHistoryFromDB: (history: PortfolioVersionEntry[]) => void;
   /** 서버 포트폴리오 로드 상태 — 'ok'=DB에 데이터(기존 유저)·'empty'=첫 로그인. 온보딩 게이트용 (transient, partialize 제외) */
   dbPortfolioStatus: 'unknown' | 'ok' | 'empty';
   setDbPortfolioStatus: (s: 'unknown' | 'ok' | 'empty') => void;
+  /** 마지막 클라우드 저장 상태. 로컬 저장과 서버 백업을 과장 없이 구분하기 위한 transient 상태. */
+  portfolioSyncStatus: PortfolioSyncStatus;
+  setPortfolioSyncStatus: (s: PortfolioSyncStatus) => void;
+  /** 로그인 사용자의 최초 서버 로드 경계. loading/error 중에는 로컬 변경으로 서버 기록을 덮지 않는다. */
+  portfolioCloudLoadStatus: PortfolioCloudLoadStatus;
+  setPortfolioCloudLoadStatus: (s: PortfolioCloudLoadStatus) => void;
   resetPortfolio: () => void;
   /** 게스트 체험 데모 보유 주입(demo:true, 빈 포트폴리오에만) / 제거. partialize 제외로 세션 한정. */
   loadGuestDemo: () => void;
@@ -192,6 +240,8 @@ export const usePortfolioStore = create<PortfolioState>()(
       customEvents: [],
       lastUpdate: null,
       dailySnapshots: [],
+      lastImportCheckpoint: null,
+      portfolioImportHistory: [],
       investorType: DEFAULT_INVESTOR_TYPE,
       investorTypeSetAt: null,
 
@@ -339,6 +389,7 @@ export const usePortfolioStore = create<PortfolioState>()(
             }
             return state;
           }
+          if (!stock.demo) recordProDemandManagementAction();
           const updated = { ...state.stocks };
           updated[category] = [...updated[category], stock];
           return { stocks: updated };
@@ -346,6 +397,9 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       deleteStock: (category, idx) =>
         set((state) => {
+          const existing = state.stocks[category]?.[idx];
+          if (!existing) return state;
+          if (!existing.demo) recordProDemandManagementAction();
           const updated = { ...state.stocks };
           updated[category] = updated[category].filter((_, i) => i !== idx);
           return { stocks: updated };
@@ -353,6 +407,9 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       updateStock: (category, idx, data) =>
         set((state) => {
+          const existing = state.stocks[category]?.[idx];
+          if (!existing) return state;
+          if (!existing.demo) recordProDemandManagementAction();
           const updated = { ...state.stocks };
           const newStock = { ...updated[category][idx], ...data };
           updated[category] = updated[category].map((s, i) =>
@@ -379,10 +436,110 @@ export const usePortfolioStore = create<PortfolioState>()(
           const updated = { ...state.stocks };
           const stock = updated[fromCat][idx];
           if (!stock || fromCat === toCat) return state;
+          if (!stock.demo) recordProDemandManagementAction();
           updated[fromCat] = updated[fromCat].filter((_, i) => i !== idx);
           updated[toCat] = [...updated[toCat], stock];
           return { stocks: updated };
         }),
+
+      commitPortfolioImport: (stocks, source, meta) => {
+        const state = get();
+        const checkpoint: PortfolioVersionEntry = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          source: source.replace(/[\r\n\t]/g, ' ').trim().slice(0, 80) || '포트폴리오 가져오기',
+          stocks: clonePortfolioStocks(state.stocks),
+          kind: 'import',
+          summary: meta ? { ...meta.summary } : emptyReconciliationSummary(),
+          changes: meta?.changes.map((change) => ({
+            ...change,
+            fields: change.fields.map((field) => ({ ...field })),
+          })) ?? [],
+          excludedCount: Math.max(0, meta?.excludedCount || 0),
+        };
+        recordProDemandManagementAction();
+        set({
+          stocks: clonePortfolioStocks(stocks),
+          lastImportCheckpoint: checkpoint,
+          portfolioImportHistory: prependPortfolioVersion(
+            state.portfolioImportHistory,
+            checkpoint,
+          ),
+        });
+        return checkpoint.id;
+      },
+
+      restoreLastPortfolioImport: (checkpointId) => {
+        const checkpoint = get().lastImportCheckpoint;
+        if (!checkpoint || checkpoint.id !== checkpointId) return false;
+        return get().restorePortfolioVersion(checkpointId);
+      },
+
+      restorePortfolioVersion: (versionId) => {
+        const state = get();
+        const historyTarget = state.portfolioImportHistory.find((entry) => entry.id === versionId);
+        const legacyTarget = state.lastImportCheckpoint?.id === versionId
+          ? state.lastImportCheckpoint
+          : null;
+        const target = historyTarget || legacyTarget;
+        if (!target) return false;
+
+        const restoredAt = new Date().toISOString();
+        const undoPoint: PortfolioVersionEntry = {
+          id: crypto.randomUUID(),
+          createdAt: restoredAt,
+          source: `복원 전 · ${target.source}`.slice(0, 80),
+          stocks: clonePortfolioStocks(state.stocks),
+          kind: 'restore',
+          summary: emptyReconciliationSummary(),
+          changes: [],
+          excludedCount: 0,
+        };
+        const markedHistory = state.portfolioImportHistory.map((entry) =>
+          entry.id === versionId ? { ...entry, restoredAt } : entry);
+
+        recordProDemandManagementAction();
+        set({
+          stocks: clonePortfolioStocks(target.stocks),
+          lastImportCheckpoint: undoPoint,
+          portfolioImportHistory: prependPortfolioVersion(markedHistory, undoPoint),
+        });
+        return true;
+      },
+
+      restorePortfolioBackup: (backup) => {
+        const state = get();
+        const createdAt = new Date().toISOString();
+        const undoPoint: PortfolioVersionEntry = {
+          id: crypto.randomUUID(),
+          createdAt,
+          source: 'JSON 복원 전 현재 기록',
+          stocks: clonePortfolioStocks(state.stocks),
+          kind: 'restore',
+          summary: emptyReconciliationSummary(),
+          changes: [],
+          excludedCount: 0,
+        };
+        const combinedHistory = normalizePortfolioVersions([
+          ...state.portfolioImportHistory,
+          ...backup.history,
+        ].sort((left, right) => right.createdAt.localeCompare(left.createdAt)));
+
+        recordProDemandManagementAction();
+        set({
+          stocks: clonePortfolioStocks(backup.stocks),
+          // 기록 복원은 기존 장기 이력을 삭제하지 않고 날짜별로 합친다.
+          dailySnapshots: pruneForLongTerm([
+            ...backup.snapshots,
+            ...state.dailySnapshots,
+          ]),
+          lastImportCheckpoint: undoPoint,
+          portfolioImportHistory: prependPortfolioVersion(
+            combinedHistory,
+            undoPoint,
+          ),
+        });
+      },
 
       loadPortfolio: () => {
         const state = get();
@@ -465,14 +622,26 @@ export const usePortfolioStore = create<PortfolioState>()(
 
         // 게스트 데모(demo:true)는 스냅샷에서 원천 제외 — 스냅샷엔 demo 플래그가 없어 사후 식별/정화 불가하므로
         // 생성 시점 차단이 유일한 안전 지점. 이게 빠지면 데모가 dailySnapshots→localStorage persist→로그인 시 서버 누출.
-        const investing = (state.stocks.investing || []).filter(s => !s.demo);
+        const investing = (state.stocks.investing || [])
+          .filter(s => !s.demo && s.avgCost > 0 && s.shares > 0);
+        if (investing.length === 0) return;
+
+        const liveUsdKrw = (state.macroData['USD/KRW'] as MacroEntry | undefined)?.value;
+        const hasLiveUsdKrw = Number.isFinite(liveUsdKrw) && (liveUsdKrw as number) > 0;
+        const hasUsdHolding = investing.some((stock) =>
+          getStockCurrency(stock.symbol, stock.currency) === 'USD');
+
+        // 미국 종목이 하나라도 있으면 실제 환율 없이는 canonical KRW 스냅샷을 만들 수 없다.
+        if (hasUsdHolding && !hasLiveUsdKrw) return;
+        const usdKrw = hasLiveUsdKrw ? liveUsdKrw as number : 0;
+
         const stocksSnap = investing
-          .filter(s => s.avgCost > 0 && s.shares > 0)
           .map(s => {
             const q = state.macroData[s.symbol] as { c?: number } | undefined;
             const currentPrice = q?.c || 0;
             return {
               symbol: s.symbol,
+              currency: s.currency,
               avgCost: s.avgCost,
               shares: s.shares,
               currentPrice,
@@ -481,26 +650,39 @@ export const usePortfolioStore = create<PortfolioState>()(
           })
           .filter(s => s.currentPrice > 0); // 시세 없으면 제외
 
-        if (stocksSnap.length === 0) return; // 의미 있는 데이터만 저장
+        // 일부 종목만 로드된 값을 그날의 확정 스냅샷으로 잠그지 않는다.
+        if (stocksSnap.length !== investing.length) return;
 
-        const totalValue = stocksSnap.reduce((sum, s) => sum + s.currentPrice * s.shares, 0);
-        const totalCost = stocksSnap.reduce((sum, s) => sum + s.avgCost * s.shares, 0);
+        const summary = summarizePortfolioCurrency(stocksSnap, usdKrw);
 
         const snap: DailySnapshot = {
           date: getTodayKST(),
-          totalValue,
-          totalCost,
+          capturedAt: new Date().toISOString(),
+          schemaVersion: 2,
+          valuationCurrency: 'KRW',
+          ...(hasLiveUsdKrw ? { usdKrw } : {}),
+          totalValue: summary.totalValueKrw,
+          totalCost: summary.totalCostKrw,
+          totalValueKrw: summary.totalValueKrw,
+          totalCostKrw: summary.totalCostKrw,
           stocks: stocksSnap,
         };
 
-        set({ dailySnapshots: prune([...state.dailySnapshots, snap], 365) });
+        set({ dailySnapshots: pruneForLongTerm([...state.dailySnapshots, snap]) });
       },
 
       // --- Sync ---
       setStocksFromDB: (stocks) => set({ stocks }),
       setSnapshotsFromDB: (snapshots) => set({ dailySnapshots: snapshots }),
+      setPortfolioHistoryFromDB: (history) => set({
+        portfolioImportHistory: normalizePortfolioVersions(history),
+      }),
       dbPortfolioStatus: 'unknown',
       setDbPortfolioStatus: (s) => set({ dbPortfolioStatus: s }),
+      portfolioSyncStatus: 'idle',
+      setPortfolioSyncStatus: (s) => set({ portfolioSyncStatus: s }),
+      portfolioCloudLoadStatus: 'guest',
+      setPortfolioCloudLoadStatus: (s) => set({ portfolioCloudLoadStatus: s }),
 
       resetPortfolio: () => set({
         stocks: { investing: [], watching: [], sold: [] },
@@ -518,10 +700,15 @@ export const usePortfolioStore = create<PortfolioState>()(
         investorType: DEFAULT_INVESTOR_TYPE,
         investorTypeSetAt: null,
         dailySnapshots: [],
+        lastImportCheckpoint: null,
+        portfolioImportHistory: [],
         customEvents: [],
         menuFavorites: [],
         hiddenWidgets: [],
         widgetOrder: [],
+        dbPortfolioStatus: 'unknown',
+        portfolioSyncStatus: 'idle',
+        portfolioCloudLoadStatus: 'guest',
       }),
 
       // 게스트 체험 데모 — 빈 포트폴리오에만 샘플 보유 주입(demo:true). partialize 제외=세션 한정, stripDemoStocks=서버 미동기화.
@@ -583,18 +770,37 @@ export const usePortfolioStore = create<PortfolioState>()(
                 console.info('[persist] 캐시 정리 후 저장 성공');
                 return;
               } catch {
-                // 2차 정리: dailySnapshots 절반으로 trim 후 재시도
+                // 2차 정리: 오래된 복구 기록부터 절반으로 trim 후 재시도
                 try {
                   const parsed = JSON.parse(value);
-                  if (parsed?.state?.dailySnapshots && Array.isArray(parsed.state.dailySnapshots)) {
+                  if (Array.isArray(parsed?.state?.portfolioImportHistory)
+                    && parsed.state.portfolioImportHistory.length > 1) {
+                    const history = parsed.state.portfolioImportHistory;
+                    parsed.state.portfolioImportHistory = history.slice(
+                      0,
+                      Math.max(1, Math.ceil(history.length / 2)),
+                    );
+                    localStorage.setItem(name, JSON.stringify(parsed));
+                    console.warn('[persist] 오래된 복구 기록 trim 후 저장 성공');
+                    notifyLocalRecordStorage('history-pruned');
+                    return;
+                  }
+                } catch { /* 다음 정리 단계로 진행 */ }
+
+                // 3차 정리: dailySnapshots 절반으로 trim 후 재시도
+                try {
+                  const parsed = JSON.parse(value);
+                  if (Array.isArray(parsed?.state?.dailySnapshots)) {
                     const arr = parsed.state.dailySnapshots;
                     parsed.state.dailySnapshots = arr.slice(Math.floor(arr.length / 2));
                     localStorage.setItem(name, JSON.stringify(parsed));
                     console.warn('[persist] dailySnapshots 절반 trim 후 저장 성공');
+                    notifyLocalRecordStorage('snapshots-pruned');
                     return;
                   }
                 } catch { /* 마지막 시도도 실패 */ }
                 console.error('[persist] 저장 불가 — 스토리지 가득 참. 데이터 손실 위험.');
+                notifyLocalRecordStorage('failed');
               }
             }
           }
@@ -605,21 +811,33 @@ export const usePortfolioStore = create<PortfolioState>()(
       })),
       // 정합성 결함 H1-data: 스키마 변경 시 데이터 손상 방지
       // 향후 필드 추가/제거 시 version 올리고 migrate 처리. 호환 깨질 때만 olderToNewer.
-      version: 1,
+      version: 3,
       migrate: (persistedState: unknown, version: number) => {
-        // v0(version 미지정) → v1: 기존 데이터 호환 유지
-        if (version === 0 && persistedState && typeof persistedState === 'object') {
-          const s = persistedState as Record<string, unknown>;
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState as Record<string, unknown>;
+        }
+        let s = persistedState as Record<string, unknown>;
+
+        // v0(version 미지정) → v2: 기존 데이터 호환 유지
+        if (version < 2) {
           // v0에선 short/long/watch 카테고리도 있었음 — loadPortfolio()가 마이그레이션 담당
           // dailySnapshots/investorType 같은 신규 필드는 undefined → 초기값 유지
-          return {
+          s = {
             ...s,
             // 안전 fallback
             dailySnapshots: Array.isArray(s.dailySnapshots) ? s.dailySnapshots : [],
             customEvents: Array.isArray(s.customEvents) ? s.customEvents : [],
+            portfolioImportHistory: normalizePortfolioVersions(s.portfolioImportHistory),
           };
         }
-        return persistedState as Record<string, unknown>;
+
+        // v2 → v3: 예전 /api/ws-token이 모든 방문자에게 뿌린 Finnhub 키가 브라우저에
+        // 남아 있다. 더 이상 클라이언트에서 쓰지 않으므로 기존 저장분을 지운다.
+        if (version < 3) {
+          s = { ...s, apiKey: '' };
+        }
+
+        return s;
       },
       partialize: (state) => ({
         // demo:true(게스트 체험 샘플)는 persist 제외 → localStorage 미저장(세션 한정, 리로드 시 소멸).
@@ -631,11 +849,14 @@ export const usePortfolioStore = create<PortfolioState>()(
         recentSymbols: state.recentSymbols,
         currency: state.currency,
         darkMode: state.darkMode,
-        apiKey: state.apiKey,
+        // apiKey는 persist 제외 — 외부 API 키를 브라우저 저장소에 남기지 않는다.
+        // 실시간 WebSocket 토큰은 useRealtimePrice가 세션마다 지연 요청해 메모리에서만 쓴다.
         autoRefresh: state.autoRefresh,
         refreshInterval: state.refreshInterval,
         customEvents: state.customEvents,
         dailySnapshots: state.dailySnapshots,
+        lastImportCheckpoint: state.lastImportCheckpoint,
+        portfolioImportHistory: state.portfolioImportHistory,
         investorType: state.investorType,
         investorTypeSetAt: state.investorTypeSetAt,
         menuFavorites: state.menuFavorites,

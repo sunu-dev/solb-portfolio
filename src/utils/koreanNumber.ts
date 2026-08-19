@@ -1,94 +1,230 @@
 /**
- * 한국어 숫자·통화 포맷 SSOT
+ * 표시 포맷 SSOT — 금액·비율·부호·손익색.
  *
  * 정책: docs/KOREAN_UI_SYSTEM.md §3.4
  *
- * 한국 통화(KRW)는 만/억/조 단위 한국어 표기, 미국 통화(USD)는 표준 콤마 포맷.
- * 컴포넌트마다 따로 구현하던 산발 포맷을 통합 (Dashboard·MergedHoldingsCard·MorningBriefing 등).
+ * ## 왜 이 파일이 이렇게 생겼나 (2026-08-18 통합)
  *
- * 손익 부호: 양수 "+", 음수 "−" (en-dash 가독성), 0 부호 없음.
+ * 이 모듈은 원래 "한국어 숫자·통화 포맷 SSOT"로 선언돼 있었지만 **import가 0건**이었다.
+ * 실제로 화면에 쓰이던 것은 규칙이 다른 `src/utils/formatKRW.ts`(15곳)였고,
+ * 그 위에 컴포넌트 로컬 래퍼 12개와 raw `toLocaleString` 82곳이 얹혀 있었다.
+ * 즉 표시 규칙이 3계층으로 갈라진 채 "SSOT가 있다"고 문서에만 적혀 있었다.
  *
- * 사용 예:
- *   formatKrw(123456789)  // "1억 2,346만원"
- *   formatKrw(45000)      // "4만 5,000원"
- *   formatUsd(1234.56)    // "$1,234.56"
- *   formatPct(3.21)       // "+3.21%"
- *   formatPct(-1.5)       // "−1.50%"
- *   formatSigned(1234)    // "+1,234"
+ * 통합 원칙: **실제 배포된 표기를 정답으로 삼는다.** 화면에 보이는 숫자를 바꾸는 것은
+ * 리팩터가 아니라 제품 결정이므로, 여기서는 구조만 합치고 출력은 그대로 보존했다.
+ * 문서 §3.4의 만/억/조 표기안은 `formatKrwUnits()`로 살려뒀다(미채택 상태).
  */
 
-/** 한국어 원화 포맷 — 만/억/조 단위 자동 분리.
+// ─── 금액 (KRW) ─────────────────────────────────────────────────────────────
+
+export interface FormatKrwOptions {
+  /** ₩ 접두어 (기본 true) */
+  prefix?: boolean;
+  /** 접미어 (예: "원") */
+  suffix?: string;
+  /** 10억 이상 억 축약 (기본 true). false면 항상 풀숫자 */
+  short?: boolean;
+}
+
+/**
+ * 원화 표시 — **현재 서비스가 실제로 쓰는 규칙**.
  *
- * 1조 = 10^12, 1억 = 10^8, 1만 = 10^4.
- * 1000만원 미만은 단순 콤마 표기 ("9,876원"), 1000만 이상은 한국어 단위.
+ * - 10억 미만: 풀숫자 + 콤마 (`₩276,000`)
+ * - 10억 이상: 억 축약 (`₩15억`)
+ * - 음수: `-₩3,200,000`
  */
-export function formatKrw(value: number): string {
+export function formatKrw(val: number, opts?: FormatKrwOptions): string {
+  if (!isFinite(val) || isNaN(val)) return opts?.prefix !== false ? '₩0' : '0';
+
+  const prefix = opts?.prefix !== false ? '₩' : '';
+  const suffix = opts?.suffix || '';
+  const short = opts?.short !== false;
+  const sign = val < 0 ? '-' : '';
+  const abs = Math.abs(val);
+
+  if (short && abs >= 1_000_000_000) {
+    const v = Math.abs(val / 100_000_000);
+    const formatted = v >= 10 ? Math.round(v).toLocaleString() : v.toFixed(1);
+    return `${sign}${prefix}${formatted}억${suffix}`;
+  }
+
+  return `${sign}${prefix}${Math.round(abs).toLocaleString()}${suffix}`;
+}
+
+/** 공간 제약 표시용(히트맵·테이블 셀). 현재는 formatKrw와 동일 규칙. */
+export function formatKrwShort(val: number): string {
+  return formatKrw(val, { prefix: true });
+}
+
+/** 변동 금액 — 양수에 `+` 부착 (`+₩2,684` / `-₩1,200`) */
+export function formatKrwChange(val: number): string {
+  const sign = val >= 0 ? '+' : '';
+  return `${sign}${formatKrw(val)}`;
+}
+
+/**
+ * 만/억/조 한국어 단위 표기 — **서술·요약 경로의 표준** (2026-08-18 채택).
+ *
+ * `₩123,456,789`에서 자릿수를 세어 "1억 2천만원대"를 파악하는 인지 부하가 실재한다.
+ * 한국 개인투자자 대상이면 만/억 표기가 확실히 빠르게 읽힌다.
+ *
+ * **정밀도**: 1억 미만은 완전 정확(`5만 3,900원` = 53,900). 1억 이상은 만 단위로 **반올림**한다
+ * (원래 구현은 `Math.floor`라 항상 실제보다 작게 표시되는 체계적 편향이 있었다).
+ * 참고로 현행 `formatKrw`의 10억 축약(`₩12억`)은 3,456만원을 버리므로, 이쪽이 오히려 더 정확하다.
+ *
+ * **어디에 쓰나**: `formatDisplayAmount`를 통해 이야기·회고·브리핑·차트 요약에만 적용된다.
+ * 사용자가 숫자를 **검증**하는 화면(보유 테이블·평단·편집 모달·알림 detail)은 `formatKrw` 정확 표기를 쓴다.
+ */
+export function formatKrwUnits(value: number): string {
   if (!Number.isFinite(value)) return '0원';
   const sign = value < 0 ? '−' : '';
-  const abs = Math.abs(Math.round(value));
+  const abs0 = Math.abs(Math.round(value));
 
-  // 1조 이상
-  if (abs >= 1e12) {
+  if (abs0 >= 1e12) {
+    // 억 단위 반올림 후 분해 — 나눠서 반올림하면 자리올림(9999억→1조)이 자연히 처리된다.
+    const abs = Math.round(abs0 / 1e8) * 1e8;
     const jo = Math.floor(abs / 1e12);
     const eok = Math.floor((abs % 1e12) / 1e8);
     return eok > 0 ? `${sign}${jo}조 ${eok.toLocaleString('ko-KR')}억원` : `${sign}${jo}조원`;
   }
-  // 1억 이상
-  if (abs >= 1e8) {
+  if (abs0 >= 1e8) {
+    // 만 단위 반올림 후 분해
+    const abs = Math.round(abs0 / 1e4) * 1e4;
+    const jo = Math.floor(abs / 1e12);
+    if (jo > 0) {
+      const eok = Math.floor((abs % 1e12) / 1e8);
+      return eok > 0 ? `${sign}${jo}조 ${eok.toLocaleString('ko-KR')}억원` : `${sign}${jo}조원`;
+    }
     const eok = Math.floor(abs / 1e8);
     const man = Math.floor((abs % 1e8) / 1e4);
     return man > 0 ? `${sign}${eok}억 ${man.toLocaleString('ko-KR')}만원` : `${sign}${eok}억원`;
   }
-  // 1만 이상
-  if (abs >= 1e4) {
-    const man = Math.floor(abs / 1e4);
-    const won = abs % 1e4;
+  if (abs0 >= 1e4) {
+    const man = Math.floor(abs0 / 1e4);
+    const won = abs0 % 1e4;
     return won > 0 ? `${sign}${man}만 ${won.toLocaleString('ko-KR')}원` : `${sign}${man}만원`;
   }
-  // 1만 미만
-  return `${sign}${abs.toLocaleString('ko-KR')}원`;
+  return `${sign}${abs0.toLocaleString('ko-KR')}원`;
 }
 
-/** 미국 달러 포맷 — 콤마 + 소수점 2자리.
+// ─── 금액 (USD) ─────────────────────────────────────────────────────────────
+
+/**
+ * 달러 표시 — 콤마 + 소수점 자릿수.
  *
- * fractionDigits 옵션으로 0~2 가변 (큰 금액 1234567 → "$1,234,567" 가능).
+ * **관례는 둘뿐이다** (2026-08-18 통일):
+ * - `formatUsd(v)` → 2자리 고정. 가격·평단·목표가·손익 등 **개별 금액**.
+ * - `formatUsd(v, 0)` → 정수. 총 평가·총 투자 등 **합계·요약** (센트는 노이즈).
+ *
+ * 통일 전에는 `{ maximumFractionDigits }`만 건 세 번째 관례가 섞여 있었다.
+ * 그건 값에 따라 소수 자리 수가 **달라져서**(`$480` · `$1,234.5` · `$178.25`)
+ * tabular-nums로 세로 정렬한 열이 어긋났다. 자릿수가 고정이어야 숫자가 줄 맞는다.
  */
-export function formatUsd(value: number, fractionDigits = 2): string {
+export function formatUsd(value: number, fractionDigits: 0 | 2 = 2): string {
   if (!Number.isFinite(value)) return '$0';
-  const sign = value < 0 ? '−' : '';
+  const sign = value < 0 ? '-' : '';
   const abs = Math.abs(value);
-  const formatted = abs.toLocaleString('en-US', {
+  return `${sign}$${abs.toLocaleString('en-US', {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
-  });
-  return `${sign}$${formatted}`;
+  })}`;
 }
 
-/** 퍼센트 포맷 — 부호 + 소수점 2자리.
+// ─── 표시 통화 변환 ─────────────────────────────────────────────────────────
+
+/**
+ * USD/KRW 미확인 시 쓰는 임시 환율.
  *
- * 양수면 "+" 명시 (손익 부호 일관성).
+ * ⚠️ 알려진 결함: 환율을 못 받은 상태와 "1,400원"이 구분되지 않아, USD 보유의 원화 평가액이
+ * 조용히 틀린 값으로 표시된다. 예전엔 이 상수가 여러 컴포넌트에 흩어져 있어 손댈 수조차 없었다.
+ * 여기 한 곳으로 모았으니 "환율 미확인" 상태 표시로 바꾸는 것은 이제 한 군데 수정이다.
+ * (감사 후속 TODO — 부분 데이터를 확정 숫자로 렌더하지 않기)
  */
+export const DEFAULT_USD_KRW = 1400;
+
+export interface UsdKrwState {
+  /** 계산에 쓸 환율. 미확인이면 `DEFAULT_USD_KRW`. */
+  rate: number;
+  /** true면 실제 환율을 못 받아 임시값을 쓰고 있다는 뜻 — 화면에 밝혀야 한다. */
+  stale: boolean;
+}
+
+/**
+ * macroData에서 USD/KRW 상태를 꺼낸다.
+ *
+ * `resolveUsdKrw`는 숫자만 돌려주므로 호출부가 "이게 진짜 환율인지" 알 수 없었다.
+ * 그 결과 환율을 못 받아도 1,400원 기준 원화 평가액이 **확정 숫자처럼** 표시됐다 —
+ * 감사가 "틀린 숫자를 자신 있게 보여주는 최악의 실패 모드"로 지목한 지점이다.
+ * 계산은 계속 진행하되(빈 화면보다 낫다), `stale`을 화면에 밝힌다.
+ */
+export function resolveUsdKrwState(macroData: Record<string, unknown> | undefined): UsdKrwState {
+  const entry = macroData?.['USD/KRW'] as { value?: number } | undefined;
+  const value = entry?.value;
+  return typeof value === 'number' && value > 0
+    ? { rate: value, stale: false }
+    : { rate: DEFAULT_USD_KRW, stale: true };
+}
+
+/** 숫자만 필요할 때. 미확인 여부를 화면에 밝혀야 하면 `resolveUsdKrwState`를 쓸 것. */
+export function resolveUsdKrw(macroData: Record<string, unknown> | undefined): number {
+  return resolveUsdKrwState(macroData).rate;
+}
+
+export type DisplayCurrency = 'KRW' | 'USD';
+
+/**
+ * 원화 기준 금액을 **현재 표시 통화**로 렌더한다 — **서술·요약 경로 전용**.
+ *
+ * 절대값으로 표시한다 — 부호는 호출부가 색·화살표로 표현하는 것이 이 앱의 관례라서다.
+ * 통합 전에는 이 로직이 ConversationalTimeline·MonthlyChapter·MorningBriefing·
+ * PortfolioValueChart·MonthlyWrapped·ThrowbackCard에 **바이트 단위로 동일하게** 복제돼 있었다.
+ *
+ * KRW는 만/억 표기(`27만 6,000원`)를 쓴다 — 이야기·회고·브리핑처럼 **훑어보는** 문맥에서
+ * `₩276,000`보다 빠르게 읽히기 때문. 사용자가 숫자를 **검증**하는 화면
+ * (보유 테이블·평단·편집 모달·알림 detail)은 이 함수를 쓰지 말고 `formatKrw`를 직접 쓴다.
+ */
+export function formatDisplayAmount(
+  krw: number,
+  currency: DisplayCurrency,
+  usdKrw: number,
+): string {
+  if (currency === 'KRW') return formatKrwUnits(Math.abs(krw));
+  const usd = Math.abs(usdKrw > 0 ? krw / usdKrw : 0);
+  return `$${usd.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+/** 종목 고유 통화로 가격을 표시 (한국 종목=원화, 그 외=달러) */
+export function formatNativeAmount(value: number, nativeCurrency: DisplayCurrency): string {
+  return nativeCurrency === 'KRW' ? formatKrw(value) : formatUsd(value);
+}
+
+// ─── 비율·부호 ──────────────────────────────────────────────────────────────
+
+/** 퍼센트 — 양수에 `+` 명시 (`+3.21%` / `−1.50%`). 마이너스는 가독성 위해 en-dash. */
 export function formatPct(value: number, fractionDigits = 2): string {
   if (!Number.isFinite(value)) return '0%';
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  const abs = Math.abs(value);
-  return `${sign}${abs.toFixed(fractionDigits)}%`;
+  return `${sign}${Math.abs(value).toFixed(fractionDigits)}%`;
 }
 
-/** 부호 포함 숫자 — 손익·증감 표시 (en-dash 마이너스). */
+/** 부호 포함 정수 — 손익·증감 표시 */
 export function formatSigned(value: number): string {
   if (!Number.isFinite(value)) return '0';
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
-  const abs = Math.abs(value);
-  return `${sign}${abs.toLocaleString('ko-KR')}`;
+  return `${sign}${Math.abs(value).toLocaleString('ko-KR')}`;
 }
 
-/** 한국 손익 컬러 (한국 컨벤션: 빨강↑ 파랑↓).
+// ─── 손익 색 ────────────────────────────────────────────────────────────────
+
+/**
+ * 한국 손익 컬러 (한국 컨벤션: 빨강↑ 파랑↓). docs/KOREAN_UI_SYSTEM.md §3.7
  *
- * docs/KOREAN_UI_SYSTEM.md §3.7
+ * **디자인 토큰을 반환한다.** 예전 구현은 `#DC2626`/`#2563EB` 리터럴이었는데
+ * 이는 실제 서비스 색(`--color-gain #EF4452` / `--color-loss #3182F6`)과 달랐고,
+ * 인라인 hex는 다크모드 allowlist가 적용되지 않는다.
  */
 export function pnlColor(value: number): string {
-  if (value > 0) return '#DC2626'; // 빨강 ↑
-  if (value < 0) return '#2563EB'; // 파랑 ↓
-  return '#8B95A1';                // 회색 (0 변동)
+  if (value > 0) return 'var(--color-gain, #EF4452)';
+  if (value < 0) return 'var(--color-loss, #3182F6)';
+  return 'var(--text-tertiary, #8B95A1)';
 }

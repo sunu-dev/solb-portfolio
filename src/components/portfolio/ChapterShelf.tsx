@@ -41,7 +41,10 @@ export default function ChapterShelf({ onSelect }: Props) {
   const [chapters, setChapters] = useState<ArchivedChapter[]>([]);
 
   useEffect(() => {
-    setChapters(loadChapters());
+    const frame = requestAnimationFrame(() => {
+      setChapters(loadChapters());
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   if (chapters.length === 0) {

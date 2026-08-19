@@ -43,11 +43,17 @@ interface SendResult {
  */
 export async function sendEmail(opts: SendEmailOpts): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.EMAIL_FROM || '주비 <noreply@solb.kr>';
+  const resendDomain = process.env.RESEND_EMAIL_DOMAIN?.trim();
+  const from = process.env.EMAIL_FROM?.trim()
+    || (resendDomain ? `주비 <noreply@${resendDomain}>` : '');
 
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY 미설정 — 송신 skip:', opts.subject);
     return { ok: false, error: 'no_api_key' };
+  }
+  if (!from) {
+    console.warn('[email] EMAIL_FROM/RESEND_EMAIL_DOMAIN 미설정 — 송신 skip:', opts.subject);
+    return { ok: false, error: 'no_from_address' };
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';

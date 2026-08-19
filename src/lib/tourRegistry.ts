@@ -28,10 +28,10 @@ export interface TourChapter {
 }
 
 export const TOUR_CHAPTERS: TourChapter[] = [
-  { id: 'home',      label: '홈 — 오늘 내 주식 읽기',    tier: 'core' },
-  { id: 'insights',  label: 'AI 인사이트 — 주비의 분석', tier: 'deep' },
-  { id: 'news',      label: '뉴스 — 내 종목 소식',       tier: 'deep' },
-  { id: 'events',    label: '이벤트 — 과거 시점 비교',   tier: 'deep' },
+  { id: 'home',      label: '홈 — 오늘 내 주식 확인',    tier: 'core' },
+  { id: 'insights',  label: '주비 리포트 — 시장 흐름',   tier: 'deep' },
+  { id: 'news',      label: '내 종목 소식',              tier: 'deep' },
+  { id: 'events',    label: '과거 시점 비교',             tier: 'deep' },
   { id: 'customize', label: '홈 편집 — 내 방식대로',     tier: 'deep' },
 ];
 
@@ -65,15 +65,13 @@ export interface TourStep {
  * Phase 1은 4개 홈 스텝(core). 신규 기능 편입은 Phase 3.
  */
 export const TOUR_STEPS: TourStep[] = [
-  { id: 'market',    anchor: 'macro-strip',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '오늘의 시장',       desc: '미국·한국 주요 지수와 환율, 공포지수를 한 번에 확인할 수 있어요.' },
-  { id: 'portfolio', anchor: 'portfolio-section', chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '내 종목 한 줄 요약', desc: '보유 종목을 오늘 움직임·52주 위치·멘토 점수까지 한 줄로 요약해드려요.' },
-  // section:'insights' — data-tour="ai-chok"(AiChokSection)는 AI 인사이트 탭에 렌더되므로 엔진이 탭 전환해 노출.
-  // 게스트에겐 이 자리가 value-first 로그인 게이트(전환 핵심). 빈 홈 portfolio엔 AI 촉 요소가 없어 insights로 가야 함.
-  { id: 'ai-hunch',  anchor: 'ai-chok',           chapter: 'home', section: 'insights', tier: 'core', position: 'top',    title: 'AI 촉 — 매일 새 종목', desc: '매일 1번 새 종목 정보 3개를 받아볼 수 있어요. 로그인 사용자 무료.' },
+  { id: 'portfolio', anchor: 'portfolio-section', chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '오늘 내 주식을 한곳에서', desc: '자산·손익과 보유·관심 종목을 한 화면에서 확인해요.' },
+  { id: 'market',    anchor: 'macro-strip',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '오늘의 시장', desc: '내 종목을 볼 때 필요한 주요 지수와 환율을 함께 확인해요.' },
+  { id: 'record',    anchor: 'record-center',      chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '필요할 때 쓰는 기록 도구', desc: '가져오기 전후를 비교하고, 선택한 변경만 반영하거나 복원해요.', featureId: 'record-preview' },
   { id: 'help',      anchor: 'help-button',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.' },
 
   // ── deep 챕터 (둘러보기 시트에서 주제별 재생) — 탭 자동전환 + 앵커 폴링 ──
-  { id: 'insights-chok',  anchor: 'insights-ai-chok',      chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: 'AI 인사이트 — AI 촉', desc: '매일 새 종목 정보와 분석을 이 탭에 모아봐요.' },
+  { id: 'insights-chok',  anchor: 'insights-ai-chok',      chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: 'AI 인사이트 — 오늘 시장 흐름', desc: '강한 섹터와 약한 섹터, 순환 신호의 근거를 확인해요.' },
   { id: 'insights-story', anchor: 'insights-story',        chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: '주비의 이야기',       desc: '오늘 내 포트폴리오 상태를 한 편의 이야기로 풀어드려요.' },
   { id: 'news-tabs',      anchor: 'news-tabs',             chapter: 'news',      section: 'news',     tier: 'deep', position: 'bottom', title: '뉴스 필터',           desc: '내 종목·미국·한국 등 시장별로 뉴스를 골라볼 수 있어요.' },
   { id: 'events-tabs',    anchor: 'events-tabs',           chapter: 'events',    section: 'events',   tier: 'deep', position: 'bottom', title: '과거 이벤트 비교',     desc: '과거 주요 시장 이벤트를 골라 내 종목이 그때 어땠는지 확인해요.' },

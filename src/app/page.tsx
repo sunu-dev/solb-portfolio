@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import type { MacroEntry, QuoteData } from '@/config/constants';
@@ -26,18 +27,22 @@ import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
 // ToastAlert removed — alerts now shown in sidebar notification center
 import LoginModal from '@/components/auth/LoginModal';
+import AgeEligibilityGate from '@/components/auth/AgeEligibilityGate';
 import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import CoachMark from '@/components/onboarding/CoachMark';
 import TourChapterSheet from '@/components/onboarding/TourChapterSheet';
 import GuestTourBanner from '@/components/onboarding/GuestTourBanner';
 import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
+import { recordProDemandVisit } from '@/lib/proDemandActivity';
+import JoobiLockup from '@/components/brand/JoobiLockup';
 
 export default function Home() {
   const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
   const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin();
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -93,6 +98,21 @@ export default function Home() {
     return () => window.removeEventListener('open-login', handler);
   }, []);
 
+  // 랜딩 CTA 딥링크 — 인증 상태 확인 뒤 로그인 모달을 열고 일회성 쿼리는 제거한다.
+  useEffect(() => {
+    if (authLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('login') !== '1') return;
+    if (!user) setShowLogin(true);
+    params.delete('login');
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      query ? `${window.location.pathname}?${query}` : window.location.pathname,
+    );
+  }, [authLoading, user]);
+
   // Supabase DB 동기화 (로그인 시에만 활성화)
   usePortfolioSync(user);
 
@@ -106,6 +126,7 @@ export default function Home() {
       initialized = true;
       setHydrated(true);
       loadPortfolio();
+      recordProDemandVisit();
 
       // Instantly restore cached macro + quote data from localStorage
       const { updateMacroEntry } = usePortfolioStore.getState();
@@ -133,19 +154,11 @@ export default function Home() {
         }
       } catch { /* ignore */ }
 
-      // Finnhub 키를 서버에서 가져와 스토어에 저장 (번들 노출 방지)
-      const { apiKey, setApiKey } = usePortfolioStore.getState();
-      if (!apiKey) {
-        // apiKey 없으면 먼저 토큰 받고 나서 fetch (신규 유저 첫 로드 버그 방지)
-        fetch('/api/ws-token').then(r => r.json()).then(({ token }) => {
-          if (token) {
-            setApiKey(token);
-            Promise.all([fetchMacro(), refreshAll()]);
-          }
-        }).catch(() => {});
-      } else {
-        Promise.all([fetchMacro(), refreshAll()]);
-      }
+      // 시세·캔들은 전부 서버 라우트를 거치므로 클라이언트 API 키가 필요 없다.
+      // (예전에는 여기서 모든 방문자가 /api/ws-token으로 Finnhub 키를 받아
+      //  localStorage에 영속시켰다 — 실시간 WebSocket 전용 키는 useRealtimePrice가
+      //  로그인 세션이 있을 때만 지연 요청한다.)
+      Promise.all([fetchMacro(), refreshAll()]);
     };
     const unsub = usePortfolioStore.persist.onFinishHydration(init);
     if (usePortfolioStore.persist.hasHydrated()) init();
@@ -163,9 +176,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!user || authLoading) return;
-    const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-    const isAdmin = ADMIN_IDS.includes(user.id);
+    if (!user || authLoading || adminLoading) return;
+    // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
+    // (예전엔 여기 ID만 검사하는 변종이 있어 이메일 기준 관리자는 초대 게이트에 걸렸다.)
     if (isAdmin) { setNeedsInvite(false); return; }
 
     // 초대코드 필수 모드이면 사용 이력 확인
@@ -185,7 +198,7 @@ export default function Home() {
         })
         .catch(() => {});
     }
-  }, [user, authLoading, serviceMode]);
+  }, [user, authLoading, serviceMode, isAdmin, adminLoading]);
 
   // Log login event
   useEffect(() => {
@@ -233,15 +246,20 @@ export default function Home() {
 
   // 초대코드 게이트 — 로그인은 됐지만 코드 미입력
   if (user && needsInvite) {
-    return <InviteGate user={user} onVerified={() => setNeedsInvite(false)} />;
+    return (
+      <>
+        <AgeEligibilityGate userId={user.id} onSignOut={signOut} />
+        <InviteGate user={user} onVerified={() => setNeedsInvite(false)} />
+      </>
+    );
   }
 
   if (!hydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6 }}>주비</div>
-          <div className="text-[#B0B8C1] text-[12px]">내 주식, 매일 한 줄로 읽어드려요</div>
+          <div style={{ marginBottom: 8 }}><JoobiLockup variant="loading" /></div>
+          <div className="text-[#B0B8C1] text-[12px]">오늘 내 주식을 챙기고 있어요</div>
         </div>
       </div>
     );
@@ -255,6 +273,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: 'var(--bg, #FFFFFF)' }}>
+      {user && !authLoading && <AgeEligibilityGate userId={user.id} onSignOut={signOut} />}
       {/* Sticky Header - 48px */}
       <Header
         user={user}

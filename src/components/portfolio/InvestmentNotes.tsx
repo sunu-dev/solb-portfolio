@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { StockNote } from '@/config/constants';
 import { createNoteDate } from '@/utils/noteId';
@@ -14,6 +14,14 @@ const EMOTION_TAGS = [
   { emoji: '💡', label: '인사이트' },
 ];
 
+const REVIEW_PROMPTS = [
+  '매수 이유: ',
+  '매도 이유: ',
+  '잘한 점: ',
+  '아쉬운 점: ',
+  '다음에는: ',
+] as const;
+
 interface Props {
   symbol: string;
   category: 'investing' | 'watching' | 'sold';
@@ -22,10 +30,28 @@ interface Props {
 }
 
 export default function InvestmentNotes({ symbol, category, stockIdx, notes }: Props) {
-  const { updateStock } = usePortfolioStore();
+  const updateStock = usePortfolioStore((state) => state.updateStock);
+  const stocks = usePortfolioStore((state) => state.stocks);
   const [isAdding, setIsAdding] = useState(false);
   const [text, setText] = useState('');
   const [selectedEmoji, setSelectedEmoji] = useState('🤔');
+  const recentPhrases = useMemo(() => {
+    const seen = new Set<string>();
+    return (Object.values(stocks).flatMap((items) =>
+      items.flatMap((stock) => stock.notes || []))
+      .sort((left, right) => right.date.localeCompare(left.date))
+      .map((note) => note.text.trim())
+      .filter((phrase) => {
+        if (!phrase || seen.has(phrase)) return false;
+        seen.add(phrase);
+        return true;
+      })
+      .slice(0, 3));
+  }, [stocks]);
+
+  const insertPrompt = (prompt: string) => {
+    setText((current) => current.trim() ? `${current.trimEnd()}\n${prompt}` : prompt);
+  };
 
   const handleAdd = () => {
     if (!text.trim()) return;
@@ -84,9 +110,71 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
             ))}
           </div>
 
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 6, color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, fontWeight: 600 }}>
+              빠른 복기
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {REVIEW_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => insertPrompt(prompt)}
+                  style={{
+                    padding: '5px 9px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border-light, #E5E8EB)',
+                    background: 'var(--surface, #FFFFFF)',
+                    color: 'var(--text-secondary, #4E5968)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {prompt.trim()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {recentPhrases.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ marginBottom: 6, color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, fontWeight: 600 }}>
+                최근 문구
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {recentPhrases.map((phrase) => (
+                  <button
+                    key={phrase}
+                    type="button"
+                    onClick={() => setText(phrase)}
+                    title={phrase}
+                    style={{
+                      width: '100%',
+                      padding: '7px 10px',
+                      overflow: 'hidden',
+                      borderRadius: 8,
+                      border: 0,
+                      background: 'var(--surface, #FFFFFF)',
+                      color: 'var(--text-secondary, #4E5968)',
+                      fontSize: 11,
+                      textAlign: 'left',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {phrase}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
+            aria-label={`${symbol} 투자 메모`}
             placeholder="왜 이 종목을 매수/매도했나요? 나중에 복기할 수 있어요."
             style={{
               width: '100%',
@@ -141,6 +229,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
                   <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>{dateStr}</span>
                   <button
                     onClick={() => handleDelete(note.date)}
+                    aria-label={`${dateStr} 메모 삭제`}
                     style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
                   >
                     ✕

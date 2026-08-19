@@ -36,8 +36,11 @@ export default function GuestTourBanner() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    try { setDismissed(!!sessionStorage.getItem(DISMISS_KEY)); } catch { /* ignore */ }
-    setChecked(true);
+    const frame = requestAnimationFrame(() => {
+      try { setDismissed(!!sessionStorage.getItem(DISMISS_KEY)); } catch { /* ignore */ }
+      setChecked(true);
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   if (!checked) return null;

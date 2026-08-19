@@ -27,14 +27,17 @@ export async function GET(req: NextRequest) {
       >
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10,
-            background: 'linear-gradient(135deg, #1B6B3A, #3182F6)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, fontWeight: 800,
-          }}>S</div>
-          <span style={{ fontSize: 24, fontWeight: 700 }}>주비</span>
-          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>내 주식, 매일 한 줄로 읽어드려요</span>
+          {/* ImageResponse에서는 next/image 대신 절대 URL 이미지가 필요하다. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={new URL('/icon-192.png', req.url).toString()}
+            alt=""
+            width={40}
+            height={40}
+            style={{ borderRadius: 10 }}
+          />
+          <span style={{ fontSize: 24, fontWeight: 800, color: '#FFFFFF' }}>주비</span>
+          <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>오늘 내 주식을 챙기는 개인 주식비서</span>
         </div>
 
         {/* Return */}

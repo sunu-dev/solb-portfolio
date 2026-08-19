@@ -40,7 +40,7 @@ export const WIDGET_META: HomeWidget[] = [
   // below-core (.home-stack) — 순서변경 가능
   { id: 'broker-block', label: '증권사 요약·통합 보유', zone: 'below-core', hideable: true, reorderable: true, defaultVisible: true, defaultOrder: 0 },
   { id: 'monthly-chapter', label: '월간 챕터', zone: 'below-core', hideable: true, reorderable: true, defaultVisible: true, defaultOrder: 1 },
-  { id: 'ai-hunch-link', label: 'AI 촉 바로가기', zone: 'below-core', hideable: false, reorderable: true, defaultVisible: true, defaultOrder: 2 },
+  { id: 'ai-hunch-link', label: '오늘 시장 흐름 바로가기', zone: 'below-core', hideable: false, reorderable: true, defaultVisible: true, defaultOrder: 2 },
   // analysis (분석 서브탭) — 표시/숨김만(순서변경 v2 연기)
   { id: 'value-chart', label: '자산 추이', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 0 },
   { id: 'benchmark-compare', label: '시장 대비 성과', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 1 },

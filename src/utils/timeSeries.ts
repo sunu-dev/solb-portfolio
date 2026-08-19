@@ -11,6 +11,8 @@
 
 import type { CandleRaw } from '@/config/constants';
 import { calcSMA, calcRSI } from './technical';
+import { formatKrw } from './koreanNumber';
+import type { StockCurrency } from './stockCurrency';
 
 /**
  * 20/60/200일 이동평균선 대비 현재가 위치 + 연속 일수
@@ -74,7 +76,10 @@ export function extractRsiTrend(candles: CandleRaw | undefined): string | null {
 /**
  * 52주 고/저점 대비 현재 위치 + 그 시점 며칠 전
  */
-export function extract52wPosition(candles: CandleRaw | undefined): string | null {
+export function extract52wPosition(
+  candles: CandleRaw | undefined,
+  currency: StockCurrency = 'USD',
+): string | null {
   if (!candles?.c?.length || candles.c.length < 30) return null;
   const closes = candles.c;
   // 마지막 252거래일(약 1년) 또는 가용 데이터
@@ -91,12 +96,14 @@ export function extract52wPosition(candles: CandleRaw | undefined): string | nul
 
   const highDistPct = ((high - current) / current) * 100;
   const lowDistPct = ((current - low) / current) * 100;
+  const highText = currency === 'KRW' ? formatKrw(high) : `$${high.toFixed(2)}`;
+  const lowText = currency === 'KRW' ? formatKrw(low) : `$${low.toFixed(2)}`;
 
   if (highDistPct < 3) {
-    return `52주 고점 근접 (${daysSinceHigh}거래일 전 $${high.toFixed(2)} 도달, 현재 -${highDistPct.toFixed(1)}%)`;
+    return `52주 고점 근접 (${daysSinceHigh}거래일 전 ${highText} 도달, 현재 -${highDistPct.toFixed(1)}%)`;
   }
   if (lowDistPct < 3) {
-    return `52주 저점 근접 (${daysSinceLow}거래일 전 $${low.toFixed(2)}, 현재 +${lowDistPct.toFixed(1)}%)`;
+    return `52주 저점 근접 (${daysSinceLow}거래일 전 ${lowText}, 현재 +${lowDistPct.toFixed(1)}%)`;
   }
   return `52주 범위 중간 (고점 -${highDistPct.toFixed(1)}% / 저점 +${lowDistPct.toFixed(1)}%)`;
 }
@@ -135,12 +142,15 @@ export function extractVolumeSpike(candles: CandleRaw | undefined): string | nul
  * 종합 — AI 프롬프트에 주입할 시계열 컨텍스트 텍스트 빌드
  * 신호 있는 라인만 모아서 bullet list로 반환.
  */
-export function buildTimeSeriesContext(candles: CandleRaw | undefined): string {
+export function buildTimeSeriesContext(
+  candles: CandleRaw | undefined,
+  currency: StockCurrency = 'USD',
+): string {
   if (!candles) return '';
   const lines: string[] = [];
   const ma = extractMaPosition(candles);
   const rsi = extractRsiTrend(candles);
-  const pos52 = extract52wPosition(candles);
+  const pos52 = extract52wPosition(candles, currency);
   const momentum = extractRecentMomentum(candles, 5);
   const vol = extractVolumeSpike(candles);
   if (ma) lines.push(`- ${ma}`);

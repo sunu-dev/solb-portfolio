@@ -15,10 +15,6 @@ interface InviteData {
 const CACHE_KEY = 'solb_invite_cache';
 const APP_URL = 'https://solb-portfolio.vercel.app';
 
-declare global {
-  interface Window { Kakao: any; }
-}
-
 export default function InviteSection() {
   const [data, setData] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,8 +87,8 @@ export default function InviteSection() {
       window.Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
-          title: '주비 베타에 초대합니다 🎉',
-          description: `초대 코드: ${data.code}\nAI 주식 비서를 함께 써봐요`,
+          title: '개인 주식비서 주비 베타에 초대합니다',
+          description: `초대 코드: ${data.code}\n기록을 비교하고 안전하게 관리해보세요`,
           imageUrl: `${APP_URL}/icon-512.png`,
           link: { mobileWebUrl: shareUrl, webUrl: shareUrl },
         },
@@ -109,7 +105,7 @@ export default function InviteSection() {
     if (!data) return;
     if (navigator.share) {
       await navigator.share({
-        title: '주비 — AI 주식 비서',
+        title: '주비 — 개인 주식비서',
         text: `주비 베타에 초대합니다! 초대 코드: ${data.code}`,
         url: shareUrl,
       });

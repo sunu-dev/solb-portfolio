@@ -1,18 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getServiceClient, requireServiceClient } from '@/lib/supabaseServer';
 import webpush from 'web-push';
 import { Receiver } from '@upstash/qstash';
 import type { PortfolioStocks, StockItem } from '@/config/constants';
-import { isPushAllowed, isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
+import { isPushAllowedForUser, getAlertCategory } from '@/config/alertPolicy';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { formatKrw } from '@/utils/koreanNumber';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+  getStockCurrency,
+  getYahooSymbolCandidates,
+} from '@/utils/stockCurrency';
 
 // ─── clients (lazy — avoid module-level crash during build) ─────────────────
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-  );
+  return requireServiceClient();
 }
 
 function initWebPush() {
@@ -33,63 +42,96 @@ interface TriggeredAlert {
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-function fmtWon(w: number): string {
-  if (w >= 100_000_000) return `${(w / 100_000_000).toFixed(1)}억원`;
-  if (w >= 10_000) return `${Math.round(w / 10_000)}만원`;
-  return `${w.toLocaleString()}원`;
-}
+const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
 
 async function fetchPrice(symbol: string): Promise<number | null> {
-  try {
-    const res = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (!res.ok) return null;
-    const json = await res.json() as {
-      chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> };
-    };
-    return json.chart?.result?.[0]?.meta?.regularMarketPrice ?? null;
-  } catch { return null; }
+  for (const candidate of getYahooSymbolCandidates(symbol)) {
+    try {
+      const res = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(candidate)}?interval=1d&range=1d`,
+        {
+          headers: { 'User-Agent': YAHOO_UA },
+          signal: AbortSignal.timeout(5000),
+        },
+      );
+      if (!res.ok) continue;
+      const json = await res.json() as {
+        chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> };
+      };
+      const price = json.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (typeof price === 'number' && Number.isFinite(price) && price > 0) {
+        return price;
+      }
+    } catch {
+      // 접미사 없는 종목은 .KS 실패 뒤 .KQ 후보를 계속 조회한다.
+    }
+  }
+  return null;
 }
 
-async function fetchUsdKrw(): Promise<number> {
-  // fallback 1400 사용 시 사용자에게 거짓 KRW 손익이 갈 수 있음 → Sentry/운영 모니터링 필수.
-  // 사용자 노출 메시지 본문 변경은 P1 작업으로 미룸 (메시지 빌더 영향 범위 큼).
+async function fetchUsdKrw(): Promise<number | null> {
   try {
     const res = await fetch(
       'https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=1d',
-      { signal: AbortSignal.timeout(5000) }
+      {
+        headers: { 'User-Agent': YAHOO_UA },
+        signal: AbortSignal.timeout(5000),
+      },
     );
     if (!res.ok) {
-      console.error('[cron/check-alerts] USD/KRW fetch !ok — using 1400 fallback');
-      return 1400;
+      console.error('[cron/check-alerts] USD/KRW fetch !ok — FX-dependent alerts skipped');
+      return null;
     }
     const json = await res.json() as {
       chart?: { result?: Array<{ meta?: { regularMarketPrice?: number } }> };
     };
     const rate = json.chart?.result?.[0]?.meta?.regularMarketPrice;
     if (typeof rate !== 'number' || rate <= 0) {
-      console.error('[cron/check-alerts] USD/KRW invalid rate — using 1400 fallback');
-      return 1400;
+      console.error('[cron/check-alerts] USD/KRW invalid rate — FX-dependent alerts skipped');
+      return null;
     }
     return rate;
   } catch (e) {
-    console.error('[cron/check-alerts] USD/KRW fetch failed — using 1400 fallback', e);
-    return 1400;
+    console.error('[cron/check-alerts] USD/KRW fetch failed — FX-dependent alerts skipped', e);
+    return null;
   }
 }
 
-function checkStockAlerts(stock: StockItem, price: number, usdKrw: number, forceLeverage = false): TriggeredAlert[] {
+function formatNativePrice(stock: StockItem, value: number): string {
+  return getStockCurrency(stock.symbol, stock.currency) === 'KRW'
+    ? formatKrw(value, { short: false })
+    : `$${value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+}
+
+function checkStockAlerts(stock: StockItem, price: number, usdKrw: number | null, forceLeverage = false): TriggeredAlert[] {
   const alerts: TriggeredAlert[] = [];
   if (stock.avgCost <= 0 || stock.shares <= 0 || price <= 0) return alerts;
 
-  const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
+  const isKR = getStockCurrency(stock.symbol, stock.currency) === 'KRW';
   const plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
   const plUSD = (price - stock.avgCost) * stock.shares;
-  const plKRW = isKR ? plUSD : plUSD * usdKrw;
+  let plKRW: number | null = null;
+  if (isKR || usdKrw !== null) {
+    const rate = usdKrw ?? 0;
+    const currentKrw = convertStockAmount(
+      stock.symbol,
+      price,
+      rate,
+      stock.currency,
+    ).krw * stock.shares;
+    const costKrw = convertStockCostAmount(
+      stock.symbol,
+      stock.avgCost,
+      rate,
+      stock.purchaseRate,
+      stock.currency,
+    ).krw * stock.shares;
+    plKRW = currentKrw - costKrw;
+  }
   const sym = stock.symbol;
-  const cur = isKR ? '₩' : '$';
 
   if (stock.targetReturn > 0 && plPct >= stock.targetReturn)
     alerts.push({ symbol: sym, alertType: 'target-return', emoji: '🎉',
@@ -101,20 +143,22 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number, force
       message: `${sym} 수익금 $${(stock.targetProfitUSD ?? 0).toLocaleString()} 달성!`,
       detail: `현재 수익 $${plUSD.toFixed(0)}` });
 
-  if ((stock.targetProfitKRW ?? 0) > 0 && plKRW >= (stock.targetProfitKRW ?? 0))
+  if ((stock.targetProfitKRW ?? 0) > 0
+    && plKRW !== null
+    && plKRW >= (stock.targetProfitKRW ?? 0))
     alerts.push({ symbol: sym, alertType: 'target-profit-krw', emoji: '💰',
-      message: `${sym} 수익금 ₩${fmtWon(stock.targetProfitKRW ?? 0)} 달성!`,
-      detail: `현재 수익 ₩${fmtWon(plKRW)}` });
+      message: `${sym} 수익금 ${formatKrw(stock.targetProfitKRW ?? 0)} 달성!`,
+      detail: `현재 수익 ${formatKrw(plKRW)}` });
 
   if ((stock.targetSell ?? 0) > 0 && price >= (stock.targetSell ?? 0))
     alerts.push({ symbol: sym, alertType: 'target-sell', emoji: '🎯',
       message: `${sym} 목표가 도달!`,
-      detail: `현재가 ${cur}${price.toLocaleString()} ≥ 목표 ${cur}${stock.targetSell}` });
+      detail: `현재가 ${formatNativePrice(stock, price)} ≥ 목표 ${formatNativePrice(stock, stock.targetSell ?? 0)}` });
 
   if ((stock.stopLoss ?? 0) > 0 && price <= (stock.stopLoss ?? 0))
     alerts.push({ symbol: sym, alertType: 'stoploss-price', emoji: '🚨',
       message: `${sym} 손절가 도달!`,
-      detail: `현재가 ${cur}${price.toLocaleString()} ≤ 손절가 ${cur}${stock.stopLoss}` });
+      detail: `현재가 ${formatNativePrice(stock, price)} ≤ 손절가 ${formatNativePrice(stock, stock.stopLoss ?? 0)}` });
 
   if ((stock.stopLossPct ?? 0) > 0 && plPct <= -(stock.stopLossPct ?? 0))
     alerts.push({ symbol: sym, alertType: 'stoploss-pct', emoji: '🚨',
@@ -124,7 +168,7 @@ function checkStockAlerts(stock: StockItem, price: number, usdKrw: number, force
   if ((stock.buyBelow ?? 0) > 0 && price <= (stock.buyBelow ?? 0))
     alerts.push({ symbol: sym, alertType: 'buy-zone', emoji: '🛒',
       message: `${sym} 관심 매수가 도달!`,
-      detail: `현재가 ${cur}${price.toLocaleString()} ≤ 목표 ${cur}${stock.buyBelow}` });
+      detail: `현재가 ${formatNativePrice(stock, price)} ≤ 목표 ${formatNativePrice(stock, stock.buyBelow ?? 0)}` });
 
   // 단일종목 레버리지/인버스: 매매 방향·신규 매수 유인(target-*·buy-zone) 발송 금지 (§6 자본시장법).
   // 보유 위험 고지(stoploss-*)만 남긴다. 지수 레버리지(TQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
@@ -245,13 +289,18 @@ export async function POST(req: NextRequest) {
     if (!isValid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   } else {
     // fallback: CRON_SECRET Bearer 인증 (Vercel Cron GET 또는 QStash 미설정 환경)
+    // secret 미설정 시 차단 — 없으면 `Bearer undefined` 헤더가 인증을 통과한다.
+    // (형제 cron 5종 morning-brief·cleanup-pii·sync-listings·enrich-warm·chok-followup과 동일 규약)
+    const secret = process.env.CRON_SECRET;
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (!secret || authHeader !== `Bearer ${secret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
 
-  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !process.env.SUPABASE_SERVICE_KEY) {
+  // Supabase 키 판정은 팩토리에 위임한다 — env 이름을 여기서 다시 하드코딩하면
+  // `SUPABASE_SERVICE_ROLE_KEY`만 설정된 환경에서 잘못 503을 내며 알림이 무기한 정지한다.
+  if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !getServiceClient()) {
     return NextResponse.json({ error: 'Missing env vars' }, { status: 503 });
   }
 

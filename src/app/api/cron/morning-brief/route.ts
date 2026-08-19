@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
 import webpush from 'web-push';
 import type { PortfolioStocks } from '@/config/constants';
 import { STOCK_KR } from '@/config/constants';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
-import { findSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import {
+  findCanonicalSnapshotNearDate,
+  getDateDaysAgo,
+  getSnapshotKrwTotals,
+} from '@/utils/dailySnapshot';
 import { sendEmail } from '@/utils/email';
 import { buildMorningBriefHtml } from '@/utils/emailTemplates';
 import { sendCronAlert } from '@/lib/cronAlert';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { DISCLAIMER_DIGEST } from '@/utils/alertCompliance';
 import { buildMoverNote } from '@/lib/moverNote';
+import {
+  getStockCurrency,
+  isKoreanStockSymbol,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
 
 // ─── 시차 인지 2슬롯 digest (docs/PERSONALIZED_DIGEST_SPEC.md) ───────────────
 // 같은 route를 ?slot= 쿼리로 분기. 국장 07:00(간밤 미장 보유분) / 국장 마감 16:00(오늘 국장).
@@ -56,19 +66,13 @@ const SLOT_FRAMING: Record<DigestSlot, SlotFraming> = {
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
-
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return requireServiceClient();
 }
 
 function initWebPush() {
@@ -81,7 +85,7 @@ function initWebPush() {
 
 async function fetchPrice(symbol: string): Promise<{ c: number; d: number; dp: number } | null> {
   try {
-    const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
+    const isKR = isKoreanStockSymbol(symbol);
     if (isKR) {
       const url = `${process.env.NEXT_PUBLIC_APP_URL}/api/kr-quote?symbol=${symbol}`;
       const res = await fetch(url, { cache: 'no-store' });
@@ -137,9 +141,24 @@ async function buildBrief(
   if (investing.length === 0) return null;
 
   // 캐시에서 시세 조회 (cron 시작 시 unique 심볼 한 번에 fetch했음)
-  let totalValue = 0;
-  let todayDelta = 0;
-  let prevValue = 0;
+  const summary = summarizePortfolioCurrency(
+    investing.map((stock) => {
+      const quote = priceCache[stock.symbol];
+      return {
+        symbol: stock.symbol,
+        currency: stock.currency,
+        avgCost: stock.avgCost,
+        shares: stock.shares,
+        currentPrice: quote?.c || 0,
+        dayChange: quote?.d || 0,
+        purchaseRate: stock.purchaseRate,
+      };
+    }),
+    usdKrw,
+  );
+  const totalValue = summary.totalValueKrw;
+  const todayDelta = summary.todayChangeKrw;
+  const prevValue = totalValue - todayDelta;
   // 주목 종목 후보: 슬롯 시장 매칭(close=국장 KR / morning=간밤 미장 US) 우선, 없으면 전체 fallback.
   type Mover = { symbol: string; dp: number; absDp: number };
   let biggestMatch: Mover | null = null;
@@ -147,11 +166,7 @@ async function buildBrief(
   for (const stock of investing) {
     const q = priceCache[stock.symbol];
     if (!q) continue;
-    const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
-    const rate = isKR ? 1 : usdKrw;
-    totalValue += q.c * stock.shares * rate;
-    todayDelta += q.d * stock.shares * rate;
-    prevValue += (q.c - q.d) * stock.shares * rate;
+    const isKR = getStockCurrency(stock.symbol, stock.currency) === 'KRW';
     // 레버리지는 손익엔 반영하되 '오늘의 주목 종목'으로는 띄우지 않음 (유인 억제).
     if (isSingleStockLeverage(stock.symbol, stock.name || STOCK_KR[stock.symbol])) continue;
     const absDp = Math.abs(q.dp);
@@ -170,13 +185,11 @@ async function buildBrief(
   let yesterdayPct: number | null = null;
   if (snapshots.length > 0) {
     const yDate = getDateDaysAgo(1);
-    const ySnap = findSnapshotNearDate(snapshots, yDate, 2);
-    if (ySnap && ySnap.totalValue > 0) {
-      // 스냅샷 totalValue는 캡처 시점 단위(USD 혼합 가능). 정확한 비교를 위해
-      // 스냅샷 stocks를 다시 평가하면 좋지만 — MVP는 totalValue 직접 비교.
-      // (Dashboard.tsx가 totalValueWon = KRW 누적으로 캡처하므로 KRW 가정 가능)
-      yesterdayDelta = totalValue - ySnap.totalValue;
-      yesterdayPct = (yesterdayDelta / ySnap.totalValue) * 100;
+    const ySnap = findCanonicalSnapshotNearDate(snapshots, yDate, 2);
+    const yTotals = ySnap ? getSnapshotKrwTotals(ySnap) : null;
+    if (yTotals && yTotals.totalValueKrw > 0) {
+      yesterdayDelta = totalValue - yTotals.totalValueKrw;
+      yesterdayPct = (yesterdayDelta / yTotals.totalValueKrw) * 100;
     }
   }
 
@@ -262,9 +275,12 @@ function buildEmailBody(brief: BriefData, title: string, body: string, appUrl: s
 }
 
 // 국장 아침 슬롯 (KST 07:00 = UTC 22:00). vercel.json "0 22 * * *".
-export async function GET(req: NextRequest) {
-  return runDigest(req, 'morning');
-}
+export const GET = defineRoute({
+  name: '/api/cron/morning-brief',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async ({ req }) => runDigest(req, 'morning'),
+});
 
 /**
  * digest 발송 본체. 슬롯은 호출 라우트가 결정론적으로 주입한다(defaultSlot).
@@ -275,10 +291,8 @@ export async function GET(req: NextRequest) {
  * 각자 자기 슬롯을 고정 주입한다. ?slot=는 수동 테스트 override만.
  */
 export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  // 인증은 호출 라우트의 defineRoute({ auth: 'cron' })가 담당한다.
+  // (morning-brief GET / morning-brief-close GET 둘 다 cron 가드를 통과한 뒤에만 여기 도달)
   initWebPush();
   const db = getAdmin();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';

@@ -6,7 +6,7 @@
 // 채널·카테고리는 각 알림에 박혀있고, 라우터(푸시/토스트/사이드바)가
 // channels 필드를 보고 분기한다. ALERT_POLICY 맵을 단일 진실 원천으로 둔다.
 
-import type { PortfolioStocks, QuoteData, CandleRaw } from '@/config/constants';
+import type { PortfolioStocks, QuoteData, CandleRaw, MacroEntry } from '@/config/constants';
 import { STOCK_KR } from '@/config/constants';
 import { calcSMA, calcRSI, detectCross, calcBollingerBands, calcMACD } from '@/utils/technical';
 import { computeVolBaseline, computeZScore } from '@/utils/volatility';
@@ -14,6 +14,13 @@ import { validateAlertMessage } from '@/utils/alertCompliance';
 import { iGa } from '@/utils/koreanJosa';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { ALERT_POLICY, DEFAULT_ALERT_POLICY, type AlertChannel, type AlertCategory } from '@/config/alertPolicy';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+  getStockCurrency,
+  summarizePortfolioCurrency,
+} from '@/utils/stockCurrency';
+import { formatKrw } from '@/utils/koreanNumber';
 
 export type { AlertChannel, AlertCategory };
 
@@ -31,6 +38,19 @@ export interface Alert {
 
 function kr(symbol: string): string {
   return STOCK_KR[symbol] || symbol;
+}
+
+function formatNativePrice(
+  symbol: string,
+  value: number,
+  currency?: 'KRW' | 'USD',
+): string {
+  return getStockCurrency(symbol, currency) === 'KRW'
+    ? formatKrw(value)
+    : `$${value.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
 }
 
 function makeAlert(
@@ -62,10 +82,11 @@ function makeAlert(
 
 export function checkAllAlerts(
   stocks: PortfolioStocks,
-  macroData: Record<string, any>,
+  macroData: Record<string, MacroEntry | QuoteData>,
   rawCandles: Record<string, CandleRaw>,
-  candleCache: Record<string, Record<number, number>>
+  _candleCache: Record<string, Record<number, number>>
 ): Alert[] {
+  void _candleCache;
   const alerts: Alert[] = [];
 
   // '중간 옵션'(2026-05-29): 단일종목 레버리지 보유분도 알림 대상에 포함한다.
@@ -88,13 +109,15 @@ export function checkAllAlerts(
     const dp = q.dp || 0;
     const name = kr(stock.symbol);
     const isInvesting = investingStocks.some(s => s.symbol === stock.symbol);
+    const fmtPrice = (value: number) =>
+      formatNativePrice(stock.symbol, value, stock.currency);
 
     // 1. Stop-loss reached
     if (stock.stopLoss && stock.stopLoss > 0 && price <= stock.stopLoss) {
       alerts.push(makeAlert(
         stock.symbol, 'stoploss-hit', 'urgent', 1,
         `${name} 손절가 도달!`,
-        `현재가 $${price.toFixed(2)}이 손절가 $${stock.stopLoss.toFixed(2)}에 도달했어요. 즉시 확인해주세요.`
+        `현재가 ${fmtPrice(price)}이 손절가 ${fmtPrice(stock.stopLoss)}에 도달했어요. 즉시 확인해주세요.`
       ));
     }
     // 2. Stop-loss approaching
@@ -102,7 +125,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'stoploss-near', 'risk', 2,
         `${name} 손절가 근접`,
-        `현재가 $${price.toFixed(2)}이 손절가 $${stock.stopLoss.toFixed(2)}에 가까워지고 있어요.`
+        `현재가 ${fmtPrice(price)}이 손절가 ${fmtPrice(stock.stopLoss)}에 가까워지고 있어요.`
       ));
     }
 
@@ -111,7 +134,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'target-hit', 'celebrate', 1,
         `${name} 목표가 달성!`,
-        `현재가 $${price.toFixed(2)}이 목표 매도가 $${stock.targetSell.toFixed(2)}에 도달했어요!`
+        `현재가 ${fmtPrice(price)}이 목표 매도가 ${fmtPrice(stock.targetSell)}에 도달했어요!`
       ));
     }
     // 4. Target price approaching
@@ -119,7 +142,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'target-near', 'opportunity', 3,
         `${name} 목표가 근접`,
-        `현재가 $${price.toFixed(2)}이 목표 매도가 $${stock.targetSell.toFixed(2)}의 95%에 도달했어요.`
+        `현재가 ${fmtPrice(price)}이 목표 매도가 ${fmtPrice(stock.targetSell)}의 95%에 도달했어요.`
       ));
     }
 
@@ -129,7 +152,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'below-avgcost', 'risk', 3,
         `${name} 평단가 하회`,
-        `현재가 $${price.toFixed(2)}가 평단가 $${stock.avgCost.toFixed(2)}보다 낮아요 (${lossPct}%).`
+        `현재가 ${fmtPrice(price)}가 평단가 ${fmtPrice(stock.avgCost)}보다 낮아요 (${lossPct}%).`
       ));
     }
 
@@ -138,7 +161,7 @@ export function checkAllAlerts(
       alerts.push(makeAlert(
         stock.symbol, 'buy-zone', 'opportunity', 2,
         `${name} 관심 가격 도달`,
-        `현재가 $${price.toFixed(2)}이 설정 가격 $${stock.buyBelow} 이하예요.`
+        `현재가 ${fmtPrice(price)}이 설정 가격 ${fmtPrice(stock.buyBelow)} 이하예요.`
       ));
     }
 
@@ -169,7 +192,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'near-52w-low', 'risk', 3,
           `${name} 52주 최저가 근접`,
-          `현재가 $${price.toFixed(2)}이 52주 최저가 $${low52.toFixed(2)}에 가까워요.`
+          `현재가 ${fmtPrice(price)}이 52주 최저가 ${fmtPrice(low52)}에 가까워요.`
         ));
       }
     }
@@ -181,7 +204,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'near-52w-high', 'insight', 4,
           `${name} 52주 최고가 근접`,
-          `현재가 $${price.toFixed(2)}이 52주 최고가 $${high52.toFixed(2)}에 가까워요.`
+          `현재가 ${fmtPrice(price)}이 52주 최고가 ${fmtPrice(high52)}에 가까워요.`
         ));
       }
     }
@@ -228,6 +251,8 @@ export function checkAllAlerts(
     const name = kr(stock.symbol);
     const q = macroData[stock.symbol] as QuoteData | undefined;
     const price = q?.c || closes[closes.length - 1];
+    const fmtPrice = (value: number) =>
+      formatNativePrice(stock.symbol, value, stock.currency);
 
     // SMA cross checks
     const sma5 = calcSMA(closes, 5);
@@ -286,7 +311,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'bb-lower', 'insight', 4,
           `${name} 가격이 평소 범위 아래로 내려갔어요`,
-          `가격이 평소 움직이는 범위(하단 $${lastBB.lower.toFixed(2)})를 벗어났어요.`
+          `가격이 평소 움직이는 범위(하단 ${fmtPrice(lastBB.lower)})를 벗어났어요.`
         ));
       }
 
@@ -295,7 +320,7 @@ export function checkAllAlerts(
         alerts.push(makeAlert(
           stock.symbol, 'bb-upper', 'risk', 4,
           `${name} 가격이 평소 범위 위로 올라갔어요`,
-          `가격이 평소 움직이는 범위(상단 $${lastBB.upper.toFixed(2)})를 벗어났어요. 과열 구간일 수 있어요.`
+          `가격이 평소 움직이는 범위(상단 ${fmtPrice(lastBB.upper)})를 벗어났어요. 과열 구간일 수 있어요.`
         ));
       }
     }
@@ -339,18 +364,26 @@ export function checkAllAlerts(
   // --- Portfolio-wide checks ---
 
   // 19. Portfolio down >10%
-  let totalValue = 0;
-  let totalCost = 0;
-  for (const stock of investingStocks) {
-    const q = macroData[stock.symbol] as QuoteData | undefined;
-    const price = q?.c || 0;
-    if (stock.avgCost > 0 && stock.shares > 0 && price > 0) {
-      totalValue += price * stock.shares;
-      totalCost += stock.avgCost * stock.shares;
-    }
-  }
-  if (totalCost > 0) {
-    const totalPLPct = ((totalValue - totalCost) / totalCost) * 100;
+  // 환율 미수신 시 혼합 통화 비중을 추정하지 않고 포트폴리오 전체 알림은 보류한다.
+  const usdKrwRaw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value;
+  const usdKrw: number | null = usdKrwRaw && usdKrwRaw > 0 ? Number(usdKrwRaw) : null;
+  if (usdKrw !== null) {
+    const summary = summarizePortfolioCurrency(
+      investingStocks.map((stock) => {
+        const quote = macroData[stock.symbol] as QuoteData | undefined;
+        return {
+          symbol: stock.symbol,
+          currency: stock.currency,
+          avgCost: stock.avgCost,
+          shares: stock.shares,
+          currentPrice: quote?.c || 0,
+          dayChange: quote?.d || 0,
+          purchaseRate: stock.purchaseRate,
+        };
+      }),
+      usdKrw,
+    );
+    const totalPLPct = summary.totalPnlPctKrw;
     if (totalPLPct < -10) {
       alerts.push(makeAlert(
         'PORTFOLIO', 'portfolio-down', 'risk', 1,
@@ -363,8 +396,6 @@ export function checkAllAlerts(
   // 20. Target return / profit / stop-loss% achieved
   // 정합성 결함 H2-calc 수정 — 환율 미수신 시 1400 fallback이 KRW 임계 거짓 트리거 유발
   // null 사용 후 KRW 검사에서 skip 처리
-  const usdKrwRaw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value;
-  const usdKrw: number | null = usdKrwRaw && usdKrwRaw > 0 ? Number(usdKrwRaw) : null;
   for (const stock of investingStocks) {
     const q = macroData[stock.symbol] as QuoteData | undefined;
     const price = q?.c || 0;
@@ -373,7 +404,7 @@ export function checkAllAlerts(
     const plPct = ((price - stock.avgCost) / stock.avgCost) * 100;
     const plUSD = (price - stock.avgCost) * stock.shares;
     const name = kr(stock.symbol);
-    const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
+    const isKR = getStockCurrency(stock.symbol, stock.currency) === 'KRW';
 
     // 20a. Target return %
     if (stock.targetReturn > 0 && plPct >= stock.targetReturn) {
@@ -395,15 +426,26 @@ export function checkAllAlerts(
 
     // 20c. Target profit KRW — 환율 미수신(usdKrw=null) 시 미국 종목 KRW 평가 보류
     if ((stock.targetProfitKRW ?? 0) > 0 && (isKR || usdKrw !== null)) {
-      const plKRW = isKR ? plUSD : plUSD * (usdKrw as number);
+      const rate = usdKrw ?? 0;
+      const currentKrw = convertStockAmount(
+        stock.symbol,
+        price,
+        rate,
+        stock.currency,
+      ).krw * stock.shares;
+      const costKrw = convertStockCostAmount(
+        stock.symbol,
+        stock.avgCost,
+        rate,
+        stock.purchaseRate,
+        stock.currency,
+      ).krw * stock.shares;
+      const plKRW = currentKrw - costKrw;
       if (plKRW >= (stock.targetProfitKRW ?? 0)) {
-        const fmtWon = (w: number) => w >= 100_000_000
-          ? `${(w / 100_000_000).toFixed(1)}억원`
-          : `${Math.round(w / 10_000)}만원`;
         alerts.push(makeAlert(
           stock.symbol, 'target-profit-krw', 'celebrate', 2,
           `${name} 목표 수익금 달성!`,
-          `현재 수익 ₩${fmtWon(plKRW)}으로 목표(₩${fmtWon(stock.targetProfitKRW ?? 0)})를 달성했어요!`
+          `현재 수익 ${formatKrw(plKRW)}으로 목표(${formatKrw(stock.targetProfitKRW ?? 0)})를 달성했어요!`
         ));
       }
     }

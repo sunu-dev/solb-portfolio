@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 export function useNotification() {
   const { alerts, dismissedAlerts } = usePortfolioStore();
   const notifiedRef = useRef<Set<string>>(new Set());
-  const permissionRef = useRef<NotificationPermission>('default');
+  const [permission, setPermission] = useState<NotificationPermission>('default');
   const [pushEnabled, setPushEnabled] = useState(false);
 
   // Register service worker + read current permission on mount
@@ -24,11 +24,11 @@ export function useNotification() {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
 
     // Register SW
-    if ('serviceWorker' in navigator) {
+    if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    permissionRef.current = Notification.permission;
+    Promise.resolve().then(() => setPermission(Notification.permission));
 
     // 이미 구독 중인지 확인
     if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
@@ -100,18 +100,20 @@ export function useNotification() {
 
   // Request permission + subscribe
   const requestPermission = useCallback(async () => {
-    if (!('Notification' in window)) return false;
-    const permission = await Notification.requestPermission();
-    permissionRef.current = permission;
-    if (permission === 'granted') {
-      await subscribePush();
+    if (!('Notification' in window)) {
+      return { permission: 'unsupported' as const, subscribed: false };
     }
-    return permission === 'granted';
+    const nextPermission = await Notification.requestPermission();
+    setPermission(nextPermission);
+    const subscribed = nextPermission === 'granted'
+      ? await subscribePush()
+      : false;
+    return { permission: nextPermission, subscribed };
   }, [subscribePush]);
 
   // Show local notification for new urgent/risk alerts (앱 열려있을 때)
   useEffect(() => {
-    if (permissionRef.current !== 'granted') return;
+    if (permission !== 'granted') return;
 
     const newAlerts = alerts.filter(a =>
       a.severity <= 2 &&
@@ -139,11 +141,11 @@ export function useNotification() {
         }
       }
     });
-  }, [alerts, dismissedAlerts]);
+  }, [alerts, dismissedAlerts, permission]);
 
   return {
     requestPermission,
-    permission: permissionRef.current,
+    permission,
     pushEnabled,
     subscribePush,
     unsubscribePush,

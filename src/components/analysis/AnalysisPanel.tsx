@@ -12,17 +12,25 @@ import {
 } from '@/utils/technical';
 import { buildChartNarrative } from '@/utils/chartNarrative';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { StockItem, QuoteData, NewsItem, MacroEntry, TrendType } from '@/config/constants';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { AIReport, StockItem, QuoteData, NewsItem } from '@/config/constants';
+import { BarChart3, Check, ChevronLeft, ChevronRight, ShieldAlert, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
-import { MENTORS, MENTOR_MAP } from '@/config/mentors';
+import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
 import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
+import AiResultMeta from '@/components/common/AiResultMeta';
+import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+  getStockCurrency,
+  isKoreanStockSymbol,
+} from '@/utils/stockCurrency';
 
 const AI_STEPS = [
   { label: '최신 뉴스 수집 중', pct: 15 },
@@ -77,7 +85,7 @@ function AIProgressIndicator() {
               color: i < step ? 'var(--brand-primary, #0E7C7B)' : i === step ? '#fff' : 'var(--text-tertiary, #B0B8C1)',
               transition: 'all 0.3s ease',
             }}>
-              {i < step ? '✓' : i + 1}
+              {i < step ? <Check size={12} aria-label="완료" /> : i + 1}
             </span>
             <span style={{
               color: i <= step ? 'var(--text-primary, #191F28)' : 'var(--text-tertiary, #B0B8C1)',
@@ -109,8 +117,34 @@ import BuySimulator from '@/components/portfolio/BuySimulator';
 import InvestmentNotes from '@/components/portfolio/InvestmentNotes';
 
 // AI report cache (module-level, persists across re-renders)
-const aiReportCache: Record<string, { report: any; timestamp: number }> = {};
-const mentorReportCache: Record<string, { report: any; timestamp: number }> = {};
+interface AnalysisReport extends AIReport {
+  newsContext?: string;
+  newsAnalysis?: { headline: string; impact: string }[];
+  scenarios?: { bull: string; bear: string };
+  _meta?: AiResultMetaValue;
+}
+
+interface MentorReport extends AnalysisReport {
+  mentorScore?: number;
+  mentorVerdict?: string;
+  keyAdvice?: string[];
+  quote?: string;
+}
+
+interface Fundamentals {
+  per?: number;
+  eps?: number;
+  marketCap?: number;
+  dividendYield?: number;
+  week52High?: number;
+  week52Low?: number;
+  sector?: string;
+  currency?: 'KRW' | 'USD';
+  resolvedSymbol?: string;
+}
+
+const aiReportCache: Record<string, { report: AnalysisReport; timestamp: number }> = {};
+const mentorReportCache: Record<string, { report: MentorReport; timestamp: number }> = {};
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // 캐시 초기화 (계정 전환 시 호출)
@@ -121,36 +155,70 @@ export function clearAnalysisCache() {
 
 type ChartLevel = 'basic' | 'detail';
 
-import { formatKRW } from '@/utils/formatKRW';
-function fmtWon(val: number): string { return formatKRW(val, { suffix: '원', prefix: false }); }
-function fmtWonShort(val: number): string { return formatKRW(val); }
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
+
+function fmtNativePrice(val: number, nativeCurrency: 'KRW' | 'USD'): string {
+  return nativeCurrency === 'KRW'
+    ? formatKrw(val)
+    : formatUsd(val);
+}
+function fmtMarketCap(val: number, nativeCurrency: 'KRW' | 'USD'): string {
+  if (nativeCurrency === 'KRW') {
+    if (val >= 1e12) return `${(val / 1e12).toFixed(1)}조원`;
+    if (val >= 1e8) return `${(val / 1e8).toFixed(1)}억원`;
+    return formatKrw(val, { prefix: false, suffix: '원', short: false });
+  }
+  if (val >= 1e12) return `$${(val / 1e12).toFixed(1)}T`;
+  if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
+  return `$${(val / 1e6).toFixed(0)}M`;
+}
+
+
+/**
+ * 단일 종목 현재가 — **서버 라우트 경유**.
+ *
+ * 예전에는 미국 종목을 브라우저에서 Finnhub에 직접 조회했고, 그러려면 클라이언트가
+ * API 키를 들고 있어야 했다(/api/ws-token이 전 방문자에게 키를 뿌린 이유).
+ * 키 노출 경로를 없애면서 조회를 서버 라우트로 옮겼다.
+ */
+async function fetchQuoteViaServer(symbol: string): Promise<QuoteData | null> {
+  if (isKoreanStockSymbol(symbol)) {
+    const r = await fetch(`/api/kr-quote?symbol=${symbol}`);
+    return await r.json();
+  }
+  const r = await fetch('/api/quotes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbols: [symbol] }),
+  });
+  const json = await r.json();
+  return json?.quotes?.[symbol] ?? null;
+}
 
 export default function AnalysisPanel() {
   const {
     analysisSymbol, setAnalysisSymbol,
     macroData, rawCandles,
     stocks,
-    apiKey,
     currency,
-    investorType,
     getAllSymbols,
   } = usePortfolioStore();
 
-  const { fetchCandle, rawCandle } = useCandleData(analysisSymbol);
+  const { fetchCandle } = useCandleData(analysisSymbol);
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
   const [chartRange, setChartRange] = useState<number>(60); // default 3M (60 trading days)
   const [showAIReport, setShowAIReport] = useState(false);
-  const [aiReport, setAiReport] = useState<any>(null);
+  const [aiReport, setAiReport] = useState<AnalysisReport | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
-  const [mentorReport, setMentorReport] = useState<any>(null);
+  const [mentorReport, setMentorReport] = useState<MentorReport | null>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
   const [mentorError, setMentorError] = useState('');
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
-  const [fundamentals, setFundamentals] = useState<any>(null);
+  const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const [wideMode, setWideMode] = useState(false); // lg+ 넓게 보기(opt-in, localStorage)
 
   const symbol = analysisSymbol;
@@ -159,17 +227,12 @@ export default function AnalysisPanel() {
 
   // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
   useEffect(() => {
-    if (!symbol || !apiKey) return;
+    if (!symbol) return;
     setLoading(true);
 
     const fetchFreshQuote = async () => {
       try {
-        const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
-        const url = isKR
-          ? `/api/kr-quote?symbol=${symbol}`
-          : `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`;
-        const r = await fetch(url);
-        const d = await r.json();
+        const d = await fetchQuoteViaServer(symbol);
         if (d?.c) {
           usePortfolioStore.getState().updateMacroEntry(symbol, d);
         }
@@ -209,14 +272,6 @@ export default function AnalysisPanel() {
   // 위험 해설만 — §6 자문업 차단. 영속 종목명(stockData.name) 우선 → 한국 ETF 16종 키워드 탐지.
   const displayName = stockData?.name || kr;
   const isLev = isSingleStockLeverage(symbol || '', displayName);
-
-  const stockCategory = useMemo((): string | undefined => {
-    if (!symbol) return undefined;
-    for (const c of ['investing', 'watching', 'sold'] as const) {
-      if ((stocks[c] || []).some(x => x.symbol === symbol)) return c;
-    }
-    return undefined;
-  }, [symbol, stocks]);
 
   const analysis = useMemo(() => {
     const raw = symbol ? rawCandles[symbol] : null;
@@ -263,8 +318,7 @@ export default function AnalysisPanel() {
   const isThinData = candleCount > 0 && candleCount <= 20;
 
   // USD/KRW
-  const usdKrwEntry = macroData['USD/KRW'] as MacroEntry | undefined;
-  const usdKrw = usdKrwEntry?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
 
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -300,8 +354,51 @@ export default function AnalysisPanel() {
   const price = quote?.c || rawCandles[symbol]?.c?.at(-1) || 0;
   const change = quote?.d || 0;
   const cp = quote?.dp || 0;
-  const isGain = change >= 0;
-  const priceWon = price * usdKrw;
+  const nativeCurrency = getStockCurrency(symbol, stockData?.currency);
+  const isKoreanStock = nativeCurrency === 'KRW';
+  const fundamentalsCurrency = fundamentals?.currency || nativeCurrency;
+  const priceAmounts = convertStockAmount(
+    symbol,
+    price,
+    usdKrw,
+    stockData?.currency,
+  );
+  const changeAmounts = convertStockAmount(
+    symbol,
+    change,
+    usdKrw,
+    stockData?.currency,
+  );
+  const avgCostAmounts = convertStockCostAmount(
+    symbol,
+    stockData?.avgCost || 0,
+    usdKrw,
+    stockData?.purchaseRate,
+    stockData?.currency,
+  );
+  const costAmounts = convertStockCostAmount(
+    symbol,
+    (stockData?.avgCost || 0) * (stockData?.shares || 0),
+    usdKrw,
+    stockData?.purchaseRate,
+    stockData?.currency,
+  );
+  const valueAmounts = convertStockAmount(
+    symbol,
+    price * (stockData?.shares || 0),
+    usdKrw,
+    stockData?.currency,
+  );
+  const pnlAmounts = {
+    krw: valueAmounts.krw - costAmounts.krw,
+    usd: valueAmounts.usd - costAmounts.usd,
+  };
+  const displayChange = currency === 'KRW' ? changeAmounts.krw : changeAmounts.usd;
+  const isGain = displayChange >= 0;
+  const displayPnl = currency === 'KRW' ? pnlAmounts.krw : pnlAmounts.usd;
+  const displayCost = currency === 'KRW' ? costAmounts.krw : costAmounts.usd;
+  const displayPnlPct = displayCost > 0 ? (displayPnl / displayCost) * 100 : 0;
+  const pnlIsGain = displayPnl >= 0;
 
   // 상세 내 종목 스위처 — 보유/관심/매도 종목 순회(검색 살펴보기 등 목록 밖 종목은 미노출).
   const allSymbols = getAllSymbols();
@@ -311,7 +408,7 @@ export default function AnalysisPanel() {
   return (
     <>
       {/* Overlay */}
-'      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
+      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
 
       {/* Panel */}
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: 16 }}>
@@ -352,7 +449,9 @@ export default function AnalysisPanel() {
               </div>
               <div>
                 <div style={{ fontSize: 17, fontWeight: 700, color: '#191F28' }}>{kr !== symbol ? kr : symbol}</div>
-                <div style={{ fontSize: 12, color: '#B0B8C1' }}>{symbol} · {symbol.endsWith('.KS') ? 'KRX' : symbol.endsWith('.KQ') ? 'KOSDAQ' : 'NASDAQ'}</div>
+                <div style={{ fontSize: 12, color: '#B0B8C1' }}>
+                  {symbol} · {symbol.endsWith('.KQ') ? 'KOSDAQ' : isKoreanStock ? 'KRX' : 'NASDAQ'}
+                </div>
               </div>
             </div>
             <div className="flex items-center" style={{ marginLeft: 'auto', gap: 2 }}>
@@ -434,13 +533,25 @@ export default function AnalysisPanel() {
                 {/* Price hero */}
                 <div style={{ textAlign: 'center', marginBottom: 28 }}>
                   <div style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                    ${price ? price.toFixed(2) : '--'}
+                    {price
+                      ? currency === 'KRW'
+                        ? formatKrw(priceAmounts.krw)
+                        : formatUsd(priceAmounts.usd)
+                      : '--'}
                   </div>
                   <div style={{ fontSize: 14, color: '#8B95A1', marginTop: 4 }}>
-                    ₩{priceWon > 0 ? Math.round(priceWon).toLocaleString() : '--'} (×{usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })})
+                    {price
+                      ? currency === 'KRW'
+                        ? formatUsd(priceAmounts.usd)
+                        : formatKrw(priceAmounts.krw)
+                      : '--'}
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 500, marginTop: 4, color: isGain ? '#EF4452' : '#3182F6' }}>
-                    {isGain ? '▲' : '▼'} {change >= 0 ? '+' : ''}${change.toFixed(2)} ({cp >= 0 ? '+' : ''}{cp.toFixed(2)}%) 오늘
+                    {isGain ? '▲' : '▼'} {displayChange >= 0 ? '+' : '-'}
+                    {currency === 'KRW'
+                      ? formatKrw(Math.abs(displayChange))
+                      : formatUsd(Math.abs(displayChange))}{' '}
+                    ({cp >= 0 ? '+' : ''}{cp.toFixed(2)}%) 오늘
                   </div>
                   <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 6 }}>
                     ⏱ 약 15분 지연 시세
@@ -488,12 +599,7 @@ export default function AnalysisPanel() {
                       let latestChange = change;
                       let latestCp = cp;
                       try {
-                        const isKr = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
-                        const quoteUrl = isKr
-                          ? `/api/kr-quote?symbol=${symbol}`
-                          : `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`;
-                        const qr = await fetch(quoteUrl);
-                        const qd = await qr.json();
+                        const qd = await fetchQuoteViaServer(symbol);
                         if (qd?.c) {
                           latestPrice = qd.c;
                           latestChange = qd.d || 0;
@@ -511,19 +617,10 @@ export default function AnalysisPanel() {
                         body: JSON.stringify({
                           symbol,
                           koreanName: displayName,
+                          currency: fundamentalsCurrency,
                           price: latestPrice,
                           change: latestChange,
                           changePercent: latestCp,
-                          avgCost: stockData?.avgCost,
-                          shares: stockData?.shares,
-                          targetReturn: stockData?.targetReturn,
-                          stopLoss: stockData?.stopLoss,
-                          stopLossPct: stockData?.stopLossPct,
-                          weight: stockData?.weight,
-                          buyBelow: stockData?.buyBelow,
-                          purchaseRate: stockData?.purchaseRate,
-                          currentUsdKrw: Math.round(usdKrw),
-                          category: stockCategory,
                           rsi: analysis?.rsiVal?.toFixed(0),
                           trend: analysis?.trend,
                           cross: analysis?.cross,
@@ -537,9 +634,12 @@ export default function AnalysisPanel() {
                           week52High: fundamentals?.week52High,
                           week52Low: fundamentals?.week52Low,
                           sector: fundamentals?.sector,
-                          investorType,
-                          userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
-                          timeSeriesContext: symbol ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(rawCandles[symbol]) : '',
+                          timeSeriesContext: symbol
+                            ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
+                                rawCandles[symbol],
+                                nativeCurrency,
+                              )
+                            : '',
                         }),
                       });
                       const data = await resp.json();
@@ -576,29 +676,34 @@ export default function AnalysisPanel() {
                   }}
                 >
                   {isLev
-                    ? <><span>🛡️</span> 이 상품은 AI 분석을 제공하지 않아요</>
-                    : <><span>🤖</span> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</>}
+                    ? <><ShieldAlert size={17} aria-hidden="true" /> 이 상품은 AI 분석을 제공하지 않아요</>
+                    : <><Sparkles size={17} aria-hidden="true" /> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</>}
                   {aiRemaining !== null && !showAIReport && !aiLoading && !isLev && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
                 </button>
+                {!isLev && (
+                  <div style={{ marginTop: -14, marginBottom: 24, textAlign: 'center', fontSize: 11.5, lineHeight: 1.55, color: 'var(--text-tertiary, #8B95A1)' }}>
+                    AI에는 종목·공개 시세·지표·뉴스만 전송하며, 평단·수량·목표·메모는 보내지 않아요.
+                  </div>
+                )}
 
                 {/* 단일종목 레버리지: AI 분석 '거부 + 일반 종목 유도' 카드 (디자인 패널 2026-06-01).
                     모달 X(이미 게이트 거침)·인라인 교체. 면허 아닌 '고위험·적합성' 사유, 방향·추천 0. */}
                 {showAIReport && isLev && (
                   <div style={{ borderRadius: 16, padding: '18px 20px', marginBottom: 24, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', wordBreak: 'keep-all' }}>
                     <div style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: 8, background: 'rgba(245,158,11,0.14)', color: '#B45309', fontSize: 11, fontWeight: 700, letterSpacing: 0.2, marginBottom: 10 }}>
-                      🛡️ 고위험 · AI 분석 제외
+                      고위험 · AI 분석 제외
                     </div>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 18 }}>🛡️</span>
+                      <ShieldAlert size={18} aria-hidden="true" color="#B45309" />
                       <span style={{ fontSize: 14, fontWeight: 700, color: '#B45309' }}>이 종목은 AI 분석을 제공하지 않아요</span>
                     </div>
                     <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7 }}>
                       {LEVERAGE_ANALYSIS_REFUSAL}
                     </div>
                     <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'var(--bg-subtle, #F2F4F6)', fontSize: 12.5, color: 'var(--text-secondary, #4E5968)' }}>
-                      ✓ 보유 현황·수익률·차트·가격 알림은 그대로 관리돼요.
+                      보유 현황·수익률·차트·가격 알림은 그대로 관리돼요.
                     </div>
                     <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(245,158,11,0.18)' }}>
                       <div style={{ fontSize: 12.5, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 8 }}>
@@ -618,7 +723,7 @@ export default function AnalysisPanel() {
                 {showAIReport && !isLev && (
                   <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: 'var(--brand-primary-bg, rgba(14,124,123,0.06))', border: '1px solid var(--brand-primary-light, rgba(14,124,123,0.12))' }}>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
-                      <span style={{ fontSize: 18 }}>📊</span>
+                      <BarChart3 size={18} aria-hidden="true" />
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)' }}>주비 AI 분석</span>
                       <span style={{ fontSize: 12, color: '#B0B8C1', marginLeft: 'auto' }}>
                         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
@@ -650,14 +755,14 @@ export default function AnalysisPanel() {
                     {aiReport && (
                       <>
                         <div style={{ marginBottom: 20 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📉 현재 상태</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>현재 상태</div>
                           <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.currentStatus}</div>
                         </div>
                         {aiReport.indicators?.length > 0 && (
                           <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📊 주요 지표</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>주요 지표</div>
                             <div className="flex flex-col" style={{ gap: 8 }}>
-                              {aiReport.indicators.map((ind: any, idx: number) => (
+                              {aiReport.indicators.map((ind, idx) => (
                                 <div key={idx} style={{ padding: '12px 14px', background: '#fff', borderRadius: 10 }}>
                                   <div style={{ fontSize: 12, fontWeight: 600, color: '#8B95A1', marginBottom: 4 }}>{ind.name}</div>
                                   <div style={{ fontSize: 13, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#4E5968', lineHeight: 1.6 }}>{ind.value}</div>
@@ -668,15 +773,15 @@ export default function AnalysisPanel() {
                         )}
                         {aiReport.historicalNote && (
                           <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📈 과거 유사 상황</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>과거 유사 상황</div>
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.historicalNote}</div>
                           </div>
                         )}
                         {aiReport.newsAnalysis && aiReport.newsAnalysis.length > 0 ? (
                           <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>📰 뉴스 기반 분석</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>뉴스 기반 분석</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {aiReport.newsAnalysis.map((item: { headline: string; impact: string }, i: number) => (
+                              {aiReport.newsAnalysis.map((item, i) => (
                                 <div key={i} style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 10, padding: '10px 14px' }}>
                                   <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 4, lineHeight: 1.5 }}>{item.headline}</div>
                                   <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>→ {item.impact}</div>
@@ -686,20 +791,20 @@ export default function AnalysisPanel() {
                           </div>
                         ) : aiReport.newsContext ? (
                           <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>📰 뉴스 영향</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>뉴스 영향</div>
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.newsContext}</div>
                           </div>
                         ) : null}
                         {aiReport.scenarios && (
                           <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>🔭 이런 상황이 올 수 있어요</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>이런 상황이 올 수 있어요</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                               <div style={{ background: '#EDFCF2', borderRadius: 10, padding: '12px 14px' }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', marginBottom: 4 }}>📈 상승한다면</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', marginBottom: 4 }}>상승한다면</div>
                                 <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>{aiReport.scenarios.bull}</div>
                               </div>
                               <div style={{ background: '#FFF0F0', borderRadius: 10, padding: '12px 14px' }}>
-                                <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4452', marginBottom: 4 }}>📉 하락한다면</div>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: '#EF4452', marginBottom: 4 }}>하락한다면</div>
                                 <div style={{ fontSize: 13, color: '#191F28', lineHeight: 1.6 }}>{aiReport.scenarios.bear}</div>
                               </div>
                             </div>
@@ -708,14 +813,15 @@ export default function AnalysisPanel() {
                         {aiReport.conclusion && (
                           <div style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 }}>
                             <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                              <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>💡 종합 판단</span>
-                              <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: aiReport.conclusion.signal === 'positive' ? '#EDFCF2' : aiReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)', color: aiReport.conclusion.signal === 'positive' ? '#16A34A' : aiReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500' }}>
-                                {aiReport.conclusion.label} {aiReport.conclusion.signal === 'positive' ? '🟢' : aiReport.conclusion.signal === 'negative' ? '🔴' : '🟡'}
+                              <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>정보 정리</span>
+                              <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 6, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)' }}>
+                                {aiReport.conclusion.label}
                               </span>
                             </div>
                             <div style={{ fontSize: 14, color: '#4E5968', lineHeight: 1.7 }}>{aiReport.conclusion.desc}</div>
                           </div>
                         )}
+                        <AiResultMeta meta={aiReport._meta} source="ai-analysis" symbol={symbol} />
                       </>
                     )}
 
@@ -750,14 +856,16 @@ export default function AnalysisPanel() {
                       {fundamentals.eps != null && (
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>EPS (주당순이익)</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.eps.toFixed(2)}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.eps, fundamentalsCurrency)}
+                          </span>
                         </div>
                       )}
                       {fundamentals.marketCap != null && (
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>시가총액</span>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            ${fundamentals.marketCap >= 1e12 ? `${(fundamentals.marketCap / 1e12).toFixed(1)}T` : fundamentals.marketCap >= 1e9 ? `${(fundamentals.marketCap / 1e9).toFixed(1)}B` : `${(fundamentals.marketCap / 1e6).toFixed(0)}M`}
+                            {fmtMarketCap(fundamentals.marketCap, fundamentalsCurrency)}
                           </span>
                         </div>
                       )}
@@ -770,13 +878,17 @@ export default function AnalysisPanel() {
                       {fundamentals.week52High != null && (
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최고</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.week52High.toFixed(2)}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.week52High, fundamentalsCurrency)}
+                          </span>
                         </div>
                       )}
                       {fundamentals.week52Low != null && (
                         <div className="flex justify-between">
                           <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최저</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>${fundamentals.week52Low.toFixed(2)}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.week52Low, fundamentalsCurrency)}
+                          </span>
                         </div>
                       )}
                       {fundamentals.sector && (
@@ -805,7 +917,7 @@ export default function AnalysisPanel() {
                       border: '1px solid rgba(245,158,11,0.2)',
                     }}>
                       <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 16 }}>⚠️</span>
+                        <TriangleAlert size={16} aria-hidden="true" color="#B45309" />
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309' }}>
                           매수 매력도 점수를 제공하지 않는 종목이에요
                         </span>
@@ -869,16 +981,8 @@ export default function AnalysisPanel() {
                                   ...(sess?.access_token ? { 'Authorization': `Bearer ${sess.access_token}` } : {}),
                                 },
                                 body: JSON.stringify({
-                                  symbol, koreanName: displayName, price, change, changePercent: cp,
-                                  avgCost: stockData?.avgCost, shares: stockData?.shares,
-                                  targetReturn: stockData?.targetReturn,
-                                  stopLoss: stockData?.stopLoss,
-                                  stopLossPct: stockData?.stopLossPct,
-                                  weight: stockData?.weight,
-                                  buyBelow: stockData?.buyBelow,
-                                  purchaseRate: stockData?.purchaseRate,
-                                  currentUsdKrw: Math.round(usdKrw),
-                                  category: stockCategory,
+                                  symbol, koreanName: displayName, currency: fundamentalsCurrency,
+                                  price, change, changePercent: cp,
                                   rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
                                   cross: analysis?.cross, pattern: analysis?.pattern?.name,
                                   bollingerStatus: analysis?.bollingerStatus?.status,
@@ -889,9 +993,12 @@ export default function AnalysisPanel() {
                                   week52High: fundamentals?.week52High,
                                   week52Low: fundamentals?.week52Low,
                                   sector: fundamentals?.sector,
-                                  investorType,
-                                  userNotes: (stockData?.notes || []).slice(-3).map(n => `${n.emoji} ${n.text}`),
-                                  timeSeriesContext: symbol ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(rawCandles[symbol]) : '',
+                                  timeSeriesContext: symbol
+                                    ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
+                                        rawCandles[symbol],
+                                        nativeCurrency,
+                                      )
+                                    : '',
                                 }),
                               });
                               const data = await resp.json();
@@ -1013,12 +1120,12 @@ export default function AnalysisPanel() {
                           </div>
 
                           {/* Key advice */}
-                          {mentorReport.keyAdvice?.length > 0 && (
+                          {(mentorReport.keyAdvice?.length ?? 0) > 0 && (
                             <div style={{ marginBottom: 14 }}>
                               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', marginBottom: 8 }}>
-                                {selectedMentor.icon} {selectedMentor.nameKr}의 조언
+                                {selectedMentor.nameKr}의 관점 설명
                               </div>
-                              {mentorReport.keyAdvice.map((advice: string, i: number) => (
+                              {mentorReport.keyAdvice?.map((advice, i) => (
                                 <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.6, marginBottom: 6 }}>
                                   <span style={{ color: selectedMentor.color, flexShrink: 0 }}>{i + 1}.</span>
                                   <span>{advice}</span>
@@ -1038,11 +1145,11 @@ export default function AnalysisPanel() {
                           {mentorReport.conclusion && (
                             <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, #fff)' }}>
                               <div className="flex items-center" style={{ gap: 8, marginBottom: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>종합 판단</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>정보 정리</span>
                                 <span style={{
                                   fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                                  background: mentorReport.conclusion.signal === 'positive' ? '#EDFCF2' : mentorReport.conclusion.signal === 'negative' ? '#FFF0F0' : 'rgba(255,149,0,0.08)',
-                                  color: mentorReport.conclusion.signal === 'positive' ? '#16A34A' : mentorReport.conclusion.signal === 'negative' ? '#EF4452' : '#FF9500',
+                                  background: 'var(--bg-subtle, #F2F4F6)',
+                                  color: 'var(--text-secondary, #4E5968)',
                                 }}>
                                   {mentorReport.conclusion.label}
                                 </span>
@@ -1149,55 +1256,57 @@ export default function AnalysisPanel() {
 
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? `₩${Math.round(stockData.avgCost * usdKrw).toLocaleString()}` : `$${stockData.avgCost.toFixed(2)}`}
+                        {currency === 'KRW'
+                          ? formatKrw(avgCostAmounts.krw)
+                          : formatUsd(avgCostAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? `($${stockData.avgCost.toFixed(2)})` : `(₩${Math.round(stockData.avgCost * usdKrw).toLocaleString()})`}
+                        {currency === 'KRW'
+                          ? `(${formatUsd(avgCostAmounts.usd)})`
+                          : `(${formatKrw(avgCostAmounts.krw)})`}
                       </span>
 
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? fmtWonShort(stockData.avgCost * stockData.shares * usdKrw) : `$${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                        {currency === 'KRW'
+                          ? formatKrw(costAmounts.krw)
+                          : formatUsd(costAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? `($${(stockData.avgCost * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})` : `(${fmtWonShort(stockData.avgCost * stockData.shares * usdKrw)})`}
+                        {currency === 'KRW'
+                          ? `(${formatUsd(costAmounts.usd)})`
+                          : `(${formatKrw(costAmounts.krw)})`}
                       </span>
 
                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? fmtWonShort(price * stockData.shares * usdKrw) : `$${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
+                        {currency === 'KRW'
+                          ? formatKrw(valueAmounts.krw)
+                          : formatUsd(valueAmounts.usd)}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW' ? `($${(price * stockData.shares).toLocaleString(undefined, { maximumFractionDigits: 0 })})` : `(${fmtWonShort(price * stockData.shares * usdKrw)})`}
+                        {currency === 'KRW'
+                          ? `(${formatUsd(valueAmounts.usd)})`
+                          : `(${formatKrw(valueAmounts.krw)})`}
                       </span>
 
-                      {(() => {
-                        const costUsd = stockData.avgCost * stockData.shares;
-                        const valUsd = price * stockData.shares;
-                        const plUsd = valUsd - costUsd;
-                        const plWon = plUsd * usdKrw;
-                        const plPctVal = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                        const plIsGain = plUsd >= 0;
-                        const plColor = plIsGain ? '#EF4452' : '#3182F6'; // 한국 손익 컨벤션 — 보존
-                        return (
-                          <>
-                            <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
-                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
-                            <span style={{ fontSize: 14, fontWeight: 600, color: plColor, textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                              {currency === 'KRW' ? `${plIsGain ? '+' : '-'}${fmtWonShort(Math.abs(plWon))}` : `${plIsGain ? '+' : '-'}$${Math.abs(plUsd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                            </span>
-                            <span style={{ fontSize: 11, fontWeight: 400, color: plColor, textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                              ({plIsGain ? '+' : ''}{plPctVal.toFixed(2)}%)
-                            </span>
-                          </>
-                        );
-                      })()}
+                      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
+                          ? formatKrw(Math.abs(displayPnl))
+                          : formatUsd(Math.abs(displayPnl))}`}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
+                      </span>
                     </div>
                     <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
-                      {currency === 'KRW'
-                        ? `💡 환율 ₩${usdKrw.toLocaleString(undefined, { maximumFractionDigits: 0 })}/$ 기준이에요. 환율이 바뀌면 원화 금액도 달라져요.`
-                        : '💡 달러 기준으로 표시 중이에요. 괄호 안은 원화 환산 금액이에요.'
-                      }
+                      {isKoreanStock
+                        ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
+                        : currency === 'KRW'
+                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
+                          : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
                     </div>
                   </div>
                 )}
@@ -1249,7 +1358,11 @@ export default function AnalysisPanel() {
                       <div className="flex items-center" style={{ gap: 12, padding: '10px 14px', borderRadius: 10, background: '#F8F9FA' }}>
                         <span style={{ fontSize: 12, color: '#B0B8C1', minWidth: 80 }}>매수</span>
                         <span style={{ fontSize: 13, color: '#191F28', flex: 1 }}>{stockData.shares}주</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>${stockData.avgCost.toFixed(2)}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                          {currency === 'KRW'
+                            ? formatKrw(avgCostAmounts.krw)
+                            : formatUsd(avgCostAmounts.usd)}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1257,9 +1370,8 @@ export default function AnalysisPanel() {
 
                 {/* Buy Simulator — 9인 패널 결정 반영: market/priceCurrency 분리 */}
                 {symbol && price > 0 && (() => {
-                  const isKR = symbol.endsWith('.KS') || symbol.endsWith('.KQ');
-                  const market: 'KR' | 'US' = isKR ? 'KR' : 'US';
-                  const priceCurrency: 'KRW' | 'USD' = isKR ? 'KRW' : 'USD';
+                  const market: 'KR' | 'US' = isKoreanStock ? 'KR' : 'US';
+                  const priceCurrency: 'KRW' | 'USD' = nativeCurrency;
                   // 포트폴리오 평가액을 priceCurrency 단위로 통일 (혼합 보유 종목 환산)
                   const totalPortfolioValue = (() => {
                     const state = usePortfolioStore.getState();
@@ -1267,14 +1379,13 @@ export default function AnalysisPanel() {
                     (state.stocks.investing || []).forEach(s => {
                       const q = state.macroData[s.symbol] as QuoteData | undefined;
                       if (!q?.c || !s.shares) return;
-                      const stockIsKR = s.symbol.endsWith('.KS') || s.symbol.endsWith('.KQ');
-                      const stockPC = stockIsKR ? 'KRW' : 'USD';
-                      let val = q.c * s.shares;
-                      if (stockPC !== priceCurrency) {
-                        if (priceCurrency === 'KRW') val *= usdKrw;
-                        else if (usdKrw > 0) val /= usdKrw;
-                      }
-                      tv += val;
+                      const amounts = convertStockAmount(
+                        s.symbol,
+                        q.c * s.shares,
+                        usdKrw,
+                        s.currency,
+                      );
+                      tv += priceCurrency === 'KRW' ? amounts.krw : amounts.usd;
                     });
                     return tv;
                   })();
@@ -1422,7 +1533,7 @@ export default function AnalysisPanel() {
                       return (
                         <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-                            📊 이 차트, 지금 이런 상태예요
+                            이 차트, 지금 이런 상태예요
                           </div>
                           <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.65 }}>
                             {narrative.summary}
@@ -1586,7 +1697,7 @@ export default function AnalysisPanel() {
 
                 {/* Related news */}
                 <div id="anchor-news" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, marginTop: 24, scrollMarginTop: 44 }}>
-                  📰 관련 뉴스
+                  관련 뉴스
                 </div>
                 {tickerNews.length > 0 ? (
                   <div>
@@ -1620,7 +1731,7 @@ export default function AnalysisPanel() {
 
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 16 }}>
-                  ⚠️ AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
+                  AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
                 </div>
               </>
             )}

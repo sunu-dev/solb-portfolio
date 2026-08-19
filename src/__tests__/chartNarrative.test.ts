@@ -56,20 +56,27 @@ function allNarrativeInputs(): NarrativeInput[] {
 
 describe('chartNarrative 여정 요약 — §6 누출 박제', () => {
   it('모든 입력 조합에서 처방·예측·valence 토큰 0', () => {
+    // 위반을 모아 단일 expect로 판정한다. 조합(3,456)×토큰(~30) 개별 expect는
+    // vitest 4.1.11에서 호출당 오버헤드로 6~8초가 걸려 5초 타임아웃을 넘겼다
+    // (순수 buildChartNarrative 전 조합은 4ms — 병목은 expect 자체였다. 2026-08-19).
+    const violations: string[] = [];
     for (const input of allNarrativeInputs()) {
       const text = narrativeText(input);
       for (const tok of FORBIDDEN) {
-        expect(text.includes(tok), `입력 ${JSON.stringify(input)} 출력에 §6 토큰 "${tok}"`).toBe(false);
+        if (text.includes(tok)) violations.push(`§6 토큰 "${tok}" ← 입력 ${JSON.stringify(input)}`);
       }
     }
+    expect(violations).toEqual([]);
   });
 
   it('raw 저점대비% 폐기 — 전 조합에서 "저점 N 대비"·"% 올라온" 0건', () => {
+    const violations: string[] = [];
     for (const input of allNarrativeInputs()) {
       const { summary } = buildChartNarrative(input);
-      expect(/저점 [\d.,]+ 대비/.test(summary), `저점대비 회귀: "${summary}"`).toBe(false);
-      expect(/\d+% 올라온/.test(summary), `% 올라온 회귀: "${summary}"`).toBe(false);
+      if (/저점 [\d.,]+ 대비/.test(summary)) violations.push(`저점대비 회귀: "${summary}"`);
+      if (/\d+% 올라온/.test(summary)) violations.push(`% 올라온 회귀: "${summary}"`);
     }
+    expect(violations).toEqual([]);
   });
 
   it('여정 요약은 저점~고점 여정 + 고점 대비 위치 + 기간을 담는다(일반론 회귀 방지)', () => {

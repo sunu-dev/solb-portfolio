@@ -61,11 +61,30 @@ const DIGEST_CAUSAL_FORBIDDEN = [
   '영향으로 상승', '영향으로 하락', '여파로',
   '로 인해', '으로 인해',
   '확실히', '분명히', '틀림없이',
-  '오를 것', '내릴 것', '상승할 것', '하락할 것', '급등할', '급락할',
 ];
 
 /** digest 사후 해설을 생성·조립하는 소스 파일에만 DIGEST_CAUSAL_FORBIDDEN을 적용 */
 const DIGEST_FILE_RE = /morning-brief|digest/;
+
+// 미래 방향 단정·확률 표현 — **전역 적용** (§6 + 검증 안 된 확률 표현 금지).
+//
+// 2026-08-18 전수 감사에서 드러난 사각을 닫는다: 이 어휘들은 원래 DIGEST_CAUSAL_FORBIDDEN에
+// 묶여 digest 경로에서만 검사됐다. 그 결과 `src/config/constants.ts`의 PRESET_EVENTS insight가
+// '강하게 반등할 가능성이 높아요'·'빠른 반등이 기대되지만'을 '초보자를 위한 해석'이라는
+// 권위 프레이밍으로 렌더하는데도 lint는 계속 초록불이었다.
+//
+// 전역 승격이 가능한 이유: 인과 어휘('때문에')와 달리 미래 단정 어휘는 일반 코드·카피에
+// 거의 등장하지 않는다(승격 시점 전체 src 오탐 0건). 가드 정의 파일만 EXCLUDE로 뺀다.
+const FORECAST_FORBIDDEN = [
+  '오를 것', '내릴 것', '상승할 것', '하락할 것', '급등할', '급락할',
+  '반등할', '반등이 기대', '반등을 기대',
+  '가능성이 높', '가능성이 큽', '확률이 높',
+  '기대됩니다', '기대되지만', '기대돼요',
+  '전망됩니다', '예상됩니다', '예상돼요',
+  '효과적이었', '유효한 전략', '매수 타이밍이었', '매도 타이밍이었',
+  '저점 가능', '고점 가능', // 관찰값(VIX 등)을 매매 시점 힌트로 바꾸는 표현 — AiChokSection에 라이브였음 (2026-08-18)
+  '매도 신호', '매수 신호', // 시그널 단정 = 암묵적 방향 예측 — alertGlossary에 라이브였음 (2026-08-19)
+];
 
 // 세무 카피 — 세무사법 §20③/§2 오인 표현 (alertCompliance.ts TAX_FORBIDDEN_PHRASES 미러).
 // 전역엔 과차단('세무사'·'환급'·'절세' 단독은 안전 카피)이라 세무 소스 파일에만 적용한다.
@@ -97,6 +116,16 @@ const ONBOARDING_FORBIDDEN = [
  *  투어 카피 SSOT가 tourRegistry.ts로 이전됐으므로 함께 커버(누락 시 §6 박제 우회). */
 const ONBOARDING_FILE_RE = /onboarding|tourRegistry/i;
 
+// 시장 맥락 교육 카피 — 인과·조건부 일반화·경사(valence) 어휘.
+// 전역엔 과차단('부담'·'유리' 단독은 일반 문장에도 흔함)이라 macroContextCopy 한정.
+// vitest(macroContextCopy.test.ts)와 이중 그물 — 한쪽 목록만 다듬다 뚫리는 사고 방지 (2026-08-19).
+const MACRO_COPY_FORBIDDEN = [
+  '때문', '덕분', '여파', '영향으로', '인해',
+  '보통 오', '보통 내', '흔히 오', '흔히 내', '대체로', '역사적으로', '경향이 있', '곤 해요', '곤 했',
+  '불리', '유리', '부담', '호재', '악재', '눌리', '약세', '강세',
+];
+const MACRO_COPY_FILE_RE = /config\/macroContextCopy/;
+
 /**
  * 검사에서 제외할 파일·디렉토리.
  *
@@ -116,6 +145,9 @@ const EXCLUDE_PATTERNS = [
   /docs\/NOTIFICATION_POLICY\.md$/,           // 정책 문서
   /config\/analysisPrompt\.ts$/,              // AI 프롬프트 — "이렇게 말하지 마" 지시
   /config\/investorTypes\.ts$/,               // 투자자 유형 묘사 — "이런 조급함은 회피"
+  /lib\/aiAnalysisGuard\.ts$/,                // 방향성 탐지 정규식 정의 자체
+  /lib\/aiOutputAudit\.ts$/,                  // 출력 감사 탐지 패턴 정의 자체
+  /__tests__\//,                              // §6 테스트 픽스처(금지어를 검사 대상으로 보유)
 ];
 
 /**
@@ -149,6 +181,7 @@ async function lintFile(filePath) {
   const lines = content.split('\n');
   const violations = [];
   const isDigestFile = DIGEST_FILE_RE.test(filePath);
+  const isMacroCopyFile = MACRO_COPY_FILE_RE.test(filePath);
   const isTaxFile = TAX_FILE_RE.test(filePath);
   const isOnboardingFile = ONBOARDING_FILE_RE.test(filePath);
 
@@ -184,7 +217,33 @@ async function lintFile(filePath) {
       }
     }
 
-    // digest 소스 파일 한정 — 인과·미래 단정 (전역엔 과차단이라 미적용)
+    // 전역 — 미래 방향 단정·확률 표현 (§6). 경로 제한 없음.
+    for (const phrase of FORECAST_FORBIDDEN) {
+      if (stripped.includes(phrase)) {
+        violations.push({
+          file: path.relative(ROOT, filePath),
+          line: i + 1,
+          phrase: `[미래단정] ${phrase}`,
+          context: lines[i].trim().slice(0, 200),
+        });
+      }
+    }
+
+    // macroContextCopy 한정 — 인과·조건부·경사 (vitest와 이중 그물)
+    if (isMacroCopyFile) {
+      for (const phrase of MACRO_COPY_FORBIDDEN) {
+        if (stripped.includes(phrase)) {
+          violations.push({
+            file: path.relative(ROOT, filePath),
+            line: i + 1,
+            phrase: `[매크로카피] ${phrase}`,
+            context: lines[i].trim().slice(0, 200),
+          });
+        }
+      }
+    }
+
+    // digest 소스 파일 한정 — 인과 단정 (전역엔 과차단이라 미적용)
     if (isDigestFile) {
       for (const phrase of DIGEST_CAUSAL_FORBIDDEN) {
         if (stripped.includes(phrase)) {

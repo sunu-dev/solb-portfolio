@@ -45,7 +45,16 @@ describe('tourRegistry — §6 누출 박제 + 무결성', () => {
 
   it('헬퍼(getChapterSteps/getTourStep)가 일관된다', () => {
     expect(getChapterSteps('home').length).toBe(TOUR_STEPS.filter(s => s.chapter === 'home').length);
-    expect(getTourStep('ai-hunch')?.anchor).toBe('ai-chok');
+    expect(getTourStep('record')?.anchor).toBe('record-center');
     expect(getTourStep('nonexistent')).toBeUndefined();
+  });
+
+  it('홈 투어는 개인 주식비서 경험을 먼저, 기록 도구를 나중에 안내한다', () => {
+    expect(getChapterSteps('home').map((step) => step.id)).toEqual([
+      'portfolio',
+      'market',
+      'record',
+      'help',
+    ]);
   });
 });

@@ -1,10 +1,23 @@
 'use client';
 
 import { useMemo } from 'react';
+import { resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { QuoteData } from '@/config/constants';
 import { calcPortfolioDNA } from '@/utils/portfolioDNA';
 import { computeVolBaseline } from '@/utils/volatility';
+import { Anchor, Dna, Flag, Scale, Sprout, Target, Waves, Zap, type LucideIcon } from 'lucide-react';
+import { convertStockAmount } from '@/utils/stockCurrency';
+
+const DNA_TYPE_ICONS: Record<string, LucideIcon> = {
+  저격수: Target,
+  외골수: Flag,
+  스프린터: Zap,
+  수비수: Anchor,
+  균형가: Scale,
+  모험가: Waves,
+  새싹: Sprout,
+};
 
 /**
  * 포트폴리오 DNA — 캐릭터 타입 + 4축 레이더 + 태그
@@ -15,6 +28,7 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
 
   const dna = useMemo(() => {
     const investing = stocks.investing || [];
+    const usdKrw = resolveUsdKrw(macroData);
     const dnaStocks = investing
       .filter(s => s.avgCost > 0 && s.shares > 0)
       .map(s => {
@@ -26,7 +40,12 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
           avgCost: s.avgCost,
           shares: s.shares,
           currentPrice: q?.c || 0,
-          value: (q?.c || 0) * s.shares,
+          value: convertStockAmount(
+            s.symbol,
+            q?.c || 0,
+            usdKrw,
+            s.currency,
+          ).krw * s.shares,
           targetReturn: s.targetReturn,
           dp: q?.dp,
           realizedVol: baseline.isReliable ? baseline.stdReturn : undefined,
@@ -38,6 +57,7 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
   if (!dna) return null;
 
   const { type, axis, traits } = dna;
+  const TypeIcon = DNA_TYPE_ICONS[type.name] ?? Dna;
 
   if (variant === 'compact') {
     return (
@@ -48,7 +68,7 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
           background: 'var(--bg-subtle, #F8F9FA)',
         }}
       >
-        <span style={{ fontSize: 28, lineHeight: 1 }}>{type.emoji}</span>
+        <TypeIcon size={28} strokeWidth={1.6} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {type.name}
@@ -72,8 +92,9 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
         marginBottom: 20,
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 14 }}>
-        🧬 포트폴리오 DNA
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 14 }}>
+        <Dna size={18} strokeWidth={1.75} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+        포트폴리오 DNA
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -81,14 +102,14 @@ export default function PortfolioDNA({ variant = 'full' }: { variant?: 'full' | 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 120 }}>
           <div
             style={{
-              fontSize: 64, lineHeight: 1,
-              padding: 16, borderRadius: '50%',
+              width: 88, height: 88, borderRadius: '50%',
               background: 'var(--bg-subtle, #F8F9FA)',
               border: '1px solid var(--border-light, #F2F4F6)',
+              display: 'grid', placeItems: 'center',
             }}
             aria-hidden="true"
           >
-            {type.emoji}
+            <TypeIcon size={48} strokeWidth={1.4} color="var(--brand-primary, #0E7C7B)" />
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginTop: 8 }}>
             {type.name}
@@ -169,12 +190,6 @@ function RadarChart({ axis }: { axis: { concentration: number; volatility: numbe
       return `${x},${y}`;
     })
     .join(' ');
-
-  // 레퍼런스 polygon (100%)
-  const refPoints = points.map(p => {
-    const { x, y } = toXY(p.angle, radius);
-    return `${x},${y}`;
-  }).join(' ');
 
   return (
     <div style={{ position: 'relative', width: size, height: size }}>

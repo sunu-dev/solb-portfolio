@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
 import { STOCK_KR } from '@/config/constants';
-import type { MacroEntry } from '@/config/constants';
 import { computeChapterTime, buildChapterStats, buildTodayLine, buildChapterRecap } from '@/utils/monthlyChapter';
 
 /**
@@ -45,11 +44,9 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
   if (!data) return null;
   const { time, stats, todayLine, recap } = data;
 
-  const usdKrw = (macroData['USD/KRW'] as MacroEntry | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
   const isGain = stats.totalAbsReturn >= 0;
-  const fmt = (usd: number) => currency === 'KRW'
-    ? formatKRW(Math.round(Math.abs(usd) * usdKrw))
-    : `$${Math.abs(usd).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  const fmt = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
 
   // 어제 대비 델타 (있을 때만)
   const deltaPct = stats.prevTotalPctReturn !== null

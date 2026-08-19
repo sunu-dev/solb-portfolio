@@ -11,12 +11,26 @@ import InvestorTypeQuiz from './InvestorTypeQuiz';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 // IA 재정비 — 포트폴리오 탭에서 이관: 시장 발견(MarketMovers) + 회고·성향 6종
 import MarketMovers from '@/components/portfolio/MarketMovers';
+import MacroRateCard from './MacroRateCard';
 import ThrowbackCard from '@/components/portfolio/ThrowbackCard';
 import TradePatternMirror from '@/components/portfolio/TradePatternMirror';
 import PortfolioDNA from '@/components/portfolio/PortfolioDNA';
 import StockPulse from '@/components/portfolio/StockPulse';
 import InvestmentJournal from '@/components/portfolio/InvestmentJournal';
 import ShareCard from '@/components/portfolio/ShareCard';
+import InvestorTypeIcon from './InvestorTypeIcon';
+import {
+  BrainCircuit,
+  ChevronRight,
+  Crosshair,
+  GitCompare,
+  History,
+  MessageCircle,
+  ScanSearch,
+  Telescope,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react';
 
 /**
  * AI 인사이트 탭 — IA 재정비 (전문가 회의 결과 적용)
@@ -35,7 +49,7 @@ import ShareCard from '@/components/portfolio/ShareCard';
 interface SectionRef {
   id: string;
   label: string;
-  emoji: string;
+  icon: LucideIcon;
   element: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -62,11 +76,11 @@ export default function InsightsSection() {
   // mini-nav는 investingCount>0일 때만 노출 → '회고'는 그 조건에서 항상 동행.
   // '시장 발견'은 이관된 핵심 탐색 콘텐츠라 nav에 상시 포함.
   const sections: SectionRef[] = [
-    { id: 'chok',   label: '촉',       emoji: '🎯', element: chokRef },
-    { id: 'story',  label: '이야기',   emoji: '💬', element: storyRef },
-    { id: 'cohort', label: '숨은 종목', emoji: '🌐', element: cohortRef },
-    { id: 'market', label: '시장 발견', emoji: '🔥', element: marketRef },
-    { id: 'retro',  label: '회고',     emoji: '🪞', element: retroRef },
+    { id: 'chok',   label: '촉',       icon: Crosshair, element: chokRef },
+    { id: 'story',  label: '이야기',   icon: MessageCircle, element: storyRef },
+    { id: 'cohort', label: '숨은 종목', icon: UsersRound, element: cohortRef },
+    { id: 'market', label: '시장 발견', icon: Telescope, element: marketRef },
+    { id: 'retro',  label: '회고',     icon: History, element: retroRef },
   ];
 
   const scrollToSection = (ref: React.RefObject<HTMLDivElement | null>) => {
@@ -86,7 +100,10 @@ export default function InsightsSection() {
             marginBottom: 6, letterSpacing: '-0.01em',
           }}
         >
-          🤖 AI 인사이트
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <BrainCircuit size={24} strokeWidth={1.75} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+            AI 인사이트
+          </span>
         </h1>
         <p style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.5 }}>
           주비 AI가 읽어주는 오늘의 포트폴리오 이야기
@@ -107,7 +124,7 @@ export default function InsightsSection() {
             display: 'flex', alignItems: 'center', gap: 12,
           }}
         >
-          <span style={{ fontSize: 24 }}>🎯</span>
+          <ScanSearch size={24} strokeWidth={1.75} color="var(--color-info, #3182F6)" aria-hidden="true" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
               내 투자 유형 알아보기
@@ -116,7 +133,7 @@ export default function InsightsSection() {
               1분 퀴즈로 나에게 맞춘 AI를 받아보세요
             </div>
           </div>
-          <span style={{ fontSize: 14, color: 'var(--text-tertiary, #B0B8C1)' }}>›</span>
+          <ChevronRight size={16} color="var(--text-tertiary, #B0B8C1)" aria-hidden="true" />
         </button>
       )}
 
@@ -134,7 +151,7 @@ export default function InsightsSection() {
             cursor: 'pointer',
           }}
         >
-          <span style={{ fontSize: 14 }}>{typeMeta.emoji}</span>
+          <InvestorTypeIcon type={typeMeta.id} size={15} color={typeMeta.accentColor} />
           <span style={{ fontSize: 11, fontWeight: 700, color: typeMeta.accentColor }}>
             {typeMeta.nameKr}
           </span>
@@ -158,11 +175,11 @@ export default function InsightsSection() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: 18, flexShrink: 0 }}>🪞</span>
+          <GitCompare size={18} color="var(--text-secondary, #8B95A1)" strokeWidth={1.75} aria-hidden="true" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-              자가진단은 <strong style={{ color: typeMeta.accentColor }}>{typeMeta.emoji} {typeMeta.nameKr}</strong>인데,
-              현재 포트폴리오는 <strong style={{ color: bestFitMeta.accentColor }}>{bestFitMeta.emoji} {bestFitMeta.nameKr}</strong> 패턴에 더 가까워요
+              자가진단은 <strong style={{ color: typeMeta.accentColor }}>{typeMeta.nameKr}</strong>인데,
+              현재 포트폴리오는 <strong style={{ color: bestFitMeta.accentColor }}>{bestFitMeta.nameKr}</strong> 패턴에 더 가까워요
             </div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
               섹터 분포 {behavior.gapPct.toFixed(0)}%p 차이 · 의도적이라면 무시하세요
@@ -225,7 +242,7 @@ export default function InsightsSection() {
       {!hasAnyStock ? (
         <>
           <EmptyState
-            icon="🤖"
+            icon={<BrainCircuit size={40} strokeWidth={1.75} color="var(--text-tertiary, #B0B8C1)" aria-hidden="true" />}
             title="아직 분석할 종목이 없어요"
             description="종목을 추가하면 주비 AI가 맞춤 인사이트를 만들어드려요."
             primaryAction={{
@@ -260,7 +277,9 @@ export default function InsightsSection() {
                 borderBottom: '1px solid var(--border-light, #F2F4F6)',
               }}
             >
-              {sections.map(s => (
+              {sections.map(s => {
+                const Icon = s.icon;
+                return (
                 <button
                   key={s.id}
                   onClick={() => scrollToSection(s.element)}
@@ -276,10 +295,11 @@ export default function InsightsSection() {
                     minHeight: 32,
                   }}
                 >
-                  <span>{s.emoji}</span>
+                  <Icon size={14} strokeWidth={1.75} aria-hidden="true" />
                   <span>{s.label}</span>
                 </button>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -297,6 +317,12 @@ export default function InsightsSection() {
           {/* 1. AI 촉 — 오늘의 발견 */}
           <div ref={chokRef} data-tour="insights-ai-chok" className="insight-stagger" style={{ animationDelay: '0s' }}>
             <AiChokSection />
+          </div>
+
+          {/* 1.5 시장 맥락 — 미 국채 10년물 사실+교육 카드.
+              실패·로딩 시 컴포넌트가 null을 반환하므로 래퍼는 여백을 갖지 않는다 */}
+          <div className="insight-stagger" style={{ animationDelay: '0.05s' }}>
+            <MacroRateCard />
           </div>
 
           {/* 2. 주비의 이야기 — 오늘 상태 내러티브 */}

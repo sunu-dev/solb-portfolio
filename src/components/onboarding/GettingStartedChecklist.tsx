@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, ShieldCheck, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { logApiCall } from '@/lib/apiLogger';
+import { useNow } from '@/hooks/useNow';
 
 /**
  * 진행형 시작하기 체크리스트 (Phase 4 — 학습 루프 / 리텐션).
@@ -32,19 +33,20 @@ interface ChecklistItem {
 }
 
 const ITEMS: ChecklistItem[] = [
-  { featureId: 'stock-add', label: '내 종목 추가',   hint: '검색해서 보유 종목을 담아보세요',        action: { kind: 'section', section: 'portfolio' } },
-  { featureId: 'ai-hunch',  label: 'AI 촉 받아보기', hint: 'AI 인사이트에서 오늘의 새 종목 정보를 확인', action: { kind: 'section', section: 'insights' } },
-  { featureId: 'analysis',  label: '종목 분석 열기', hint: '종목 추가 후 건강 점수·차트 보기',          action: { kind: 'section', section: 'portfolio' } },
-  { featureId: 'mentor',    label: '멘토 분석 보기', hint: '종목 분석에서 6명의 관점 보기',             action: { kind: 'section', section: 'portfolio' } },
-  { featureId: 'home-edit', label: '홈 화면 편집',   hint: '위젯을 내 방식대로 정리',                  action: { kind: 'event', event: 'solb-open-home-edit' } },
+  { featureId: 'record-preview', label: '안전한 변경 확인 체험', hint: '실제 기록 없이 비교·승인·복구를 확인해요', action: { kind: 'event', event: 'open-record-preview' } },
+  { featureId: 'safe-import', label: '첫 기록 안전하게 가져오기', hint: 'CSV를 비교한 뒤 원하는 변경만 승인해요', action: { kind: 'event', event: 'open-record-import' } },
+  { featureId: 'import-history', label: '보관된 기록 확인', hint: '승인 전 상태와 복구 지점을 확인해요', action: { kind: 'event', event: 'open-record-history' } },
 ];
 
 export default function GettingStartedChecklist() {
   const { user, loading } = useAuth();
+  const currentTime = useNow();
   // 신규자 한정 — 가입 14일 이내만 노출. 배포 시점에 이미 있던 기존 유저는 solb_feat_used가 비어(과거 사용분 미기록)
   // '0/5 시작하기'가 갑툭튀하므로 created_at 게이트로 차단.
   const createdAt = (user as { created_at?: string } | null)?.created_at;
-  const isNew = !!createdAt && (Date.now() - new Date(createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000;
+  const isNew = currentTime > 0
+    && !!createdAt
+    && (currentTime - new Date(createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000;
   const [done, setDone] = useState<string[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -57,13 +59,16 @@ export default function GettingStartedChecklist() {
   }, []);
 
   useEffect(() => {
-    refresh();
-    try { setDismissed(!!localStorage.getItem(DISMISS_KEY)); } catch { /* ignore */ }
-    setChecked(true);
+    const frame = requestAnimationFrame(() => {
+      refresh();
+      try { setDismissed(!!localStorage.getItem(DISMISS_KEY)); } catch { /* ignore */ }
+      setChecked(true);
+    });
     const h = () => refresh();
     window.addEventListener('solb-feature-used', h);
     window.addEventListener('storage', h); // 다른 탭 동기화
     return () => {
+      cancelAnimationFrame(frame);
       window.removeEventListener('solb-feature-used', h);
       window.removeEventListener('storage', h);
     };
@@ -90,13 +95,6 @@ export default function GettingStartedChecklist() {
   const act = (item: ChecklistItem) => {
     if (done.includes(item.featureId)) return;
     logApiCall('checklist_item_click', undefined, { featureId: item.featureId });
-    // 분석/멘토는 종목이 있어야 의미 → 첫 보유 분석 패널 직접 열기, 없으면 종목 추가로 유도(막다른 길 방지)
-    if (item.featureId === 'analysis' || item.featureId === 'mentor') {
-      const inv = usePortfolioStore.getState().stocks.investing.filter(s => !s.demo);
-      if (inv.length > 0) usePortfolioStore.getState().setAnalysisSymbol(inv[0].symbol);
-      else usePortfolioStore.getState().setCurrentSection('portfolio');
-      return;
-    }
     if (item.action.kind === 'section') usePortfolioStore.getState().setCurrentSection(item.action.section);
     else window.dispatchEvent(new CustomEvent(item.action.event));
   };
@@ -113,7 +111,8 @@ export default function GettingStartedChecklist() {
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 16, padding: 16, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>
-          🚀 주비 시작하기 <span style={{ color: 'var(--brand-primary)' }}>{completed}/{ITEMS.length}</span>
+          <ShieldCheck size={16} aria-hidden="true" style={{ display: 'inline', marginRight: 6, verticalAlign: -3 }} />
+          주비의 안전 기록 시작하기 <span style={{ color: 'var(--brand-primary)' }}>{completed}/{ITEMS.length}</span>
         </span>
         <button
           onClick={dismiss}
@@ -123,7 +122,7 @@ export default function GettingStartedChecklist() {
           <X size={15} />
         </button>
       </div>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>천천히 하나씩 익혀보세요.</div>
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10 }}>비교하고 확인한 뒤, 필요하면 되돌릴 수 있어요.</div>
 
       {/* 진행 바 */}
       <div

@@ -13,6 +13,7 @@ import { eunNeun } from '@/utils/koreanJosa';
 import { isSingleStockLeverage, LEVERAGE_SEARCH_LABEL, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
 import { getSearchTag, searchTagOrder } from '@/utils/searchAssetClass';
 import LeverageRiskGate from '@/components/portfolio/LeverageRiskGate';
+import { isKoreanStockSymbol } from '@/utils/stockCurrency';
 
 // 검색어가 단일종목 레버리지 의도인지 휴리스틱 판정 — EmptyState 분기에만 사용
 function isLeverageQuery(q: string): boolean {
@@ -63,7 +64,7 @@ interface SearchBarProps {
 
 export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
-  const { apiKey, stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore();
+  const { stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -78,7 +79,10 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
   useEffect(() => {
     inputRef.current?.focus();
-    setRecent(getRecent());
+    const frame = requestAnimationFrame(() => {
+      setRecent(getRecent());
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         : [];
 
       const [usItems, krItems] = await Promise.all([
-        searchStocks(value, apiKey),
+        searchStocks(value),
         fetch('/api/kr-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: value }) })
           .then(r => r.json())
           .then(d => (d.results || []).map((r: { symbol: string; name: string }) => ({ symbol: r.symbol, description: `${r.name} (KRX)` })))
@@ -150,7 +154,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
       setShowResults(combined.length > 0);
       setActiveIdx(-1);
     }, 300);
-  }, [apiKey, krToTicker]);
+  }, [krToTicker]);
 
   // 실제 등록 — 레버리지 게이트 통과 후 또는 일반 종목에서 호출.
   const doAdd = useCallback(async (symbol: string, name: string) => {
@@ -206,19 +210,26 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     setQuery('');
     setShowResults(false);
     setResults([]);
+    // 방금 추가한 종목의 첫 시세는 서버 라우트로 받는다.
+    // (예전엔 미국 종목을 브라우저에서 Finnhub에 직접 조회하려고 클라이언트 API 키를 썼다.)
     try {
-      if (sym.endsWith('.KS') || sym.endsWith('.KQ')) {
+      if (isKoreanStockSymbol(sym)) {
         const r = await fetch(`/api/kr-quote?symbol=${sym}`);
         const d = await r.json();
         if (d?.c) updateMacroEntry(sym, d);
       } else {
-        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${apiKey}`);
-        const d = await r.json();
+        const r = await fetch('/api/quotes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbols: [sym] }),
+        });
+        const json = await r.json();
+        const d = json?.quotes?.[sym];
         if (d?.c) updateMacroEntry(sym, d);
       }
     } catch { /* silent */ }
     if (onClose) onClose();
-  }, [apiKey, stocks, currentTab, addStock, updateMacroEntry, onClose, user]);
+  }, [stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, onClose, user]);
 
   // 등록 진입점 — 단일종목 레버리지면 위험 동의 게이트를 먼저 띄우고,
   // 통과 후 doAdd로 실제 등록 ('중간 옵션': 신규 추천 X, 보유 등록은 게이트 후 허용).
@@ -464,17 +475,20 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* 단일종목 레버리지 보유 등록 게이트 — 통과 시 doAdd로 실제 등록.
           position:fixed라 패널 컨테이너(overflow:hidden) 밖으로 정상 오버레이됨. */}
-      <LeverageRiskGate
-        isOpen={!!leverageGate}
-        symbol={leverageGate?.symbol || ''}
-        name={leverageGate?.name || ''}
-        onConfirm={() => {
-          const g = leverageGate;
-          setLeverageGate(null);
-          if (g) doAdd(g.symbol, g.name);
-        }}
-        onCancel={() => setLeverageGate(null)}
-      />
+      {leverageGate && (
+        <LeverageRiskGate
+          key={`${leverageGate.symbol}:${leverageGate.name}`}
+          isOpen
+          symbol={leverageGate.symbol}
+          name={leverageGate.name}
+          onConfirm={() => {
+            const g = leverageGate;
+            setLeverageGate(null);
+            doAdd(g.symbol, g.name);
+          }}
+          onCancel={() => setLeverageGate(null)}
+        />
+      )}
     </div>
   );
 }

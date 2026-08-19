@@ -1,24 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
+
+function subscribeToConnection(onStoreChange: () => void) {
+  window.addEventListener('offline', onStoreChange);
+  window.addEventListener('online', onStoreChange);
+  return () => {
+    window.removeEventListener('offline', onStoreChange);
+    window.removeEventListener('online', onStoreChange);
+  };
+}
+
+const getOfflineSnapshot = () => !navigator.onLine;
+const getServerOfflineSnapshot = () => false;
 
 export default function OfflineNotice() {
-  const [isOffline, setIsOffline] = useState(false);
-
-  useEffect(() => {
-    const handleOffline = () => setIsOffline(true);
-    const handleOnline = () => setIsOffline(false);
-
-    // 초기 상태 확인
-    if (!navigator.onLine) setIsOffline(true);
-
-    window.addEventListener('offline', handleOffline);
-    window.addEventListener('online', handleOnline);
-    return () => {
-      window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('online', handleOnline);
-    };
-  }, []);
+  const isOffline = useSyncExternalStore(
+    subscribeToConnection,
+    getOfflineSnapshot,
+    getServerOfflineSnapshot,
+  );
 
   if (!isOffline) return null;
 

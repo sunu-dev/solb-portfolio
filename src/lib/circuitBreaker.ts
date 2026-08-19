@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAuthClient } from '@/lib/supabaseServer';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // ─── Circuit Breaker 정책 ───────────────────────────────────────────────────
 export interface CircuitPolicy {
@@ -46,6 +43,7 @@ export async function checkCircuit(
   endpoint: string,
   policy: CircuitPolicy,
 ): Promise<CircuitResult> {
+  const supabase = getAuthClient();
   if (!supabase) {
     return { open: false, stats: { total: 0, errors: 0, failureRate: 0 } };
   }
@@ -68,7 +66,8 @@ export async function checkCircuit(
       r.status >= 500 ||
       r.error_code === 'gemini_quota' ||
       r.error_code === 'gemini_failed' ||
-      r.error_code === 'gemini_busy'
+      r.error_code === 'gemini_busy' ||
+      r.error_code === 'usage_record_failed'
     ).length;
 
     const failureRate = total > 0 ? errors / total : 0;
@@ -86,7 +85,8 @@ export async function checkCircuit(
     const lastFailure = rows.find(r =>
       r.status >= 500 ||
       r.error_code === 'gemini_quota' ||
-      r.error_code === 'gemini_failed'
+      r.error_code === 'gemini_failed' ||
+      r.error_code === 'usage_record_failed'
     );
     if (!lastFailure) {
       return { open: false, stats: { total, errors, failureRate } };

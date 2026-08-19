@@ -3,8 +3,13 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { STOCK_KR } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw } from '@/utils/koreanNumber';
 import { getSector } from '@/utils/portfolioHealth';
+import {
+  convertStockAmount,
+  convertStockCostAmount,
+  type StockCurrency,
+} from '@/utils/stockCurrency';
 
 /**
  * 포트폴리오 트리맵 — 토스/뱅크샐러드 톤 (3인 회의 만장일치).
@@ -38,6 +43,7 @@ interface Node {
   avgCost: number;
   shares: number;
   currentPrice: number;
+  cost: number;
   profit: number;
   profitFmt: string;
   childrenSymbols?: string[];
@@ -176,7 +182,14 @@ function fmtShort(val: number): string {
 
 // ─── Component ───────────────────────────────────────────────────────────
 interface HeatmapProps {
-  stocks: { symbol: string; avgCost: number; shares: number; targetReturn: number; }[];
+  stocks: {
+    symbol: string;
+    currency?: StockCurrency;
+    avgCost: number;
+    shares: number;
+    targetReturn: number;
+    purchaseRate?: number;
+  }[];
   macroData: Record<string, QuoteData | unknown>;
   usdKrw: number;
   currency: 'KRW' | 'USD';
@@ -210,21 +223,36 @@ export default function PortfolioTreemap({
       const q = macroData[stock.symbol] as QuoteData | undefined;
       const price = q?.c || 0;
       if (!price || !stock.shares) return null;
-      const value = price * stock.shares;
-      const pnlPct = stock.avgCost > 0 ? ((price - stock.avgCost) / stock.avgCost) * 100 : 0;
+      const current = convertStockAmount(stock.symbol, price, usdKrw, stock.currency);
+      const costPerShare = convertStockCostAmount(
+        stock.symbol,
+        stock.avgCost,
+        usdKrw,
+        stock.purchaseRate,
+        stock.currency,
+      );
+      const valueKrw = current.krw * stock.shares;
+      const valueUsd = current.usd * stock.shares;
+      const costKrw = costPerShare.krw * stock.shares;
+      const costUsd = costPerShare.usd * stock.shares;
+      const profitKrw = stock.avgCost > 0 ? valueKrw - costKrw : 0;
+      const profitUsd = stock.avgCost > 0 ? valueUsd - costUsd : 0;
+      const displayValue = currency === 'KRW' ? valueKrw : valueUsd;
+      const displayCost = currency === 'KRW' ? costKrw : costUsd;
+      const profit = currency === 'KRW' ? profitKrw : profitUsd;
+      const pnlPct = displayCost > 0 ? (profit / displayCost) * 100 : 0;
       const todayPct = q?.dp || 0;
       const label = STOCK_KR[stock.symbol] || stock.symbol;
       const valFormatted = currency === 'KRW'
-        ? formatKRW(Math.round(value * usdKrw))
-        : fmtShort(value);
-      const profit = stock.avgCost > 0 ? (price - stock.avgCost) * stock.shares : 0;
+        ? formatKrw(Math.round(displayValue))
+        : fmtShort(displayValue);
       const profitFmt = currency === 'KRW'
-        ? formatKRW(Math.round(Math.abs(profit) * usdKrw))
+        ? formatKrw(Math.round(Math.abs(profit)))
         : fmtShort(Math.abs(profit));
       return {
-        symbol: stock.symbol, value, pnlPct, todayPct, label, valFormatted,
+        symbol: stock.symbol, value: valueKrw, pnlPct, todayPct, label, valFormatted,
         avgCost: stock.avgCost, shares: stock.shares, currentPrice: price,
-        profit, profitFmt,
+        cost: displayCost, profit, profitFmt,
         sector: getSector(stock.symbol),
       };
     })
@@ -275,10 +303,10 @@ export default function PortfolioTreemap({
     const wToday = hidden.reduce((s, n) => s + n.todayPct * n.value, 0) / restValue;
     const restProfit = hidden.reduce((s, n) => s + n.profit, 0);
     const valFormatted = currency === 'KRW'
-      ? formatKRW(Math.round(restValue * usdKrw))
-      : fmtShort(restValue);
+      ? formatKrw(Math.round(restValue))
+      : fmtShort(usdKrw > 0 ? restValue / usdKrw : 0);
     const profitFmt = currency === 'KRW'
-      ? formatKRW(Math.round(Math.abs(restProfit) * usdKrw))
+      ? formatKrw(Math.round(Math.abs(restProfit)))
       : fmtShort(Math.abs(restProfit));
     const layoutValue = Math.max(restValue, minLayoutValue);
 
@@ -289,7 +317,7 @@ export default function PortfolioTreemap({
       pnlPct: wPnl, todayPct: wToday,
       label: `소액 ${hidden.length}종`, valFormatted,
       avgCost: 0, shares: hidden.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
-      profit: restProfit, profitFmt,
+      cost: hidden.reduce((s, n) => s + n.cost, 0), profit: restProfit, profitFmt,
       childrenSymbols: hidden.map(n => n.symbol),
       sector: '기타',
     }];
@@ -340,10 +368,10 @@ export default function PortfolioTreemap({
 
   // 누적 수익률
   const totalPnlPct = useMemo(() => {
-    const totalCost = allNodes.reduce((s, n) => s + n.avgCost * n.shares, 0);
-    const totalValue = allNodes.reduce((s, n) => s + n.currentPrice * n.shares, 0);
+    const totalCost = allNodes.reduce((s, n) => s + n.cost, 0);
+    const totalProfit = allNodes.reduce((s, n) => s + n.profit, 0);
     if (totalCost <= 0) return 0;
-    return ((totalValue - totalCost) / totalCost) * 100;
+    return (totalProfit / totalCost) * 100;
   }, [allNodes]);
 
   // 공유

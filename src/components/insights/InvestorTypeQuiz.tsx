@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { INVESTOR_TYPE_QUIZ, INVESTOR_TYPES, calculateInvestorType, type InvestorType } from '@/config/investorTypes';
+import { Sparkles } from 'lucide-react';
+import InvestorTypeIcon from './InvestorTypeIcon';
 
 interface Props {
   onComplete: (type: InvestorType) => void;
@@ -150,7 +152,9 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 56, marginBottom: 8, lineHeight: 1 }}>{meta.emoji}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                <InvestorTypeIcon type={meta.id} size={48} color={meta.accentColor} strokeWidth={1.5} />
+              </div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
                 {meta.nameKr}
               </div>
@@ -189,11 +193,12 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                 marginBottom: 20,
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-info, #3182F6)', marginBottom: 6 }}>
-                🤖 AI가 이렇게 달라져요
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--color-info, #3182F6)', marginBottom: 6 }}>
+                <Sparkles size={14} strokeWidth={1.75} aria-hidden="true" />
+                AI가 이렇게 달라져요
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
-                <strong>AI 촉:</strong> {meta.chokPreference.slice(0, 2).join(' · ')} 우선 추천<br />
+                <strong>설명 방식:</strong> 선택한 유형은 용어 난이도와 설명 순서에만 반영돼요<br />
                 <strong>AI 분석:</strong> {meta.nameKr} 관점 · {meta.keyTraits[0]} 중심
               </div>
             </div>

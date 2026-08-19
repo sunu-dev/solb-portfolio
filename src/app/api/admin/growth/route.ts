@@ -1,13 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
 
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 function getKSTDateString(date: Date): string {
   return new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -17,46 +14,41 @@ function getDaysAgo(days: number): string {
   return getKSTDateString(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
 }
 
-export async function GET(req: NextRequest) {
-  // 관리자 인증
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
-
+export const GET = defineRoute({
+  name: '/api/admin/growth',
+  auth: 'admin',
+  handler: async ({ req }) => {
   const days = parseInt(req.nextUrl.searchParams.get('days') || '14');
   const since = getDaysAgo(days);
 
   try {
     const [signupsRes, logsRes, aiRes, totalUsersRes, feedbackRes] = await Promise.all([
       // 일별 신규 가입 (user_portfolios.created_at 기준)
-      supabaseAdmin
+      supabaseAdmin()
         .from('user_portfolios')
         .select('created_at')
         .gte('created_at', since + 'T00:00:00+09:00'),
 
       // 일별 활성 유저 (api_logs의 user_id 기준) — metadata는 feature_first_use 채택 코호트용
-      supabaseAdmin
+      supabaseAdmin()
         .from('api_logs')
         .select('user_id, action, created_at, metadata')
         .gte('created_at', since + 'T00:00:00+09:00')
         .not('user_id', 'is', null),
 
       // 일별 AI 사용 (ai_usage 기준)
-      supabaseAdmin
+      supabaseAdmin()
         .from('ai_usage')
         .select('date, user_id, mentor_id')
         .gte('date', since),
 
       // 전체 가입자 수
-      supabaseAdmin
+      supabaseAdmin()
         .from('user_portfolios')
         .select('created_at, user_id'),
 
       // AI 피드백 (ai_feedback 테이블, P0-3)
-      supabaseAdmin
+      supabaseAdmin()
         .from('ai_feedback')
         .select('source, rating, created_at')
         .gte('created_at', since + 'T00:00:00+09:00'),
@@ -200,7 +192,7 @@ export async function GET(req: NextRequest) {
       started: number; sampleLoaded: number; toLogin: number; anchorMissing: number;
     } = { available: false, distinctGuests: 0, started: 0, sampleLoaded: 0, toLogin: 0, anchorMissing: 0 };
     try {
-      const ge = await supabaseAdmin
+      const ge = await supabaseAdmin()
         .from('tour_events')
         .select('event, anon_id, auth_state')
         .gte('created_at', since + 'T00:00:00+09:00');
@@ -266,4 +258,5 @@ export async function GET(req: NextRequest) {
     console.error('Growth API error:', e);
     return NextResponse.json({ error: 'internal error' }, { status: 500 });
   }
-}
+},
+});

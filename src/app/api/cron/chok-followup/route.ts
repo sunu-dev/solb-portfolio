@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
 
 /**
  * AI 촉 백테스트 follow-up cron.
@@ -20,19 +21,13 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
-
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return requireServiceClient();
 }
 
 async function fetchPrice(symbol: string, apiKey: string): Promise<number | null> {
@@ -57,10 +52,11 @@ interface RecRow {
   filled_90d_at: string | null;
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/chok-followup',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const apiKey = process.env.FINNHUB_API_KEY;
   if (!apiKey) {
@@ -158,4 +154,5 @@ export async function GET(req: NextRequest) {
       ...stats,
     }, { status: 500 });
   }
-}
+},
+});

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import { CHOK_KR_MAP } from '@/config/chokUniverse';
@@ -10,6 +11,7 @@ import { Plus } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import { isAlertSuppressed } from '@/utils/alertLearning';
 import AlertGroup from '@/components/common/AlertGroup';
+import { convertStockAmount } from '@/utils/stockCurrency';
 
 interface ChokPick {
   symbol: string;
@@ -38,7 +40,7 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 export default function RightSidebar() {
   const { stocks, macroData, setAnalysisSymbol, recentSymbols, currency, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
   // 글로벌 통화 토글 연동 — 미국 종목만 환산(한국 종목은 이미 KRW라 이중환산 방지)
-  const usdKrw = (macroData['USD/KRW'] as { value?: number } | undefined)?.value || 1400;
+  const usdKrw = resolveUsdKrw(macroData);
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   const [watchSort, setWatchSort] = useState<'added' | 'movement'>('added'); // 관심 점검 순서
@@ -126,10 +128,21 @@ export default function RightSidebar() {
           const price = q?.c ?? 0;
           const dp = q?.dp ?? 0;
           const isGain = dp >= 0;
-          const isKR = stock.symbol.endsWith('.KS') || stock.symbol.endsWith('.KQ');
           const kr = STOCK_KR[stock.symbol] || stock.symbol;
           const avatarColor = getAvatarColor(stock.symbol);
           const hasData = price > 0;
+          const priceAmounts = convertStockAmount(
+            stock.symbol,
+            price,
+            usdKrw,
+            stock.currency,
+          );
+          const targetAmounts = convertStockAmount(
+            stock.symbol,
+            stock.buyBelow || 0,
+            usdKrw,
+            stock.currency,
+          );
 
           return (
             <button
@@ -152,18 +165,20 @@ export default function RightSidebar() {
                 <div className="text-[14px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] truncate">{kr}</div>
                 <div className="text-[11px] text-[#B0B8C1]">
                   {stock.symbol}
-                  {stock.buyBelow ? ` · 목표 $${stock.buyBelow}` : ''}
+                  {stock.buyBelow
+                    ? ` · 목표 ${currency === 'KRW'
+                      ? formatKrw(targetAmounts.krw, { prefix: false, suffix: '원', short: false })
+                      : formatUsd(targetAmounts.usd)}`
+                    : ''}
                 </div>
               </div>
               <div className="text-right shrink-0">
                 {hasData ? (
                   <>
                     <div className="text-[13px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] tabular-nums">
-                      {isKR
-                        ? `${Math.round(price).toLocaleString()}원`
-                        : currency === 'KRW'
-                          ? `${Math.round(price * usdKrw).toLocaleString()}원`
-                          : `$${price.toFixed(2)}`}
+                      {currency === 'KRW'
+                        ? formatKrw(priceAmounts.krw, { prefix: false, suffix: '원', short: false })
+                        : formatUsd(priceAmounts.usd)}
                     </div>
                     <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                       {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%
@@ -329,7 +344,7 @@ export default function RightSidebar() {
           <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div className="flex items-center" style={{ gap: 6 }}>
               <span style={{ fontSize: 14 }}>🎯</span>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>AI 촉</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>오늘 시장 흐름</h3>
             </div>
           </div>
 

@@ -5,6 +5,7 @@
 
 import { classifyAssetClass } from './leverageGuard';
 import { STOCK_KR } from '@/config/constants';
+import { isKoreanStockSymbol } from './stockCurrency';
 
 interface ScoreInput {
   symbol: string;
@@ -56,7 +57,7 @@ function getAssetType(symbol: string, description?: string): 'leveraged' | 'inve
   if (['SPY', 'VOO', 'VTI', 'QQQ', 'IWM', 'IVV', 'DIA', 'VT', 'VXUS'].includes(s)) return 'index_etf';
   if (['SCHD', 'VYM', 'HDV', 'DVY', 'DGRO', 'VIG', 'SPYD', 'JEPI', 'JEPQ'].includes(s)) return 'dividend_etf';
   if (['XLK', 'XLE', 'XLF', 'XLV', 'ARKK', 'ARKW', 'SOXX', 'SMH', 'TAN', 'ICLN'].includes(s)) return 'sector_etf';
-  if (s.endsWith('.KS') || s.endsWith('.KQ')) return 'kr_stock';
+  if (isKoreanStockSymbol(s)) return 'kr_stock';
   return 'stock';
 }
 

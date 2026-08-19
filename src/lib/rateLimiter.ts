@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getAuthClient } from '@/lib/supabaseServer';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // ─── Rate limit 정책 ────────────────────────────────────────────────────────
 export interface RateLimitPolicy {
@@ -47,6 +44,7 @@ export function getClientIp(req: NextRequest): string {
  * Supabase auth 토큰으로 유저 식별
  */
 export async function getUserIdFromAuth(req: NextRequest): Promise<string | null> {
+  const supabase = getAuthClient();
   if (!supabase) return null;
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
@@ -74,6 +72,7 @@ export async function checkRateLimit(
   const nowSec = Math.floor(Date.now() / 1000);
   const resetAt = nowSec + policy.windowSec;
 
+  const supabase = getAuthClient();
   if (!supabase) {
     // Supabase 없으면 fail-open (rate limit 없이 통과)
     return { allowed: true, remaining: limit, resetAt, limit };
@@ -111,6 +110,7 @@ export async function recordApiCall(params: {
   latencyMs: number;
   errorCode?: string;
 }) {
+  const supabase = getAuthClient();
   if (!supabase) return;
   try {
     await supabase.from('api_calls').insert({

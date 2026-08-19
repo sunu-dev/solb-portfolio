@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
 
 /**
  * PII 보존 정책 cleanup cron — L1 정합성 결함 대응.
@@ -21,32 +22,24 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    // 보안: secret 미설정 시 외부 호출 차단 (Vercel은 자동 설정)
-    return false;
-  }
-  return auth === `Bearer ${secret}`;
-}
-
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return requireServiceClient();
 }
 
 function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86400 * 1000).toISOString();
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/cleanup-pii',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const stats = {
     ai_usage_anonymized: 0,
@@ -127,4 +120,5 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
-}
+},
+});

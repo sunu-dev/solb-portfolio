@@ -30,7 +30,7 @@
 
 | # | 임계값 | 위치 | 근거 | 재검증 |
 |---|---|---|---|---|
-| 10 | Free: AI 촉 1회/일 | `userTier.ts` | 🤷 (PRO 전환 동기로 추정) | P1 (3회/일 vs 1회/일 비교) |
+| 10 | Free/PRO: AI 촉 동일 한도 | `userTier.ts` | 법률·상품 불변식 | 회귀 테스트로 동일성 유지 |
 | 11 | Free: AI 분석 3회/일 | `userTier.ts` | 🤷 | P1 |
 | 12 | Pro: 촉·분석 각 30회/일 | `userTier.ts` | 🤷 | P2 |
 | 13 | 글로벌 일일 한도 250회 | `ai-analysis/route.ts:18` | 🤷 (Gemini 무료 한계 기반 추정) | P1 (5,000명 시 한계 도달) |
@@ -77,6 +77,7 @@
 | 34 | candle 캐시: 일별 (날짜 키) | `useStockData.ts:269-288` | ✅ | — |
 | 35 | macro 캐시 5분 | `useStockData.ts:159` | 🎯 | P3 |
 | 36 | 뉴스 24h 우선, fallback 72h | `useStockData.ts:62-69` | 🎯 | P3 |
+| 36a | 미 10년물: 서버 L1 30분 + CDN s-maxage 30분/SWR 1일 | `usTreasury.ts` · `us-treasury/route.ts` | 🎯 (일별 데이터 — 영업일 1회 갱신) | P3 |
 
 ## 7. 기술 지표 (모두 표준 ✅)
 
@@ -115,6 +116,21 @@
 | 50 | Function 60s maxDuration (Hobby) | (자동) | ✅ | — |
 | 51 | Concurrent Builds 1 (Hobby) | (자동) | ✅ | — |
 
+## 11. 시장 흐름·브리핑 판정 (2026-08-18 등재)
+
+⚠️ **판정 엔진이 2개이고 데이터·임계가 서로 다르다.** 같은 날 홈(브리핑)은 '성장주 강세',
+리포트 탭(시장 흐름)은 '순환 신호 아님'이 동시에 뜰 수 있다. 통합 여부는 미결(TODO.md 참조) —
+새 판정 축(수급 등)을 추가하기 전에 이 둘부터 정리해야 한다.
+
+| # | 임계값 | 위치 | 근거 | 재검증 |
+|---|---|---|---|---|
+| 52 | [marketFlow] 순환 신호: spread ≥ 1.5%p AND 강섹터 ≥ +0.5 AND 약섹터 ≤ -0.5 AND breadth 확인 | `marketFlow.ts:107-111` | 🤷 | P1 |
+| 53 | [marketFlow] breadth 확인: 강섹터 상승비율 ≥ 0.6 AND 약섹터 ≤ 0.4 | `marketFlow.ts:104-106` | 🤷 | P2 |
+| 54 | [marketFlow] confidence high: spread ≥ 2.5 AND 양쪽 표본 ≥ 3종목 | `marketFlow.ts:114` | 🤷 | P2 |
+| 55 | [marketFlow] marketTone mixed 대역: \|S&P\| < 0.3% | `marketFlow.ts:121` | 🤷 | P2 |
+| 56 | [브리핑] 방향 유의 SIG = ±0.3%, 강도 STRONG = ±1.0% | `MorningBriefing.tsx:73-74` | 🤷 | P1 |
+| 57 | [브리핑] 성장/가치 분기: \|NASDAQ−S&P\| ≥ 0.7%p | `MorningBriefing.tsx:92` | 🤷 | P1 |
+
 ---
 
 ## 재검증 우선순위 요약
@@ -125,6 +141,7 @@
 ### P1 (1~2개월, 사용자 100명 데이터 누적 후)
 - #4 (52주 3% 부근), #10~11 (AI 한도), #13 (글로벌 250), #30 (priorityScore 가중치)
 - #46 (AI 응답 후처리), #48 (PRO 시점)
+- #52·#56~57 (시장 흐름·브리핑 이중 엔진 — 임계 재검증보다 **판정 통합이 먼저**)
 
 ### P2 (3~6개월, 백테스트 가능 시점)
 - #1~3 (알림 거리), #17~24 (건강점수 4축), #25~27 (폴백 점수), #33 (캐시 TTL)

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { createClient } from '@supabase/supabase-js';
 import { sendCronAlert } from '@/lib/cronAlert';
 
@@ -20,7 +21,12 @@ interface ReportBody {
   appVersion?: string;
 }
 
-export async function POST(req: NextRequest) {
+// 익명 POST가 service-role DB 쓰기 + Slack 발송을 유발 — 스팸 표적이라 시간당으로 좁게 잡는다.
+export const POST = defineRoute({
+  name: '/api/feedback/report',
+  auth: 'public',
+  rateLimit: { windowSec: 3600, maxLoggedIn: 10, maxAnon: 3 },
+  handler: async ({ req }) => {
   if (!supabaseAdmin) {
     return NextResponse.json({ ok: false, error: 'config missing' }, { status: 503 });
   }
@@ -103,4 +109,5 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
-}
+},
+});

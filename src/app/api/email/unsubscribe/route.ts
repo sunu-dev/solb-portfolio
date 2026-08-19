@@ -16,24 +16,31 @@ import { createClient } from '@supabase/supabase-js';
 import { verifyUnsubToken } from '@/utils/unsubscribeToken';
 
 function getAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    || process.env.SUPABASE_SERVICE_KEY
+    || '';
+  if (!url || !serviceKey) return null;
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
+    url,
+    serviceKey,
     { auth: { persistSession: false } },
   );
 }
 
 async function applyUnsub(userId: string, kind: 'morning_brief' | 'monthly_d3' | 'all') {
   const supabase = getAdmin();
+  if (!supabase) throw new Error('Supabase admin client unavailable');
   const update: Record<string, boolean | string> = {
     updated_at: new Date().toISOString(),
   };
   if (kind === 'morning_brief' || kind === 'all') update.morning_brief_enabled = false;
   if (kind === 'monthly_d3'   || kind === 'all') update.monthly_d3_enabled   = false;
 
-  await supabase
+  const { error } = await supabase
     .from('email_subscriptions')
     .upsert({ user_id: userId, ...update }, { onConflict: 'user_id' });
+  if (error) throw error;
 }
 
 function htmlResponse(message: string, success = true): Response {

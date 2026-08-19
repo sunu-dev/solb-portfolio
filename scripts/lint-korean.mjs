@@ -10,6 +10,8 @@
 //      → koreanJosa.ts 유틸 미사용 시그널
 //   2. 격식 종결 어휘 ("있습니다", "됩니다" 등)
 //      → 토스 톤 페르소나 SSOT 위반 (단 약관·Disclaimer·법무 예외)
+//   3. 통화 금액 raw toLocaleString 직접 포맷
+//      → 표시 SSOT(src/utils/koreanNumber.ts) 우회
 //
 // 사용:
 //   npm run lint:korean           # strict (위반 시 exit 1, CI 차단)
@@ -54,9 +56,37 @@ const FORMAL_TONE_PATTERNS = [
   '확인하세요', '주의하세요', '입력하세요', '선택하세요',
   '시작하세요', '이용하세요',
   '맞습니다', '아닙니다', '같습니다',
+  // 2026-08-18 동기화 — koreanCopy.TOSS_TONE_MAP에는 있는데 여기 빠져 있던 2건.
+  // 리스트가 갈라지면 "lint 통과 = 톤 규약 준수"가 성립하지 않는다.
+  '봅니다', '드립니다',
 ];
 
 // ============================================================
+// 룰 3 — 통화 금액을 raw toLocaleString으로 직접 포맷
+// ============================================================
+//
+// 표시 SSOT: src/utils/koreanNumber.ts (docs/KOREAN_UI_SYSTEM.md §3.4)
+//
+// 2026-08-18 통합 전까지 표시 규칙이 3계층으로 갈라져 있었다 —
+// 문서가 SSOT라 부른 모듈은 import 0건, 실사용은 다른 모듈, 그 위에 컴포넌트 로컬 래퍼와
+// raw toLocaleString이 얹혀 있었다. 완전히 같은 6개 복제는 formatDisplayAmount()로 통합했지만,
+// 자릿수 옵션이 제각각인 장기 꼬리가 남아 있어 일괄 치환은 위험하다.
+//
+// 도입 시 20건 baseline이 있어 soft로 시작했고, **같은 날 전부 sweep해 hard로 격상했다.**
+// (lint:korean 격식 어휘가 66건 baseline → sweep → strict를 밟은 것과 같은 경로.)
+const CURRENCY_FORMAT_PATTERNS = [
+  { pattern: /\$\$\{[^}]*toLocaleString/, hint: 'formatUsd() 또는 formatDisplayAmount() 사용' },
+  { pattern: /₩\$\{[^}]*toLocaleString/, hint: 'formatKrw() 사용' },
+  { pattern: /toLocaleString\([^)]*\)\}원/, hint: "formatKrw(v, { suffix: '원', prefix: false }) 사용" },
+];
+
+/** 사용자 표시 카피가 아닌 곳 — 관리자 패널·내부 디버그는 대상 밖 */
+const CURRENCY_FORMAT_EXEMPT = [
+  'src/components/admin',
+  'src/app/admin',
+  'src/utils/koreanNumber.ts',
+];
+
 // 격식 톤 검사 예외 경로 (약관·Disclaimer·법무 격식 유지 의무)
 // ============================================================
 const FORMAL_TONE_EXEMPT_PATHS = [
@@ -65,6 +95,7 @@ const FORMAL_TONE_EXEMPT_PATHS = [
   'src/components/common/Disclaimer.tsx',
   'src/utils/koreanCopy.ts',  // TOSS_TONE_MAP 정의 자체 (격식 어휘가 key로 들어감)
   'src/config/analysisPrompt.ts',  // LLM prompt 안의 §6 금지 어휘 예시 (메타 지시)
+  'src/__tests__',  // 테스트 픽스처 — 금지 어휘를 '검사 대상'으로 의도 보유 (사용자 노출 카피 아님)
   // 약관 마이그·README·docs는 src 밖이라 자연 제외
 ];
 
@@ -94,6 +125,8 @@ function checkFile(filePath, content, violations) {
   const relPath = path.relative(ROOT, filePath);
   const lines = content.split('\n');
   const isFormalExempt = FORMAL_TONE_EXEMPT_PATHS.some(p => relPath === p || relPath.startsWith(p + '/'));
+  const isCurrencyExempt = !/\.tsx$/.test(relPath)
+    || CURRENCY_FORMAT_EXEMPT.some(p => relPath === p || relPath.startsWith(p + '/'));
 
   lines.forEach((line, idx) => {
     const lineNum = idx + 1;
@@ -126,6 +159,22 @@ function checkFile(filePath, content, violations) {
         }
       }
     }
+
+    // 룰 3 — 통화 금액 raw 포맷
+    if (!isCurrencyExempt) {
+      for (const { pattern, hint } of CURRENCY_FORMAT_PATTERNS) {
+        if (pattern.test(line)) {
+          violations.push({
+            file: relPath,
+            line: lineNum,
+            rule: 'currency-format',
+            phrase: line.trim().slice(0, 60),
+            hint,
+          });
+          break;
+        }
+      }
+    }
   });
 }
 
@@ -142,28 +191,31 @@ async function main() {
     checkFile(file, content, violations);
   }
 
-  if (violations.length === 0) {
-    console.log('[lint:korean] ✓ 위반 없음 (조사 괄호 0건 · 격식 톤 0건)');
+  const hard = violations;
+
+  if (hard.length === 0) {
+    console.log('[lint:korean] ✓ 위반 없음 (조사 괄호 0건 · 격식 톤 0건 · 통화 raw 포맷 0건)');
     process.exit(0);
   }
 
   // 그룹화: rule별 카운트
-  const byRule = violations.reduce((acc, v) => {
+  const byRule = hard.reduce((acc, v) => {
     acc[v.rule] = (acc[v.rule] || 0) + 1;
     return acc;
   }, {});
 
-  console.error(`[lint:korean] ✗ ${violations.length}건 위반 검출`);
+  console.error(`[lint:korean] ✗ ${hard.length}건 위반 검출`);
   console.error(`  조사 괄호 표기: ${byRule['josa-bracket'] || 0}건`);
   console.error(`  격식 종결 어휘: ${byRule['formal-tone'] || 0}건`);
+  console.error(`  통화 raw 포맷: ${byRule['currency-format'] || 0}건`);
   console.error('');
 
   // 상위 30건만 출력
-  for (const v of violations.slice(0, 30)) {
+  for (const v of hard.slice(0, 30)) {
     console.error(`  ${v.file}:${v.line}  [${v.rule}]  "${v.phrase}"  → ${v.hint}`);
   }
-  if (violations.length > 30) {
-    console.error(`  ... 외 ${violations.length - 30}건 (전체는 grep 권장)`);
+  if (hard.length > 30) {
+    console.error(`  ... 외 ${hard.length - 30}건 (전체는 grep 권장)`);
   }
   console.error('');
   console.error('정책: docs/KOREAN_UI_SYSTEM.md · SSOT: src/utils/koreanJosa.ts · src/utils/koreanCopy.ts');

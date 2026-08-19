@@ -19,7 +19,9 @@ export default function PrivacyPage() {
         서비스는 다음 정보를 수집합니다.
         <ul>
           <li><strong>소셜 로그인 정보</strong>: 이메일, 이름, 프로필 사진 (Google/Kakao OAuth 제공)</li>
+          <li><strong>성인 확인 정보</strong>: 만 18세 이상 확인 여부, 동의 버전·시각. 입력한 생년월일은 브라우저에서 확인에만 사용하고 저장하거나 서버·외부 서비스로 전송하지 않음</li>
           <li><strong>포트폴리오 데이터</strong>: 사용자가 직접 입력한 종목 코드, 보유 수량, 평단가, 메모, 증권사·계좌 종류</li>
+          <li><strong>OCR 이미지</strong>: 현재 스크린샷 가져오기 기능을 비활성화하여 수집하거나 외부 AI로 전송하지 않음</li>
           <li><strong>AI 사용 기록</strong>: AI 분석/AI 촉 호출 시각, 일별 누적 카운트, 멘토 ID, 사용한 AI 모델</li>
           <li><strong>피드백 데이터</strong>: AI 추천에 대한 1탭 피드백(👍/👎), priorityScore, 시점</li>
           <li><strong>알림 옵트인</strong>: 푸시 구독 정보(endpoint, 공개 키), 이메일 구독 여부(모닝브리프·월말 회고), 옵트인 시점</li>
@@ -34,7 +36,8 @@ export default function PrivacyPage() {
       <Section title="3. 개인정보의 수집 및 이용 목적">
         <ul>
           <li>포트폴리오 데이터 저장 및 기기 간 동기화</li>
-          <li>AI 분석 서비스 제공 및 사용량 한도 관리</li>
+          <li>만 18세 이상 이용 자격 확인 및 동의 증거 관리</li>
+          <li>공개 시장정보 기반 AI 해설 제공 및 사용량 한도 관리</li>
           <li>맞춤 알림(푸시·이메일) 발송 및 발송 결과 추적</li>
           <li>서비스 개선, 오류 분석, A/B 테스트 (priorityScore 등)</li>
           <li>이용자 식별, 부정 이용 방지, 컴플라이언스 대응</li>
@@ -54,7 +57,7 @@ export default function PrivacyPage() {
           <tbody>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>알림 발송 로그</td>
-              <td style={{ padding: '8px 4px' }}>발송 후 90일 (분쟁 대응)</td>
+              <td style={{ padding: '8px 4px' }}>발송 후 365일 (컴플라이언스 분쟁 대응)</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>푸시 구독 정보</td>
@@ -62,7 +65,11 @@ export default function PrivacyPage() {
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>AI 피드백 (👍/👎)</td>
-              <td style={{ padding: '8px 4px' }}>익명화 후 영구 보관 (priorityScore 개선)</td>
+              <td style={{ padding: '8px 4px' }}>회원 탈퇴 시 삭제</td>
+            </tr>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+              <td style={{ padding: '8px 4px' }}>OCR 원본 이미지</td>
+              <td style={{ padding: '8px 4px' }}>현재 기능 비활성화 — 미수집·미전송</td>
             </tr>
             <tr>
               <td style={{ padding: '8px 4px' }}>회원 탈퇴 시 그 외 모든 데이터</td>
@@ -71,7 +78,7 @@ export default function PrivacyPage() {
           </tbody>
         </table>
         <br />
-        <strong>파기 절차</strong>: 이용자가 계정 삭제를 요청하면 데이터베이스에서 해당 레코드를 즉시 삭제(DELETE)하고, 브라우저 로컬 스토리지 데이터를 초기화합니다.
+        <strong>파기 절차</strong>: 이용자가 계정 삭제를 요청하면 서비스 데이터베이스의 사용자 연결 레코드를 삭제하거나 재식별할 수 없도록 연결을 제거하고, 브라우저 로컬 스토리지 데이터를 초기화합니다. 외부 수탁업체가 처리한 데이터는 각 업체의 계약·보유 정책에 따라 파기됩니다.
         <br />
         <strong>파기 방법</strong>: 전자적 파일은 기록을 재생할 수 없는 기술적 방법으로 삭제합니다.
       </Section>
@@ -90,7 +97,7 @@ export default function PrivacyPage() {
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Supabase Inc.</td>
               <td style={{ padding: '8px 4px' }}>인증, 데이터베이스 저장</td>
-              <td style={{ padding: '8px 4px' }}>미국</td>
+              <td style={{ padding: '8px 4px' }}>대한민국 — 서울 리전(ap-northeast-2)</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Vercel Inc.</td>
@@ -99,13 +106,13 @@ export default function PrivacyPage() {
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Google LLC</td>
-              <td style={{ padding: '8px 4px' }}>AI 분석 (Gemini API)</td>
-              <td style={{ padding: '8px 4px' }}>미국 — 종목 코드·시세 데이터만 전송, 개인식별정보 미포함</td>
+              <td style={{ padding: '8px 4px' }}>공개 시장정보 AI 해설 (Gemini API) — OCR은 현재 비활성화</td>
+              <td style={{ padding: '8px 4px' }}>미국 등 Google 처리 지역 — 종목·공개 시세·지표·뉴스만 전송. 평단·수량·목표·메모는 전송하지 않음</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Anthropic PBC</td>
-              <td style={{ padding: '8px 4px' }}>AI 분석 백업 (Claude API, Gemini 장애 시)</td>
-              <td style={{ padding: '8px 4px' }}>미국 — 종목 코드·시세 데이터만 전송, 개인식별정보 미포함</td>
+              <td style={{ padding: '8px 4px' }}>공개 시장정보 AI 해설 백업 (Claude API, Gemini 장애 시)</td>
+              <td style={{ padding: '8px 4px' }}>미국 — 종목·공개 시세·지표·뉴스만 전송, 개인 보유정보·개인식별정보 미포함</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Finnhub Inc.</td>
@@ -132,10 +139,10 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title="6. 개인정보의 국외 이전">
-        서비스는 위 수탁업체를 통해 이용자의 데이터가 미국 서버에서 처리됩니다.
+        서비스는 위 수탁업체 중 일부를 통해 이용자의 데이터가 국외에서 처리되도록 합니다. Supabase의 주 데이터베이스는 대한민국 서울 리전에 있습니다.
         <ul>
-          <li><strong>이전되는 항목</strong>: 이메일(Supabase, Resend), 포트폴리오 데이터(Supabase), AI 분석 요청 데이터(Google, Anthropic — 종목 데이터만), 푸시 endpoint(Web Push 제공자)</li>
-          <li><strong>이전 국가</strong>: 미국 (Web Push의 경우 브라우저 제공사 정책에 따라 다양)</li>
+          <li><strong>이전되는 항목</strong>: 이메일·발송 내용(Resend), AI 해설 요청 데이터(Google, Anthropic — 종목·공개 시세·지표·뉴스만 해당하며 개인 보유정보와 OCR 이미지는 제외), 푸시 endpoint와 암호화된 알림 내용(Web Push 제공자)</li>
+          <li><strong>이전 국가</strong>: 미국 등 각 수탁업체의 처리 지역 (Web Push는 브라우저 제공사 정책에 따라 다름)</li>
           <li><strong>이전 일시 및 방법</strong>: 서비스 이용 시 네트워크를 통한 실시간 전송</li>
           <li><strong>이전받는 자의 개인정보 이용 목적</strong>: 위 제5조의 위탁 업무 수행</li>
           <li><strong>이전받는 자의 보유 및 이용 기간</strong>: 위탁 계약 종료 시 또는 이용자 삭제 요청 시까지</li>
@@ -166,7 +173,8 @@ export default function PrivacyPage() {
         <ul>
           <li>HTTPS 암호화 통신 적용</li>
           <li>Supabase Row Level Security (RLS) 정책 적용 — 이용자가 본인 데이터만 접근 가능</li>
-          <li>API 키는 서버 환경변수로 관리 (클라이언트 미노출)</li>
+          <li>외부 시세·AI 서비스 API 키는 서버 환경변수로 관리하며, 조회 요청은 모두 서버를 거칩니다</li>
+          <li>실시간 시세 구독(WebSocket)에 한해 로그인 이용자에게 단일 접속 토큰을 발급하며, 브라우저 저장소에는 보관하지 않습니다</li>
           <li>서버 인증 토큰 검증을 통한 접근 제어</li>
           <li>VAPID 푸시 키 서버 보관, 클라이언트에는 공개 키만 노출</li>
           <li>알림 발송 로그·AI 사용 기록은 운영자만 접근 가능 (admin RLS)</li>
@@ -185,6 +193,9 @@ export default function PrivacyPage() {
       <Section title="11. 베타 서비스 특수 사항">
         <ul>
           <li>본 서비스는 현재 베타 단계로, 데이터 수집 항목이 정식 출시 전까지 변경될 수 있습니다.</li>
+          <li>현재 무료 Gemini API 운영 기준에 따라 AI에는 공개 시장정보만 전송합니다. Google의 무료 서비스 약관상 전송 콘텐츠가 제품 개선 및 품질 검토에 사용될 수 있으므로, 평단·수량·목표·메모와 OCR 이미지는 전송하지 않습니다.</li>
+          <li>Gemini API 제공 조건에 따라 만 18세 미만은 서비스에 가입하거나 이용할 수 없습니다.</li>
+          <li>스크린샷 가져오기는 개인정보 보호 기준을 충족한 AI 처리 환경이 준비될 때까지 제공하지 않습니다.</li>
           <li>변경 사항은 이 처리방침 갱신 및 서비스 내 공지로 안내합니다.</li>
           <li>베타 기간 중에도 위 4조의 보유 기간·파기 절차는 동일하게 적용됩니다.</li>
         </ul>

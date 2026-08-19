@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 
 interface CandleResult {
   s: 'ok' | 'no_data' | 'error';
@@ -32,7 +33,12 @@ async function fetchYahooHistorical(symbol: string, from: number, to: number): P
   }
 }
 
-export async function POST(req: NextRequest) {
+// 미인증 공개 라우트 — 심볼 수만큼 Yahoo를 순차 호출해 팬아웃이 크다. 일반 정책보다 좁게 잡는다.
+export const POST = defineRoute({
+  name: '/api/event-candles',
+  auth: 'public',
+  rateLimit: { windowSec: 60, maxLoggedIn: 20, maxAnon: 5 },
+  handler: async ({ req }) => {
   const { symbols, from, to } = await req.json() as { symbols: string[]; from: number; to?: number };
   if (!symbols?.length || !from) {
     return NextResponse.json({ error: 'symbols and from required' }, { status: 400 });
@@ -58,4 +64,5 @@ export async function POST(req: NextRequest) {
     : 's-maxage=900, stale-while-revalidate=3600';
 
   return NextResponse.json(results, { headers: { 'Cache-Control': cacheControl } });
-}
+},
+});

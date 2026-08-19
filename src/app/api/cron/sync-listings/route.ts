@@ -1,5 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
+import {
+  countUnsupportedFinnhubSecurityTypes,
+  isSupportedFinnhubSecurityType,
+} from '@/utils/securityTypePolicy';
 
 /**
  * 신규 상장 종목 감지 cron — 매일 KST 09:00 (UTC 00:00)
@@ -27,19 +32,13 @@ export const maxDuration = 60;
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 
-function verifyCronAuth(req: NextRequest): boolean {
-  const auth = req.headers.get('authorization');
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return auth === `Bearer ${secret}`;
-}
-
+// 키 해석은 `@/lib/supabaseServer` 한 곳이 SSOT다.
+// 예전엔 여기서 `SUPABASE_SERVICE_KEY` **단독**으로 읽었다 — 비-cron 라우트는 전부
+// `SUPABASE_SERVICE_ROLE_KEY || SUPABASE_SERVICE_KEY` 폴백을 갖고 있었기 때문에,
+// 새 이름만 설정한 환경에서 **웹은 멀쩡하고 cron만 죽는** 부분 장애가 났다
+// (알림·이메일 미발송은 사용자가 신고하기 전엔 드러나지 않는다).
 function getAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-    { auth: { persistSession: false } },
-  );
+  return requireServiceClient();
 }
 
 interface FinnhubSymbol {
@@ -49,7 +48,12 @@ interface FinnhubSymbol {
   mic?: string;
 }
 
-async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string): Promise<FinnhubSymbol[]> {
+interface ExchangeSymbolResult {
+  symbols: FinnhubSymbol[];
+  excludedTypes: Record<string, number>;
+}
+
+async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string): Promise<ExchangeSymbolResult> {
   try {
     const r = await fetch(
       `${FINNHUB_BASE}/stock/symbol?exchange=${exchange}&token=${apiKey}`,
@@ -57,17 +61,17 @@ async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string
     );
     if (!r.ok) {
       console.error(`[sync-listings] ${exchange} fetch failed:`, r.status);
-      return [];
+      return { symbols: [], excludedTypes: {} };
     }
     const data = (await r.json()) as FinnhubSymbol[];
-    // ETF는 별도 type 'ETP', 일반 주식 'Common Stock' 만 통과
-    return (data || []).filter(s => {
-      const t = s.type;
-      return t === 'Common Stock' || t === 'ETP' || t === 'ETF';
-    });
+    const rows = data || [];
+    return {
+      symbols: rows.filter(s => isSupportedFinnhubSecurityType(s.type)),
+      excludedTypes: countUnsupportedFinnhubSecurityTypes(rows),
+    };
   } catch (e) {
     console.error(`[sync-listings] ${exchange} fetch error:`, e);
-    return [];
+    return { symbols: [], excludedTypes: {} };
   }
 }
 
@@ -82,10 +86,11 @@ async function sendSlackAlert(title: string, body: string) {
   } catch { /* silent */ }
 }
 
-export async function GET(req: NextRequest) {
-  if (!verifyCronAuth(req)) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  }
+export const GET = defineRoute({
+  name: '/api/cron/sync-listings',
+  auth: 'cron',
+  rateLimit: false,
+  handler: async () => {
 
   const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   if (!apiKey) {
@@ -95,11 +100,23 @@ export async function GET(req: NextRequest) {
   const supabase = getAdmin();
 
   // 1. Finnhub에서 현재 상장 목록 받기 (병렬)
-  const [us, ks, kq] = await Promise.all([
+  const [usResult, ksResult, kqResult] = await Promise.all([
     fetchExchangeSymbols('US', apiKey),
     fetchExchangeSymbols('KS', apiKey),
     fetchExchangeSymbols('KQ', apiKey),
   ]);
+  const us = usResult.symbols;
+  const ks = ksResult.symbols;
+  const kq = kqResult.symbols;
+  const excludedTypes = {
+    US: usResult.excludedTypes,
+    KS: ksResult.excludedTypes,
+    KQ: kqResult.excludedTypes,
+  };
+
+  if (Object.values(excludedTypes).some(counts => Object.keys(counts).length > 0)) {
+    console.info('[sync-listings] excluded Finnhub security types:', excludedTypes);
+  }
 
   const incoming: Array<{ symbol: string; exchange: string; description: string }> = [
     ...us.map(s => ({ symbol: s.symbol, exchange: 'US', description: s.description || '' })),
@@ -228,6 +245,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     fetched: { us: us.length, ks: ks.length, kq: kq.length, total: incoming.length },
+    diagnostics: { excludedTypes },
     diff: { newCount, delistedCount, universeDelisted },
   });
-}
+},
+});

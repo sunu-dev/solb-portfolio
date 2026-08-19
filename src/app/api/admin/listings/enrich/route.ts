@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { requireAdmin } from '@/lib/adminAuth';
 import { classifyAssetClass } from '@/utils/leverageGuard';
 
 /**
@@ -15,24 +16,13 @@ export const runtime = 'nodejs';
 export const maxDuration = 15;
 
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
-  { auth: { persistSession: false } },
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
-async function verifyAdmin(req: NextRequest): Promise<{ ok: true; userId: string } | { ok: false; res: NextResponse }> {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return { ok: false, res: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
-  return { ok: true, userId: user.id };
-}
+/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
+const verifyAdmin = requireAdmin;
 
 export async function POST(req: NextRequest) {
   const auth = await verifyAdmin(req);
@@ -87,7 +77,7 @@ export async function POST(req: NextRequest) {
       update.status = 'rejected';
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin()
       .from('stock_listings')
       .update(update)
       .eq('symbol', symbol)

@@ -26,14 +26,6 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
   const [isAdult, setIsAdult] = useState(false);
   const [understood, setUnderstood] = useState(false);
 
-  // 모달 열릴 때마다 체크박스 초기화 (직전 동의 잔존 방지)
-  useEffect(() => {
-    if (isOpen) {
-      setIsAdult(false);
-      setUnderstood(false);
-    }
-  }, [isOpen]);
-
   useEffect(() => {
     if (!isOpen) return;
     document.body.style.overflow = 'hidden';

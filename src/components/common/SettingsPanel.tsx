@@ -12,6 +12,8 @@ import { getAlertPrefs, setAlertPrefs, CATEGORY_LABELS } from '@/utils/alertPref
 import type { AlertCategory } from '@/config/alertPolicy';
 import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
+import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
+import PortfolioDataTools from './PortfolioDataTools';
 
 // ─── 이메일 구독 토글 (재사용) ─────────────────────────────────────────────
 interface EmailToggleProps {
@@ -141,14 +143,18 @@ export default function SettingsPanel() {
   const [suppressedTypes, setSuppressedTypes] = useState<Array<{ type: string; count: number }>>([]);
   const [suppressedCategories, setSuppressedCategories] = useState<Array<{ category: string; label: string; count: number }>>([]);
   const [alertPrefsState, setAlertPrefsState] = useState(() => getAlertPrefs());
+  const [clearingAll, setClearingAll] = useState(false);
+  const [clearAllError, setClearAllError] = useState('');
 
   // 모달 열릴 때마다 현재 suppress 상태 새로고침
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const frame = requestAnimationFrame(() => {
       setSuppressedTypes(getSuppressedTypes());
       setSuppressedCategories(getSuppressedCategories());
       setAlertPrefsState(getAlertPrefs());
-    }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [isOpen]);
 
   const toggleCategory = (cat: AlertCategory) => {
@@ -188,14 +194,25 @@ export default function SettingsPanel() {
 
   const handleClearAll = async () => {
     if (!confirm('전체 초기화할까요? 모든 종목, 설정, 캐시 데이터가 삭제돼요.')) return;
+    setClearingAll(true);
+    setClearAllError('');
 
     // Supabase DB에서도 포트폴리오 삭제
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
       if (user) {
-        await supabase.from('user_portfolios').delete().eq('user_id', user.id);
+        const { error } = await supabase
+          .from('user_portfolios')
+          .delete()
+          .eq('user_id', user.id);
+        if (error) throw error;
       }
-    } catch { /* 비로그인 사용자 무시 */ }
+    } catch {
+      setClearAllError('클라우드 기록을 삭제하지 못해 초기화를 멈췄어요. 연결을 확인한 뒤 다시 시도해주세요.');
+      setClearingAll(false);
+      return;
+    }
 
     // 로컬 데이터 전부 삭제 후 리로드
     localStorage.clear();
@@ -369,9 +386,12 @@ export default function SettingsPanel() {
               🎯 내 투자 유형
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
-              AI 촉·분석이 이 유형에 맞춰 톤과 추천 기준을 조정해요. 현재:{' '}
+              AI 분석이 이 유형에 맞춰 설명 방식과 용어 난이도를 조정해요. 종목 평가와 오늘 시장 흐름은 달라지지 않아요. 현재:{' '}
               <strong style={{ color: INVESTOR_TYPES[investorType].accentColor }}>
-                {INVESTOR_TYPES[investorType].emoji} {INVESTOR_TYPES[investorType].nameKr}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <InvestorTypeIcon type={investorType} size={14} color={INVESTOR_TYPES[investorType].accentColor} />
+                  {INVESTOR_TYPES[investorType].nameKr}
+                </span>
               </strong>
             </div>
             <InvestorTypePicker currentType={investorType} onSelect={setInvestorType} />
@@ -418,9 +438,15 @@ export default function SettingsPanel() {
               <button
                 onClick={async () => {
                   setPushLoading(true);
-                  const granted = await requestPermission();
+                  const result = await requestPermission();
                   setPushLoading(false);
-                  if (!granted) alert('알림 권한이 거부됐어요. 브라우저 설정에서 허용해주세요.');
+                  if (result.permission === 'denied') {
+                    alert('알림 권한이 차단됐어요. 브라우저 설정에서 허용해주세요.');
+                  } else if (result.permission === 'unsupported') {
+                    alert('이 브라우저에서는 푸시 알림을 지원하지 않아요.');
+                  } else if (result.permission === 'granted' && !result.subscribed) {
+                    alert('알림 권한은 허용됐지만 푸시 연결에 실패했어요. 잠시 후 다시 시도해주세요.');
+                  }
                 }}
                 disabled={pushLoading}
                 style={{
@@ -623,6 +649,8 @@ export default function SettingsPanel() {
             )}
           </div>
 
+          <PortfolioDataTools />
+
           {/* 친구 초대 */}
           <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
@@ -644,6 +672,7 @@ export default function SettingsPanel() {
             </div>
             <button
               onClick={handleClearAll}
+              disabled={clearingAll}
               style={{
                 width: '100%',
                 padding: 12,
@@ -653,14 +682,20 @@ export default function SettingsPanel() {
                 fontSize: 14,
                 fontWeight: 600,
                 border: '1px solid #EF4452',
-                cursor: 'pointer',
+                cursor: clearingAll ? 'wait' : 'pointer',
+                opacity: clearingAll ? 0.6 : 1,
                 transition: 'background 0.15s',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #FFF5F5)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface, white)')}
             >
-              전체 데이터 초기화
+              {clearingAll ? '클라우드 삭제 확인 중...' : '전체 데이터 초기화'}
             </button>
+            {clearAllError && (
+              <div role="alert" style={{ marginTop: 9, color: '#EF4452', fontSize: 11, lineHeight: 1.5 }}>
+                {clearAllError}
+              </div>
+            )}
             <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 8 }}>
               모든 종목, 설정, 캐시 데이터가 삭제돼요
             </div>

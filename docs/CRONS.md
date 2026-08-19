@@ -3,7 +3,7 @@
 > 모든 Vercel cron 정의·스케줄·목적을 한 곳에 정리. `vercel.json` 의 `crons` 배열과 1:1 대응.
 > 변경 시 이 문서를 함께 갱신할 것.
 
-## 현재 등록된 Cron 7개
+## 현재 등록된 Cron 9개 (vercel.json 항목 10개 — `enrich-warm`이 2회 등록)
 
 | # | path | 스케줄 (UTC) | KST 환산 | 빈도 | 목적 |
 |---|---|---|---|---|---|
@@ -14,6 +14,11 @@
 | 5 | `/api/cron/sync-listings` | `0 0 * * *` | 매일 09:00 | 일별 | Finnhub 전체 상장 목록 diff (신규/상폐) |
 | 6 | `/api/cron/enrich-listings` | `0 1 * * *` | 매일 10:00 | 일별 | stock_listings 시총·상장일 점진 채움 (40건/일) |
 | 7 | `/api/cron/check-alerts` | `0 13 * * *` | 매일 22:00 | 일별 | 가격·기술지표 알림 체크. 미장 개장 직전·푸시 quiet hours 안전 (2026-05-15 등록, BLOCKER #2 대응) |
+| 8 | `/api/cron/morning-brief-close` | `0 7 * * *` | 매일 16:00 | 일별 | 국장 마감 digest 슬롯. `runDigest(req,'close')` 얇은 래퍼 — 슬롯을 wall-clock이 아닌 **경로**로 결정론화(재시도 시 슬롯 뒤집힘 방지). `DIGEST_CLOSE_SLOT_ENABLED='on'` 게이트 |
+| 9 | `/api/cron/enrich-warm` | `50 21 * * *` | 매일 06:50 | 일별 | 국장 오전 세션 직전 `enrichUniverse()` L2 캐시 예열. **Gemini 미호출** |
+| 9 | `/api/cron/enrich-warm` | `50 12 * * *` | 매일 21:50 | 일별 | 미장 저녁 세션 직전 예열 (같은 경로, 두 번째 스케줄) |
+
+> 2026-08-18 현행화 — 이전 판은 7개만 기재해 `morning-brief-close`·`enrich-warm`이 누락돼 있었다.
 
 ## Vercel 플랜 한계 (반드시 지킬 것)
 
@@ -34,9 +39,19 @@
 
 - [ ] 스케줄이 **일별 또는 더 드문 빈도** 인가? (Hobby 한계)
 - [ ] Function 60초 안에 끝나는가? (batch 처리는 BATCH_SIZE × per-item time 계산)
-- [ ] `CRON_SECRET` Bearer 검증 포함했는가?
+- [ ] `defineRoute({ auth: 'cron', rateLimit: false })`로 감쌌는가? (인증 자체 구현 금지)
 - [ ] 실패 시 Slack 알림 (선택)
 - [ ] 이 문서 업데이트했는가?
+
+### 인증 규약 (2026-08-18)
+
+cron 인증은 `src/lib/apiRoute.ts`의 `defineRoute({ auth: 'cron' })` **한 곳**이 담당한다.
+라우트가 각자 `verifyCronAuth`를 복제하던 시절 `check-alerts`만 `if (!secret) return false` 가드가 빠져,
+`CRON_SECRET` 미설정 시 `Authorization: Bearer undefined` 헤더로 인증이 뚫릴 수 있었다.
+
+- 예외는 `check-alerts` 하나 — Vercel Cron(GET, CRON_SECRET)과 Upstash QStash(POST, 서명 검증)를
+  동시에 받아 공통 cron 모드로 표현할 수 없다. 자체 인증을 유지하되 미설정 가드는 필수.
+- 이 규약은 `src/__tests__/cronAuthBoundary.test.ts`가 박제한다 — 예외를 늘리려면 사유와 함께 등재해야 한다.
 
 ### Cron 시간 분산 원칙
 

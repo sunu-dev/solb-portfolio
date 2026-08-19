@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import { formatKRW } from '@/utils/formatKRW';
+import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 
 /**
  * 매수 시뮬레이션 — 9인 패널 회의 결과 반영 (Phase 4 후속).
@@ -36,13 +36,13 @@ interface SimulatorProps {
 
 // ─── 단위 헬퍼 ────────────────────────────────────────────────────────────
 function formatPrice(value: number, cur: 'KRW' | 'USD'): string {
-  if (cur === 'KRW') return `${Math.round(value).toLocaleString()}원`;
+  if (cur === 'KRW') return formatKrw(value, { prefix: false, suffix: '원', short: false });
   return `$${value.toFixed(2)}`;
 }
 
 function formatMoney(value: number, cur: 'KRW' | 'USD'): string {
-  if (cur === 'KRW') return formatKRW(Math.round(value), { suffix: '원', prefix: false });
-  return `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+  if (cur === 'KRW') return formatKrw(Math.round(value), { suffix: '원', prefix: false });
+  return formatUsd(value, 0);
 }
 
 function formatShares(shares: number, market: 'KR' | 'US'): string {
@@ -65,9 +65,6 @@ export default function BuySimulator({
 }: SimulatorProps) {
   const [amountStr, setAmountStr] = useState(() => currency === 'KRW' ? '1,000,000' : '1,000');
   const [isOpen, setIsOpen] = useState(false);
-
-  // 가드 — 가격 무효 / 환율 무효
-  if (!currentPrice || currentPrice <= 0) return null;
 
   const kr = STOCK_KR[symbol] || symbol;
   const amountNum = Math.max(0, parseFloat(digitsOnly(amountStr) || '0'));
@@ -129,6 +126,9 @@ export default function BuySimulator({
       return { label: formatMoney(rounded, currency).replace(/원$/, '').replace(/^\$/, ''), val: rounded, prefix: currency === 'USD' ? '$' : '', suffix: currency === 'KRW' ? '원' : '' };
     }).filter(p => p.val > 0);
   }, [currentPrice, market, currency, priceCurrency, usdKrw]);
+
+  // 모든 Hook 호출 뒤에 가드해 렌더마다 Hook 순서를 동일하게 유지한다.
+  if (!currentPrice || currentPrice <= 0) return null;
 
   if (!isOpen) {
     return (

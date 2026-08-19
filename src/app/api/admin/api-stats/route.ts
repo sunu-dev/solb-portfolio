@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { defineRoute } from '@/lib/apiRoute';
 import { getClaudeUsageToday, getProviderStatus } from '@/lib/aiProvider';
+import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
+import { getAiSafetyStatus } from '@/lib/aiSafetyStatus';
+import { monthStartKstIso, projectAiMonthlyCost } from '@/lib/aiCostProjection';
 
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
 interface ApiCallRow {
   endpoint: string;
@@ -21,28 +21,49 @@ interface ApiCallRow {
   created_at: string;
 }
 
-export async function GET(req: NextRequest) {
-  // 관리자 인증
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+interface AiCostRow {
+  feature: string;
+  provider: 'gemini' | 'claude';
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cached_input_tokens: number;
+  reasoning_tokens: number;
+  estimated_cost_usd: number | string;
+  latency_ms: number;
+  cache_hit: boolean;
+  success: boolean;
+}
 
+export const GET = defineRoute({
+  name: '/api/admin/api-stats',
+  auth: 'admin',
+  handler: async ({ req }) => {
   const hours = parseInt(req.nextUrl.searchParams.get('hours') || '24');
   const sinceIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
   try {
-    // 전체 호출 로드 (최근 N시간)
-    const { data } = await supabaseAdmin
-      .from('api_calls')
-      .select('endpoint, user_key, user_id, ip, status, latency_ms, error_code, created_at')
-      .gte('created_at', sinceIso)
-      .order('created_at', { ascending: false })
-      .limit(50000); // 안전장치
+    // 독립 쿼리는 병렬 실행. 비용 원장 마이그레이션 전에도 기존 API 통계는 정상 제공한다.
+    const [apiCallsResult, aiCostsResult, monthCostsResult] = await Promise.all([
+      supabaseAdmin()
+        .from('api_calls')
+        .select('endpoint, user_key, user_id, ip, status, latency_ms, error_code, created_at')
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(50000),
+      supabaseAdmin()
+        .from('ai_cost_ledger')
+        .select('feature, provider, model, input_tokens, output_tokens, cached_input_tokens, reasoning_tokens, estimated_cost_usd, latency_ms, cache_hit, success')
+        .gte('created_at', sinceIso)
+        .limit(50000),
+      supabaseAdmin()
+        .from('ai_cost_ledger')
+        .select('estimated_cost_usd')
+        .gte('created_at', monthStartKstIso())
+        .limit(50000),
+    ]);
 
-    const rows = (data || []) as ApiCallRow[];
+    const rows = (apiCallsResult.data || []) as ApiCallRow[];
     const total = rows.length;
     const successes = rows.filter(r => r.status >= 200 && r.status < 400).length;
     const errors = total - successes;
@@ -119,7 +140,90 @@ export async function GET(req: NextRequest) {
 
     // Claude fallback 사용량
     const providerStatus = getProviderStatus();
-    const claudeUsage = await getClaudeUsageToday();
+    const [claudeUsage, monthlyBudget] = await Promise.all([
+      getClaudeUsageToday(),
+      getAiMonthlyBudgetStatus(),
+    ]);
+
+    // 실제 토큰 기반 AI 비용 집계
+    const aiCostRows = (aiCostsResult.data || []) as AiCostRow[];
+    const costGroups = new Map<string, {
+      feature: string;
+      provider: string;
+      model: string;
+      calls: number;
+      costUsd: number;
+      inputTokens: number;
+      outputTokens: number;
+      cachedInputTokens: number;
+      reasoningTokens: number;
+      latencyTotal: number;
+      cacheHits: number;
+    }>();
+    let totalCostUsd = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCachedInputTokens = 0;
+    let totalReasoningTokens = 0;
+    let totalAiLatency = 0;
+    let totalCacheHits = 0;
+
+    for (const row of aiCostRows) {
+      const costUsd = Number(row.estimated_cost_usd) || 0;
+      totalCostUsd += costUsd;
+      totalInputTokens += row.input_tokens || 0;
+      totalOutputTokens += row.output_tokens || 0;
+      totalCachedInputTokens += row.cached_input_tokens || 0;
+      totalReasoningTokens += row.reasoning_tokens || 0;
+      totalAiLatency += row.latency_ms || 0;
+      if (row.cache_hit) totalCacheHits++;
+
+      const key = `${row.feature}\u0000${row.provider}\u0000${row.model}`;
+      const group = costGroups.get(key) || {
+        feature: row.feature,
+        provider: row.provider,
+        model: row.model,
+        calls: 0,
+        costUsd: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedInputTokens: 0,
+        reasoningTokens: 0,
+        latencyTotal: 0,
+        cacheHits: 0,
+      };
+      group.calls++;
+      group.costUsd += costUsd;
+      group.inputTokens += row.input_tokens || 0;
+      group.outputTokens += row.output_tokens || 0;
+      group.cachedInputTokens += row.cached_input_tokens || 0;
+      group.reasoningTokens += row.reasoning_tokens || 0;
+      group.latencyTotal += row.latency_ms || 0;
+      if (row.cache_hit) group.cacheHits++;
+      costGroups.set(key, group);
+    }
+
+    const aiCostBreakdown = Array.from(costGroups.values())
+      .map(group => ({
+        feature: group.feature,
+        provider: group.provider,
+        model: group.model,
+        calls: group.calls,
+        costUsd: group.costUsd,
+        inputTokens: group.inputTokens,
+        outputTokens: group.outputTokens,
+        cachedInputTokens: group.cachedInputTokens,
+        reasoningTokens: group.reasoningTokens,
+        avgLatencyMs: group.calls ? Math.round(group.latencyTotal / group.calls) : 0,
+        cacheHitRate: group.calls ? Math.round(group.cacheHits / group.calls * 1000) / 10 : 0,
+      }))
+      .sort((a, b) => b.costUsd - a.costUsd);
+    const monthCostRows = monthCostsResult.data || [];
+    const projection = projectAiMonthlyCost({
+      monthSpentUsd: monthCostRows.reduce((sum, row) => sum + (Number(row.estimated_cost_usd) || 0), 0),
+      monthCalls: monthCostRows.length,
+      budgetStopAtUsd: monthlyBudget.enabled ? monthlyBudget.stopAtUsd : undefined,
+    });
 
     return NextResponse.json({
       hours,
@@ -141,6 +245,22 @@ export async function GET(req: NextRequest) {
           estimatedCostUsd: claudeUsage.estimatedCostUsd,
         },
       },
+      aiCost: {
+        available: !aiCostsResult.error,
+        message: aiCostsResult.error ? 'ai_cost_ledger 마이그레이션을 적용하면 비용 데이터가 표시돼요.' : null,
+        calls: aiCostRows.length,
+        totalCostUsd,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        cachedInputTokens: totalCachedInputTokens,
+        reasoningTokens: totalReasoningTokens,
+        avgLatencyMs: aiCostRows.length ? Math.round(totalAiLatency / aiCostRows.length) : 0,
+        cacheHitRate: aiCostRows.length ? Math.round(totalCacheHits / aiCostRows.length * 1000) / 10 : 0,
+        breakdown: aiCostBreakdown,
+        monthlyBudget,
+        projection: monthCostsResult.error ? null : projection,
+      },
+      safety: getAiSafetyStatus(),
     }, {
       headers: { 'Cache-Control': 'no-store' },
     });
@@ -148,4 +268,5 @@ export async function GET(req: NextRequest) {
     console.error('API stats error:', e);
     return NextResponse.json({ error: 'internal error' }, { status: 500 });
   }
-}
+},
+});

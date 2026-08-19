@@ -1,19 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 import { GoogleGenAI } from '@google/genai';
-import { createClient } from '@supabase/supabase-js';
 import { MENTOR_MAP } from '@/config/mentors';
-import { SYSTEM_LAYER1, getMentorLayer2Rules, buildPersonalizationLayer, buildUserTypeContext } from '@/config/analysisPrompt';
-import { DEFAULT_INVESTOR_TYPE, type InvestorType } from '@/config/investorTypes';
+import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
 import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
-import { sanitizeAiObject } from '@/utils/alertCompliance';
 import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE } from '@/utils/leverageGuard';
+import { recordAiCost } from '@/lib/aiCostLedger';
+import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
+import { sampleAiOutput } from '@/lib/aiOutputAudit';
+import { attachAiResultMeta } from '@/lib/aiResultMeta';
+import { createAiAnalysisParseFallback, governAiAnalysisReport } from '@/lib/aiAnalysisGuard';
+import { toPublicAiAnalysisInput } from '@/lib/aiInputPrivacy';
+import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
+import { getStockCurrency } from '@/utils/stockCurrency';
+import { formatKrw } from '@/utils/koreanNumber';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_2 || process.env.GEMINI_API_KEY2,
 ].filter(Boolean) as string[];
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
@@ -21,16 +28,9 @@ const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10
 const CHOK_USAGE_TAG = 'ai-chok';
 
 // Supabase server client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // service-role 클라이언트 — stock_listings RLS(select using false)는 service role만 읽는다.
 // isLev 서버 권위화: 클라이언트 body의 description 위변조·누락에 의존하지 않도록 권위 데이터를 조회한다(§6).
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
-const supabaseAdmin = supabaseUrl && supabaseServiceKey
-  ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
-  : null;
 
 /**
  * 단일종목 레버리지 서버 권위 판정 — 클라이언트 body(description/koreanName) 단독 의존 제거.
@@ -43,6 +43,7 @@ async function resolveIsSingleLeverage(symbol: string, clientDesc: string): Prom
   if (!symbol) return false;
   // 클라이언트 신호 (행이 없을 때의 fallback) — 항상 먼저 계산해 보호 공백 방지
   let result = isSingleStockLeverage(symbol, clientDesc);
+  const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return result;
   try {
     const { data } = await supabaseAdmin
@@ -68,42 +69,49 @@ function getTodayKST(): string {
 }
 
 // AI 분석 사용량 — mentor_id != 'ai-chok' 만 카운트 (촉과 분리)
-async function getAnalysisUsage(userId: string): Promise<{ userCount: number; totalCount: number }> {
-  if (!supabase) return { userCount: 0, totalCount: 0 };
+async function getAnalysisUsage(userId: string): Promise<{ available: boolean; userCount: number; totalCount: number }> {
+  // 사용량은 전체 사용자 합산을 포함하므로 service role로만 조회한다.
+  // anon client에 맡기면 RLS 정책에 따라 0으로 집계되거나 요청 전체가 503으로 닫힌다.
+  const supabaseAdmin = getServiceClient();
+  if (!supabaseAdmin) return { available: false, userCount: 0, totalCount: 0 };
   const today = getTodayKST();
   try {
-    // 글로벌 캡: 모든 AI 호출 합산 (자릿수 안전망)
-    const { count: totalCount } = await supabase
-      .from('ai_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('date', today);
-
-    // 사용자별: ai-chok 호출 제외하고 카운트
-    const { count: userCount } = await supabase
-      .from('ai_usage')
-      .select('*', { count: 'exact', head: true })
-      .eq('date', today)
-      .eq('user_id', userId)
-      .or(`mentor_id.is.null,mentor_id.neq.${CHOK_USAGE_TAG}`);
-
-    return { userCount: userCount || 0, totalCount: totalCount || 0 };
-  } catch { return { userCount: 0, totalCount: 0 }; }
+    const [totalResult, userResult] = await Promise.all([
+      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today),
+      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true })
+        .eq('date', today).eq('user_id', userId)
+        .or(`mentor_id.is.null,mentor_id.neq.${CHOK_USAGE_TAG}`),
+    ]);
+    if (totalResult.error || userResult.error) {
+      console.error('[AI analysis] usage guard unavailable:', totalResult.error?.message || userResult.error?.message);
+      return { available: false, userCount: 0, totalCount: 0 };
+    }
+    return { available: true, userCount: userResult.count || 0, totalCount: totalResult.count || 0 };
+  } catch {
+    return { available: false, userCount: 0, totalCount: 0 };
+  }
 }
 
 async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string) {
-  if (!supabase) return;
+  const client = getServiceClient() ?? getAuthClient();
+  if (!client) return false;
   try {
-    await supabase.from('ai_usage').insert({
+    const { error } = await client.from('ai_usage').insert({
       ip,
       user_id: userId,
       date: getTodayKST(),
       symbol: symbol || null,
       mentor_id: mentorId || null,
     });
-  } catch { /* silent */ }
+    if (error) console.error('[AI analysis] usage record failed:', error.message);
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 async function recordGeminiKeyUsage(keyIndex: number) {
+  const supabase = getAuthClient();
   if (!supabase) return;
   try {
     await supabase.from('gemini_key_usage').insert({
@@ -180,6 +188,32 @@ function enforceLeverageReport(report: unknown): unknown {
 }
 
 export async function POST(req: NextRequest) {
+  // 인증을 설정·레이트리밋·본문 파싱보다 먼저 확인한다.
+  // 비로그인 요청이 AI 상태를 추측하거나 잘못된 본문으로 500을 만들지 않게 한다.
+  let userId: string | undefined;
+  const authHeader = req.headers.get('authorization');
+  const supabase = getAuthClient();
+  if (authHeader?.startsWith('Bearer ') && supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+      userId = user?.id;
+    } catch { /* not logged in */ }
+  }
+  if (!userId) {
+    return NextResponse.json({
+      error: 'AI 분석은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
+      limitReached: true,
+      remaining: 0,
+      loginForMore: true,
+    }, { status: 401 });
+  }
+  if (!await hasCurrentAdultAiConsent(getServiceClient(), userId)) {
+    return NextResponse.json({
+      error: '만 18세 이상 확인 후 AI 분석을 이용할 수 있어요.',
+      code: 'adult_consent_required',
+    }, { status: 403 });
+  }
+
   if (!GEMINI_KEYS.length) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
   }
@@ -199,35 +233,35 @@ export async function POST(req: NextRequest) {
   // Rate limiting
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
-  const body = await req.json();
-
-  // Verify auth server-side (don't trust client userId)
-  let userId: string | undefined;
-  const authHeader = req.headers.get('authorization');
-  if (authHeader?.startsWith('Bearer ') && supabase) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-      userId = user?.id;
-    } catch { /* not logged in */ }
+  let body: Awaited<ReturnType<NextRequest['json']>>;
+  try {
+    body = await req.json();
+  } catch {
+    await gate.finalize(400, 'invalid_json');
+    return NextResponse.json({ error: '요청 형식이 올바르지 않아요.' }, { status: 400 });
   }
-  const isLoggedIn = !!userId;
 
-  // ── 비로그인 차단 (정책: AI 분석은 로그인 사용자 전용) ─────────────
-  if (!isLoggedIn) {
-    await gate.finalize(401, 'login_required');
-    return NextResponse.json({
-      error: 'AI 분석은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
-      limitReached: true,
-      remaining: 0,
-      loginForMore: true,
-    }, { status: 401 });
+  // 무료 Gemini에는 공개 시장 데이터만 보낸다. 클라이언트가 개인 보유정보를
+  // 실수로 포함해도 서버 allowlist 경계에서 제거한 뒤 프롬프트를 만든다.
+  const publicInput = toPublicAiAnalysisInput(body);
+  if (!publicInput) {
+    await gate.finalize(400, 'invalid_body');
+    return NextResponse.json({ error: '분석할 종목과 시세 정보를 확인해주세요.' }, { status: 400 });
   }
 
   // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
   const tier = await getUserTier(userId);
   const perUserLimit = getTierLimits(tier).analysisDaily;
 
-  const { userCount, totalCount } = await getAnalysisUsage(userId!);
+  const { available: usageAvailable, userCount, totalCount } = await getAnalysisUsage(userId!);
+
+  if (!usageAvailable) {
+    await gate.finalize(503, 'daily_usage_unavailable');
+    return NextResponse.json({
+      error: 'AI 사용량 확인 시스템을 점검하고 있어요. 잠시 후 다시 시도해주세요.',
+      code: 'daily_usage_unavailable',
+    }, { status: 503 });
+  }
 
   if (totalCount >= DAILY_LIMIT_TOTAL) {
     await gate.finalize(429, 'daily_total_limit');
@@ -251,143 +285,156 @@ export async function POST(req: NextRequest) {
     }, { status: 429 });
   }
 
+  const budget = await getAiMonthlyBudgetStatus();
+  if (!budget.allowed) {
+    await gate.finalize(503, budget.reason || 'monthly_budget_limit');
+    return NextResponse.json({
+      error: budget.reason === 'ledger_unavailable'
+        ? 'AI 비용 확인 시스템을 점검하고 있어요. 잠시 후 다시 시도해주세요.'
+        : '이번 달 AI 이용 한도에 도달했어요. 다음 달에 다시 이용해주세요.',
+      code: budget.reason || 'monthly_budget_limit',
+      budgetLimited: true,
+    }, { status: 503 });
+  }
+
   try {
-    const { symbol, koreanName, price, change, changePercent, avgCost, shares, targetReturn,
+    const { symbol, koreanName, currency: inputCurrency, price, change, changePercent,
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
             recentNews, mentorId,
             per, eps, week52High, week52Low, sector,
-            stopLoss, stopLossPct, weight, buyBelow, purchaseRate, currentUsdKrw, category,
-            investorType = DEFAULT_INVESTOR_TYPE,
-            userNotes = [] as string[],
             description = '',
-            timeSeriesContext = '' } = body as typeof body & { investorType?: InvestorType; userNotes?: string[]; description?: string; timeSeriesContext?: string };
+            timeSeriesContext = '' } = publicInput;
+    const nativeCurrency = getStockCurrency(symbol, inputCurrency);
+    const formatNativeAmount = (value: number) => nativeCurrency === 'KRW'
+      ? formatKrw(value)
+      : `$${value.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`;
+
+    // 환각 수동 검증용 공개 기준값. 개인 보유·목표·손절·메모는 의도적으로 제외한다.
+    const auditSnapshot = {
+      symbol,
+      currency: nativeCurrency,
+      price,
+      change,
+      changePercent,
+      rsi,
+      trend,
+      cross,
+      pattern,
+      bollingerStatus,
+      macdStatus,
+      volRatio,
+      per,
+      eps,
+      week52High,
+      week52Low,
+      sector,
+      capturedAt: new Date().toISOString(),
+    };
 
     // 단일종목 레버리지·인버스 판정 — 서버 권위(stock_listings.asset_class + 서버 description)
     // 우선, 행 없으면 클라이언트 body(description||koreanName) fallback. 클라이언트 위변조·누락에
     // 의존하지 않는다 (TSLL·NVDU·520100.KS 등은 symbol만으로도 true).
-    const isLev = await resolveIsSingleLeverage(symbol, description || koreanName);
-
-    // 개인화 계산
-    const currentPLPct = (avgCost && price && avgCost > 0)
-      ? ((price - avgCost) / avgCost * 100)
-      : null;
-    const targetProgress = (targetReturn && currentPLPct != null)
-      ? (currentPLPct / targetReturn * 100)
-      : null;
-    const stopLossDistance = (stopLoss && price && stopLoss > 0)
-      ? ((price - stopLoss) / price * 100)
-      : null;
-
-    const personalizationBlock = buildPersonalizationLayer({
-      category,
-      currentPLPct,
-      targetReturn,
-      targetProgress,
-      stopLoss,
-      stopLossPct,
-      stopLossDistance,
-      weight,
-      buyBelow,
-      purchaseRate,
-      currentUsdKrw,
-      isSingleStockLeverage: isLev,
-    });
+    const isLev = await resolveIsSingleLeverage(symbol, description || koreanName || symbol);
 
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
 
-    // 유저 투자 유형 블록 (LAYER 0)
-    const userTypeContext = buildUserTypeContext(investorType);
-    const layer1WithType = SYSTEM_LAYER1.replace('{USER_TYPE_CONTEXT}', userTypeContext);
+    const publicOnlyContext = `설명 스타일: 모든 사용자에게 동일한 초보자용 공개정보 해설
+- 개인의 보유 여부, 평단, 수량, 수익률, 목표, 투자성향, 메모를 알지 못하며 추정하지 않는다.
+- 공개 시세·기술 지표·기업 지표·뉴스에서 직접 확인되는 사실만 설명한다.`;
+    const layer1WithType = SYSTEM_LAYER1.replace('{USER_TYPE_CONTEXT}', publicOnlyContext);
+
+    const privacyRules = `## [개인정보 보호 모드 — 최우선]
+- 이 요청에는 종목명과 공개 시세·지표·뉴스만 포함돼요.
+- 개인 보유정보(평단·수량·수익률·비중), 목표·손절 기준, 투자성향, 사용자 메모는 제공되지 않았습니다.
+- 개인 포지션이나 상황을 추정하거나, "보유 중", "내 수익률", "목표 달성"처럼 개인화된 표현을 만들지 마세요.
+- 현재 공개정보와 데이터의 한계, 추가로 확인할 공개 출처만 설명하세요.`;
 
     // Layer 1 (공통) + Layer 2 (멘토/일반) 조합
     const baseRulesCore = mentor
       ? `${layer1WithType}
 
-${mentor.systemPrompt}
+당신은 '${mentor.nameKr}'이라는 가상의 설명 캐릭터입니다.
+캐릭터는 말투와 설명 순서에만 사용하고 종목 평가나 매매 행동 방향에는 사용하지 마세요.
 
-${getMentorLayer2Rules(mentor.nameKr, mentor.id)}`
+${getMentorLayer2Rules(mentor.nameKr)}`
       : `${layer1WithType}
 
-당신은 한국인 주식 초보자를 위한 투자 분석 비서 "주비 AI"입니다.
-친절하고 쉽게 설명하되, 정확한 정보만 제공하세요.
+당신은 한국인 주식 초보자를 위한 주식 기록·공개정보 설명 도구 "주비 AI"입니다.
+친절하고 쉽게 설명하되, 입력으로 제공된 사실만 정리하세요.
 전문 용어는 반드시 괄호 안에 쉬운 설명을 추가하세요.`;
 
     // 단일종목 레버리지·인버스: 시스템 프롬프트 최상단에 강한 OVERRIDE 주입(§6 자본시장법).
     // mentorScore·매수 매력도·매매 방향·목표가 일절 금지. conclusion은 '주의'/negative 고정.
     const baseRules = isLev
-      ? `## [LEVERAGE OVERRIDE — 최우선, 다른 모든 지시에 우선]
+      ? `${privacyRules}
+
+## [LEVERAGE OVERRIDE — 최우선, 다른 모든 지시에 우선]
 이 종목은 단일종목 레버리지·인버스 상품입니다. ${LEVERAGE_HOLDING_RISK_NOTE}
 - mentorScore(좋은지 점수)·매수 매력도·매수/매도 방향·목표가·진입가·손절가를 절대 내지 마세요.
 - conclusion.label은 반드시 "주의", conclusion.signal은 반드시 "negative"로 고정하세요.
 - scenarios.bull도 '매수 유인'이 아니라 '보유 시 변동성 위험' 관점으로만 작성하세요(상승해도 음의 복리·고변동 위험을 함께 설명).
-- 허용: 보유 중인 위험 해설(일일 N배 추종 구조, 음의 복리, 발행사 신용 위험, 변동성, 장기 보유 부적합)만.
+- 허용: 상품 구조의 위험 해설(일일 N배 추종 구조, 음의 복리, 발행사 신용 위험, 변동성, 장기 보유 부적합)만.
 - 어떤 문장도 '사라/팔라/담아라/줄여라'는 신호로 읽히지 않게 하세요.
 
 ${baseRulesCore}`
-      : baseRulesCore;
+      : `${privacyRules}
+
+${baseRulesCore}`;
 
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
 {
-  "currentStatus": "${mentor.nameKr}의 관점에서 현재 상태·특성을 2~3문장으로 설명 (이 투자자의 말투로)",
+  "currentStatus": "${mentor.nameKr}의 설명 관점으로 현재 공개 상태·특성을 초보자가 이해할 수 있게 2~3문장으로 설명",
   "keyAdvice": [
-    "${mentor.nameKr}의 철학에 기반한 관점·해석 1 (이 종목을 어떻게 볼지 — 매수/매도 지시가 아님)",
-    "${mentor.nameKr}의 철학에 기반한 관점·해석 2",
-    "${mentor.nameKr}의 철학에 기반한 관점·해석 3"
+    "현재 공개 수치에서 확인되는 객관적 사실 1",
+    "현재 데이터의 한계나 위험 정보 1",
+    "추가로 확인할 공시·실적·출처 정보 1"
   ],
-  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "${mentor.nameKr} 관점에서 이 뉴스가 종목에 미칠 영향 1문장"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "기사에서 확인되는 종목 관련 사실과 아직 확인되지 않은 정보 1문장"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
   "newsContext": "뉴스 없을 때만: '최근 24시간 내 관련 뉴스가 없어요'",
-  "scenarios": {
-    "bull": "상승 시 시나리오: 뉴스/지표가 우호적으로 전개되면 어떤 상황이 될 수 있는지 1~2문장 (상황 설명일 뿐 매수 권유 아님). ${mentor.nameKr}의 말투로.",
-    "bear": "하락 시 시나리오: 리스크가 현실화되면 어떤 상황이 될 수 있는지 1~2문장. ${mentor.nameKr}의 말투로."
-  },
-  "quote": "이 멘토 철학에 맞는 투자 격언 1개 (출처 없이)",
+  "quote": "현재 지표를 쉽게 설명하는 짧은 비유 1개 (행동 권고 금지)",
   "conclusion": {
-    "label": "관심/중립/주의 중 하나 (매수 매력도가 아니라 ${mentor.nameKr}가 본 현황·위험 톤)",
-    "signal": "positive/neutral/negative",
-    "desc": "${mentor.nameKr}의 관점에서 현황·특성·위험 종합 2~3문장 (매수/매도 방향·목표가 없이)"
+    "label": "정보 정리",
+    "signal": "neutral",
+    "desc": "현재 공개정보, 변경된 사실, 추가 확인할 정보 순서로 2~3문장"
   }
 }`
       : `## 응답 형식 (반드시 JSON으로)
 {
   "currentStatus": "현재 상태를 2~3문장으로 설명",
   "indicators": [
-    { "name": "이동평균", "value": "20일선 위/아래 등", "signal": "positive/negative/neutral" },
-    { "name": "RSI", "value": "수치와 해석", "signal": "positive/negative/neutral" },
-    { "name": "볼린저밴드", "value": "위치와 해석", "signal": "positive/negative/neutral" },
-    { "name": "MACD", "value": "상태와 해석", "signal": "positive/negative/neutral" },
-    { "name": "거래량", "value": "수준과 해석", "signal": "positive/negative/neutral" }
+    { "name": "이동평균", "value": "20일선 위/아래 등 객관적 위치", "signal": "neutral" },
+    { "name": "RSI", "value": "수치와 지표 정의", "signal": "neutral" },
+    { "name": "볼린저밴드", "value": "현재 위치", "signal": "neutral" },
+    { "name": "MACD", "value": "현재 상태", "signal": "neutral" },
+    { "name": "거래량", "value": "과거 평균 대비 수준", "signal": "neutral" }
   ],
-  "historicalNote": "과거 유사 상황에서의 통계적 경향을 1~2문장으로",
-  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "이 뉴스가 종목에 미칠 영향 1문장. 초보자 눈높이로"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "historicalNote": "제공된 52주 고가·저가 범위에서 현재 가격의 산술적 위치를 1~2문장으로",
+  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "기사에서 확인되는 종목 관련 사실과 아직 확인되지 않은 정보 1문장"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
   "newsContext": "뉴스 없을 때만: '최근 24시간 내 관련 뉴스가 없어요'",
-  "scenarios": {
-    "bull": "상승 시나리오: 뉴스/지표가 긍정적으로 전개된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게.",
-    "bear": "하락 시나리오: 리스크가 현실화된다면 어떤 상황이 될 수 있는지 1~2문장. 초보자도 이해할 수 있게."
-  },
   "conclusion": {
-    "label": "긍정적/관망/주의 중 하나",
-    "signal": "positive/neutral/negative",
-    "desc": "종합 판단을 2~3문장으로, 초보자가 이해할 수 있게"
+    "label": "정보 정리",
+    "signal": "neutral",
+    "desc": "현재 공개정보, 변경된 사실, 추가 확인할 정보 순서로 2~3문장"
   }
 }`;
 
+    const rsiNumber = Number(rsi);
+    const hasRsi = Number.isFinite(rsiNumber);
     const prompt = `${baseRules}
-
-${personalizationBlock}
 
 ## 분석 대상
 종목: ${symbol} (${koreanName || symbol})
-현재가: $${price}
-오늘 등락: ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}% ($${change?.toFixed(2)})
-${avgCost ? `평균 매수가: $${avgCost} (${shares}주 보유, 현재 수익률 ${currentPLPct != null ? (currentPLPct >= 0 ? '+' : '') + currentPLPct.toFixed(1) + '%' : '계산 불가'})` : '미보유'}
-${targetReturn ? `목표 수익률: ${targetReturn}% (달성률: ${targetProgress != null ? targetProgress.toFixed(0) + '%' : '-'})` : ''}
-${stopLoss ? `손절가: $${stopLoss}${stopLossDistance != null ? ` (현재가 대비 ${stopLossDistance.toFixed(1)}% 여유)` : ''}` : ''}
-${weight ? `포트폴리오 비중: ${weight}%` : ''}
+현재가: ${formatNativeAmount(price)}
+오늘 등락: ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}% (${change != null ? formatNativeAmount(change) : '금액 데이터 없음'})
+개인 보유정보·목표·메모: 전송하지 않음
 
 ## 기술적 지표
-- RSI: ${rsi || '데이터 없음'}${rsi ? (rsi < 30 ? ' (과매도 구간)' : rsi > 70 ? ' (과매수 구간)' : ' (적정)') : ''}
+- RSI: ${hasRsi ? rsiNumber : '데이터 없음'}${hasRsi ? (rsiNumber < 30 ? ' (과매도 구간)' : rsiNumber > 70 ? ' (과매수 구간)' : ' (중립 범위)') : ''}
 - 추세: ${trend || '데이터 없음'}
 - 이동평균 교차: ${cross || '없음'}
 - 차트 패턴: ${pattern || '없음'}
@@ -397,16 +444,12 @@ ${weight ? `포트폴리오 비중: ${weight}%` : ''}
 
 ## 기본 지표 (Fundamentals)
 ${per != null ? `- PER(주가수익비율): ${per.toFixed(1)}` : '- PER: 데이터 없음'}
-${eps != null ? `- EPS(주당순이익): $${eps.toFixed(2)}` : '- EPS: 데이터 없음'}
-${week52High != null && week52Low != null ? `- 52주 고가/저가: $${week52High} / $${week52Low}` : ''}
+${eps != null ? `- EPS(주당순이익): ${formatNativeAmount(eps)}` : '- EPS: 데이터 없음'}
+${week52High != null && week52Low != null ? `- 52주 고가/저가: ${formatNativeAmount(week52High)} / ${formatNativeAmount(week52Low)}` : ''}
 ${sector ? `- 섹터: ${sector}` : ''}
 
 ${timeSeriesContext ? timeSeriesContext + '\n\n' : ''}## 최근 뉴스
 ${recentNews || '관련 뉴스 없음'}
-
-${(userNotes as string[]).length > 0 ? `## 사용자가 남긴 결정 메모 (중요)
-이 사용자가 이 종목에 대해 매수/매도/조정 시 직접 작성한 한 줄 메모입니다. **반드시 분석에 반영하여**, 사용자의 원래 매수 논리가 여전히 유효한지·바뀌었는지 짚어주세요.
-${(userNotes as string[]).map((n: string, i: number) => `${i + 1}. "${n}"`).join('\n')}` : ''}
 
 ${responseFormat}`;
 
@@ -418,6 +461,7 @@ ${responseFormat}`;
       for (const apiKey of shuffledKeys) {
       const keyIndex = GEMINI_KEYS.indexOf(apiKey);
       try {
+        const startedAt = Date.now();
         const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
           model,
@@ -425,10 +469,24 @@ ${responseFormat}`;
           config: { responseMimeType: 'application/json', temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
         });
 
+        const latencyMs = Date.now() - startedAt;
+        const metadata = response.usageMetadata;
+        await recordAiCost({
+          feature: 'ai-analysis',
+          provider: 'gemini',
+          model,
+          userId: userId!,
+          inputTokens: metadata?.promptTokenCount ?? 0,
+          outputTokens: metadata?.candidatesTokenCount ?? 0,
+          cachedInputTokens: metadata?.cachedContentTokenCount ?? 0,
+          reasoningTokens: metadata?.thoughtsTokenCount ?? 0,
+          latencyMs,
+        });
+
         const text = response.text || '';
 
         // 성공: 사용량 기록 (병렬)
-        await Promise.all([
+        const [usageRecorded] = await Promise.all([
           recordUsage(ip, symbol, mentorId, userId!),
           recordGeminiKeyUsage(keyIndex),
         ]);
@@ -441,13 +499,17 @@ ${responseFormat}`;
 
         try {
           const parsed = JSON.parse(text);
-          const { result: safeReport } = sanitizeAiObject(parsed);
-          const finalReport = isLev ? enforceLeverageReport(safeReport) : safeReport;
-          await gate.finalize(200);
+          const structurallySafe = isLev ? enforceLeverageReport(parsed) : parsed;
+          const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
+          if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
+          const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
+          await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
+          await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
           return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier });
         } catch {
-          await gate.finalize(200, 'parse_fallback');
-          const fbReport = { currentStatus: text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: isLev ? '주의' : '분석 완료', signal: isLev ? 'negative' : 'neutral', desc: text } };
+          await gate.finalize(200, usageRecorded ? 'parse_fallback' : 'usage_record_failed');
+          const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
+          await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
           return NextResponse.json({ success: true, report: fbReport, remaining, dailyLimit: perUserLimit, tier });
         }
       } catch (e) {
@@ -462,26 +524,36 @@ ${responseFormat}`;
     console.warn('[주비 AI] all Gemini failed, trying Claude fallback:', errorMessage.slice(0, 120));
 
     try {
-      const aiRes = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096 });
+      const aiRes = await callAiJson({
+        prompt,
+        temperature: 0.3,
+        maxTokens: 4096,
+        feature: 'ai-analysis',
+        userId: userId!,
+      });
       try {
         const parsed = JSON.parse(aiRes.text);
-        const { result: safeReport } = sanitizeAiObject(parsed);
-        const finalReport = isLev ? enforceLeverageReport(safeReport) : safeReport;
-        await Promise.all([
-          recordUsage(ip, symbol, mentorId, userId!),
-        ]);
+        const structurallySafe = isLev ? enforceLeverageReport(parsed) : parsed;
+        const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
+        if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
+        const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
+        await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
+        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!);
         const newTotal = totalCount + 1;
         const remaining = perUserLimit - userCount - 1;
         if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
           sendSlackAlert(newTotal);
         }
-        await gate.finalize(200, `fallback_${aiRes.provider}`);
+        await gate.finalize(200, usageRecorded ? `fallback_${aiRes.provider}` : 'usage_record_failed');
         return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
       } catch {
-        await gate.finalize(200, 'fallback_parse_fail');
+        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!);
+        await gate.finalize(200, usageRecorded ? 'fallback_parse_fail' : 'usage_record_failed');
+        const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
+        await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
         return NextResponse.json({
           success: true,
-          report: { currentStatus: aiRes.text, indicators: [], historicalNote: '', newsContext: '', conclusion: { label: isLev ? '주의' : '분석 완료', signal: isLev ? 'negative' : 'neutral', desc: aiRes.text } },
+          report: fbReport,
           remaining: perUserLimit - userCount - 1,
           dailyLimit: perUserLimit,
           tier,

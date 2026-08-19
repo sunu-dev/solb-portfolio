@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { formatRelativeKo } from '@/utils/koreanDate';
+import { useNow } from '@/hooks/useNow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import WatchToggle from '@/components/common/WatchToggle';
@@ -38,6 +40,8 @@ export default function MarketMovers() {
   const [loading, setLoading] = useState(true);
   const [market, setMarket] = useState<'US' | 'KR'>('KR');
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
+  // 상대 시간은 1분마다 다시 그려야 "3분 전"이 멈춰 있지 않다.
+  const now = useNow();
 
   useEffect(() => {
     fetch('/api/market-movers')
@@ -175,7 +179,7 @@ export default function MarketMovers() {
       </div>
 
       <p style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 10, textAlign: 'right' }}>
-        15분 지연 · 158종 universe · {data.cached ? '캐시' : '신규'} · {new Date(data.ranAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+        15분 지연 · 158종 universe · {data.cached ? '캐시' : '신규'} · {formatRelativeKo(data.ranAt, now)} 조회
       </p>
     </section>
   );

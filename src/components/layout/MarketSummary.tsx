@@ -5,10 +5,21 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
 import { isTodayHoliday, getUpcomingHolidaysForMarket } from '@/config/marketHolidays';
+import type { UsTreasuryResponse } from '@/app/api/us-treasury/route';
 
 type MarketKey = 'KR' | 'US';
 
-type TickerItem = { label: string; displayVal: string; cp: number; isUSDKRW: boolean };
+type TickerItem = {
+  label: string;
+  displayVal: string;
+  /** null이면 변동 표시 생략 (비교 대상 없음 — 0으로 위장하지 않는다) */
+  cp: number | null;
+  isUSDKRW: boolean;
+  /** true면 변동값을 손익색 대신 중립 회색으로 — 금리 등락은 손익이 아니다 (§6 valence) */
+  neutral?: boolean;
+  /** 변동값 단위. 기본 '%'. 금리는 '%p'(퍼센트포인트 차이) */
+  unit?: string;
+};
 
 // ─── RAF 기반 마퀴 — 재렌더링에도 위치 유지 ────────────────────────────────
 const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem[] }) {
@@ -51,12 +62,14 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
         }}>
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1' }}>{item.label}</span>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#191F28' }}>{item.displayVal}</span>
-          <span style={{
-            fontSize: '12px', fontWeight: 700,
-            color: item.cp >= 0 ? '#EF4452' : '#3182F6',
-          }}>
-            {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}%
-          </span>
+          {item.cp != null && (
+            <span style={{
+              fontSize: '12px', fontWeight: 700,
+              color: item.neutral ? '#8B95A1' : item.cp >= 0 ? '#EF4452' : '#3182F6',
+            }}>
+              {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}{item.unit ?? '%'}
+            </span>
+          )}
           <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
         </div>
       ))}
@@ -194,8 +207,17 @@ export default function MarketSummary() {
   const sp = macroData['S&P 500'] as MacroEntry | undefined;
   const nasdaq = macroData['NASDAQ'] as MacroEntry | undefined;
 
+  // 미 국채 10년물 — 미 재무부 원천(/api/us-treasury). 실패 시 항목 자체를 생략
+  const [us10y, setUs10y] = useState<UsTreasuryResponse | null>(null);
+  useEffect(() => {
+    fetch('/api/us-treasury')
+      .then(r => (r.ok ? r.json() : null))
+      .then((d: UsTreasuryResponse | null) => { if (d && typeof d.yield10y === 'number') setUs10y(d); })
+      .catch(() => {});
+  }, []);
+
   const tickerItems = useMemo(() => {
-    return TICKER_LABELS.map(label => {
+    const items = TICKER_LABELS.map(label => {
       const entry = macroData[label] as MacroEntry | undefined;
       if (!entry?.value) return null;
       const cp = entry.changePercent || 0;
@@ -211,7 +233,18 @@ export default function MarketSummary() {
         : val.toFixed(2);
       return { label, displayVal, cp, isUSDKRW };
     }).filter(Boolean) as TickerItem[];
-  }, [macroData]);
+    if (us10y) {
+      items.push({
+        label: '미 국채 10년',
+        displayVal: `${us10y.yield10y.toFixed(2)}%`,
+        cp: us10y.changePp,
+        isUSDKRW: false,
+        neutral: true,
+        unit: '%p',
+      });
+    }
+    return items;
+  }, [macroData, us10y]);
 
   // No data yet
   if (!sp?.value && !nasdaq?.value) {

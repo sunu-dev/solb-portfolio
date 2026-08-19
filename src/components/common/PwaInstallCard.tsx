@@ -21,16 +21,18 @@ export default function PwaInstallCard() {
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    setInstalled(isStandalone());
-    setIosSafari(isIOSSafari());
+    const frame = requestAnimationFrame(() => {
+      setInstalled(isStandalone());
+      setIosSafari(isIOSSafari());
 
-    // 7일 dismiss 기억
-    try {
-      const dismissedAt = parseInt(localStorage.getItem('solb_pwa_card_dismissed') || '0', 10);
-      if (dismissedAt && Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) {
-        setHidden(true);
-      }
-    } catch { /* silent */ }
+      // 7일 dismiss 기억
+      try {
+        const dismissedAt = parseInt(localStorage.getItem('solb_pwa_card_dismissed') || '0', 10);
+        if (dismissedAt && Date.now() - dismissedAt < 7 * 24 * 3600 * 1000) {
+          setHidden(true);
+        }
+      } catch { /* silent */ }
+    });
 
     // Android/Chrome 자동 프롬프트 캡처
     const handler = (e: Event) => {
@@ -38,7 +40,10 @@ export default function PwaInstallCard() {
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
   }, []);
 
   const handleDismiss = () => {

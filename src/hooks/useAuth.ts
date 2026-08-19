@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { clearUserStorage } from '@/lib/userStorage';
 import { AGE_GATE_VERSION } from '@/config/legalVersions';
+import { AI_ADULT_CONSENT_TYPE } from '@/lib/aiAgeGate';
 import type { User, Session } from '@supabase/supabase-js';
 
 export function useAuth() {
@@ -57,14 +58,15 @@ export function useAuth() {
           const pending = sessionStorage.getItem('solb_consent_pending');
           if (pending) {
             const consent = JSON.parse(pending) as {
-              age_14_plus: boolean;
+              age_18_plus: boolean;
               terms: string;
               privacy: string;
               ts: string;
             };
+            if (consent.age_18_plus !== true) throw new Error('adult consent missing');
             await supabase.from('user_consents').upsert(
               [
-                { user_id: newId, consent_type: 'age_14_plus', version: AGE_GATE_VERSION, agreed_at: consent.ts },
+                { user_id: newId, consent_type: AI_ADULT_CONSENT_TYPE, version: AGE_GATE_VERSION, agreed_at: consent.ts },
                 { user_id: newId, consent_type: 'terms', version: consent.terms, agreed_at: consent.ts },
                 { user_id: newId, consent_type: 'privacy', version: consent.privacy, agreed_at: consent.ts },
               ],

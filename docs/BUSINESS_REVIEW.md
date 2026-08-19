@@ -1,5 +1,7 @@
 # 시장성·수익성 리뷰 (9인 비즈 패널)
 
+> **역사 문서 주의 (2026-07-18):** 이 문서의 PRO AI 30회·AI 차등·전환율 가정은 폐기됐다. 현행 기준은 `FREE_PRO_MONETIZATION_WTP_REVIEW.md`와 `PRO_TOOLS_INTERNAL_SPEC.md`다. 무료/PRO 투자정보·AI는 동일하다.
+
 > **작성일**: 2026-05-13
 > **목적**: 솔비서(주비)의 시장 적합성, 수익화 가능성, 차별점, 모자란 부분 9인 시점 분석
 > **관련**: [ALGORITHM_REVIEW.md](ALGORITHM_REVIEW.md), [ROADMAP.md](ROADMAP.md)

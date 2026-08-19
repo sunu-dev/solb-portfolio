@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { requireServiceClient } from '@/lib/supabaseServer';
+import { requireAdmin } from '@/lib/adminAuth';
 import { callAiJson } from '@/lib/aiProvider';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
 
@@ -14,24 +15,13 @@ import { isSingleStockLeverage } from '@/utils/leverageGuard';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-const ADMIN_EMAILS = ['soonooya@gmail.com', 'sunu.develop@gmail.com'];
-const ADMIN_IDS = ['8d5fc5d7-978c-4365-a647-af90c237222b'];
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!,
-  { auth: { persistSession: false } },
-);
+// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
+// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
+const supabaseAdmin = () => requireServiceClient();
 
-async function verifyAdmin(req: NextRequest): Promise<{ ok: true; userId: string } | { ok: false; res: NextResponse }> {
-  const token = req.headers.get('authorization')?.replace('Bearer ', '');
-  if (!token) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-  if (!user) return { ok: false, res: NextResponse.json({ error: 'unauthorized' }, { status: 401 }) };
-  const isAdmin = ADMIN_EMAILS.includes(user.email || '') || ADMIN_IDS.includes(user.id);
-  if (!isAdmin) return { ok: false, res: NextResponse.json({ error: 'forbidden' }, { status: 403 }) };
-  return { ok: true, userId: user.id };
-}
+/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
+const verifyAdmin = requireAdmin;
 
 // ─── GET: 목록 조회 ────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -44,7 +34,7 @@ export async function GET(req: NextRequest) {
   const search = params.get('q')?.trim();
   const limit = Math.min(parseInt(params.get('limit') || '100'), 500);
 
-  let query = supabaseAdmin
+  let query = supabaseAdmin()
     .from('stock_listings')
     .select('symbol, exchange, description, kr_name, listed_at, market_cap, status, first_seen, last_seen, reviewed_at, notes')
     .eq('status', status)
@@ -61,7 +51,7 @@ export async function GET(req: NextRequest) {
   }
 
   // 상태별 카운트 (UI 칩에 표시용)
-  const { data: counts } = await supabaseAdmin
+  const { data: counts } = await supabaseAdmin()
     .from('stock_listings')
     .select('status', { count: 'exact', head: false });
   const countsByStatus: Record<string, number> = {};
@@ -109,7 +99,7 @@ export async function PATCH(req: NextRequest) {
   if (body.kr_name !== undefined) update.kr_name = body.kr_name;
   if (body.notes !== undefined) update.notes = body.notes;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin()
     .from('stock_listings')
     .update(update)
     .eq('symbol', body.symbol)
@@ -133,7 +123,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'symbol required' }, { status: 400 });
   }
 
-  const { data: row } = await supabaseAdmin
+  const { data: row } = await supabaseAdmin()
     .from('stock_listings')
     .select('symbol, exchange, description')
     .eq('symbol', body.symbol)
@@ -159,7 +149,13 @@ JSON으로만 응답:
 { "kr_name": "한국어 표기", "is_etf": true/false, "is_confident": true/false }`;
 
   try {
-    const aiRes = await callAiJson({ prompt, temperature: 0.1, maxTokens: 200 });
+    const aiRes = await callAiJson({
+      prompt,
+      temperature: 0.1,
+      maxTokens: 200,
+      feature: 'admin-listing-name',
+      userId: auth.userId,
+    });
     const parsed = JSON.parse(aiRes.text) as { kr_name: string; is_etf: boolean; is_confident: boolean };
     return NextResponse.json({ ok: true, ...parsed, provider: aiRes.provider });
   } catch (e) {

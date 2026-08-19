@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
+import { Activity } from 'lucide-react';
+import { useNow } from '@/hooks/useNow';
 
 /**
  * Stock Pulse — 종목별 최근 30일 가격을 ECG(심전도) 파형으로 시각화
@@ -16,8 +18,10 @@ import type { QuoteData, CandleRaw } from '@/config/constants';
  */
 export default function StockPulse() {
   const { stocks, macroData, rawCandles, setAnalysisSymbol } = usePortfolioStore();
+  const currentTime = useNow();
 
   const pulses = useMemo(() => {
+    if (currentTime === 0) return [];
     const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
     return investing
       .map(s => {
@@ -26,7 +30,7 @@ export default function StockPulse() {
         if (!candles?.c?.length || !q?.c) return null;
 
         // 최근 30일 종가 추출
-        const cutoffTs = Date.now() / 1000 - 30 * 86400;
+        const cutoffTs = currentTime / 1000 - 30 * 86400;
         const recent: number[] = [];
         for (let i = 0; i < candles.t.length; i++) {
           if (candles.t[i] >= cutoffTs && candles.c[i]) recent.push(candles.c[i]);
@@ -71,7 +75,7 @@ export default function StockPulse() {
         periodReturn: number;
         userPL: number;
       }>;
-  }, [stocks.investing, macroData, rawCandles]);
+  }, [stocks.investing, macroData, rawCandles, currentTime]);
 
   if (pulses.length === 0) return null;
 
@@ -87,8 +91,9 @@ export default function StockPulse() {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            💓 종목 맥박
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+            <Activity size={17} strokeWidth={1.75} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+            종목 맥박
           </span>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 4,
