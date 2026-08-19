@@ -71,6 +71,21 @@ const eslintConfig = defineConfig([
     },
   },
   {
+    // ⚠️ baseline (2026-08-19) — eslint-plugin-react-hooks 7.0.1→7.1.1 드리프트로
+    // 신규 4룰이 error로 켜지며 기존 코드 24건이 걸렸다(전부 이번 드리프트 이전 코드).
+    // rule-rollout-baseline 룰대로 warn으로 유예한다.
+    // **warn 수는 줄어들기만 해야 한다** — sweep 후 이 블록을 제거해 error로 격상할 것
+    // (TODO.md 'react-hooks 신규 4룰 sweep' 항목). 실측 24건:
+    // set-state-in-effect 14 · purity 4 · refs 4 · immutability 2.
+    files: ["src/**/*.ts", "src/**/*.tsx"],
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+    },
+  },
+  {
     // 팩토리 자신 — 여기가 유일한 생성 지점이다.
     // 브라우저 싱글턴 — NEXT_PUBLIC_* 만 쓰며 클라이언트 번들에서 즉시 필요하다.
     //   (다만 무가드라 이 두 값이 없으면 빌드가 throw한다 — CI가 placeholder를 주는 이유)
