@@ -116,6 +116,16 @@ const ONBOARDING_FORBIDDEN = [
  *  투어 카피 SSOT가 tourRegistry.ts로 이전됐으므로 함께 커버(누락 시 §6 박제 우회). */
 const ONBOARDING_FILE_RE = /onboarding|tourRegistry/i;
 
+// 시장 맥락 교육 카피 — 인과·조건부 일반화·경사(valence) 어휘.
+// 전역엔 과차단('부담'·'유리' 단독은 일반 문장에도 흔함)이라 macroContextCopy 한정.
+// vitest(macroContextCopy.test.ts)와 이중 그물 — 한쪽 목록만 다듬다 뚫리는 사고 방지 (2026-08-19).
+const MACRO_COPY_FORBIDDEN = [
+  '때문', '덕분', '여파', '영향으로', '인해',
+  '보통 오', '보통 내', '흔히 오', '흔히 내', '대체로', '역사적으로', '경향이 있', '곤 해요', '곤 했',
+  '불리', '유리', '부담', '호재', '악재', '눌리', '약세', '강세',
+];
+const MACRO_COPY_FILE_RE = /config\/macroContextCopy/;
+
 /**
  * 검사에서 제외할 파일·디렉토리.
  *
@@ -171,6 +181,7 @@ async function lintFile(filePath) {
   const lines = content.split('\n');
   const violations = [];
   const isDigestFile = DIGEST_FILE_RE.test(filePath);
+  const isMacroCopyFile = MACRO_COPY_FILE_RE.test(filePath);
   const isTaxFile = TAX_FILE_RE.test(filePath);
   const isOnboardingFile = ONBOARDING_FILE_RE.test(filePath);
 
@@ -215,6 +226,20 @@ async function lintFile(filePath) {
           phrase: `[미래단정] ${phrase}`,
           context: lines[i].trim().slice(0, 200),
         });
+      }
+    }
+
+    // macroContextCopy 한정 — 인과·조건부·경사 (vitest와 이중 그물)
+    if (isMacroCopyFile) {
+      for (const phrase of MACRO_COPY_FORBIDDEN) {
+        if (stripped.includes(phrase)) {
+          violations.push({
+            file: path.relative(ROOT, filePath),
+            line: i + 1,
+            phrase: `[매크로카피] ${phrase}`,
+            context: lines[i].trim().slice(0, 200),
+          });
+        }
       }
     }
 

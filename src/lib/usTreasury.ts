@@ -29,6 +29,8 @@ export function parseTreasuryXml(xml: string): TreasuryPoint[] {
     const date = entry.match(/<d:NEW_DATE[^>]*>([^<]+)<\/d:NEW_DATE>/)?.[1];
     const raw = entry.match(/<d:BC_10YEAR[^>]*>([^<]+)<\/d:BC_10YEAR>/)?.[1];
     if (!date || !raw) continue;
+    // 형식 가드 — 원천이 날짜 포맷을 바꾸면 '틀린 표시'가 아니라 안전한 실패(빈 배열)로 수렴
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date.slice(0, 10))) continue;
     const yield10y = Number(raw);
     if (!Number.isFinite(yield10y)) continue;
     points.push({ date: date.slice(0, 10), yield10y });
@@ -83,10 +85,16 @@ export async function fetchUsTreasury10Y(): Promise<UsTreasury10Y | null> {
   try {
     const now = new Date();
     let points = await fetchMonth(monthParam(now));
-    // 월초에는 당월 데이터가 0~1건 — 전월을 합쳐 '전일 대비'를 살린다
+    // 월초에는 당월 데이터가 0~1건 — 전월을 합쳐 '전일 대비'를 살린다.
+    // 전월 fetch 실패는 개별로 삼킨다: 당월 1건이라도 있으면 changePp:null로 강등 서빙 —
+    // 보조 데이터 실패가 주 데이터까지 죽이면 toUs10Y의 강등 경로가 사장된다.
     if (points.length < 2) {
       const prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
-      const merged = [...(await fetchMonth(monthParam(prevMonth))), ...points];
+      let prevPoints: TreasuryPoint[] = [];
+      try {
+        prevPoints = await fetchMonth(monthParam(prevMonth));
+      } catch { /* 전월은 보조 — 실패해도 당월만으로 진행 */ }
+      const merged = [...prevPoints, ...points];
       merged.sort((a, b) => a.date.localeCompare(b.date));
       points = merged;
     }

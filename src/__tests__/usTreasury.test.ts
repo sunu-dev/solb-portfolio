@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { parseTreasuryXml, toUs10Y } from '@/lib/usTreasury';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { parseTreasuryXml, toUs10Y, fetchUsTreasury10Y, resetUsTreasuryCacheForTests } from '@/lib/usTreasury';
 
 /** 실제 피드(OData Atom) 형태를 축약한 fixture 생성기 */
 function entry(date: string, y: string | null): string {
@@ -66,5 +66,84 @@ describe('toUs10Y', () => {
 
   it('빈 시계열은 null', () => {
     expect(toUs10Y([])).toBeNull();
+  });
+});
+
+describe('fetchUsTreasury10Y — 월 병합·강등·캐시', () => {
+  const xmlOf = (...entries: Array<[string, string]>) =>
+    `<feed>${entries.map(([d, y]) => entry(d, y)).join('')}</feed>`;
+  const ok = (body: string) => ({ ok: true, text: () => Promise.resolve(body) });
+
+  beforeEach(() => {
+    resetUsTreasuryCacheForTests();
+    vi.useFakeTimers();
+    // 월초 시나리오 고정 — 당월(9월)엔 1영업일뿐
+    vi.setSystemTime(new Date('2026-09-01T12:00:00Z'));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    resetUsTreasuryCacheForTests();
+  });
+
+  it('당월 1건이면 전월을 병합해 전일 대비를 계산한다', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ok(xmlOf(['2026-09-01', '4.70'])))          // 당월
+      .mockResolvedValueOnce(ok(xmlOf(['2026-08-18', '4.71'])));         // 전월
+    vi.stubGlobal('fetch', fetchMock);
+
+    const r = await fetchUsTreasury10Y();
+    expect(fetchMock.mock.calls[0][0]).toContain('202609');
+    expect(fetchMock.mock.calls[1][0]).toContain('202608');
+    expect(r).toMatchObject({ yield10y: 4.7, changePp: -0.01, asOfDate: '2026-09-01', prevDate: '2026-08-18' });
+  });
+
+  it('전월 fetch가 실패해도 당월 값을 changePp:null로 강등 서빙한다', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ok(xmlOf(['2026-09-01', '4.70'])))
+      .mockRejectedValueOnce(new Error('timeout'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const r = await fetchUsTreasury10Y();
+    expect(r).toMatchObject({ yield10y: 4.7, changePp: null, prevDate: null });
+  });
+
+  it('당월 fetch 실패는 null — 라우트가 503 no-store로 처리한다', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));
+    expect(await fetchUsTreasury10Y()).toBeNull();
+  });
+
+  it('성공은 30분 캐시, 실패는 캐시하지 않는다', async () => {
+    const fetchMock = vi.fn()
+      .mockRejectedValueOnce(new Error('down'))                          // 1차 실패
+      .mockResolvedValue(ok(xmlOf(['2026-09-01', '4.70'], ['2026-09-02', '4.72'])));
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(await fetchUsTreasury10Y()).toBeNull();                       // 실패 — 미캐시
+    const r = await fetchUsTreasury10Y();                                // 재시도 성공
+    expect(r?.yield10y).toBe(4.72);
+    await fetchUsTreasury10Y();                                          // 캐시 히트
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(31 * 60 * 1000);                              // TTL 경과
+    await fetchUsTreasury10Y();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('1월에는 전월 파라미터가 전년 12월로 롤오버된다', async () => {
+    vi.setSystemTime(new Date('2027-01-04T12:00:00Z'));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(ok(xmlOf(['2027-01-04', '4.50'])))
+      .mockResolvedValueOnce(ok(xmlOf(['2026-12-31', '4.55'])));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const r = await fetchUsTreasury10Y();
+    expect(fetchMock.mock.calls[1][0]).toContain('202612');
+    expect(r?.changePp).toBe(-0.05);
+  });
+
+  it('날짜 형식이 바뀌면 틀린 표시가 아니라 안전한 실패(null)로 수렴한다', async () => {
+    const bad = `<feed>${entry('09/01/2026', '4.70')}</feed>`.replace('09/01/2026T00:00:00', '09/01/2026 00:00');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok(bad)));
+    expect(await fetchUsTreasury10Y()).toBeNull();
   });
 });

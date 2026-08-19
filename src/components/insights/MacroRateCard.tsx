@@ -25,7 +25,20 @@ export default function MacroRateCard() {
       .catch(() => setData(null));
   }, []);
 
-  if (!data) return null;
+  // 로딩: 접힘 카드 높이만큼 자리 예약 — 도착 시 아래 카드들이 밀리는 pop-in 방지.
+  // 실패: 완전히 숨김 — 빈 카드 소음 금지.
+  if (data === undefined) {
+    return (
+      <div style={{ marginBottom: 14, padding: '14px 16px', borderRadius: 14, background: 'var(--surface, #fff)', border: '1px solid var(--border-light, #E5E8EB)' }}>
+        <div style={{ height: 14, width: 110, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 12 }} />
+        <div style={{ height: 22, width: 150, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 12 }} />
+        <div style={{ height: 12, width: '85%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 8 }} />
+        <div style={{ height: 12, width: '55%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 22 }} />
+        <div style={{ height: 10, width: '70%', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4 }} />
+      </div>
+    );
+  }
+  if (data === null) return null;
 
   const [, m, d] = data.asOfDate.split('-');
   const asOfLabel = `${Number(m)}.${Number(d)} 기준`;
@@ -61,7 +74,7 @@ export default function MacroRateCard() {
       </p>
       {expanded && (
         <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.65, wordBreak: 'keep-all', marginBottom: 4 }}>
-          {US10Y_EDU_CARD.bothWays} {US10Y_EDU_CARD.unknowable}
+          {US10Y_EDU_CARD.bothWays} {US10Y_EDU_CARD.unknowable} {US10Y_EDU_CARD.ppNote}
         </p>
       )}
 
@@ -71,7 +84,7 @@ export default function MacroRateCard() {
           if (!expanded) logFeatureFirstUse('macro-rate-card');
           setExpanded(!expanded);
         }}
-        style={{ minHeight: 32, fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer' }}
+        style={{ minHeight: 44, fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'none', border: 'none', padding: '8px 0', cursor: 'pointer' }}
       >
         {expanded ? '접기' : US10Y_EDU_CARD.expandLabel}
       </button>
