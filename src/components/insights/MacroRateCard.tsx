@@ -84,6 +84,7 @@ function buildRows(data: MacroIndicatorsResponse): Row[] {
     rows.push({
       key: 'jpRate', edu: JP_RATE_EDU_CARD,
       value: `${j.rate.toFixed(2)}%`,
+      extra: JP_RATE_EDU_CARD.targetNote,
       meta: [
         j.changePp == null || j.changePp === 0 ? null : `${L.dayChange} ${signed(j.changePp, 2)}%p`,
         dayLabel(j.asOfDate),
