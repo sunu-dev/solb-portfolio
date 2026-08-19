@@ -82,16 +82,27 @@ describe('§6 — 시장 맥락 교육 카피 (모듈 전체)', () => {
     expect(hits).toEqual([]);
   });
 
-  // ── 양성 불변식: 공식 자체를 박제 ──
+  // ── 양성 불변식: 공식 자체를 박제 — *_EDU_CARD 전 카드에 강제.
+  //    새 지표 카드를 추가하면 이 공식(양방향+아무도모름+참고용)을 지켜야 통과한다. ──
 
-  it('양방향 서술 — 내린 날과 오른 날을 함께 말한다', () => {
-    expect(US10Y_EDU_CARD.bothWays).toContain('내린 날도');
-    expect(US10Y_EDU_CARD.bothWays).toContain('오른 날도');
+  const EDU_CARDS: Array<[string, Record<string, string>]> = Object.entries(macroCopy)
+    .filter(([name]) => name.endsWith('_EDU_CARD'))
+    .map(([name, card]) => [name, card as Record<string, string>]);
+
+  it('교육 카드가 존재한다 (필터 자가 검증)', () => {
+    expect(EDU_CARDS.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('미래 봉인 — "아무도" + "참고"가 있다', () => {
-    expect(US10Y_EDU_CARD.unknowable).toContain('아무도');
-    expect(US10Y_EDU_CARD.unknowable).toContain('참고');
+  it.each(EDU_CARDS.map(([name]) => name))('%s — 양방향 서술(내린/오른 병기)', name => {
+    const card = EDU_CARDS.find(([n]) => n === name)![1];
+    expect(card.bothWays).toMatch(/내린 (날|적)도/);
+    expect(card.bothWays).toMatch(/오른 (날|적)도/);
+  });
+
+  it.each(EDU_CARDS.map(([name]) => name))('%s — 미래 봉인("아무도"+"참고")', name => {
+    const card = EDU_CARDS.find(([n]) => n === name)![1];
+    expect(card.unknowable).toContain('아무도');
+    expect(card.unknowable).toContain('참고');
   });
 
   it('고지 — 출처와 비권유가 있다', () => {
