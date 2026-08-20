@@ -19,6 +19,7 @@
 import { promises as fs } from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findMacroCopyViolations, GLOBAL_FORECAST_FORBIDDEN } from './macro-copy-policy.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -75,17 +76,6 @@ const DIGEST_FILE_RE = /morning-brief|digest/;
 //
 // 전역 승격이 가능한 이유: 인과 어휘('때문에')와 달리 미래 단정 어휘는 일반 코드·카피에
 // 거의 등장하지 않는다(승격 시점 전체 src 오탐 0건). 가드 정의 파일만 EXCLUDE로 뺀다.
-const FORECAST_FORBIDDEN = [
-  '오를 것', '내릴 것', '상승할 것', '하락할 것', '급등할', '급락할',
-  '반등할', '반등이 기대', '반등을 기대',
-  '가능성이 높', '가능성이 큽', '확률이 높',
-  '기대됩니다', '기대되지만', '기대돼요',
-  '전망됩니다', '예상됩니다', '예상돼요',
-  '효과적이었', '유효한 전략', '매수 타이밍이었', '매도 타이밍이었',
-  '저점 가능', '고점 가능', // 관찰값(VIX 등)을 매매 시점 힌트로 바꾸는 표현 — AiChokSection에 라이브였음 (2026-08-18)
-  '매도 신호', '매수 신호', // 시그널 단정 = 암묵적 방향 예측 — alertGlossary에 라이브였음 (2026-08-19)
-];
-
 // 세무 카피 — 세무사법 §20③/§2 오인 표현 (alertCompliance.ts TAX_FORBIDDEN_PHRASES 미러).
 // 전역엔 과차단('세무사'·'환급'·'절세' 단독은 안전 카피)이라 세무 소스 파일에만 적용한다.
 // 런타임 1차 방어는 gateTaxAdvice()(드롭)이고, 이 정적 검사는 세무 UI/카피에 위험 주장이
@@ -116,14 +106,8 @@ const ONBOARDING_FORBIDDEN = [
  *  투어 카피 SSOT가 tourRegistry.ts로 이전됐으므로 함께 커버(누락 시 §6 박제 우회). */
 const ONBOARDING_FILE_RE = /onboarding|tourRegistry/i;
 
-// 시장 맥락 교육 카피 — 인과·조건부 일반화·경사(valence) 어휘.
-// 전역엔 과차단('부담'·'유리' 단독은 일반 문장에도 흔함)이라 macroContextCopy 한정.
-// vitest(macroContextCopy.test.ts)와 이중 그물 — 한쪽 목록만 다듬다 뚫리는 사고 방지 (2026-08-19).
-const MACRO_COPY_FORBIDDEN = [
-  '때문', '덕분', '여파', '영향으로', '인해',
-  '보통 오', '보통 내', '흔히 오', '흔히 내', '대체로', '역사적으로', '경향이 있', '곤 해요', '곤 했',
-  '불리', '유리', '부담', '호재', '악재', '눌리', '약세', '강세',
-];
+// 시장 맥락 교육 카피 — 공용 정책 모듈의 문장 단위 판정을 쓴다.
+// 전역 적용 실측과 파일 한정 사유는 macro-copy-policy.mjs에 기록한다.
 const MACRO_COPY_FILE_RE = /config\/macroContextCopy/;
 
 /**
@@ -185,6 +169,18 @@ async function lintFile(filePath) {
   const isTaxFile = TAX_FILE_RE.test(filePath);
   const isOnboardingFile = ONBOARDING_FILE_RE.test(filePath);
 
+  // 매크로 SSOT에서는 pragma가 교육 카피 가드를 무력화하므로 이유와 무관하게 금지한다.
+  // 일반 파일은 기존의 좁은 역사·교육 예외를 유지해 이번 범위를 알림 정책 전체로 넓히지 않는다.
+  if (isMacroCopyFile && content.includes(INLINE_PRAGMA)) {
+    const pragmaLine = lines.findIndex(line => line.includes(INLINE_PRAGMA));
+    violations.push({
+      file: path.relative(ROOT, filePath),
+      line: pragmaLine + 1,
+      phrase: `[매크로카피 pragma 금지] ${INLINE_PRAGMA}`,
+      context: lines[pragmaLine].trim().slice(0, 200),
+    });
+  }
+
   let inBlockComment = false;
 
   for (let i = 0; i < lines.length; i++) {
@@ -218,7 +214,7 @@ async function lintFile(filePath) {
     }
 
     // 전역 — 미래 방향 단정·확률 표현 (§6). 경로 제한 없음.
-    for (const phrase of FORECAST_FORBIDDEN) {
+    for (const phrase of GLOBAL_FORECAST_FORBIDDEN) {
       if (stripped.includes(phrase)) {
         violations.push({
           file: path.relative(ROOT, filePath),
@@ -229,17 +225,20 @@ async function lintFile(filePath) {
       }
     }
 
-    // macroContextCopy 한정 — 인과·조건부·경사 (vitest와 이중 그물)
+    // macroContextCopy 한정 — 공용 정책의 금지어·개인화·상품×방향 문장 결합.
     if (isMacroCopyFile) {
-      for (const phrase of MACRO_COPY_FORBIDDEN) {
-        if (stripped.includes(phrase)) {
-          violations.push({
-            file: path.relative(ROOT, filePath),
-            line: i + 1,
-            phrase: `[매크로카피] ${phrase}`,
-            context: lines[i].trim().slice(0, 200),
-          });
-        }
+      for (const violation of findMacroCopyViolations(stripped)) {
+        const label = violation.kind === 'product-direction'
+          ? '상품×방향'
+          : violation.kind === 'personalization'
+            ? '개인화'
+            : '금지문형';
+        violations.push({
+          file: path.relative(ROOT, filePath),
+          line: i + 1,
+          phrase: `[매크로카피 ${label}] ${violation.match}`,
+          context: lines[i].trim().slice(0, 200),
+        });
       }
     }
 

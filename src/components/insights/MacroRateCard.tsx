@@ -7,6 +7,7 @@ import {
   US10Y_EDU_CARD, FED_EDU_CARD, CPI_EDU_CARD, JOBS_EDU_CARD, JP_RATE_EDU_CARD,
   MACRO_CARD_HEADER, MACRO_VALUE_LABELS as L,
 } from '@/config/macroContextCopy';
+import type { MacroEduCopy } from '@/config/macroContextCopy';
 import { nextEconRelease, formatReleaseKst, ECON_SHORT_LABEL } from '@/config/econCalendar';
 import type { MacroIndicatorsResponse } from '@/app/api/macro-indicators/route';
 
@@ -22,22 +23,13 @@ import type { MacroIndicatorsResponse } from '@/app/api/macro-indicators/route';
  * 위 줄=이름+수치(축소 가능), 아래 줄=메타(전월·기준)로 나눠 좁은 폭에서도 안전하다.
  */
 
-interface EduCopy {
-  readonly title: string;
-  readonly intro: string;
-  readonly bothWays: string;
-  readonly unknowable: string;
-}
-
 interface Row {
   key: string;
-  edu: EduCopy;
+  edu: MacroEduCopy;
   /** 주 수치 — 순수 값만(다른 행과 시각 리듬 일치) */
   value: string;
   /** 메타 줄: 비교값·기준 시점 */
   meta: string;
-  /** 펼침 추가 문장 (10년물의 %p 설명 등) */
-  extra?: string;
 }
 
 const monthLabel = (refMonth: string) => `${Number(refMonth.split('-')[1])}월 기준`;
@@ -56,7 +48,6 @@ function buildRows(data: MacroIndicatorsResponse): Row[] {
       value: `${t.yield10y.toFixed(2)}%`,
       meta: [t.changePp == null ? null : `${L.dayChange} ${signed(t.changePp, 2)}%p`, dayLabel(t.asOfDate)]
         .filter(Boolean).join(' · '),
-      extra: US10Y_EDU_CARD.ppNote,
     });
   }
   if (data.fed) {
@@ -84,7 +75,6 @@ function buildRows(data: MacroIndicatorsResponse): Row[] {
     rows.push({
       key: 'jpRate', edu: JP_RATE_EDU_CARD,
       value: `${j.rate.toFixed(2)}%`,
-      extra: JP_RATE_EDU_CARD.targetNote,
       meta: [
         j.changePp == null || j.changePp === 0 ? null : `${L.dayChange} ${signed(j.changePp, 2)}%p`,
         dayLabel(j.asOfDate),
@@ -161,10 +151,12 @@ export default function MacroRateCard() {
       {rows.map(row => {
         const open = expandedKey === row.key;
         const panelId = `macro-panel-${row.key}`;
+        const triggerId = `macro-trigger-${row.key}`;
         return (
           <div key={row.key} style={{ borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <button
               type="button"
+              id={triggerId}
               onClick={() => {
                 if (!open) logFeatureFirstUse('macro-rate-card');
                 setExpandedKey(open ? null : row.key);
@@ -199,16 +191,54 @@ export default function MacroRateCard() {
               </span>
             </button>
             {open && (
-              <p id={panelId} style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.65, wordBreak: 'keep-all', margin: '0 0 10px' }}>
-                {row.edu.intro} {row.edu.bothWays} {row.edu.unknowable}{row.extra ? ` ${row.extra}` : ''}
-              </p>
+              <div
+                id={panelId}
+                role="region"
+                aria-labelledby={triggerId}
+                style={{
+                  minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere',
+                  fontSize: 13, color: 'var(--text-secondary, #4E5968)',
+                  lineHeight: 1.65, wordBreak: 'keep-all', padding: '2px 0 12px',
+                }}
+              >
+                <p style={{ margin: '0 0 10px' }}>{row.edu.intro}</p>
+
+                <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                  {L.mechanicsTitle}
+                </p>
+                {row.edu.mechanics.map(sentence => (
+                  <p key={sentence} style={{ margin: '0 0 5px' }}>{sentence}</p>
+                ))}
+
+                <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                  {L.limitsTitle}
+                </p>
+                {row.edu.limits.map(sentence => (
+                  <p key={sentence} style={{ margin: '0 0 5px' }}>{sentence}</p>
+                ))}
+
+                <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                  {L.contextTitle}
+                </p>
+                <p style={{ margin: '0 0 5px' }}>{row.edu.bothWays}</p>
+                <p style={{ margin: 0 }}>{row.edu.unknowable}</p>
+
+                {row.edu.dataNote && (
+                  <>
+                    <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                      {L.dataTitle}
+                    </p>
+                    <p style={{ margin: 0 }}>{row.edu.dataNote}</p>
+                  </>
+                )}
+              </div>
             )}
           </div>
         );
       })}
 
       <div style={{ fontSize: 10, color: 'var(--text-tertiary, #8B95A1)', marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all' }}>
-        {US10Y_EDU_CARD.footnote}
+        {MACRO_CARD_HEADER.footnote}
       </div>
     </div>
   );
