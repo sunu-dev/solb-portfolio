@@ -163,7 +163,9 @@ export default function MacroRateCard() {
               }}
               aria-expanded={open}
               aria-controls={panelId}
-              aria-label={`${row.edu.title} ${L.expandHint}`}
+              // 수치·기준을 라벨에 포함한다. 이전에는 제목+힌트만 읽혀 스크린리더
+              // 사용자에게 정작 값이 전달되지 않았다 (2026-08-20 재감사).
+              aria-label={`${row.edu.title} ${row.value} ${row.meta} ${L.expandHint}`}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover, #F9FAFB)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               style={{

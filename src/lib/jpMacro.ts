@@ -56,6 +56,16 @@ export function parseBojCsv(csv: string): Array<{ date: string; value: number }>
   return out;
 }
 
+/**
+ * `-0`을 `0`으로 정규화한다.
+ * `(-0.001).toFixed(2)`는 `'-0.00'`이고 `Number('-0.00')`은 `-0`이다.
+ * JS에서 `-0 === 0`이라 UI 필터는 통과하지만, 값 자체로 남으면 부정확하고
+ * 직렬화·비교·테스트에서 혼란을 만든다.
+ */
+function normalizeZero(n: number): number {
+  return n === 0 ? 0 : n;
+}
+
 /** 최신 관측치 + 직전 관측일 대비 변화 */
 export function toJpPolicyRate(points: Array<{ date: string; value: number }>): JpPolicyRate | null {
   if (points.length === 0) return null;
@@ -63,7 +73,12 @@ export function toJpPolicyRate(points: Array<{ date: string; value: number }>): 
   const prev = points.length >= 2 ? points[points.length - 2] : null;
   return {
     rate: last.value,
-    changePp: prev ? Number((last.value - prev.value).toFixed(3)) : null,
+    // **표시 자릿수(2)와 같게 반올림한다.** BOJ 원본은 소수 3자리라 0.001씩 흔히 움직이는데,
+    // 3자리로 계산하고 2자리로 찍으면 '전일 대비 -0.00%p'라는 자기모순 표기가 나온다
+    // (실측: 최근 500관측의 인접 변화 중 41%가 이 경우, 그중 99건이 음수 -0.00).
+    // 2자리로 반올림하면 그 값들이 0이 되어 buildRows의 `=== 0` 필터에 걸려 자동으로 숨는다.
+    // usTreasury.ts도 표시 자릿수와 같은 2자리로 반올림한다 — 계약을 일치시킨다 (2026-08-20 재감사).
+    changePp: prev ? normalizeZero(Number((last.value - prev.value).toFixed(2))) : null,
     asOfDate: last.date,
     prevDate: prev?.date ?? null,
   };

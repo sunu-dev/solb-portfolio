@@ -60,6 +60,33 @@ describe('toJpPolicyRate', () => {
     expect(r).toEqual({ rate: 0.977, changePp: 0.25, asOfDate: '2026-07-31', prevDate: '2026-07-30' });
   });
 
+  /**
+   * 계산 자릿수 = 표시 자릿수 계약.
+   * BOJ 원본은 소수 3자리라 0.001씩 흔히 움직이는데, 3자리로 계산하고 2자리로 찍으면
+   * '전일 대비 -0.00%p'라는 자기모순 표기가 나온다(실측 41%). 2자리로 반올림하면 0이 되어
+   * UI의 `changePp === 0` 필터에 걸려 자동으로 숨는다 (2026-08-20 재감사).
+   */
+  it.each([
+    [0.228, 0.227],  // -0.001
+    [0.077, 0.079],  // +0.002
+    [0.98, 0.977],   // -0.003
+  ])('소수 3자리 미세 변동(%s → %s)은 0으로 반올림돼 표시에서 숨는다', (prev, last) => {
+    const r = toJpPolicyRate([{ date: '2026-08-14', value: prev }, { date: '2026-08-17', value: last }]);
+    expect(r?.changePp).toBe(0);
+  });
+
+  it('실제 정책 변경(25bp)은 그대로 보인다', () => {
+    const r = toJpPolicyRate([{ date: '2026-06-16', value: 0.727 }, { date: '2026-06-17', value: 0.977 }]);
+    expect(r?.changePp).toBe(0.25);
+  });
+
+  it('changePp는 소수 2자리를 넘지 않는다 (표시 자릿수 계약)', () => {
+    for (const [prev, last] of [[0.228, 0.227], [0.5, 0.5551], [1.0, 0.9449]] as const) {
+      const cp = toJpPolicyRate([{ date: '2026-08-14', value: prev }, { date: '2026-08-17', value: last }])!.changePp!;
+      expect(Number(cp.toFixed(2))).toBe(cp);
+    }
+  });
+
   it('비교 대상이 없으면 changePp는 null — 0으로 위장하지 않는다', () => {
     const r = toJpPolicyRate([{ date: '2026-08-17', value: 0.977 }]);
     expect(r?.changePp).toBeNull();

@@ -35,9 +35,21 @@ describe('econCalendar', () => {
     expect(formatReleaseKst(r)).toBe('12.10(목) 22:30');
   });
 
-  it('BOJ 금정위 KST 표기 — 03:00Z는 정오', () => {
+  /**
+   * BOJ는 공표 시각을 사전 고지하지 않는다(발표가 늦어지는 것 자체가 시장에서 의미를 갖는다).
+   * 그래서 화면에 시각을 찍지 않는다 — 없는 정밀도를 만들지 않는 것이 규약 (2026-08-20 재감사).
+   */
+  it('BOJ 금정위는 시각을 표기하지 않는다 (timeKnown: false)', () => {
     const r = ECON_RELEASES.find(x => x.id === 'boj' && x.at.startsWith('2026-09-18'))!;
-    expect(formatReleaseKst(r)).toBe('9.18(금) 12:00');
+    expect(r.timeKnown).toBe(false);
+    expect(formatReleaseKst(r)).toBe('9.18(금)');
+  });
+
+  it('공표 시각이 고지되는 발표는 시각을 표기한다', () => {
+    for (const r of ECON_RELEASES.filter(x => x.id !== 'boj')) {
+      expect(r.timeKnown, r.label).toBe(true);
+      expect(formatReleaseKst(r)).toMatch(/^\d{1,2}\.\d{1,2}\(.\) \d{2}:\d{2}$/);
+    }
   });
 
   it('모든 발표 id에 축약 라벨이 있다 (배지 오버플로 방지)', () => {
