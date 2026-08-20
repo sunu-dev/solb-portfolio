@@ -30,7 +30,11 @@ export const GET = defineRoute({
     }
     // 부분 실패 응답을 오래 캐시하면, 소스가 즉시 복구돼도 그 시간 내내 지표 행이
     // 숨는다. 전 지표가 모인 응답만 길게 캐시하고 반쪽은 짧게 둬 곧 재검증되게 한다.
-    const complete = !!(body.fed && body.cpi && body.jobs && body.us10y && body.jpRate);
+    // BOJ만 빠진 경우까지 '부분 실패'로 보면, 일본 소스 장애가 미국 지표 4종의 캐시까지
+    // 30분 → 2분으로 깎아 오리진 부하를 15배로 만든다. 미국 지표가 모두 있으면
+    // 긴 캐시를 유지하고, 일본은 다음 재검증에서 합류시킨다 (2026-08-20 재감사).
+    const usComplete = !!(body.fed && body.cpi && body.jobs && body.us10y);
+    const complete = usComplete;
     return NextResponse.json(body, {
       headers: {
         'Cache-Control': complete

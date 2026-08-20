@@ -25,6 +25,13 @@ export interface EconRelease {
   label: string;
   /** 발표 시각 (UTC ISO) */
   at: string;
+  /**
+   * 공표 시각이 사전 고지되는가.
+   * false면 화면에 시각을 찍지 않는다 — BOJ는 공표 시각을 미리 알리지 않고,
+   * 발표가 늦어지는 것 자체가 시장에서 의미를 갖는다. 주석으로 '정밀도를 주장하지 않는다'고
+   * 적어도 사용자에게는 전달되지 않으므로 렌더 결과로 방어한다 (2026-08-20 재감사).
+   */
+  timeKnown: boolean;
 }
 
 /**
@@ -41,23 +48,23 @@ export const ECON_SHORT_LABEL: Record<EconReleaseId, string> = {
 // 2026년 잔여 일정 (과거분은 '다음 발표' 계산에 불필요해 미등재)
 export const ECON_RELEASES: EconRelease[] = [
   // 고용보고서(실업률) — 08:30 ET (EDT=12:30Z, EST=13:30Z)
-  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-09-04T12:30:00Z' },
-  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-10-02T12:30:00Z' },
-  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-11-06T13:30:00Z' },
-  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-12-04T13:30:00Z' },
+  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-09-04T12:30:00Z', timeKnown: true },
+  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-10-02T12:30:00Z', timeKnown: true },
+  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-11-06T13:30:00Z', timeKnown: true },
+  { id: 'us-jobs', label: '미국 고용보고서', at: '2026-12-04T13:30:00Z', timeKnown: true },
   // CPI — 08:30 ET
-  { id: 'us-cpi', label: '미국 CPI', at: '2026-09-11T12:30:00Z' },
-  { id: 'us-cpi', label: '미국 CPI', at: '2026-10-14T12:30:00Z' },
-  { id: 'us-cpi', label: '미국 CPI', at: '2026-11-10T13:30:00Z' },
-  { id: 'us-cpi', label: '미국 CPI', at: '2026-12-10T13:30:00Z' },
+  { id: 'us-cpi', label: '미국 CPI', at: '2026-09-11T12:30:00Z', timeKnown: true },
+  { id: 'us-cpi', label: '미국 CPI', at: '2026-10-14T12:30:00Z', timeKnown: true },
+  { id: 'us-cpi', label: '미국 CPI', at: '2026-11-10T13:30:00Z', timeKnown: true },
+  { id: 'us-cpi', label: '미국 CPI', at: '2026-12-10T13:30:00Z', timeKnown: true },
   // FOMC 금리 결정 — 회의 이틀째 14:00 ET (EDT=18:00Z, EST=19:00Z)
-  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-09-16T18:00:00Z' },
-  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-10-28T18:00:00Z' },
-  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-12-09T19:00:00Z' },
+  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-09-16T18:00:00Z', timeKnown: true },
+  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-10-28T18:00:00Z', timeKnown: true },
+  { id: 'fomc', label: '미국 FOMC 금리 결정', at: '2026-12-09T19:00:00Z', timeKnown: true },
   // BOJ 금융정책결정회의 — 회의 이틀째 (JST 정오 전후, 03:00Z 기준)
-  { id: 'boj', label: '일본은행 금정위', at: '2026-09-18T03:00:00Z' },
-  { id: 'boj', label: '일본은행 금정위', at: '2026-10-30T03:00:00Z' },
-  { id: 'boj', label: '일본은행 금정위', at: '2026-12-18T03:00:00Z' },
+  { id: 'boj', label: '일본은행 금정위', at: '2026-09-18T03:00:00Z', timeKnown: false },
+  { id: 'boj', label: '일본은행 금정위', at: '2026-10-30T03:00:00Z', timeKnown: false },
+  { id: 'boj', label: '일본은행 금정위', at: '2026-12-18T03:00:00Z', timeKnown: false },
 ];
 
 /** 다음 발표 1건. 미래 일정이 없으면 null — 호출부는 줄 자체를 숨긴다. */
@@ -74,9 +81,13 @@ const KST_FMT = new Intl.DateTimeFormat('ko-KR', {
   hour: '2-digit', minute: '2-digit', hour12: false,
 });
 
-/** "9.11(금) 21:30" 형태의 KST 표기 */
+/**
+ * "9.11(금) 21:30" 형태의 KST 표기.
+ * `timeKnown: false`면 시각을 생략해 "9.18(금)"만 돌려준다 — 없는 정밀도를 만들지 않는다.
+ */
 export function formatReleaseKst(release: EconRelease): string {
   const parts = KST_FMT.formatToParts(new Date(release.at));
   const get = (t: string) => parts.find(p => p.type === t)?.value ?? '';
-  return `${get('month')}.${get('day')}(${get('weekday')}) ${get('hour')}:${get('minute')}`;
+  const date = `${get('month')}.${get('day')}(${get('weekday')})`;
+  return release.timeKnown ? `${date} ${get('hour')}:${get('minute')}` : date;
 }
