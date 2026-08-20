@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import {
   US10Y_EDU_CARD, FED_EDU_CARD, CPI_EDU_CARD, JOBS_EDU_CARD, JP_RATE_EDU_CARD,
-  MACRO_CARD_HEADER, MACRO_VALUE_LABELS as L,
+  MACRO_CARD_HEADER, MACRO_VALUE_LABELS as L, BOJ_API_CREDIT,
 } from '@/config/macroContextCopy';
 import type { MacroEduCopy } from '@/config/macroContextCopy';
 import { nextEconRelease, formatReleaseKst, ECON_SHORT_LABEL } from '@/config/econCalendar';
@@ -241,6 +241,12 @@ export default function MacroRateCard() {
 
       <div style={{ fontSize: 10, color: 'var(--text-tertiary, #8B95A1)', marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all' }}>
         {MACRO_CARD_HEADER.footnote}
+      </div>
+      {/* 일본은행 API 이용 의무 크레딧 (api_notice.pdf §2). 원문 그대로 — 임의 수정 금지 */}
+      <div style={{ fontSize: 9.5, color: 'var(--text-tertiary, #8B95A1)', marginTop: 4, lineHeight: 1.5, opacity: 0.85, wordBreak: 'keep-all' }}>
+        {BOJ_API_CREDIT.text}
+        <br />
+        {BOJ_API_CREDIT.gloss}
       </div>
     </div>
   );
