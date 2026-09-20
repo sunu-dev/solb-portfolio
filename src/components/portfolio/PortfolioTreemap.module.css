@@ -5,6 +5,8 @@
   --map-control-accent: var(--text-primary);
   --map-paper: var(--surface);
   container: portfolio-map / inline-size;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   align-self: start;
   margin-bottom: 24px;
