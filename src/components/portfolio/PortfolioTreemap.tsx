@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, ChevronDown, CircleHelp, Share2, X } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, Share2, X } from 'lucide-react';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { buildComposition, type CompositionStock } from '@/utils/portfolioComposition';
 import { layoutPortfolioHeatmap } from '@/utils/portfolioHeatmapLayout';
@@ -188,10 +188,34 @@ export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, 
         </div>
       </div>}
       <details className={styles.help} data-map-key>
-        <summary aria-label="맵 읽는 법"><span>맵 읽는 법</span><CircleHelp size={15} aria-hidden="true" /></summary>
-        <p>각 칸의 크기는 현재 평가금액의 비중이고, 칸 안의 숫자는 {modeLabel}이에요. 초록은 상승, 빨강은 하락, 회색은 보합이에요. 수익률을 확인하지 못한 칸에는 빗금과 ‘미확인’을 표시해요.</p>
-        <p>업종이나 ETF 상품 유형별로 묶어 보여드려요. 제목 영역을 제외한 같은 그룹 안에서 종목 면적을 비교할 수 있어요. 분류를 확인하지 못한 종목은 미분류로 표시해요.</p>
-        <p>종목을 누르면 비중과 평가금액을 볼 수 있어요. {mode === 'today' ? '±3%' : '±30%'}를 넘으면 가장 진한 색으로 표시하지만 숫자는 실제 수익률이에요. 누적 수익률은 입력한 매입금액 기준이에요.</p>
+        <summary aria-label="포트폴리오 맵 읽는 법">
+          <span className={styles.guideMark} aria-hidden="true"><i /><i /><i /></span>
+          <span className={styles.guideHeading}><strong>포트폴리오 맵 읽는 법</strong><small>크기와 색으로 내 투자 한눈에 보기</small></span>
+          <ChevronDown className={styles.guideChevron} size={18} aria-hidden="true" />
+        </summary>
+        <div className={styles.guideGrid}>
+          <div className={styles.guideStep}>
+            <div className={styles.sizeExample} aria-hidden="true"><span>60%</span><span>30%</span><span>10%</span></div>
+            <h3>큰 칸일수록, 큰 비중</h3>
+            <p>현재 평가금액이 클수록 넓게 보여요. 같은 그룹 안에서 크기를 비교해보세요.</p>
+          </div>
+          <div className={styles.guideStep}>
+            <div className={styles.colorExample} aria-hidden="true"><span>−</span><span>0</span><span>+</span><span>?</span></div>
+            <h3>색은 방향, 숫자는 수익률</h3>
+            <p>빨강은 하락, 초록은 상승, 회색은 보합이에요. 빗금은 수익률 미확인이에요.</p>
+          </div>
+          <div className={styles.guideStep}>
+            <div className={styles.tapExample} aria-hidden="true"><span>종목<small>+2.5%</small></span><ArrowUpRight size={20} /><div>투자 비중<strong>평가금액</strong></div></div>
+            <h3>궁금한 종목을 눌러보세요</h3>
+            <p>칸을 누르면 투자 비중과 현재 평가금액을 자세히 볼 수 있어요.</p>
+          </div>
+        </div>
+        <div className={styles.guideFootnote}>
+          <span>지금 보는 기준 <strong>{modeLabel}</strong></span>
+          <p>업종·ETF 상품 유형별로 묶고, 분류를 모르면 미분류로 표시해요. 그룹 제목은 비중에 포함되지 않아요.</p>
+          <p>{mode === 'today' ? '±3%' : '±30%'}를 넘어도 색은 같지만 숫자는 실제 수익률이에요. 누적 수익률은 입력한 매입금액 기준이에요.</p>
+          <small>위 그림은 읽는 방법을 설명하는 예시예요.</small>
+        </div>
       </details>
       {missing > 0 && <p className={styles.note}>시세가 없는 {missing}개 종목은 비중 계산에서 제외했어요.</p>}
       {variant === 'compact' && onExpand && <button className={styles.more} onClick={onExpand}>전체 분석 보기 <ArrowUpRight size={15} /></button>}

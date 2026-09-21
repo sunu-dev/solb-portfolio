@@ -117,3 +117,50 @@
   .tileType, .sectorLabel, .industryLabel { fill: CanvasText; }
   .heatmapCell[aria-pressed='true'] .tileSelection, .heatmapCell:focus-visible .tileSelection { stroke: Highlight; opacity: 1; }
 }
+
+/* 맵 범례와 같은 시각 언어로 읽는 방법을 설명한다. */
+.guideGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 18px 0 22px; }
+.guideStep { min-width: 0; }
+.guideStep h3 { font-size: 14px; line-height: 1.5; margin: 16px 0 6px; color: var(--map-ink); letter-spacing: -.025em; }
+.help .guideStep p { margin: 0; font-size: 12px; line-height: 1.8; }
+.sizeExample, .colorExample, .tapExample { height: 88px; border-radius: 6px; overflow: hidden; }
+.sizeExample { display: grid; grid-template-columns: 6fr 3fr 1fr; gap: 3px; background: var(--map-surface, #fff); }
+.sizeExample span { display: grid; place-items: center; background: #354451; color: #fff; font-size: 13px; font-weight: 600; }
+.sizeExample span:nth-child(2) { background: #526674; }
+.sizeExample span:nth-child(3) { background: #708390; font-size: 10px; }
+.colorExample { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+.colorExample span { display: grid; place-items: center; background: #ae404a; color: #fff; font-size: 20px; }
+.colorExample span:nth-child(2) { background: #52545e; }
+.colorExample span:nth-child(3) { background: #277c49; }
+.colorExample span:nth-child(4) { background: repeating-linear-gradient(135deg, #454954 0 6px, #656975 6px 8px); }
+.tapExample { display: flex; align-items: center; gap: 12px; color: var(--map-muted); }
+.tapExample > span { display: flex; flex-direction: column; justify-content: center; align-items: center; align-self: stretch; width: 76px; flex-shrink: 0; color: #fff; background: #277c49; border-radius: 4px; font-size: 13px; font-weight: 600; }
+.tapExample small { margin-top: 5px; font-weight: 400; }
+.tapExample > div { font-size: 11px; line-height: 1.8; }
+.tapExample strong { display: block; color: var(--map-ink); font-weight: 600; }
+.guideFootnote { padding: 16px 0 8px; border-top: 1px solid var(--map-line); }
+.guideFootnote > span { font-size: 11px; color: var(--map-muted); }
+.guideFootnote strong { margin-left: 8px; color: var(--map-ink); font-weight: 600; }
+.guideFootnote small { font-size: 10px; color: var(--map-muted); }
+@media (max-width: 650px) {
+ .guideGrid { grid-template-columns: 1fr; gap: 24px; }
+ .guideStep { display: grid; grid-template-columns: 112px minmax(0, 1fr); column-gap: 16px; align-content: center; }
+ .guideStep > div { grid-row: span 2; height: 88px; }
+ .guideStep h3 { margin: 0 0 6px; font-size: 13px; }
+ .tapExample { gap: 6px; }
+ .tapExample > span { width: 48px; font-size: 11px; }
+ .tapExample > div { font-size: 10px; }
+ .tapExample > svg { display: none; }
+}
+
+.help > summary { justify-content: flex-start; padding: 16px 0; gap: 12px; }
+.guideMark { display: grid; grid-template-columns: 1.6fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px; width: 38px; height: 38px; flex-shrink: 0; overflow: hidden; border-radius: 6px; }
+.guideMark i { background: #287d4b; }
+.guideMark i:first-child { grid-row: span 2; background: #354451; }
+.guideMark i:last-child { background: #b34b54; }
+.guideHeading { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.guideHeading strong { color: var(--map-ink); font-size: 14px; font-weight: 650; letter-spacing: -.025em; }
+.guideHeading small { color: var(--map-muted); font-size: 11px; line-height: 1.5; word-break: keep-all; }
+.guideChevron { flex-shrink: 0; margin-left: auto; transition: transform 180ms ease; }
+.help[open] .guideChevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .guideChevron { transition: none; } }
