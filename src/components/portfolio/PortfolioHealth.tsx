@@ -1,5 +1,7 @@
 'use client';
 
+import HealthInsight from './HealthInsight';
+
 import { calcHealthScore, getHealthColor, getHealthLabel, recommendNextAction, type HealthStock } from '@/utils/portfolioHealth';
 
 interface Props {
@@ -102,25 +104,9 @@ export default function PortfolioHealth({ stocks }: Props) {
         const nextAction = recommendNextAction(health);
         if (!nextAction) return null;
         return (
-          <div style={{
-            marginTop: 14,
-            padding: '12px 14px',
-            borderRadius: 10,
-            background: 'var(--surface, #fff)',
-            border: '1px solid rgba(49,130,246,0.15)',
-            borderLeft: '3px solid #3182F6',
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-          }}>
-            <span style={{ fontSize: 18, flexShrink: 0 }}>{nextAction.emoji}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#3182F6', marginBottom: 4 }}>
-                {nextAction.title}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.55 }}>
-                {nextAction.action}
-              </div>
-            </div>
-          </div>
+          <HealthInsight title={nextAction.title}>
+            {nextAction.action}
+          </HealthInsight>
         );
       })()}
 

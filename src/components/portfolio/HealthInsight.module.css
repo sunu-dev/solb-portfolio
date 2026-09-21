@@ -1,0 +1,28 @@
+.insight {
+  margin-top: 20px;
+  padding: 20px 24px;
+  background: var(--surface, #fff);
+  border: 0;
+  border-radius: 14px;
+  min-width: 0;
+}
+.insight h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary, #191f28);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: -.02em;
+}
+.insight p {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-secondary, #4e5968);
+  font-size: 14px;
+  line-height: 1.8;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .insight { padding: 18px; border-radius: 12px; }
+}
