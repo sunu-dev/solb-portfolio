@@ -50,6 +50,20 @@ export interface ArchivedChapter {
 }
 
 const ARCHIVE_KEY = 'solb_chapter_archive';
+const ARCHIVE_UPDATED = 'joobi:chapter-archive-updated';
+
+/** Refresh a mounted shelf when delayed market data creates a chapter. */
+export function subscribeChapters(onChange: () => void): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === ARCHIVE_KEY || event.key === null) onChange();
+  };
+  window.addEventListener(ARCHIVE_UPDATED, onChange);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener(ARCHIVE_UPDATED, onChange);
+    window.removeEventListener('storage', onStorage);
+  };
+}
 
 /** 책장에서 챕터 리스트 로드 */
 export function loadChapters(): ArchivedChapter[] {
@@ -67,6 +81,7 @@ export function saveChapter(chapter: ArchivedChapter): void {
     const existing = loadChapters().filter(c => c.chapterId !== chapter.chapterId);
     const next = [...existing, chapter].sort((a, b) => b.chapterId.localeCompare(a.chapterId));
     localStorage.setItem(ARCHIVE_KEY, JSON.stringify(next));
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(ARCHIVE_UPDATED));
   } catch { /* quota or storage err */ }
 }
 
