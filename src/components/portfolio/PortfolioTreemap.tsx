@@ -4,13 +4,14 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, ChevronDown, CircleHelp, Share2, X } from 'lucide-react';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { buildComposition, type CompositionStock } from '@/utils/portfolioComposition';
-import { layoutPortfolioTerrain } from '@/utils/portfolioTerrainLayout';
-import PortfolioTerrain, { terrainLabel, type TerrainColor } from './PortfolioTerrain';
+import { layoutPortfolioHeatmap } from '@/utils/portfolioHeatmapLayout';
+import { getPortfolioHeatmapGroup, getPortfolioHeatmapLabel } from '@/utils/portfolioHeatmapGroups';
+import PortfolioHeatmap, { heatmapColor, heatmapLabel } from './PortfolioHeatmap';
 import { portfolioPriceHistory } from '@/utils/portfolioPriceHistory';
 import styles from './PortfolioTreemap.module.css';
 
 interface Props {
-  stocks: CompositionStock[];
+  stocks: (CompositionStock & { name?: string })[];
   macroData: Record<string, QuoteData | unknown>;
   usdKrw: number;
   currency: 'KRW' | 'USD';
@@ -20,47 +21,48 @@ interface Props {
   rawCandles?: Record<string, CandleRaw>;
 }
 
-const numberFormat = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 1, maximumFractionDigits: 1, signDisplay: 'exceptZero' });
+const numberFormat = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
 const percent = (value: number | null) => value === null ? '미확인' : `${numberFormat.format(value)}%`;
 const weight = (value: number) => value < 0.1 ? '0.1% 미만' : `${value.toFixed(1)}%`;
 const direction = (value: number | null) => value === null ? 'unknown' : value > 0 ? 'gain' : value < 0 ? 'loss' : 'flat';
-
-/** One shared scale for each mode; territory area always represents market value. */
-function tileStyle(value: number | null, mode: 'pnl' | 'today'): TerrainColor {
-  const depth = Math.min(Math.abs(value ?? 0) / (mode === 'pnl' ? 100 : 10), 1);
-  const start = value !== null && value > 0 ? [199, 35, 57] : [28, 84, 235];
-  const end = value !== null && value > 0 ? [177, 30, 56] : [26, 47, 172];
-  const fill = value === null || value === 0 ? '#eef0f2' : `rgb(${start.map((channel, index) => Math.round(channel + (end[index] - channel) * depth)).join(' ')})`;
-  return { '--parcel-fill': fill, '--parcel-ink': value === null || value === 0 ? '#505965' : '#ffffff' };
-}
 
 function PriceTrace({ history }: { history: NonNullable<ReturnType<typeof portfolioPriceHistory>> }) {
   return <svg className={styles.priceTrace} viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true"><path d={history.line} fill="none" stroke="currentColor" strokeWidth="1.4" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
 
 export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, variant = 'full', onExpand, onCellClick, rawCandles }: Props) {
-  const [mode, setMode] = useState<'pnl' | 'today'>('pnl');
+  const [mode, setMode] = useState<'pnl' | 'today'>('today');
   const [expanded, setExpanded] = useState(false);
-  const [highlightedSymbol, setHighlightedSymbol] = useState<string | null>(null);
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState('');
-  const [size, setSize] = useState({ width: 400, height: 360 });
+  const [size, setSize] = useState({ width: 400, height: 320 });
   const capture = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const picker = useRef<HTMLButtonElement>(null);
-  const lastTrigger = useRef<HTMLButtonElement | SVGPathElement | null>(null);
+  const lastTrigger = useRef<HTMLButtonElement | SVGPathElement | SVGGElement | null>(null);
   const pickerId = useId();
-  const { items, missing } = useMemo(() => buildComposition(stocks, macroData, usdKrw, currency), [stocks, macroData, usdKrw, currency]);
+  const { items: rawItems, missing } = useMemo(() => buildComposition(stocks, macroData, usdKrw, currency), [stocks, macroData, usdKrw, currency]);
+  const items = useMemo(() => {
+    const savedNames = new Map<string, string>();
+    for (const stock of stocks) {
+      if (stock.name?.trim()) savedNames.set(stock.symbol, stock.name);
+    }
+    return rawItems.map(item => ({
+      ...item,
+      label: getPortfolioHeatmapLabel(item.symbol, item.label, savedNames.get(item.symbol)),
+    }));
+  }, [rawItems, stocks]);
   const formatter = useMemo(() => new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: currency === 'KRW' ? 0 : 2 }), [currency]);
-  const map = useMemo(() => layoutPortfolioTerrain(items, size.width, size.height), [items, size]);
   const selected = items.find(item => item.symbol === selectedSymbol);
-  const smallItems = map.filter(item => !terrainLabel(item).visible);
+  const map = useMemo(() => layoutPortfolioHeatmap(items.map(item => ({ ...item, ...getPortfolioHeatmapGroup(item.symbol) })), size.width, size.height), [items, size]);
+  const cells = map.sectors.flatMap(sector => sector.industries.flatMap(industry => industry.cells));
+  const smallItems = cells.filter(item => !heatmapLabel(item, mode).nameVisible);
   const selectedHistory = useMemo(() => portfolioPriceHistory(selected ? rawCandles?.[selected.symbol] : undefined), [rawCandles, selected]);
   const hasItems = items.length > 0;
   const modeLabel = mode === 'pnl' ? '누적 수익률' : '오늘 등락률';
   const selectedReturn = selected ? mode === 'pnl' ? selected.pnl : selected.today : null;
-  const select = (symbol: string, trigger: HTMLButtonElement | SVGPathElement | null) => {
+  const select = (symbol: string, trigger: HTMLButtonElement | SVGPathElement | SVGGElement | null) => {
     lastTrigger.current = trigger;
     setSelectedSymbol(symbol);
     setExpanded(false);
@@ -108,9 +110,9 @@ export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, 
         const computed = getComputedStyle(element);
         svgProperties.forEach(property => element.style.setProperty(property, computed.getPropertyValue(property)));
       });
-      // Render the self-contained SVG separately: nested SVG masks inside the
-      // exporter's foreignObject otherwise lose their text-clearance effect.
-      for (const svg of snapshot.querySelectorAll<SVGSVGElement>('svg[data-portfolio-terrain]')) {
+      // Rasterize the self-contained plot separately to preserve SVG paint
+      // and label typography in the exported image.
+      for (const svg of snapshot.querySelectorAll<SVGSVGElement>('svg[data-portfolio-heatmap]')) {
         const bounds = svg.getBoundingClientRect();
         const artwork = svg.cloneNode(true) as SVGSVGElement;
         artwork.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
@@ -139,7 +141,7 @@ export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, 
     } finally { exportHost?.remove(); setSharing(false); }
   };
 
-  return <section ref={capture} className={styles.panel} data-variant={variant} aria-label="내 포트폴리오 맵" onKeyDown={event => { if (event.key === 'Escape' && selected) { event.preventDefault(); closeSelection(); } }}>
+  return <section ref={capture} className={styles.panel} data-variant={variant} aria-label="내 포트폴리오 맵" onKeyDown={event => { if (event.key === 'Escape') { if (expanded) { event.preventDefault(); setExpanded(false); picker.current?.focus(); } else if (selected) { event.preventDefault(); closeSelection(); } } }}>
     <header className={styles.header}>
       <h2>내 포트폴리오 맵</h2>
       <button className={styles.share} onClick={share} disabled={sharing || !hasItems} data-capture="exclude" aria-label={sharing ? '공유 이미지 만드는 중' : '포트폴리오 맵 이미지 공유'}><Share2 size={17} aria-hidden="true" /></button>
@@ -147,44 +149,50 @@ export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, 
     {!hasItems ? <p className={styles.empty}>보유 종목의 시세가 준비되면 투자 비중을 보여드릴게요.</p> : <>
       <div className={styles.toolbar}>
         <div className={styles.segment} role="group" aria-label="색으로 표시할 수익률">
-          <button aria-pressed={mode === 'pnl'} onClick={() => setMode('pnl')}>누적 수익률</button>
           <button aria-pressed={mode === 'today'} onClick={() => setMode('today')}>오늘 등락률</button>
+          <button aria-pressed={mode === 'pnl'} onClick={() => setMode('pnl')}>누적 수익률</button>
         </div>
         <button ref={picker} className={styles.picker} aria-expanded={expanded} aria-controls={pickerId} data-capture="exclude" onClick={() => setExpanded(!expanded)}>{items.length}종목 <ChevronDown size={13} aria-hidden="true" /></button>
       </div>
-      <div ref={canvas} className={styles.map}
-        onPointerMove={event => {
-          if (event.pointerType !== 'mouse') return;
-          const bounds = event.currentTarget.getBoundingClientRect();
-          event.currentTarget.style.setProperty('--light-x', `${(event.clientX - bounds.left) / bounds.width * 100}%`);
-          event.currentTarget.style.setProperty('--light-y', `${(event.clientY - bounds.top) / bounds.height * 100}%`);
-        }}
-        onPointerLeave={event => { event.currentTarget.style.removeProperty('--light-x'); event.currentTarget.style.removeProperty('--light-y'); }}>
-        <PortfolioTerrain cells={map} width={size.width} height={size.height} mode={mode} modeLabel={modeLabel}
-          selectedSymbol={selected?.symbol} highlightedSymbol={highlightedSymbol}
-          color={value => tileStyle(value, mode)} percent={percent} weight={weight} onSelect={select} />
-        <span className={styles.illumination} aria-hidden="true" />
+      <div id={pickerId} className={styles.holdings} hidden={!expanded} role="group" aria-label="전체 종목 선택" data-capture="exclude">
+        {items.map(item => <button key={item.symbol} aria-pressed={selected?.symbol === item.symbol} onClick={() => { select(item.symbol, picker.current); picker.current?.focus(); }}><span>{item.label}</span><span>{weight(item.weight)}</span><b data-direction={direction(mode === 'pnl' ? item.pnl : item.today)}>{percent(mode === 'pnl' ? item.pnl : item.today)}</b></button>)}
       </div>
-      {selected && <div className={styles.detail} style={tileStyle(selectedReturn, mode)} aria-live="polite">
-        <div className={styles.detailHeader}><div><span className={styles.detailEyebrow}>선택한 종목</span><strong>{selected.label}</strong></div><button className={styles.close} aria-label="종목 상세 닫기" onClick={closeSelection} data-capture="exclude"><X size={17} /></button></div>
-        <dl className={styles.metrics}>
-          <div className={styles.valueMetric}><dt>현재 평가금액</dt><dd>{formatter.format(selected.value)}</dd></div>
-          <div><dt>투자 비중</dt><dd>{weight(selected.weight)}</dd></div>
-          <div><dt>{modeLabel}</dt><dd data-direction={direction(selectedReturn)}>{percent(selectedReturn)}</dd></div>
-        </dl>
+      <div className={styles.heatmapFrame}>
+        <div ref={canvas} className={styles.map}>
+          <PortfolioHeatmap layout={map} width={size.width} height={size.height} mode={mode} modeLabel={modeLabel}
+            selectedSymbol={selected?.symbol} percent={percent} weight={weight} onSelect={select} />
+        </div>
+        <div className={styles.mapFooter}>
+          <span>면적 = 평가금액 · 색 = {modeLabel}</span>
+          <div className={styles.colorScale} aria-label={`${modeLabel} 색상 범례`}>
+            {(mode === 'today' ? [-3, -2, -1, 0, 1, 2, 3] : [-30, -20, -10, 0, 10, 20, 30]).map(value => <span key={value} style={{ background: heatmapColor(value, mode) }}>{value > 0 ? '+' : ''}{value}%</span>)}
+          </div>
+        </div>
+      </div>
+      {smallItems.length > 0 && <button className={styles.smallNotice} aria-expanded={expanded} aria-controls={pickerId} onClick={() => { setExpanded(true); picker.current?.focus(); }}>
+        작은 칸 {smallItems.length}종목은 목록에서 보기 <ChevronDown size={13} aria-hidden="true" />
+      </button>}
+      {selected && <div className={styles.detail} aria-live="polite">
+        <div className={styles.detailHeader}>
+          <strong className={styles.selectedName}>{selected.label}</strong>
+          <button className={styles.close} aria-label="종목 상세 닫기" onClick={closeSelection} data-capture="exclude"><X size={15} /></button>
+        </div>
+          <dl className={styles.keyMetrics}>
+            <div><dt>투자 비중</dt><dd>{weight(selected.weight)}</dd></div>
+            <div><dt>{modeLabel}</dt><dd data-direction={direction(selectedReturn)}>{percent(selectedReturn)}</dd></div>
+          </dl>
+        <dl className={styles.valueMetric}><dt>현재 평가금액</dt><dd>{formatter.format(selected.value)}</dd></dl>
         <div className={styles.detailActions}>
           {selectedHistory && <details className={styles.history}><summary>가격 흐름 <ChevronDown size={13} aria-hidden="true" /></summary><div data-direction={direction(selectedHistory.change)}><div className={styles.historyCaption}><span>{selectedHistory.start}–{selectedHistory.end} 종가</span><b>기간 {percent(selectedHistory.change)}</b></div><PriceTrace history={selectedHistory} /><p>표시된 기간의 가격 변화로, 매입 이후 수익률과 다를 수 있어요.</p></div></details>}
           {onCellClick && <button className={styles.analysisLink} onClick={() => onCellClick(selected.symbol)}>{selected.label} 분석 보기 <ArrowUpRight size={14} /></button>}
         </div>
       </div>}
       <details className={styles.help} data-map-key>
-        <summary aria-label="맵 읽는 법"><span className={styles.keyLabel}>면적·숫자는 투자 비중 <CircleHelp size={13} aria-hidden="true" /></span><span className={styles.colorKey}><i data-direction="loss" />하락<i data-direction="gain" />상승</span></summary>
-        <p>숫자와 각 영역의 면적은 현재 평가금액의 비중이에요. 파랑은 하락, 빨강은 상승이며 색이 진할수록 {modeLabel}의 변화 폭이 커요. {mode === 'pnl' ? '±100%' : '±10%'}를 넘으면 가장 진한 색으로 표시해요. 종목을 누르면 금액과 수익률이 펼쳐져요.</p><p>누적 수익률은 입력한 매입금액 기준이며, 시세나 매입금액이 없으면 미확인으로 표시해요. 회색 영역은 보합 또는 수익률 미확인이에요.</p>
+        <summary aria-label="맵 읽는 법"><span>맵 읽는 법</span><CircleHelp size={15} aria-hidden="true" /></summary>
+        <p>각 칸의 크기는 현재 평가금액의 비중이고, 칸 안의 숫자는 {modeLabel}이에요. 초록은 상승, 빨강은 하락, 회색은 보합이에요. 수익률을 확인하지 못한 칸에는 빗금과 ‘미확인’을 표시해요.</p>
+        <p>업종이나 ETF 상품 유형별로 묶어 보여드려요. 제목 영역을 제외한 같은 그룹 안에서 종목 면적을 비교할 수 있어요. 분류를 확인하지 못한 종목은 미분류로 표시해요.</p>
+        <p>종목을 누르면 비중과 평가금액을 볼 수 있어요. {mode === 'today' ? '±3%' : '±30%'}를 넘으면 가장 진한 색으로 표시하지만 숫자는 실제 수익률이에요. 누적 수익률은 입력한 매입금액 기준이에요.</p>
       </details>
-      {smallItems.length > 0 && <div className={styles.smallItems} aria-label="작은 비중의 종목">{smallItems.slice(0, 3).map(item => <button key={item.symbol} aria-pressed={selected?.symbol === item.symbol} onClick={event => select(item.symbol, event.currentTarget)} onMouseEnter={() => setHighlightedSymbol(item.symbol)} onMouseLeave={() => setHighlightedSymbol(null)} onFocus={() => setHighlightedSymbol(item.symbol)} onBlur={() => setHighlightedSymbol(null)} style={tileStyle(mode === 'pnl' ? item.pnl : item.today, mode)}><i aria-hidden="true" /><span>{item.label}</span><b>{weight(item.weight)}</b><ArrowUpRight size={13} aria-hidden="true" /></button>)}{smallItems.length > 3 && <button aria-expanded={expanded} aria-controls={pickerId} onClick={() => setExpanded(!expanded)}>외 {smallItems.length - 3}종목 <ChevronDown size={13} aria-hidden="true" /></button>}</div>}
-      <div id={pickerId} className={styles.holdings} hidden={!expanded} role="group" aria-label="전체 종목 선택" data-capture="exclude">
-        {items.map(item => <button key={item.symbol} aria-pressed={selected?.symbol === item.symbol} onClick={() => { select(item.symbol, picker.current); picker.current?.focus(); }}><span>{item.label}</span><span>{weight(item.weight)}</span><b data-direction={direction(mode === 'pnl' ? item.pnl : item.today)}>{percent(mode === 'pnl' ? item.pnl : item.today)}</b></button>)}
-      </div>
       {missing > 0 && <p className={styles.note}>시세가 없는 {missing}개 종목은 비중 계산에서 제외했어요.</p>}
       {variant === 'compact' && onExpand && <button className={styles.more} onClick={onExpand}>전체 분석 보기 <ArrowUpRight size={15} /></button>}
     </>}

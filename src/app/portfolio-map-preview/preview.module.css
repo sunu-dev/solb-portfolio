@@ -1,0 +1,19 @@
+.preview { max-width: 1060px; margin: 0 auto; padding: 32px 20px 60px; }
+.controls { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; max-width: 892px; margin: 0 auto 26px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light); }
+.controls p { margin: 0; color: var(--text-primary); font-size: 12px; font-weight: 500; }
+.controls p span { display: inline-block; font-size: 11px; font-weight: 400; color: var(--text-body); margin-left: 8px; }
+.controls details { max-width: 440px; }
+.controls summary { min-height: 24px; color: var(--text-body); font-size: 11px; cursor: pointer; }
+.controls nav { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.controls a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid var(--border-light); border-radius: 9px; color: var(--text-body); font-size: 12px; text-decoration: none; }
+.controls a[aria-current] { background: var(--pill-active-bg); color: var(--pill-active-fg); }
+.canvas { max-width: 940px; margin: 0 auto; }
+.canvas[data-mobile='true'] { max-width: 390px; }
+.back { display: block; padding: 18px; text-align: center; font-size: 13px; color: var(--text-body); }
+:global(body):has(.preview) :global(nextjs-portal) { display: none; }
+@media (max-width: 480px) {
+  .preview { padding: 20px 12px 40px; }
+  .controls { gap: 12px; margin-bottom: 12px; padding: 0 8px 12px; }
+  .controls p span { display: block; margin: 6px 0 0; }
+  .controls summary { font-size: 10px; }
+}
