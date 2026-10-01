@@ -56,4 +56,22 @@ describe('toPublicAiAnalysisInput', () => {
       changePercent: 1,
     })).toBeNull();
   });
+
+  it('accepts mentor requests with unavailable fundamentals without inventing values', () => {
+    const safe = toPublicAiAnalysisInput({
+      symbol: 'TSLL', currency: 'USD', price: 9.71, changePercent: 4.3,
+      mentorId: 'value', per: null, eps: null, week52High: 38.5, week52Low: null,
+    });
+    expect(safe).toMatchObject({ symbol: 'TSLL', price: 9.71, mentorId: 'value', week52High: 38.5 });
+    for (const field of ['per', 'eps', 'week52Low']) expect(safe).not.toHaveProperty(field);
+  });
+
+  it('still rejects missing required quotes and malformed optional numbers', () => {
+    const quote = { symbol: 'TSLL', price: 9.71, changePercent: 4.3 };
+    expect(toPublicAiAnalysisInput({ ...quote, price: null })).toBeNull();
+    expect(toPublicAiAnalysisInput({ ...quote, changePercent: null })).toBeNull();
+    for (const per of ['12', {}, Infinity, NaN]) {
+      expect(toPublicAiAnalysisInput({ ...quote, per })).toBeNull();
+    }
+  });
 });

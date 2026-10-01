@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import Image from 'next/image';
-import { TERMS_VERSION, PRIVACY_VERSION } from '@/config/legalVersions';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { X, ChevronRight, ShieldCheck } from 'lucide-react';
+import styles from './LoginModal.module.css';
 import JoobiLockup from '@/components/brand/JoobiLockup';
+import { TERMS_VERSION, PRIVACY_VERSION } from '@/config/legalVersions';
 import { getAgeFromBirthDate, isAdultBirthDate } from '@/lib/aiAgeGate';
 
 export const CONSENT_STORAGE_KEY = 'solb_consent_pending';
@@ -11,11 +12,10 @@ export const CONSENT_STORAGE_KEY = 'solb_consent_pending';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGoogleLogin: () => void;
   onKakaoLogin: () => void;
 }
 
-export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogin }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModalProps) {
   const handleOverlayClick = useCallback(
     (e: React.MouseEvent) => {
       if (e.target === e.currentTarget) onClose();
@@ -25,12 +25,13 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
 
   // Gemini API 약관에 맞춰 만 18세 이상만 가입 가능. 생년월일은 브라우저에서
   // 성인 여부 계산에만 쓰고 sessionStorage·DB·외부 서비스로 보내지 않는다.
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const age = getAgeFromBirthDate(birthDate);
   const isAge18Plus = isAdultBirthDate(birthDate);
-  const ageInvalid = birthDate.length === 10 && !isAge18Plus;
+  const ageInvalid = birthDate.length === 8 && !isAge18Plus;
   const allChecked = isAge18Plus && agreeTerms && agreePrivacy;
 
   const persistConsent = useCallback(() => {
@@ -49,284 +50,88 @@ export default function LoginModal({ isOpen, onClose, onGoogleLogin, onKakaoLogi
     }
   }, []);
 
-  const handleGoogle = useCallback(() => {
-    if (!allChecked) return;
-    persistConsent();
-    onGoogleLogin();
-  }, [allChecked, onGoogleLogin, persistConsent]);
-
   const handleKakao = useCallback(() => {
     if (!allChecked) return;
     persistConsent();
     onKakaoLogin();
   }, [allChecked, onKakaoLogin, persistConsent]);
 
-  // Scroll lock when modal is open
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    const previousOverflow = document.body.style.overflow;
+    dialog?.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div
-      onClick={handleOverlayClick}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(0,0,0,0.30)',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '400px',
-          background: '#fff',
-          borderRadius: '20px',
-          padding: '48px 40px 40px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          margin: '0 16px',
-        }}
-      >
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <Image
-            src="/icon-192.png"
-            alt=""
-            width={32}
-            height={32}
-            style={{ width: 32, height: 32, borderRadius: 8 }}
-          />
+    <dialog ref={dialogRef} className={styles.dialog} aria-labelledby="login-title"
+      onCancel={(event) => { event.preventDefault(); onClose(); }}
+      onClick={handleOverlayClick}>
+      <div className={styles.card}>
+        <header className={styles.header}>
           <JoobiLockup variant="modal" />
+          <button type="button" className={styles.close} onClick={onClose} aria-label="로그인 닫기" autoFocus><X size={21} aria-hidden="true" /></button>
+        </header>
+        <div className={styles.intro}>
+          <h1 id="login-title">내 주식,<br />오늘은 어때요?</h1>
+          <p>가격과 소식을 한곳에서 확인해요.</p>
         </div>
-
-        {/* Tagline */}
-        <p
-          style={{
-            fontSize: '16px',
-            color: '#8B95A1',
-            textAlign: 'center',
-            lineHeight: 1.5,
-            marginBottom: '32px',
-          }}
-        >
-          판단은 내가 하고,
-          <br />
-          오늘의 변화와 챙길 일은 주비가 정리해요
-        </p>
-
-        {/* 동의 체크박스 — 생년월일(18세 게이트)·약관·개인정보 (필수) */}
-        <div style={{
-          width: '100%',
-          background: '#F9FAFB',
-          borderRadius: 10,
-          padding: '12px 14px',
-          marginBottom: '16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 10,
-        }}>
-          {/* 생년월일은 성인 여부를 브라우저에서 계산한 뒤 저장하지 않는다. */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, fontSize: 12, color: '#4E5968', lineHeight: 1.5 }}>
-            <span style={{ flexShrink: 0 }}>
-              <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong> 생년월일
-            </span>
-            <input
-              type="date"
-              value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              aria-label="생년월일"
-              style={{
-                width: 142,
-                padding: '6px 10px',
-                fontSize: 13,
-                border: `1px solid ${ageInvalid ? '#DC2626' : 'var(--border-light, #E5E8EB)'}`,
-                borderRadius: 6,
-                outline: 'none',
-                textAlign: 'center',
-                color: '#191F28',
-                fontFamily: 'inherit',
-              }}
-            />
-            {isAge18Plus && age !== null && (
-              <span style={{ fontSize: 11, color: 'var(--brand-primary)', fontWeight: 600 }}>
-                ✓ 만 {age}세
-              </span>
-            )}
-            {ageInvalid && (
-              <span style={{ fontSize: 11, color: '#DC2626' }}>
-                만 18세 미만은 가입할 수 없어요
-              </span>
-            )}
-            <span style={{ width: '100%', fontSize: 10.5, color: '#8B95A1' }}>
-              생년월일은 성인 확인에만 사용하고 저장하거나 전송하지 않아요.
-            </span>
+        <section aria-label="이용 연령 확인">
+          <div className={styles.labelRow}>
+            <label htmlFor="login-birth">생년월일</label><span>만 18세 이상 이용 가능</span>
           </div>
-          <ConsentRow checked={agreeTerms} onChange={setAgreeTerms}>
-            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>이용약관</a>
-            에 동의합니다
-          </ConsentRow>
-          <ConsentRow checked={agreePrivacy} onChange={setAgreePrivacy}>
-            <strong style={{ fontWeight: 600, color: '#191F28' }}>(필수)</strong>{' '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>개인정보처리방침</a>
-            에 동의합니다 (국외이전 포함)
-          </ConsentRow>
-        </div>
-
-        {/* Google Button */}
-        <button
-          onClick={handleGoogle}
-          disabled={!allChecked}
-          style={{
-            width: '100%',
-            height: '48px',
-            borderRadius: '12px',
-            border: '1px solid var(--border-light, #E5E8EB)',
-            background: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            fontSize: '15px',
-            fontWeight: 600,
-            color: '#191F28',
-            cursor: allChecked ? 'pointer' : 'not-allowed',
-            opacity: allChecked ? 1 : 0.5,
-            marginBottom: '10px',
-          }}
-        >
-          {/* Google icon SVG */}
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path
-              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"
-              fill="#4285F4"
-            />
-            <path
-              d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z"
-              fill="#34A853"
-            />
-            <path
-              d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"
-              fill="#FBBC05"
-            />
-            <path
-              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.166 6.656 3.58 9 3.58z"
-              fill="#EA4335"
-            />
-          </svg>
-          Google로 시작하기
-        </button>
-
-        {/* Kakao Button */}
-        <button
-          onClick={handleKakao}
-          disabled={!allChecked}
-          style={{
-            width: '100%',
-            height: '48px',
-            borderRadius: '12px',
-            border: 'none',
-            background: '#FEE500',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            fontSize: '15px',
-            fontWeight: 600,
-            color: '#191F28',
-            cursor: allChecked ? 'pointer' : 'not-allowed',
-            opacity: allChecked ? 1 : 0.5,
-            marginBottom: '20px',
-          }}
-        >
-          {/* Kakao icon SVG */}
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <input id="login-birth" className={styles.birthInput} type="text" inputMode="numeric"
+            autoComplete="off" maxLength={8} placeholder="예: 19950123" value={birthDate}
+            onChange={(event) => setBirthDate(event.target.value.replace(/\D/g, '').slice(0, 8))}
+            aria-invalid={ageInvalid} aria-describedby="login-birth-hint login-birth-status" />
+          <div id="login-birth-status" className={ageInvalid ? styles.error : styles.status} aria-live="polite">
+            {ageInvalid ? age === null ? '올바른 생년월일 8자리를 입력해주세요.' : '만 18세 미만은 가입할 수 없어요.'
+              : isAge18Plus && age !== null ? `만 ${age}세로 확인됐어요` : '연도 4자리 · 월 2자리 · 일 2자리'}
+          </div>
+          <p id="login-birth-hint" className={styles.privacyNote}><ShieldCheck size={15} aria-hidden="true" />생년월일은 저장하거나 전송하지 않아요.</p>
+        </section>
+        <fieldset className={styles.consents}>
+          <legend className={styles.srOnly}>필수 약관 동의</legend>
+          <label className={styles.allConsent}>
+            <input type="checkbox" checked={agreeTerms && agreePrivacy}
+              onChange={(event) => { setAgreeTerms(event.target.checked); setAgreePrivacy(event.target.checked); }} />
+            <span>필수 항목 모두 동의</span>
+          </label>
+          <div className={styles.consentRow}>
+            <label><input type="checkbox" checked={agreeTerms} onChange={(event) => setAgreeTerms(event.target.checked)} />
+              <span><span className={styles.required}>[필수]</span> 이용약관 동의</span></label>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" aria-label="이용약관 보기 (새 창)"><ChevronRight size={18} /></a>
+          </div>
+          <div className={styles.consentRow}>
+            <label><input type="checkbox" checked={agreePrivacy} onChange={(event) => setAgreePrivacy(event.target.checked)} />
+              <span><span className={styles.required}>[필수]</span> 개인정보처리방침 동의<br /><small>국외이전 포함</small></span></label>
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" aria-label="개인정보처리방침 보기 (새 창)"><ChevronRight size={18} /></a>
+          </div>
+        </fieldset>
+        <div className={styles.actions}>
+          <p className={styles.actionHint}>{allChecked ? '준비됐어요. 카카오로 시작해볼까요?' : '생년월일과 필수 동의를 확인하면 시작할 수 있어요.'}</p>
+          <button type="button" className={styles.kakao} onClick={handleKakao} disabled={!allChecked}>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path
               fillRule="evenodd"
               clipRule="evenodd"
               d="M9 0.6C4.029 0.6 0 3.726 0 7.554c0 2.467 1.639 4.632 4.104 5.862l-1.04 3.822c-.092.337.293.605.584.407l4.574-3.03c.257.02.517.03.778.03 4.971 0 9-3.126 9-6.954C18 3.726 13.971 0.6 9 0.6z"
               fill="#191F28"
             />
-          </svg>
-          카카오로 시작하기
-        </button>
-
-        {/* Skip link */}
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '13px',
-            color: '#8B95A1',
-            cursor: 'pointer',
-            marginBottom: '24px',
-            padding: '4px 0',
-          }}
-        >
-          로그인 없이 둘러보기 &rsaquo;
-        </button>
-
-        {/* Bottom note — 한국어 어절 줄바꿈은 globals.css body의 keep-all이 담당 */}
-        <p style={{ fontSize: '12px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6 }}>
-          로그인하면 어디서든 내 포트폴리오를 확인할 수 있어요.
-        </p>
-
-        {/* 면책 안내 — 정식 면책은 약관 v3 제7조가 담당, 모달은 인지용 1줄 */}
-        <p style={{ fontSize: '11px', color: '#B0B8C1', textAlign: 'center', lineHeight: 1.6, marginTop: 12 }}>
-          투자 결과의 책임은 본인에게 있어요.{' '}
-          <strong style={{ color: 'var(--brand-primary)' }}>베타 무료 제공 중</strong>
-        </p>
+          </svg>카카오로 시작하기
+          </button>
+          <button type="button" className={styles.guest} onClick={onClose}>로그인 없이 둘러보기 <ChevronRight size={14} aria-hidden="true" /></button>
+        </div>
+        <footer className={styles.footer}>베타 무료 제공 중<span>·</span>투자 판단과 책임은 본인에게 있어요.</footer>
       </div>
-    </div>
-  );
-}
-
-// ─── 동의 체크박스 row 컴포넌트 ────────────────────────────────────────────
-function ConsentRow({
-  checked,
-  onChange,
-  children,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 8,
-      fontSize: 12,
-      color: '#4E5968',
-      cursor: 'pointer',
-      lineHeight: 1.5,
-    }}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        style={{
-          width: 16,
-          height: 16,
-          accentColor: 'var(--brand-primary)',
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      />
-      <span>{children}</span>
-    </label>
+    </dialog>
   );
 }

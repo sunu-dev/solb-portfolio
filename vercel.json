@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/economic-events",
+      "schedule": "45 21 * * *"
+    },
+    {
+      "path": "/api/cron/sync-search-catalog",
+      "schedule": "30 22 * * *"
+    },
+    {
       "path": "/api/cron/morning-brief",
       "schedule": "0 22 * * *"
     },

@@ -17,6 +17,7 @@ export const USER_STORAGE_KEYS = [
   'solb_onboarded',
   'solb_ai_usage',
   'solb_briefing_seen',
+  'solb_briefing_login_v1',
   'solb_recent_searches',
   // 알림 학습/스누즈 (사용자별)
   'solb_alert_snoozes',
@@ -48,7 +49,7 @@ export const USER_STORAGE_KEY_PREFIXES = [
 ] as const;
 
 /** 모든 사용자 데이터 키 정리 */
-export function clearUserStorage(): void {
+export function clearUserStorage(options: { preservePendingConsent?: boolean } = {}): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('solb-user-storage-clearing'));
   }
@@ -72,7 +73,7 @@ export function clearUserStorage(): void {
   } catch { /* localStorage 자체가 차단된 환경 등 */ }
   // 3. sessionStorage의 사용자별 키 (consent 흐름 중간 상태)
   try {
-    sessionStorage.removeItem('solb_consent_pending');
+    if (!options.preservePendingConsent) sessionStorage.removeItem('solb_consent_pending');
     const sessionKeys: string[] = [];
     for (let i = 0; i < sessionStorage.length; i++) {
       const key = sessionStorage.key(i);

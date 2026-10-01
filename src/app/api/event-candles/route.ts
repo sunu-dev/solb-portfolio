@@ -39,8 +39,14 @@ export const POST = defineRoute({
   auth: 'public',
   rateLimit: { windowSec: 60, maxLoggedIn: 20, maxAnon: 5 },
   handler: async ({ req }) => {
-  const { symbols, from, to } = await req.json() as { symbols: string[]; from: number; to?: number };
-  if (!symbols?.length || !from) {
+  let body;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+  const { symbols, from, to } = (body ?? {}) as { symbols: string[]; from: number; to?: number };
+  if (!Array.isArray(symbols) || !symbols.length || symbols.length > 50
+    || symbols.some(s => typeof s !== 'string' || !/^[A-Za-z0-9^=.\-]{1,32}$/.test(s))
+    || !Number.isFinite(from) || from <= 0 || (to !== undefined && (!Number.isFinite(to) || to <= from))) {
     return NextResponse.json({ error: 'symbols and from required' }, { status: 400 });
   }
 

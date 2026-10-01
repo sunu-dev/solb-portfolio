@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { yahooPreviousClose } from '@/utils/yahooPreviousClose';
 import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { logServerApi } from '@/lib/serverLogger';
 import {
@@ -42,8 +43,8 @@ async function fetchFromYahoo(symbol: string): Promise<QuoteResult | null> {
 
     const meta = result.meta;
     const price = meta.regularMarketPrice;
-    const prevClose = meta.chartPreviousClose || meta.previousClose;
-    if (!price) return null;
+    const prevClose = yahooPreviousClose(result);
+    if (!price || prevClose === null) return null;
 
     const change = prevClose ? +(price - prevClose).toFixed(2) : 0;
     const changePct = prevClose ? +(((price - prevClose) / prevClose) * 100).toFixed(2) : 0;
@@ -56,7 +57,7 @@ async function fetchFromYahoo(symbol: string): Promise<QuoteResult | null> {
       l: meta.regularMarketDayLow || price,
       o: meta.regularMarketOpen || price,
       pc: prevClose || price,
-      t: Math.floor(Date.now() / 1000),
+      t: meta.regularMarketTime || 0,
     };
   } catch { return null; }
 }
@@ -87,7 +88,11 @@ export const POST = defineRoute({
   rateLimit: POLICIES.general,
   handler: async ({ req }) => {
   try {
-    const { symbols, macro } = await req.json() as {
+    let body;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+    const { symbols, macro } = (body ?? {}) as {
       symbols: string[];
       macro?: boolean;
     };
@@ -95,9 +100,11 @@ export const POST = defineRoute({
     // 서버 전용 키 우선, fallback으로 NEXT_PUBLIC_ 사용 (클라이언트 번들에는 포함 안 됨)
     const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
 
-    if (!symbols?.length || !apiKey) {
+    if (!Array.isArray(symbols) || symbols.length === 0 || symbols.length > 50
+      || symbols.some(s => typeof s !== 'string' || !/^[A-Za-z0-9^=.\-]{1,32}$/.test(s))) {
       return NextResponse.json({ error: 'symbols required' }, { status: 400 });
     }
+    if (!apiKey) return NextResponse.json({ error: 'Quote provider unavailable' }, { status: 503 });
 
     const syms = symbols.slice(0, 50);
     const results: Record<string, QuoteResult | null> = {};

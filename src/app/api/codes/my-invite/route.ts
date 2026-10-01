@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomInt } from 'node:crypto';
 import { requireServiceClient } from '@/lib/supabaseServer';
 import { isFounderEmail } from '@/lib/adminAuth';
 
@@ -6,13 +7,13 @@ import { isFounderEmail } from '@/lib/adminAuth';
 // (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
 const supabaseAdmin = () => requireServiceClient();
 
-const DEFAULT_MAX_USES = 3;
+const DEFAULT_MAX_USES = 1;
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const part2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `SOLB-${part1}${part2}`;
+  const part1 = Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join('');
+  const part2 = Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join('');
+  return `JOOBI-${part1}${part2}`;
 }
 
 // GET — 내 초대 코드 조회 (없으면 자동 생성)

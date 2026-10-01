@@ -1,0 +1,446 @@
+{
+  "checkedAt": "2026-09-19T06:16:21.293Z",
+  "events": [
+    {
+      "key": "bok:2026-01-15",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-01-15T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=f514048c945f4e19ba9688a0a3ecb105&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2025-11",
+      "kind": "pce",
+      "period": "2025-11",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-01-22T15:00:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "fomc:2026-01-28",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-01-28T19:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260128a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2025-12",
+      "kind": "pce",
+      "period": "2025-12",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-02-20T13:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-02-26",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-02-26T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=c8d9eed3100140ba91842ab52723870e&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-01",
+      "kind": "pce",
+      "period": "2026-01",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-03-13T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "fomc:2026-03-18",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-03-18T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260318a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-02",
+      "kind": "pce",
+      "period": "2026-02",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-04-09T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-04-10",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-04-10T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=67c5323a73fb4b4583fc0db39562aaf3&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "fomc:2026-04-29",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-04-29T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-03",
+      "kind": "pce",
+      "period": "2026-03",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-04-30T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-05-28",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-05-28T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=075c50ad6b6a4bf287f56189695ac18f&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-04",
+      "kind": "pce",
+      "period": "2026-04",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-05-28T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "fomc:2026-06-17",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-06-17T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-05",
+      "kind": "pce",
+      "period": "2026-05",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-06-25T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-07-16",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-07-16T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=17f5a7b898ce4a92b3715cb6a3bd7051&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "fomc:2026-07-29",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-07-29T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-06",
+      "kind": "pce",
+      "period": "2026-06",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-07-30T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "pce:2026-07",
+      "kind": "pce",
+      "period": "2026-07",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-08-26T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-08-27",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-08-27T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A",
+      "result": {
+        "headline": "한국은행의 기준금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.bok.or.kr/portal/cmmn/file/fileDown.do?menuNo=200755&atchFileId=57a2f420e26141f39682fdb4696208b2&fileSn=2",
+        "note": "기준금리와 결정 이유는 한국은행 원문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "jobs:2026-08",
+      "kind": "jobs",
+      "title": "미국 고용보고서",
+      "at": "2026-09-04T12:30:00Z",
+      "timeKnown": true,
+      "period": "2026-08",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "cpi:2026-08",
+      "kind": "cpi",
+      "title": "미국 CPI",
+      "at": "2026-09-11T12:30:00Z",
+      "timeKnown": true,
+      "period": "2026-08",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "fomc:2026-09-16",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-09-16T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "result": {
+        "headline": "연준의 금리 결정문이 공개됐어요.",
+        "sourceUrl": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+        "note": "금리 수치와 향후 정책 설명은 공식 결정문에서 확인할 수 있어요."
+      }
+    },
+    {
+      "key": "pce:2026-08",
+      "kind": "pce",
+      "period": "2026-08",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-09-30T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "jobs:2026-09",
+      "kind": "jobs",
+      "title": "미국 고용보고서",
+      "at": "2026-10-02T12:30:00Z",
+      "timeKnown": true,
+      "period": "2026-09",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "cpi:2026-09",
+      "kind": "cpi",
+      "title": "미국 CPI",
+      "at": "2026-10-14T12:30:00Z",
+      "timeKnown": true,
+      "period": "2026-09",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "bok:2026-10-22",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-10-22T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A"
+    },
+    {
+      "key": "fomc:2026-10-28",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-10-28T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "pce:2026-09",
+      "kind": "pce",
+      "period": "2026-09",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-10-29T12:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "jobs:2026-10",
+      "kind": "jobs",
+      "title": "미국 고용보고서",
+      "at": "2026-11-06T13:30:00Z",
+      "timeKnown": true,
+      "period": "2026-10",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "cpi:2026-10",
+      "kind": "cpi",
+      "title": "미국 CPI",
+      "at": "2026-11-10T13:30:00Z",
+      "timeKnown": true,
+      "period": "2026-10",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "pce:2026-10",
+      "kind": "pce",
+      "period": "2026-10",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-11-25T13:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "bok:2026-11-26",
+      "kind": "bok",
+      "title": "한국은행 기준금리 결정",
+      "at": "2026-11-26T00:00:00+09:00",
+      "timeKnown": false,
+      "sourceUrl": "https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A"
+    },
+    {
+      "key": "jobs:2026-11",
+      "kind": "jobs",
+      "title": "미국 고용보고서",
+      "at": "2026-12-04T13:30:00Z",
+      "timeKnown": true,
+      "period": "2026-11",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "fomc:2026-12-09",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2026-12-09T19:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "cpi:2026-11",
+      "kind": "cpi",
+      "title": "미국 CPI",
+      "at": "2026-12-10T13:30:00Z",
+      "timeKnown": true,
+      "period": "2026-11",
+      "sourceUrl": "https://www.bls.gov/schedule/2026/"
+    },
+    {
+      "key": "pce:2026-11",
+      "kind": "pce",
+      "period": "2026-11",
+      "title": "미국 소비지출 물가 PCE",
+      "at": "2026-12-23T13:30:00Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.bea.gov/news/schedule"
+    },
+    {
+      "key": "fomc:2027-01-27",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-01-27T19:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-03-17",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-03-17T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-04-28",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-04-28T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-06-09",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-06-09T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-07-28",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-07-28T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-09-15",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-09-15T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-10-27",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-10-27T18:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    },
+    {
+      "key": "fomc:2027-12-08",
+      "kind": "fomc",
+      "title": "미국 FOMC 금리 결정",
+      "at": "2027-12-08T19:00:00.000Z",
+      "timeKnown": true,
+      "sourceUrl": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+    }
+  ]
+}

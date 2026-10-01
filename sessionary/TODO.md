@@ -1,11 +1,65 @@
 # 미해결 TODO
 
-## 2026-09-20 포트폴리오 맵
-- [ ] 사용자 확인 완료. 승인한 지형 맵 커밋을 주비 운영에 배포하고 확인. 상세: `2026-09-20-portfolio-map.md`.
+## 2026-10-01 운영 소스 커밋 정리
+- 현재 운영 앱 소스를 SHA1로 대조하여 커밋 정리. 상세: `2026-10-01-production-source-commit.md`.
+- [ ] 남은 미반영 로컬 변경·시안·문서 분류 후 처리 방향 결정.
+- [ ] 운영 관련 SQL 원본은 DB 적용 상태 대조 후 별도 이력 정리.
+
+## 2026-09-21 세션 종료
+- 사용자 운영 확인 후 마무리. 이번 승인 범위는 모두 완료. 최종 운영 `95261c2`; 상세 `2026-09-21-session-wrapup.md`.
+
+## 2026-09-21 맵 읽는 법
+- 맵 읽는 법 시각 안내 운영 반영 완료 (`95261c2`). `2026-09-21-map-guide.md` 참고.
+
+## 2026-09-21 건강 점수 안내 카드
+- 승인된 안내 카드 운영 반영 완료 (`4aa9d52`). 로컬 건강 점수 전체 개편은 배포 범위 아님.
+
+## 2026-09-21 챕터 책장
+- 책장 개선 운영 반영 완료 (`b94fc2d`). 운영 4너비/상세 확인, 오류 0. 상세: `2026-09-21-portfolio-shelf.md`.
+- [ ] 실제 iPhone Safari에서 책 목록 스크롤/터치 확인.
+
+## 2026-09-21 포트폴리오 맵
+- 디자인 확정: Finviz 참조 사각형 히트맵. 한국·미국 주식·ETF 통합, 업종/상품 유형별 그룹. 사용자 승인 후 `todo-final`에 `6e36da0` 푸시 완료. 이번 푸시만 저장된 sunu-dev 인증을 사용했고 기본 GitHub 계정은 변경하지 않음. 상세: `2026-09-21-portfolio-map-treemap.md`.
+- 운영 반영 완료: `dpl_FfWPHm7yYUURzrfogJd3sd4zY9B4` (맵 `6e36da0`). joobi.kr/www 동일 배포, 1033개 테스트·타입·빌드 및 실제 운영 6너비 검사 통과. 다음 배포 기준 소스: `/private/tmp/joobi-heatmap-release-gynt18tz`.
+- [ ] 별도 로컬 webpack 빌드에서 기존 관리자 API route export 타입 오류 재현/필요성 검토. 운영 소스 기반 Turbopack 빌드는 타입까지 통과했음. 맵 운영 배포 차단 사항은 아님.
 - [ ] 실제 iPhone Safari에서 맵 터치·가독성·공유 확인.
+
+## 2026-09-19 포트폴리오 분석 화면 개선
+- [ ] 건강 점수 기존 구성 개선안은 `/analysis-preview` 사용자 확인 후 운영 반영. 새 시안·종이 질감은 반려된 상태이며 종목 탭 변경 금지. 맵은 별도 승인·배포 완료. 상세: `2026-09-20-analysis-original-refinement.md`.
+- [ ] 실제 iPhone Safari 터치/가독성 확인.
+
+## 2026-09-19 이벤트 설명 원칙
+- 7개 이벤트의 뜻풀이·영향 경로·생활 예시 운영 반영: `dpl_6z5yU9NSoRZjCjMNc8nKbsSpfivB`. 상세: `2026-09-19-report-understanding.md`.
+- [ ] 실제 iPhone Safari 및 초보 사용자 설명 이해도 확인.
+- 새 뉴스·이벤트 유형 확장 시 `docs/JOOBI_EXPLANATION_PRINCIPLES.md`를 공통 기준으로 사용.
+
+## 2026-09-19 분석 메뉴 분리
+- 하단 5개 유지, 분석 메뉴 분리 운영 배포 완료: `dpl_2Bx865nkF8FSpoTEjByeaThUoHjh`. 상세: `2026-09-19-report-navigation.md`.
+- [ ] 실제 iPhone Safari·로그인 사용자 데이터로 분석 → 기록/과거 비교 동선 확인.
+
+## 2026-09-19 경제 일정·리포트 미리보기
+- 사용자 승인 후 운영 배포 완료: `dpl_FQsoUpn7DWHey85qetA8XtvDnG2M` READY. 상세: `2026-09-19-report-economic-briefing.md`.
+- [ ] 실제 iPhone Safari·로그인 계정으로 신규 발표 재방문 브리핑 확인.
+- [ ] 국내 실적 일정·한국은행 수치·경제지표 시장 예상치 공급 범위 후속 검토(임의 결과 표시 없음).
+
+## 2026-09-19 한글 종목 검색
+- [ ] 실제 iPhone Safari에서 전체 목록 로딩·초성 검색·긴 종목명 확인(Chromium 320/375/390/430px 통과).
+- 검색은 공식 KIS 종목 마스터와 일일 갱신으로 변경. 상세: `2026-09-19-korean-stock-search.md`. 추천 universe/stock_listings 수집 TODO와는 별도.
 
 이 파일은 세션 간 누적되는 미해결 작업 항목입니다.
 세션 시작 시 자동 로드되며, 세션 종료 시 갱신합니다.
+
+## 2026-09-10 운영 수정 후 확인
+
+- [ ] 국내 특별 개장시간 및 미장 휴장일·조기종료·다음 개장 카운트다운 전체 감사 (현재 Hero 국내 정규장 배지 추가, 미국 기존 계산 유지).
+- [ ] 첫 접속 계정 경계 수정: 실제 iPhone Safari 새 배포 확인. 로컬 및 운영 Chromium 모바일 크기 첫 방문/reload/저장 실패 검증 통과. 최종 dpl_FWCrm2nEPB99pgh1wRhqRpf1DiSh READY. `2026-09-10-startup-portfolio-identity.md` 참고.
+- [ ] 보존된 legacy 복구본의 수동 확인/복원 UX 검토 (자동으로 다음 로그인 계정에 귀속 금지).
+- [ ] iPhone: 새 배포 로드 → 로그인/동기화 완료 → 명시적 로그아웃 → 새로고침 후 이전 종목 미노출 확인.
+- [ ] iPhone Hero: 상태/출석/투자유형 배지가 모두 있을 때 줄바꿈·통화 버튼 배치 확인.
+- [ ] 초대코드 입력 후 첫 종목 저장·재접속 복원 E2E (가입 화면 중복/메인 선노출은 9/8 수정 배포).
+- [ ] 운영 공개 여부: docs/LAUNCH_AUDIT_2026-09-08.md 미완료 점검. 아직 전체 GO 아님.
+- 시세 정상 수신 오판 경고 수정 배포 완료: `2026-09-10-stock-quote-warning.md`, dpl_EuuZFBZRic3mQJeWEUoCxkkMbCPd READY. 운영 모바일 크기 정상/실패 응답 검증 통과.
+- 최신 작업 기록: `2026-09-10-trading-badges-covid-period.md`. 국내장 배지·코로나 기간 설명 운영 배포 dpl_J6tT4VDcwBggn4WUiosvQbWm4YY1 READY 및 모바일 크기 검증 완료.
 
 ## 🎯 다음 세션 자동 브리핑 (2026-08-20 — 매크로 지표 5종 확장 + 교육 팁 심화)
 

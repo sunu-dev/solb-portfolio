@@ -52,6 +52,7 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
   const style = ALERT_STYLE[alert.type];
   const explanation = getAlertExplanation(alert.id);
   const hasAction = alert.symbol && alert.symbol !== 'PORTFOLIO';
+  const actionWidth = (explanation ? 28 : 0) + 28 + (onSnooze ? 28 : 0) + 28;
 
   // 카카오 SDK 준비 상태
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
   const handleShare = async () => {
     const symbol = alert.symbol && alert.symbol !== 'PORTFOLIO' ? alert.symbol : '';
     const kr = symbol ? STOCK_KR[symbol] || symbol : '';
-    const appUrl = 'https://solb-portfolio.vercel.app';
+    const appUrl = 'https://joobi.kr';
     const title = kr ? `${kr} — ${style.icon} ${alert.message}` : `${style.icon} ${alert.message}`;
     const shareText = `${title}\n${alert.detail}\n\n주비 포트폴리오에서 공유`;
 
@@ -162,9 +163,9 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
         </button>
       </div>
 
-      {/* 본문 — 우측 여유: help(28)+share(28)+snooze(28)+X(28) = 최대 112 */}
-      <div style={{ paddingRight: (explanation ? 28 : 0) + 28 + (onSnooze ? 28 : 0) + 28 + 8 }}>
-        {!compact && (
+      {/* 아이콘은 상단에만 있으므로 상단 행에서만 버튼 공간을 확보한다. */}
+      {!compact ? (
+        <div style={{ minHeight: 28, paddingRight: actionWidth + 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11 }}>{style.icon}</span>
             <span style={{ fontSize: 10, fontWeight: 600, color: style.color }}>{style.label}</span>
@@ -173,12 +174,16 @@ export default function AlertCard({ alert, onDismiss, onSnooze, onAnalyze, compa
                 {STOCK_KR[alert.symbol] || alert.symbol}
               </span>
             )}
-            <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto', marginRight: 36 }}>
+            <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto' }}>
               {getRelativeTime(alert.timestamp)}
             </span>
           </div>
-        )}
+        </div>
+      ) : (
+        <div aria-hidden="true" style={{ height: 22 }} />
+      )}
 
+      <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, marginBottom: 4 }}>
           {alert.message}
         </div>

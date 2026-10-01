@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, memo } from 'react';
+import { useState, useRef, useEffect, useMemo, memo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { MacroEntry } from '@/config/constants';
 import { getMarketStatus } from '@/utils/marketStatus';
+import { useNow } from '@/hooks/useNow';
 import { isTodayHoliday, getUpcomingHolidaysForMarket } from '@/config/marketHolidays';
 import type { MacroIndicatorsResponse } from '@/app/api/macro-indicators/route';
 
@@ -21,19 +23,93 @@ type TickerItem = {
   unit?: string;
 };
 
+type TickerExplanation = {
+  title: string;
+  description: string;
+};
+
+const TICKER_EXPLANATIONS: Record<string, TickerExplanation> = {
+  'S&P 500': {
+    title: 'S&P 500',
+    description: '미국을 대표하는 대형 상장기업 500곳의 주가 흐름을 모아 보여주는 지수예요. 미국 증시 전반의 분위기를 볼 때 많이 사용해요.',
+  },
+  NASDAQ: {
+    title: '나스닥 종합지수',
+    description: '나스닥 시장에 상장된 기업들의 주가 흐름을 모은 지수예요. 기술기업 비중이 커서 성장주 분위기를 살펴볼 때 자주 봐요.',
+  },
+  '다우존스': {
+    title: '다우존스 산업평균지수',
+    description: '미국의 대표적인 우량기업 30곳의 주가 흐름을 보여주는 지수예요. 역사가 길고 전통 산업과 대형주의 움직임을 살펴보기 좋아요.',
+  },
+  '코스피': {
+    title: '코스피',
+    description: '유가증권시장에 상장된 국내 기업들의 주가 흐름을 나타내는 대표 지수예요. 국내 대형주와 전체 시장 분위기를 볼 때 사용해요.',
+  },
+  '코스닥': {
+    title: '코스닥',
+    description: '코스닥 시장에 상장된 국내 기업들의 주가 흐름을 나타내는 지수예요. 성장기업과 중소형 기술주의 움직임이 비교적 크게 반영돼요.',
+  },
+  WTI: {
+    title: 'WTI 원유',
+    description: '미국 서부 텍사스산 원유의 기준 가격이에요. 국제 유가와 에너지 비용, 물가 흐름을 살펴볼 때 대표적으로 사용해요.',
+  },
+  VIX: {
+    title: 'VIX 변동성지수',
+    description: 'S&P 500 옵션 가격으로 앞으로 약 30일간 예상되는 시장 변동성을 계산한 지수예요. 수치가 높을수록 시장의 불안이 큰 편으로 해석해요.',
+  },
+  'USD/KRW': {
+    title: '원·달러 환율',
+    description: '미국 1달러를 사는 데 필요한 원화 금액이에요. 숫자가 오르면 원화 약세, 내리면 원화 강세를 뜻해요.',
+  },
+  '미 국채 10년': {
+    title: '미국 국채 10년물 금리',
+    description: '미국 정부가 발행한 만기 10년 국채의 시장 금리예요. 장기 금리와 경기·물가 기대를 보여주며 주식 가치 평가에도 영향을 줘요.',
+  },
+};
+
 // ─── RAF 기반 마퀴 — 재렌더링에도 위치 유지 ────────────────────────────────
 const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
   const rafRef = useRef<number>(0);
   const pausedRef = useRef(false);
+  const dialogOpenRef = useRef(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [activeItem, setActiveItem] = useState<TickerItem | null>(null);
+
+  const closeExplanation = useCallback(() => {
+    dialogOpenRef.current = false;
+    setActiveItem(null);
+    window.requestAnimationFrame(() => triggerRef.current?.focus());
+  }, []);
+
+  const openExplanation = useCallback((item: TickerItem, trigger: HTMLButtonElement) => {
+    triggerRef.current = trigger;
+    dialogOpenRef.current = true;
+    setActiveItem(item);
+  }, []);
+
+  useEffect(() => {
+    if (!activeItem) return;
+    closeRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeExplanation();
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        closeRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [activeItem, closeExplanation]);
 
   useEffect(() => {
     const speed = 0.5; // px/frame @ 60fps ≈ 30px/s
 
     const tick = () => {
       const track = trackRef.current;
-      if (track && !pausedRef.current) {
+      if (track && !pausedRef.current && !dialogOpenRef.current) {
         posRef.current -= speed;
         const halfWidth = track.scrollWidth / 2;
         if (halfWidth > 0 && Math.abs(posRef.current) >= halfWidth) {
@@ -56,10 +132,20 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
       onMouseLeave={() => { pausedRef.current = false; }}
     >
       {[...items, ...items].map((item, idx) => (
-        <div key={idx} style={{
-          display: 'flex', alignItems: 'center', gap: '5px',
-          padding: '3px 14px 3px 0', whiteSpace: 'nowrap', flexShrink: 0,
-        }}>
+        <button
+          key={`${item.label}-${idx}`}
+          type="button"
+          aria-haspopup="dialog"
+          aria-label={`${TICKER_EXPLANATIONS[item.label]?.title ?? item.label} 설명 보기`}
+          onClick={event => openExplanation(item, event.currentTarget)}
+          onFocus={() => { pausedRef.current = true; }}
+          onBlur={() => { pausedRef.current = false; }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            padding: '5px 14px 5px 0', whiteSpace: 'nowrap', flexShrink: 0,
+            background: 'transparent', border: 0, cursor: 'help', font: 'inherit',
+          }}
+        >
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#8B95A1' }}>{item.label}</span>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#191F28' }}>{item.displayVal}</span>
           {item.cp != null && (
@@ -71,8 +157,64 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
             </span>
           )}
           <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
-        </div>
+        </button>
       ))}
+      {activeItem && TICKER_EXPLANATIONS[activeItem.label] && createPortal(
+        <div
+          role="presentation"
+          onPointerDown={closeExplanation}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20, background: 'rgba(25,31,40,0.28)',
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="market-term-title"
+            aria-describedby="market-term-description"
+            onPointerDown={event => event.stopPropagation()}
+            style={{
+              width: 'min(340px, calc(100vw - 32px))', padding: '20px 20px 18px',
+              borderRadius: 18, background: 'var(--surface, #FFFFFF)',
+              border: '1px solid var(--border-light, #F2F4F6)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.18)', color: 'var(--text-primary, #191F28)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary, #3182F6)', marginBottom: 5 }}>
+                  시장 지표
+                </div>
+                <h2 id="market-term-title" style={{ margin: 0, fontSize: 17, lineHeight: 1.4, fontWeight: 750 }}>
+                  {TICKER_EXPLANATIONS[activeItem.label].title}
+                </h2>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                aria-label="설명 닫기"
+                onClick={closeExplanation}
+                style={{
+                  width: 36, height: 36, flexShrink: 0, borderRadius: 10,
+                  border: 0, background: 'var(--bg-subtle, #F2F4F6)',
+                  color: 'var(--text-body, #4E5968)', fontSize: 22, lineHeight: 1, cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <p id="market-term-description" style={{ margin: '14px 0 0', fontSize: 14, lineHeight: 1.65, color: 'var(--text-body, #4E5968)' }}>
+              {TICKER_EXPLANATIONS[activeItem.label].description}
+            </p>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-light, #F2F4F6)', fontSize: 11, lineHeight: 1.55, color: 'var(--text-tertiary, #8B95A1)' }}>
+              옆의 등락률은 이전 거래일 종가와 비교한 변화예요.
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 });
@@ -87,20 +229,19 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const dst = new Date().getMonth() >= 2 && new Date().getMonth() <= 9;
   const isKR = market === 'KR';
   const status = isKR ? ms.kr : ms.us;
 
   const sessions = isKR ? [
     { label: '동시호가', time: '08:30 – 09:00', note: '매수·매도 주문 접수' },
-    { label: '정규장', time: '09:00 – 15:20', note: '일반 거래' },
+    { label: '정규장', time: '09:00 – 15:30', note: '종가 동시호가 포함 · KRX 기준' },
     { label: '종가단일가', time: '15:20 – 15:30', note: '종가 결정' },
-    { label: '시간외 종가', time: '15:40 – 16:00', note: '전일 종가로 거래' },
-    { label: '시간외 대량', time: '16:00 – 18:00', note: '대량 매매' },
+    { label: '시간외 종가', time: '15:40 – 16:00', note: '당일 종가로 거래' },
+    { label: '시간외 단일가', time: '16:00 – 18:00', note: '10분 단위 단일가 거래' },
   ] : [
-    { label: '프리마켓', time: dst ? '17:00 – 22:30' : '18:00 – 23:30', note: '한국시간 기준' },
-    { label: '본장', time: dst ? '22:30 – 05:00' : '23:30 – 06:00', note: '한국시간 기준 (자정 경과)' },
-    { label: '애프터마켓', time: dst ? '05:00 – 09:00' : '06:00 – 10:00', note: '한국시간 기준' },
+    { label: '프리마켓', time: '04:00 – 09:30 ET', note: '미국 동부시간 · 증권사별 지원 상이' },
+    { label: '정규장', time: '09:30 – 16:00 ET', note: '미국 동부시간 · 조기 종료일 제외' },
+    { label: '애프터마켓', time: '16:00 – 20:00 ET', note: '미국 동부시간 · 조기 종료일 제외' },
   ];
 
   return (
@@ -190,7 +331,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
       </div>
       {!isKR && (
         <div style={{ fontSize: 10, color: '#B0B8C1', borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 8, marginTop: 4 }}>
-          서머타임 {dst ? '적용 중' : '미적용'}
+          상태 배지는 정규장 기준이며, 휴장·조기 종료일에는 일정이 달라요.
         </div>
       )}
     </div>
@@ -200,6 +341,7 @@ function MarketPopover({ market, ms, onClose }: { market: MarketKey; ms: ReturnT
 const TICKER_LABELS = ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스닥', 'WTI', 'VIX', 'USD/KRW'];
 
 export default function MarketSummary() {
+  const now = useNow();
   const { macroData } = usePortfolioStore();
   const [activeMarket, setActiveMarket] = useState<MarketKey | null>(null);
   const marketStatusRef = useRef<HTMLDivElement>(null);
@@ -265,7 +407,7 @@ export default function MarketSummary() {
     );
   }
 
-  const ms = getMarketStatus();
+  const ms = getMarketStatus(new Date(now));
   const isUSPreMarket = ms.us.labelSimple === '프리장';
   const krHoliday = isTodayHoliday('KR');
   const usHoliday = isTodayHoliday('US');

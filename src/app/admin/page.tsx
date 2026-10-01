@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import {
   Activity,
   BarChart3,
   ChartNoAxesCombined,
   CheckCircle2,
+  ChevronDown,
   Circle,
   LibraryBig,
   SearchCheck,
@@ -21,6 +23,7 @@ import ApiStatsPanel from '@/components/admin/ApiStatsPanel';
 import ListingsPanel from '@/components/admin/ListingsPanel';
 import AiAuditPanel from '@/components/admin/AiAuditPanel';
 import ProReadinessPanel from '@/components/admin/ProReadinessPanel';
+import JoobiLockup from '@/components/brand/JoobiLockup';
 
 const GEMINI_RPD_PER_KEY = 500;
 
@@ -92,7 +95,7 @@ const ADMIN_TABS = [
 ] satisfies { id: AdminTab; label: string; Icon: typeof BarChart3 }[];
 
 export default function AdminPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, signInWithKakao, signOut } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -100,13 +103,17 @@ export default function AdminPage() {
 
   // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
   const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const accountName = user?.user_metadata?.full_name || user?.user_metadata?.name || '관리자';
+  const accountIdentity = user?.email || (user ? `카카오 계정 · ${user.id.slice(0, 8)}` : '');
 
   useEffect(() => {
     if (loading || adminLoading) return;
-    if (!user) { setError('로그인이 필요해요.'); return; }
-    if (!isAdmin) { setError('관리자 권한이 없어요.'); return; }
-    setError('');
-    fetchStats();
+    if (!user || !isAdmin) return;
+    const timer = window.setTimeout(() => {
+      setError('');
+      void fetchStats();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [user, loading, isAdmin, adminLoading]);
 
   async function fetchStats() {
@@ -185,9 +192,40 @@ export default function AdminPage() {
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>로딩 중...</div>;
   if (!user && !loading) return (
-    <div style={{ padding: 48, textAlign: 'center' }}>
-      <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>관리자 페이지</div>
-      <div style={{ fontSize: 14, color: '#8B95A1' }}>로그인이 필요해요.</div>
+    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: '#F7F8FA' }}>
+      <div style={{ width: 'min(400px, 100%)', padding: '34px 28px', textAlign: 'center', background: '#fff', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 20, boxShadow: '0 12px 36px rgba(0,0,0,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 26 }}>
+          <JoobiLockup variant="modal" />
+        </div>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 750, color: '#191F28' }}>관리자 로그인</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 13, lineHeight: 1.6, color: '#8B95A1' }}>
+          관리자 계정으로 로그인하면 원래 보던 관리자 화면으로 돌아와요.
+        </p>
+        <button
+          type="button"
+          onClick={() => void signInWithKakao('/admin')}
+          style={{ width: '100%', height: 52, border: 0, borderRadius: 13, background: '#FEE500', color: '#191919', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+        >
+          카카오로 관리자 로그인
+        </button>
+        <Link href="/" style={{ display: 'inline-block', marginTop: 18, padding: 8, fontSize: 12, color: '#8B95A1', textDecoration: 'none' }}>
+          주비 홈으로 돌아가기
+        </Link>
+      </div>
+    </div>
+  );
+  if (!adminLoading && !isAdmin) return (
+    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', background: '#F7F8FA' }}>
+      <div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>관리자 권한이 없어요.</div>
+        <div style={{ fontSize: 13, color: '#8B95A1', marginBottom: 4 }}>현재 로그인: {accountName}</div>
+        <div style={{ fontSize: 12, color: '#B0B8C1', marginBottom: 16 }}>{accountIdentity}</div>
+        <button type="button" onClick={() => void signOut()}
+          style={{ padding: '8px 14px', marginRight: 8, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, background: '#fff', color: '#4E5968', fontSize: 12, cursor: 'pointer' }}>
+          다른 계정으로 로그인
+        </button>
+        <Link href="/" style={{ fontSize: 13, color: '#3182F6', textDecoration: 'none' }}>주비 홈으로 돌아가기</Link>
+      </div>
     </div>
   );
   if (error) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error}</div>;
@@ -201,18 +239,28 @@ export default function AdminPage() {
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', fontFamily: 'Pretendard Variable, sans-serif' }}>
 
       {/* 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 4 }}>주비 관리자</h1>
           <p style={{ fontSize: 13, color: '#8B95A1' }}>{getTodayKST()} 기준 · KST</p>
         </div>
-        <button
-          onClick={fetchStats}
-          disabled={refreshing}
-          style={{ padding: '8px 20px', background: refreshing ? 'var(--bg-subtle, #F2F4F6)' : '#3182F6', color: refreshing ? '#8B95A1' : '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-        >
-          {refreshing ? '로딩 중...' : '새로고침'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28' }}>{accountName}</div>
+            <div style={{ marginTop: 2, fontSize: 11, color: '#8B95A1' }}>{accountIdentity}</div>
+          </div>
+          <button type="button" onClick={() => void signOut()}
+            style={{ padding: '8px 12px', background: '#fff', color: '#4E5968', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 10, fontSize: 12, cursor: 'pointer' }}>
+            로그아웃
+          </button>
+          <button
+            onClick={fetchStats}
+            disabled={refreshing}
+            style={{ padding: '8px 20px', background: refreshing ? 'var(--bg-subtle, #F2F4F6)' : '#3182F6', color: refreshing ? '#8B95A1' : '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+          >
+            {refreshing ? '로딩 중...' : '새로고침'}
+          </button>
+        </div>
       </div>
 
       {/* 탭 */}
@@ -367,6 +415,24 @@ export default function AdminPage() {
 
 // ── 코드 관리 패널 ────────────────────────────────────────────────────────────
 
+interface ManagedCode {
+  code: string;
+  type: string;
+  use_count: number;
+  max_uses: number | null;
+  is_active: boolean;
+  created_at: string;
+  created_by: string | null;
+  description: string | null;
+  code_uses?: { used_by: string | null; used_at: string; context: string | null }[];
+  metadata?: {
+    batch_id?: string;
+    batch_index?: number;
+    batch_total?: number;
+    batch_size?: number;
+  } | null;
+}
+
 function CodesPanel() {
   const [type, setType] = useState('invite');
   const [count, setCount] = useState(10);
@@ -374,7 +440,7 @@ function CodesPanel() {
   const [expiresAt, setExpiresAt] = useState('');
   const [description, setDescription] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [codes, setCodes] = useState<{ code: string; type: string; use_count: number; max_uses: number; is_active: boolean; created_at: string }[]>([]);
+  const [codes, setCodes] = useState<ManagedCode[]>([]);
   const [loadingCodes, setLoadingCodes] = useState(false);
   const [filterType, setFilterType] = useState('invite');
   const [copied, setCopied] = useState('');
@@ -395,6 +461,13 @@ function CodesPanel() {
     setLoadingCodes(false);
   };
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadCodes('invite'), 0);
+    return () => window.clearTimeout(timer);
+    // 코드 탭을 처음 열 때 한 번만 최신 목록을 가져온다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleGenerate = async () => {
     setGenerating(true);
     const token = await getToken();
@@ -413,6 +486,35 @@ function CodesPanel() {
     setGenerating(false);
   };
 
+  const handleGenerateInviteBatches = async () => {
+    setGenerating(true);
+    try {
+      const token = await getToken();
+      const res = await fetch('/api/codes/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          type: 'invite',
+          count: 100,
+          batch_size: 10,
+          max_uses: 1,
+          expires_at: null,
+          description: description || '관리자 대량 초대',
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || '코드 생성 실패');
+      setType('invite');
+      setFilterType('invite');
+      await loadCodes('invite');
+      alert('JOOBI 초대코드 100개를 10개씩 10묶음으로 생성했어요.');
+    } catch (e) {
+      alert(`오류: ${e instanceof Error ? e.message : '코드를 생성하지 못했어요.'}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const toggleCode = async (code: string, isActive: boolean) => {
     const token = await getToken();
     await fetch('/api/codes/generate', {
@@ -424,9 +526,36 @@ function CodesPanel() {
   };
 
   const copyAll = () => {
-    const active = codes.filter(c => c.is_active && c.use_count < c.max_uses);
+    const active = codes.filter(c => c.is_active && (c.max_uses === null || c.use_count < c.max_uses));
     navigator.clipboard.writeText(active.map(c => c.code).join('\n'));
     setCopied('all');
+    setTimeout(() => setCopied(''), 2000);
+  };
+
+  const batchGroups = Array.from(
+    codes.reduce((groups, code) => {
+      const batchId = code.metadata?.batch_id;
+      const batchIndex = code.metadata?.batch_index;
+      if (!batchId || !batchIndex) return groups;
+      const groupKey = `${batchId}:${batchIndex}`;
+      const current = groups.get(groupKey) || [];
+      current.push(code);
+      groups.set(groupKey, current);
+      return groups;
+    }, new Map<string, ManagedCode[]>()),
+  )
+    .map(([groupKey, batchCodes]) => ({
+      groupKey,
+      batchIndex: batchCodes[0]?.metadata?.batch_index ?? 0,
+      batchTotal: batchCodes[0]?.metadata?.batch_total ?? 0,
+      codes: batchCodes.sort((a, b) => a.code.localeCompare(b.code)),
+    }))
+    .sort((a, b) => a.batchIndex - b.batchIndex);
+
+  const copyBatch = (batchId: string, batchCodes: ManagedCode[]) => {
+    const available = batchCodes.filter(code => code.is_active && (code.max_uses === null || code.use_count < code.max_uses));
+    navigator.clipboard.writeText(available.map(code => code.code).join('\n'));
+    setCopied(batchId);
     setTimeout(() => setCopied(''), 2000);
   };
 
@@ -438,13 +567,20 @@ function CodesPanel() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 12 }}>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>타입</label>
-            <select value={type} onChange={e => setType(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13 }}>
-              <option value="invite">invite — 베타 초대</option>
-              <option value="referral">referral — 리퍼럴</option>
-              <option value="discount">discount — 할인</option>
-              <option value="promo">promo — 프로모션</option>
-            </select>
+            <div style={{ position: 'relative' }}>
+              <select value={type} onChange={e => setType(e.target.value)}
+                style={{ width: '100%', height: 38, padding: '0 34px 0 10px', appearance: 'none', WebkitAppearance: 'none', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, background: 'var(--surface, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontSize: 13, boxSizing: 'border-box', cursor: 'pointer' }}>
+                <option value="invite">invite — 베타 초대</option>
+                <option value="referral">referral — 리퍼럴</option>
+                <option value="discount">discount — 할인</option>
+                <option value="promo">promo — 프로모션</option>
+              </select>
+              <ChevronDown
+                size={15}
+                aria-hidden="true"
+                style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', color: '#8B95A1', pointerEvents: 'none' }}
+              />
+            </div>
           </div>
           <div>
             <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>생성 수량</label>
@@ -464,10 +600,19 @@ function CodesPanel() {
         </div>
         <input value={description} onChange={e => setDescription(e.target.value)} placeholder="메모 (선택)"
           style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
-        <button onClick={handleGenerate} disabled={generating}
-          style={{ padding: '10px 24px', background: generating ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer' }}>
-          {generating ? '생성 중...' : `코드 ${count}개 생성`}
-        </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <button onClick={handleGenerate} disabled={generating}
+            style={{ padding: '10px 24px', background: generating ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer' }}>
+            {generating ? '생성 중...' : `코드 ${count}개 생성`}
+          </button>
+          <button onClick={handleGenerateInviteBatches} disabled={generating}
+            style={{ padding: '10px 24px', background: '#fff', color: '#3182F6', border: '1px solid #3182F6', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.5 : 1 }}>
+            JOOBI 초대코드 100개 · 10묶음 생성
+          </button>
+        </div>
+        <p style={{ marginTop: 8, fontSize: 11, color: '#8B95A1' }}>
+          대량 생성은 1회용 코드 10개를 한 묶음으로 만들어 묶음별 복사를 지원해요.
+        </p>
       </div>
 
       {/* 코드 목록 */}
@@ -492,17 +637,58 @@ function CodesPanel() {
         ) : codes.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 24, color: '#B0B8C1', fontSize: 13 }}>코드를 먼저 생성하거나 타입을 선택해주세요</div>
         ) : (
+          <>
+          {batchGroups.length > 0 && (
+            <div style={{ marginBottom: 20, padding: 14, borderRadius: 12, background: '#F8FAFF', border: '1px solid rgba(49,130,246,0.12)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28', marginBottom: 10 }}>묶음별 복사</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+                {batchGroups.map(group => {
+                  const availableCount = group.codes.filter(code => code.is_active && (code.max_uses === null || code.use_count < code.max_uses)).length;
+                  return (
+                    <button
+                      key={group.groupKey}
+                      onClick={() => copyBatch(group.groupKey, group.codes)}
+                      disabled={availableCount === 0}
+                      style={{
+                        padding: '9px 12px', borderRadius: 8, textAlign: 'left', cursor: availableCount > 0 ? 'pointer' : 'not-allowed',
+                        border: '1px solid var(--border-light, #E5E8EB)', background: copied === group.groupKey ? '#20C997' : '#fff',
+                        color: copied === group.groupKey ? '#fff' : '#4E5968', opacity: availableCount > 0 ? 1 : 0.5,
+                      }}
+                    >
+                      <span style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>
+                        {copied === group.groupKey ? '복사됨' : `묶음 ${group.batchIndex}/${group.batchTotal}`}
+                      </span>
+                      <span style={{ display: 'block', marginTop: 2, fontSize: 10 }}>
+                        사용 가능 {availableCount}/{group.codes.length}개
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {codes.map(c => (
               <div key={c.code} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap',
                 padding: '10px 14px', background: '#F8F9FA', borderRadius: 10,
                 border: '1px solid var(--border-light, #F2F4F6)', opacity: c.is_active ? 1 : 0.4,
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>{c.code}</span>
-                  <span style={{ fontSize: 11, color: '#8B95A1' }}>{c.use_count}/{c.max_uses}회</span>
-                  {c.use_count >= c.max_uses && <span style={{ fontSize: 11, color: '#B0B8C1', background: '#F2F4F6', padding: '2px 6px', borderRadius: 4 }}>소진</span>}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>{c.code}</span>
+                    <span style={{ fontSize: 11, color: '#8B95A1' }}>{c.use_count}/{c.max_uses === null ? '∞' : c.max_uses}회</span>
+                    {c.max_uses !== null && c.use_count >= c.max_uses && <span style={{ fontSize: 11, color: '#B0B8C1', background: '#F2F4F6', padding: '2px 6px', borderRadius: 4 }}>소진</span>}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 10, color: '#8B95A1' }}>
+                    발급: {c.created_by ? `개인 계정 ${c.created_by.slice(0, 8)}` : '관리자'}
+                    {c.description ? ` · ${c.description}` : ''}
+                  </div>
+                  {(c.code_uses || []).map(use => (
+                    <div key={`${use.used_by}-${use.used_at}`} style={{ marginTop: 3, fontSize: 10, color: '#4E5968' }}>
+                      사용: {use.used_by ? `계정 ${use.used_by.slice(0, 8)}` : '확인 불가'} · {new Date(use.used_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: 11, color: '#B0B8C1' }}>
@@ -520,6 +706,7 @@ function CodesPanel() {
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
     </div>

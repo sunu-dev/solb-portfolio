@@ -309,7 +309,7 @@ function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockI
 }
 
 // ─── Main component ──────────────────────────────────────────────────────────
-export default function EventsSection() {
+export default function EventsSection({ embedded = false }: { embedded?: boolean } = {}) {
   const {
     currentEventId, setCurrentEventId,
     getAllEvents, getAllSymbols, stocks,
@@ -477,13 +477,13 @@ export default function EventsSection() {
   return (
     <div>
       {/* Page title */}
-      <div style={{ marginBottom: 24 }}>
+      {!embedded && <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>이벤트 비교 분석</h1>
         <p style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>과거 이벤트 시기의 포트폴리오 성과를 비교해보세요</p>
-      </div>
+      </div>}
 
       {/* Event pill tabs */}
-      <div data-tour="events-tabs" className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
+      <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
         {events.map(ev => {
           const isActive = currentEventId === ev.id;
           const isCustom = ev.id.startsWith('c-');
@@ -566,15 +566,19 @@ export default function EventsSection() {
                 background: currentEvent.endDate ? 'rgba(139,149,161,0.1)' : 'rgba(239,68,82,0.1)',
                 color: currentEvent.endDate ? '#8B95A1' : '#EF4452',
               }}>
-                {currentEvent.endDate ? '종료' : '진행중'}
+                {currentEvent.endDate ? '비교 구간 종료' : '비교 진행 중'}
               </span>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 4 }}>
-              {fmtDate(currentEvent.startDate)} ~ {currentEvent.endDate ? fmtDate(currentEvent.endDate) : '현재'}
+              비교 기간 · {fmtDate(currentEvent.startDate)} ~ {currentEvent.endDate ? fmtDate(currentEvent.endDate) : '현재'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6 }}>
               {currentEvent.description}
             </div>
+            {currentEvent.periodNote && <p style={{ fontSize: 12, lineHeight: 1.7, marginTop: 8, color: 'var(--text-secondary)' }}>
+              {currentEvent.periodNote}{' '}
+              {currentEvent.periodSource && <a href={currentEvent.periodSource} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }}>기간 기준 출처</a>}
+            </p>}
             {currentEvent.keyFacts && currentEvent.keyFacts.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                 {currentEvent.keyFacts.map((fact, i) => (

@@ -32,7 +32,8 @@ describe('market movers quote routing', () => {
             result: [{
               meta: {
                 regularMarketPrice: 220_000,
-                chartPreviousClose: 200_000,
+                chartPreviousClose: 150_000,
+                previousClose: 200_000,
               },
             }],
           },

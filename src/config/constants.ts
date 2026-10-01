@@ -151,6 +151,8 @@ export interface PresetEvent {
   baseDate: string;
   endDate: string | null;
   description: string;
+  periodNote?: string;
+  periodSource?: string;
   insight: string;
   basePrices: Record<string, number>;
   baseMacro: Record<string, number>;
@@ -228,7 +230,7 @@ export const CONFIG = {
 export const STOCK_KR: Record<string, string> = {
   // US stocks
   'MU': '마이크론', 'MSFT': '마이크로소프트', 'AVGO': '브로드컴',
-  'AMZN': '아마존', 'AAPL': '애플', 'GOOGL': '구글', 'GOOG': '구글',
+  'AMZN': '아마존', 'AAPL': '애플', 'GOOGL': '알파벳 A', 'GOOG': '알파벳 C',
   'META': '메타', 'NVDA': '엔비디아', 'TSLA': '테슬라', 'AMD': 'AMD',
   'NFLX': '넷플릭스', 'INTC': '인텔', 'QCOM': '퀄컴', 'TSM': 'TSMC',
   'SOXX': '반도체ETF', 'ASTX': 'ASTX', 'BEX': 'BEX',
@@ -251,12 +253,14 @@ export const STOCK_KR: Record<string, string> = {
   'COST': '코스트코', 'SBUX': '스타벅스', 'NKE': '나이키', 'UBER': '우버',
   'ABNB': '에어비앤비', 'HOOD': '로빈후드', 'COIN': '코인베이스',
   'PLTR': '팔란티어', 'RIVN': '리비안', 'LCID': '루시드', 'NIO': '니오',
+  'BE': '블룸에너지',
   'BABA': '알리바바', 'PDD': '핀둬둬', 'JD': '징둥닷컴',
   'SPY': 'S&P500ETF', 'QQQ': '나스닥100ETF', 'TQQQ': '나스닥3배ETF',
   'SOXL': '반도체3배ETF', 'ARKK': 'ARK혁신ETF',
 
   // KR 코스피
   '005930.KS': '삼성전자', '000660.KS': 'SK하이닉스', '005490.KS': 'POSCO홀딩스',
+  '036540.KQ': 'SFA반도체',
   '005380.KS': '현대차', '000270.KS': '기아', '035420.KS': 'NAVER',
   '051910.KS': 'LG화학', '006400.KS': '삼성SDI', '003550.KS': 'LG',
   '066570.KS': 'LG전자', '105560.KS': 'KB금융', '055550.KS': '신한지주',
@@ -369,14 +373,16 @@ export const PRESET_EVENTS: PresetEvent[] = [
   },
   {
     id: 'covid',
-    name: '코로나',
+    name: '코로나 초기 충격·반등',
     emoji: '🦠',
     startDate: '2020-02-20',
     baseDate: '2020-02-19',
     endDate: '2020-06-08',
-    description: 'S&P 500 -34% 급락 후 5개월 만에 회복.',
-    insight: 'S&P 500이 -34% 급락한 뒤 약 5개월 만에 회복한 국면이에요. 지수의 최저점은 3월 23일이었고 이후 1년 동안 +70% 넘게 올랐어요. 다만 어디가 최저점이었는지는 지나고 나서야 알 수 있었어요.',
-    keyFacts: ['S&P 500 -34%', '최저점까지 33일', '회복까지 115일', '이후 1년 +70%'],
+    description: '코로나 초기의 주가 급락과 반등을 살펴보는 비교 구간이에요. 감염병의 지속 기간이 아니에요.',
+    periodNote: '비교 기준일은 2020.02.19, 관찰 구간은 02.20~06.08이에요. 종료 기준은 S&P 500이 2019년 말 수준을 되찾은 6월 8일로 정리했어요. 2월 고점 회복일이나 코로나 종료일은 아니며, 각 보유 종목의 회복 시점도 달라요.',
+    periodSource: 'https://www.spglobal.com/en/research-insights/market-insights/daily-update-june-19-2020',
+    insight: '급락 이후 반등했더라도 어떤 가격을 기준으로 삼는지에 따라 회복 여부는 달라져요. 이 구간의 끝은 S&P 500의 2019년 말 수준 회복을 기준으로 삼으며, 개별 종목이 이전 가격을 되찾았다는 뜻은 아니에요.',
+    keyFacts: ['초기 충격·반등 비교', '기준 지수 S&P 500', '종료 기준: 2019년 말 수준'],
     // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
     basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 30.90, AMZN: 108.51 },
     baseMacro: { 'S&P 500': 3373.23, NASDAQ: 9817.18, 'USD/KRW': 1185.50, 'WTI Oil': 53.27, VIX: 14.38 },

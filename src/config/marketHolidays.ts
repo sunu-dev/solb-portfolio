@@ -24,18 +24,24 @@ export const MARKET_HOLIDAYS_2026: MarketHoliday[] = [
 
   // === 한국 (KRX) ===
   { date: '2026-01-01', label: '신정', market: 'KR' },
-  { date: '2026-01-28', label: '설날 연휴', market: 'KR' },
-  { date: '2026-01-29', label: '설날', market: 'KR' },
-  { date: '2026-01-30', label: '설날 연휴', market: 'KR' },
+  // 우주항공청 2026 월력요항: 설 연휴 2/16~18, 대체공휴일 3/2·10/5.
+  { date: '2026-02-16', label: '설날 연휴', market: 'KR' },
+  { date: '2026-02-17', label: '설날', market: 'KR' },
+  { date: '2026-02-18', label: '설날 연휴', market: 'KR' },
   { date: '2026-03-01', label: '삼일절', market: 'KR' },
+  { date: '2026-03-02', label: '삼일절 대체', market: 'KR' },
+  { date: '2026-05-01', label: '근로자의 날', market: 'KR' },
   { date: '2026-05-05', label: '어린이날', market: 'KR' },
   { date: '2026-05-25', label: '부처님오신날', market: 'KR' },
   { date: '2026-06-06', label: '현충일', market: 'KR' },
+  { date: '2026-06-03', label: '지방선거', market: 'KR' },
+  { date: '2026-07-17', label: '제헌절', market: 'KR' },
   { date: '2026-08-17', label: '광복절 대체', market: 'KR' },
   { date: '2026-09-24', label: '추석 연휴', market: 'KR' },
   { date: '2026-09-25', label: '추석', market: 'KR' },
   { date: '2026-09-26', label: '추석 연휴', market: 'KR' },
   { date: '2026-10-03', label: '개천절', market: 'KR' },
+  { date: '2026-10-05', label: '개천절 대체', market: 'KR' },
   { date: '2026-10-09', label: '한글날', market: 'KR' },
   { date: '2026-12-25', label: '크리스마스', market: 'KR' },
   { date: '2026-12-31', label: '연말 휴장', market: 'KR' },
@@ -59,8 +65,13 @@ export function getUpcomingHolidays(days = 7): MarketHoliday[] {
 /**
  * 오늘이 특정 시장 휴장일인지 확인
  */
-export function isTodayHoliday(market: 'KR' | 'US'): MarketHoliday | null {
-  const today = new Date().toISOString().split('T')[0];
+export function isTodayHoliday(market: 'KR' | 'US', now: Date = new Date()): MarketHoliday | null {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: market === 'KR' ? 'Asia/Seoul' : 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const value = (key: string) => parts.find(p => p.type === key)!.value;
+  const today = `${value('year')}-${value('month')}-${value('day')}`;
   return MARKET_HOLIDAYS_2026.find(h =>
     h.date === today && (h.market === market || h.market === 'BOTH')
   ) || null;

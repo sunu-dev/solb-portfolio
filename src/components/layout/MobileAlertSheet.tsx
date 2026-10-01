@@ -135,7 +135,7 @@ export default function MobileAlertSheet({ isOpen, onClose }: Props) {
               알림이 없어요
             </div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
-              포트폴리오에 특별한 상황이 없어요.
+              현재 표시할 새 알림이 없어요.
             </div>
           </div>
         )}

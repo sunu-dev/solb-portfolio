@@ -11,6 +11,7 @@ import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
 import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
 import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
+import { getKrMarketLabel } from '@/utils/krMarketLabel';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
 import { useHasHydrated } from '@/hooks/useHasHydrated';
@@ -53,13 +54,11 @@ export default function Dashboard() {
     return 0;
   }, [hasHydrated]);
 
-  // 미장 개장/마감 상태 — 1분마다 업데이트
-  const [marketState, setMarketState] = useState(() => getMarketStatus());
-  useEffect(() => {
-    const id = setInterval(() => setMarketState(getMarketStatus()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  const marketCountdown = getMarketLabel(marketState);
+  // 공유 시계로 두 시장을 같은 시점에 갱신. SSR에서는 시각을 추측하지 않는다.
+  const marketCountdowns = currentTime ? [
+    getKrMarketLabel(new Date(currentTime)),
+    getMarketLabel(getMarketStatus(new Date(currentTime))),
+  ] : [];
 
   const data = useMemo(() => {
     const investing = stocks.investing || [];
@@ -125,7 +124,7 @@ export default function Dashboard() {
 
   const greetData = useMemo(
     () => hasHydrated
-      ? getGreeting(data.hasInvestment && !isGain)
+      ? (data.hasInvestment ? getGreeting(!isGain) : { text: '내 종목을 등록하고 변화를 확인해보세요', emoji: '📋' })
       : { text: '오늘도 주비와 함께해요', emoji: '✨' },
     [data.hasInvestment, hasHydrated, isGain],
   );
@@ -262,11 +261,11 @@ export default function Dashboard() {
 
         {/* Hero Content */}
         <div className="flex items-start justify-between">
-          <div style={{ flex: 1, zIndex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+            <div className="dashboard-hero-toolbar">
+              <div className="dashboard-hero-badges">
                 <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? 'var(--color-loss, #3182F6)' : 'var(--color-gain, #EF4452)', background: 'var(--surface, white)', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                  {isGain ? '✨ 순항 중' : '☁️ 잠시 흐림'}
+                  {!data.hasInvestment ? '내 주식 비서' : !data.quotesLoaded ? '시세 확인 중' : displayTotalPL === 0 ? '평가손익 보합' : isGain ? '평가손익 플러스' : '평가손익 마이너스'}
                 </span>
                 {streak > 0 && !significantLoss && (
                   <span aria-label={`연속 출석 ${streak}일차`} style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-warning, #FF9500)', background: 'var(--color-warning-bg, rgba(255,149,0,0.1))', padding: '4px 10px', borderRadius: 20 }}>
@@ -316,8 +315,11 @@ export default function Dashboard() {
               주비도 함께 지켜보고 있어요 🐘
             </p>
 
-            {/* 미장 개장/마감 카운트다운 pill */}
+            {/* 국장과 미장 상태를 함께 표시. 모바일에서는 배지 단위로 줄바꿈. */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {marketCountdowns.map((marketCountdown, index) => (
             <div
+              key={index}
               aria-label={marketCountdown.text}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -354,6 +356,8 @@ export default function Dashboard() {
                 />
               )}
             </div>
+            ))}
+            </div>
             <style>{`
               @keyframes pulse-dot {
                 0%, 100% { opacity: 1; transform: scale(1); }
@@ -369,7 +373,7 @@ export default function Dashboard() {
         {data.hasInvestment ? (
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
             {/* P&L Display */}
-            <div style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
+            <div className="profit-block" style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>전체 수익 현황</span>
                 <button
@@ -388,21 +392,21 @@ export default function Dashboard() {
                   <div className="skeleton-shimmer" style={{ width: 100, height: 20, borderRadius: 6 }} />
                 </div>
               ) : (
-              <div className="flex items-baseline gap-2" style={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                <span className="tabular-nums" style={{ fontSize: 'clamp(24px, 5.5vw, 34px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+              <div className="profit-total">
+                <span className="tabular-nums" style={{ fontSize: 'clamp(18px, 6cqi, 30px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                   {currency === 'KRW'
                     ? `${isGain ? '+' : '-'}${formatKrw(Math.abs(data.totalPLWon), { suffix: '원', prefix: false })}`
                     : `${isGain ? '+' : '-'}${formatUsd(Math.abs(data.totalPL))}`
                   }
                 </span>
-                <span style={{ fontSize: 16, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', whiteSpace: 'nowrap' }}>
-                  ({isGain ? '+' : '-'}{Math.abs(displayTotalPLPct).toFixed(2)}%)
+                <span className="profit-percent" style={{ fontSize: 14, fontWeight: 700, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', whiteSpace: 'nowrap' }}>
+                  <span>(</span><span>{isGain ? '+' : '-'}{Math.abs(displayTotalPLPct).toFixed(2)}%</span><span>)</span>
                 </span>
               </div>
               )}
               {data.quotesLoaded && periodCompare && (
                 <div
-                  className="flex flex-col mt-4"
+                  className="profit-periods mt-4"
                   style={{ rowGap: 6 }}
                   aria-label="기간별 수익 비교"
                 >
@@ -412,11 +416,11 @@ export default function Dashboard() {
                     { key: 'month', label: '이번달', data: periodCompare.month },
                   ] as const).map(({ key, label, data: d }) => {
                     const isPrimary = key === 'today';
-                    // 정렬 일관: 모든 행 같은 grid(라벨 left / 금액 right / % 우측 고정폭) + tabular-nums.
+                    // 부모 subgrid가 가장 긴 수익률의 실제 너비를 전체/기간 행에 공유한다.
                     // '오늘' 강조는 배경 칩 대신 좌측 accent 바 + 굵기 (정렬을 깨지 않음).
                     const rowStyle: React.CSSProperties = {
-                      display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'baseline', columnGap: 10,
-                      fontSize: isPrimary ? 14 : 13,
+                      display: 'grid', gridTemplateColumns: 'subgrid', alignItems: 'baseline', columnGap: 8,
+                      fontSize: 14,
                       paddingLeft: 8,
                     };
                     if (!d) {
@@ -424,7 +428,7 @@ export default function Dashboard() {
                         <div key={key} style={{ ...rowStyle, borderLeft: '2px solid transparent' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-secondary, #4E5968)' }}>{label}</span>
                           <span className="tabular-nums" style={{ textAlign: 'right', color: 'var(--text-tertiary, #B0B8C1)' }}>—</span>
-                          <span style={{ minWidth: 56 }} />
+                          <span />
                         </div>
                       );
                     }
@@ -460,10 +464,10 @@ export default function Dashboard() {
                             : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
                         </span>
                         {/* 3열 — 퍼센트 (right, 고정폭) */}
-                        <span className="tabular-nums" style={{
-                          minWidth: 56, textAlign: 'right', whiteSpace: 'nowrap',
+                        <span className="profit-percent tabular-nums" style={{
+                          minWidth: 0, textAlign: 'right', whiteSpace: 'nowrap',
                           color: accentColor, opacity: 0.85, fontWeight: isPrimary ? 700 : 600,
-                        }}>({isUp ? '+' : ''}{d.pct.toFixed(2)}%)</span>
+                        }}><span>(</span><span>{isUp ? '+' : ''}{d.pct.toFixed(2)}%</span><span>)</span></span>
                       </div>
                     );
                   })}
@@ -542,13 +546,14 @@ export default function Dashboard() {
 
         {/* 건강점수 + 시장 현황 통합 1줄 */}
         {(health || data.bestSymbol) && (
-          <div
+          <div className="health-summary-frame">
+          <div className="health-summary"
             role="group"
             aria-label="포트폴리오 요약"
             style={{
               display: 'flex',
               alignItems: 'center',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               rowGap: 6,
               columnGap: 8,
               marginTop: 12,
@@ -572,7 +577,7 @@ export default function Dashboard() {
                 }}>
                   {getHealthLabel(health.total)}
                 </span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: '1 1 140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                <span className="health-summary-reason" style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: '1 1 0px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
                   {(() => {
                     const metrics = [
                       { key: '집중도', ratio: health.concentration.score / 30 },
@@ -589,14 +594,15 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* 상승/하락 1위 — 위험 메시지와 시각 분리 (모바일에서는 wrap 시 다음 줄로 함께 이동) */}
+            {/* 상승/하락 1위 — 위험 메시지와 시각 분리 (좁은 카드에서는 설명을 접고 종목명을 말줄임) */}
             {data.bestSymbol && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+              <div className="health-summary-movers" style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
                 {health && (
                   <span aria-hidden style={{ width: 1, height: 14, background: 'var(--border-strong, #E5E8EB)' }} />
                 )}
                 <button
                   onClick={() => setAnalysisSymbol(data.bestSymbol)}
+                  title={bestKr}
                   aria-label={`상승 1위 ${bestKr} 분석`}
                   style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-gain, #EF4452)', minHeight: 28 }}
                 >
@@ -604,6 +610,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setAnalysisSymbol(data.worstSymbol)}
+                  title={worstKr}
                   aria-label={`하락 1위 ${worstKr} 분석`}
                   style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-loss, #3182F6)', minHeight: 28 }}
                 >
@@ -622,6 +629,7 @@ export default function Dashboard() {
                 ›
               </button>
             )}
+          </div>
           </div>
         )}
 

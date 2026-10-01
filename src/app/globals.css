@@ -340,68 +340,51 @@ code, pre, kbd, samp, .font-mono {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* 문장 속 브랜드 잠금: '나만의 주식비서'에서 주·비만 크게 드러낸다. */
+/* 선택 시안 9: Sunflower 700. 로고 두 글자만 포함한 로컬 서브셋. */
+@font-face {
+  font-family: 'Joobi Sunflower';
+  src: url('/fonts/brand-preview/korean/style-9.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 .joobi-lockup {
-  --joobi-brand-size: 29px;
-  --joobi-small-size: 9px;
+  --joobi-brand-size: 27px;
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   color: var(--text-primary, #191F28);
+  font-family: 'Joobi Sunflower', 'Pretendard Variable', Pretendard, sans-serif;
+  font-size: var(--joobi-brand-size);
+  font-weight: 700;
+  letter-spacing: -0.03em;
   line-height: 1;
   white-space: nowrap;
 }
-
-.joobi-lockup__visual {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0;
+.joobi-lockup__motion { display: inline-flex; flex: none; }
+.joobi-lockup__symbol {
+  width: 1.18em;
+  height: 1.18em;
+  flex: none;
+  color: #EF4658;
 }
-
-.joobi-lockup__prefix,
-.joobi-lockup__minor-letter {
-  font-family: var(--font-wordmark), "Pretendard Variable", Pretendard, sans-serif;
-  font-size: var(--joobi-small-size);
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 1;
+.dark .joobi-lockup__symbol { color: #FF7180; }
+.joobi-lockup__line { stroke-dasharray: 1; stroke-dashoffset: 0; }
+/* 브랜드 장식만 1회 재생. 시세 변화나 알림을 나타내지 않는다. */
+@media (prefers-reduced-motion: no-preference) {
+  .joobi-lockup__line { animation: joobi-brand-draw 850ms ease-out 1 both; }
+  .joobi-lockup__tip { animation: joobi-brand-settle 300ms ease-out 700ms 1 both; }
 }
-
-.joobi-lockup__prefix { margin-right: 2px; }
-
-.joobi-lockup__brand-letter {
-  color: var(--brand-wordmark-color, #191F28);
-  font-family: var(--font-wordmark), "Pretendard Variable", Pretendard, sans-serif;
-  font-size: var(--joobi-brand-size);
-  font-weight: 500;
-  letter-spacing: -0.07em;
+@keyframes joobi-brand-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
 }
-
-/* '식'은 읽히는 최소 폭을 확보하고, 큰 '주·비'는 겹치지 않을 만큼만 당긴다. */
-.joobi-lockup__minor-letter--middle {
-  position: relative;
-  z-index: 1;
-  width: calc(var(--joobi-small-size) * 0.62);
-  margin-left: 0;
-  overflow: visible;
+@keyframes joobi-brand-settle {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.joobi-lockup__minor-letter--middle + .joobi-lockup__brand-letter {
-  margin-left: calc(var(--joobi-small-size) * -0.06);
-}
-
-.joobi-lockup__minor-letter--suffix {
-  margin-left: calc(var(--joobi-small-size) * -0.1);
-}
-
-.joobi-lockup--hero { --joobi-brand-size: 42px; --joobi-small-size: 12px; }
-.joobi-lockup--modal { --joobi-brand-size: 34px; --joobi-small-size: 10px; }
-.joobi-lockup--loading { --joobi-brand-size: 32px; --joobi-small-size: 9px; }
-
-@media (max-width: 640px) {
-  .joobi-lockup--header .joobi-lockup__prefix,
-  .joobi-lockup--header .joobi-lockup__minor-letter { display: none; }
-  .joobi-lockup--header .joobi-lockup__visual { gap: 0; }
-}
+.joobi-lockup--hero { --joobi-brand-size: 42px; }
+.joobi-lockup--loading { --joobi-brand-size: 32px; }
 
 /* Tabular nums for prices */
 .tabular-nums { font-variant-numeric: tabular-nums; }
@@ -514,18 +497,94 @@ code, pre, kbd, samp, .font-mono {
    Mobile Responsive
    ========================================== */
 .header-inner { padding: 0 48px; }
+.stock-mobile-meta { display: none; }
+.stock-quote-group { display: contents; }
+.health-summary-frame { container-type: inline-size; }
+.health-summary-movers { flex: 0 1 auto; max-width: 48%; }
+.health-summary-movers button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.health-summary-movers > span { flex: none; }
+@container (max-width: 360px) {
+  .health-summary { column-gap: 6px !important; padding: 4px 10px !important; }
+  .health-summary-reason { display: none; }
+  .health-summary-movers { max-width: none; flex: 1; justify-content: flex-end; gap: 4px !important; }
+  .health-summary button { min-height: 36px !important; }
+}
+.stock-actions-toggle, .stock-action-label, .stock-alert-dot { display: none; }
+.profit-block { container-type: inline-size; min-width: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; column-gap: 8px; }
+.profit-block > * { grid-column: 1 / -1; }
+/* 실측된 가장 긴 수익률을 모든 행이 공유한다. 부호·소수점·괄호·폰트 굵기도 너비에 포함된다. */
+.profit-total, .profit-periods { display: grid; grid-template-columns: subgrid; column-gap: 8px; }
+.profit-total { align-items: baseline; text-align: right; }
+.profit-total > :first-child { grid-column: 1 / 3; }
+.profit-periods > div { grid-column: 1 / -1; }
+.profit-percent { display: flex; justify-content: flex-end; gap: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.briefing-dialog {
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  width: min(560px, calc(100vw - 24px));
+  max-height: 85dvh;
+  overflow-y: auto;
+  background: var(--surface);
+  color: var(--text-primary);
+}
+.briefing-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 @media (max-width: 768px) {
   .header-inner {
     padding: 0 16px !important;
   }
   .stock-table-row {
-    /* 가격 칼럼을 확보하고 숫자는 한 줄 유지.
-       이름 칼럼은 minmax(0,1fr)로 축소 허용(긴 종목명은 ellipsis). */
-    grid-template-columns: minmax(0, 1fr) 104px 78px auto !important;
-    column-gap: 8px !important;
+    /* 모바일 카드는 2행으로 압축한다.
+       1행: 종목명 | 가격+등락, 2행: 보유정보 | 편집 버튼. */
+    grid-template-columns: minmax(0, 1fr) max-content 36px !important;
+    column-gap: clamp(8px, 3vw, 14px) !important;
+    row-gap: 4px;
+    padding: 16px 0 !important;
   }
+  .stock-identity { grid-column: 1; grid-row: 1; align-self: start; }
+  .stock-identity > .shrink-0 { display: none; }
+  .stock-category-badge, .stock-alert-badge { display: none; }
+  .stock-alert-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .stock-title-line {
+    flex-wrap: nowrap !important;
+    width: 100%;
+  }
+  .stock-title-line .stock-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    flex-shrink: 1;
+  }
+  .stock-title-line > span:not(.stock-name) { flex-shrink: 0; }
+  .stock-quote-group {
+    display: contents;
+  }
+  .stock-price-cell { grid-column: 2; grid-row: 1; white-space: nowrap; }
+  .stock-period-return { grid-column: 2; grid-row: 2; white-space: nowrap; }
+  /* 목록은 선택 통화의 현재가와 등락률에 집중한다. */
+  .stock-price-secondary,
+  .stock-period-return > div + div { display: none; }
+  .stock-desktop-meta { display: none; }
+  .stock-mobile-meta {
+    display: flex; flex-wrap: wrap; gap: 4px 12px;
+    min-width: 0;
+    grid-column: 1; grid-row: 2; align-self: center;
+    padding-top: 0; font-size: 12px; line-height: 1.6;
+    color: var(--text-body); font-variant-numeric: tabular-nums;
+  }
+  .stock-mobile-meta > span { white-space: nowrap; }
+  .stock-table-row .row-actions { display: none; }
+  .stock-table-row .row-actions-open { display: flex; position: absolute; right: 0; top: calc(100% - 10px); z-index: 5; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-light); border-radius: 12px; box-shadow: 0 8px 24px rgb(0 0 0 / 12%); padding: 4px; }
+  .stock-actions-toggle { display: block; grid-column: 3; grid-row: 1 / 3; min-height: 44px; align-self: center; font-size: 22px; color: var(--text-secondary); cursor: pointer; }
+  .stock-action-label { display: inline; margin-left: 6px; }
+  .row-actions-open button { display: flex; align-items: center; }
+  .profit-block { padding-right: 0 !important; border-right: 0 !important; }
+  .stock-table-row .row-actions button { min-width: 44px !important; min-height: 44px !important; }
   .stock-price-primary {
-    font-size: clamp(13px, 3.5vw, 15px) !important;
+    font-size: 15px !important;
     letter-spacing: -0.015em;
   }
   .stock-table-header {
@@ -534,6 +593,13 @@ code, pre, kbd, samp, .font-mono {
   .hide-mobile {
     display: none !important;
   }
+}
+
+@media (max-width: 390px) {
+  .stock-table-row { column-gap: 8px !important; }
+  .stock-identity { gap: 8px !important; }
+  .stock-title-line { gap: 4px !important; font-size: 16px !important; }
+  .stock-mobile-meta { gap: 2px 8px; font-size: 12px; }
 }
 
 /* Stock row edit/delete buttons */
@@ -929,5 +995,33 @@ button, a, [role="button"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+/* Keep each badge intact; wrap badges, never individual Korean words. */
+.dashboard-hero-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dashboard-hero-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.dashboard-hero-badges > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .dashboard-hero-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .dashboard-hero-toolbar > [role="group"] {
+    margin-left: auto;
   }
 }
