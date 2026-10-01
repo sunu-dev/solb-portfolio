@@ -59,6 +59,8 @@ export function weightBySession(alert: Alert, marketStatus: MarketStatus): numbe
   const isTech  = TECHNICAL_TYPES.has(type);
 
   switch (marketStatus.phase) {
+    case 'unknown':
+      return baseSeverity;
     case 'open': {
       // 정규장 개장 중: 원래 심각도
       return baseSeverity;

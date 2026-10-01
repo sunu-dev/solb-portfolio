@@ -1,0 +1,23 @@
+.root { max-width:880px;margin:0 auto;color:var(--text-primary);min-width:0; }
+.header { margin:4px 0 28px; }
+.header h1 { font-size:26px;font-weight:800;letter-spacing:-.035em;margin:6px 0 10px;outline:none; }
+.header>p { color:var(--text-body);font-size:14px;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere; }
+.header .eyebrow { color:var(--text-secondary);font-size:12px; }
+.back { display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--text-body);font-size:13px;margin-bottom:12px;cursor:pointer; }
+.groups { display:grid;gap:14px; }
+.group { display:flex;align-items:center;gap:16px;padding:24px 20px;text-align:left;border-radius:18px;border:1px solid var(--border-light);background:var(--surface);color:var(--text-primary);cursor:pointer; }
+.icon { display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--bg-subtle);color:var(--brand-primary);flex-shrink:0; }
+.copy { flex:1;min-width:0; }
+.copy strong { display:block;font-size:17px;font-weight:750;line-height:1.5; }
+.copy>span { display:block;font-size:13px;color:var(--text-body);line-height:1.7;margin-top:5px;word-break:keep-all;overflow-wrap:anywhere; }
+.group>svg,.tool>svg { flex-shrink:0;color:var(--text-secondary); }
+.tools { border:1px solid var(--border-light);border-radius:18px;overflow:hidden;background:var(--surface); }
+.tool { width:100%;display:flex;gap:16px;align-items:center;text-align:left;padding:20px;color:var(--text-primary);cursor:pointer;min-height:80px; }
+.tool+.tool { border-top:1px solid var(--border-light); }
+.tool .copy strong { font-size:16px; }
+.group:hover,.tool:hover { background:var(--bg-subtle); }
+.group:focus-visible,.tool:focus-visible,.back:focus-visible { outline:2px solid var(--brand-primary);outline-offset:3px; }
+.empty { display:none;padding:24px 20px;border:1px solid var(--border-light);border-radius:16px;background:var(--bg-subtle);color:var(--text-body);font-size:14px;line-height:1.8; }
+.toolBody:empty+.empty { display:block; }
+.hint { font-size:14px;color:var(--text-body);line-height:1.7;padding:20px 0; }
+@media(max-width:360px) { .group {padding:20px 16px;gap:12px;} .icon {width:40px;height:40px;} .copy strong {font-size:16px;} .copy>span {font-size:13px;} }

@@ -14,39 +14,40 @@ import {
   isAdultBirthDate,
 } from '@/lib/aiAgeGate';
 import JoobiLockup from '@/components/brand/JoobiLockup';
+import { resolveSignupEligibility } from '@/lib/signupEligibility';
 
 interface AgeEligibilityGateProps {
   userId: string;
   onSignOut: () => void;
+  children?: React.ReactNode;
 }
 
 type GateStatus = 'checking' | 'required' | 'saving' | 'eligible' | 'error';
 
 async function readAdultConsent(userId: string): Promise<'required' | 'eligible' | 'error'> {
-  const { data, error } = await supabase
-    .from('user_consents')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('consent_type', AI_ADULT_CONSENT_TYPE)
-    .eq('version', AGE_GATE_VERSION)
-    .limit(1)
-    .maybeSingle();
-  if (error) return 'error';
-  return data ? 'eligible' : 'required';
+  try {
+    return await resolveSignupEligibility(supabase, userId, sessionStorage);
+  } catch {
+    return 'error';
+  }
 }
 
 /**
  * 기존 로그인 세션도 현행 Gemini API 만 18세 요건에 다시 맞춘다.
  * 생년월일은 클라이언트 검증에만 사용하고 DB에는 동의 유형·버전·시각만 저장한다.
  */
-export default function AgeEligibilityGate({ userId, onSignOut }: AgeEligibilityGateProps) {
+export default function AgeEligibilityGate(props: AgeEligibilityGateProps) {
+  return <AccountEligibilityGate key={props.userId} {...props} />;
+}
+
+function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityGateProps) {
   const [status, setStatus] = useState<GateStatus>('checking');
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const age = getAgeFromBirthDate(birthDate);
   const isAdult = isAdultBirthDate(birthDate);
-  const ageInvalid = birthDate.length === 10 && !isAdult;
+  const ageInvalid = birthDate.length === 8 && !isAdult;
 
   useEffect(() => {
     let active = true;
@@ -60,18 +61,22 @@ export default function AgeEligibilityGate({ userId, onSignOut }: AgeEligibility
     if (!isAdult || !agreeTerms || !agreePrivacy || status === 'saving') return;
     setStatus('saving');
     const agreedAt = new Date().toISOString();
-    const { error } = await supabase.from('user_consents').upsert(
-      [
-        { user_id: userId, consent_type: AI_ADULT_CONSENT_TYPE, version: AGE_GATE_VERSION, agreed_at: agreedAt },
-        { user_id: userId, consent_type: 'terms', version: TERMS_VERSION, agreed_at: agreedAt },
-        { user_id: userId, consent_type: 'privacy', version: PRIVACY_VERSION, agreed_at: agreedAt },
-      ],
-      { onConflict: 'user_id,consent_type,version', ignoreDuplicates: true },
-    );
-    setStatus(error ? 'error' : 'eligible');
+    try {
+      const { error } = await supabase.from('user_consents').upsert(
+        [
+          { user_id: userId, consent_type: AI_ADULT_CONSENT_TYPE, version: AGE_GATE_VERSION, agreed_at: agreedAt },
+          { user_id: userId, consent_type: 'terms', version: TERMS_VERSION, agreed_at: agreedAt },
+          { user_id: userId, consent_type: 'privacy', version: PRIVACY_VERSION, agreed_at: agreedAt },
+        ],
+        { onConflict: 'user_id,consent_type,version', ignoreDuplicates: true },
+      );
+      setStatus(error ? 'error' : await readAdultConsent(userId));
+    } catch {
+      setStatus('error');
+    }
   };
 
-  if (status === 'eligible') return null;
+  if (status === 'eligible') return children ?? null;
 
   const canConfirm = isAdult && agreeTerms && agreePrivacy && status !== 'saving';
 
@@ -97,13 +102,13 @@ export default function AgeEligibilityGate({ userId, onSignOut }: AgeEligibility
         </div>
 
         {status === 'checking' ? (
-          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary, #4E5968)', fontSize: 14 }}>
-            이용 자격을 확인하고 있어요.
+          <div id="adult-gate-title" role="status" style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary, #4E5968)', fontSize: 14 }}>
+            가입 정보를 확인하고 있어요. 잠시만 기다려주세요.
           </div>
         ) : status === 'error' ? (
           <>
             <h2 id="adult-gate-title" style={{ marginBottom: 8, textAlign: 'center', fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              성인 확인 정보를 불러오지 못했어요
+              가입 정보를 확인하지 못했어요
             </h2>
             <p style={{ marginBottom: 18, textAlign: 'center', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary, #4E5968)' }}>
               개인정보 보호를 위해 확인이 끝날 때까지 서비스를 열지 않아요.
@@ -131,18 +136,24 @@ export default function AgeEligibilityGate({ userId, onSignOut }: AgeEligibility
             <label style={{ display: 'block', marginBottom: 14, fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
               생년월일
               <input
-                type="date"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={8}
+                placeholder="예: 19950123"
+                aria-invalid={ageInvalid}
+                aria-describedby="adult-birth-hint"
                 value={birthDate}
-                onChange={(event) => setBirthDate(event.target.value)}
-                style={{ display: 'block', width: '100%', height: 44, marginTop: 7, padding: '0 12px', border: `1px solid ${ageInvalid ? '#DC2626' : 'var(--border-light, #E5E8EB)'}`, borderRadius: 10, background: 'var(--bg, #FFFFFF)', color: 'var(--text-primary, #191F28)', font: 'inherit' }}
+                onChange={(event) => setBirthDate(event.target.value.replace(/\D/g, '').slice(0, 8))}
+                style={{ display: 'block', width: '100%', height: 44, marginTop: 7, padding: '0 12px', border: `1px solid ${ageInvalid ? '#DC2626' : 'var(--border-light, #E5E8EB)'}`, borderRadius: 10, background: 'var(--bg, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontFamily: 'inherit', fontSize: 16 }}
               />
             </label>
-            <div style={{ minHeight: 34, marginBottom: 10, fontSize: 11.5, lineHeight: 1.5, color: ageInvalid ? '#DC2626' : 'var(--text-tertiary, #8B95A1)' }}>
+            <div id="adult-birth-hint" aria-live="polite" style={{ minHeight: 34, marginBottom: 10, fontSize: 11.5, lineHeight: 1.5, color: ageInvalid ? '#DC2626' : 'var(--text-tertiary, #8B95A1)' }}>
               {isAdult && age !== null
                 ? `✓ 만 ${age}세로 확인됐어요. 생년월일은 저장하거나 전송하지 않아요.`
                 : ageInvalid
-                  ? '만 18세 미만은 서비스를 이용할 수 없어요.'
-                  : '생년월일은 브라우저에서 성인 여부 확인에만 사용해요.'}
+                  ? age === null ? '올바른 생년월일을 입력해주세요.' : '만 18세 미만은 서비스를 이용할 수 없어요.'
+                  : '연·월·일 숫자 8자리를 입력해주세요. 생년월일은 저장하거나 전송하지 않아요.'}
             </div>
 
             <ConsentCheck checked={agreeTerms} onChange={setAgreeTerms}>

@@ -163,6 +163,8 @@ export function usePortfolioSync(user: User | null) {
 
   useEffect(() => {
     const stopForUserDataClear = () => {
+      // React의 user 변경 effect보다 먼저, 진행 중인 조회/저장 응답을 무효화한다.
+      activeUserIdRef.current = null;
       if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
       pendingTimerRef.current = null;
       pendingPayloadRef.current = null;

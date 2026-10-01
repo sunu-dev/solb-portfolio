@@ -31,7 +31,7 @@ export const TOUR_CHAPTERS: TourChapter[] = [
   { id: 'home',      label: '홈 — 오늘 내 주식 확인',    tier: 'core' },
   { id: 'insights',  label: '주비 리포트 — 시장 흐름',   tier: 'deep' },
   { id: 'news',      label: '내 종목 소식',              tier: 'deep' },
-  { id: 'events',    label: '과거 시점 비교',             tier: 'deep' },
+  { id: 'events',    label: '분석 — 종목과 나의 기록',             tier: 'deep' },
   { id: 'customize', label: '홈 편집 — 내 방식대로',     tier: 'deep' },
 ];
 
@@ -71,10 +71,9 @@ export const TOUR_STEPS: TourStep[] = [
   { id: 'help',      anchor: 'help-button',       chapter: 'home', section: 'portfolio', tier: 'core', position: 'bottom', title: '도움말',           desc: '언제든 ❓ 버튼으로 가이드를 다시 볼 수 있어요.' },
 
   // ── deep 챕터 (둘러보기 시트에서 주제별 재생) — 탭 자동전환 + 앵커 폴링 ──
-  { id: 'insights-chok',  anchor: 'insights-ai-chok',      chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: 'AI 인사이트 — 오늘 시장 흐름', desc: '강한 섹터와 약한 섹터, 순환 신호의 근거를 확인해요.' },
+  { id: 'insights-chok',  anchor: 'analysis-hub',      chapter: 'events',  section: 'events', tier: 'deep', position: 'bottom', title: '필요할 때 더 깊이 보기', desc: '종목 찾기, 내 투자 점검, 기록 돌아보기 중 필요한 도구를 골라 열어요.' },
   { id: 'insights-story', anchor: 'insights-story',        chapter: 'insights',  section: 'insights', tier: 'deep', position: 'bottom', title: '주비의 이야기',       desc: '오늘 내 포트폴리오 상태를 한 편의 이야기로 풀어드려요.' },
   { id: 'news-tabs',      anchor: 'news-tabs',             chapter: 'news',      section: 'news',     tier: 'deep', position: 'bottom', title: '뉴스 필터',           desc: '내 종목·미국·한국 등 시장별로 뉴스를 골라볼 수 있어요.' },
-  { id: 'events-tabs',    anchor: 'events-tabs',           chapter: 'events',    section: 'events',   tier: 'deep', position: 'bottom', title: '과거 이벤트 비교',     desc: '과거 주요 시장 이벤트를 골라 내 종목이 그때 어땠는지 확인해요.' },
   { id: 'customize-edit', anchor: 'customize-home-edit',   chapter: 'customize', section: 'portfolio', tier: 'deep', position: 'bottom', title: '홈 화면 편집',         desc: "'편집' 버튼으로 홈 위젯을 켜고 끄거나 순서를 바꿀 수 있어요." },
 ];
 

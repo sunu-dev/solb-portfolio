@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { currentInviteAccess, resolveInviteAccess, type InviteCheck } from '@/lib/inviteAccess';
+import { supabase } from '@/lib/supabase';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
 import type { MacroEntry, QuoteData } from '@/config/constants';
@@ -13,13 +14,14 @@ import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
 import RightSidebar from '@/components/layout/RightSidebar';
 import BadgeSection from '@/components/portfolio/BadgeSection';
-import BottomTicker from '@/components/layout/BottomTicker';
 import OfflineNotice from '@/components/common/OfflineNotice';
 import MobileNav from '@/components/layout/MobileNav';
 import MobileSidebar from '@/components/layout/MobileSidebar';
 import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
+import EconomicCalendar from '@/components/economy/EconomicCalendar';
+import BriefingDialog from '@/components/portfolio/BriefingDialog';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
-import EventsSection from '@/components/events/EventsSection';
+import AnalysisSection from '@/components/analysis/AnalysisSection';
 import NewsSection from '@/components/news/NewsSection';
 import InsightsSection from '@/components/insights/InsightsSection';
 import AnalysisPanel from '@/components/analysis/AnalysisPanel';
@@ -36,20 +38,67 @@ import InviteGate from '@/components/auth/InviteGate';
 import { logApiCall } from '@/lib/apiLogger';
 import { recordProDemandVisit } from '@/lib/proDemandActivity';
 import JoobiLockup from '@/components/brand/JoobiLockup';
+import { preparePortfolioIdentity, type LocalPortfolio } from '@/lib/portfolioIdentity';
+import { clearUserStorage } from '@/lib/userStorage';
 
 export default function Home() {
+  const auth = useAuth();
+  const identity = auth.user?.id ?? null;
+  const [prepared, setPrepared] = useState<{ identity: string | null } | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (auth.loading) return;
+    let done = false;
+    const prepare = () => {
+      if (done) return;
+      done = true;
+      try {
+        const store = usePortfolioStore.getState();
+        const persisted = usePortfolioStore.persist.getOptions().partialize!(store) as LocalPortfolio;
+        preparePortfolioIdentity(identity, persisted, localStorage, () => {
+          // OAuth consent belongs to the in-progress login, not the legacy portfolio.
+          clearUserStorage({ preservePendingConsent: true });
+          store.resetPortfolio();
+        }, portfolioOwnerId => usePortfolioStore.setState({ portfolioOwnerId }));
+        setFailed(false);
+        setPrepared({ identity });
+      } catch {
+        setFailed(true);
+      }
+    };
+    const unsubscribe = usePortfolioStore.persist.onFinishHydration(prepare);
+    if (usePortfolioStore.persist.hasHydrated()) prepare();
+    return unsubscribe;
+  }, [auth.loading, identity]);
+
+  // Do not mount portfolio readers, quote requests or cloud sync before this boundary.
+  if (failed || auth.loading || !prepared || prepared.identity !== identity) {
+    return <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg, #FFFFFF)' }}>
+      <JoobiLockup variant="loading" />
+      <p role={failed ? 'alert' : 'status'}>{failed
+        ? '이전 기록을 안전하게 보관하지 못했어요. 브라우저 저장 공간을 확인한 뒤 다시 시도해주세요.'
+        : '로그인 상태와 내 정보를 확인하고 있어요.'}</p>
+      {failed && <button type="button" onClick={() => window.location.reload()}>다시 시도하기</button>}
+    </div>;
+  }
+  return <HomeContent key={identity ?? 'guest'} auth={auth} />;
+}
+
+function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore();
   const { refreshAll } = useStockData();
   const { fetchMacro } = useMacroData();
-  const { user, loading: authLoading, signInWithGoogle, signInWithKakao, signOut } = useAuth();
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const { user, loading: authLoading, signInWithKakao, signOut } = auth;
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileAlerts, setShowMobileAlerts] = useState(false);
-  const [serviceMode, setServiceMode] = useState<string>('open'); // 기본값 open → 로드 후 업데이트
-  const [needsInvite, setNeedsInvite] = useState(false);
+  const [inviteCheck, setInviteCheck] = useState<InviteCheck | null>(null);
+  const [inviteRetry, setInviteRetry] = useState(0);
+  const userId = user?.id;
+  const inviteAccess = userId ? currentInviteAccess(userId, inviteCheck) : 'checking';
 
   // 종목 상세 딥링크 — analysisSymbol ↔ ?stock= URL 동기화.
   // PC distribution 복원: 공유·북마크·새 탭·새로고침·뒤로가기로 닫기. (전용 라우트 없이 쿼리만)
@@ -165,40 +214,15 @@ export default function Home() {
     return unsub;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 서비스 모드 + 초대코드 게이트 확인
+  // 확인 전에는 메인 화면을 열지 않는다. 이전 계정/취소된 조회 결과도 재사용하지 않는다.
   useEffect(() => {
-    fetch('/api/config')
-      .then(r => r.json())
-      .then(({ config }) => {
-        setServiceMode(config?.service_mode ?? 'open');
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!user || authLoading || adminLoading) return;
-    // 관리자 판정은 서버(`/api/me/admin`)가 한다 — 허용목록을 번들에 싣지 않는다.
-    // (예전엔 여기 ID만 검사하는 변종이 있어 이메일 기준 관리자는 초대 게이트에 걸렸다.)
-    if (isAdmin) { setNeedsInvite(false); return; }
-
-    // 초대코드 필수 모드이면 사용 이력 확인
-    if (serviceMode === 'beta') {
-      fetch('/api/config')
-        .then(r => r.json())
-        .then(async ({ config }) => {
-          if (config?.invite_required !== 'true') return;
-          // user_portfolios에 invited_by_code 있으면 통과
-          const { supabase: sb } = await import('@/lib/supabase');
-          const { data } = await sb
-            .from('user_portfolios')
-            .select('invited_by_code')
-            .eq('user_id', user.id)
-            .single();
-          if (!data?.invited_by_code) setNeedsInvite(true);
-        })
-        .catch(() => {});
-    }
-  }, [user, authLoading, serviceMode, isAdmin, adminLoading]);
+    if (!userId || authLoading) return;
+    let active = true;
+    void resolveInviteAccess(supabase, userId).then(status => {
+      if (active) setInviteCheck({ userId, status });
+    });
+    return () => { active = false; };
+  }, [userId, authLoading, inviteRetry]);
 
   // Log login event
   useEffect(() => {
@@ -245,21 +269,27 @@ export default function Home() {
   useRealtimePrice();
 
   // 초대코드 게이트 — 로그인은 됐지만 코드 미입력
-  if (user && needsInvite) {
+  if (user && !authLoading && inviteAccess === 'required') {
     return (
-      <>
-        <AgeEligibilityGate userId={user.id} onSignOut={signOut} />
-        <InviteGate user={user} onVerified={() => setNeedsInvite(false)} />
-      </>
+      <AgeEligibilityGate userId={user.id} onSignOut={signOut}>
+        <InviteGate user={user} onVerified={() => setInviteCheck({ userId: user.id, status: 'allowed' })} />
+      </AgeEligibilityGate>
     );
   }
 
-  if (!hydrated) {
+  if (!hydrated || authLoading || (user && inviteAccess !== 'allowed')) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: 8 }}><JoobiLockup variant="loading" /></div>
-          <div className="text-[#B0B8C1] text-[12px]">오늘 내 주식을 챙기고 있어요</div>
+          <div role="status" className="text-[#B0B8C1] text-[12px]">
+            {inviteAccess === 'error' ? '가입 정보를 확인하지 못했어요. 다시 확인해주세요.' : '가입 정보를 확인하고 있어요. 잠시만 기다려주세요.'}
+          </div>
+          {user && inviteAccess === 'error' && <button type="button" onClick={() => {
+            setInviteCheck(null);
+            setInviteRetry(value => value + 1);
+          }}>다시 확인하기</button>}
+          {user && <button type="button" onClick={() => void signOut()}>다른 계정으로 로그인</button>}
         </div>
       </div>
     );
@@ -271,9 +301,8 @@ export default function Home() {
     user?.email?.split('@')[0] ||
     '';
 
-  return (
+  const content = (
     <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: 'var(--bg, #FFFFFF)' }}>
-      {user && !authLoading && <AgeEligibilityGate userId={user.id} onSignOut={signOut} />}
       {/* Sticky Header - 48px */}
       <Header
         user={user}
@@ -288,7 +317,7 @@ export default function Home() {
       <OfflineNotice />
 
       {/* Main body: content + right sidebar */}
-      <div className="flex flex-1 w-full app-shell" style={{ minHeight: 'calc(100vh - 48px - 49px - 32px)', margin: '0 auto' }}>
+      <div className="flex flex-1 w-full app-shell" style={{ minHeight: 'calc(100vh - 48px - 49px)', margin: '0 auto' }}>
         {/* Main content area */}
         <main className="flex-1 min-w-0 main-content" style={{ padding: '20px 16px 60px 16px' }}>
           <style>{`@media (min-width: 769px) { .main-content { padding: 32px 32px 80px 32px !important; } }`}</style>
@@ -297,7 +326,7 @@ export default function Home() {
           {!user && !authLoading && <GuestTourBanner />}
           {currentSection === 'portfolio' && <PortfolioSection />}
           {currentSection === 'insights' && <InsightsSection />}
-          {currentSection === 'events' && <EventsSection />}
+          {currentSection === 'events' && <AnalysisSection />}
           {currentSection === 'news' && <NewsSection />}
         </main>
 
@@ -308,8 +337,19 @@ export default function Home() {
         </aside>
       </div>
 
-      {/* Bottom ticker - 32px fixed */}
-      <BottomTicker />
+      <footer
+        className="flex min-h-[120px] items-start justify-center border-t border-[#F2F4F6] px-4 pt-7 pb-[88px] text-center md:min-h-[96px] md:items-center md:py-8"
+        style={{ color: 'var(--text-secondary, #8B95A1)', fontSize: 13, lineHeight: 1.5 }}
+      >
+        © 2026 Joobi · made by <span style={{ fontWeight: 600 }}>sunulab</span>
+      </footer>
+
+      <EconomicCalendar />
+      <BriefingDialog
+        userId={user?.id}
+        signedInAt={user?.last_sign_in_at}
+        ready={!showOnboarding && dbPortfolioStatus !== 'unknown'}
+      />
 
       {/* Overlays */}
       {analysisSymbol && <AnalysisPanel />}
@@ -318,12 +358,8 @@ export default function Home() {
 
       {/* Auth overlays */}
       <LoginModal
-        isOpen={showLogin}
+        isOpen={showLogin && !authLoading && !user}
         onClose={() => setShowLogin(false)}
-        onGoogleLogin={() => {
-          setShowLogin(false);
-          signInWithGoogle();
-        }}
         onKakaoLogin={() => {
           setShowLogin(false);
           signInWithKakao();
@@ -360,4 +396,5 @@ export default function Home() {
       />
     </div>
   );
+  return user ? <AgeEligibilityGate userId={user.id} onSignOut={signOut}>{content}</AgeEligibilityGate> : content;
 }

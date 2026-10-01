@@ -1,0 +1,36 @@
+/** Static educational content: same explanations for everyone, no model calls. */
+export const STOCK_LESSONS = [
+  {
+    id: 'earnings', label: '이익 읽기', title: '매출이 늘면 이익도 늘었을까요?',
+    explanation: '매출은 제품과 서비스를 판매한 금액이고, 순이익은 비용과 세금 등을 반영한 결과예요. 매출이 늘어도 비용이 더 많이 늘면 순이익은 줄 수 있어요.',
+    example: '가상의 회사가 매출 100, 비용·세금 80이면 순이익은 20이에요. 다음 기간에 매출 120, 비용·세금 110이면 순이익은 10이에요. 같은 단위로 단순화한 예시예요.',
+    question: '이 예시에서 매출과 순이익은 어떻게 바뀌었나요?',
+    options: ['둘 다 늘었어요', '매출은 늘고 순이익은 줄었어요'], correct: 1,
+    answer: '매출은 100에서 120으로, 순이익은 20에서 10으로 바뀌었어요. 두 숫자를 함께 읽어야 변화가 보여요.',
+    observation: '실적 뉴스에서 매출과 이익의 비교 기간이 같은지 찾아보세요. 분기 실적과 연간 실적은 구분해서 읽어요.',
+    source: 'https://www.sec.gov/about/reports-publications/beginners-guide-financial-statements',
+    sourceLabel: 'SEC · 재무제표 입문 (영문)',
+  },
+  {
+    id: 'cash', label: '현금 흐름', title: '이익과 통장에 들어온 돈은 같을까요?',
+    explanation: '순이익과 현금 흐름은 서로 다른 숫자예요. 외상 판매처럼 매출을 기록한 시점과 현금을 받는 시점이 다를 수 있어요.',
+    example: '가상의 회사가 상품을 외상으로 판매했어요. 매출을 인식했지만 대금은 다음 기간에 받기로 했다면, 이번 판매의 현금 수입은 아직 없어요.',
+    question: '이번 판매의 현금 수입은 언제 생기나요?',
+    options: ['대금을 실제로 받을 때', '매출을 기록하는 순간에 항상'], correct: 0,
+    answer: '현금 수입은 실제 대금을 받을 때 생겨요. 손익계산서와 현금흐름표를 함께 읽는 이유예요.',
+    observation: '실적 자료에서 영업활동 현금흐름과 순이익을 찾아보세요. 차이가 있다면 주석이나 회사 설명에 이유가 있는지 확인해요.',
+    source: 'https://www.sec.gov/about/reports-publications/beginners-guide-financial-statements',
+    sourceLabel: 'SEC · 재무제표 입문 (영문)',
+  },
+  {
+    id: 'evidence', label: '뉴스 읽기', title: '기사 속 숫자는 어디서 왔을까요?',
+    explanation: '회사가 발표한 실적, 회사의 목표, 기사 작성자의 해석은 구분해서 읽어요. 미국 기업의 연차보고서인 10-K에는 사업 설명, 위험 요인, 재무제표 등이 담겨 있어요.',
+    example: '기사에 올해 실적과 내년 목표가 함께 나왔어요. 올해 실적은 해당 기간의 결과이고, 내년 목표는 아직 실현된 결과가 아니에요.',
+    question: '추가로 확인할 자료로 알맞은 것은 무엇인가요?',
+    options: ['제목이 같은 기사 수', '회사의 원문 자료와 대상 기간'], correct: 1,
+    answer: '원문에서 대상 기간과 숫자의 성격을 확인해요. 같은 기사가 여러 곳에 실렸다고 근거가 늘어난 것은 아니에요.',
+    observation: '관련 뉴스 한 건에서 확인된 사실과 아직 궁금한 점을 하나씩 찾아보세요. 국내 기업은 사업보고서, 미국 기업은 10-K 등 원문과 연결해 읽을 수 있어요.',
+    source: 'https://www.sec.gov/answers/reada10k.htm',
+    sourceLabel: 'SEC · 10-K 읽는 법 (영문)',
+  },
+] as const;

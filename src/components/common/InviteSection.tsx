@@ -12,15 +12,14 @@ interface InviteData {
   uses: { used_by: string; used_at: string }[];
 }
 
-const CACHE_KEY = 'solb_invite_cache';
-const APP_URL = 'https://solb-portfolio.vercel.app';
+const CACHE_KEY = 'joobi_invite_cache';
+const APP_URL = 'https://joobi.kr';
 
 export default function InviteSection() {
   const [data, setData] = useState<InviteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [kakaoReady, setKakaoReady] = useState(false);
 
   // 카카오 SDK 초기화
   useEffect(() => {
@@ -28,9 +27,6 @@ export default function InviteSection() {
       const key = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
       if (window.Kakao && key && !window.Kakao.isInitialized()) {
         window.Kakao.init(key);
-        setKakaoReady(true);
-      } else if (window.Kakao?.isInitialized()) {
-        setKakaoReady(true);
       }
     };
     if (window.Kakao) { init(); return; }

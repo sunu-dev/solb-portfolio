@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeSearchText } from '@/config/stockSearchAliases';
+import { getStockCatalog } from '@/lib/stockCatalog';
+import { createStockSearchIndex, searchStockIndex } from '@/lib/stockSearchIndex';
+import { yahooPreviousClose } from '@/utils/yahooPreviousClose';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
@@ -103,8 +107,8 @@ export async function GET(req: NextRequest) {
       if (!result) continue;
 
       const meta = result.meta;
-      const closes = result.indicators?.quote?.[0]?.close || [];
-      const prevClose = meta.previousClose || closes[closes.length - 2] || meta.regularMarketPrice;
+      const prevClose = yahooPreviousClose(result);
+      if (prevClose === null) continue;
       const price = meta.regularMarketPrice;
       const change = price - prevClose;
       const changePercent = prevClose ? (change / prevClose) * 100 : 0;
@@ -122,6 +126,7 @@ export async function GET(req: NextRequest) {
         h: meta.regularMarketDayHigh || meta.fiftyTwoWeekHigh,
         l: meta.regularMarketDayLow || meta.fiftyTwoWeekLow,
         pc: prevClose,
+        t: meta.regularMarketTime || 0,
         currency: meta.currency,
         exchange: meta.exchangeName,
       });
@@ -139,23 +144,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { query } = await req.json();
 
-  if (!query) {
+  if (typeof query !== 'string' || !normalizeSearchText(query)) {
     return NextResponse.json({ results: [] });
   }
 
-  const results: { symbol: string; name: string; yahoo: string }[] = [];
-  const q = query.toLowerCase();
-
-  for (const s of KR_CATALOG) {
-    const code = s.symbol.replace(/\.K[SQ]$/, ''); // "005930.KS" → "005930"
-    if (
-      s.name.toLowerCase().includes(q) ||
-      s.symbol.toLowerCase().includes(q) ||
-      code.includes(q)
-    ) {
-      results.push({ symbol: s.symbol, name: s.name, yahoo: s.symbol });
-    }
-  }
-
-  return NextResponse.json({ results: results.slice(0, 12) });
+  const catalog = await getStockCatalog();
+  const index = createStockSearchIndex(catalog.stocks.filter(item => /\.K[SQ]$/.test(item.symbol)));
+  const results = searchStockIndex(index, query, 50)
+    .filter(item => /\.K[SQ]$/.test(item.symbol))
+    .slice(0, 12)
+    .map(item => ({ symbol: item.symbol, name: item.description, yahoo: item.symbol }));
+  return NextResponse.json({ results });
 }

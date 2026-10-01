@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { PRESET_EVENTS } from '@/config/constants';
 import { FORBIDDEN_PHRASES, SAFE_REPLACEMENTS, sanitizeAiOutput } from '@/utils/alertCompliance';
 import { GLOSSARY } from '@/utils/alertGlossary';
+import { STOCK_LESSONS } from '@/config/stockLearning';
 
 /**
  * §6 정적 카피 누출 불변식 — 2026-08-18 전수 감사 후속.
@@ -36,6 +37,16 @@ const STRATEGY_FORBIDDEN = [
 
 /** 사용자 보유 내역을 근거 없이 단정하는 표현 */
 const HOLDING_CLAIM_FORBIDDEN = ['보유 종목은', '할인된 상태'];
+
+describe('종목 학습 — 조립된 교육 카피의 방향·권유 누출', () => {
+  it.each(STOCK_LESSONS)('$id: 설명·보기·해설·관찰 질문에 예측이나 매매 권유가 없다', lesson => {
+    const text = [lesson.title, lesson.explanation, lesson.example, lesson.question,
+      ...lesson.options, lesson.answer, lesson.observation].join(' ');
+    for (const phrase of [...FORECAST_FORBIDDEN, ...STRATEGY_FORBIDDEN, ...HOLDING_CLAIM_FORBIDDEN, ...FORBIDDEN_PHRASES]) {
+      expect(text.includes(phrase), `${lesson.id}: ${phrase}`).toBe(false);
+    }
+  });
+});
 
 describe('§6 — PRESET_EVENTS 이벤트 해설 카피', () => {
   it('모든 이벤트에 insight가 있고 비어 있지 않다', () => {

@@ -22,7 +22,7 @@ const GREETINGS: Greeting[] = [
   { text: '늦은 밤까지 고생이에요. 내일은 푹 쉬세요', emoji: '🌙', condition: { hours: [0,1,2,3,4,5] } },
   { text: '새벽 공기처럼 차분하게, 오늘의 시장을 봐요', emoji: '🌙', condition: { hours: [0,1,2,3,4,5] } },
   { text: '밤늦게까지 투자 공부 중이시네요. 대단해요', emoji: '✨', condition: { hours: [0,1,2,3,4,5] } },
-  { text: '지금 미국은 한창 거래 중이에요', emoji: '🌃', condition: { hours: [0,1,2,3,4] } },
+  { text: '시세의 기준 시각도 함께 확인해보세요', emoji: '🌃', condition: { hours: [0,1,2,3,4] } },
   { text: '잠이 안 오시나요? 주비가 함께할게요', emoji: '🌙', condition: { hours: [0,1,2,3] } },
 
   // ===== 아침 (6~11시) =====
@@ -43,8 +43,8 @@ const GREETINGS: Greeting[] = [
   { text: '수고하셨어요. 편하게 쉬면서 확인해보세요', emoji: '🌆', condition: { hours: [18,19,20] } },
   { text: '저녁 식사는 하셨어요? 건강이 최고 자산이에요', emoji: '🍽️', condition: { hours: [18,19] } },
   { text: '오늘 하루를 정리해볼게요', emoji: '📋', condition: { hours: [20,21] } },
-  { text: '미국 장이 곧 열려요. 준비되셨나요?', emoji: '🔔', condition: { hours: [21,22] } },
-  { text: '미국 장 시작! 오늘은 어떤 하루일까요', emoji: '🟢', condition: { hours: [22,23] } },
+  { text: '아래 배지에서 시장 일정을 확인해보세요', emoji: '🔔', condition: { hours: [21,22] } },
+  { text: '오늘 관심 있는 종목을 함께 살펴봐요', emoji: '🌙', condition: { hours: [22,23] } },
 
   // ===== 월요일 =====
   { text: '월요일이에요! 이번 주도 응원할게요', emoji: '💪', condition: { days: [1] } },
@@ -55,7 +55,7 @@ const GREETINGS: Greeting[] = [
   { text: '불금! 오늘은 좀 쉬어도 괜찮아요', emoji: '🍻', condition: { days: [5], hours: [18,19,20,21,22,23] } },
 
   // ===== 주말 =====
-  { text: '주말엔 시장도 쉬어요', emoji: '😴', condition: { isWeekend: true } },
+  { text: '주말에도 내 기록을 돌아볼 수 있어요', emoji: '📋', condition: { isWeekend: true } },
   { text: '주말엔 투자 공부 한 스푼? 주비가 도와줄게요', emoji: '📚', condition: { isWeekend: true } },
   { text: '쉬는 날, 지난 한 주를 돌아보기 좋은 시간이에요', emoji: '🧘', condition: { isWeekend: true } },
 
@@ -82,21 +82,19 @@ const GREETINGS: Greeting[] = [
 
   // ===== 특별한 날 =====
   { text: '새해 복 많이 받으세요! 올해 투자도 응원해요', emoji: '🎆', condition: { dates: ['01-01', '01-02'] } },
-  { text: '즐거운 설날 되세요! 가족과 따뜻한 시간 보내세요', emoji: '🏮', condition: { dates: ['01-28', '01-29', '01-30'] } },
   { text: '발렌타인데이! 달콤한 하루 보내세요', emoji: '💝', condition: { dates: ['02-14'] } },
   { text: '어린이날이에요! 동심으로 돌아가볼까요', emoji: '🎈', condition: { dates: ['05-05'] } },
   { text: '메리 크리스마스! 따뜻한 연말 보내세요', emoji: '🎄', condition: { dates: ['12-24', '12-25'] } },
   { text: '한 해의 마지막 날이에요. 올해도 수고하셨어요', emoji: '🎊', condition: { dates: ['12-31'] } },
-  { text: '즐거운 추석 보내세요! 가족과 행복한 시간', emoji: '🌕', condition: { dates: ['09-16', '09-17', '09-18'] } },
   { text: '광복절이에요. 감사한 마음으로', emoji: '🇰🇷', condition: { dates: ['08-15'] } },
   { text: '스승의 날이에요. 주비도 좋은 스승이 되고 싶어요', emoji: '🌹', condition: { dates: ['05-15'] } },
 
   // ===== 하락장 위로 =====
-  { text: '힘든 하루였죠. 괜찮아요, 시장은 다시 회복될 거예요', emoji: '📈', condition: { isLoss: true } },
+  { text: '평가손익과 오늘의 변동은 구분해서 살펴봐요', emoji: '📋', condition: { isLoss: true } },
   { text: '폭풍우가 지나면 무지개가 와요. 함께할게요', emoji: '🌈', condition: { isLoss: true } },
-  { text: '잃어도 괜찮아요. 배우는 과정이에요', emoji: '💙', condition: { isLoss: true } },
-  { text: '나만 떨어지는 게 아니에요. 시장은 파도가 있어요', emoji: '🌊', condition: { isLoss: true } },
-  { text: '장기적으로 보면 괜찮아질 거예요. 주비가 응원해요', emoji: '🍀', condition: { isLoss: true } },
+  { text: '변동이 큰 종목부터 차분히 확인해봐요', emoji: '📋', condition: { isLoss: true } },
+  { text: '내 종목과 시장 지수의 움직임을 나눠서 살펴봐요', emoji: '📋', condition: { isLoss: true } },
+  { text: '매수 당시의 기록을 다시 확인해볼까요', emoji: '📋', condition: { isLoss: true } },
   { text: '오늘은 좀 쉬어도 돼요. 내일은 내일의 시장이 있어요', emoji: '🛋️', condition: { isLoss: true } },
   { text: '하락장은 경험치예요. 다음엔 더 강해질 거예요', emoji: '💪', condition: { isLoss: true } },
   { text: '속상해하지 마요. 어려운 투자는 주비가 다 도와줄게요', emoji: '🫂', condition: { isLoss: true } },

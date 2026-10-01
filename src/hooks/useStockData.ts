@@ -99,17 +99,13 @@ export interface StockSearchResult {
   /** 서버 권위 단일종목 레버리지 플래그 (api/search) — 클라이언트는 로컬 재계산과 OR 합집합 */
   isLeverage?: boolean;
 }
-export async function searchStocks(query: string): Promise<StockSearchResult[]> {
-  try {
-    const r = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    const d = await r.json();
-    if (d.result?.length) {
-      return d.result;
-    }
-  } catch (e) {
-    console.error('searchStocks error:', e);
-  }
-  return [];
+export async function searchStocks(query: string, signal?: AbortSignal): Promise<StockSearchResult[]> {
+  const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(12000)]) : AbortSignal.timeout(12000),
+  });
+  if (!response.ok) throw new Error('검색 응답 오류');
+  const data = await response.json();
+  return data.result || [];
 }
 
 // --- Fetch event data ---
@@ -161,7 +157,7 @@ export function useStockData() {
     const macroSymbols = MACRO_IND.filter(i => i.type === 'stock' && i.symbol).map(i => i.symbol!);
     const allSyms = [...new Set([...syms, ...macroSymbols])];
 
-    let batchOk = false;
+    const receivedSymbols = new Set<string>();
     let fxOk = false;
     try {
       const r = await fetch('/api/quotes', {
@@ -176,9 +172,9 @@ export function useStockData() {
 
       // Check we actually got data
       if (quotes && Object.keys(quotes).some(k => quotes[k]?.c)) {
-        batchOk = true;
         for (const [sym, d] of Object.entries(quotes)) {
-          if (d && (d as QuoteData).c) {
+          if (d && Number.isFinite((d as QuoteData).c) && (d as QuoteData).c > 0) {
+            receivedSymbols.add(sym);
             const macroInd = MACRO_IND.find(i => i.symbol === sym);
             if (macroInd) {
               const q = d as QuoteData;
@@ -201,7 +197,6 @@ export function useStockData() {
     // 배치 실패 시의 개별 Finnhub 직접 호출 폴백은 제거했다.
     // /api/quotes가 서버에서 이미 Finnhub(미국)·Yahoo(한국·지수) 폴백을 수행하므로
     // 클라이언트가 키를 들고 같은 일을 반복할 이유가 없었다(키 노출 경로였다).
-    void batchOk;
 
     // 주식 배치 성공 여부와 무관하게 환율이 빠졌으면 Yahoo 전용 경로로 보완한다.
     // 과거에는 미국/한국 주가만 성공해도 batchOk=true가 되어 환율 fallback이 영구 스킵됐다.
@@ -231,15 +226,20 @@ export function useStockData() {
       localStorage.setItem('solb_macro_cache', JSON.stringify({ data: macroCache, ts: Date.now() }));
     } catch { /* storage full */ }
 
-    // 데이터 수신 여부 확인 후 에러 상태 설정
-    const received = Object.values(usePortfolioStore.getState().macroData).some(v => (v as QuoteData)?.c);
-    if (!received) {
+    // 이번 응답만 검사한다. 지수는 store에 c가 아닌 value로 저장되며,
+    // 반대로 과거 캐시의 c는 이번 요청의 성공을 증명하지 않는다.
+    const receivedCount = allSyms.filter(sym => receivedSymbols.has(sym)).length;
+    if (receivedCount === 0) {
       setNetworkError('시세 데이터를 불러오지 못했어요. 잠시 후 새로고침 해주세요.');
+    } else if (receivedCount < allSyms.length) {
+      setNetworkError('일부 시세를 불러오지 못했어요. 표시된 가격의 기준 시각을 확인해주세요.');
     } else {
       setNetworkError(null);
     }
 
-    setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
+    if (receivedCount === allSyms.length) {
+      setLastUpdate(new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }));
+    }
   }, [getAllSymbols, updateMacroEntry, setLastUpdate, setNetworkError]);
 
   const fetchAllCandles = useCallback(async () => {
@@ -444,8 +444,20 @@ export function useNewsData() {
 
 // --- useAutoRefresh ---
 export function useAutoRefresh() {
+  const symbolsKey = usePortfolioStore(state => [...new Set([
+    ...state.stocks.investing, ...state.stocks.watching, ...state.stocks.sold,
+  ].map(stock => stock.symbol))].sort().join(','));
   const { autoRefresh, refreshInterval, currentNewsMarket, currentSection, updateMacroEntry } = usePortfolioStore();
   const { refreshAll } = useStockData();
+  const previousSymbols = useRef(symbolsKey);
+
+  // 신규 종목/체험 진입은 주기 갱신 설정과 무관하게 즉시 조회한다.
+  // 최초 로드는 Home의 hydration 초기화가 담당한다.
+  useEffect(() => {
+    if (previousSymbols.current === symbolsKey) return;
+    previousSymbols.current = symbolsKey;
+    if (symbolsKey) void refreshAll();
+  }, [symbolsKey, refreshAll]);
   const { fetchMacro } = useMacroData();
   const { fetchNews } = useNewsData();
   const timerRef = useRef<NodeJS.Timeout | null>(null);

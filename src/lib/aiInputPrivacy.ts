@@ -93,6 +93,9 @@ export function toPublicAiAnalysisInput(input: unknown): PublicAiAnalysisInput |
 
   for (const field of optionalNumberFields) {
     const value = raw[field];
+    // Fundamentals uses null for unavailable metrics (e.g. ETF PER/EPS).
+    // Missing optional facts must not invalidate an otherwise valid quote.
+    if (value === null || value === undefined) continue;
     if (value !== undefined && !finiteNumber(value)) return null;
     if (finiteNumber(value)) result[field] = value;
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomInt, randomUUID } from 'node:crypto';
 import { requireServiceClient } from '@/lib/supabaseServer';
 import { isAdminIdentity } from '@/lib/adminAuth';
 
@@ -9,8 +10,8 @@ const supabaseAdmin = () => requireServiceClient();
 
 function generateCode(prefix: string): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 헷갈리는 문자 제외 (0,O,I,1)
-  const part1 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const part2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  const part1 = Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join('');
+  const part2 = Array.from({ length: 4 }, () => chars[randomInt(chars.length)]).join('');
   return `${prefix}-${part1}${part2}`;
 }
 
@@ -33,6 +34,7 @@ export async function POST(req: NextRequest) {
       expires_at = null,
       rewards = {},
       description = '',
+      batch_size = null,
     } = await req.json() as {
       type?: string;
       count?: number;
@@ -40,42 +42,72 @@ export async function POST(req: NextRequest) {
       expires_at?: string | null;
       rewards?: Record<string, unknown>;
       description?: string;
+      batch_size?: number | null;
     };
 
     const prefix = {
-      invite: 'SOLB',
+      invite: 'JOOBI',
       referral: 'REF',
       discount: 'DISC',
       promo: 'PROMO',
-    }[type] ?? 'SOLB';
+    }[type];
 
-    // 중복 없는 코드 생성
-    const generated: string[] = [];
-    let attempts = 0;
-    while (generated.length < Math.min(count, 100) && attempts < 200) {
-      attempts++;
-      const code = generateCode(prefix);
-      if (!generated.includes(code)) {
-        // DB 중복 확인
-        const { data } = await supabaseAdmin().from('codes').select('id').eq('code', code).single();
-        if (!data) generated.push(code);
-      }
+    if (!prefix || !Number.isFinite(count) || count < 1) {
+      return NextResponse.json({ error: 'invalid request' }, { status: 400 });
+    }
+    if (batch_size != null && (!Number.isFinite(batch_size) || batch_size < 1)) {
+      return NextResponse.json({ error: 'invalid batch size' }, { status: 400 });
     }
 
-    const rows = generated.map(code => ({
+    const safeCount = Math.max(1, Math.min(Math.trunc(count), 100));
+    const safeBatchSize = batch_size == null
+      ? null
+      : Math.max(1, Math.min(Math.trunc(batch_size), safeCount));
+    const batchTotal = safeBatchSize ? Math.ceil(safeCount / safeBatchSize) : 1;
+    const batchId = safeBatchSize ? randomUUID() : null;
+
+    // 후보를 한 번에 조회해 대량 생성도 DB 왕복을 최소화한다.
+    const generated = new Set<string>();
+    let collisionRounds = 0;
+    while (generated.size < safeCount && collisionRounds < 3) {
+      while (generated.size < safeCount) generated.add(generateCode(prefix));
+      const candidates = Array.from(generated);
+      const { data: existing, error: existingError } = await supabaseAdmin()
+        .from('codes')
+        .select('code')
+        .in('code', candidates);
+      if (existingError) throw existingError;
+      if (!existing?.length) break;
+      for (const row of existing) generated.delete(row.code);
+      collisionRounds++;
+    }
+
+    if (generated.size !== safeCount) {
+      throw new Error(`code generation exhausted: ${generated.size}/${safeCount}`);
+    }
+
+    const rows = Array.from(generated).map((code, index) => ({
       code,
       type,
       created_by: null, // 관리자 직접 생성
       max_uses,
       expires_at: expires_at || null,
       rewards,
-      description,
+      description: safeBatchSize
+        ? `${description ? `${description} · ` : ''}묶음 ${String(Math.floor(index / safeBatchSize) + 1).padStart(2, '0')}/${String(batchTotal).padStart(2, '0')}`
+        : description,
+      metadata: safeBatchSize ? {
+        batch_id: batchId,
+        batch_index: Math.floor(index / safeBatchSize) + 1,
+        batch_total: batchTotal,
+        batch_size: safeBatchSize,
+      } : {},
     }));
 
     const { data: inserted, error } = await supabaseAdmin()
       .from('codes')
       .insert(rows)
-      .select('code, type, max_uses, expires_at, created_at');
+      .select('code, type, max_uses, expires_at, created_at, description, metadata');
 
     if (error) throw error;
 

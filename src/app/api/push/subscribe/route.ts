@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthClient } from '@/lib/supabaseServer';
+import { requireAuthClient, getServiceClient } from '@/lib/supabaseServer';
 
 // 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
 // (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
 //
-// ⚠️ 별건 미해결: 이 라우트는 토큰으로 사용자를 확인한 뒤 실제 upsert/delete를
-// **anon 클라이언트**로 수행한다. push_subscriptions의 RLS가 auth.uid() 기반이면 저장이
-// 거부되고, permissive면 보안 모델이 약해진다. 감사 후속 항목으로 등재돼 있다.
+// 토큰 확인은 auth client, 데이터 변경은 검증된 사용자 ID로 제한한 service client.
 const supabase = () => requireAuthClient();
 
 /**
@@ -28,10 +26,11 @@ function acquireClient(): { ok: true; db: ReturnType<typeof requireAuthClient> }
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json() as { subscription: PushSubscription; token?: string };
+  const body = await req.json().catch(() => null) as { subscription?: PushSubscription; token?: string } | null;
+  if (!body) return NextResponse.json({ error: 'invalid body' }, { status: 400 });
   const { subscription, token } = body;
 
-  if (!subscription?.endpoint) {
+  if (!subscription?.endpoint || typeof token !== 'string') {
     return NextResponse.json({ error: 'invalid subscription' }, { status: 400 });
   }
 
@@ -52,7 +51,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'login required' }, { status: 401 });
   }
 
-  const { error } = await db
+  const storage = getServiceClient();
+  if (!storage) return NextResponse.json({ error: 'storage unavailable' }, { status: 503 });
+  const { error } = await storage
     .from('push_subscriptions')
     .upsert({ user_id: userId, subscription, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
 
@@ -76,7 +77,10 @@ export async function DELETE(req: NextRequest) {
     const { data: { user } } = await db.auth.getUser(token);
     if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    await db.from('push_subscriptions').delete().eq('user_id', user.id);
+    const storage = getServiceClient();
+    if (!storage) return NextResponse.json({ error: 'storage unavailable' }, { status: 503 });
+    const { error } = await storage.from('push_subscriptions').delete().eq('user_id', user.id);
+    if (error) return NextResponse.json({ error: 'db error' }, { status: 500 });
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('[push/subscribe] DELETE 실패', e);

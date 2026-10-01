@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
 import SearchBar from '@/components/portfolio/SearchBar';
@@ -54,17 +53,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
         {/* Logo */}
-        <div className="flex items-center shrink-0 cursor-pointer" onClick={() => setCurrentSection('portfolio')} style={{ gap: '8px' }}>
-          <Image
-            src="/icon-192.png"
-            alt=""
-            width={24}
-            height={24}
-            priority
-            style={{ width: 24, height: 24, borderRadius: 6 }}
-          />
+        <button type="button" className="flex items-center shrink-0 cursor-pointer" aria-label="주비 홈으로" onClick={() => setCurrentSection('portfolio')} style={{ minHeight: 44, background: 'transparent', border: 0 }}>
           <JoobiLockup variant="header" />
-        </div>
+        </button>
 
         {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
         <nav className="hidden md:flex items-center overflow-x-auto scrollbar-hide" style={{ marginLeft: '24px', height: '100%' }}>

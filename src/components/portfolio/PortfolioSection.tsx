@@ -17,7 +17,6 @@ import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
-import MorningBriefing from './MorningBriefing';
 import GettingStartedChecklist from '@/components/onboarding/GettingStartedChecklist';
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
@@ -174,6 +173,15 @@ export default function PortfolioSection() {
   const isHidden = (id: string) => hiddenSet.has(id);
 
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'change' | 'pnl' | 'goal'>('name');
+  const [actionRow, setActionRow] = useState<string | null>(null);
+  useEffect(() => {
+    if (!actionRow) return;
+    const dismiss = (event: PointerEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.row-actions, .stock-actions-toggle')) setActionRow(null);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [actionRow]);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [subTab, setSubTab] = useState<'stocks' | 'analysis'>('stocks');
   const [wrappedOpen, setWrappedOpen] = useState(false);
@@ -444,8 +452,7 @@ export default function PortfolioSection() {
     <div data-tour="portfolio-section">
       {OCR_UI_ENABLED && showOcr && <OcrImportModal onClose={closeOcr} />}
 
-      {/* 개인 주식비서의 1차 약속 — 오늘 챙길 일과 내 자산을 먼저 보여준다. */}
-      {!isHidden('morning-briefing') && <MorningBriefing />}
+      {/* 내 자산과 종목 가격을 먼저 확인하고, 목록 다음에 브리핑을 제공한다. */}
       <Dashboard />
 
       {(portfolioSyncStatus === 'conflict'
@@ -762,7 +769,7 @@ export default function PortfolioSection() {
             <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>종목을 추가해볼까요?</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 32 }}>
-              관심 있는 종목을 추가하면<br/>실시간 가격, AI 분석, 스마트 알림을 받을 수 있어요.
+              관심 있는 종목을 추가하면<br/>시세와 관련 정보를 한곳에서 확인할 수 있어요.
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {QUICK_ADD_STOCKS.map(s => {
@@ -997,15 +1004,18 @@ export default function PortfolioSection() {
                   key={`${stock.symbol}-${stock.category}-${i}`}
                   onClick={() => setAnalysisSymbol(stock.symbol)}
                   className="stock-row stock-table-row grid items-center cursor-pointer transition-all"
+                  onKeyDown={e => { if (e.key === 'Escape') setActionRow(null); }}
                   style={{
                     gridTemplateColumns: 'minmax(160px, 1fr) 120px 96px 120px 120px 60px',
-                    padding: '14px 0',
+                    padding: '20px 0',
                     animationDelay: `${i * 30}ms`,
+                    position: 'relative',
+                    zIndex: actionRow === `${stock.category}-${i}` ? 2 : undefined,
                     borderTop: '1px solid var(--border-light, #F2F4F6)',
                   }}
                 >
                   {/* Name cell */}
-                  <div className="flex items-center" style={{ gap: '12px' }}>
+                  <div className="stock-identity flex items-center" style={{ gap: '12px', minWidth: 0 }}>
                     <div
                       className="flex items-center justify-center shrink-0"
                       style={{
@@ -1017,12 +1027,13 @@ export default function PortfolioSection() {
                     >
                       <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{stock.symbol.charAt(0)}</span>
                     </div>
-                    <div className="min-w-0" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <div className="flex items-center flex-wrap" style={{ fontSize: '15px', fontWeight: 600, gap: '6px' }}>
-                        <span>{kr}</span>
+                    <div className="min-w-0 flex-1" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div className="stock-title-line flex items-center flex-wrap" style={{ fontSize: '16px', fontWeight: 700, gap: '6px', lineHeight: 1.5 }}>
+                        <span className="stock-name" title={kr}>{kr}</span>
+                        {stockAlert && <span className="stock-alert-dot" role="img" aria-label={getAlertBadgeText(stockAlert)} title={getAlertBadgeText(stockAlert)} style={{ background: ALERT_BADGE_COLORS[stockAlert.type].color }} />}
                         {badge && (
                           <span
-                            className={`${badge.bgCls} ${badge.textCls}`}
+                            className={`stock-category-badge ${badge.bgCls} ${badge.textCls}`}
                             style={{
                               fontSize: '10px',
                               fontWeight: 600,
@@ -1038,7 +1049,7 @@ export default function PortfolioSection() {
                           const badgeStyle = ALERT_BADGE_COLORS[stockAlert.type];
                           const badgeText = getAlertBadgeText(stockAlert);
                           return (
-                            <span
+                            <span className="stock-alert-badge"
                               style={{
                                 fontSize: '10px',
                                 fontWeight: 600,
@@ -1054,7 +1065,7 @@ export default function PortfolioSection() {
                           );
                         })()}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#B0B8C1' }}>
+                      <div className="stock-desktop-meta" style={{ fontSize: '12px', color: 'var(--text-body)', lineHeight: 1.6, overflowWrap: 'anywhere' }}>
                         {stock.symbol}
                         {stock.shares > 0 && stock.avgCost > 0
                           ? ` · ${stock.shares}주 · 평단 ${currency === 'KRW' ? formatKrw(avgCostAmounts.krw) : formatUsd(avgCostAmounts.usd)}`
@@ -1068,6 +1079,14 @@ export default function PortfolioSection() {
                     </div>
                   </div>
 
+                  <div className="stock-mobile-meta">
+                    {stock.shares <= 0 && <span>{stock.symbol}</span>}
+                    {stock.shares > 0 && <span>{stock.shares.toLocaleString('ko-KR', { maximumFractionDigits: 8 })}주</span>}
+                    {stock.shares > 0 && stock.avgCost > 0 && <span>평단 {currency === 'KRW' ? formatKrw(avgCostAmounts.krw) : formatUsd(avgCostAmounts.usd)}</span>}
+                    {!stock.shares && stock.buyBelow ? <span>목표 {currency === 'KRW' ? formatKrw(buyBelowAmounts.krw) : formatUsd(buyBelowAmounts.usd)}</span> : null}
+                  </div>
+
+                  <div className="stock-quote-group">
                   {/* Price cell */}
                   <div
                     className="stock-price-cell text-right"
@@ -1075,14 +1094,14 @@ export default function PortfolioSection() {
                       ? `현재가 ${formatKrw(priceAmounts.krw, { short: false })} · ${formatUsd(priceAmounts.usd)}`
                       : undefined}
                   >
-                    <div className="stock-price-primary text-[15px] font-semibold text-[#191F28] tabular-nums">
+                    <div className="stock-price-primary text-[16px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                       {price
                         ? currency === 'KRW'
                           ? formatKrw(priceAmounts.krw)
                           : formatUsd(priceAmounts.usd)
                         : <span className="skeleton-shimmer inline-block" style={{ width: 60, height: 16, borderRadius: 4 }} />}
                     </div>
-                    <div className="stock-price-secondary text-[11px] text-[#B0B8C1] mt-0.5 tabular-nums">
+                    <div className="stock-price-secondary text-[12px] mt-0.5 tabular-nums" style={{ color: 'var(--text-body)' }}>
                       {price > 0
                         ? currency === 'KRW'
                           ? formatUsd(priceAmounts.usd)
@@ -1098,7 +1117,7 @@ export default function PortfolioSection() {
                       : getPeriodReturn(stock.symbol, periodTab, price, d?.pc, rawCandles);
                     const isUp = (periodPct ?? 0) >= 0;
                     return (
-                      <div className="text-right">
+                      <div className="stock-period-return text-right">
                         <div className={`text-[13px] font-semibold tabular-nums ${isUp ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
                           {periodPct != null
                             ? `${isUp ? '▲' : '▼'} ${isUp ? '+' : ''}${periodPct.toFixed(2)}%`
@@ -1115,6 +1134,8 @@ export default function PortfolioSection() {
                       </div>
                     );
                   })()}
+
+                  </div>
 
                   {/* P&L cell */}
                   <div className="text-right hide-mobile">
@@ -1212,17 +1233,26 @@ export default function PortfolioSection() {
                       : '0.0'}%
                   </div>
 
+                  <button className="stock-actions-toggle" aria-label={`${kr} 관리`}
+                    aria-expanded={actionRow === `${stock.category}-${i}`}
+                    onClick={e => { e.stopPropagation(); setActionRow(actionRow === `${stock.category}-${i}` ? null : `${stock.category}-${i}`); }}>
+                    ⋯
+                  </button>
                   {/* Edit/Delete actions */}
-                  <div className="row-actions flex items-center gap-0">
+                  <div className={`row-actions flex items-center gap-0 ${actionRow === `${stock.category}-${i}` ? 'row-actions-open' : ''}`}>
+
                     <button
-                      onClick={(e) => { e.stopPropagation(); setEditingCat(stock.category); setEditingIdx(stock.originalIdx); }}
+                      aria-label={`${stock.symbol} 수정`}
+                      onClick={(e) => { e.stopPropagation(); setActionRow(null); setEditingCat(stock.category); setEditingIdx(stock.originalIdx); }}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
-                      <Edit3 size={14} color="#B0B8C1" />
+                      <Edit3 size={14} color="currentColor" /><span className="stock-action-label">수정</span>
                     </button>
                     <button
+                      aria-label={`${stock.symbol} 삭제`}
                       onClick={(e) => {
                         e.stopPropagation();
+                        setActionRow(null);
                         const deleted = stocks[stock.category]?.[stock.originalIdx];
                         if (!deleted) return;
                         deleteStock(stock.category, stock.originalIdx);
@@ -1234,7 +1264,7 @@ export default function PortfolioSection() {
                       }}
                       style={{ padding: 10, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', minWidth: 34, minHeight: 34 }}
                     >
-                      <Trash2 size={14} color="#B0B8C1" />
+                      <Trash2 size={14} color="currentColor" /><span className="stock-action-label">삭제</span>
                     </button>
                   </div>
                 </div>
@@ -1246,6 +1276,12 @@ export default function PortfolioSection() {
         {/* 홈 스택(below-core) — widgetOrder 순서로 렌더(홈편집 재정렬). ⚠️ CSS order 아님(JSX 배열 재정렬)
             → DOM/탭/SR 순서 일치(WCAG 1.3.2/2.4.3). non-hideable(ai-hunch)은 resolveHidden이 drop해 항상 표시(§6).
             gate-false 위젯은 render fn이 null→flex 자식 부재→gap 없음. 세로 리듬은 부모 .home-stack gap. */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-briefing'))}
+          style={{ marginTop: 20, padding: '12px 16px', minHeight: 44, borderRadius: 12, width: '100%', textAlign: 'left', background: 'var(--bg-subtle)', color: 'var(--text-primary)', cursor: 'pointer' }}
+        >
+          오늘의 브리핑 다시 보기 →
+        </button>
         <div className="home-stack" style={{ marginTop: 24 }}>
           {(() => {
             const belowCore: Record<string, () => ReactNode> = {

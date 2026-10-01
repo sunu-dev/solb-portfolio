@@ -4,7 +4,9 @@ import { AGE_GATE_VERSION } from '@/config/legalVersions';
 export const AI_ADULT_CONSENT_TYPE = 'age_18_plus';
 
 function parseBirthDate(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  // 직접 입력(YYYYMMDD)과 기존 ISO 형식만 허용한다. 부분 입력은 거부한다.
+  const match = /^(\d{4})(\d{2})(\d{2})$/.exec(value)
+    ?? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
   const year = Number(match[1]);
   const month = Number(match[2]);

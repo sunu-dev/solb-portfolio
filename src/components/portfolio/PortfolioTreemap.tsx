@@ -1,195 +1,17 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { STOCK_KR } from '@/config/constants';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { ArrowUpRight, ChevronDown, Share2, X } from 'lucide-react';
 import type { QuoteData, CandleRaw } from '@/config/constants';
-import { formatKrw } from '@/utils/koreanNumber';
-import { getSector } from '@/utils/portfolioHealth';
-import {
-  convertStockAmount,
-  convertStockCostAmount,
-  type StockCurrency,
-} from '@/utils/stockCurrency';
+import { buildComposition, type CompositionStock } from '@/utils/portfolioComposition';
+import { layoutPortfolioHeatmap } from '@/utils/portfolioHeatmapLayout';
+import { getPortfolioHeatmapGroup, getPortfolioHeatmapLabel } from '@/utils/portfolioHeatmapGroups';
+import PortfolioHeatmap, { heatmapColor, heatmapLabel } from './PortfolioHeatmap';
+import { portfolioPriceHistory } from '@/utils/portfolioPriceHistory';
+import styles from './PortfolioTreemap.module.css';
 
-/**
- * 포트폴리오 트리맵 — 토스/뱅크샐러드 톤 (3인 회의 만장일치).
- *
- * 디자인 원칙 (이전 거부 피드백 반영):
- *   - 라이트 배경 #FAFBFC (다크 #0d0e10 ❌)
- *   - 파스텔 채도 -45% (Finviz -25% ❌)
- *   - 둥근 라디우스 14px (직각 0px ❌)
- *   - 셀 갭 6~8px 숨쉬는 공간 (1~3px tight ❌)
- *   - Pretendard / 토스 톤 (모노스페이스 Bloomberg ❌)
- *   - 어떤 N(3~30)에서도 작동 (Squarify deterministic)
- */
-
-const OTHERS_SYMBOL = '__OTHERS__';
-const COMPACT_TOP_N = 8;
-const FULL_TOP_N = 16;
-const MIN_VISIBLE_WEIGHT = 0.015;
-const MIN_OTHERS_LAYOUT_RATIO = 0.04;
-
-// ─── 타입 ────────────────────────────────────────────────────────────────
-interface Rect { x: number; y: number; w: number; h: number; }
-
-interface Node {
-  symbol: string;
-  value: number;            // squarify용
-  realValue?: number;       // OTHERS 부스팅
-  pnlPct: number;
-  todayPct: number;
-  label: string;
-  valFormatted: string;
-  avgCost: number;
-  shares: number;
-  currentPrice: number;
-  cost: number;
-  profit: number;
-  profitFmt: string;
-  childrenSymbols?: string[];
-  sector: string;
-}
-
-interface SectorGroup {
-  sector: string;
-  value: number;
-  nodes: Node[];
-}
-
-interface LayoutNode extends Node, Rect {}
-interface LayoutSector extends SectorGroup, Rect {
-  cellLayout: LayoutNode[];
-}
-
-// ─── Squarify (Bruls et al. 2000) — deterministic ───────────────────────
-function worstAspectRatio(row: number[], length: number): number {
-  if (row.length === 0) return Infinity;
-  const s = row.reduce((a, b) => a + b, 0);
-  const maxVal = Math.max(...row);
-  const minVal = Math.min(...row);
-  const s2 = s * s;
-  const l2 = length * length;
-  return Math.max((l2 * maxVal) / s2, s2 / (l2 * minVal));
-}
-
-function squarify<T extends { value: number }>(items: T[], rect: Rect): Array<T & Rect> {
-  if (items.length === 0) return [];
-  const total = items.reduce((s, n) => s + n.value, 0);
-  if (total <= 0) return [];
-
-  const sorted = [...items].sort((a, b) => b.value - a.value);
-  const FLOOR = 0.01;
-  const adjusted = sorted.map(n => Math.max(n.value, total * FLOOR));
-  const adjustedTotal = adjusted.reduce((s, v) => s + v, 0);
-  const area = rect.w * rect.h;
-  const scaled = sorted.map((n, i) => ({
-    ...n,
-    scaledValue: (adjusted[i] / adjustedTotal) * area,
-  }));
-
-  const result: Array<T & Rect> = [];
-  let remaining = [...scaled];
-  let currentRect = { ...rect };
-
-  while (remaining.length > 0) {
-    if (currentRect.w <= 0.01 || currentRect.h <= 0.01) break;
-    const isWide = currentRect.w >= currentRect.h;
-    const sideLength = isWide ? currentRect.h : currentRect.w;
-    if (sideLength <= 0.01) break;
-
-    const row: typeof scaled = [remaining[0]];
-    remaining = remaining.slice(1);
-    let rowArea = row[0].scaledValue;
-    let prevWorst = worstAspectRatio([row[0].scaledValue], sideLength);
-
-    while (remaining.length > 0) {
-      const candidate = remaining[0].scaledValue;
-      const newWorst = worstAspectRatio([...row.map(r => r.scaledValue), candidate], sideLength);
-      if (newWorst <= prevWorst) {
-        row.push(remaining[0]);
-        remaining = remaining.slice(1);
-        rowArea += candidate;
-        prevWorst = newWorst;
-      } else break;
-    }
-
-    const rowLength = rowArea / sideLength;
-    let offset = 0;
-    for (const item of row) {
-      const itemLength = item.scaledValue / rowLength;
-      const cellRect = isWide
-        ? { x: currentRect.x, y: currentRect.y + offset, w: rowLength, h: itemLength }
-        : { x: currentRect.x + offset, y: currentRect.y, w: itemLength, h: rowLength };
-      const { scaledValue: _sv, ...rest } = item;
-      void _sv;
-      result.push({ ...(rest as unknown as T), ...cellRect });
-      offset += itemLength;
-    }
-
-    if (isWide) {
-      currentRect = { x: currentRect.x + rowLength, y: currentRect.y, w: currentRect.w - rowLength, h: currentRect.h };
-    } else {
-      currentRect = { x: currentRect.x, y: currentRect.y + rowLength, w: currentRect.w, h: currentRect.h - rowLength };
-    }
-  }
-  return result;
-}
-
-// ─── 색 (토스 톤, 진한 채도 + 부드러운 라운드) ──────────────────────────
-function pastelPnl(pct: number): string {
-  if (pct >= 7)    return '#FF5757';   // 매우 강한 빨강
-  if (pct >= 5)    return '#FF6B6B';
-  if (pct >= 3)    return '#FF8080';
-  if (pct >= 1.5)  return '#FF9999';
-  if (pct >= 0.3)  return '#FFB8B8';
-  if (pct > -0.3)  return '#EEF0F4';   // 보합 — 라이트 그레이
-  if (pct > -1.5)  return '#BBCFFF';
-  if (pct > -3)    return '#94B0FF';
-  if (pct > -5)    return '#6B92FA';
-  if (pct > -7)    return '#4271F0';
-  return '#2858E5';                     // 매우 강한 파랑
-}
-
-function darkenSlight(hex: string): string {
-  const m = hex.replace('#', '');
-  if (m.length !== 6) return hex;
-  const r = parseInt(m.slice(0, 2), 16);
-  const g = parseInt(m.slice(2, 4), 16);
-  const b = parseInt(m.slice(4, 6), 16);
-  const f = 0.93;  // 7% darker (살짝 깊이감)
-  const to2 = (n: number) => Math.round(n * f).toString(16).padStart(2, '0');
-  return `#${to2(r)}${to2(g)}${to2(b)}`;
-}
-
-/** 셀 안 텍스트 색 — 강한 채도 셀은 흰색, 약한 셀은 다크 */
-function tickerColor(pct: number): string {
-  return Math.abs(pct) >= 3 ? '#FFFFFF' : '#191F28';
-}
-
-function pnlTextColor(pct: number): string {
-  if (Math.abs(pct) >= 3) return 'rgba(255,255,255,0.92)';
-  if (pct >= 1.5)  return '#C72C2C';
-  if (pct > -1.5)  return '#4E5968';
-  return '#1B5BC9';
-}
-
-function fmtShort(val: number): string {
-  const abs = Math.abs(val);
-  if (abs >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000)     return `$${(val / 1_000).toFixed(1)}K`;
-  return `$${val.toFixed(0)}`;
-}
-
-// ─── Component ───────────────────────────────────────────────────────────
-interface HeatmapProps {
-  stocks: {
-    symbol: string;
-    currency?: StockCurrency;
-    avgCost: number;
-    shares: number;
-    targetReturn: number;
-    purchaseRate?: number;
-  }[];
+interface Props {
+  stocks: (CompositionStock & { name?: string })[];
   macroData: Record<string, QuoteData | unknown>;
   usdKrw: number;
   currency: 'KRW' | 'USD';
@@ -199,654 +21,205 @@ interface HeatmapProps {
   rawCandles?: Record<string, CandleRaw>;
 }
 
-export default function PortfolioTreemap({
-  stocks, macroData, usdKrw, currency,
-  variant = 'full', onExpand, onCellClick,
-}: HeatmapProps) {
-  const [colorMode, setColorMode] = useState<'pnl' | 'today'>('pnl');
-  const [hovered, setHovered] = useState<{ node: LayoutNode; x: number; y: number } | null>(null);
-  const [hasMounted, setHasMounted] = useState(false);
-  const [shareLoading, setShareLoading] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const captureRef = useRef<HTMLDivElement>(null);
+const numberFormat = new Intl.NumberFormat('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
+const percent = (value: number | null) => value === null ? '미확인' : `${numberFormat.format(value)}%`;
+const weight = (value: number) => value < 0.1 ? '0.1% 미만' : `${value.toFixed(1)}%`;
+const direction = (value: number | null) => value === null ? 'unknown' : value > 0 ? 'gain' : value < 0 ? 'loss' : 'flat';
 
-  const isCompact = variant === 'compact';
+function PriceTrace({ history }: { history: NonNullable<ReturnType<typeof portfolioPriceHistory>> }) {
+  return <svg className={styles.priceTrace} viewBox="0 0 240 64" preserveAspectRatio="none" aria-hidden="true"><path d={history.line} fill="none" stroke="currentColor" strokeWidth="1.4" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+
+export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, variant = 'full', onExpand, onCellClick, rawCandles }: Props) {
+  const [mode, setMode] = useState<'pnl' | 'today'>('today');
+  const [expanded, setExpanded] = useState(false);
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState('');
+  const [size, setSize] = useState({ width: 400, height: 320 });
+  const capture = useRef<HTMLElement>(null);
+  const canvas = useRef<HTMLDivElement>(null);
+  const picker = useRef<HTMLButtonElement>(null);
+  const lastTrigger = useRef<HTMLButtonElement | SVGPathElement | SVGGElement | null>(null);
+  const pickerId = useId();
+  const { items: rawItems, missing } = useMemo(() => buildComposition(stocks, macroData, usdKrw, currency), [stocks, macroData, usdKrw, currency]);
+  const items = useMemo(() => {
+    const savedNames = new Map<string, string>();
+    for (const stock of stocks) {
+      if (stock.name?.trim()) savedNames.set(stock.symbol, stock.name);
+    }
+    return rawItems.map(item => ({
+      ...item,
+      label: getPortfolioHeatmapLabel(item.symbol, item.label, savedNames.get(item.symbol)),
+    }));
+  }, [rawItems, stocks]);
+  const formatter = useMemo(() => new Intl.NumberFormat('ko-KR', { style: 'currency', currency, maximumFractionDigits: currency === 'KRW' ? 0 : 2 }), [currency]);
+  const selected = items.find(item => item.symbol === selectedSymbol);
+  const map = useMemo(() => layoutPortfolioHeatmap(items.map(item => ({ ...item, ...getPortfolioHeatmapGroup(item.symbol) })), size.width, size.height), [items, size]);
+  const cells = map.sectors.flatMap(sector => sector.industries.flatMap(industry => industry.cells));
+  const smallItems = cells.filter(item => !heatmapLabel(item, mode).nameVisible);
+  const selectedHistory = useMemo(() => portfolioPriceHistory(selected ? rawCandles?.[selected.symbol] : undefined), [rawCandles, selected]);
+  const hasItems = items.length > 0;
+  const modeLabel = mode === 'pnl' ? '누적 수익률' : '오늘 등락률';
+  const selectedReturn = selected ? mode === 'pnl' ? selected.pnl : selected.today : null;
+  const select = (symbol: string, trigger: HTMLButtonElement | SVGPathElement | SVGGElement | null) => {
+    lastTrigger.current = trigger;
+    setSelectedSymbol(symbol);
+    setExpanded(false);
+  };
+  const closeSelection = () => {
+    setSelectedSymbol(null);
+    (lastTrigger.current?.isConnected ? lastTrigger.current : picker.current)?.focus();
+  };
 
   useEffect(() => {
-    const r = requestAnimationFrame(() => setHasMounted(true));
-    return () => cancelAnimationFrame(r);
-  }, []);
-
-  // 1. Build all nodes
-  const allNodes: Node[] = useMemo(() => stocks
-    .map(stock => {
-      const q = macroData[stock.symbol] as QuoteData | undefined;
-      const price = q?.c || 0;
-      if (!price || !stock.shares) return null;
-      const current = convertStockAmount(stock.symbol, price, usdKrw, stock.currency);
-      const costPerShare = convertStockCostAmount(
-        stock.symbol,
-        stock.avgCost,
-        usdKrw,
-        stock.purchaseRate,
-        stock.currency,
-      );
-      const valueKrw = current.krw * stock.shares;
-      const valueUsd = current.usd * stock.shares;
-      const costKrw = costPerShare.krw * stock.shares;
-      const costUsd = costPerShare.usd * stock.shares;
-      const profitKrw = stock.avgCost > 0 ? valueKrw - costKrw : 0;
-      const profitUsd = stock.avgCost > 0 ? valueUsd - costUsd : 0;
-      const displayValue = currency === 'KRW' ? valueKrw : valueUsd;
-      const displayCost = currency === 'KRW' ? costKrw : costUsd;
-      const profit = currency === 'KRW' ? profitKrw : profitUsd;
-      const pnlPct = displayCost > 0 ? (profit / displayCost) * 100 : 0;
-      const todayPct = q?.dp || 0;
-      const label = STOCK_KR[stock.symbol] || stock.symbol;
-      const valFormatted = currency === 'KRW'
-        ? formatKrw(Math.round(displayValue))
-        : fmtShort(displayValue);
-      const profitFmt = currency === 'KRW'
-        ? formatKrw(Math.round(Math.abs(profit)))
-        : fmtShort(Math.abs(profit));
-      return {
-        symbol: stock.symbol, value: valueKrw, pnlPct, todayPct, label, valFormatted,
-        avgCost: stock.avgCost, shares: stock.shares, currentPrice: price,
-        cost: displayCost, profit, profitFmt,
-        sector: getSector(stock.symbol),
-      };
-    })
-    .filter(Boolean) as Node[],
-  [stocks, macroData, currency, usdKrw]);
-
-  // 2. Top-N + 임계 처리
-  const topN = isCompact ? COMPACT_TOP_N : FULL_TOP_N;
-  const visibleNodes: Node[] = useMemo(() => {
-    if (allNodes.length === 0) return [];
-    const totalRaw = allNodes.reduce((s, n) => s + n.value, 0);
-    if (totalRaw <= 0) return [];
-    const sorted = [...allNodes].sort((a, b) => b.value - a.value);
-    const above = sorted.filter(n => (n.value / totalRaw) >= MIN_VISIBLE_WEIGHT);
-    const below = sorted.filter(n => (n.value / totalRaw) < MIN_VISIBLE_WEIGHT);
-
-    let kept: Node[];
-    let hidden: Node[];
-    if (above.length > topN - 1 && below.length === 0) {
-      kept = above.slice(0, topN - 1);
-      hidden = above.slice(topN - 1);
-    } else if (above.length > topN - 1) {
-      kept = above.slice(0, topN - 1);
-      hidden = [...below, ...above.slice(topN - 1)];
-    } else {
-      kept = above;
-      hidden = below;
-    }
-    if (hidden.length === 0) return kept;
-
-    const keptValue = kept.reduce((s, n) => s + n.value, 0);
-    const minLayoutValue = keptValue > 0
-      ? keptValue * MIN_OTHERS_LAYOUT_RATIO / (1 - MIN_OTHERS_LAYOUT_RATIO)
-      : 0;
-
-    if (hidden.length === 1) {
-      const single = hidden[0];
-      return [...kept, {
-        ...single,
-        value: Math.max(single.value, minLayoutValue),
-        realValue: single.value,
-      }];
-    }
-
-    const restValue = hidden.reduce((s, n) => s + n.value, 0);
-    if (restValue <= 0) return kept;
-    const wPnl = hidden.reduce((s, n) => s + n.pnlPct * n.value, 0) / restValue;
-    const wToday = hidden.reduce((s, n) => s + n.todayPct * n.value, 0) / restValue;
-    const restProfit = hidden.reduce((s, n) => s + n.profit, 0);
-    const valFormatted = currency === 'KRW'
-      ? formatKrw(Math.round(restValue))
-      : fmtShort(usdKrw > 0 ? restValue / usdKrw : 0);
-    const profitFmt = currency === 'KRW'
-      ? formatKrw(Math.round(Math.abs(restProfit)))
-      : fmtShort(Math.abs(restProfit));
-    const layoutValue = Math.max(restValue, minLayoutValue);
-
-    return [...kept, {
-      symbol: OTHERS_SYMBOL,
-      value: layoutValue,
-      realValue: restValue,
-      pnlPct: wPnl, todayPct: wToday,
-      label: `소액 ${hidden.length}종`, valFormatted,
-      avgCost: 0, shares: hidden.reduce((s, n) => s + n.shares, 0), currentPrice: 0,
-      cost: hidden.reduce((s, n) => s + n.cost, 0), profit: restProfit, profitFmt,
-      childrenSymbols: hidden.map(n => n.symbol),
-      sector: '기타',
-    }];
-  }, [allNodes, topN, currency, usdKrw]);
-
-  // 3. 섹터 그룹핑 — 종목 4+ 일 때만, 단일 섹터면 그냥 평면
-  const sectorCount = useMemo(() => {
-    return new Set(visibleNodes.map(n => n.sector)).size;
-  }, [visibleNodes]);
-  const useSectors = !isCompact && visibleNodes.length >= 4 && sectorCount >= 2;
-
-  // 4. Layout
-  const VB = 100;
-  const SECTOR_INSET = 0.6;
-  const layout = useMemo(() => {
-    if (visibleNodes.length === 0) return { sectors: [] as LayoutSector[], flat: [] as LayoutNode[] };
-
-    if (!useSectors) {
-      const flat = squarify(visibleNodes, { x: 0, y: 0, w: VB, h: VB });
-      return { sectors: [], flat };
-    }
-
-    const bySector = new Map<string, Node[]>();
-    for (const n of visibleNodes) {
-      const arr = bySector.get(n.sector) || [];
-      arr.push(n);
-      bySector.set(n.sector, arr);
-    }
-    const sectorGroups: SectorGroup[] = Array.from(bySector.entries()).map(([sector, nodes]) => ({
-      sector, value: nodes.reduce((s, n) => s + n.value, 0), nodes,
-    }));
-
-    const sectorLayouts = squarify(sectorGroups, { x: 0, y: 0, w: VB, h: VB });
-
-    const sectors: LayoutSector[] = sectorLayouts.map(s => {
-      const innerRect: Rect = {
-        x: s.x + SECTOR_INSET,
-        y: s.y + SECTOR_INSET,
-        w: Math.max(s.w - SECTOR_INSET * 2, 0.5),
-        h: Math.max(s.h - SECTOR_INSET * 2, 0.5),
-      };
-      const cellLayout = squarify(s.nodes, innerRect);
-      return { ...s, cellLayout };
+    if (!canvas.current) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      if (width > 0 && height > 0) setSize(previous => previous.width === width && previous.height === height ? previous : { width, height });
     });
+    observer.observe(canvas.current);
+    return () => observer.disconnect();
+  }, [hasItems]);
 
-    return { sectors, flat: [] as LayoutNode[] };
-  }, [visibleNodes, useSectors]);
-
-  // 누적 수익률
-  const totalPnlPct = useMemo(() => {
-    const totalCost = allNodes.reduce((s, n) => s + n.cost, 0);
-    const totalProfit = allNodes.reduce((s, n) => s + n.profit, 0);
-    if (totalCost <= 0) return 0;
-    return (totalProfit / totalCost) * 100;
-  }, [allNodes]);
-
-  // 공유
-  const handleShare = useCallback(async () => {
-    if (!captureRef.current || shareLoading) return;
-    setShareLoading(true);
+  const share = async () => {
+    if (!capture.current || sharing) return;
+    setSharing(true); setShareError('');
+    let exportHost: HTMLElement | null = null;
     try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(captureRef.current, {
-        cacheBust: true, pixelRatio: 2, backgroundColor: '#FAFBFC',
+      const { toBlob } = await import('html-to-image');
+      // Reflow the export with a system font before measuring it. Remote web
+      // fonts cannot be embedded under our CSP and otherwise wrap differently.
+      const snapshot = capture.current.cloneNode(true) as HTMLElement;
+      exportHost = document.createElement('div');
+      exportHost.setAttribute('aria-hidden', 'true');
+      exportHost.inert = true;
+      Object.assign(exportHost.style, { position: 'fixed', left: '-10000px', top: '0', width: `${capture.current.getBoundingClientRect().width}px` });
+      snapshot.style.margin = '0';
+      snapshot.querySelectorAll<HTMLElement>('*').forEach(element => { element.style.animation = 'none'; element.style.transition = 'none'; });
+      for (const element of [snapshot, ...snapshot.querySelectorAll<HTMLElement>('*')]) element.style.setProperty('font-family', 'Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif', 'important');
+      snapshot.querySelectorAll('[data-capture="exclude"]').forEach(element => element.remove());
+      snapshot.querySelectorAll<HTMLDetailsElement>('[data-map-key]').forEach(element => { element.open = false; });
+      exportHost.append(snapshot);
+      document.body.append(exportHost);
+      // html-to-image deep-clones an SVG without copying its descendants' CSS.
+      // Freeze their resolved paint and type styles so the export is self-contained.
+      const svgProperties = ['fill', 'fill-opacity', 'stroke', 'stroke-opacity', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray', 'stroke-dashoffset', 'opacity', 'clip-path', 'mask', 'filter', 'visibility', 'display', 'font-family', 'font-size', 'font-weight', 'font-style', 'letter-spacing', 'text-anchor', 'dominant-baseline', 'paint-order', 'stop-color', 'stop-opacity', 'vector-effect'];
+      snapshot.querySelectorAll<SVGElement>('svg *').forEach(element => {
+        const computed = getComputedStyle(element);
+        svgProperties.forEach(property => element.style.setProperty(property, computed.getPropertyValue(property)));
       });
-      const dateStr = new Date().toISOString().slice(0, 10);
-      const fileName = `solb-portfolio-${dateStr}.png`;
-      const blob = await (await fetch(dataUrl)).blob();
-      const file = new File([blob], fileName, { type: 'image/png' });
-      const navAny = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
-      if (navAny.canShare && navAny.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'SOLB 포트폴리오 맵', text: '내 포트폴리오를 공유해요' });
-      } else {
-        const a = document.createElement('a');
-        a.href = dataUrl; a.download = fileName;
-        document.body.appendChild(a); a.click(); a.remove();
+      // Rasterize the self-contained plot separately to preserve SVG paint
+      // and label typography in the exported image.
+      for (const svg of snapshot.querySelectorAll<SVGSVGElement>('svg[data-portfolio-heatmap]')) {
+        const bounds = svg.getBoundingClientRect();
+        const artwork = svg.cloneNode(true) as SVGSVGElement;
+        artwork.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        artwork.setAttribute('width', String(bounds.width));
+        artwork.setAttribute('height', String(bounds.height));
+        artwork.style.filter = 'none';
+        const picture = new Image();
+        picture.width = bounds.width;
+        picture.height = bounds.height;
+        picture.style.cssText = `display:block;width:100%;height:100%;filter:${getComputedStyle(svg).filter}`;
+        picture.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(new XMLSerializer().serializeToString(artwork))}`;
+        await picture.decode();
+        svg.replaceWith(picture);
       }
-    } catch (e) {
-      console.error('share failed', e);
-    } finally {
-      setShareLoading(false);
-    }
-  }, [shareLoading]);
-
-  if (allNodes.length === 0) return null;
-
-  const totalVal = allNodes.reduce((s, n) => s + n.value, 0);
-
-  // 컨테이너 — 가로형 4:3 (1:1 정사각형 대비 가로 33% ↑)
-  const containerStyle: React.CSSProperties = isCompact ? {
-    width: '100%',
-    aspectRatio: '4 / 3',
-    maxWidth: 720,
-    margin: '0 auto',
-  } : {
-    aspectRatio: '4 / 3',
-    maxWidth: 'min(960px, 100%)',
-    margin: '0 auto',
+      const blob = await toBlob(snapshot, { pixelRatio: 2, skipFonts: true, backgroundColor: getComputedStyle(capture.current).backgroundColor });
+      if (!blob) throw new Error('Portfolio image is empty');
+      const file = new File([blob], `joobi-portfolio-${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: '주비 · 내 포트폴리오 맵' });
+      else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a'); link.href = url; link.download = file.name; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      }
+    } catch (error) {
+      if (!(error instanceof Error && error.name === 'AbortError')) setShareError('이미지를 만들지 못했어요. 잠시 후 다시 시도해주세요.');
+    } finally { exportHost?.remove(); setSharing(false); }
   };
 
-  const handleMouseMove = (node: LayoutNode) => (e: React.MouseEvent) => {
-    if (isCompact) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    setHovered({ node, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
-  };
-
-  return (
-    <div ref={containerRef} style={{ marginBottom: isCompact ? 0 : 24, position: 'relative' }}>
-      {/* Header */}
-      {!isCompact && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            내 포트폴리오 맵
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-subtle, #F2F4F6)' }}>
-              {(['pnl', 'today'] as const).map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => setColorMode(opt)}
-                  style={{
-                    padding: '4px 12px', borderRadius: 6, fontSize: 11,
-                    fontWeight: colorMode === opt ? 700 : 500,
-                    color: colorMode === opt ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
-                    background: colorMode === opt ? '#FFFFFF' : 'transparent',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {opt === 'pnl' ? '수익률' : '오늘'}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={handleShare}
-              disabled={shareLoading}
-              title="포트폴리오 맵 이미지 공유"
-              style={{
-                padding: '4px 12px', borderRadius: 8, fontSize: 11,
-                fontWeight: 600,
-                color: shareLoading ? 'var(--text-tertiary, #B0B8C1)' : 'var(--text-secondary, #4E5968)',
-                background: 'var(--bg-subtle, #F2F4F6)',
-                border: 'none',
-                cursor: shareLoading ? 'wait' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 3,
-              }}
-            >
-              <span style={{ fontSize: 11 }}>↗</span>
-              {shareLoading ? '생성 중' : '공유'}
-            </button>
+  return <section ref={capture} className={styles.panel} data-variant={variant} aria-label="내 포트폴리오 맵" onKeyDown={event => { if (event.key === 'Escape') { if (expanded) { event.preventDefault(); setExpanded(false); picker.current?.focus(); } else if (selected) { event.preventDefault(); closeSelection(); } } }}>
+    <header className={styles.header}>
+      <h2>내 포트폴리오 맵</h2>
+      <button className={styles.share} onClick={share} disabled={sharing || !hasItems} data-capture="exclude" aria-label={sharing ? '공유 이미지 만드는 중' : '포트폴리오 맵 이미지 공유'}><Share2 size={17} aria-hidden="true" /></button>
+    </header>
+    {!hasItems ? <p className={styles.empty}>보유 종목의 시세가 준비되면 투자 비중을 보여드릴게요.</p> : <>
+      <div className={styles.toolbar}>
+        <div className={styles.segment} role="group" aria-label="색으로 표시할 수익률">
+          <button aria-pressed={mode === 'today'} onClick={() => setMode('today')}>오늘 등락률</button>
+          <button aria-pressed={mode === 'pnl'} onClick={() => setMode('pnl')}>누적 수익률</button>
+        </div>
+        <button ref={picker} className={styles.picker} aria-expanded={expanded} aria-controls={pickerId} data-capture="exclude" onClick={() => setExpanded(!expanded)}>{items.length}종목 <ChevronDown size={13} aria-hidden="true" /></button>
+      </div>
+      <div id={pickerId} className={styles.holdings} hidden={!expanded} role="group" aria-label="전체 종목 선택" data-capture="exclude">
+        {items.map(item => <button key={item.symbol} aria-pressed={selected?.symbol === item.symbol} onClick={() => { select(item.symbol, picker.current); picker.current?.focus(); }}><span>{item.label}</span><span>{weight(item.weight)}</span><b data-direction={direction(mode === 'pnl' ? item.pnl : item.today)}>{percent(mode === 'pnl' ? item.pnl : item.today)}</b></button>)}
+      </div>
+      <div className={styles.heatmapFrame}>
+        <div ref={canvas} className={styles.map}>
+          <PortfolioHeatmap layout={map} width={size.width} height={size.height} mode={mode} modeLabel={modeLabel}
+            selectedSymbol={selected?.symbol} percent={percent} weight={weight} onSelect={select} />
+        </div>
+        <div className={styles.mapFooter}>
+          <span>면적 = 평가금액 · 색 = {modeLabel}</span>
+          <div className={styles.colorScale} aria-label={`${modeLabel} 색상 범례`}>
+            {(mode === 'today' ? [-3, -2, -1, 0, 1, 2, 3] : [-30, -20, -10, 0, 10, 20, 30]).map(value => <span key={value} style={{ background: heatmapColor(value, mode) }}>{value > 0 ? '+' : ''}{value}%</span>)}
           </div>
         </div>
-      )}
-
-      {/* 글로벌 스타일 */}
-      <style>{`
-        .solb-tm-cell {
-          transition: opacity 0.42s ease,
-                      transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .solb-tm-cell.is-pre-mount { opacity: 0; transform: scale(0.96); }
-        .solb-tm-cell.is-mounted   { opacity: 1; transform: scale(1); }
-        .solb-tm-cell-inner {
-          transition: filter 0.18s ease, box-shadow 0.22s ease, transform 0.22s ease;
-        }
-        .solb-tm-cell-inner:hover {
-          filter: brightness(1.04);
-          box-shadow: 0 6px 16px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-          transform: scale(1.012);
-        }
-        .solb-tm-cell-inner:active {
-          transform: scale(0.99);
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .solb-tm-cell, .solb-tm-cell-inner {
-            transition: none;
-            opacity: 1 !important;
-            transform: none !important;
-          }
-        }
-      `}</style>
-
-      {/* Capture container */}
-      <div
-        ref={captureRef}
-        style={{
-          background: '#FAFBFC',
-          position: 'relative',
-          overflow: 'hidden',
-          borderRadius: 20,
-          padding: 6,
-          ...containerStyle,
-        }}
-      >
-        {/* Compact 토글 */}
-        {isCompact && (
-          <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', alignItems: 'center', gap: 4, zIndex: 10 }}>
-            <div style={{ display: 'flex', gap: 1, padding: 1, borderRadius: 6, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(6px)', border: '1px solid rgba(0,0,0,0.04)' }}>
-              {(['pnl', 'today'] as const).map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => setColorMode(opt)}
-                  style={{
-                    padding: '3px 8px', borderRadius: 5, fontSize: 10,
-                    fontWeight: 600, lineHeight: 1.2,
-                    color: colorMode === opt ? '#191F28' : 'var(--text-tertiary, #8B95A1)',
-                    background: colorMode === opt ? '#FFFFFF' : 'transparent',
-                    border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {opt === 'pnl' ? '수익률' : '오늘'}
-                </button>
-              ))}
-            </div>
-            {onExpand && (
-              <button
-                onClick={onExpand}
-                style={{
-                  padding: '4px 9px', borderRadius: 5,
-                  background: 'rgba(255,255,255,0.85)',
-                  border: '1px solid rgba(0,0,0,0.04)',
-                  color: 'var(--text-secondary, #4E5968)',
-                  fontSize: 10, fontWeight: 600, lineHeight: 1.2,
-                  cursor: 'pointer',
-                  backdropFilter: 'blur(6px)',
-                }}
-              >
-                확대 →
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 평면 (단일 섹터 또는 compact) */}
-        {!useSectors && layout.flat.map((node, i) => (
-          <Cell
-            key={node.symbol}
-            node={node}
-            colorMode={colorMode}
-            isCompact={isCompact}
-            onClick={onCellClick}
-            onMouseMove={handleMouseMove(node)}
-            onMouseLeave={() => setHovered(null)}
-            hasMounted={hasMounted}
-            mountIndex={i}
-          />
-        ))}
-
-        {/* 섹터 그룹 */}
-        {useSectors && layout.sectors.map(sector => (
-          <div key={sector.sector}
-            style={{
-              position: 'absolute',
-              left: `${sector.x}%`, top: `${sector.y}%`,
-              width: `${sector.w}%`, height: `${sector.h}%`,
-              padding: 2,  // 섹터 안 갭
-              boxSizing: 'border-box',
-            }}>
-            {sector.cellLayout.map((node, i) => (
-              <Cell
-                key={node.symbol}
-                node={node}
-                colorMode={colorMode}
-                isCompact={isCompact}
-                onClick={onCellClick}
-                onMouseMove={handleMouseMove(node)}
-                onMouseLeave={() => setHovered(null)}
-                relative
-                parentRect={sector}
-                hasMounted={hasMounted}
-                mountIndex={i}
-              />
-            ))}
-          </div>
-        ))}
-
-        {/* 호버 툴팁 */}
-        {hovered && !isCompact && containerRef.current && (
-          <Tooltip
-            node={hovered.node}
-            x={hovered.x} y={hovered.y}
-            totalVal={totalVal}
-            containerWidth={containerRef.current.clientWidth}
-            containerHeight={containerRef.current.clientHeight}
-          />
-        )}
-
-        {/* 공유 시 워터마크 */}
-        {shareLoading && !isCompact && (
-          <div style={{
-            position: 'absolute',
-            left: 14, bottom: 12,
-            display: 'flex', alignItems: 'center', gap: 8,
-            color: 'var(--text-secondary, #4E5968)',
-            fontSize: 11, fontWeight: 700,
-            pointerEvents: 'none', zIndex: 20,
-          }}>
-            <span style={{
-              padding: '3px 8px', borderRadius: 4,
-              background: '#191F28', color: '#FFFFFF',
-              fontSize: 10, letterSpacing: 0.5,
-            }}>JOOBI</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}
-              {' · 누적 '}
-              <span style={{ color: totalPnlPct >= 0 ? '#C72C2C' : '#1B5BC9' }}>
-                {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(2)}%
-              </span>
-            </span>
-          </div>
-        )}
       </div>
-
-      {/* Footer 범례 */}
-      {!isCompact && (
-        <div style={{
-          marginTop: 10, fontSize: 10,
-          color: 'var(--text-tertiary, #B0B8C1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 8,
-        }}>
-          <span>크기 = 평가금액 · 색 = {colorMode === 'pnl' ? '누적 수익률' : '오늘 등락률'}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5,
-            fontVariantNumeric: 'tabular-nums' }}>
-            <span>−5%</span>
-            <div style={{
-              width: 90, height: 6, borderRadius: 3,
-              background: 'linear-gradient(to right, #2858E5 0%, #6B92FA 25%, #EEF0F4 50%, #FF8080 75%, #FF5757 100%)',
-            }} />
-            <span>+5%</span>
+      {smallItems.length > 0 && <button className={styles.smallNotice} aria-expanded={expanded} aria-controls={pickerId} onClick={() => { setExpanded(true); picker.current?.focus(); }}>
+        작은 칸 {smallItems.length}종목은 목록에서 보기 <ChevronDown size={13} aria-hidden="true" />
+      </button>}
+      {selected && <div className={styles.detail} aria-live="polite">
+        <div className={styles.detailHeader}>
+          <strong className={styles.selectedName}>{selected.label}</strong>
+          <button className={styles.close} aria-label="종목 상세 닫기" onClick={closeSelection} data-capture="exclude"><X size={15} /></button>
+        </div>
+          <dl className={styles.keyMetrics}>
+            <div><dt>투자 비중</dt><dd>{weight(selected.weight)}</dd></div>
+            <div><dt>{modeLabel}</dt><dd data-direction={direction(selectedReturn)}>{percent(selectedReturn)}</dd></div>
+          </dl>
+        <dl className={styles.valueMetric}><dt>현재 평가금액</dt><dd>{formatter.format(selected.value)}</dd></dl>
+        <div className={styles.detailActions}>
+          {selectedHistory && <details className={styles.history}><summary>가격 흐름 <ChevronDown size={13} aria-hidden="true" /></summary><div data-direction={direction(selectedHistory.change)}><div className={styles.historyCaption}><span>{selectedHistory.start}–{selectedHistory.end} 종가</span><b>기간 {percent(selectedHistory.change)}</b></div><PriceTrace history={selectedHistory} /><p>표시된 기간의 가격 변화로, 매입 이후 수익률과 다를 수 있어요.</p></div></details>}
+          {onCellClick && <button className={styles.analysisLink} onClick={() => onCellClick(selected.symbol)}>{selected.label} 분석 보기 <ArrowUpRight size={14} /></button>}
+        </div>
+      </div>}
+      <details className={styles.help} data-map-key>
+        <summary aria-label="포트폴리오 맵 읽는 법">
+          <span className={styles.guideMark} aria-hidden="true"><i /><i /><i /></span>
+          <span className={styles.guideHeading}><strong>포트폴리오 맵 읽는 법</strong><small>크기와 색으로 내 투자 한눈에 보기</small></span>
+          <ChevronDown className={styles.guideChevron} size={18} aria-hidden="true" />
+        </summary>
+        <div className={styles.guideGrid}>
+          <div className={styles.guideStep}>
+            <div className={styles.sizeExample} aria-hidden="true"><span>60%</span><span>30%</span><span>10%</span></div>
+            <h3>큰 칸일수록, 큰 비중</h3>
+            <p>현재 평가금액이 클수록 넓게 보여요. 같은 그룹 안에서 크기를 비교해보세요.</p>
+          </div>
+          <div className={styles.guideStep}>
+            <div className={styles.colorExample} aria-hidden="true"><span>−</span><span>0</span><span>+</span><span>?</span></div>
+            <h3>색은 방향, 숫자는 수익률</h3>
+            <p>빨강은 하락, 초록은 상승, 회색은 보합이에요. 빗금은 수익률 미확인이에요.</p>
+          </div>
+          <div className={styles.guideStep}>
+            <div className={styles.tapExample} aria-hidden="true"><span>종목<small>+2.5%</small></span><ArrowUpRight size={20} /><div>투자 비중<strong>평가금액</strong></div></div>
+            <h3>궁금한 종목을 눌러보세요</h3>
+            <p>칸을 누르면 투자 비중과 현재 평가금액을 자세히 볼 수 있어요.</p>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Sub: Cell ───────────────────────────────────────────────────────────
-function Cell({
-  node, colorMode, isCompact, onClick, onMouseMove, onMouseLeave,
-  relative = false, parentRect,
-  hasMounted = true, mountIndex = 0,
-}: {
-  node: LayoutNode;
-  colorMode: 'pnl' | 'today';
-  isCompact: boolean;
-  onClick?: (symbol: string) => void;
-  onMouseMove?: (e: React.MouseEvent) => void;
-  onMouseLeave?: () => void;
-  relative?: boolean;
-  parentRect?: Rect;
-  hasMounted?: boolean;
-  mountIndex?: number;
-}) {
-  const isOthers = node.symbol === OTHERS_SYMBOL;
-  const pct = colorMode === 'pnl' ? node.pnlPct : node.todayPct;
-
-  const baseFill = pastelPnl(pct);
-  const gradient = `linear-gradient(180deg, ${baseFill} 0%, ${darkenSlight(baseFill)} 100%)`;
-
-  const left = relative && parentRect ? `${((node.x - parentRect.x) / parentRect.w) * 100}%` : `${node.x}%`;
-  const top = relative && parentRect ? `${((node.y - parentRect.y) / parentRect.h) * 100}%` : `${node.y}%`;
-  const width = relative && parentRect ? `${(node.w / parentRect.w) * 100}%` : `${node.w}%`;
-  const height = relative && parentRect ? `${(node.h / parentRect.h) * 100}%` : `${node.h}%`;
-
-  const clickable = !!onClick && !isOthers;
-  const tickerLabel = isOthers ? `+${node.childrenSymbols?.length || 0}` : node.symbol;
-  const pctLabel = `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
-
-  const stagger = `${Math.min(mountIndex * 30, 350)}ms`;
-
-  return (
-    <div
-      className={`solb-tm-cell${hasMounted ? ' is-mounted' : ' is-pre-mount'}`}
-      style={{
-        position: 'absolute',
-        left, top, width, height,
-        padding: 3,  // 셀 갭
-        boxSizing: 'border-box',
-        transitionDelay: hasMounted ? stagger : '0ms',
-      }}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-    >
-      <div
-        className="solb-tm-cell-inner"
-        onClick={clickable ? () => onClick!(node.symbol) : undefined}
-        style={{
-          width: '100%', height: '100%',
-          background: gradient,
-          borderRadius: 14,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-          cursor: clickable ? 'pointer' : 'default',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '6px 8px',
-          boxSizing: 'border-box',
-          overflow: 'hidden',
-          containerType: 'size',
-          opacity: isOthers ? 0.92 : 1,
-        }}
-      >
-        <CellLabel
-          ticker={tickerLabel}
-          pct={pctLabel}
-          tickerColor={tickerColor(pct)}
-          pctColor={pnlTextColor(pct)}
-          isCompact={isCompact}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Sub: Cell label (container queries로 크기별 표시) ─────────────────────
-function CellLabel({
-  ticker, pct, tickerColor, pctColor, isCompact,
-}: {
-  ticker: string; pct: string; tickerColor: string; pctColor: string; isCompact: boolean;
-}) {
-  const tickerFs = isCompact ? '12px' : '13px';
-  const pctFs = isCompact ? '10px' : '11px';
-
-  return (
-    <>
-      <style>{`
-        .solb-tm-ticker {
-          font-size: ${tickerFs};
-          font-weight: 700;
-          font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
-          letter-spacing: -0.02em;
-          line-height: 1.1;
-          text-align: center;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 100%;
-        }
-        .solb-tm-pct {
-          font-size: ${pctFs};
-          font-weight: 600;
-          font-feature-settings: "tnum";
-          line-height: 1.2;
-          margin-top: 2px;
-          text-align: center;
-          opacity: 0.95;
-          white-space: nowrap;
-        }
-        @container (max-height: 36px) { .solb-tm-pct { display: none; } }
-        @container (max-width: 50px)  { .solb-tm-pct { display: none; } }
-        @container (max-height: 24px) { .solb-tm-ticker { font-size: 10px; } }
-      `}</style>
-      <div className="solb-tm-ticker" style={{ color: tickerColor }}>{ticker}</div>
-      <div className="solb-tm-pct" style={{ color: pctColor }}>{pct}</div>
-    </>
-  );
-}
-
-// ─── Sub: Tooltip ────────────────────────────────────────────────────────
-function Tooltip({
-  node, x, y, totalVal, containerWidth, containerHeight,
-}: {
-  node: LayoutNode;
-  x: number; y: number;
-  totalVal: number;
-  containerWidth: number;
-  containerHeight: number;
-}) {
-  const isOthers = node.symbol === OTHERS_SYMBOL;
-  const top = Math.min(y + 14, containerHeight - 200);
-  const left = Math.min(x + 14, containerWidth - 230);
-
-  return (
-    <div role="tooltip" style={{
-      position: 'absolute', top, left,
-      minWidth: 210, padding: '12px 14px',
-      borderRadius: 12,
-      background: '#FFFFFF',
-      border: '1px solid #EFF1F4',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-      color: '#191F28', fontSize: 11,
-      pointerEvents: 'none', zIndex: 30,
-    }}>
-      {isOthers ? (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-            {node.label}
-            <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 10, marginLeft: 6 }}>(가중 평균)</span>
-          </div>
-          <Row label="합산 비중" value={`${(((node.realValue ?? node.value) / totalVal) * 100).toFixed(1)}%`} />
-          <Row label="합산 평가" value={node.valFormatted} />
-          <Row label="가중 수익률" value={`${node.pnlPct >= 0 ? '+' : ''}${node.pnlPct.toFixed(2)}%`}
-               color={node.pnlPct >= 0 ? '#C72C2C' : '#1B5BC9'} bold />
-          <div style={{ fontSize: 10, opacity: 0.55, marginTop: 6, marginBottom: 2 }}>포함 종목</div>
-          <div style={{
-            fontSize: 10, fontFamily: "'SF Mono', monospace", opacity: 0.85,
-            lineHeight: 1.5, wordBreak: 'break-all',
-          }}>
-            {node.childrenSymbols?.join(' · ')}
-          </div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6,
-            display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <span style={{ fontFamily: "'SF Mono', monospace" }}>{node.symbol}</span>
-            <span style={{ opacity: 0.5, fontWeight: 400, fontSize: 10 }}>{node.label}</span>
-          </div>
-          <Row label="비중" value={`${((node.value / totalVal) * 100).toFixed(1)}%`} />
-          <Row label="평가금액" value={node.valFormatted} />
-          <Row label="수익률" value={`${node.pnlPct >= 0 ? '+' : ''}${node.pnlPct.toFixed(2)}%`}
-               color={node.pnlPct >= 0 ? '#C72C2C' : '#1B5BC9'} bold />
-          <Row label="오늘" value={`${node.todayPct >= 0 ? '+' : ''}${node.todayPct.toFixed(2)}%`}
-               color={node.todayPct >= 0 ? '#C72C2C' : '#1B5BC9'} />
-        </>
-      )}
-    </div>
-  );
-}
-
-function Row({ label, value, color, bold }: { label: string; value: string; color?: string; bold?: boolean }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12,
-      fontFamily: "'SF Mono', 'JetBrains Mono', monospace",
-      fontVariantNumeric: 'tabular-nums', fontSize: 10.5, marginBottom: 2,
-    }}>
-      <span style={{ opacity: 0.5 }}>{label}</span>
-      <span style={{ color: color || undefined, fontWeight: bold ? 700 : 400 }}>{value}</span>
-    </div>
-  );
+        <div className={styles.guideFootnote}>
+          <span>지금 보는 기준 <strong>{modeLabel}</strong></span>
+          <p>업종·ETF 상품 유형별로 묶고, 분류를 모르면 미분류로 표시해요. 그룹 제목은 비중에 포함되지 않아요.</p>
+          <p>{mode === 'today' ? '±3%' : '±30%'}를 넘어도 색은 같지만 숫자는 실제 수익률이에요. 누적 수익률은 입력한 매입금액 기준이에요.</p>
+          <small>위 그림은 읽는 방법을 설명하는 예시예요.</small>
+        </div>
+      </details>
+      {missing > 0 && <p className={styles.note}>시세가 없는 {missing}개 종목은 비중 계산에서 제외했어요.</p>}
+      {variant === 'compact' && onExpand && <button className={styles.more} onClick={onExpand}>전체 분석 보기 <ArrowUpRight size={15} /></button>}
+    </>}
+    {shareError && <p role="status" className={styles.note}>{shareError}</p>}
+  </section>;
 }

@@ -22,6 +22,8 @@ import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { calcStockAttributes } from '@/utils/mentorScores';
 import MentorRadar from './MentorRadar';
+import MentorIcon, { mentorFocus } from './MentorIcon';
+import StockLearning from './StockLearning';
 import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
 import AiResultMeta from '@/components/common/AiResultMeta';
 import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
@@ -219,6 +221,11 @@ export default function AnalysisPanel() {
   const [mentorError, setMentorError] = useState('');
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
   const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
+  const hasFundamentalValues = !!fundamentals && (
+    [fundamentals.per, fundamentals.eps, fundamentals.marketCap,
+      fundamentals.week52High, fundamentals.week52Low].some(value => typeof value === 'number' && Number.isFinite(value))
+    || (fundamentals.dividendYield ?? 0) > 0 || !!fundamentals.sector
+  );
   const [wideMode, setWideMode] = useState(false); // lg+ 넓게 보기(opt-in, localStorage)
 
   const symbol = analysisSymbol;
@@ -513,6 +520,14 @@ export default function AnalysisPanel() {
                 onClick={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >뉴스</button>
+              {fundamentals && <button
+                onClick={() => document.getElementById('anchor-fundamentals')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-body)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >기업 지표</button>}
+              <button
+                onClick={() => document.getElementById('anchor-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >배우기</button>
             </div>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
@@ -556,6 +571,463 @@ export default function AnalysisPanel() {
                   <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 6 }}>
                     ⏱ 약 15분 지연 시세
                   </div>
+                </div>
+
+                {analysis && !isLev && (
+                  <div className="detail-chart-col">
+                    {/* Chart Tabs */}
+                    <div id="anchor-chart" className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, scrollMarginTop: 44 }}>
+                      가격 차트
+                    </div>
+
+                    {/* Chart level tabs: 2 tabs */}
+                    <div className="flex items-center" style={{ border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+                      {(['basic', 'detail'] as ChartLevel[]).map((lvl, idx) => (
+                        <button
+                          key={lvl}
+                          onClick={() => setChartLevel(lvl)}
+                          className="cursor-pointer transition-colors"
+                          style={{
+                            flex: 1,
+                            padding: '10px 0',
+                            textAlign: 'center',
+                            fontSize: 14,
+                            fontWeight: chartLevel === lvl ? 700 : 500,
+                            color: chartLevel === lvl ? '#fff' : '#8B95A1',
+                            background: chartLevel === lvl ? '#191F28' : '#FFFFFF',
+                            borderTop: 'none',
+                            borderBottom: 'none',
+                            borderLeft: 'none',
+                            borderRight: idx < 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
+                          }}
+                        >
+                          {lvl === 'basic' ? '기본' : '상세'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Timeframe selector */}
+                    <div className="flex items-center justify-center" style={{ gap: 4, marginBottom: 16 }}>
+                      {([
+                        { label: '1M', days: 22 },
+                        { label: '3M', days: 60 },
+                        { label: '6M', days: 120 },
+                        { label: '1Y', days: 0 },
+                      ]).map(tf => (
+                        <button
+                          key={tf.label}
+                          onClick={() => setChartRange(tf.days)}
+                          className="cursor-pointer"
+                          style={{
+                            padding: '5px 14px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontWeight: chartRange === tf.days ? 700 : 500,
+                            color: chartRange === tf.days ? 'var(--brand-primary, #0E7C7B)' : '#8B95A1',
+                            background: chartRange === tf.days ? 'var(--brand-primary-light, rgba(14,124,123,0.08))' : 'transparent',
+                            border: 'none',
+                          }}
+                        >
+                          {tf.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Chart */}
+                    <StockChart
+                      raw={analysis.raw}
+                      sma5={analysis.sma5}
+                      sma20={analysis.sma20}
+                      sma60={analysis.sma60}
+                      level={chartLevel}
+                      bollingerBands={analysis.bollinger}
+                      macdData={analysis.macdResult}
+                      rsiData={analysis.rsi}
+                      visibleBars={chartRange}
+                    />
+
+                    <details style={{ marginTop: 16 }}>
+                      <summary style={{ minHeight: 44, padding: '12px 0', cursor: 'pointer', fontSize: 14, color: 'var(--text-body)' }}>차트 해설과 기술 지표 펼쳐보기</summary>
+                    {/* 이 차트, 지금 이런 상태예요 — 초보 해설(chartNarrative SSOT, §6 안전). 차트 직하 약어 범례 대체.
+                        level 바인딩 — basic 차트엔 볼린저 띠 미렌더라 볼린저 설명 생략(화면-설명 일치). */}
+                    {(() => {
+                      const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
+                      const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
+                      const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
+                      // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
+                      const periodLabel = chartRange === 22 ? '최근 한 달'
+                        : chartRange === 120 ? '최근 여섯 달'
+                        : chartRange === 0 ? '최근 1년'
+                        : '최근 석 달';
+                      const narrative = buildChartNarrative({
+                        rsiVal: analysis.rsiVal,
+                        bollingerPos: analysis.bollingerStatus
+                          ? (analysis.bollingerStatus.status.startsWith('상단') ? 'upper'
+                            : analysis.bollingerStatus.status.startsWith('하단') ? 'lower'
+                            : analysis.bollingerStatus.status.startsWith('중앙') ? 'middle' : null)
+                          : null,
+                        price: analysis.closes[analysis.closes.length - 1],
+                        recentHigh,
+                        recentLow,
+                        sma20: analysis.sma20.length ? analysis.sma20[analysis.sma20.length - 1] : null,
+                        sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
+                        volRatio: analysis.volRatio,
+                        level: chartLevel,
+                        periodLabel,
+                        hasNews: tickerNews.length > 0,
+                      });
+                      return (
+                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
+                            이 차트, 지금 이런 상태예요
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.65 }}>
+                            {narrative.summary}
+                          </div>
+                          <details style={{ marginTop: 10 }}>
+                            <summary
+                              onClick={() => logApiCall('chart_guide_expand')}
+                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', cursor: 'pointer' }}
+                            >
+                              📖 차트 용어 쉽게 풀어보기
+                            </summary>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                              {narrative.cards.map((c) => (
+                                <div key={c.term} style={{ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.emoji} {c.term}</div>
+                                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.6, marginBottom: 4 }}>{c.whatIsIt}</div>
+                                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{c.nowMeans}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Technical indicators grid */}
+                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
+                      기술적 지표
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+                      {/* RSI */}
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>RSI (14)</div>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
+                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : '#191F28',
+                        }}>
+                          {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.rsiVal != null && analysis.rsiVal < 30 ? '30 아래\n과매도 구간' :
+                           analysis.rsiVal != null && analysis.rsiVal > 70 ? '70 위\n과열 구간' : '30~70\n중간 구간'}
+                        </div>
+                      </div>
+
+                      {/* MA 20 */}
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 20일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
+                          {analysis.sma20.length ? `$${analysis.sma20[analysis.sma20.length - 1].toFixed(2)}` : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
+                            ? '현재가가 20일\n평균보다 위'
+                            : '현재가가 20일\n평균보다 아래'}
+                        </div>
+                      </div>
+
+                      {/* MA 60 */}
+                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 60일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
+                          {analysis.sma60.length ? `$${analysis.sma60[analysis.sma60.length - 1].toFixed(2)}` : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
+                            ? '현재가가 60일\n평균보다 위'
+                            : '현재가가 60일\n평균보다 아래'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bollinger interpretation */}
+                    {analysis.bollingerStatus && (
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>볼린저 밴드</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}>
+                            {analysis.bollingerStatus.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                          {analysis.bollingerStatus.desc}
+                          {analysis.lastBollinger && (
+                            <>
+                              <br />
+                              상단: ${analysis.lastBollinger.upper.toFixed(2)} · 중단: ${analysis.lastBollinger.middle.toFixed(2)} · 하단: ${analysis.lastBollinger.lower.toFixed(2)}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MACD interpretation */}
+                    {analysis.macdStatus && (
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>MACD</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}>
+                            {analysis.macdStatus.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                          {analysis.macdStatus.desc}
+                          {analysis.macdResult.macd.length > 0 && (
+                            <>
+                              <br />
+                              MACD: {analysis.macdResult.macd[analysis.macdResult.macd.length - 1].toFixed(2)} · Signal: {analysis.macdResult.signal.length ? analysis.macdResult.signal[analysis.macdResult.signal.length - 1].toFixed(2) : '--'} · Histogram: {analysis.macdResult.histogram.length ? analysis.macdResult.histogram[analysis.macdResult.histogram.length - 1].toFixed(2) : '--'}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Volume interpretation */}
+                    <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 24 }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>거래량</span>
+                        <span style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          background: 'var(--bg-subtle)',
+                          color: 'var(--text-secondary)',
+                        }}>
+                          {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                        최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
+                      </div>
+                    </div>
+                    </details>
+                  </div>
+                )}
+
+                {!analysis && !loading && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
+                    {isThinData
+                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
+                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
+                  </div>
+                )}
+
+                {/* Investment P&L */}
+                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
+                  <div style={{ padding: 20, borderRadius: 14, background: '#F8F9FA', marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 12 }}>내 투자 현황</div>
+                    {/* $/₩ 2컬럼 정렬 — 라벨 | 메인값(우정렬) | 괄호값(우정렬), grid 트랙 공유로 행 간 세로 정렬. tabular-nums. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr max-content max-content', columnGap: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>보유 수량</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>{stockData.shares}주</span>
+                      <span style={{ padding: '6px 0' }} />
+
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(avgCostAmounts.krw)
+                          : formatUsd(avgCostAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(avgCostAmounts.usd)})`
+                          : `(${formatKrw(avgCostAmounts.krw)})`}
+                      </span>
+
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(costAmounts.krw)
+                          : formatUsd(costAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(costAmounts.usd)})`
+                          : `(${formatKrw(costAmounts.krw)})`}
+                      </span>
+
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(valueAmounts.krw)
+                          : formatUsd(valueAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(valueAmounts.usd)})`
+                          : `(${formatKrw(valueAmounts.krw)})`}
+                      </span>
+
+                      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
+                          ? formatKrw(Math.abs(displayPnl))
+                          : formatUsd(Math.abs(displayPnl))}`}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
+                      {isKoreanStock
+                        ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
+                        : currency === 'KRW'
+                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
+                          : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Related news */}
+                <div id="anchor-news" style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, marginTop: 24, scrollMarginTop: 44 }}>
+                  이 종목의 최근 소식
+                </div>
+                {tickerNews.length > 0 ? (
+                  <div>
+                    {tickerNews.map((item, idx) => {
+                      const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('ko-KR') : '';
+                      return (
+                        <a
+                          key={idx}
+                          href={item.link} target="_blank" rel="noopener noreferrer"
+                          className="cursor-pointer"
+                          style={{
+                            display: 'block', color: 'var(--text-primary)', textDecoration: 'none', padding: '16px 0',
+                            borderBottom: idx < tickerNews.length - 1 ? '1px solid #F7F8FA' : 'none',
+                          }}
+                        >
+                          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.65, marginBottom: 6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {item.title}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-body)' }}>
+                            {item.source}{item.source && date ? ' · ' : ''}{date}
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#8B95A1' }}>
+                    관련 뉴스가 없어요.
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('anchor-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={{ minHeight: 44, width: '100%', padding: 12, marginTop: 16, borderRadius: 12, border: '1px solid var(--border-light)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}
+                >뉴스를 읽었다면, 다른 개념도 살펴보기</button>
+
+                {/* 재무 데이터 */}
+                {fundamentals && (
+                  <div id="anchor-fundamentals" style={{ marginTop: 24, marginBottom: 24, padding: 24, borderRadius: 24, background: 'var(--bg-subtle)', scrollMarginTop: 44 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
+                      기업·가격 지표
+                    </div>
+                    {!hasFundamentalValues && <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-body)' }}>현재 제공된 기업 지표가 없어요. 관련 뉴스와 기업의 공시 자료를 함께 확인해 주세요.</p>}
+                    <div className="fundamentals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: 14 }}>
+                      <style>{`@media (max-width: 400px) { .fundamentals-grid { grid-template-columns: 1fr !important; } }`}</style>
+                      {fundamentals.per != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>PER (주가수익비율)</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.per.toFixed(1)}</span>
+                        </div>
+                      )}
+                      {fundamentals.eps != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>EPS (주당순이익)</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.eps, fundamentalsCurrency)}
+                          </span>
+                        </div>
+                      )}
+                      {fundamentals.marketCap != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>시가총액</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtMarketCap(fundamentals.marketCap, fundamentalsCurrency)}
+                          </span>
+                        </div>
+                      )}
+                      {fundamentals.dividendYield != null && fundamentals.dividendYield > 0 && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>배당수익률</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.dividendYield.toFixed(2)}%</span>
+                        </div>
+                      )}
+                      {fundamentals.week52High != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최고</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.week52High, fundamentalsCurrency)}
+                          </span>
+                        </div>
+                      )}
+                      {fundamentals.week52Low != null && (
+                        <div className="flex justify-between">
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최저</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                            {fmtNativePrice(fundamentals.week52Low, fundamentalsCurrency)}
+                          </span>
+                        </div>
+                      )}
+                      {fundamentals.sector && (
+                        <div className="flex justify-between" style={{ gridColumn: 'span 2' }}>
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>섹터</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.sector}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
+                <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
+                  <StockLearning
+                    key={symbol}
+                    name={displayName}
+                    onChart={analysis && !isLev ? (days) => {
+                      setChartRange(days);
+                      document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } : undefined}
+                    onNews={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onNotes={stockData ? () => {
+                      const notes = document.getElementById('anchor-notes');
+                      notes?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      notes?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+                    } : undefined}
+                  />
                 </div>
 
                 {/* AI 분석 리포트 버튼 */}
@@ -839,68 +1311,6 @@ export default function AnalysisPanel() {
                     레이더 차트 + 멘토 분석 섹션
                     ============================================ */}
 
-                {/* 재무 데이터 */}
-                {fundamentals && (
-                  <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 12, background: 'var(--bg-subtle, #F8F9FA)' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 10 }}>
-                      기본 정보
-                    </div>
-                    <div className="fundamentals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: 12 }}>
-                      <style>{`@media (max-width: 400px) { .fundamentals-grid { grid-template-columns: 1fr !important; } }`}</style>
-                      {fundamentals.per != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>PER (주가수익비율)</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.per.toFixed(1)}</span>
-                        </div>
-                      )}
-                      {fundamentals.eps != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>EPS (주당순이익)</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.eps, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.marketCap != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>시가총액</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtMarketCap(fundamentals.marketCap, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.dividendYield != null && fundamentals.dividendYield > 0 && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>배당수익률</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.dividendYield.toFixed(2)}%</span>
-                        </div>
-                      )}
-                      {fundamentals.week52High != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최고</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.week52High, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.week52Low != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최저</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.week52Low, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.sector && (
-                        <div className="flex justify-between" style={{ gridColumn: 'span 2' }}>
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>섹터</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.sector}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {/* 단일종목 레버리지: 레이더(매수 매력도)·멘토 분석 섹션 전체 숨김 — '분석' 출구 차단.
                     거부 + 일반 유도 카드가 위 AI 분석 영역에 노출됨. */}
                 {!isLev && (
@@ -1037,12 +1447,12 @@ export default function AnalysisPanel() {
                             opacity: mentorLoading && !isActive ? 0.5 : 1,
                           }}
                         >
-                          <img src={m.characterImage} alt={m.character} style={{ width: 52, height: 52, borderRadius: '50%' }} />
+                          <MentorIcon id={m.id} />
                           <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
                             {m.nameKr}
                           </span>
                           <span style={{ fontSize: 10, color: isActive ? m.color : 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
-                            {m.character}
+                            {mentorFocus(m.id)}
                           </span>
                           <span style={{ fontSize: 8, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap', letterSpacing: 1 }}>
                             {'★'.repeat(m.risk)}{'☆'.repeat(5 - m.risk)}
@@ -1064,14 +1474,14 @@ export default function AnalysisPanel() {
                       {/* Profile card */}
                       <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${selectedMentor.color}15` }}>
                         <div className="flex items-start" style={{ gap: 12 }}>
-                          <img src={selectedMentor.characterImage} alt={selectedMentor.character} style={{ width: 64, height: 64, borderRadius: '50%', flexShrink: 0 }} />
+                          <MentorIcon id={selectedMentor.id} size={48} />
                           <div style={{ flex: 1 }}>
                             <div className="flex items-center" style={{ gap: 8 }}>
                               <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
                                 {selectedMentor.nameKr}
                               </span>
                               <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                                {selectedMentor.character}
+                                {mentorFocus(selectedMentor.id)}
                               </span>
                               <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 1 }}>
                                 리스크 {'★'.repeat(selectedMentor.risk)}{'☆'.repeat(5 - selectedMentor.risk)}
@@ -1244,73 +1654,6 @@ export default function AnalysisPanel() {
 
                 {/* === Below here: always visible regardless of analysis data === */}
 
-                {/* Investment P&L */}
-                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
-                  <div style={{ padding: 20, borderRadius: 14, background: '#F8F9FA', marginBottom: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 12 }}>내 투자 현황</div>
-                    {/* $/₩ 2컬럼 정렬 — 라벨 | 메인값(우정렬) | 괄호값(우정렬), grid 트랙 공유로 행 간 세로 정렬. tabular-nums. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr max-content max-content', columnGap: 8, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>보유 수량</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>{stockData.shares}주</span>
-                      <span style={{ padding: '6px 0' }} />
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(avgCostAmounts.krw)
-                          : formatUsd(avgCostAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(avgCostAmounts.usd)})`
-                          : `(${formatKrw(avgCostAmounts.krw)})`}
-                      </span>
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(costAmounts.krw)
-                          : formatUsd(costAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(costAmounts.usd)})`
-                          : `(${formatKrw(costAmounts.krw)})`}
-                      </span>
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(valueAmounts.krw)
-                          : formatUsd(valueAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(valueAmounts.usd)})`
-                          : `(${formatKrw(valueAmounts.krw)})`}
-                      </span>
-
-                      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                        {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
-                          ? formatKrw(Math.abs(displayPnl))
-                          : formatUsd(Math.abs(displayPnl))}`}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                        ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
-                      {isKoreanStock
-                        ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
-                        : currency === 'KRW'
-                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
-                          : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
-                    </div>
-                  </div>
-                )}
-
                 {/* Goal progress bar */}
                 {stockData && stockData.targetReturn > 0 && stockData.avgCost > 0 && price > 0 && (
                   <div style={{ marginBottom: 24 }}>
@@ -1417,317 +1760,19 @@ export default function AnalysisPanel() {
                     if (idx >= 0) {
                       const stock = state.stocks[cat][idx];
                       return (
-                        <InvestmentNotes
-                          symbol={symbol}
-                          category={cat}
-                          stockIdx={idx}
-                          notes={stock.notes || []}
-                        />
+                        <div id="anchor-notes" style={{ scrollMarginTop: 56 }}>
+                          <InvestmentNotes
+                            symbol={symbol}
+                            category={cat}
+                            stockIdx={idx}
+                            notes={stock.notes || []}
+                          />
+                        </div>
                       );
                     }
                   }
                   return null;
                 })()}
-
-                {analysis && !isLev && (
-                  <div className="detail-chart-col">
-                    {/* Chart Tabs */}
-                    <div id="anchor-chart" className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, scrollMarginTop: 44 }}>
-                      차트 분석
-                    </div>
-
-                    {/* Chart level tabs: 2 tabs */}
-                    <div className="flex items-center" style={{ border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-                      {(['basic', 'detail'] as ChartLevel[]).map((lvl, idx) => (
-                        <button
-                          key={lvl}
-                          onClick={() => setChartLevel(lvl)}
-                          className="cursor-pointer transition-colors"
-                          style={{
-                            flex: 1,
-                            padding: '10px 0',
-                            textAlign: 'center',
-                            fontSize: 14,
-                            fontWeight: chartLevel === lvl ? 700 : 500,
-                            color: chartLevel === lvl ? '#fff' : '#8B95A1',
-                            background: chartLevel === lvl ? '#191F28' : '#FFFFFF',
-                            borderTop: 'none',
-                            borderBottom: 'none',
-                            borderLeft: 'none',
-                            borderRight: idx < 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
-                          }}
-                        >
-                          {lvl === 'basic' ? '기본' : '상세'}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Timeframe selector */}
-                    <div className="flex items-center justify-center" style={{ gap: 4, marginBottom: 16 }}>
-                      {([
-                        { label: '1M', days: 22 },
-                        { label: '3M', days: 60 },
-                        { label: '6M', days: 120 },
-                        { label: '1Y', days: 0 },
-                      ]).map(tf => (
-                        <button
-                          key={tf.label}
-                          onClick={() => setChartRange(tf.days)}
-                          className="cursor-pointer"
-                          style={{
-                            padding: '5px 14px',
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: chartRange === tf.days ? 700 : 500,
-                            color: chartRange === tf.days ? 'var(--brand-primary, #0E7C7B)' : '#8B95A1',
-                            background: chartRange === tf.days ? 'var(--brand-primary-light, rgba(14,124,123,0.08))' : 'transparent',
-                            border: 'none',
-                          }}
-                        >
-                          {tf.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Chart */}
-                    <StockChart
-                      raw={analysis.raw}
-                      sma5={analysis.sma5}
-                      sma20={analysis.sma20}
-                      sma60={analysis.sma60}
-                      level={chartLevel}
-                      bollingerBands={analysis.bollinger}
-                      macdData={analysis.macdResult}
-                      rsiData={analysis.rsi}
-                      visibleBars={chartRange}
-                    />
-
-                    {/* 이 차트, 지금 이런 상태예요 — 초보 해설(chartNarrative SSOT, §6 안전). 차트 직하 약어 범례 대체.
-                        level 바인딩 — basic 차트엔 볼린저 띠 미렌더라 볼린저 설명 생략(화면-설명 일치). */}
-                    {(() => {
-                      const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
-                      const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
-                      const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
-                      // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
-                      const periodLabel = chartRange === 22 ? '최근 한 달'
-                        : chartRange === 120 ? '최근 여섯 달'
-                        : chartRange === 0 ? '최근 1년'
-                        : '최근 석 달';
-                      const narrative = buildChartNarrative({
-                        rsiVal: analysis.rsiVal,
-                        bollingerPos: analysis.bollingerStatus
-                          ? (analysis.bollingerStatus.status.startsWith('상단') ? 'upper'
-                            : analysis.bollingerStatus.status.startsWith('하단') ? 'lower'
-                            : analysis.bollingerStatus.status.startsWith('중앙') ? 'middle' : null)
-                          : null,
-                        price: analysis.closes[analysis.closes.length - 1],
-                        recentHigh,
-                        recentLow,
-                        sma20: analysis.sma20.length ? analysis.sma20[analysis.sma20.length - 1] : null,
-                        sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
-                        volRatio: analysis.volRatio,
-                        level: chartLevel,
-                        periodLabel,
-                        hasNews: tickerNews.length > 0,
-                      });
-                      return (
-                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-                            이 차트, 지금 이런 상태예요
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.65 }}>
-                            {narrative.summary}
-                          </div>
-                          <details style={{ marginTop: 10 }}>
-                            <summary
-                              onClick={() => logApiCall('chart_guide_expand')}
-                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', cursor: 'pointer' }}
-                            >
-                              📖 차트 용어 쉽게 풀어보기
-                            </summary>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                              {narrative.cards.map((c) => (
-                                <div key={c.term} style={{ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.emoji} {c.term}</div>
-                                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.6, marginBottom: 4 }}>{c.whatIsIt}</div>
-                                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{c.nowMeans}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Technical indicators grid */}
-                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
-                      기술적 지표
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
-                      {/* RSI */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>RSI (14)</div>
-                        <div style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
-                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : '#191F28',
-                        }}>
-                          {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.rsiVal != null && analysis.rsiVal < 30 ? '30 아래\n과매도 구간' :
-                           analysis.rsiVal != null && analysis.rsiVal > 70 ? '70 위\n과열 구간' : '30~70\n중간 구간'}
-                        </div>
-                      </div>
-
-                      {/* MA 20 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 20일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
-                          {analysis.sma20.length ? `$${analysis.sma20[analysis.sma20.length - 1].toFixed(2)}` : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
-                            ? '현재가가 20일\n평균보다 위'
-                            : '현재가가 20일\n평균보다 아래'}
-                        </div>
-                      </div>
-
-                      {/* MA 60 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 60일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
-                          {analysis.sma60.length ? `$${analysis.sma60[analysis.sma60.length - 1].toFixed(2)}` : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
-                            ? '현재가가 60일\n평균보다 위'
-                            : '현재가가 60일\n평균보다 아래'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bollinger interpretation */}
-                    {analysis.bollingerStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
-                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>볼린저 밴드</span>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            background: 'var(--bg-subtle)',
-                            color: 'var(--text-secondary)',
-                          }}>
-                            {analysis.bollingerStatus.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
-                          {analysis.bollingerStatus.desc}
-                          {analysis.lastBollinger && (
-                            <>
-                              <br />
-                              상단: ${analysis.lastBollinger.upper.toFixed(2)} · 중단: ${analysis.lastBollinger.middle.toFixed(2)} · 하단: ${analysis.lastBollinger.lower.toFixed(2)}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* MACD interpretation */}
-                    {analysis.macdStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
-                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>MACD</span>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            background: 'var(--bg-subtle)',
-                            color: 'var(--text-secondary)',
-                          }}>
-                            {analysis.macdStatus.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
-                          {analysis.macdStatus.desc}
-                          {analysis.macdResult.macd.length > 0 && (
-                            <>
-                              <br />
-                              MACD: {analysis.macdResult.macd[analysis.macdResult.macd.length - 1].toFixed(2)} · Signal: {analysis.macdResult.signal.length ? analysis.macdResult.signal[analysis.macdResult.signal.length - 1].toFixed(2) : '--'} · Histogram: {analysis.macdResult.histogram.length ? analysis.macdResult.histogram[analysis.macdResult.histogram.length - 1].toFixed(2) : '--'}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Volume interpretation */}
-                    <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 24 }}>
-                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>거래량</span>
-                        <span style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: 'var(--bg-subtle)',
-                          color: 'var(--text-secondary)',
-                        }}>
-                          {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
-                        최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!analysis && !loading && (
-                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
-                    {isThinData
-                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
-                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
-                  </div>
-                )}
-
-                {/* Related news */}
-                <div id="anchor-news" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, marginTop: 24, scrollMarginTop: 44 }}>
-                  관련 뉴스
-                </div>
-                {tickerNews.length > 0 ? (
-                  <div>
-                    {tickerNews.map((item, idx) => {
-                      const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('ko-KR') : '';
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => window.open(item.link, '_blank', 'noopener,noreferrer')}
-                          className="cursor-pointer"
-                          style={{
-                            padding: '12px 0',
-                            borderBottom: idx < tickerNews.length - 1 ? '1px solid #F7F8FA' : 'none',
-                          }}
-                        >
-                          <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.5, marginBottom: 4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {item.title}
-                          </div>
-                          <div style={{ fontSize: 11, color: '#B0B8C1' }}>
-                            {item.source}{item.source && date ? ' · ' : ''}{date}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#8B95A1' }}>
-                    관련 뉴스가 없어요.
-                  </div>
-                )}
 
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 16 }}>

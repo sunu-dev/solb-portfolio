@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 
@@ -42,14 +41,6 @@ export default function LandingPage() {
       <div style={{ width: '100%', maxWidth: 980, margin: '0 auto', position: 'relative' }}>
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Image
-              src="/icon-192.png"
-              alt=""
-              width={38}
-              height={38}
-              priority
-              style={{ width: 38, height: 38, borderRadius: 11 }}
-            />
             <JoobiLockup variant="header" />
           </div>
           <Link

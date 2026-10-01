@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { yahooPreviousClose } from '@/utils/yahooPreviousClose';
 import { CHOK_UNIVERSE } from '@/config/chokUniverse';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
@@ -99,14 +100,8 @@ async function fetchYahooQuote(symbol: string): Promise<FinnhubQuote | null> {
       const price = result?.meta?.regularMarketPrice;
       if (typeof price !== 'number' || !Number.isFinite(price) || price <= 0) continue;
 
-      const closes = result?.indicators?.quote?.[0]?.close || [];
-      const historicalCloses = closes.filter(
-        (close): close is number => typeof close === 'number' && Number.isFinite(close),
-      );
-      const previousClose = result?.meta?.chartPreviousClose
-        || result?.meta?.previousClose
-        || historicalCloses.at(-2)
-        || price;
+      const previousClose = result ? yahooPreviousClose(result) : null;
+      if (previousClose === null) continue;
       const change = price - previousClose;
 
       return {

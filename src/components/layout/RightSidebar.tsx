@@ -330,7 +330,7 @@ export default function RightSidebar() {
               알림이 없어요
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-              포트폴리오에 특별한 상황이 없어요.{'\n'}안정적인 상태예요.
+              현재 표시할 새 알림이 없어요.{'\n'}알림이 없다는 것이 투자 위험이 없다는 뜻은 아니에요.
             </div>
           </div>
         )}

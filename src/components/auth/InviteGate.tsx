@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import type { User } from '@supabase/supabase-js';
@@ -26,6 +26,10 @@ export default function InviteGate({ user, onVerified }: Props) {
     try {
       const session = (await supabase.auth.getSession()).data.session;
       const token = session?.access_token;
+      if (!token || session.user.id !== user.id) {
+        setError('로그인 상태를 확인할 수 없어요. 다시 로그인해주세요.');
+        return;
+      }
 
       const res = await fetch('/api/codes/validate', {
         method: 'POST',
@@ -33,11 +37,11 @@ export default function InviteGate({ user, onVerified }: Props) {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ code: code.trim(), userId: user.id, context: 'signup' }),
+        body: JSON.stringify({ code: code.trim(), context: 'signup' }),
       });
       const data = await res.json();
 
-      if (data.valid) {
+      if (res.ok && data.valid === true && data.applied === true) {
         setSuccess(data.message);
         setTimeout(() => onVerified(), 1200);
       } else {
@@ -85,7 +89,7 @@ export default function InviteGate({ user, onVerified }: Props) {
               setCode(e.target.value.toUpperCase());
               setError('');
             }}
-            placeholder="JB-XXXXXXXX"
+            placeholder="SOLB-XXXXXXXX"
             maxLength={20}
             disabled={loading || !!success}
             style={{

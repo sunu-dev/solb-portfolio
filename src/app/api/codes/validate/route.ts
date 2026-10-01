@@ -1,179 +1,44 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { defineRoute } from '@/lib/apiRoute';
 import { requireServiceClient } from '@/lib/supabaseServer';
 
-// 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
-// (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
-const supabaseAdmin = () => requireServiceClient();
-
-export async function POST(req: NextRequest) {
-  try {
-    const { code, context = 'signup' } = await req.json() as {
-      code: string;
-      context?: string;
-    };
-
-    if (!code?.trim()) {
+// 유효성 조회만으로 입장시키지 않는다. 인증 신원 + DB 원자 적용 결과가 모두 필요하다.
+export const POST = defineRoute({
+  name: '/api/codes/validate',
+  auth: 'user',
+  handler: async ({ req, userId }) => {
+    let body: unknown;
+    try { body = await req.json(); } catch {
+      return NextResponse.json({ valid: false, error: '올바른 요청이 아니에요.' }, { status: 400 });
+    }
+    if (!body || typeof body !== 'object') {
       return NextResponse.json({ valid: false, error: '코드를 입력해주세요.' }, { status: 400 });
     }
-
-    // 보안: body의 userId는 신뢰하지 않음. Authorization 토큰에서만 추출.
-    // 기존엔 body userId 신뢰 → 타인 명의 코드 사용·리퍼럴 보상 가로채기 가능했음.
-    let userId: string | undefined;
-    const authHeader = req.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        const { data: { user } } = await supabaseAdmin().auth.getUser(token);
-        userId = user?.id;
-      } catch { /* 토큰 검증 실패 — userId 미설정 */ }
+    const { code, context = 'signup' } = body as Record<string, unknown>;
+    if (typeof code !== 'string' || !/^[A-Z0-9-]{4,32}$/i.test(code.trim()) || context !== 'signup') {
+      return NextResponse.json({ valid: false, error: '가입용 코드를 확인해주세요.' }, { status: 400 });
     }
-
-    const normalized = code.trim().toUpperCase();
-
-    // 코드 조회
-    const { data: codeRow, error } = await supabaseAdmin()
-      .from('codes')
-      .select('*')
-      .eq('code', normalized)
-      .eq('is_active', true)
-      .single();
-
-    if (error || !codeRow) {
-      return NextResponse.json({ valid: false, error: '유효하지 않은 코드예요.' });
-    }
-
-    // 만료 확인
-    if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
-      return NextResponse.json({ valid: false, error: '만료된 코드예요.' });
-    }
-
-    // 사용 횟수 확인
-    if (codeRow.max_uses !== null && codeRow.use_count >= codeRow.max_uses) {
-      return NextResponse.json({ valid: false, error: '이미 모두 사용된 코드예요.' });
-    }
-
-    // 중복 사용 확인 (같은 유저가 같은 코드 재사용 방지) — 빠른 실패용 사전 검사.
-    // 최종 방어는 applyCode()의 유니크 제약이다(.single()은 0행일 때도 error를 내므로
-    // 여기서 error를 근거로 판단하면 안 된다 — data 유무만 본다).
-    if (userId) {
-      const { data: existing } = await supabaseAdmin()
-        .from('code_uses')
-        .select('id')
-        .eq('code', normalized)
-        .eq('used_by', userId)
-        .maybeSingle();
-
-      if (existing) {
-        return NextResponse.json({ valid: false, error: '이미 사용한 코드예요.' });
-      }
-    }
-
-    // context가 signup이고 userId가 있으면 즉시 적용
-    if (context === 'signup' && userId) {
-      await applyCode(codeRow, userId, context);
-    }
-
-    return NextResponse.json({
-      valid: true,
-      type: codeRow.type,
-      rewards: codeRow.rewards,
-      message: getSuccessMessage(codeRow.type, codeRow.rewards),
+    const { data, error } = await requireServiceClient().rpc('apply_signup_code', {
+      p_code: code.trim().toUpperCase(),
+      p_user_id: userId,
     });
-  } catch (e) {
-    console.error('Code validate error:', e);
-    return NextResponse.json({ valid: false, error: '오류가 발생했어요. 다시 시도해주세요.' }, { status: 500 });
-  }
-}
-
-async function applyCode(codeRow: Record<string, unknown>, userId: string, context: string) {
-  // 트랜잭션처럼 처리 (Supabase는 RPC로 트랜잭션 가능하나 여기선 순차 처리)
-  const rewards = (codeRow.rewards as Record<string, unknown>) || {};
-
-  // 1. 사용 기록 삽입 — 여기가 **경합 방어선**이다.
-  //    유니크 인덱스 uniq_code_uses_code_user (마이그 20260818000100)가 1인 1코드를 강제하므로,
-  //    동시 요청 중 하나만 성공한다. 실패(23505)하면 이미 사용한 것이므로 보상 지급까지
-  //    전부 중단한다. 예전에는 insert 결과를 확인하지 않아 use_count 증가와 크레딧 지급이
-  //    중복 실행될 수 있었다.
-  const { error: insertError } = await supabaseAdmin().from('code_uses').insert({
-    code_id: codeRow.id,
-    code: codeRow.code,
-    used_by: userId,
-    context,
-    reward_granted: false,
-    reward_data: rewards,
-  });
-
-  if (insertError) {
-    // 23505 = unique_violation (이미 사용) / 그 외 오류도 보상 지급 없이 중단한다.
-    console.warn('[codes/validate] code_uses insert 실패 — 보상 지급 중단:', insertError.code);
-    return;
-  }
-
-  // 2. use_count 증가
-  await supabaseAdmin()
-    .from('codes')
-    .update({ use_count: (codeRow.use_count as number) + 1 })
-    .eq('id', codeRow.id);
-
-  // 3. 가입 코드 기록
-  await supabaseAdmin()
-    .from('user_portfolios')
-    .update({ invited_by_code: codeRow.code })
-    .eq('user_id', userId);
-
-  // 4. 리퍼럴 보상 지급
-  if (codeRow.type === 'referral') {
-    const referralRewards = rewards as { referee?: { type: string; amount: number }; referrer?: { type: string; amount: number } };
-
-    // 피추천인 보상
-    if (referralRewards.referee?.type === 'ai_credits') {
-      await supabaseAdmin().from('user_credits').insert({
-        user_id: userId,
-        amount: referralRewards.referee.amount,
-        source: 'referral',
-        source_ref: codeRow.id,
-      });
+    if (error) {
+      // 사용자 식별자, 코드, DB 상세 오류를 로그나 응답에 노출하지 않는다.
+      console.error('[codes/validate] atomic apply failed', { code: error.code });
+      return NextResponse.json({
+        valid: false, applied: false, error: '코드를 저장하지 못했어요. 잠시 후 다시 시도해주세요.',
+      }, { status: 503 });
     }
-
-    // 추천인 보상
-    if (codeRow.created_by && referralRewards.referrer?.type === 'ai_credits') {
-      await supabaseAdmin().from('user_credits').insert({
-        user_id: codeRow.created_by,
-        amount: referralRewards.referrer.amount,
-        source: 'referral',
-        source_ref: codeRow.id,
-      });
+    if (data?.valid !== true || data?.applied !== true) {
+      return NextResponse.json({
+        valid: false, applied: false,
+        error: typeof data?.error === 'string' ? data.error : '코드 적용 결과를 확인하지 못했어요.',
+      }, { status: 409 });
     }
-  }
-
-  // 5. 보상 지급 완료 표시
-  await supabaseAdmin()
-    .from('code_uses')
-    .update({ reward_granted: true })
-    .eq('code', codeRow.code)
-    .eq('used_by', userId);
-}
-
-function getSuccessMessage(type: string, rewards: Record<string, unknown>): string {
-  switch (type) {
-    case 'invite':
-      return '초대 코드가 확인됐어요! 주비 베타에 오신 걸 환영해요 🎉';
-    case 'referral': {
-      const r = rewards as { referee?: { amount: number } };
-      const bonus = r.referee?.amount ?? 0;
-      return bonus > 0
-        ? `리퍼럴 코드 적용! AI 분석 ${bonus}회가 추가됐어요 🎁`
-        : '리퍼럴 코드가 적용됐어요!';
-    }
-    case 'discount': {
-      const d = rewards as { type?: string; amount?: number };
-      return d.type === 'percent'
-        ? `${d.amount}% 할인 코드가 적용됐어요!`
-        : `${(d.amount ?? 0).toLocaleString()}원 할인 코드가 적용됐어요!`;
-    }
-    case 'promo':
-      return '프로모션 코드가 적용됐어요!';
-    default:
-      return '코드가 적용됐어요!';
-  }
-}
+    return NextResponse.json({
+      valid: true, applied: true, type: data.type,
+      personal_code: typeof data.personal_code === 'string' ? data.personal_code : undefined,
+      message: '초대 코드가 등록됐어요. 주비에 오신 걸 환영해요!',
+    });
+  },
+});

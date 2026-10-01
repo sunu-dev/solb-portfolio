@@ -85,10 +85,11 @@ export function useNotification() {
 
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.access_token) {
-        await fetch('/api/push/subscribe', {
+        const response = await fetch('/api/push/subscribe', {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
+        if (!response.ok) return false;
       }
 
       setPushEnabled(false);

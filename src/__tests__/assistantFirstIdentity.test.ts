@@ -7,16 +7,19 @@ function source(path: string): string {
 }
 
 describe('개인 주식비서 우선 IA', () => {
-  it('홈은 브리핑·자산을 먼저 렌더하고 기록 도구는 핵심 탭 뒤에 둔다', () => {
+  it('홈은 자산·종목 가격을 먼저 렌더하고 브리핑과 기록 도구를 뒤에 둔다', () => {
     const portfolio = source('../components/portfolio/PortfolioSection.tsx');
-    const briefing = portfolio.indexOf('<MorningBriefing />');
+    const briefing = portfolio.indexOf('오늘의 브리핑 다시 보기');
     const dashboard = portfolio.indexOf('<Dashboard />');
+    const stockList = portfolio.indexOf('className="stock-row stock-table-row');
     const recordCenter = portfolio.indexOf('<PortfolioRecordCenter', dashboard);
     const analysisTab = portfolio.indexOf("subTab === 'analysis'");
 
-    expect(briefing).toBeGreaterThan(0);
-    expect(dashboard).toBeGreaterThan(briefing);
+    expect(dashboard).toBeGreaterThan(0);
+    expect(stockList).toBeGreaterThan(dashboard);
+    expect(briefing).toBeGreaterThan(stockList);
     expect(recordCenter).toBeGreaterThan(analysisTab);
+    expect(MENU_ITEMS.find(item => item.id === 'briefing')?.action).toEqual({ kind: 'event', event: 'open-briefing' });
   });
 
   it('기록 도구는 기본 접힘 상태와 접근성 속성을 갖는다', () => {

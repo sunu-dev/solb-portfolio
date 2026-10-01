@@ -41,6 +41,7 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
         return (
           <button
             key={tab.id}
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => {
               if (tab.id === 'more') onMoreClick();
               else setCurrentSection(tab.id as MainSection);
@@ -57,28 +58,16 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? 'var(--brand-primary)' : 'var(--text-tertiary, #B0B8C1)',
-              fontSize: 10,
-              fontWeight: isActive ? 600 : 400,
+              color: isActive ? 'var(--text-primary)' : 'var(--text-body)',
+              fontSize: 12,
+              fontWeight: isActive ? 700 : 400,
               letterSpacing: '-0.3px',
               position: 'relative',
               paddingTop: 10,
               paddingBottom: 6,
             }}
           >
-            {isActive && (
-              <span style={{
-                position: 'absolute',
-                top: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 20,
-                height: 2,
-                background: 'var(--brand-primary)',
-                borderRadius: 1,
-              }} />
-            )}
-            <tab.Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+            <tab.Icon size={24} strokeWidth={isActive ? 2.5 : 1.7} aria-hidden="true" />
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{tab.label}</span>
           </button>
         );

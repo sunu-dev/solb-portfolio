@@ -67,6 +67,7 @@ export type PortfolioCloudLoadStatus = 'guest' | 'loading' | 'ready' | 'error';
 type StockCategoryKey = 'investing' | 'watching' | 'sold';
 
 interface PortfolioState {
+  portfolioOwnerId: string | null;
   // Portfolio data
   stocks: PortfolioStocks;
   macroData: Record<string, MacroEntry | QuoteData>;
@@ -213,6 +214,7 @@ export const usePortfolioStore = create<PortfolioState>()(
   persist(
     (set, get) => ({
       // --- Initial state ---
+      portfolioOwnerId: null,
       stocks: JSON.parse(JSON.stringify(DEFAULT_STOCKS)),
       macroData: {},
       candleCache: {},
@@ -685,6 +687,10 @@ export const usePortfolioStore = create<PortfolioState>()(
       setPortfolioCloudLoadStatus: (s) => set({ portfolioCloudLoadStatus: s }),
 
       resetPortfolio: () => set({
+        portfolioOwnerId: null,
+        recentSymbols: [],
+        analysisSymbol: null,
+        currentSection: 'portfolio',
         stocks: { investing: [], watching: [], sold: [] },
         macroData: {},
         candleCache: {},
@@ -840,6 +846,7 @@ export const usePortfolioStore = create<PortfolioState>()(
         return s;
       },
       partialize: (state) => ({
+        portfolioOwnerId: state.portfolioOwnerId,
         // demo:true(게스트 체험 샘플)는 persist 제외 → localStorage 미저장(세션 한정, 리로드 시 소멸).
         stocks: {
           investing: state.stocks.investing.filter(s => !s.demo),

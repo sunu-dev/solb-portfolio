@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { BarChart3, Activity, Bell, MessageSquare, X } from 'lucide-react';
 import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
@@ -15,6 +16,8 @@ import {
 } from '@/utils/dailySnapshot';
 import { useNow } from '@/hooks/useNow';
 import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
+import EconomicHighlights from '@/components/economy/EconomicHighlights';
+import { getBriefingSession } from '@/utils/briefingSession';
 
 const STORAGE_KEY = 'solb_briefing_seen';
 
@@ -39,7 +42,7 @@ const STORAGE_KEY = 'solb_briefing_seen';
  *
  * "확인했어요" 클릭 → 그날은 다시 안 보임. 다음 날 자동 복귀.
  */
-export default function MorningBriefing() {
+export default function MorningBriefing({ onClose }: { onClose?: () => void } = {}) {
   const { stocks, macroData, dailySnapshots, currency, setAnalysisSymbol } = usePortfolioStore();
   const activeAlerts = useActiveAlerts();
   const currentTime = useNow();
@@ -63,6 +66,7 @@ export default function MorningBriefing() {
     const investing = (stocks.investing || []).filter(s => s.shares > 0 && s.avgCost > 0);
     if (investing.length === 0) return null;
 
+    const session = getBriefingSession(currentTime);
     // P3 — 시장 심리 정교화: 단순 평균 → 동조/분기 감지
     // S&P(가치 포함 광범위)와 NASDAQ(성장 편중)이 다른 방향이면 시장 로테이션 신호
     const sp = macroData['S&P 500'] as MacroEntry | undefined;
@@ -137,7 +141,8 @@ export default function MorningBriefing() {
     const ySnap = findCanonicalSnapshotNearDate(dailySnapshots, yDate, 2);
     let deltaVsYesterday: { delta: number; pct: number } | null = null;
     const yTotals = ySnap ? getSnapshotKrwTotals(ySnap) : null;
-    if (yTotals && yTotals.totalValueKrw > 0) {
+    const completeQuotes = investing.every(stock => ((macroData[stock.symbol] as QuoteData | undefined)?.c ?? 0) > 0);
+    if (completeQuotes && yTotals && yTotals.totalValueKrw > 0) {
       const delta = currentValueKrw - yTotals.totalValueKrw;
       const pct = (delta / yTotals.totalValueKrw) * 100;
       deltaVsYesterday = { delta, pct };
@@ -160,27 +165,38 @@ export default function MorningBriefing() {
     }
 
     return {
-      biggestMove,
-      deltaVsYesterday,
+      session,
+      hasIndices: Number.isFinite(sp?.changePercent) && Number.isFinite(nasdaq?.changePercent),
+      biggestMove: session.reason || !session.known ? null : biggestMove,
+      deltaVsYesterday: session.reason || !session.known ? null : deltaVsYesterday,
       latestNote,
       marketLabel,
       marketTone,
       spCp,
       nasdaqCp,
-      topAlerts: activeAlerts.slice(0, 2),
+      topAlerts: session.reason || !session.known ? [] : activeAlerts.slice(0, 2),
     };
   }, [stocks.investing, stocks.sold, macroData, dailySnapshots, activeAlerts, currentTime]);
 
-  if (hidden || !data) return null;
+  if (!data) return onClose ? (
+    <div style={{ padding: 24, color: 'var(--text-body)' }}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}><strong>오늘의 브리핑</strong><button onClick={onClose} style={{minHeight:44}}>닫기</button></div>
+      <EconomicHighlights compact />
+      <p>보유 종목과 시세가 준비되면 시장 흐름과 내 종목의 변화를 함께 보여드려요.</p>
+      <button onClick={onClose} style={{ minHeight: 44, marginTop: 16 }}>확인했어요</button>
+    </div>
+  ) : null;
+  if (hidden && !onClose) return null;
 
   // 콘텐츠가 너무 빈약하면 표시 안 함 — 첫 방문 직후 등
-  const hasContent = !!data.deltaVsYesterday
+  const hasContent = !!data.session.reason || !!data.deltaVsYesterday
     || (data.biggestMove && data.biggestMove.absDp >= 1)
     || data.topAlerts.length > 0
     || !!data.latestNote;
-  if (!hasContent) return null;
+  if (!hasContent && !onClose) return null;
 
   const handleDismiss = () => {
+    if (onClose) { onClose(); return; }
     try {
       localStorage.setItem(STORAGE_KEY, getTodayKST());
     } catch { /* ignore */ }
@@ -210,12 +226,11 @@ export default function MorningBriefing() {
       role="region"
       aria-label="오늘의 주비 브리핑"
       style={{
-        marginTop: 24,
-        marginBottom: 16,
-        padding: '18px 20px',
-        borderRadius: 16,
-        background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(14,124,123,0.04) 60%, rgba(148,163,184,0.03) 100%)',
-        border: '1px solid rgba(245,158,11,0.18)',
+        marginTop: onClose ? 0 : 24,
+        marginBottom: onClose ? 0 : 32,
+        padding: '24px',
+        borderRadius: 24,
+        background: 'linear-gradient(120deg, var(--brand-primary-light), var(--bg-subtle))',
         position: 'relative',
         animation: 'briefing-fade-in 0.4s ease-out',
       }}
@@ -242,53 +257,58 @@ export default function MorningBriefing() {
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
-          fontSize: 13,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--text-tertiary, #B0B8C1)',
           lineHeight: 1,
         }}
       >
-        ✕
+        <X size={18} aria-hidden="true" />
       </button>
 
       {/* 헤더 */}
       <div style={{ marginBottom: 12, paddingRight: 32 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.6 }}>
-          MORNING BRIEFING · {dateLabel}
+        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-body)', lineHeight: 1.6 }}>
+          오늘의 브리핑 · {dateLabel}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginTop: 4, lineHeight: 1.3 }}>
+        <div style={{ fontSize: 22, fontWeight: 750, color: 'var(--text-primary, #191F28)', marginTop: 10, lineHeight: 1.5, letterSpacing: '-0.03em', wordBreak: 'keep-all' }}>
           {greeting}
         </div>
       </div>
 
+      <EconomicHighlights compact />
+
       {/* 시장 심리 한 줄 */}
       <div style={{
-        fontSize: 12,
-        color: 'var(--text-secondary, #4E5968)',
-        lineHeight: 1.6,
-        marginBottom: 4,
+        fontSize: 15,
+        color: 'var(--text-body)',
+        lineHeight: 1.75,
+        marginBottom: 20,
       }}>
-        간밤 미국 시장은{' '}
-        <strong style={{ color: marketColor, fontWeight: 700 }}>{data.marketLabel}</strong>
-        {' · '}
-        <span style={{ fontFamily: "'SF Mono', monospace", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+        {data.session.reason ? (
+          <><strong>미국 {data.session.date.slice(5).replace('-', '/')}은 {data.session.reason} 휴장이었어요.</strong>
+            <span style={{ display: 'block', marginTop: 6, fontSize: 13 }}>최근 정규 거래일은 {data.session.lastTradingDate?.slice(5).replace('-', '/')}이에요. 휴장일의 새 등락은 없어요.</span></>
+        ) : <>최근 수신한 미국 지수{' '}<strong style={{ color: marketColor, fontWeight: 700 }}>{data.hasIndices ? data.marketLabel : '확인 중'}</strong></>}
+        {!data.session.reason && data.hasIndices && (
+        <span style={{ display: 'block', fontVariantNumeric: 'tabular-nums', fontSize: 13, color: 'var(--text-body)', marginTop: 8 }}>
           S&P {data.spCp >= 0 ? '+' : ''}{data.spCp.toFixed(2)}% · NASDAQ {data.nasdaqCp >= 0 ? '+' : ''}{data.nasdaqCp.toFixed(2)}%
         </span>
+        )}
       </div>
 
       {/* 1. 어제 vs 오늘 */}
       {data.deltaVsYesterday && (
         <BriefingRow
-          icon="📊"
+          icon={<BarChart3 size={20} aria-hidden="true" />}
           label="어제 대비"
           mainValue={
             <span style={{
-              fontSize: 14, fontWeight: 800,
+              fontSize: 20, fontWeight: 750,
               color: data.deltaVsYesterday.delta >= 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
               fontFamily: "'SF Mono', monospace",
               fontVariantNumeric: 'tabular-nums',
             }}>
               {data.deltaVsYesterday.delta >= 0 ? '+' : '-'}{fmtMoney(data.deltaVsYesterday.delta)}
-              <span style={{ fontSize: 11, fontWeight: 700, marginLeft: 6, opacity: 0.85 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, marginLeft: 8 }}>
                 ({data.deltaVsYesterday.pct >= 0 ? '+' : ''}{data.deltaVsYesterday.pct.toFixed(2)}%)
               </span>
             </span>
@@ -297,13 +317,18 @@ export default function MorningBriefing() {
       )}
 
       {/* 2. 오늘 가장 큰 움직임 */}
+      {(data.biggestMove && data.biggestMove.absDp >= 1 || data.topAlerts.length > 0 || data.latestNote) && (
+      <details className="briefing-details">
+        <summary style={{ cursor: 'pointer', minHeight: 48, padding: '14px 0', fontSize: 15, fontWeight: 650, color: 'var(--text-primary)' }}>
+          종목과 기록 자세히 보기
+        </summary>
       {data.biggestMove && data.biggestMove.absDp >= 1 && (
         <BriefingRow
-          icon={data.biggestMove.dp >= 0 ? '🔥' : '🧊'}
+          icon={<Activity size={20} aria-hidden="true" />}
           label="가장 큰 움직임"
           mainValue={
             <button
-              onClick={() => setAnalysisSymbol(data.biggestMove!.symbol)}
+              onClick={() => { onClose?.(); setAnalysisSymbol(data.biggestMove!.symbol); }}
               style={{
                 minHeight: 44, background: 'transparent', border: 'none', padding: '8px 0', cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'baseline', gap: 6,
@@ -331,14 +356,14 @@ export default function MorningBriefing() {
       {/* 3. 주목할 알림 (Top 2) */}
       {data.topAlerts.length > 0 && (
         <BriefingRow
-          icon="🔔"
+          icon={<Bell size={20} aria-hidden="true" />}
           label="짚어볼 것"
           mainValue={
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {data.topAlerts.map(a => (
                 <div key={a.id} style={{
-                  fontSize: 12, color: 'var(--text-secondary, #4E5968)',
-                  lineHeight: 1.4, wordBreak: 'keep-all',
+                  fontSize: 15, color: 'var(--text-body)',
+                  lineHeight: 1.7, wordBreak: 'keep-all',
                   display: 'flex', gap: 6, alignItems: 'baseline',
                 }}>
                   <span style={{ fontSize: 9, opacity: 0.7 }}>
@@ -355,19 +380,19 @@ export default function MorningBriefing() {
       {/* 4. 최근 메모 회상 */}
       {data.latestNote && (
         <BriefingRow
-          icon="💭"
+          icon={<MessageSquare size={20} aria-hidden="true" />}
           label="최근 메모"
           mainValue={
             <button
-              onClick={() => setAnalysisSymbol(data.latestNote!.symbol)}
+              onClick={() => { onClose?.(); setAnalysisSymbol(data.latestNote!.symbol); }}
               style={{
                 minHeight: 44, background: 'transparent', border: 'none', padding: '8px 0', cursor: 'pointer',
                 textAlign: 'left',
               }}
             >
               <span style={{
-                fontSize: 12, color: 'var(--text-secondary, #4E5968)',
-                lineHeight: 1.4, wordBreak: 'keep-all',
+                fontSize: 15, color: 'var(--text-body)',
+                lineHeight: 1.7, wordBreak: 'keep-all',
               }}>
                 {data.latestNote.emoji}{' '}
                 <span style={{ fontFamily: "'SF Mono', monospace", fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
@@ -385,6 +410,9 @@ export default function MorningBriefing() {
         />
       )}
 
+      </details>
+      )}
+
       {/* 확인 버튼 */}
       <button
         onClick={handleDismiss}
@@ -392,9 +420,9 @@ export default function MorningBriefing() {
           marginTop: 14,
           padding: '10px 14px',
           borderRadius: 10,
-          background: 'var(--text-primary, #191F28)',
-          color: 'var(--text-inverse, #FFFFFF)',
-          fontSize: 12,
+          background: 'var(--pill-active-bg)',
+          color: 'var(--pill-active-fg)',
+          fontSize: 14,
           fontWeight: 600,
           border: 'none',
           cursor: 'pointer',
@@ -413,7 +441,7 @@ export default function MorningBriefing() {
 function BriefingRow({
   icon, label, mainValue,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   mainValue: React.ReactNode;
 }) {
@@ -421,17 +449,16 @@ function BriefingRow({
     <div style={{
       display: 'flex',
       alignItems: 'flex-start',
-      gap: 10,
-      padding: '10px 0',
-      borderTop: '1px solid var(--border-light, rgba(242,244,246,0.7))',
+      gap: 12,
+      padding: '16px 0',
     }}>
-      <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <span style={{ flexShrink: 0, marginTop: 2, color: 'var(--brand-primary)' }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          fontSize: 10, fontWeight: 600,
-          color: 'var(--text-tertiary, #B0B8C1)',
+          fontSize: 12, fontWeight: 500,
+          color: 'var(--text-body)',
           letterSpacing: 0.3,
-          marginBottom: 2,
+          marginBottom: 6,
         }}>
           {label}
         </div>

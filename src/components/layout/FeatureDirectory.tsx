@@ -1,7 +1,7 @@
 'use client';
 
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { Search, Settings, ChevronRight, Moon, Sun, Pin, LayoutGrid } from 'lucide-react';
+import { Search, Settings, ChevronRight, Moon, Sun, Pin } from 'lucide-react';
 import {
   PRIMARY_SECTIONS, PINNABLE_ITEMS, resolveFavorites, runMenuAction,
   type MenuItem, type MenuActionContext,
@@ -23,7 +23,7 @@ interface Props {
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
-  color: 'var(--text-tertiary, #B0B8C1)',
+  color: 'var(--text-body)',
   letterSpacing: '-0.2px',
   margin: '0 4px 10px',
 };
@@ -63,7 +63,6 @@ export default function FeatureDirectory({ onNavigate }: Props) {
       key={(opts.viaFavorite ? 'fav-' : '') + item.id}
       style={{
         display: 'flex', alignItems: 'center',
-        borderTop: opts.first ? 'none' : '1px solid var(--border-light, #F2F4F6)',
       }}
     >
       <button
@@ -71,7 +70,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         className="cursor-pointer"
         style={{
           flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 8px', minHeight: 56, textAlign: 'left', background: 'none', border: 'none',
+          padding: '18px 8px', minHeight: 68, textAlign: 'left', background: 'none', border: 'none',
         }}
         aria-label={item.label}
       >
@@ -83,11 +82,11 @@ export default function FeatureDirectory({ onNavigate }: Props) {
           <item.Icon size={18} strokeWidth={1.9} />
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+          <span style={{ display: 'block', fontSize: 17, fontWeight: 650, color: 'var(--text-primary, #191F28)', lineHeight: 1.5 }}>
             {item.label}
           </span>
           {item.sub && (
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 1 }}>
+            <span style={{ display: 'block', fontSize: 13, color: 'var(--text-body)', marginTop: 4, lineHeight: 1.6 }}>
               {item.sub}
             </span>
           )}
@@ -112,17 +111,9 @@ export default function FeatureDirectory({ onNavigate }: Props) {
 
   return (
     <div>
-      {/* 허브 헤더 → gradient hero 앵커 (5인 패널 WOW1) */}
-      <div className="fd-stagger stag-0 hero-sheen" style={{
-        overflow: 'hidden',
-        background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))',
-        borderRadius: 18, padding: '18px', margin: '0 4px 18px', boxShadow: 'var(--shadow-md)',
-      }}>
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--on-brand-fg, #FFFFFF)', letterSpacing: '-0.03em' }}>전체</div>
-          <div style={{ fontSize: 12.5, color: 'var(--on-brand-muted, rgba(255,255,255,0.82))', marginTop: 3 }}>주비의 모든 기능을 한눈에</div>
-        </div>
-        <LayoutGrid size={66} strokeWidth={1.5} style={{ position: 'absolute', top: -8, right: -8, color: 'var(--on-brand-fg, #FFFFFF)', opacity: 0.18, transform: 'rotate(-12deg)', pointerEvents: 'none' }} />
+      <div style={{ padding: '12px 4px 24px' }}>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 750, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>전체</h2>
+        <p style={{ fontSize: 15, color: 'var(--text-body)', margin: '8px 0 0', lineHeight: 1.6 }}>주비의 모든 기능을 한눈에</p>
       </div>
 
       {/* 검색 내장 — 종목 검색 진입 (필드형 버튼) */}
@@ -133,7 +124,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
           display: 'flex', alignItems: 'center', gap: 10,
           width: '100%', padding: '14px 16px', marginBottom: 22, minHeight: 50,
           background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 13,
-          color: 'var(--text-secondary, #8B95A1)', fontSize: 14, textAlign: 'left', boxShadow: 'var(--shadow-sm)',
+          color: 'var(--text-body)', fontSize: 15, textAlign: 'left',
         }}
         aria-label="종목 검색 열기"
       >

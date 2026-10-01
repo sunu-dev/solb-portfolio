@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { searchStocks } from '@/hooks/useStockData';
 import { STOCK_KR } from '@/config/constants';
+import { searchStockIndex } from '@/lib/stockSearchIndex';
+import { getSearchCatalogState, subscribeSearchCatalog } from '@/lib/stockSearchClient';
 import type { StockItem } from '@/config/constants';
 import { Search, Plus, Clock, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
@@ -11,7 +13,7 @@ import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { useAuth } from '@/hooks/useAuth';
 import { eunNeun } from '@/utils/koreanJosa';
 import { isSingleStockLeverage, LEVERAGE_SEARCH_LABEL, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
-import { getSearchTag, searchTagOrder } from '@/utils/searchAssetClass';
+import { getSearchTag } from '@/utils/searchAssetClass';
 import LeverageRiskGate from '@/components/portfolio/LeverageRiskGate';
 import { isKoreanStockSymbol } from '@/utils/stockCurrency';
 
@@ -24,7 +26,7 @@ function isLeverageQuery(q: string): boolean {
 // 한국어 종목명 메인 / 종목코드 보조. 시장 표준(토스·카카오페이·키움) 일치.
 // STOCK_KR 매핑 우선 → description의 거래소 suffix 제거 → fallback symbol.
 function getDisplayName(item: { symbol: string; description?: string }): string {
-  if (STOCK_KR[item.symbol]) return STOCK_KR[item.symbol];
+  if (!item.description && STOCK_KR[item.symbol]) return STOCK_KR[item.symbol];
   const desc = (item.description || '').trim();
   // " (KRX)", " (NASDAQ)" 같은 거래소 suffix 제거
   const cleaned = desc.replace(/\s*\([A-Z]+\)\s*$/, '').trim();
@@ -66,6 +68,12 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
   const { stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore();
   const [query, setQuery] = useState('');
+  const queryRef = useRef('');
+  const [catalog, setCatalog] = useState(getSearchCatalogState);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const abortSearchRef = useRef<AbortController | null>(null);
+  useEffect(() => subscribeSearchCatalog(setCatalog), []);
   const [results, setResults] = useState<{ symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -75,7 +83,14 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   // 단일종목 레버리지 보유 등록 게이트 — 통과 대기 중인 종목
   const [leverageGate, setLeverageGate] = useState<{ symbol: string; name: string } | null>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const searchRequestRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => () => {
+    ++searchRequestRef.current;
+    abortSearchRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -95,66 +110,51 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  // 한국어 이름 → 티커 역방향 맵 (로컬 즉시 매칭용)
-  const krToTicker = useCallback(() => {
-    const map: { symbol: string; description: string }[] = [];
-    for (const [sym, name] of Object.entries(STOCK_KR)) {
-      map.push({ symbol: sym, description: name });
-    }
-    return map;
-  }, []);
-
   const handleSearch = useCallback((value: string) => {
+    const requestId = ++searchRequestRef.current;
+    queryRef.current = value;
+    abortSearchRef.current?.abort();
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     setQuery(value);
-    if (value.length < 1) {
+    setSearchError(false);
+    setSearching(false);
+    setActiveIdx(-1);
+    if (!value.trim()) {
       setShowResults(false);
       setResults([]);
       setShowRecent(true);
       return;
     }
     setShowRecent(false);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const localMatches = searchStockIndex(catalog.index, value, 20).map(item => ({
+      ...item,
+      isLeverage: isSingleStockLeverage(item.symbol, `${item.description} ${item.englishName || ''}`),
+    }));
+    setResults(localMatches);
+    setShowResults(localMatches.length > 0);
+    // Known bilingual matches are instant. Only unknown English symbols need a remote request.
+    if (localMatches.length || /[가-힣ㄱ-ㅎ]/.test(value) || catalog.loading) return;
+    setSearching(true);
     debounceRef.current = setTimeout(async () => {
-      const q = value.trim().toLowerCase();
-      const hasKorean = /[가-힣]/.test(q);
-
-      // 한국어 입력 시 로컬 STOCK_KR에서 먼저 부분 매칭
-      const localMatches = hasKorean
-        ? krToTicker().filter(({ description }) => description.toLowerCase().includes(q))
-        : [];
-
-      const [usItems, krItems] = await Promise.all([
-        searchStocks(value),
-        fetch('/api/kr-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: value }) })
-          .then(r => r.json())
-          .then(d => (d.results || []).map((r: { symbol: string; name: string }) => ({ symbol: r.symbol, description: `${r.name} (KRX)` })))
-          .catch(() => []),
-      ]);
-
-      // 로컬 매칭 → KRX → Finnhub 순서, 중복 제거.
-      // '중간 옵션'(2026-05-29): 단일종목 레버리지도 검색에 노출한다 — 보유 입력을
-      // 위해 찾을 수 있어야 하기 때문. 신규 추천이 아님은 결과 라벨 + 등록 게이트로 명시.
-      const seen = new Set<string>();
-      const combined: { symbol: string; description: string; isNewListing?: boolean; listedAt?: string | null; isLeverage?: boolean }[] = [];
-      for (const item of [...localMatches, ...krItems, ...usItems]) {
-        if (seen.has(item.symbol)) continue;
-        seen.add(item.symbol);
-        combined.push(item);
+      const controller = new AbortController();
+      abortSearchRef.current = controller;
+      try {
+        const items = await searchStocks(value, controller.signal);
+        if (searchRequestRef.current !== requestId) return;
+        setResults(items);
+        setShowResults(items.length > 0);
+      } catch {
+        if (searchRequestRef.current === requestId) setSearchError(true);
+      } finally {
+        if (searchRequestRef.current === requestId) setSearching(false);
       }
-      // 자산 클래스 정렬 (P0-4): 보통주 → ETF → 우선주 → 혼합 → 레버리지(맨 아래).
-      // "삼성전자"가 "삼성전자우"·"삼성전자 레버리지 ETN"보다 먼저 노출되도록.
-      // sort는 ES2019+ stable이라 같은 클래스 안에선 관련도(로컬→KRX→Finnhub) 순서 보존.
-      const rank = (item: { symbol: string; description?: string }) => {
-        const display = getDisplayName(item);
-        if (isSingleStockLeverage(item.symbol, display)) return 9; // 고위험은 항상 맨 아래
-        return searchTagOrder(item.symbol, display);
-      };
-      combined.sort((a, b) => rank(a) - rank(b));
-      setResults(combined.slice(0, 8));
-      setShowResults(combined.length > 0);
-      setActiveIdx(-1);
-    }, 300);
-  }, [krToTicker]);
+    }, 200);
+  }, [catalog.index, catalog.loading]);
+
+  // Re-evaluate the current input when the full catalog arrives; never restore an old query.
+  useEffect(() => {
+    if (queryRef.current) handleSearch(queryRef.current);
+  }, [handleSearch]);
 
   // 실제 등록 — 레버리지 게이트 통과 후 또는 일반 종목에서 호출.
   const doAdd = useCallback(async (symbol: string, name: string) => {
@@ -208,6 +208,9 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     setEditingIdx(newIdx);
 
     setQuery('');
+    queryRef.current = '';
+    ++searchRequestRef.current;
+    abortSearchRef.current?.abort();
     setShowResults(false);
     setResults([]);
     // 방금 추가한 종목의 첫 시세는 서버 라우트로 받는다.
@@ -251,6 +254,9 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   // 검색 결과 '살펴보기' — 소유 전 학습(발견 루프 복원). 본문 클릭 → 분석 패널.
   // 레버리지 종목은 AnalysisPanel이 isLev 분기로 분석 거부 카드를 띄우므로 추가 가드 불요.
   const openAnalysis = useCallback((symbol: string) => {
+    queryRef.current = '';
+    ++searchRequestRef.current;
+    abortSearchRef.current?.abort();
     setAnalysisSymbol(symbol.toUpperCase());
     setQuery('');
     setShowResults(false);
@@ -302,7 +308,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
             else if (e.key === 'Enter' && activeIdx >= 0 && activeIdx < results.length) { e.preventDefault(); openAnalysis(results[activeIdx].symbol); }
           }}
-          placeholder="종목명 또는 심볼 검색"
+          placeholder="종목명, 초성 또는 종목코드 검색"
           style={{
             width: '100%', padding: '14px 16px 14px 44px', fontSize: 16,
             border: 'none', outline: 'none', background: 'var(--surface, white)',
@@ -347,7 +353,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* Results */}
       {showResults && results.length > 0 && (
-        <div style={{ maxHeight: 'min(320px, calc(100vh - 160px))', overflowY: 'auto' }}>
+        <div style={{ maxHeight: 'min(320px, calc(100vh - 160px))', overflowY: 'auto', overflowX: 'hidden' }}>
           {results.map((item, idx) => (
             <div
               key={`${item.symbol}-${idx}`}
@@ -366,7 +372,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                 textAlign: 'left', boxSizing: 'border-box', transition: 'background 0.15s',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: '50%',
                   background: 'var(--bg-subtle, #F2F4F6)',
@@ -378,7 +384,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span title={getDisplayName(item)} style={{ minWidth: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {getDisplayName(item)}
                     </span>
                     {(() => {
@@ -435,7 +441,12 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* Empty state — 3분기 (9인 패널 P0-2): 차단 / 한국 종목 오타·미수록 / 영문 오타.
           "결과 없음"을 막다른 길로 두지 않고, 왜 안 나오는지 + 다음 행동을 안내. */}
-      {query.length > 0 && !showResults && results.length === 0 && (
+      {query.trim().length > 0 && results.length === 0 && (catalog.loading || searching || catalog.error || searchError) && (
+        <div role="status" style={{ padding: 20, fontSize: 13, color: 'var(--text-secondary)' }}>
+          {catalog.loading || searching ? '종목을 찾고 있어요…' : '검색 목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.'}
+        </div>
+      )}
+      {query.trim().length > 0 && !catalog.loading && !searching && !catalog.error && !searchError && !showResults && results.length === 0 && (
         isLeverageQuery(query) ? (
           // ① 단일종목 레버리지 — 검색에 결과가 없을 때 (예: 카탈로그 미수록 한국 상품).
           // '중간 옵션': 신규 추천은 안 하되, 보유분은 직접 등록 가능함을 안내.
@@ -457,7 +468,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
               ‘{query}’ 검색 결과가 없어요
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
-              종목명 철자나 6자리 코드(예: 005930)를 확인해주세요. 일부 한국 종목은 아직 준비 중이라 검색되지 않을 수 있어요.
+              종목명이나 초성, 종목코드로 다시 검색해보세요. 예: 삼성전자 · ㅅㅅㅈㅈ · 005930
             </div>
           </div>
         ) : (
