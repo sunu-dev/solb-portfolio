@@ -62,7 +62,7 @@ function AIProgressIndicator() {
         <div style={{
           height: '100%',
           borderRadius: 3,
-          background: 'linear-gradient(90deg, #0E7C7B, #14B8A6)',
+          background: 'var(--text-primary)',
           width: `${current.pct}%`,
           transition: 'width 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
         }} />
@@ -73,7 +73,7 @@ function AIProgressIndicator() {
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>
           {current.label}...
         </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
           {current.pct}%
         </span>
       </div>
@@ -84,8 +84,8 @@ function AIProgressIndicator() {
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
             <span style={{
               width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600,
-              background: i < step ? 'var(--brand-primary-light, rgba(14,124,123,0.1))' : i === step ? 'var(--brand-primary, #0E7C7B)' : 'var(--bg-subtle, #F2F4F6)',
-              color: i < step ? 'var(--brand-primary, #0E7C7B)' : i === step ? '#fff' : 'var(--text-tertiary, #B0B8C1)',
+              background: i === step ? 'var(--pill-active-bg)' : 'var(--bg-subtle, #F2F4F6)',
+              color: i < step ? 'var(--text-primary)' : i === step ? 'var(--pill-active-fg)' : 'var(--text-tertiary, #B0B8C1)',
               transition: 'all 0.3s ease',
             }}>
               {i < step ? <Check size={12} aria-label="완료" /> : i + 1}
@@ -99,7 +99,7 @@ function AIProgressIndicator() {
             </span>
             {i === step && (
               <span style={{ marginLeft: 'auto' }}>
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--brand-primary, #0E7C7B)', animation: 'aiPulse 1.2s ease-in-out infinite' }} />
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--text-primary)', animation: 'aiPulse 1.2s ease-in-out infinite' }} />
               </span>
             )}
           </div>
@@ -231,7 +231,7 @@ export default function AnalysisPanel() {
 
   const symbol = analysisSymbol;
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
-  const avatarColor = symbol ? getAvatarColor(symbol) : 'var(--brand-primary, #0E7C7B)';
+  const avatarColor = symbol ? getAvatarColor(symbol) : 'var(--text-secondary)';
 
   // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
   useEffect(() => {
@@ -468,7 +468,7 @@ export default function AnalysisPanel() {
                 aria-pressed={wideMode}
                 aria-label={wideMode ? '기본 너비로' : '넓게 보기'}
                 className="analysis-wide-toggle items-center justify-center cursor-pointer"
-                style={{ display: 'none', height: 32, padding: '0 10px', borderRadius: 8, background: wideMode ? 'var(--brand-primary-light, rgba(14,124,123,0.08))' : 'transparent', color: wideMode ? 'var(--brand-primary, #0E7C7B)' : '#8B95A1', border: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                style={{ display: 'none', height: 32, padding: '0 10px', borderRadius: 8, background: wideMode ? 'var(--bg-subtle)' : 'transparent', color: wideMode ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
               >
                 {wideMode ? '기본' : '넓게'}
               </button>
@@ -532,7 +532,7 @@ export default function AnalysisPanel() {
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: 'var(--brand-primary, #0E7C7B)', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
+                  <div style={{ height: '100%', borderRadius: 2, background: 'var(--text-primary)', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>분석 데이터를 불러오는 중...</div>
                 <style>{`
@@ -593,8 +593,8 @@ export default function AnalysisPanel() {
                             textAlign: 'center',
                             fontSize: 14,
                             fontWeight: chartLevel === lvl ? 700 : 500,
-                            color: chartLevel === lvl ? '#fff' : '#8B95A1',
-                            background: chartLevel === lvl ? '#191F28' : '#FFFFFF',
+                            color: chartLevel === lvl ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
+                            background: chartLevel === lvl ? 'var(--pill-active-bg)' : 'var(--surface)',
                             borderTop: 'none',
                             borderBottom: 'none',
                             borderLeft: 'none',
@@ -623,8 +623,8 @@ export default function AnalysisPanel() {
                             borderRadius: 8,
                             fontSize: 12,
                             fontWeight: chartRange === tf.days ? 700 : 500,
-                            color: chartRange === tf.days ? 'var(--brand-primary, #0E7C7B)' : '#8B95A1',
-                            background: chartRange === tf.days ? 'var(--brand-primary-light, rgba(14,124,123,0.08))' : 'transparent',
+                            color: chartRange === tf.days ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            background: chartRange === tf.days ? 'var(--bg-subtle)' : 'transparent',
                             border: 'none',
                           }}
                         >
@@ -677,7 +677,7 @@ export default function AnalysisPanel() {
                         hasNews: tickerNews.length > 0,
                       });
                       return (
-                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)', marginTop: 10, marginBottom: 24 }}>
+                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', marginTop: 10, marginBottom: 24 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
                             이 차트, 지금 이런 상태예요
                           </div>
@@ -687,7 +687,7 @@ export default function AnalysisPanel() {
                           <details style={{ marginTop: 10 }}>
                             <summary
                               onClick={() => logApiCall('chart_guide_expand')}
-                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--brand-primary)', cursor: 'pointer' }}
+                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}
                             >
                               📖 차트 용어 쉽게 풀어보기
                             </summary>
@@ -1194,10 +1194,10 @@ export default function AnalysisPanel() {
 
                 {/* AI Analysis Report — Gemini API (일반 종목) */}
                 {showAIReport && !isLev && (
-                  <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: 'var(--brand-primary-bg, rgba(14,124,123,0.06))', border: '1px solid var(--brand-primary-light, rgba(14,124,123,0.12))' }}>
+                  <div style={{ borderRadius: 16, padding: 28, marginBottom: 24, background: 'var(--bg-subtle)', border: '1px solid var(--border-light)' }}>
                     <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
                       <BarChart3 size={18} aria-hidden="true" />
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)' }}>주비 AI 분석</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>주비 AI 분석</span>
                       <span style={{ fontSize: 12, color: '#B0B8C1', marginLeft: 'auto' }}>
                         {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })} 기준
                       </span>
@@ -1212,14 +1212,14 @@ export default function AnalysisPanel() {
                           <div style={{ marginTop: 10 }}>
                             <button
                               onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
-                              style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--brand-primary, #0E7C7B)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                              style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                             >
                               로그인하기
                             </button>
                           </div>
                         ) : (
                           <div style={{ marginTop: 8 }}>
-                            <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: 'var(--brand-primary, #0E7C7B)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
+                            <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
                           </div>
                         )}
                       </div>
@@ -1584,7 +1584,7 @@ export default function AnalysisPanel() {
                             <div style={{ marginTop: 10 }}>
                               <button
                                 onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
-                                style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--brand-primary, #0E7C7B)', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                                style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                               >
                                 로그인하기
                               </button>

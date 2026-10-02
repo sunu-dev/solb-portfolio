@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { recentResults, unseenResults } from '@/lib/economicEvents';
 import MorningBriefing from './MorningBriefing';
+import { isGuideId } from '@/lib/guideNotebook';
 
 const SEEN_KEY = 'solb_briefing_login_v1';
 
@@ -41,8 +42,15 @@ export default function BriefingDialog({ userId, signedInAt, ready }: {
     const open = () => {
       if (!dialog.current?.open) dialog.current?.showModal();
     };
+    const openGuide = (event: Event) => {
+      if (isGuideId((event as CustomEvent).detail?.id) && dialog.current?.open) dialog.current.close();
+    };
     window.addEventListener('open-briefing', open);
-    return () => window.removeEventListener('open-briefing', open);
+    window.addEventListener('open-market-guide', openGuide);
+    return () => {
+      window.removeEventListener('open-briefing', open);
+      window.removeEventListener('open-market-guide', openGuide);
+    };
   }, []);
 
   useEffect(() => {

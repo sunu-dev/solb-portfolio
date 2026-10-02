@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { eventState, eventTime, kstDay } from '@/lib/economicEvents';
 import { EventExplanation } from './EconomicHighlights';
+import { isGuideId } from '@/lib/guideNotebook';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import styles from './EconomicCalendar.module.css';
 const shift = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`)+n*86400000).toISOString().slice(0,10);
 const shiftMonth = (day: string, n: number) => { const date = new Date(`${day.slice(0,7)}-01T00:00:00Z`); date.setUTCMonth(date.getUTCMonth()+n); return date.toISOString().slice(0,10); };
@@ -25,11 +27,11 @@ export function EconomicCalendarContent({ focusKey }: { focusKey?: string }) {
   const monthStart=activeDay.slice(0,7)+'-01';
   const gridStart=shift(monthStart,-new Date(`${monthStart}T00:00:00Z`).getUTCDay());
   return <>
-    <p className={styles.muted}>한국시간으로 챙기는 발표 일정. 결과를 열면 왜 중요한지 함께 설명해드려요.</p>
-    <div className={styles.toolbar} aria-label="일정 보기 방식">{[['week','주간'],['month','월간'],['results','발표 결과']].map(([value,label])=><button key={value} className={styles.button} aria-pressed={mode===value} onClick={()=>setMode(value as typeof mode)}>{label}</button>)}</div>
-    <div className={styles.toolbar} aria-label="일정 종류">{[['all','전체'],['macro','경제지표'],['earnings','내 종목 실적'],['holiday','휴장일']].map(([value,label])=><button key={value} className={styles.button} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}</button>)}</div>
-    {mode!=='results' && <div className={styles.heading}><button className={styles.button} aria-label="이전 기간" onClick={()=>chooseDay(mode==='week'?shift(activeDay,-7):shiftMonth(activeDay,-1))}>‹</button><strong>{mode==='week'?`${start.slice(5).replace('-','/')} – ${shift(end,-1).slice(5).replace('-','/')}`:activeDay.slice(0,7).replace('-','년 ')+'월'}</strong><button className={styles.button} aria-label="다음 기간" onClick={()=>chooseDay(mode==='week'?shift(activeDay,7):shiftMonth(activeDay,1))}>›</button><button className={styles.button} onClick={()=>chooseDay(kstDay(Date.now()))}>오늘</button></div>}
-    {mode==='month' && <div className={styles.dates} aria-label="월간 날짜 선택">{['일','월','화','수','목','금','토'].map(d=><span key={d} className={styles.muted} style={{textAlign:'center'}}>{d}</span>)}{Array.from({length:42},(_,i)=>{const d=shift(gridStart,i), count=events.filter(e=>kstDay(e.at)===d).length;return <button className={styles.day} key={d} aria-pressed={d===activeDay} aria-label={`${d} 일정 ${count}개`} style={{opacity:d.slice(0,7)===activeDay.slice(0,7)?1:.45}} onClick={()=>chooseDay(d)}>{Number(d.slice(-2))}{count>0&&<span className={styles.dot}/>}</button>;})}</div>}
+    <p className={styles.muted}>주요 경제 발표와 내 종목 실적 · 한국시간 기준</p>
+    <div className={styles.modeSwitch} role="group" aria-label="일정 보기 방식">{[['week','주간'],['month','월간'],['results','발표 결과']].map(([value,label])=><button key={value} className={styles.button} aria-pressed={mode===value} onClick={()=>setMode(value as typeof mode)}>{label}</button>)}</div>
+    <div className={styles.filters} role="group" aria-label="일정 종류">{[['all','전체'],['macro','경제지표'],['earnings','내 종목 실적'],['holiday','휴장일']].map(([value,label])=><button key={value} className={styles.button} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{label}</button>)}</div>
+    {mode!=='results' && <div className={styles.periodBar}><div className={styles.periodPicker}><button className={styles.button} aria-label="이전 기간" onClick={()=>chooseDay(mode==='week'?shift(activeDay,-7):shiftMonth(activeDay,-1))}><ChevronLeft size={18} aria-hidden="true" /></button><strong>{mode==='week'?`${start.slice(5).replace('-','/')} – ${shift(end,-1).slice(5).replace('-','/')}`:activeDay.slice(0,7).replace('-','년 ')+'월'}</strong><button className={styles.button} aria-label="다음 기간" onClick={()=>chooseDay(mode==='week'?shift(activeDay,7):shiftMonth(activeDay,1))}><ChevronRight size={18} aria-hidden="true" /></button></div><button className={styles.button} onClick={()=>chooseDay(kstDay(Date.now()))}>오늘</button></div>}
+    {mode==='month' && <div className={styles.dates} aria-label="월간 날짜 선택">{['일','월','화','수','목','금','토'].map(d=><span key={d} className={styles.muted} style={{textAlign:'center'}}>{d}</span>)}{Array.from({length:42},(_,i)=>{const d=shift(gridStart,i), count=events.filter(e=>kstDay(e.at)===d).length;return <button className={styles.day} key={d} aria-pressed={d===activeDay} aria-label={`${d} 일정 ${count}개`} data-outside={d.slice(0,7)!==activeDay.slice(0,7)} onClick={()=>chooseDay(d)}>{Number(d.slice(-2))}{count>0&&<span className={styles.dot}/>}</button>;})}</div>}
     {!data&&!error&&<p role="status" className={styles.muted}>발표 자료를 확인하고 있어요…</p>}
     {error&&<p role="alert">{error}<button className={styles.button} onClick={retry}>다시 시도</button></p>}
     {data&&!visible.length&&<p className={styles.muted}>이 기간에 확인된 일정이 없어요. {filter==='earnings'?'실적 일정은 제공처에서 확인된 미국 보유·관심 종목을 표시해요.':'기간이나 필터를 바꿔보세요.'}</p>}
@@ -39,8 +41,25 @@ export function EconomicCalendarContent({ focusKey }: { focusKey?: string }) {
 }
 export default function EconomicCalendar() {
   const ref=useRef<HTMLDialogElement>(null);
+  const titleRef=useRef<HTMLHeadingElement>(null);
   const [focusKey,setFocusKey]=useState<string>();
   const [open,setOpen]=useState(false);
-  useEffect(()=>{const show=(event:Event)=>{setFocusKey((event as CustomEvent).detail?.key);setOpen(true);ref.current?.showModal();};window.addEventListener('open-economic-calendar',show);return ()=>window.removeEventListener('open-economic-calendar',show);},[]);
-  return <dialog ref={ref} className={styles.dialog} aria-label="경제 일정" onClose={()=>setOpen(false)} onClick={e=>{if(e.target===ref.current)ref.current.close();}}><header className={styles.header}><div className={styles.heading}><h2>경제 일정</h2><button className={styles.button} onClick={()=>ref.current?.close()}>닫기</button></div></header><div className={styles.body}>{open&&<EconomicCalendarContent key={focusKey||'all'} focusKey={focusKey}/>}</div></dialog>;
+  useEffect(() => {
+    const show = (event: Event) => {
+      setFocusKey((event as CustomEvent).detail?.key);
+      setOpen(true);
+      if (!ref.current?.open) ref.current?.showModal();
+      titleRef.current?.focus({ preventScroll: true });
+    };
+    const openGuide = (event: Event) => {
+      if (isGuideId((event as CustomEvent).detail?.id) && ref.current?.open) ref.current.close();
+    };
+    window.addEventListener('open-economic-calendar', show);
+    window.addEventListener('open-market-guide', openGuide);
+    return () => {
+      window.removeEventListener('open-economic-calendar', show);
+      window.removeEventListener('open-market-guide', openGuide);
+    };
+  }, []);
+  return <dialog ref={ref} className={styles.dialog} aria-labelledby="economic-calendar-title" onClose={()=>setOpen(false)} onClick={e=>{if(e.target===ref.current)ref.current.close();}}><header className={styles.header}><div className={styles.heading}><h2 id="economic-calendar-title" ref={titleRef} tabIndex={-1}>경제 일정</h2><button className={styles.close} aria-label="경제 일정 닫기" onClick={()=>ref.current?.close()}><X size={20} aria-hidden="true" /></button></div></header><div className={styles.body}>{open&&<EconomicCalendarContent key={focusKey||'all'} focusKey={focusKey}/>}</div></dialog>;
 }

@@ -11,11 +11,12 @@ interface Props {
   children: ReactNode;
   maxHeight?: string;
   paddingBottom?: string;
+  ariaLabel?: string;
   /** lg+(데스크톱)에서 풀폭 바텀시트 대신 중앙 모달로 표현(토스/카카오 '전체' 데스크톱 패턴). */
   desktopVariant?: boolean;
 }
 
-export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom, desktopVariant = false }: Props) {
+export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom, ariaLabel = '상세 메뉴', desktopVariant = false }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
@@ -102,6 +103,10 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
             from { opacity: 0; transform: translateX(-50%) scale(0.97); }
             to   { opacity: 1; transform: translateX(-50%) scale(1); }
           }
+          .bottomsheet-close:focus-visible {
+            outline: 2px solid var(--text-primary);
+            outline-offset: 2px;
+          }
           @media (min-width: 1024px) {
             .bottomsheet-desktop {
               left: 50% !important;
@@ -130,7 +135,7 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-label="상세 메뉴"
+        aria-label={ariaLabel}
         tabIndex={-1}
         className={`mobile-sidebar-sheet${desktopVariant ? ' bottomsheet-desktop' : ''}`}
         style={{
@@ -164,7 +169,7 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
               aria-label="닫기"
               style={{
                 display: 'none', position: 'absolute', top: 10, right: 12,
-                width: 32, height: 32, borderRadius: 8,
+                width: 44, height: 44, borderRadius: 12,
                 alignItems: 'center', justifyContent: 'center',
                 background: 'var(--bg-subtle, #F2F4F6)', border: 'none', cursor: 'pointer',
                 color: 'var(--text-secondary, #8B95A1)',

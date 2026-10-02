@@ -166,7 +166,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
         }}
       >
         <div style={{ padding: '20px 20px 14px', display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
-          <div style={{ width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 13, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)' }}>
+          <div style={{ width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 13, background: 'var(--bg-subtle)', color: 'var(--text-primary)' }}>
             <History size={20} aria-hidden="true" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -219,10 +219,10 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                     key={entry.id}
                     style={{
                       padding: 15,
-                      border: `1px solid ${isConfirming ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-light, #E5E8EB)'}`,
+                      border: `1px solid ${isConfirming ? 'var(--text-primary)' : 'var(--border-light, #E5E8EB)'}`,
                       borderRadius: 16,
                       background: isConfirming
-                        ? 'var(--brand-primary-bg, rgba(14,124,123,0.05))'
+                        ? 'var(--bg-subtle)'
                         : 'var(--surface, #FFFFFF)',
                     }}
                   >
@@ -233,7 +233,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                             {entry.source}
                           </strong>
                           {index === 0 && (
-                            <span style={{ padding: '2px 7px', borderRadius: 999, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)', fontSize: 9, fontWeight: 800 }}>
+                            <span style={{ padding: '2px 7px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 9, fontWeight: 800 }}>
                               최근
                             </span>
                           )}
@@ -269,7 +269,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                           </span>
                         )}
                         {entry.summary.updated > 0 && (
-                          <span style={{ padding: '4px 8px', borderRadius: 8, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)', fontSize: 10, fontWeight: 700 }}>
+                          <span style={{ padding: '4px 8px', borderRadius: 8, background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 10, fontWeight: 700 }}>
                             변경 {entry.summary.updated}
                           </span>
                         )}
@@ -311,7 +311,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                     )}
 
                     {isConfirming && (
-                      <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'var(--surface, #FFFFFF)', border: '1px solid rgba(14,124,123,0.18)' }}>
+                      <div role="alert" style={{ marginTop: 12, padding: 12, borderRadius: 12, background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong)' }}>
                         <div style={{ display: 'flex', gap: 8, color: 'var(--text-primary, #191F28)', fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>
                           <AlertTriangle size={16} color="var(--color-warning, #C96C00)" aria-hidden="true" style={{ flexShrink: 0 }} />
                           이 변경 직전 상태로 복원할까요?
@@ -323,7 +323,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                           <button type="button" onClick={() => setConfirmId(null)} style={{ minHeight: 36, padding: '7px 12px', border: 0, borderRadius: 9, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                             취소
                           </button>
-                          <button type="button" onClick={restore} style={{ minHeight: 36, padding: '7px 12px', display: 'inline-flex', alignItems: 'center', gap: 5, border: 0, borderRadius: 9, background: 'var(--brand-primary, #0E7C7B)', color: 'white', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
+                          <button type="button" onClick={restore} style={{ minHeight: 36, padding: '7px 12px', display: 'inline-flex', alignItems: 'center', gap: 5, border: 0, borderRadius: 9, background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
                             <RotateCcw size={13} aria-hidden="true" />
                             안전하게 복원
                           </button>
@@ -630,7 +630,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
           <button
             type="button"
             onClick={openCsv}
-            style={{ minHeight: 44, padding: '9px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 0, borderRadius: 11, background: 'var(--brand-primary, #0E7C7B)', color: 'white', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+            style={{ minHeight: 44, padding: '9px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 0, borderRadius: 11, background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
           >
             <FileSpreadsheet size={15} aria-hidden="true" />
             CSV 확인
@@ -639,7 +639,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
             <button
               type="button"
               onClick={openOcr}
-              style={{ minHeight: 44, padding: '9px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid rgba(14,124,123,0.22)', borderRadius: 11, background: 'var(--surface, #FFFFFF)', color: 'var(--brand-primary, #0E7C7B)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+              style={{ minHeight: 44, padding: '9px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid var(--border-strong)', borderRadius: 11, background: 'var(--surface, #FFFFFF)', color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
             >
               <Camera size={15} aria-hidden="true" />
               사진 확인
@@ -659,7 +659,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
           <button
             type="button"
             onClick={() => openPreview('record-center')}
-            style={{ width: '100%', minHeight: 40, marginTop: 8, padding: '8px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 0, borderRadius: 10, background: 'transparent', color: 'var(--brand-primary, #0E7C7B)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+            style={{ width: '100%', minHeight: 40, marginTop: 8, padding: '8px 10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: 0, borderRadius: 10, background: 'transparent', color: 'var(--text-primary)', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
           >
             <PlayCircle size={15} aria-hidden="true" />
             파일 없이 안전 흐름 미리보기

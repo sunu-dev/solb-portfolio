@@ -6,8 +6,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 /**
  * 관심 추가 어포던스 단일 컴포넌트 (SSOT) — 검색·AI촉·Movers·Cohort 등에서 동일 동사·룩.
  *
- * 토스 PC 리뷰: '관심 추가/+관심/✓관심'이 화면마다 제각각 → 단일 동사·Mossy Teal로 통일.
- * - 이미 관심이면 '✓ 관심'(중립, inert) / 아니면 '관심 추가'(teal). 토스블루 회피.
+ * - 공통 중립 표면과 문구를 사용하고, 이미 관심인 상태는 비활성으로 표시.
  * - 추가 = 보유 0주 watching 엔트리(모든 호출부 동일 페이로드). 제거는 포트폴리오에서.
  * - 카드/행 안에 들어가므로 stopPropagation으로 부모 클릭(살펴보기 등)과 분리.
  */
@@ -29,8 +28,8 @@ export default function WatchToggle({ symbol, full = false }: { symbol: string; 
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4,
         width: full ? '100%' : undefined,
         padding: '6px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600,
-        background: inWatching ? 'var(--bg-subtle, #F2F4F6)' : 'var(--brand-primary-light, rgba(14,124,123,0.08))',
-        color: inWatching ? 'var(--text-tertiary, #B0B8C1)' : 'var(--brand-primary, #0E7C7B)',
+        background: 'var(--bg-subtle)',
+        color: inWatching ? 'var(--text-body)' : 'var(--text-primary)',
         border: 'none', cursor: inWatching ? 'default' : 'pointer', whiteSpace: 'nowrap',
       }}
     >

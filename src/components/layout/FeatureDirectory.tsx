@@ -1,35 +1,27 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { Search, Settings, ChevronRight, Moon, Sun, Pin } from 'lucide-react';
+import { Search, Settings, ChevronRight, Moon, Sun, Pin, X } from 'lucide-react';
 import {
   PRIMARY_SECTIONS, PINNABLE_ITEMS, resolveFavorites, runMenuAction,
   type MenuItem, type MenuActionContext,
 } from '@/lib/menuRegistry';
 import { logApiCall } from '@/lib/apiLogger';
+import styles from './FeatureDirectory.module.css';
 
-/**
- * 전체 메뉴 허브 — 토스/카카오 증권의 '전체' 패턴. 모바일='더보기'·PC='전체' 같은 시트.
- *
- * 메뉴 정의는 menuRegistry SSOT에서 파생(Header/MobileNav와 단일 소스). '바로가기'(메뉴 즐겨찾기)는
- * PINNABLE_ITEMS에 Pin 토글을 달아 사용자가 고정 → 상단 '바로가기' 섹션에 등재순으로 노출.
- * 진입점 원칙: 화면 비종속 트리거만(섹션 전환·전역 이벤트·href·알림센터) — 데드 메뉴 방지.
- */
 interface Props {
-  /** 액션 실행 후 부모 시트를 닫는 콜백 */
   onNavigate: () => void;
 }
 
-const SECTION_LABEL: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 700,
-  color: 'var(--text-body)',
-  letterSpacing: '-0.2px',
-  margin: '0 4px 10px',
-};
+const SUPPORT_IDS = new Set(['tour', 'help']);
+const TOOL_ITEMS = PINNABLE_ITEMS.filter(item => !SUPPORT_IDS.has(item.id));
+const SUPPORT_ITEMS = PINNABLE_ITEMS.filter(item => SUPPORT_IDS.has(item.id));
 
+/** 메뉴와 이동 동작은 menuRegistry에서 가져오고, 시트에서는 탐색 순서만 구성한다. */
 export default function FeatureDirectory({ onNavigate }: Props) {
+  const pinButtons = useRef<Record<string, HTMLButtonElement | null>>({});
   const {
     currentSection, setCurrentSection, setCurrentTab,
     darkMode, toggleDarkMode, menuFavorites, toggleMenuFavorite,
@@ -39,6 +31,21 @@ export default function FeatureDirectory({ onNavigate }: Props) {
     toggleDarkMode: state.toggleDarkMode, menuFavorites: state.menuFavorites,
     toggleMenuFavorite: state.toggleMenuFavorite,
   })));
+
+  // 시트의 닫기 버튼에 포커스가 있어도 검색을 열기 전에 현재 메뉴를 닫는다.
+  useEffect(() => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      window.dispatchEvent(new CustomEvent('open-search'));
+      onNavigate();
+    };
+    window.addEventListener('keydown', handleSearchShortcut, true);
+    return () => window.removeEventListener('keydown', handleSearchShortcut, true);
+  }, [onNavigate]);
 
   const ctx: MenuActionContext = { setCurrentSection, setCurrentTab, onNavigate };
   const favorites = resolveFavorites(menuFavorites);
@@ -54,222 +61,122 @@ export default function FeatureDirectory({ onNavigate }: Props) {
     toggleMenuFavorite(item.id);
   };
 
-  // 행 — 관심종목/도구/바로가기 공통. 네비 버튼 + 분리된 Pin 토글 버튼.
-  const renderRow = (item: MenuItem, opts: { viaFavorite?: boolean; first?: boolean } = {}) => (
-    <div
-      key={(opts.viaFavorite ? 'fav-' : '') + item.id}
-      style={{
-        display: 'flex', alignItems: 'center',
-      }}
-    >
+  const renderRow = (item: MenuItem, viaFavorite = false) => (
+    <li key={(viaFavorite ? 'fav-' : '') + item.id} className={styles.pinnableRow}>
       <button
-        onClick={() => runItem(item, !!opts.viaFavorite)}
-        className="cursor-pointer"
-        style={{
-          flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '18px 8px', minHeight: 68, textAlign: 'left', background: 'none', border: 'none',
-        }}
-        aria-label={item.label}
+        type="button"
+        onClick={() => runItem(item, viaFavorite)}
+        className={`${styles.rowButton} ${viaFavorite ? styles.compactRow : ''}`}
       >
-        <span style={{
-          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)',
-        }}>
-          <item.Icon size={18} strokeWidth={1.9} />
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 17, fontWeight: 650, color: 'var(--text-primary, #191F28)', lineHeight: 1.5 }}>
-            {item.label}
-          </span>
-          {item.sub && (
-            <span style={{ display: 'block', fontSize: 13, color: 'var(--text-body)', marginTop: 4, lineHeight: 1.6 }}>
-              {item.sub}
-            </span>
-          )}
+        <span className={styles.icon} aria-hidden="true"><item.Icon size={21} strokeWidth={1.8} /></span>
+        <span className={styles.rowText}>
+          <span className={styles.label}>{item.label}</span>
+          {!viaFavorite && item.sub ? <span className={`${styles.description} reading-copy`}>{item.sub}</span> : null}
         </span>
       </button>
       <button
-        onClick={() => togglePin(item)}
-        className="cursor-pointer"
+        type="button"
+        ref={viaFavorite ? undefined : node => { pinButtons.current[item.id] = node; }}
+        onClick={() => {
+          // 바로가기 행이 사라져도 같은 기능의 핀 버튼에서 키보드 탐색을 이어간다.
+          if (viaFavorite) pinButtons.current[item.id]?.focus();
+          togglePin(item);
+        }}
+        className={`${styles.pinButton} ${isPinned(item.id) ? styles.pinned : ''}`}
         aria-pressed={isPinned(item.id)}
         aria-label={isPinned(item.id) ? `${item.label} 바로가기에서 빼기` : `${item.label} 바로가기에 고정`}
-        style={{
-          flexShrink: 0, width: 44, height: 44, borderRadius: 10,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'none', border: 'none',
-          color: isPinned(item.id) ? 'var(--text-primary)' : 'var(--text-tertiary, #B0B8C1)',
-        }}
       >
-        <Pin size={18} strokeWidth={isPinned(item.id) ? 2 : 1.9} fill={isPinned(item.id) ? 'currentColor' : 'none'} />
+        <Pin size={17} strokeWidth={1.8} fill={isPinned(item.id) ? 'currentColor' : 'none'} aria-hidden="true" />
       </button>
-    </div>
+    </li>
   );
 
   return (
-    <div>
-      <div style={{ padding: '12px 4px 24px' }}>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 750, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>전체</h2>
-        <p style={{ fontSize: 15, color: 'var(--text-body)', margin: '8px 0 0', lineHeight: 1.6 }}>주비의 모든 기능을 한눈에</p>
+    <div className={styles.directory}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>전체 메뉴</h2>
+        <button type="button" className={styles.mobileClose} onClick={onNavigate} aria-label="전체 메뉴 닫기">
+          <X size={22} aria-hidden="true" />
+        </button>
       </div>
 
-      {/* 검색 내장 — 종목 검색 진입 (필드형 버튼) */}
-      <button
-        onClick={() => emit('open-search')}
-        className="cursor-pointer search-field fd-stagger stag-1"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          width: '100%', padding: '14px 16px', marginBottom: 22, minHeight: 50,
-          background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 13,
-          color: 'var(--text-body)', fontSize: 15, textAlign: 'left',
-        }}
-        aria-label="종목 검색 열기"
-      >
-        <Search size={18} style={{ color: 'var(--text-primary)' }} />
-        <span style={{ flex: 1 }}>종목 검색</span>
-        <kbd style={{
-          fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)',
-          background: 'var(--bg-subtle, #F8F9FA)', border: '1px solid var(--border-light, #F2F4F6)',
-          borderRadius: 4, padding: '1px 6px',
-        }} className="hidden md:inline">/</kbd>
+      <button type="button" onClick={() => emit('open-search')} className={styles.search} aria-label="종목 검색 열기" aria-keyshortcuts="/">
+        <Search size={20} aria-hidden="true" />
+        <span>종목 검색</span>
+        <kbd className={styles.shortcut} aria-hidden="true">/</kbd>
       </button>
 
-      {/* 바로가기 — 핀으로 고정한 메뉴(등재순). 비었으면 발견 유도 1줄. */}
-      <div style={SECTION_LABEL}>바로가기</div>
       {favorites.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 24 }}>
-          {favorites.map((item, i) => renderRow(item, { viaFavorite: true, first: i === 0 }))}
-        </div>
-      ) : (
-        <div
-          className="fd-stagger stag-2"
-          style={{
-            marginBottom: 26, padding: '16px', display: 'flex', alignItems: 'center', gap: 12,
-            background: 'var(--bg-subtle)',
-            border: '1px solid var(--border-light)', borderRadius: 14,
-          }}
-        >
-          <span style={{
-            flexShrink: 0, width: 42, height: 42, borderRadius: 13,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--surface)', color: 'var(--text-primary)',
-          }}>
-            <Pin size={18} strokeWidth={2} />
-          </span>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.55 }}>
-            아래 기능의 <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>핀</span> 버튼으로 자주 쓰는 기능을 모아보세요.
-          </span>
-        </div>
-      )}
+        <section className={styles.section} aria-labelledby="menu-favorites-heading">
+          <h3 id="menu-favorites-heading" className={styles.sectionHeading}>바로가기</h3>
+          <ul className={styles.list}>{favorites.map(item => renderRow(item, true))}</ul>
+        </section>
+      ) : null}
 
-      {/* 주요 메뉴 — 2열 타일 (4탭, 항상 노출이라 핀 대상 아님) */}
-      <div style={SECTION_LABEL}>주요 메뉴</div>
-      <div className="fd-stagger stag-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
-        {PRIMARY_SECTIONS.map((item) => {
-          const isActive = item.action.kind === 'section' && currentSection === item.action.section;
-          return (
-            <button
-              key={item.id}
-              onClick={() => runItem(item, false)}
-              className="cursor-pointer feature-tile"
-              style={{
-                display: 'flex', flexDirection: 'column', gap: 10,
-                padding: '16px', minHeight: 104, textAlign: 'left',
-                background: isActive ? 'var(--bg-subtle)' : 'var(--surface)',
-                border: `1px solid ${isActive ? 'var(--text-primary)' : 'var(--border-light)'}`,
-                borderRadius: 14,
-              }}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              <span
-                style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isActive ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
-                  color: isActive ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
-                }}
-              >
-                <item.Icon size={22} strokeWidth={2} />
+      <section className={styles.section} aria-labelledby="menu-primary-heading">
+        <h3 id="menu-primary-heading" className={styles.sectionHeading}>주요 메뉴</h3>
+        <ul className={styles.list}>
+          {PRIMARY_SECTIONS.map(item => {
+            const isActive = item.action.kind === 'section' && currentSection === item.action.section;
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => runItem(item, false)}
+                  className={`${styles.rowButton} ${isActive ? styles.activeRow : ''}`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <span className={styles.icon} aria-hidden="true"><item.Icon size={22} strokeWidth={1.8} /></span>
+                  <span className={styles.rowText}>
+                    <span className={styles.label}>{item.label}</span>
+                    {item.sub ? <span className={`${styles.description} reading-copy`}>{item.sub}</span> : null}
+                  </span>
+                  {isActive ? <span className={styles.current}>현재</span> : <ChevronRight size={17} className={styles.chevron} aria-hidden="true" />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <section className={styles.section} aria-labelledby="menu-tools-heading">
+        <h3 id="menu-tools-heading" className={styles.sectionHeading}>투자 도구</h3>
+        {favorites.length === 0 ? <p className={`${styles.pinHint} reading-copy`}>핀을 누르면 바로가기에 모아볼 수 있어요.</p> : null}
+        <ul className={styles.list}>{TOOL_ITEMS.map(item => renderRow(item))}</ul>
+      </section>
+
+      <section className={styles.section} aria-labelledby="menu-help-heading">
+        <h3 id="menu-help-heading" className={styles.sectionHeading}>이용 안내</h3>
+        <ul className={styles.list}>{SUPPORT_ITEMS.map(item => renderRow(item))}</ul>
+      </section>
+
+      <section className={styles.section} aria-labelledby="menu-settings-heading">
+        <h3 id="menu-settings-heading" className={styles.sectionHeading}>환경 설정</h3>
+        <ul className={styles.list}>
+          <li>
+            <button type="button" onClick={() => emit('toggle-settings')} className={styles.rowButton}>
+              <span className={styles.icon} aria-hidden="true"><Settings size={21} strokeWidth={1.8} /></span>
+              <span className={styles.rowText}>
+                <span className={styles.label}>설정</span>
+                <span className={`${styles.description} reading-copy`}>알림·계정·표시 설정</span>
               </span>
-              <span>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.02em' }}>
-                  {item.label}
-                </span>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-body)', marginTop: 4, lineHeight: 1.6, wordBreak: 'keep-all', overflowWrap: 'break-word', textWrap: 'pretty' }}>
-                  {item.sub}
-                </span>
-              </span>
+              <ChevronRight size={17} className={styles.chevron} aria-hidden="true" />
             </button>
-          );
-        })}
-      </div>
-
-      {/* 더 많은 기능 — 핀 가능(관심 종목·알림 센터·둘러보기·도움말) */}
-      <div style={SECTION_LABEL}>더 많은 기능</div>
-      <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 24 }}>
-        {PINNABLE_ITEMS.map((item, i) => renderRow(item, { first: i === 0 }))}
-      </div>
-
-      {/* 환경 */}
-      <div style={SECTION_LABEL}>환경</div>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {/* 설정 */}
-        <button
-          onClick={() => emit('toggle-settings')}
-          className="cursor-pointer"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            width: '100%', padding: '14px 8px', minHeight: 56, textAlign: 'left',
-            background: 'none', border: 'none',
-          }}
-        >
-          <span style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)',
-          }}>
-            <Settings size={18} strokeWidth={1.9} />
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-              설정
-            </span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 1 }}>
-              알림·계정·표시 설정
-            </span>
-          </span>
-          <ChevronRight size={16} style={{ color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
-        </button>
-
-        {/* 다크 모드 토글 — 시트는 닫지 않음(전환 즉시 확인) */}
-        <button
-          onClick={(e) => { e.currentTarget.blur(); toggleDarkMode(); }}
-          className="cursor-pointer"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            width: '100%', padding: '14px 8px', minHeight: 56, textAlign: 'left',
-            background: 'none', border: 'none',
-            borderTop: '1px solid var(--border-light, #F2F4F6)',
-          }}
-          aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
-        >
-          <span style={{
-            width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)',
-          }}>
-            {darkMode ? <Sun size={18} strokeWidth={1.9} /> : <Moon size={18} strokeWidth={1.9} />}
-          </span>
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-              {darkMode ? '라이트 모드' : '다크 모드'}
-            </span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 1 }}>
-              현재 {darkMode ? '다크' : '라이트'} 모드예요
-            </span>
-          </span>
-        </button>
-      </div>
+          </li>
+          <li>
+            <button type="button" onClick={toggleDarkMode} className={styles.rowButton} aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}>
+              <span className={styles.icon} aria-hidden="true">
+                {darkMode ? <Sun size={21} strokeWidth={1.8} /> : <Moon size={21} strokeWidth={1.8} />}
+              </span>
+              <span className={styles.rowText}>
+                <span className={styles.label}>{darkMode ? '라이트 모드' : '다크 모드'}</span>
+                <span className={`${styles.description} reading-copy`}>현재 {darkMode ? '다크' : '라이트'} 모드예요</span>
+              </span>
+              <ChevronRight size={17} className={styles.chevron} aria-hidden="true" />
+            </button>
+          </li>
+        </ul>
+      </section>
     </div>
   );
 }

@@ -441,8 +441,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                 aria-label={`${getDisplayName(item)} 추가`}
                 style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6 }}
               >
-                <Plus style={{ width: 14, height: 14, color: 'var(--brand-primary, #0E7C7B)' }} />
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary, #0E7C7B)' }}>추가</span>
+                <Plus style={{ width: 14, height: 14, color: 'var(--text-primary)' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>추가</span>
               </button>
             </div>
           ))}

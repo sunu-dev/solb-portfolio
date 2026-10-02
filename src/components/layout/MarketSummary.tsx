@@ -184,7 +184,7 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--brand-primary, #3182F6)', marginBottom: 5 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-body)', marginBottom: 5 }}>
                   시장 지표
                 </div>
                 <h2 id="market-term-title" style={{ margin: 0, fontSize: 17, lineHeight: 1.4, fontWeight: 750 }}>

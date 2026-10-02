@@ -39,6 +39,8 @@ import { recordProDemandVisit } from '@/lib/proDemandActivity';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import { preparePortfolioIdentity, type LocalPortfolio } from '@/lib/portfolioIdentity';
 import { clearUserStorage } from '@/lib/userStorage';
+import { isGuideId } from '@/lib/guideNotebook';
+import type { MarketGuideId } from '@/config/marketGuides';
 
 const AnalysisSection = dynamic(() => import('@/components/analysis/AnalysisSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
 const NewsSection = dynamic(() => import('@/components/news/NewsSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
@@ -106,8 +108,39 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const [showMobileAlerts, setShowMobileAlerts] = useState(false);
   const [inviteCheck, setInviteCheck] = useState<InviteCheck | null>(null);
   const [inviteRetry, setInviteRetry] = useState(0);
+  const [guideRequest, setGuideRequest] = useState<{ id: MarketGuideId; key: number }>();
   const userId = user?.id;
   const inviteAccess = userId ? currentInviteAccess(userId, inviteCheck) : 'checking';
+
+  useEffect(() => {
+    const open = (id: unknown) => {
+      if (!isGuideId(id)) return;
+      setGuideRequest(previous => ({ id, key: (previous?.key ?? 0) + 1 }));
+      usePortfolioStore.getState().setCurrentSection('insights');
+    };
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('guide');
+    if (isGuideId(id)) {
+      open(id);
+    } else if (params.get('view') === 'insights' || id === 'coffee') {
+      usePortfolioStore.getState().setCurrentSection('insights');
+    }
+    if (isGuideId(id) || id === 'coffee' || params.get('view') === 'insights') {
+      params.delete('guide');
+      params.delete('view');
+      const query = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
+    const handle = (event: Event) => open((event as CustomEvent<{ id?: unknown }>).detail?.id);
+    window.addEventListener('open-market-guide', handle);
+    const unsubscribe = usePortfolioStore.subscribe((state, previous) => {
+      if (previous.currentSection === 'insights' && state.currentSection !== 'insights') setGuideRequest(undefined);
+    });
+    return () => {
+      window.removeEventListener('open-market-guide', handle);
+      unsubscribe();
+    };
+  }, []);
 
   // 종목 상세 딥링크 — analysisSymbol ↔ ?stock= URL 동기화.
   // PC distribution 복원: 공유·북마크·새 탭·새로고침·뒤로가기로 닫기. (전용 라우트 없이 쿼리만)
@@ -335,7 +368,7 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
               !authLoading 가드 — 세션 해석 전 로그인 유저에게 한 프레임 깜빡임 노출 차단 */}
           {!user && !authLoading && <GuestTourBanner />}
           {currentSection === 'portfolio' && <PortfolioSection />}
-          {currentSection === 'insights' && <InsightsSection />}
+          {currentSection === 'insights' && <InsightsSection guideRequest={guideRequest} />}
           {currentSection === 'events' && <AnalysisSection />}
           {currentSection === 'news' && <NewsSection />}
         </main>

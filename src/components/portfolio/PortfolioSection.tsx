@@ -658,10 +658,10 @@ export default function PortfolioSection() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
               marginBottom: 12, padding: '8px 12px', borderRadius: 10,
-              background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary)',
+              background: 'var(--bg-subtle)', border: '1px solid var(--border-light)',
             }}
           >
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-body)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
               <span aria-hidden>🏦</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 종목만 보는 중
@@ -671,7 +671,7 @@ export default function PortfolioSection() {
               onClick={() => setBrokerFilter(null)}
               className="cursor-pointer shrink-0"
               aria-label="증권사 필터 해제"
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--brand-primary)', background: 'var(--surface, #fff)', border: '1px solid var(--brand-primary)', borderRadius: 8, padding: '4px 10px', minHeight: 32 }}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface, #fff)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '4px 10px', minHeight: 32 }}
             >
               전체 보기
             </button>
@@ -744,6 +744,7 @@ export default function PortfolioSection() {
               관심 있는 종목을 추가하면 시세와 소식을 <span className="reading-phrase">함께 볼 수 있어요.</span>
             </div>
             <button className="joobi-primary-button" onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}>종목 검색하기</button>
+            {allStocksList.length === 0 && <button className="joobi-secondary-button" onClick={() => usePortfolioStore.getState().setCurrentSection('insights')}>주비 리포트 보기</button>}
             {OCR_UI_ENABLED && <button className="joobi-secondary-button" onClick={openOcr}>증권앱에서 가져오기</button>}
             <p style={{ marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>자주 찾는 종목</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>

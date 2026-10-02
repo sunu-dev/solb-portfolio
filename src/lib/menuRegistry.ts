@@ -83,7 +83,16 @@ export function runMenuAction(action: MenuAction, ctx: MenuActionContext): void 
       // PC: 상시 노출된 우측 사이드바로 스크롤, 모바일: 바텀시트
       if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
         ctx.onNavigate();
-        document.getElementById('solb-alert-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // 시트 cleanup이 잠근 body와 이전 스크롤을 복원한 뒤 목적지로 이동한다.
+        requestAnimationFrame(() => {
+          const target = document.getElementById('solb-alert-center');
+          if (!target) return;
+          target.focus({ preventScroll: true });
+          target.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+            block: 'start',
+          });
+        });
       } else {
         window.dispatchEvent(new CustomEvent('open-mobile-alerts'));
         ctx.onNavigate();

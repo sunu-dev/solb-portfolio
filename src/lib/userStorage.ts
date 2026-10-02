@@ -30,6 +30,7 @@ export const USER_STORAGE_KEYS = [
   'solb_tour_pending',
   'solb_tour_chapters_done',
   'solb_feat_used',
+  'solb_market_guide_v1', // 이해 확인과 내 말 정리 — 이 브라우저에만 저장
   'solb_checklist_dismissed',
   'solb_checklist_done_logged',
   // PRO 수요 검증 활동/숨김 — 계정 간 섞이면 적격·전환 지표가 오염됨

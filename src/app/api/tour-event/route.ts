@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getClientIp } from '@/lib/rateLimiter';
-import { TOUR_EVENT_SET } from '@/lib/tourEvents';
+import { TOUR_EVENT_SET, getGuideEventMeta, isGuideEvent } from '@/lib/tourEvents';
 
 /**
  * /api/tour-event — 게스트(비로그인) 투어/활성화 텔레메트리 sink.
@@ -114,6 +114,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
+  const meta = isGuideEvent(event) ? getGuideEventMeta(event, body.meta) : sanitizeMeta(body.meta);
+  if (!meta) {
+    await record(ip, 400, 'invalid_guide_meta');
+    return NextResponse.json({ ok: false }, { status: 400 });
+  }
+
   // 인증 사용자면 user_id 추출(선택). 대부분 게스트라 null. 위조 토큰은 무시되어 guest 처리.
   let userId: string | null = null;
   const authHeader = req.headers.get('authorization');
@@ -130,7 +136,7 @@ export async function POST(req: NextRequest) {
       user_id: userId,
       event,
       auth_state: userId ? 'user' : 'guest',
-      meta: sanitizeMeta(body.meta),
+      meta,
     });
     if (error) {
       console.error('[tour-event] insert failed:', error.message);

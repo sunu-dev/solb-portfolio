@@ -233,6 +233,7 @@ export default function RightSidebar() {
           ============================================ */}
       <section
         id="solb-alert-center"
+        tabIndex={-1}
         role="region"
         aria-live="polite"
         aria-label={`주비 AI 알림 ${visibleAlerts.length}개`}
@@ -320,13 +321,13 @@ export default function RightSidebar() {
             style={{
               padding: '24px 16px',
               borderRadius: 12,
-              background: 'linear-gradient(135deg, rgba(14,124,123,0.06), rgba(245,158,11,0.04))',
-              border: '1px solid rgba(14,124,123,0.10)',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border-strong)',
               textAlign: 'center',
             }}
           >
             <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand-primary)', marginBottom: 4 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
               알림이 없어요
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
@@ -387,8 +388,8 @@ export default function RightSidebar() {
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: 'var(--brand-primary)',
-                background: 'var(--brand-primary-light)',
+                color: 'var(--text-body)',
+                background: 'var(--bg-subtle)',
                 padding: '3px 8px',
                 borderRadius: 6,
                 marginBottom: 12,
@@ -408,8 +409,8 @@ export default function RightSidebar() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  background: 'var(--text-primary, #191F28)',
-                  color: 'var(--text-inverse, #fff)',
+                  background: 'var(--pill-active-bg)',
+                  color: 'var(--pill-active-fg)',
                   border: 'none',
                 }}
               >
@@ -429,8 +430,8 @@ export default function RightSidebar() {
                   borderRadius: 8,
                   fontSize: 11,
                   fontWeight: 600,
-                  background: watchingSet.has(chokPick.symbol) ? 'var(--bg-subtle, #F2F4F6)' : 'var(--brand-primary-light)',
-                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-tertiary, #B0B8C1)' : 'var(--brand-primary)',
+                  background: 'var(--bg-subtle)',
+                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-body)' : 'var(--text-primary)',
                   border: 'none',
                 }}
               >

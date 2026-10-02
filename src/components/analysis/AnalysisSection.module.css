@@ -16,7 +16,8 @@
 .tool+.tool { border-top:1px solid var(--border-light); }
 .tool .copy strong { font-size:16px; }
 .group:hover,.tool:hover { background:var(--bg-subtle); }
-.group:focus-visible,.tool:focus-visible,.back:focus-visible { outline:2px solid var(--brand-primary);outline-offset:3px; }
+.group:focus-visible,.tool:focus-visible,.back:focus-visible { outline:2px solid var(--text-primary);outline-offset:3px; }
+.tool:focus-visible { outline-offset:-3px; }
 .empty { display:none;padding:24px 20px;border:1px solid var(--border-light);border-radius:16px;background:var(--bg-subtle);color:var(--text-body);font-size:14px;line-height:1.8; }
 .toolBody:empty+.empty { display:block; }
 .hint { font-size:14px;color:var(--text-body);line-height:1.7;padding:20px 0; }

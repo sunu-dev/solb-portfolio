@@ -24,11 +24,11 @@
 .entry .entryLink { display: flex; align-items: center; gap: 6px; color: var(--text-primary); font-weight: 650; margin-top: 4px; }
 .explore { margin-top: 12px; }
 .explore summary { padding: 12px 0; min-height: 44px; cursor: pointer; font-size: 14px; color: var(--text-body); }
-.explore summary:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+.explore summary:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
 .topics button { flex: 1; }
 .topics button[aria-expanded='true'] { color: var(--pill-active-fg); border-color: var(--pill-active-bg); background: var(--pill-active-bg); font-weight: 700; }
-.card button:hover { border-color: var(--brand-primary); }
-.card button:focus-visible, .card a:focus-visible, .card input:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+.card button:hover { border-color: var(--text-secondary); }
+.card button:focus-visible, .card a:focus-visible, .card input:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
 .lesson { padding-top: 18px; }
 .lesson h3 { font-size: 21px; margin: 0 0 16px; line-height: 1.5; letter-spacing: -0.03em; }
 .lesson p { font-size: 15px; color: var(--text-body); line-height: 1.75; margin: 0 0 20px; word-break: keep-all; overflow-wrap: anywhere; }
@@ -36,7 +36,7 @@
 .quiz { padding: 0; border: 0; margin: 18px 0 8px; min-width: 0; }
 .quiz legend { font-size: 15px; font-weight: 650; margin-bottom: 12px; line-height: 1.6; }
 .quiz label { display: flex; gap: 10px; align-items: center; min-height: 48px; font-size: 15px; cursor: pointer; }
-.quiz input { accent-color: var(--brand-primary); }
+.quiz input { accent-color: var(--text-primary); }
 .feedback { color: var(--text-secondary); }
 .footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; }
 .footer a { display: inline-flex; gap: 4px; align-items: center; min-height: 44px; font-size: 12px; color: var(--text-body); text-decoration: underline; }

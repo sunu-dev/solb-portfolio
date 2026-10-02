@@ -3,32 +3,32 @@
 import BottomSheet from '@/components/common/BottomSheet';
 import FeatureDirectory from './FeatureDirectory';
 import BadgeSection from '@/components/portfolio/BadgeSection';
+import { ChevronRight } from 'lucide-react';
+import styles from './FeatureDirectory.module.css';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-/**
- * 전체 메뉴 시트 — 모바일 하단 네비 '더보기' + PC 헤더 '전체' 공용 진입점(IA P1-a).
- * 기존엔 RightSidebar(관심종목·알림)를 복제했으나, 관심종목=포트폴리오 탭 / 알림=벨(MobileAlertSheet)
- * / AI촉=인사이트 탭으로 도달 가능하므로 중복을 제거하고 카테고리형 기능 디렉터리로 승격.
- */
+/** 모바일 하단 메뉴와 데스크톱 헤더에서 함께 사용하는 전체 메뉴. */
 export default function MobileSidebar({ isOpen, onClose }: Props) {
   return (
     <BottomSheet
       isOpen={isOpen}
       onClose={onClose}
-      maxHeight="85vh"
-      paddingBottom="calc(80px + env(safe-area-inset-bottom, 0px))"
+      ariaLabel="전체 메뉴"
+      maxHeight="90dvh"
+      paddingBottom="calc(24px + env(safe-area-inset-bottom, 0px))"
       desktopVariant
     >
-      <div style={{ paddingLeft: 20, paddingRight: 20 }}>
+      <div className={styles.shell}>
         <FeatureDirectory onNavigate={onClose} />
         {/* 배지는 PC에선 우측 사이드바에 상시 노출되므로 시트에선 모바일만(중복 방지) */}
-        <div className="lg:hidden" style={{ marginTop: 28 }}>
-          <BadgeSection />
-        </div>
+        <details className={styles.badges}>
+          <summary>내 뱃지 보기<ChevronRight size={18} aria-hidden="true" /></summary>
+          <div className={styles.badgeContent}><BadgeSection /></div>
+        </details>
       </div>
     </BottomSheet>
   );

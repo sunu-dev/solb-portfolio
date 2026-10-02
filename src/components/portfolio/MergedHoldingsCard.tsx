@@ -40,8 +40,8 @@ export default function MergedHoldingsCard() {
       marginBottom: 20,
       padding: '16px 18px',
       borderRadius: 16,
-      background: 'linear-gradient(135deg, rgba(14,124,123,0.08), rgba(245,158,11,0.04))',
-      border: '1px solid rgba(14,124,123,0.20)',
+      background: 'var(--bg-subtle)',
+      border: '1px solid var(--border-strong)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ fontSize: 16 }}>🧮</span>
@@ -102,7 +102,7 @@ export default function MergedHoldingsCard() {
                     <span style={{ fontSize: 11, color: '#8B95A1' }}>{kr}</span>
                     <span style={{
                       fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                      background: 'rgba(14,124,123,0.10)', color: 'var(--brand-primary)', fontWeight: 600,
+                      background: 'var(--bg-subtle)', color: 'var(--text-body)', fontWeight: 600,
                     }}>
                       🏦 {h.lots.length}개 증권사
                     </span>

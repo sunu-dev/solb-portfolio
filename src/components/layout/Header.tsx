@@ -96,7 +96,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                       left: '24px',
                       right: '24px',
                       height: '2px',
-                      background: 'var(--brand-primary, #0E7C7B)',
+                      background: 'var(--text-primary)',
                       borderRadius: '1px',
                     }}
                   />

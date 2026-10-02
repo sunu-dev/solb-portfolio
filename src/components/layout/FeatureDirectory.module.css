@@ -1,0 +1,289 @@
+.shell {
+  padding: 0 20px;
+}
+
+.directory {
+  color: var(--text-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 52px;
+  margin-bottom: 12px;
+  padding-left: 8px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 750;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+.directory button {
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.directory .mobileClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-body);
+}
+
+.directory .search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--bg-subtle);
+  color: var(--text-body);
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.search > svg {
+  flex-shrink: 0;
+}
+
+.shortcut {
+  display: none;
+  margin-left: auto;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section + .section {
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sectionHeading {
+  margin: 0 8px 8px;
+  color: var(--text-body);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.directory .rowButton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 70px;
+  padding: 13px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.directory .activeRow {
+  background: var(--bg-subtle);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  color: var(--text-body);
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-body);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+.current {
+  flex-shrink: 0;
+  color: var(--text-body);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.pinnableRow {
+  display: flex;
+  align-items: center;
+}
+
+.pinnableRow .rowButton {
+  flex: 1;
+}
+
+.directory .compactRow {
+  min-height: 48px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.directory .pinButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--text-secondary);
+}
+
+.directory .pinned {
+  color: var(--text-primary);
+}
+
+.pinHint {
+  margin: -1px 8px 8px;
+  color: var(--text-body);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.directory button:focus-visible,
+.badges summary:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.badges {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
+}
+
+.badges summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--text-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.badges summary::-webkit-details-marker {
+  display: none;
+}
+
+.badges summary svg {
+  flex-shrink: 0;
+}
+
+.badges[open] summary svg {
+  transform: rotate(90deg);
+}
+
+.badgeContent {
+  padding: 0 10px;
+}
+
+@media (hover: hover) {
+  .directory .rowButton:hover,
+  .directory .pinButton:hover,
+  .directory .mobileClose:hover,
+  .badges summary:hover {
+    background: var(--bg-subtle);
+  }
+}
+
+@media (max-width: 359px) {
+  .shell {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .directory .rowButton {
+    gap: 10px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shell {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .header {
+    padding-right: 40px;
+  }
+
+  .directory .mobileClose,
+  .badges {
+    display: none;
+  }
+
+  .shortcut {
+    display: block;
+  }
+}

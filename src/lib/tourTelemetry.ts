@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { logApiCall } from './apiLogger';
-import { TOUR_EVENT_SET } from './tourEvents';
+import { GUIDE_EVENT_NAMES, TOUR_EVENT_SET, getGuideEventMeta, isGuideEvent, type GuideAction } from './tourEvents';
 
 /**
  * 투어/활성화 텔레메트리 통합 래퍼.
@@ -33,13 +33,16 @@ function getAnonId(): string {
 export async function logTourEvent(event: string, meta?: Record<string, unknown>): Promise<void> {
   if (typeof window === 'undefined') return;
   if (!TOUR_EVENT_SET.has(event)) return;
+  const guideEvent = isGuideEvent(event);
+  const eventMeta = guideEvent ? getGuideEventMeta(event, meta) : (meta || {});
+  if (!eventMeta) return;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id) {
       // 이미 확보한 user.id를 전달 → logApiCall이 getSession 재조회 안 함(만료 경계 이벤트 유실 방지)
-      logApiCall(event, undefined, { ...meta, auth: 'user' }, session.user.id);
+      logApiCall(event, undefined, guideEvent ? eventMeta : { ...eventMeta, auth: 'user' }, session.user.id);
     } else {
-      const body = JSON.stringify({ event, anonId: getAnonId(), meta: meta || {} });
+      const body = JSON.stringify({ event, anonId: getAnonId(), meta: eventMeta });
       // keepalive — 로그인 이동 등 페이지 이탈 중에도 전송 보장
       fetch('/api/tour-event', {
         method: 'POST',
@@ -49,6 +52,12 @@ export async function logTourEvent(event: string, meta?: Record<string, unknown>
       }).catch(() => { /* 텔레메트리 — silent */ });
     }
   } catch { /* silent */ }
+}
+
+/** Repeated guide actions are intentional; only the guide ID and check outcome are recorded. */
+export function logGuideEvent(action: GuideAction, guideId: string, correct?: boolean): void {
+  if (!Object.hasOwn(GUIDE_EVENT_NAMES, action)) return;
+  void logTourEvent(GUIDE_EVENT_NAMES[action], { guideId, correct });
 }
 
 /**

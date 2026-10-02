@@ -230,7 +230,7 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
         marginBottom: onClose ? 0 : 32,
         padding: '24px',
         borderRadius: 24,
-        background: 'linear-gradient(120deg, var(--brand-primary-light), var(--bg-subtle))',
+        background: 'var(--bg-subtle)',
         position: 'relative',
         animation: 'briefing-fade-in 0.4s ease-out',
       }}
@@ -452,7 +452,7 @@ function BriefingRow({
       gap: 12,
       padding: '16px 0',
     }}>
-      <span style={{ flexShrink: 0, marginTop: 2, color: 'var(--brand-primary)' }}>{icon}</span>
+      <span style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-body)' }}>{icon}</span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: 12, fontWeight: 500,

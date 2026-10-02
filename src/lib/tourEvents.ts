@@ -21,8 +21,37 @@ export const TOUR_EVENT_NAMES = [
   'record_preview_started',
   'record_preview_approved',
   'record_preview_restored',
+  // 시장 길잡이 — 매번 기록해 학습·재방문 흐름을 확인
+  'guide_open',
+  'guide_check',
+  'guide_save',
 ] as const;
 
 export type TourEventName = typeof TOUR_EVENT_NAMES[number];
 
 export const TOUR_EVENT_SET: ReadonlySet<string> = new Set(TOUR_EVENT_NAMES);
+
+export const GUIDE_EVENT_NAMES = {
+  open: 'guide_open',
+  check: 'guide_check',
+  save: 'guide_save',
+} as const;
+export type GuideAction = keyof typeof GUIDE_EVENT_NAMES;
+const GUIDE_EVENT_SET: ReadonlySet<string> = new Set(Object.values(GUIDE_EVENT_NAMES));
+const GUIDE_IDS: ReadonlySet<string> = new Set(['rates', 'inflation', 'currency', 'earnings']);
+
+export function isGuideEvent(event: string): boolean {
+  return GUIDE_EVENT_SET.has(event);
+}
+
+/** Client/server share the same allowlist; never collect written explanations or holdings. */
+export function getGuideEventMeta(event: string, raw: unknown): { guideId: string; correct?: boolean } | null {
+  if (!isGuideEvent(event) || !raw || typeof raw !== 'object') return null;
+  const meta = raw as Record<string, unknown>;
+  if (typeof meta.guideId !== 'string' || !GUIDE_IDS.has(meta.guideId)) return null;
+  if (event === GUIDE_EVENT_NAMES.check) {
+    if (typeof meta.correct !== 'boolean') return null;
+    return { guideId: meta.guideId, correct: meta.correct };
+  }
+  return { guideId: meta.guideId };
+}
