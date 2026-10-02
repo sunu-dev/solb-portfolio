@@ -1,5 +1,7 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { BarChart3, Menu } from 'lucide-react';
 import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
@@ -19,7 +21,10 @@ interface MobileNavProps {
 }
 
 export default function MobileNav({ onMoreClick }: MobileNavProps) {
-  const { currentSection, setCurrentSection } = usePortfolioStore();
+  const { currentSection, setCurrentSection } = usePortfolioStore(useShallow(state => ({
+    currentSection: state.currentSection,
+    setCurrentSection: state.setCurrentSection,
+  })));
 
   return (
     <nav

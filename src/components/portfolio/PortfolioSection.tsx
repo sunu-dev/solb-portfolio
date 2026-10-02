@@ -1,5 +1,7 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useEffect, useState, useCallback, useRef, Fragment, type ReactNode } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useHasHydrated } from '@/hooks/useHasHydrated';
@@ -29,7 +31,7 @@ import MonthlyWrapped from './MonthlyWrapped';
 import HomeEditSheet from './HomeEditSheet';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
-import { OCR_DISABLED_COPY, OCR_UI_ENABLED } from '@/config/ocrFeature';
+import { OCR_UI_ENABLED } from '@/config/ocrFeature';
 import {
   convertStockAmount,
   convertStockCostAmount,
@@ -164,7 +166,29 @@ export default function PortfolioSection() {
     portfolioSyncStatus,
     setHomeEditMode,
     toggleWidgetHidden,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks,
+    currentTab: state.currentTab,
+    macroData: state.macroData,
+    setCurrentTab: state.setCurrentTab,
+    setAnalysisSymbol: state.setAnalysisSymbol,
+    deleteStock: state.deleteStock,
+    setEditingCat: state.setEditingCat,
+    setEditingIdx: state.setEditingIdx,
+    addStock: state.addStock,
+    alerts: state.alerts,
+    dismissedAlerts: state.dismissedAlerts,
+    currency: state.currency,
+    lastUpdate: state.lastUpdate,
+    rawCandles: state.rawCandles,
+    dailySnapshots: state.dailySnapshots,
+    hiddenWidgets: state.hiddenWidgets,
+    widgetOrder: state.widgetOrder,
+    editMode: state.editMode,
+    portfolioSyncStatus: state.portfolioSyncStatus,
+    setHomeEditMode: state.setHomeEditMode,
+    toggleWidgetHidden: state.toggleWidgetHidden,
+  })));
 
   // 홈 편집 — 숨김 위젯 적용. 하이드레이션 전엔 전부 표시(서버와 동일 → mismatch 방지), 마운트 후 숨김 반영.
   // resolveHidden이 non-hideable(ai-hunch-link)·미지 id를 drop하므로 §6 발견경로는 어떤 저장값에도 표시.
@@ -449,11 +473,11 @@ export default function PortfolioSection() {
   });
 
   return (
-    <div data-tour="portfolio-section">
+    <div data-tour="portfolio-section" className={allStocksList.length === 0 ? "portfolio-empty-state" : undefined}>
       {OCR_UI_ENABLED && showOcr && <OcrImportModal onClose={closeOcr} />}
 
       {/* 내 자산과 종목 가격을 먼저 확인하고, 목록 다음에 브리핑을 제공한다. */}
-      <Dashboard />
+      {allStocksList.length > 0 && <Dashboard />}
 
       {(portfolioSyncStatus === 'conflict'
         || portfolioSyncStatus === 'storage-error'
@@ -523,57 +547,6 @@ export default function PortfolioSection() {
         </div>
       )}
 
-      {/* Empty state — 종목이 전혀 없을 때 */}
-      {allStocksList.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ 
-            width: 80, 
-            height: 80, 
-            margin: '0 auto 24px',
-            background: 'var(--bg-subtle, #F2F4F6)',
-            borderRadius: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: 0.8
-          }}>
-            <svg viewBox="0 0 100 100" style={{ width: '60%', height: '60%' }}>
-              <polyline points="10,80 28,54 48,62 68,34 86,20" stroke="#D1D5DB" strokeWidth="12" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="86" cy="20" r="8" fill="#D1D5DB" />
-            </svg>
-          </div>
-          <div style={{ fontSize: 'clamp(18px, 5vw, 24px)', fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
-            종목을 추가해보세요
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', marginBottom: 20 }}>
-            {OCR_UI_ENABLED ? '이미 투자 중이라면 스크린샷으로 한번에 가져올 수 있어요' : '종목을 검색해서 직접 추가할 수 있어요'}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
-            {OCR_UI_ENABLED ? (
-              <button
-                onClick={openOcr}
-                style={{ padding: '12px 28px', borderRadius: 12, background: '#191F28', color: '#fff', fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}
-              >
-                <span style={{ fontSize: 16 }}>📸</span> 증권앱에서 가져오기
-              </button>
-            ) : (
-              <div role="note" style={{ maxWidth: 340, padding: '10px 12px', borderRadius: 10, background: 'var(--bg-subtle, #F8F9FA)', color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, lineHeight: 1.5 }}>
-                {OCR_DISABLED_COPY.title} 개인정보 보호 기준을 충족한 뒤 제공할게요.
-              </div>
-            )}
-            <button
-              onClick={() => {
-                const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
-                if (searchBtn) searchBtn.click();
-              }}
-              style={{ padding: '10px 24px', borderRadius: 10, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer' }}
-            >
-              직접 종목 검색하기
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ===== 종목 탭 ===== */}
       {subTab === 'stocks' && (
       <div style={{ marginTop: 8, paddingTop: 12 }}>
@@ -608,7 +581,7 @@ export default function PortfolioSection() {
         )}
 
         {/* Category tabs + 종목 추가 버튼 (같은 줄) */}
-        <div className="flex items-center" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '20px' }}>
+        <div className="portfolio-category-tabs flex items-center" style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: '20px' }}>
           <div className="flex items-center overflow-x-auto scrollbar-hide" style={{ flex: 1, gap: 0 }}>
           {TABS.map((tab, tabIdx) => {
             const isActive = activeTab === tab.id;
@@ -670,7 +643,7 @@ export default function PortfolioSection() {
                 if (searchBtn) searchBtn.click();
               }}
               className="cursor-pointer shrink-0"
-              style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--brand-gradient, #1B6B3A)', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
+              style={{ padding: '8px 14px', minHeight: 36, fontSize: 12, fontWeight: 600, color: 'var(--pill-active-fg)', background: 'var(--pill-active-bg)', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
             >
               + 종목 추가
             </button>
@@ -709,7 +682,7 @@ export default function PortfolioSection() {
         {displayList.length > 0 && (
           <div className="flex items-center justify-between" style={{ marginBottom: 12, gap: 8 }}>
             {/* 기간 탭 */}
-            <div className="flex items-center scrollbar-hide" style={{ gap: 4, overflowX: 'auto', flexShrink: 0 }}>
+            <div className="flex items-center scrollbar-hide" style={{ gap: 4, overflowX: 'auto', flex: 1, minWidth: 0 }}>
               <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginRight: 4, whiteSpace: 'nowrap', flexShrink: 0 }}>기간</span>
               {PERIOD_OPTIONS.map(opt => {
                 const isActive = periodTab === opt.key;
@@ -765,12 +738,14 @@ export default function PortfolioSection() {
               </button>
             </div>
           ) : (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>&#x1F4CA;</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>종목을 추가해볼까요?</div>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 32 }}>
-              관심 있는 종목을 추가하면<br/>시세와 관련 정보를 한곳에서 확인할 수 있어요.
+          <div className="portfolio-empty">
+            <h1 className="reading-title" style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>{allStocksList.length === 0 ? '내 주식부터 살펴볼까요?' : currentTab === 'watching' ? '관심 종목을 추가해볼까요?' : currentTab === 'sold' ? '매도한 종목이 아직 없어요' : '보유 종목을 추가해볼까요?'}</h1>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 20 }}>
+              관심 있는 종목을 추가하면 시세와 소식을 <span className="reading-phrase">함께 볼 수 있어요.</span>
             </div>
+            <button className="joobi-primary-button" onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}>종목 검색하기</button>
+            {OCR_UI_ENABLED && <button className="joobi-secondary-button" onClick={openOcr}>증권앱에서 가져오기</button>}
+            <p style={{ marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>자주 찾는 종목</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {QUICK_ADD_STOCKS.map(s => {
                 const allStocks = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
@@ -792,10 +767,10 @@ export default function PortfolioSection() {
                     style={{
                       padding: '10px 20px',
                       borderRadius: 20,
-                      background: alreadyAdded ? '#3182F6' : 'var(--bg-subtle, #F2F4F6)',
+                      background: alreadyAdded ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
                       fontSize: 14,
                       fontWeight: 500,
-                      color: alreadyAdded ? '#fff' : 'var(--text-primary, #333D4B)',
+                      color: alreadyAdded ? 'var(--pill-active-fg)' : 'var(--text-primary)',
                       border: 'none',
                       cursor: 'pointer',
                     }}
@@ -805,10 +780,6 @@ export default function PortfolioSection() {
                 );
               })}
             </div>
-            <div style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 24 }}>
-              또는 상단 검색에서 원하는 종목을 찾아보세요
-            </div>
-
             {/* 샘플 포트폴리오 체험 */}
             <button
               onClick={() => {
@@ -831,10 +802,10 @@ export default function PortfolioSection() {
                 padding: '10px 24px',
                 borderRadius: 12,
                 background: 'transparent',
-                color: '#3182F6',
+                color: 'var(--text-primary)',
                 fontSize: 13,
                 fontWeight: 600,
-                border: '1px dashed rgba(49,130,246,0.4)',
+                border: '1px solid var(--border-strong)',
                 cursor: 'pointer',
               }}
             >

@@ -19,8 +19,8 @@ const DISMISS_KEY = 'solb_guest_banner_dismissed';
 
 const bannerStyle: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 10,
-  padding: '10px 14px', borderRadius: 12, marginBottom: 16,
-  background: 'var(--brand-primary-light)', border: '1px solid var(--brand-primary-bg)',
+  padding: '8px 12px', borderRadius: 12, marginBottom: 16,
+  background: 'var(--bg-subtle)', border: '1px solid var(--border-light)',
 };
 
 const closeBtnStyle: React.CSSProperties = {
@@ -62,7 +62,8 @@ export default function GuestTourBanner() {
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>체험 모드 · 샘플 데이터예요. </span>
           <button
             onClick={() => { logTourEvent('demo_to_login', { from: 'demo-banner' }); window.dispatchEvent(new CustomEvent('open-login')); }}
-            style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            className="reading-copy"
+            style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             로그인하면 내 종목으로 시작 →
           </button>
@@ -76,13 +77,12 @@ export default function GuestTourBanner() {
 
   return (
     <div style={bannerStyle}>
-      <Compass size={18} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+      <Compass size={18} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
       <button
         onClick={startDemo}
         style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
       >
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>주비 처음이세요? </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--brand-primary)' }}>샘플로 60초 둘러보기 ▶</span>
+        <span className="reading-copy" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>샘플로 주비 둘러보기 →</span>
       </button>
       <button
         onClick={() => { try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ } setDismissed(true); }}

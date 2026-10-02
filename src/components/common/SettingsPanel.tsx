@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalViewport } from '@/hooks/useModalViewport';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNotification } from '@/hooks/useNotification';
 import { supabase } from '@/lib/supabase';
@@ -134,11 +137,18 @@ export default function SettingsPanel() {
     autoRefresh, setAutoRefresh,
     refreshInterval, setRefreshInterval,
     investorType, setInvestorType,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    autoRefresh: state.autoRefresh, setAutoRefresh: state.setAutoRefresh,
+    refreshInterval: state.refreshInterval, setRefreshInterval: state.setRefreshInterval,
+    investorType: state.investorType, setInvestorType: state.setInvestorType,
+  })));
   const { requestPermission, pushEnabled, unsubscribePush } = useNotification();
   const [pushLoading, setPushLoading] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useModalViewport(isOpen, panelRef);
+  useFocusTrap(isOpen, panelRef, () => setIsOpen(false));
   const [intervalSec, setIntervalSec] = useState(String(refreshInterval / 1000));
   const [suppressedTypes, setSuppressedTypes] = useState<Array<{ type: string; count: number }>>([]);
   const [suppressedCategories, setSuppressedCategories] = useState<Array<{ category: string; label: string; count: number }>>([]);
@@ -175,15 +185,6 @@ export default function SettingsPanel() {
     window.addEventListener('toggle-settings', handler);
     return () => window.removeEventListener('toggle-settings', handler);
   }, []);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen]);
 
   const handleUpdateInterval = () => {
     const sec = parseInt(intervalSec);
@@ -230,7 +231,7 @@ export default function SettingsPanel() {
           inset: 0,
           background: 'rgba(0,0,0,0.1)',
           backdropFilter: 'blur(2px)',
-          zIndex: 50,
+          zIndex: 60,
         }}
         onClick={() => setIsOpen(false)}
       />
@@ -238,14 +239,19 @@ export default function SettingsPanel() {
       {/* Panel - slides from right */}
       <div
         data-settings-panel
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="설정"
+        tabIndex={-1}
         style={{
           position: 'fixed',
-          top: 0,
+          top: 'calc(100dvh - var(--modal-viewport-height) - var(--modal-viewport-bottom))',
           right: 0,
-          bottom: 0,
+          bottom: 'var(--modal-viewport-bottom)',
           width: 'min(360px, 100vw)',
           background: 'var(--surface, white)',
-          zIndex: 50,
+          zIndex: 70,
           boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
           display: 'flex',
           flexDirection: 'column',
@@ -266,6 +272,7 @@ export default function SettingsPanel() {
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>설정</span>
           <button
             onClick={() => setIsOpen(false)}
+            aria-label="설정 닫기"
             style={{
               width: 32,
               height: 32,
@@ -286,7 +293,7 @@ export default function SettingsPanel() {
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', padding: 24, paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
 
           {/* Auto Refresh Toggle Section */}
           <div style={{ marginBottom: 28 }}>
@@ -302,6 +309,8 @@ export default function SettingsPanel() {
               </span>
               <button
                 onClick={() => setAutoRefresh(!autoRefresh)}
+                aria-label="자동 새로고침"
+                aria-pressed={autoRefresh}
                 style={{
                   position: 'relative',
                   width: 44,

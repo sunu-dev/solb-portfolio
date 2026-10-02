@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalViewport } from '@/hooks/useModalViewport';
 
 interface Props {
   isOpen: boolean;
@@ -15,53 +17,36 @@ interface Props {
 
 export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80vh', paddingBottom, desktopVariant = false }: Props) {
   const sheetRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
 
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // Esc로 닫기(데스크톱 모달 UX, 모바일에서도 무해)
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen]);
-
-  // iOS-safe body scroll lock: position fixed preserves background scroll position
-  useEffect(() => {
-    if (!isOpen) return;
-    const scrollY = window.scrollY;
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollY}px`;
-    document.body.style.width = '100%';
-    return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      window.scrollTo(0, scrollY);
-    };
-  }, [isOpen]);
+  useModalViewport(isOpen, sheetRef);
+  useFocusTrap(isOpen, sheetRef, onClose);
 
   // Swipe-down-to-dismiss with passive:false so preventDefault works
   useEffect(() => {
     const sheet = sheetRef.current;
-    if (!sheet || !isOpen) return;
+    const handle = handleRef.current;
+    if (!sheet || !handle || !isOpen) return;
+    let closeTimer: ReturnType<typeof setTimeout> | undefined;
 
     let startY = 0;
     let isDragging = false;
 
     const onTouchStart = (e: TouchEvent) => {
-      if (sheet.scrollTop > 0) return;
+      if (e.touches.length !== 1 || (e.target as Element).closest('button')) return;
       startY = e.touches[0].clientY;
       isDragging = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || sheet.scrollTop > 0) return;
+      if (!isDragging || e.touches.length !== 1) return;
       const dy = e.touches[0].clientY - startY;
-      if (dy <= 0) { isDragging = false; return; }
+      if (dy <= 0) { sheet.style.transform = ''; return; }
       e.preventDefault();
       sheet.style.transform = `translateY(${dy}px)`;
       sheet.style.transition = 'none';
@@ -74,20 +59,29 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
       if (dy > 120) {
         sheet.style.transform = `translateY(100%)`;
         sheet.style.transition = 'transform 0.25s ease-out';
-        setTimeout(() => onCloseRef.current(), 240);
+        closeTimer = setTimeout(() => onCloseRef.current(), 240);
       } else {
         sheet.style.transform = '';
         sheet.style.transition = 'transform 0.3s ease-out';
       }
     };
 
-    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
-    sheet.addEventListener('touchmove', onTouchMove, { passive: false });
-    sheet.addEventListener('touchend', onTouchEnd, { passive: true });
+    handle.addEventListener('touchstart', onTouchStart, { passive: true });
+    handle.addEventListener('touchmove', onTouchMove, { passive: false });
+    handle.addEventListener('touchend', onTouchEnd, { passive: true });
+    const onTouchCancel = () => {
+      isDragging = false;
+      sheet.style.transform = '';
+      sheet.style.transition = '';
+    };
+    handle.addEventListener('touchcancel', onTouchCancel, { passive: true });
     return () => {
-      sheet.removeEventListener('touchstart', onTouchStart);
-      sheet.removeEventListener('touchmove', onTouchMove);
-      sheet.removeEventListener('touchend', onTouchEnd);
+      if (closeTimer) clearTimeout(closeTimer);
+      onTouchCancel();
+      handle.removeEventListener('touchcancel', onTouchCancel);
+      handle.removeEventListener('touchstart', onTouchStart);
+      handle.removeEventListener('touchmove', onTouchMove);
+      handle.removeEventListener('touchend', onTouchEnd);
     };
   }, [isOpen]);
 
@@ -134,13 +128,17 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
       {/* Sheet */}
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="상세 메뉴"
+        tabIndex={-1}
         className={`mobile-sidebar-sheet${desktopVariant ? ' bottomsheet-desktop' : ''}`}
         style={{
           position: 'fixed',
-          bottom: 0,
+          bottom: 'var(--modal-viewport-bottom, 0px)',
           left: 0,
           right: 0,
-          maxHeight,
+          maxHeight: `min(${maxHeight}, calc(var(--modal-viewport-height, 100dvh) - 16px))`,
           background: 'var(--surface, white)',
           borderRadius: '20px 20px 0 0',
           zIndex: 70,
@@ -152,7 +150,7 @@ export default function BottomSheet({ isOpen, onClose, children, maxHeight = '80
         }}
       >
         {/* Drag handle (모바일) / 상단 여백+닫기 바 (데스크톱) */}
-        <div className="bottomsheet-handle" style={{
+        <div ref={handleRef} className="bottomsheet-handle" style={{
           position: 'sticky', top: 0, zIndex: 2,
           background: 'var(--surface, white)',
           paddingTop: 12, paddingBottom: 8,

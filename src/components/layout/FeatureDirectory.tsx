@@ -1,5 +1,6 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { Search, Settings, ChevronRight, Moon, Sun, Pin } from 'lucide-react';
 import {
@@ -28,20 +29,16 @@ const SECTION_LABEL: React.CSSProperties = {
   margin: '0 4px 10px',
 };
 
-// 주요 메뉴 타일 — 메뉴별 컬러 아이콘 칩(토스/카카오 전체-그리드 생동감). 다크 자동 플립 토큰.
-const TILE_ACCENT: Record<string, { bg: string; fg: string }> = {
-  portfolio: { bg: 'var(--brand-primary-light, rgba(14,124,123,0.08))', fg: 'var(--brand-primary)' },
-  insights: { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
-  news: { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
-  events: { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
-};
-const accentFor = (id: string) => TILE_ACCENT[id] ?? TILE_ACCENT.portfolio;
-
 export default function FeatureDirectory({ onNavigate }: Props) {
   const {
     currentSection, setCurrentSection, setCurrentTab,
     darkMode, toggleDarkMode, menuFavorites, toggleMenuFavorite,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    currentSection: state.currentSection, setCurrentSection: state.setCurrentSection,
+    setCurrentTab: state.setCurrentTab, darkMode: state.darkMode,
+    toggleDarkMode: state.toggleDarkMode, menuFavorites: state.menuFavorites,
+    toggleMenuFavorite: state.toggleMenuFavorite,
+  })));
 
   const ctx: MenuActionContext = { setCurrentSection, setCurrentTab, onNavigate };
   const favorites = resolveFavorites(menuFavorites);
@@ -101,7 +98,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
           flexShrink: 0, width: 44, height: 44, borderRadius: 10,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'none', border: 'none',
-          color: isPinned(item.id) ? 'var(--brand-primary)' : 'var(--text-tertiary, #B0B8C1)',
+          color: isPinned(item.id) ? 'var(--text-primary)' : 'var(--text-tertiary, #B0B8C1)',
         }}
       >
         <Pin size={18} strokeWidth={isPinned(item.id) ? 2 : 1.9} fill={isPinned(item.id) ? 'currentColor' : 'none'} />
@@ -128,7 +125,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         }}
         aria-label="종목 검색 열기"
       >
-        <Search size={18} style={{ color: 'var(--brand-primary)' }} />
+        <Search size={18} style={{ color: 'var(--text-primary)' }} />
         <span style={{ flex: 1 }}>종목 검색</span>
         <kbd style={{
           fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)',
@@ -148,20 +145,19 @@ export default function FeatureDirectory({ onNavigate }: Props) {
           className="fd-stagger stag-2"
           style={{
             marginBottom: 26, padding: '16px', display: 'flex', alignItems: 'center', gap: 12,
-            background: 'linear-gradient(135deg, var(--brand-primary-bg, rgba(14,124,123,0.06)), var(--bg-subtle, #F8F9FA))',
-            border: '1px dashed var(--brand-primary-light, rgba(14,124,123,0.08))', borderRadius: 14,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-light)', borderRadius: 14,
           }}
         >
           <span style={{
             flexShrink: 0, width: 42, height: 42, borderRadius: 13,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', color: 'var(--on-brand-fg, #FFFFFF)',
-            boxShadow: 'var(--shadow-brand-soft)',
+            background: 'var(--surface)', color: 'var(--text-primary)',
           }}>
             <Pin size={18} strokeWidth={2} />
           </span>
           <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.55 }}>
-            아래 기능의 <span style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>핀</span> 버튼을 누르면<br />여기에 바로가기가 생겨요.
+            아래 기능의 <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>핀</span> 버튼으로 자주 쓰는 기능을 모아보세요.
           </span>
         </div>
       )}
@@ -171,28 +167,26 @@ export default function FeatureDirectory({ onNavigate }: Props) {
       <div className="fd-stagger stag-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
         {PRIMARY_SECTIONS.map((item) => {
           const isActive = item.action.kind === 'section' && currentSection === item.action.section;
-          const ac = accentFor(item.id);
           return (
             <button
               key={item.id}
               onClick={() => runItem(item, false)}
               className="cursor-pointer feature-tile"
               style={{
-                display: 'flex', flexDirection: 'column', gap: 12,
-                padding: '18px 16px', minHeight: 104, textAlign: 'left',
-                background: isActive ? ac.bg : 'linear-gradient(180deg, var(--surface, #FFFFFF), var(--bg-subtle, #F8F9FA))',
-                border: `1.5px solid ${isActive ? ac.fg : 'var(--border-light, #F2F4F6)'}`,
-                borderRadius: 18,
-                boxShadow: isActive ? 'var(--shadow-brand-soft)' : 'var(--shadow-md)',
+                display: 'flex', flexDirection: 'column', gap: 10,
+                padding: '16px', minHeight: 104, textAlign: 'left',
+                background: isActive ? 'var(--bg-subtle)' : 'var(--surface)',
+                border: `1px solid ${isActive ? 'var(--text-primary)' : 'var(--border-light)'}`,
+                borderRadius: 14,
               }}
               aria-current={isActive ? 'page' : undefined}
             >
               <span
                 style={{
-                  width: 46, height: 46, borderRadius: 14,
+                  width: 36, height: 36, borderRadius: 10,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: isActive ? ac.fg : ac.bg,
-                  color: isActive ? 'var(--pill-active-fg, #fff)' : ac.fg,
+                  background: isActive ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
+                  color: isActive ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
                 }}
               >
                 <item.Icon size={22} strokeWidth={2} />
@@ -201,7 +195,7 @@ export default function FeatureDirectory({ onNavigate }: Props) {
                 <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.02em' }}>
                   {item.label}
                 </span>
-                <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 3 }}>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--text-body)', marginTop: 4, lineHeight: 1.6, wordBreak: 'keep-all', overflowWrap: 'break-word', textWrap: 'pretty' }}>
                   {item.sub}
                 </span>
               </span>

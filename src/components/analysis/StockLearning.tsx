@@ -1,16 +1,26 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { Fragment, useId, useState } from 'react';
 import { ArrowRight, BookOpen, Check, ExternalLink } from 'lucide-react';
 import { STOCK_LESSONS } from '@/config/stockLearning';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import styles from './StockLearning.module.css';
+import ReadingText from '@/components/common/ReadingText';
 
 interface Props {
   name: string;
   onChart?: (days: number) => void;
   onNews: () => void;
   onNotes?: () => void;
+}
+
+function LessonTitle({ lesson }: { lesson: (typeof STOCK_LESSONS)[number] }) {
+  return lesson.titlePhrases.map((phrase, index) => (
+    <Fragment key={phrase}>
+      {index > 0 && ' '}
+      <span className="reading-phrase">{phrase}</span>
+    </Fragment>
+  ));
 }
 
 export default function StockLearning({ name, onChart, onNews, onNotes }: Props) {
@@ -36,7 +46,7 @@ export default function StockLearning({ name, onChart, onNews, onNotes }: Props)
       <p className={styles.intro}>{name}에서 무엇을 더 살펴볼까요?</p>
       {active === null && (
         <button type="button" className={styles.entry} onClick={() => openLesson(0)}>
-          <strong>{STOCK_LESSONS[0].title}</strong>
+          <strong className="reading-title"><LessonTitle lesson={STOCK_LESSONS[0]} /></strong>
           <span>실적 뉴스를 읽을 때 함께 확인할 두 숫자</span>
           <span className={styles.entryLink}>설명 읽기 <ArrowRight size={16} aria-hidden="true" /></span>
         </button>
@@ -66,9 +76,9 @@ export default function StockLearning({ name, onChart, onNews, onNotes }: Props)
       <div id={`${id}-lesson`}>
         {lesson && (
           <article className={styles.lesson}>
-            <h3>{lesson.title}</h3>
-            <p>{lesson.explanation}</p>
-            <p className={styles.example}>{lesson.example}</p>
+            <h3 className="reading-title"><LessonTitle lesson={lesson} /></h3>
+            <p><ReadingText>{lesson.explanation}</ReadingText></p>
+            <p className={styles.example}><ReadingText>{lesson.example}</ReadingText></p>
             <fieldset className={styles.quiz}>
               <legend>{lesson.question}</legend>
               {lesson.options.map((option, index) => (
@@ -85,7 +95,7 @@ export default function StockLearning({ name, onChart, onNews, onNotes }: Props)
             <div role="status" className={styles.feedback}>
               {answer !== undefined && <p><strong>{answer === lesson.correct ? '맞아요. ' : '함께 다시 볼까요? '}</strong>{lesson.answer}</p>}
             </div>
-            <p className={styles.observation}>{lesson.observation}</p>
+            <p className={styles.observation}><ReadingText>{lesson.observation}</ReadingText></p>
             <div className={styles.actions}>
               <button type="button" onClick={() => { onNews(); logFeatureFirstUse('stock-learning-news'); }}>관련 뉴스에서 확인 <ArrowRight size={14} aria-hidden="true" /></button>
               {onNotes && <button type="button" onClick={() => { onNotes(); logFeatureFirstUse('stock-learning-notes'); }}>내 생각 메모하기</button>}

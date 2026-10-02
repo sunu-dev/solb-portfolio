@@ -1,5 +1,7 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { searchStocks } from '@/hooks/useStockData';
@@ -66,7 +68,15 @@ interface SearchBarProps {
 
 export default function SearchBar({ onClose }: SearchBarProps) {
   const { user } = useAuth();
-  const { stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore();
+  const { stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks,
+    currentTab: state.currentTab,
+    addStock: state.addStock,
+    updateMacroEntry: state.updateMacroEntry,
+    setEditingCat: state.setEditingCat,
+    setEditingIdx: state.setEditingIdx,
+    setAnalysisSymbol: state.setAnalysisSymbol,
+  })));
   const [query, setQuery] = useState('');
   const queryRef = useRef('');
   const [catalog, setCatalog] = useState(getSearchCatalogState);
@@ -93,7 +103,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   }, []);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
     const frame = requestAnimationFrame(() => {
       setRecent(getRecent());
     });
@@ -213,6 +223,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
     abortSearchRef.current?.abort();
     setShowResults(false);
     setResults([]);
+    // Close search before mounting the editor; a slow quote must not keep two panels open.
+    onClose?.();
     // 방금 추가한 종목의 첫 시세는 서버 라우트로 받는다.
     // (예전엔 미국 종목을 브라우저에서 Finnhub에 직접 조회하려고 클라이언트 API 키를 썼다.)
     try {
@@ -231,7 +243,6 @@ export default function SearchBar({ onClose }: SearchBarProps) {
         if (d?.c) updateMacroEntry(sym, d);
       }
     } catch { /* silent */ }
-    if (onClose) onClose();
   }, [stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, onClose, user]);
 
   // 등록 진입점 — 단일종목 레버리지면 위험 동의 게이트를 먼저 띄우고,
@@ -296,13 +307,12 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          onBlur={() => setTimeout(() => { setShowResults(false); setShowRecent(false); }, 400)}
           onFocus={() => {
             if (results.length > 0) setShowResults(true);
             else if (query.length === 0) setShowRecent(true);
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Escape') { if (onClose) onClose(); return; }
+            if (e.key === 'Escape') { e.stopPropagation(); if (onClose) onClose(); return; }
             if (!showResults || results.length === 0) return;
             if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, results.length - 1)); }
             else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, 0)); }
@@ -353,7 +363,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
       {/* Results */}
       {showResults && results.length > 0 && (
-        <div style={{ maxHeight: 'min(320px, calc(100vh - 160px))', overflowY: 'auto', overflowX: 'hidden' }}>
+        <div style={{ maxHeight: 'min(320px, calc(var(--modal-viewport-height, 100dvh) - 130px))', overflowY: 'auto', overflowX: 'hidden' }}>
           {results.map((item, idx) => (
             <div
               key={`${item.symbol}-${idx}`}

@@ -6,7 +6,7 @@
 .back { display:inline-flex;align-items:center;gap:8px;min-height:44px;color:var(--text-body);font-size:13px;margin-bottom:12px;cursor:pointer; }
 .groups { display:grid;gap:14px; }
 .group { display:flex;align-items:center;gap:16px;padding:24px 20px;text-align:left;border-radius:18px;border:1px solid var(--border-light);background:var(--surface);color:var(--text-primary);cursor:pointer; }
-.icon { display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--bg-subtle);color:var(--brand-primary);flex-shrink:0; }
+.icon { display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--bg-subtle);color:var(--text-secondary);flex-shrink:0; }
 .copy { flex:1;min-width:0; }
 .copy strong { display:block;font-size:17px;font-weight:750;line-height:1.5; }
 .copy>span { display:block;font-size:13px;color:var(--text-body);line-height:1.7;margin-top:5px;word-break:keep-all;overflow-wrap:anywhere; }

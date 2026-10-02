@@ -1,7 +1,7 @@
 .card {
-  margin-bottom: 32px;
-  padding: 24px;
-  border-radius: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 16px;
   background: var(--bg-subtle);
   color: var(--text-primary);
   min-width: 0;
@@ -9,7 +9,7 @@
 }
 .heading { display: flex; align-items: center; gap: 8px; }
 .heading h2 { margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.03em; }
-.heading svg { flex-shrink: 0; color: var(--brand-primary); }
+.heading svg { flex-shrink: 0; color: var(--text-secondary); }
 .progress { margin-left: auto; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 .intro { margin: 8px 0 20px; font-size: 14px; line-height: 1.6; color: var(--text-body); overflow-wrap: anywhere; }
 .chartActions { padding: 12px; border-radius: 12px; background: var(--bg-subtle); font-size: 12px; }
@@ -20,12 +20,13 @@
 .card .entry { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; padding: 20px; text-align: left; border: none; border-radius: 18px; }
 .entry strong { font-size: 20px; line-height: 1.5; letter-spacing: -0.03em; word-break: keep-all; }
 .entry span { color: var(--text-body); font-size: 14px; line-height: 1.65; }
-.entry .entryLink { display: flex; align-items: center; gap: 6px; color: var(--brand-primary); font-weight: 650; margin-top: 4px; }
+.entry strong span { color: inherit; font: inherit; }
+.entry .entryLink { display: flex; align-items: center; gap: 6px; color: var(--text-primary); font-weight: 650; margin-top: 4px; }
 .explore { margin-top: 12px; }
 .explore summary { padding: 12px 0; min-height: 44px; cursor: pointer; font-size: 14px; color: var(--text-body); }
 .explore summary:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
 .topics button { flex: 1; }
-.topics button[aria-expanded='true'] { color: var(--brand-primary); border-color: var(--brand-primary); background: var(--brand-primary-light); font-weight: 700; }
+.topics button[aria-expanded='true'] { color: var(--pill-active-fg); border-color: var(--pill-active-bg); background: var(--pill-active-bg); font-weight: 700; }
 .card button:hover { border-color: var(--brand-primary); }
 .card button:focus-visible, .card a:focus-visible, .card input:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
 .lesson { padding-top: 18px; }
@@ -40,4 +41,5 @@
 .footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; }
 .footer a { display: inline-flex; gap: 4px; align-items: center; min-height: 44px; font-size: 12px; color: var(--text-body); text-decoration: underline; }
 .card small { display: block; color: var(--text-body); font-size: 12px; line-height: 1.6; }
+.intro, .entry > span, .lesson p, .quiz legend, .quiz label, .card small { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
 @media (max-width: 380px) { .card { padding: 20px; } .heading h2 { font-size: 19px; } .card button { padding-inline: 12px; } }

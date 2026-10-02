@@ -1,10 +1,13 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { currentInviteAccess, resolveInviteAccess, type InviteCheck } from '@/lib/inviteAccess';
 import { supabase } from '@/lib/supabase';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { useStockData, useMacroData, useAutoRefresh } from '@/hooks/useStockData';
+import { useStockData, useAutoRefresh } from '@/hooks/useStockData';
 import type { MacroEntry, QuoteData } from '@/config/constants';
 import { useRealtimePrice } from '@/hooks/useRealtimePrice';
 import { useAuth } from '@/hooks/useAuth';
@@ -21,10 +24,6 @@ import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
 import EconomicCalendar from '@/components/economy/EconomicCalendar';
 import BriefingDialog from '@/components/portfolio/BriefingDialog';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
-import AnalysisSection from '@/components/analysis/AnalysisSection';
-import NewsSection from '@/components/news/NewsSection';
-import InsightsSection from '@/components/insights/InsightsSection';
-import AnalysisPanel from '@/components/analysis/AnalysisPanel';
 import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
 // ToastAlert removed — alerts now shown in sidebar notification center
@@ -40,6 +39,11 @@ import { recordProDemandVisit } from '@/lib/proDemandActivity';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import { preparePortfolioIdentity, type LocalPortfolio } from '@/lib/portfolioIdentity';
 import { clearUserStorage } from '@/lib/userStorage';
+
+const AnalysisSection = dynamic(() => import('@/components/analysis/AnalysisSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
+const NewsSection = dynamic(() => import('@/components/news/NewsSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
+const InsightsSection = dynamic(() => import('@/components/insights/InsightsSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
+const AnalysisPanel = dynamic(() => import('@/components/analysis/AnalysisPanel'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
 
 export default function Home() {
   const auth = useAuth();
@@ -86,9 +90,14 @@ export default function Home() {
 }
 
 function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
-  const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore();
+  const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore(useShallow(state => ({
+    currentSection: state.currentSection,
+    loadPortfolio: state.loadPortfolio,
+    analysisSymbol: state.analysisSymbol,
+    darkMode: state.darkMode,
+    dbPortfolioStatus: state.dbPortfolioStatus,
+  })));
   const { refreshAll } = useStockData();
-  const { fetchMacro } = useMacroData();
   const { user, loading: authLoading, signInWithKakao, signOut } = auth;
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -207,7 +216,8 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
       // (예전에는 여기서 모든 방문자가 /api/ws-token으로 Finnhub 키를 받아
       //  localStorage에 영속시켰다 — 실시간 WebSocket 전용 키는 useRealtimePrice가
       //  로그인 세션이 있을 때만 지연 요청한다.)
-      Promise.all([fetchMacro(), refreshAll()]);
+      // refreshAll includes indices and FX in its quote batch.
+      void refreshAll();
     };
     const unsub = usePortfolioStore.persist.onFinishHydration(init);
     if (usePortfolioStore.persist.hasHydrated()) init();

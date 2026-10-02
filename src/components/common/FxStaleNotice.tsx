@@ -1,6 +1,7 @@
 'use client';
 
 import { usePortfolioStore } from '@/store/portfolioStore';
+import { useShallow } from 'zustand/react/shallow';
 import { DEFAULT_USD_KRW, formatKrw, resolveUsdKrwState } from '@/utils/koreanNumber';
 import { isKoreanStockSymbol } from '@/utils/stockCurrency';
 
@@ -19,7 +20,9 @@ import { isKoreanStockSymbol } from '@/utils/stockCurrency';
  *   ① 환율 미확인  ② USD 종목 보유  ③ 원화로 보는 중
  */
 export default function FxStaleNotice({ style }: { style?: React.CSSProperties }) {
-  const { macroData, stocks, currency } = usePortfolioStore();
+  const { macroData, stocks, currency } = usePortfolioStore(useShallow(state => ({
+    macroData: state.macroData, stocks: state.stocks, currency: state.currency,
+  })));
 
   if (currency !== 'KRW') return null;
 
@@ -35,9 +38,9 @@ export default function FxStaleNotice({ style }: { style?: React.CSSProperties }
     <div
       role="note"
       style={{
-        fontSize: 11,
-        lineHeight: 1.5,
-        color: 'var(--text-tertiary, #B0B8C1)',
+        fontSize: 12,
+        lineHeight: 1.6,
+        color: 'var(--text-secondary)',
         wordBreak: 'keep-all',
         ...style,
       }}

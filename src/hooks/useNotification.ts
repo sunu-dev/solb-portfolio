@@ -1,5 +1,7 @@
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { supabase } from '@/lib/supabase';
@@ -14,7 +16,10 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
 }
 
 export function useNotification() {
-  const { alerts, dismissedAlerts } = usePortfolioStore();
+  const { alerts, dismissedAlerts } = usePortfolioStore(useShallow(state => ({
+    alerts: state.alerts,
+    dismissedAlerts: state.dismissedAlerts,
+  })));
   const notifiedRef = useRef<Set<string>>(new Set());
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [pushEnabled, setPushEnabled] = useState(false);

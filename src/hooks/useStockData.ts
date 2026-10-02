@@ -4,6 +4,8 @@
 
 'use client';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useEffect, useRef, useCallback } from 'react';
 import { usePortfolioStore, delay } from '@/store/portfolioStore';
 import type { QuoteData, CandleRaw, NewsItem } from '@/config/constants';
@@ -115,8 +117,16 @@ export function useStockData() {
   const {
     getAllSymbols, updateMacroEntry,
     updateCandleCache, updateRawCandles, setLastUpdate,
-    stocks, setAlerts, setNetworkError,
-  } = usePortfolioStore();
+    setAlerts, setNetworkError,
+  } = usePortfolioStore(useShallow(state => ({
+    getAllSymbols: state.getAllSymbols,
+    updateMacroEntry: state.updateMacroEntry,
+    updateCandleCache: state.updateCandleCache,
+    updateRawCandles: state.updateRawCandles,
+    setLastUpdate: state.setLastUpdate,
+    setAlerts: state.setAlerts,
+    setNetworkError: state.setNetworkError,
+  })));
 
   const fetchAllQuotes = useCallback(async () => {
     // 시세는 전부 서버 라우트(/api/quotes·/api/kr-quote)를 거친다 — 클라이언트 API 키 불필요.
@@ -318,7 +328,9 @@ export function useStockData() {
 
 // --- useMacroData ---
 export function useMacroData() {
-  const { updateMacroEntry } = usePortfolioStore();
+  const { updateMacroEntry } = usePortfolioStore(useShallow(state => ({
+    updateMacroEntry: state.updateMacroEntry,
+  })));
 
   const fetchMacro = useCallback(async () => {
     // Use batch API (server-side, fast) instead of individual client calls
@@ -384,7 +396,11 @@ export function useMacroData() {
 
 // --- useCandleData ---
 export function useCandleData(symbol: string | null) {
-  const { rawCandles, updateRawCandles, updateCandleCache } = usePortfolioStore();
+  const { rawCandles, updateRawCandles, updateCandleCache } = usePortfolioStore(useShallow(state => ({
+    rawCandles: state.rawCandles,
+    updateRawCandles: state.updateRawCandles,
+    updateCandleCache: state.updateCandleCache,
+  })));
 
   const fetchCandle = useCallback(async () => {
     if (!symbol) return;
@@ -409,7 +425,10 @@ export function useCandleData(symbol: string | null) {
 
 // --- useNewsData ---
 export function useNewsData() {
-  const { updateNewsCache, getAllSymbols } = usePortfolioStore();
+  const { updateNewsCache, getAllSymbols } = usePortfolioStore(useShallow(state => ({
+    updateNewsCache: state.updateNewsCache,
+    getAllSymbols: state.getAllSymbols,
+  })));
 
   const fetchNews = useCallback(async (market: string): Promise<NewsFetchResult> => {
     let result: NewsFetchResult;
@@ -447,7 +466,13 @@ export function useAutoRefresh() {
   const symbolsKey = usePortfolioStore(state => [...new Set([
     ...state.stocks.investing, ...state.stocks.watching, ...state.stocks.sold,
   ].map(stock => stock.symbol))].sort().join(','));
-  const { autoRefresh, refreshInterval, currentNewsMarket, currentSection, updateMacroEntry } = usePortfolioStore();
+  const { autoRefresh, refreshInterval, currentNewsMarket, currentSection, updateMacroEntry } = usePortfolioStore(useShallow(state => ({
+    autoRefresh: state.autoRefresh,
+    refreshInterval: state.refreshInterval,
+    currentNewsMarket: state.currentNewsMarket,
+    currentSection: state.currentSection,
+    updateMacroEntry: state.updateMacroEntry,
+  })));
   const { refreshAll } = useStockData();
   const previousSymbols = useRef(symbolsKey);
 
@@ -458,7 +483,6 @@ export function useAutoRefresh() {
     previousSymbols.current = symbolsKey;
     if (symbolsKey) void refreshAll();
   }, [symbolsKey, refreshAll]);
-  const { fetchMacro } = useMacroData();
   const { fetchNews } = useNewsData();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const newsTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -500,8 +524,8 @@ export function useAutoRefresh() {
     }
     // 주가: 10초마다
     timerRef.current = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
       refreshAll();
-      fetchMacro();
     }, refreshInterval);
 
     // 뉴스: 15분마다 — 단, (1) 사용자가 뉴스탭에 있을 때 (2) 페이지가 visible일 때만
@@ -514,6 +538,7 @@ export function useAutoRefresh() {
 
     // 환율: 10분마다
     fxTimerRef.current = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
       try {
         const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
         const d = await r.json();
@@ -528,5 +553,5 @@ export function useAutoRefresh() {
       if (newsTimerRef.current) clearInterval(newsTimerRef.current);
       if (fxTimerRef.current) clearInterval(fxTimerRef.current);
     };
-  }, [autoRefresh, refreshInterval, refreshAll, fetchMacro, fetchNews, updateMacroEntry]);
+  }, [autoRefresh, refreshInterval, refreshAll, fetchNews, updateMacroEntry]);
 }

@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 const m = vi.hoisted(() => ({ error: vi.fn(), updated: vi.fn(), symbols: [] as string[], entries: {} as Record<string, unknown> }));
 vi.mock('react', () => ({ useCallback: (fn: unknown) => fn, useEffect: vi.fn(), useRef: (v: unknown) => ({ current: v }) }));
+// This test exercises quote reception without mounting React; selectors still run against the mock state.
+vi.mock('zustand/react/shallow', () => ({ useShallow: (selector: unknown) => selector }));
 vi.mock('@/store/portfolioStore', () => {
   const state = {
     getAllSymbols: () => m.symbols,
@@ -8,7 +10,7 @@ vi.mock('@/store/portfolioStore', () => {
     setNetworkError: m.error, setLastUpdate: m.updated,
     get macroData() { return m.entries; },
   };
-  return { usePortfolioStore: Object.assign(() => state, { getState: () => state }), delay: vi.fn() };
+  return { usePortfolioStore: Object.assign((selector?: (value: typeof state) => unknown) => selector ? selector(state) : state, { getState: () => state }), delay: vi.fn() };
 });
 import { MACRO_IND } from '@/config/constants';
 import { useStockData } from '@/hooks/useStockData';

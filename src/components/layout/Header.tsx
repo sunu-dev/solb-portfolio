@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import { useState, useEffect, useRef } from 'react';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
+import { useModalViewport } from '@/hooks/useModalViewport';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
@@ -23,9 +27,17 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
-  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore();
+  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore(useShallow(state => ({
+    currentSection: state.currentSection,
+    setCurrentSection: state.setCurrentSection,
+    darkMode: state.darkMode,
+    toggleDarkMode: state.toggleDarkMode,
+  })));
   const unreadCount = useUnreadAlertCount();
   const [showSearch, setShowSearch] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  useModalViewport(showSearch, searchRef);
+  useFocusTrap(showSearch, searchRef, () => setShowSearch(false));
 
   // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)
   useEffect(() => {
@@ -48,7 +60,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-40"
+      className="main-header sticky top-0 z-40"
       style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
     >
       <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
@@ -117,7 +129,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         <div className="flex-1" />
 
         {/* Right actions — gap 통일 */}
-        <div className="flex items-center" style={{ gap: 8 }}>
+        <div className="header-actions flex items-center">
 
         {/* Dark mode toggle */}
         <button
@@ -148,7 +160,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             e.currentTarget.blur();
             window.location.href = '/help';
           }}
-          className="flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
+          className="header-help flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
             width: '36px',
             height: '36px',
@@ -250,7 +262,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             </kbd>
           </button>
           {showSearch && (
-            <div className="fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
+            <div ref={searchRef} role="dialog" aria-modal="true" aria-label="종목 검색" tabIndex={-1} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
               <SearchBar onClose={() => setShowSearch(false)} />
             </div>
           )}
@@ -264,6 +276,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             {/* Settings — 모바일에서 숨김 (공간 확보) */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
+              aria-label="설정 열기"
               className="hidden md:flex items-center justify-center cursor-pointer transition-colors"
               style={{
                 width: '44px',
@@ -286,7 +299,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                 marginLeft: '4px',
                 fontSize: '13px',
                 fontWeight: 600,
-                color: '#0E7C7B',
+                color: 'var(--text-primary)',
                 background: 'none',
                 border: 'none',
                 padding: '6px 12px',

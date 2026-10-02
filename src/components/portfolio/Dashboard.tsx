@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import FxStaleNotice from '@/components/common/FxStaleNotice';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
@@ -28,7 +29,15 @@ export default function Dashboard() {
     setAnalysisSymbol, currency, setCurrency, networkError, setNetworkError,
     rawCandles, recordDailySnapshot,
     investorType, investorTypeSetAt, setCurrentSection,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks, macroData: state.macroData,
+    setAnalysisSymbol: state.setAnalysisSymbol, currency: state.currency,
+    setCurrency: state.setCurrency, networkError: state.networkError,
+    setNetworkError: state.setNetworkError, rawCandles: state.rawCandles,
+    recordDailySnapshot: state.recordDailySnapshot, investorType: state.investorType,
+    investorTypeSetAt: state.investorTypeSetAt, setCurrentSection: state.setCurrentSection,
+  })));
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const typeMeta = INVESTOR_TYPES[investorType];
   const hasTypeSet = !!investorTypeSetAt;
   const currentTime = useNow();
@@ -228,7 +237,8 @@ export default function Dashboard() {
   }, [data.hasInvestment, data.usdKrw, stocks.investing, macroData]);
 
   return (
-    <div className="card-enter overflow-hidden" style={{ borderRadius: 24, background: 'var(--surface, white)', border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 20, boxShadow: '0 8px 32px rgba(0,0,0,0.03)' }}>
+    <div className={`dashboard-summary card-enter overflow-hidden${detailsOpen ? ' dashboard-details-open' : ''}`} style={{ borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border-light)', marginBottom: 20 }}>
+      <h1 className="sr-only">내 투자 현황</h1>
       {/* 네트워크 에러 배너 */}
       {networkError && (
         <div role="alert" style={{
@@ -247,24 +257,19 @@ export default function Dashboard() {
       )}
 
       {/* Hero Visual Section */}
-      <div style={{
+      <div className="dashboard-summary-header" style={{
         position: 'relative',
         padding: '32px 24px 24px',
-        background: isGain
-          ? 'var(--dashboard-hero-gain)'
-          : 'var(--dashboard-hero-loss)',
+        background: 'var(--surface)',
         overflow: 'hidden'
       }}>
-        {/* Decorative Circles */}
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'var(--surface, white)', opacity: 0.3, filter: 'blur(30px)' }} />
-        <div style={{ position: 'absolute', bottom: -20, left: '20%', width: 80, height: 80, borderRadius: '50%', background: isGain ? 'var(--color-loss, #3182F6)' : 'var(--color-gain, #EF4452)', opacity: 0.05, filter: 'blur(20px)' }} />
 
         {/* Hero Content */}
         <div className="flex items-start justify-between">
           <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
             <div className="dashboard-hero-toolbar">
               <div className="dashboard-hero-badges">
-                <span style={{ fontSize: 13, fontWeight: 700, color: isGain ? 'var(--color-loss, #3182F6)' : 'var(--color-gain, #EF4452)', background: 'var(--surface, white)', padding: '4px 12px', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', padding: '4px 0' }}>
                   {!data.hasInvestment ? '내 주식 비서' : !data.quotesLoaded ? '시세 확인 중' : displayTotalPL === 0 ? '평가손익 보합' : isGain ? '평가손익 플러스' : '평가손익 마이너스'}
                 </span>
                 {streak > 0 && !significantLoss && (
@@ -308,15 +313,15 @@ export default function Dashboard() {
                 >$</button>
               </div>
             </div>
-            <h1 style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0, wordBreak: 'keep-all' }}>
+            <h2 className="dashboard-greeting reading-title" style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0, wordBreak: 'keep-all' }}>
               {greetData.text}
-            </h1>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, wordBreak: 'keep-all' }}>
+            </h2>
+            <p className="dashboard-greeting" style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, wordBreak: 'keep-all' }}>
               주비도 함께 지켜보고 있어요 🐘
             </p>
 
             {/* 국장과 미장 상태를 함께 표시. 모바일에서는 배지 단위로 줄바꿈. */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div className="dashboard-market-status" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {marketCountdowns.map((marketCountdown, index) => (
             <div
               key={index}
@@ -369,9 +374,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main Stats Section — [S2] 수치 가독성 및 정돈 */}
-      <div style={{ padding: '24px' }}>
+      <div className="dashboard-summary-body" style={{ padding: '24px' }}>
         {data.hasInvestment ? (
-          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
+          <div className="dashboard-stats grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
             {/* P&L Display */}
             <div className="profit-block" style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -425,7 +430,7 @@ export default function Dashboard() {
                     };
                     if (!d) {
                       return (
-                        <div key={key} style={{ ...rowStyle, borderLeft: '2px solid transparent' }}>
+                        <div key={key} data-period={key} style={{ ...rowStyle, borderLeft: '2px solid transparent' }}>
                           <span style={{ fontWeight: 600, color: 'var(--text-secondary, #4E5968)' }}>{label}</span>
                           <span className="tabular-nums" style={{ textAlign: 'right', color: 'var(--text-tertiary, #B0B8C1)' }}>—</span>
                           <span />
@@ -437,7 +442,7 @@ export default function Dashboard() {
                     const dollarDelta = data.usdKrw > 0 ? krwDelta / data.usdKrw : 0;
                     const accentColor = isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
                     return (
-                      <div key={key} style={{ ...rowStyle, borderLeft: `2px solid ${isPrimary ? accentColor : 'transparent'}` }}>
+                      <div key={key} data-period={key} style={{ ...rowStyle, borderLeft: `2px solid ${isPrimary ? accentColor : 'transparent'}` }}>
                         {/* 1열 — 라벨 (left) */}
                         <span style={{
                           fontWeight: isPrimary ? 700 : 600,
@@ -476,7 +481,7 @@ export default function Dashboard() {
             </div>
 
             {/* Sub Stats List */}
-            <div className="flex flex-col justify-center gap-3">
+            <div className="dashboard-asset-details flex flex-col justify-center gap-3">
               {!data.quotesLoaded ? (
                 [0,1,2].map(i => (
                   <div key={i} className="flex items-center justify-between">
@@ -494,7 +499,6 @@ export default function Dashboard() {
                   <strong className="tabular-nums" style={{ color: 'var(--text-primary, #191F28)', fontWeight: 600, whiteSpace: 'nowrap' }}>{item.value}</strong>
                 </div>
               ))}
-              <FxStaleNotice style={{ marginTop: 4 }} />
             </div>
           </div>
         ) : (
@@ -502,6 +506,14 @@ export default function Dashboard() {
             종목을 추가하면 수익 현황이 여기에 표시돼요.
           </div>
         )}
+        {data.hasInvestment && <>
+          <FxStaleNotice style={{ marginTop: 12 }} />
+          <button
+            className="dashboard-detail-toggle md:hidden"
+            aria-expanded={detailsOpen}
+            onClick={() => setDetailsOpen(open => !open)}
+          >{detailsOpen ? '자산·기간별 수익 접기' : '자산·기간별 수익 자세히'} <span aria-hidden="true">{detailsOpen ? '⌃' : '⌄'}</span></button>
+        </>}
 
         {/* 최근 알림 미리보기 — Status ≠ Alert이지만 진입점만 추가 (정책 §8) */}
         {topAlerts.length > 0 && (() => {

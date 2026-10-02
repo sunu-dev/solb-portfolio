@@ -1,7 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { computeChapterTime } from '@/utils/monthlyChapter';
+import { usePortfolioStore } from '@/store/portfolioStore';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalViewport } from '@/hooks/useModalViewport';
 
 /**
  * Chapter Keyword Prompt — 매월 1~3일 첫 진입 시 한 번 노출.
@@ -15,11 +18,16 @@ import { computeChapterTime } from '@/utils/monthlyChapter';
 const SEEN_KEY = 'solb_chapter_keyword_prompted';
 
 export default function ChapterKeywordPrompt() {
+  const hasHoldings = usePortfolioStore(state => state.stocks.investing.some(stock => !stock.demo));
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [chapterId, setChapterId] = useState('');
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  useModalViewport(open, viewportRef);
 
   useEffect(() => {
+    if (!hasHoldings) return;
     try {
       const time = computeChapterTime();
       // 1~3일이 아니거나 이미 키워드 있거나 이미 prompted한 챕터면 skip
@@ -30,12 +38,16 @@ export default function ChapterKeywordPrompt() {
       if (seenList.includes(time.chapterId)) return;
       // 진입 후 약간 딜레이 — 다른 모달과 충돌 방지
       const timer = setTimeout(() => {
+        // Never interrupt an in-progress search, editor, tour or keyboard input.
+        if (document.visibilityState !== 'visible'
+          || document.querySelector('[aria-modal="true"], dialog[open]')
+          || document.activeElement?.matches('input, textarea, select, [contenteditable="true"]')) return;
         setChapterId(time.chapterId);
         setOpen(true);
       }, 1200);
       return () => clearTimeout(timer);
     } catch { /* ignore */ }
-  }, []);
+  }, [hasHoldings]);
 
   const handleSave = () => {
     if (!chapterId) return;
@@ -66,6 +78,7 @@ export default function ChapterKeywordPrompt() {
     setOpen(false);
   };
 
+  useFocusTrap(open, dialogRef, handleSkip);
   if (!open) return null;
 
   // 이번 달 라벨
@@ -74,10 +87,11 @@ export default function ChapterKeywordPrompt() {
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
+      ref={viewportRef}
       style={{
-        position: 'fixed', inset: 0, zIndex: 9998,
+        position: 'fixed', left: 0, right: 0,
+        top: 'calc(100dvh - var(--modal-viewport-height) - var(--modal-viewport-bottom))',
+        height: 'var(--modal-viewport-height)', zIndex: 9998,
         background: 'rgba(0,0,0,0.55)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 16,
@@ -89,11 +103,12 @@ export default function ChapterKeywordPrompt() {
         @keyframes keyword-slide { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
 
-      <div style={{
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="이번 달 투자 키워드" tabIndex={-1} style={{
         background: 'var(--surface, #FFFFFF)',
         borderRadius: 20,
         padding: '28px 24px',
         width: '100%', maxWidth: 380,
+        maxHeight: 'calc(var(--modal-viewport-height, 100dvh) - 32px)', overflowY: 'auto',
         boxShadow: '0 12px 40px rgba(0,0,0,0.16)',
         animation: 'keyword-slide 0.3s ease',
       }}>
@@ -129,7 +144,6 @@ export default function ChapterKeywordPrompt() {
           onChange={(e) => setKeyword(e.target.value.slice(0, 24))}
           onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
           placeholder="예: 분할 매수의 달 / 손절 연습"
-          autoFocus
           style={{
             width: '100%',
             padding: '12px 14px',
@@ -154,6 +168,7 @@ export default function ChapterKeywordPrompt() {
         {/* 버튼 */}
         <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
           <button
+            data-dialog-initial-focus
             onClick={handleSkip}
             style={{
               flex: 1,

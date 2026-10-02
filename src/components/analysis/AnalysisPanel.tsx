@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { lockBodyScroll } from '@/lib/bodyScrollLock';
 import { useCandleData, fetchKoreanNews } from '@/hooks/useStockData';
 import {
   calcSMA, calcRSI, calcBollingerBands, calcMACD,
@@ -335,8 +336,7 @@ export default function AnalysisPanel() {
   }, [setAnalysisSymbol]);
 
   useEffect(() => {
-    if (symbol) document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    if (symbol) return lockBodyScroll();
   }, [symbol]);
 
   // 모달 접근성 — ESC 닫기 + 포커스 트랩 + 복원 (거짓 aria-modal 해소)
@@ -415,10 +415,10 @@ export default function AnalysisPanel() {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 z-50" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
+      <div className="fixed inset-0 z-[60]" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
 
       {/* Panel */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ padding: 16 }}>
+      <div className="fixed inset-0 z-[70] flex items-center justify-center" style={{ padding: 16 }}>
         <div
           className={`flex flex-col analysis-modal${wideMode ? ' wide' : ''}`}
           style={{
@@ -1136,26 +1136,27 @@ export default function AnalysisPanel() {
                     width: '100%',
                     padding: 14,
                     // 레버리지: 회색 disabled(고장처럼)가 아니라 의도적 정책임을 앰버 톤으로
-                    background: isLev ? 'rgba(245,158,11,0.10)' : aiLoading ? '#B0B8C1' : 'var(--brand-primary, #0E7C7B)',
-                    color: isLev ? '#B45309' : '#fff',
+                    background: isLev ? 'rgba(245,158,11,0.10)' : aiLoading ? 'var(--bg-subtle)' : 'var(--pill-active-bg)',
+                    color: isLev ? '#B45309' : aiLoading ? 'var(--text-secondary)' : 'var(--pill-active-fg)',
                     borderRadius: 12,
                     fontSize: isLev ? 13.5 : 15,
                     fontWeight: isLev ? 700 : 600,
                     border: isLev ? '1px solid rgba(245,158,11,0.25)' : 'none',
                     marginBottom: 24,
                     gap: 8,
+                    flexWrap: 'wrap',
                     cursor: aiLoading ? 'default' : 'pointer',
                   }}
                 >
                   {isLev
-                    ? <><ShieldAlert size={17} aria-hidden="true" /> 이 상품은 AI 분석을 제공하지 않아요</>
-                    : <><Sparkles size={17} aria-hidden="true" /> {aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</>}
+                    ? <><ShieldAlert size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">이 상품은 AI 분석을 제공하지 않아요</span></>
+                    : <><Sparkles size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">{aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</span></>}
                   {aiRemaining !== null && !showAIReport && !aiLoading && !isLev && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
                 </button>
                 {!isLev && (
-                  <div style={{ marginTop: -14, marginBottom: 24, textAlign: 'center', fontSize: 11.5, lineHeight: 1.55, color: 'var(--text-tertiary, #8B95A1)' }}>
+                  <div className="reading-copy" style={{ marginTop: -14, marginBottom: 24, textAlign: 'center', fontSize: 12, lineHeight: 1.65, color: 'var(--text-body)' }}>
                     AI에는 종목·공개 시세·지표·뉴스만 전송하며, 평단·수량·목표·메모는 보내지 않아요.
                   </div>
                 )}

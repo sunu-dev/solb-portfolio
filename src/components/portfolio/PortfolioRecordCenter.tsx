@@ -520,6 +520,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
         }}
       >
         <button
+          className="record-center-trigger"
           type="button"
           aria-expanded={expanded}
           aria-controls="portfolio-record-tools"
@@ -552,6 +553,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
             </span>
           </span>
           <span
+            className="record-center-sync-status"
             aria-live="polite"
             style={{
               flexShrink: 0,

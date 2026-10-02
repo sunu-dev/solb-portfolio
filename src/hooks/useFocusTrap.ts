@@ -1,4 +1,6 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
+
+const activeTraps: symbol[] = [];
 
 /**
  * 모달 접근성 — 포커스 트랩 + ESC 닫기 + 포커스 복원.
@@ -19,52 +21,65 @@ export function useFocusTrap(
   containerRef: RefObject<HTMLElement | null>,
   onEscape?: () => void,
 ) {
+  const escapeRef = useRef(onEscape);
+  useEffect(() => { escapeRef.current = onEscape; }, [onEscape]);
+
   useEffect(() => {
     if (!active) return;
     const container = containerRef.current;
     if (!container) return;
 
     const prevFocused = document.activeElement as HTMLElement | null;
+    const token = Symbol('focus-trap');
+    activeTraps.push(token);
     const SELECTOR =
       'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const focusables = (): HTMLElement[] =>
       Array.from(container.querySelectorAll<HTMLElement>(SELECTOR)).filter(
-        (el) => el.offsetParent !== null || el === document.activeElement,
+        (el) => el.getClientRects().length > 0 && !el.closest('[inert]'),
       );
 
     // 마운트 시 첫 포커서블로 이동(없으면 컨테이너 자체)
-    const first = focusables()[0];
-    if (first) first.focus();
-    else container.focus?.();
+    const first = container.querySelector<HTMLElement>('[data-dialog-initial-focus]') ?? focusables()[0];
+    if (!container.contains(document.activeElement)) {
+      (first ?? container).focus({ preventScroll: true });
+    }
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onEscape) {
+      if (activeTraps.at(-1) !== token) return;
+      if (e.key === 'Escape' && escapeRef.current) {
         e.preventDefault();
-        onEscape();
+        e.stopPropagation();
+        escapeRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
       const list = focusables();
-      if (list.length === 0) return;
-      const firstEl = list[0];
-      const lastEl = list[list.length - 1];
-      const activeEl = document.activeElement;
-      if (e.shiftKey && (activeEl === firstEl || !container.contains(activeEl))) {
+      if (list.length === 0) {
         e.preventDefault();
-        lastEl.focus();
-      } else if (!e.shiftKey && activeEl === lastEl) {
-        e.preventDefault();
-        firstEl.focus();
+        container.focus({ preventScroll: true });
+        return;
       }
+      // Safari may skip buttons in native Tab navigation and jump to browser chrome.
+      // Move explicitly for every Tab, rather than only handling the two boundaries.
+      const index = list.indexOf(document.activeElement as HTMLElement);
+      const next = e.shiftKey
+        ? (index <= 0 ? list.length - 1 : index - 1)
+        : (index < 0 || index === list.length - 1 ? 0 : index + 1);
+      e.preventDefault();
+      list[next].focus();
     };
 
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
+      const wasTop = activeTraps.at(-1) === token;
+      activeTraps.splice(activeTraps.indexOf(token), 1);
       // 트리거로 포커스 복원(존재·연결돼 있을 때만)
-      if (prevFocused && typeof prevFocused.focus === 'function' && document.contains(prevFocused)) {
-        prevFocused.focus();
+      if (wasTop && prevFocused && typeof prevFocused.focus === 'function' && document.contains(prevFocused)
+        && (document.activeElement === document.body || container.contains(document.activeElement))) {
+        prevFocused.focus({ preventScroll: true });
       }
     };
-  }, [active, containerRef, onEscape]);
+  }, [active, containerRef]);
 }

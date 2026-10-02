@@ -1,7 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { formatKrw, resolveUsdKrw } from '@/utils/koreanNumber';
+import { useShallow } from 'zustand/react/shallow';
+
+import { useState, useRef } from 'react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalViewport } from '@/hooks/useModalViewport';
+import { formatKrw, resolveUsdKrwState } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
 import type { StockNote, Broker, StockItem } from '@/config/constants';
@@ -39,10 +43,20 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
     stocks, editingCat, editingIdx,
     setEditingCat, setEditingIdx, updateStock, moveStock,
     macroData,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks,
+    editingCat: state.editingCat,
+    editingIdx: state.editingIdx,
+    setEditingCat: state.setEditingCat,
+    setEditingIdx: state.setEditingIdx,
+    updateStock: state.updateStock,
+    moveStock: state.moveStock,
+    macroData: state.macroData,
+  })));
 
   // 현재 USD/KRW 환율 (macroData에서)
-  const currentUsdKrw = Math.round(resolveUsdKrw(macroData));
+  const fxState = resolveUsdKrwState(macroData);
+  const currentUsdKrw = Math.round(fxState.rate);
 
   // 편집 대상을 key로 remount해 파생 상태를 effect 없이 한 번만 초기화한다.
   const [avgCost, setAvgCost] = useState(() => initialStock.avgCost ? String(initialStock.avgCost) : '');
@@ -79,16 +93,15 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   const isKR = stock ? getStockCurrency(stock.symbol, stock.currency) === 'KRW' : false;
   const unit = isKR ? '₩' : '$';
 
-  // 컴포넌트가 열린 동안 body scroll lock
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalViewport(true, dialogRef);
 
   const close = () => {
     setEditingCat('');
     setEditingIdx(-1);
   };
+
+  useFocusTrap(true, dialogRef, close);
 
   // 분수주(0.5234주) 지원 — 한국 증권사가 분수주 거래 표준이므로 parseFloat 사용
   // 정합성 결함 C1 수정: 기존 parseInt가 분수주를 0 또는 정수로 잘라 평단·총평가 왜곡
@@ -219,19 +232,22 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/20 z-50 backdrop-blur-xs" onClick={close} />
+      <div className="fixed inset-0 bg-black/20 z-[80] backdrop-blur-xs" onClick={close} />
 
       {/* Modal — desktop: center, mobile: bottom sheet */}
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className="edit-stock-modal"
         style={{
           position: 'fixed',
           left: 16, right: 16,
           maxWidth: 480, margin: '0 auto',
           background: 'var(--surface, #FFFFFF)',
-          zIndex: 50,
+          zIndex: 90,
           boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
         }}
         role="dialog"
         aria-modal="true"
@@ -239,21 +255,21 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
       >
         <style>{`
           .edit-stock-modal {
-            bottom: 0;
+            bottom: var(--modal-viewport-bottom, 0px);
             border-radius: 20px 20px 0 0;
-            max-height: 90vh;
+            max-height: calc(var(--modal-viewport-height, 100dvh) - 16px);
           }
           @media (min-width: 769px) {
             .edit-stock-modal {
               top: 50%; bottom: auto;
               transform: translateY(-50%);
               border-radius: 20px;
-              max-height: none;
+              max-height: calc(100dvh - 32px);
             }
           }
         `}</style>
         {/* Header */}
-        <div style={{ padding: '24px 24px 16px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
+        <div style={{ padding: '24px 24px 16px', flexShrink: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
           </div>
@@ -282,7 +298,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           )}
         </div>
 
-        <div style={{ padding: '16px 24px', maxHeight: 'min(60vh, calc(100vh - 250px))', overflowY: 'auto' }}>
+        <div style={{ padding: '16px 24px', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain' }}>
           {/* Category selector */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>분류</label>
@@ -310,9 +326,9 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                     borderRadius: 10,
                     fontSize: 13,
                     fontWeight: editingCat === cat.id ? 700 : 500,
-                    color: editingCat === cat.id ? '#3182F6' : '#8B95A1',
-                    background: editingCat === cat.id ? 'rgba(49,130,246,0.08)' : '#F2F4F6',
-                    border: editingCat === cat.id ? '1px solid rgba(49,130,246,0.3)' : '1px solid transparent',
+                    color: editingCat === cat.id ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
+                    background: editingCat === cat.id ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
+                    border: '1px solid transparent',
                     cursor: 'pointer',
                   }}
                 >
@@ -339,15 +355,15 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
 
           {/* 투자 중 / 매도 완료: 평균 매수 단가 + 수량 + 환율 */}
           {editingCat !== 'watching' && (<>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div className="edit-purchase-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit}) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 종목을 산 가격</span></label>
-              <input type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
+              <input aria-label={`평균 매수 단가 (${unit})`} type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 갖고 있는 주식 수 (분수주 지원)</span></label>
-              <input type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
+              <input aria-label="보유 수량 (주)" type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
                 style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
             </div>
           </div>
@@ -358,6 +374,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
               🏦 증권사 <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 선택사항. 비워두면 미지정</span>
             </label>
             <select
+              aria-label="증권사"
               value={broker}
               onChange={(e) => setBroker(e.target.value as Broker | '')}
               style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
@@ -378,6 +395,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
               </label>
               <div style={{ position: 'relative' }}>
                 <input
+                  aria-label="매수 시 환율 (USD/KRW)"
                   type="number"
                   value={purchaseRate}
                   onChange={(e) => setPurchaseRate(e.target.value)}
@@ -388,11 +406,11 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                   <button
                     onClick={() => setPurchaseRate(String(currentUsdKrw))}
                     style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
-                  >현재 환율로</button>
+                  >{fxState.stale ? '임시 기준으로' : '현재 환율로'}</button>
                 )}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
-                현재 환율: {formatKrw(currentUsdKrw, { prefix: false, suffix: '원', short: false })}
+                {fxState.stale ? '환율 미확인 · 임시 기준: ' : '현재 환율: '}{formatKrw(currentUsdKrw, { prefix: false, suffix: '원', short: false })}
               </div>
             </div>
           )}
@@ -526,15 +544,14 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           </>)}
           {mode === 'basic' && editingCat !== 'watching' && (
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0', lineHeight: 1.6 }}>
-              💡 &quot;상세&quot; 탭에서 목표 수익률, 손절가 등을 설정할 수 있어요
+              <span aria-hidden="true">💡 </span>&quot;상세&quot; 탭에서 목표 수익률, 손절가 등을 <span className="reading-phrase">설정할 수 있어요</span>
             </div>
           )}
-        </div>
 
         {/* Memo prompt — 저장 후 변경 감지 시 노출 */}
         {memoContext && (
           <div
-            role="dialog"
+            role="region"
             aria-label="투자 메모 남기기"
             style={{
               padding: '18px 24px',
@@ -623,15 +640,17 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           </div>
         )}
 
+        </div>
+
         {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border-light, #F2F4F6)', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
+        <div style={{ padding: '16px 24px', flexShrink: 0, paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid var(--border-light, #F2F4F6)', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
           <button onClick={close}
             style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong, #E5E8EB)', cursor: 'pointer' }}>
             취소
           </button>
           <button onClick={save}
             disabled={saved}
-            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#FFFFFF', background: saved ? '#20C997' : '#3182F6', border: 'none', cursor: saved ? 'default' : 'pointer', transition: 'background 0.2s' }}>
+            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--pill-active-fg)', background: 'var(--pill-active-bg)', border: 'none', cursor: saved ? 'default' : 'pointer' }}>
             {saved ? '저장됨 ✓' : '저장'}
           </button>
         </div>
