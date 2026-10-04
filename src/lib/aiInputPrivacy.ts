@@ -4,7 +4,7 @@ export interface PublicAiAnalysisInput {
   currency?: 'KRW' | 'USD';
   price: number;
   change?: number;
-  changePercent: number;
+  changePercent?: number;
   rsi?: number | string;
   trend?: string;
   cross?: string;
@@ -40,6 +40,7 @@ export const PRIVATE_AI_ANALYSIS_FIELDS = [
 
 const optionalNumberFields = [
   'change',
+  'changePercent',
   'volRatio',
   'per',
   'eps',
@@ -79,12 +80,11 @@ export function toPublicAiAnalysisInput(input: unknown): PublicAiAnalysisInput |
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const raw = input as Record<string, unknown>;
   const symbol = limitedString(raw.symbol, 32);
-  if (!symbol || !finiteNumber(raw.price) || !finiteNumber(raw.changePercent)) return null;
+  if (!symbol || !finiteNumber(raw.price)) return null;
 
   const result: PublicAiAnalysisInput = {
     symbol,
     price: raw.price,
-    changePercent: raw.changePercent,
   };
   if (raw.currency !== undefined) {
     if (raw.currency !== 'KRW' && raw.currency !== 'USD') return null;

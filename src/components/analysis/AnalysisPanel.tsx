@@ -16,18 +16,19 @@ import { buildChartNarrative } from '@/utils/chartNarrative';
 import { STOCK_KR } from '@/config/constants';
 import { quoteDirection, quoteTimestamp } from '@/utils/quotePresentation';
 import type { AIReport, StockItem, QuoteData, NewsItem } from '@/config/constants';
-import { BarChart3, Check, ChevronLeft, ChevronRight, ShieldAlert, Sparkles, TriangleAlert, X } from 'lucide-react';
+import { BarChart3, Check, ChevronLeft, ChevronRight, ShieldAlert, Sparkles, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
 import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
-import { calcStockAttributes } from '@/utils/mentorScores';
-import MentorRadar from './MentorRadar';
-import MentorIcon, { mentorFocus } from './MentorIcon';
+import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
+import StockCheckup from './StockCheckup';
+import StockAnalysisQuestions, { getStockAnalysisQuestion } from './StockAnalysisQuestions';
+import assistantStyles from './StockAssistant.module.css';
 import StockLearning from './StockLearning';
-import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
+import { isSingleStockLeverage, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
 import AiResultMeta from '@/components/common/AiResultMeta';
 import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
 import {
@@ -226,6 +227,7 @@ export default function AnalysisPanel() {
   const [mentorReport, setMentorReport] = useState<MentorReport | null>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
   const [mentorError, setMentorError] = useState('');
+  const mentorRequestRef = useRef<AbortController | null>(null);
   const [aiRemaining, setAiRemaining] = useState<number | null>(null);
   const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const hasFundamentalValues = !!fundamentals && (
@@ -358,6 +360,10 @@ export default function AnalysisPanel() {
     setShowAIReport(false); setAiReport(null); setAiLoading(false); setAiError('');
     setSelectedMentor(null); setMentorReport(null); setMentorLoading(false); setMentorError('');
     setChartLevel('basic'); setChartRange(60); setFundamentals(null); setTickerNews([]);
+    return () => {
+      mentorRequestRef.current?.abort();
+      mentorRequestRef.current = null;
+    };
   }, [symbol]);
 
   useEffect(() => {
@@ -415,6 +421,93 @@ export default function AnalysisPanel() {
   const allSymbols = getAllSymbols();
   const symIdx = allSymbols.indexOf(symbol);
   const showSwitcher = symIdx >= 0 && allSymbols.length > 1;
+
+  const closeMentorAnswer = () => {
+    mentorRequestRef.current?.abort();
+    mentorRequestRef.current = null;
+    setMentorLoading(false);
+    setSelectedMentor(null);
+    setMentorReport(null);
+    setMentorError('');
+    const more = dialogRef.current?.querySelector<HTMLButtonElement>('[data-question-more]');
+    const hiddenAfterClose = more?.getAttribute('aria-expanded') === 'false'
+      && !['safe', 'value', 'growth'].includes(selectedMentor?.id ?? '');
+    if (hiddenAfterClose) more?.focus();
+    else dialogRef.current?.querySelector<HTMLButtonElement>(`[data-question-id="${selectedMentor?.id}"]`)?.focus();
+  };
+
+  const handleMentorSelect = async (id: string, retry = false) => {
+    const mentor = MENTORS.find(item => item.id === id);
+    if (!mentor || mentorRequestRef.current) return;
+    if (selectedMentor?.id === id && !retry) { closeMentorAnswer(); return; }
+    setSelectedMentor(mentor);
+    setMentorReport(null);
+    setMentorError('');
+    const cacheKey = `${symbol}-${id}`;
+    const cached = mentorReportCache[cacheKey];
+    if (!retry && cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      setMentorReport(cached.report);
+      return;
+    }
+    const controller = new AbortController();
+    mentorRequestRef.current = controller;
+    const isCurrent = () => !controller.signal.aborted && mentorRequestRef.current === controller
+      && usePortfolioStore.getState().analysisSymbol === symbol;
+    setMentorLoading(true);
+    try {
+      const [{ data: { session } }, { buildTimeSeriesContext }, refreshedQuote] = await Promise.all([
+        supabase.auth.getSession(), import('@/utils/timeSeries'),
+        Number.isFinite(price) && price > 0 ? Promise.resolve(null) : fetchQuoteViaServer(symbol),
+      ]);
+      if (!isCurrent()) return;
+      const requestPrice = Number.isFinite(price) && price > 0 ? price : refreshedQuote?.c;
+      if (!requestPrice || !Number.isFinite(requestPrice) || requestPrice <= 0) {
+        setMentorError('가격 자료를 확인하지 못했어요. 잠시 후 다시 요청하면 시세부터 확인할게요.');
+        return;
+      }
+      if (refreshedQuote?.c) usePortfolioStore.getState().updateMacroEntry(symbol, refreshedQuote);
+      const response = await fetch('/api/ai-analysis', {
+        method: 'POST', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        body: JSON.stringify({
+          symbol, koreanName: displayName, currency: fundamentalsCurrency,
+          price: requestPrice, change: quote?.c ? quote.d : refreshedQuote?.d,
+          changePercent: quote?.c ? quote.dp : refreshedQuote?.dp,
+          rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
+          cross: analysis?.cross, pattern: analysis?.pattern?.name,
+          bollingerStatus: analysis?.bollingerStatus?.status,
+          macdStatus: analysis?.macdStatus?.status,
+          volRatio: getStockVolumeRatio(rawCandles[symbol]),
+          mentorId: mentor.id, per: fundamentals?.per, eps: fundamentals?.eps,
+          week52High: fundamentals?.week52High, week52Low: fundamentals?.week52Low,
+          sector: fundamentals?.sector,
+          timeSeriesContext: buildTimeSeriesContext(rawCandles[symbol], nativeCurrency),
+        }),
+      });
+      const data = await response.json();
+      if (!isCurrent()) return;
+      if (response.ok && data.success && data.report) {
+        setMentorReport(data.report);
+        if (data.remaining !== undefined) setAiRemaining(data.remaining);
+        mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
+        try {
+          const previous = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
+          localStorage.setItem('solb_ai_usage', String(previous + 1));
+        } catch { /* Storage is optional. */ }
+        logApiCall('mentor_analysis', symbol, { mentor: mentor.id });
+        logFeatureFirstUse('mentor');
+      } else {
+        setMentorError(data.error || '설명을 불러오지 못했어요. 잠시 후 다시 요청해주세요.');
+      }
+    } catch {
+      if (isCurrent()) setMentorError('연결이 원활하지 않아요. 잠시 후 다시 요청해주세요.');
+    } finally {
+      if (isCurrent()) {
+        mentorRequestRef.current = null;
+        setMentorLoading(false);
+      }
+    }
+  };
 
   return (
     <>
@@ -528,6 +621,10 @@ export default function AnalysisPanel() {
                 onClick={() => document.getElementById('anchor-fundamentals')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-body)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >기업 지표</button>}
+              {!isLev && <button
+                onClick={() => document.getElementById('anchor-assistant')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                style={{ fontSize: 12, fontWeight: 600, minHeight: 44, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-body)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >주비 노트</button>}
               <button
                 onClick={() => document.getElementById('anchor-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                 style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
@@ -1314,349 +1411,65 @@ export default function AnalysisPanel() {
                   </div>
                 )}
 
-                {/* ============================================
-                    레이더 차트 + 멘토 분석 섹션
-                    ============================================ */}
-
-                {/* 단일종목 레버리지: 레이더(매수 매력도)·멘토 분석 섹션 전체 숨김 — '분석' 출구 차단.
-                    거부 + 일반 유도 카드가 위 AI 분석 영역에 노출됨. */}
                 {!isLev && (
-                <div style={{ marginBottom: 24 }}>
-                  {/* Radar chart — 종목 속성 6축.
-                      단일종목 레버리지·인버스(보유분)는 매수 매력도 점수를 노출하지 않는다.
-                      매수/매도 방향 신호 = §6 자문업 영역 → 점수 대신 보유 위험 해설만 제공. */}
-                  {isLev ? (
-                    <div style={{
-                      marginBottom: 20,
-                      padding: '16px 18px',
-                      borderRadius: 12,
-                      background: 'rgba(245,158,11,0.06)',
-                      border: '1px solid rgba(245,158,11,0.2)',
-                    }}>
-                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <TriangleAlert size={16} aria-hidden="true" color="#B45309" />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#B45309' }}>
-                          매수 매력도 점수를 제공하지 않는 종목이에요
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7 }}>
-                        {LEVERAGE_HOLDING_RISK_NOTE}
-                      </div>
+                  <div id="anchor-assistant" className={assistantStyles.section}>
+                    <div className={assistantStyles.overview}>
+                    <StockCheckup checkup={buildStockCheckup({
+                      price, candles: rawCandles[symbol], fundamentals, currency: nativeCurrency,
+                    })} />
+                    <div className={assistantStyles.questions}>
+                      <StockAnalysisQuestions key={symbol} selectedId={selectedMentor?.id ?? null}
+                        loading={mentorLoading} onSelect={handleMentorSelect} />
                     </div>
-                  ) : (
-                    <MentorRadar
-                      scores={calcStockAttributes({
-                        symbol: symbol || '',
-                        price,
-                        change,
-                        changePercent: cp,
-                        rsiVal: analysis?.rsiVal ?? undefined,
-                        trend: analysis?.trend,
-                        cross: analysis?.cross ?? undefined,
-                        bollingerStatus: analysis?.bollingerStatus?.status ?? undefined,
-                        macdStatus: analysis?.macdStatus?.status ?? undefined,
-                        volRatio: analysis?.volRatio ?? undefined,
-                        avgCost: stockData?.avgCost,
-                        shares: stockData?.shares,
-                        targetReturn: stockData?.targetReturn,
-                      })}
-                    />
-                  )}
-
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 12 }}>
-                    멘토에게 상세 분석 받기
-                  </div>
-
-                  {/* Mentor avatars — horizontal scroll */}
-                  <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                    {MENTORS.map(m => {
-                      const isActive = selectedMentor?.id === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={async () => {
-                            if (isActive) { setSelectedMentor(null); setMentorReport(null); setMentorError(''); return; }
-                            setSelectedMentor(m);
-                            setMentorReport(null);
-                            setMentorError('');
-
-                            // Check cache
-                            const cacheKey = `${symbol}-${m.id}`;
-                            const cached = mentorReportCache[cacheKey];
-                            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-                              setMentorReport(cached.report);
-                              return;
-                            }
-
-                            setMentorLoading(true);
-                            try {
-                              const { data: { session: sess } } = await supabase.auth.getSession();
-                              const resp = await fetch('/api/ai-analysis', {
-                                method: 'POST',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  ...(sess?.access_token ? { 'Authorization': `Bearer ${sess.access_token}` } : {}),
-                                },
-                                body: JSON.stringify({
-                                  symbol, koreanName: displayName, currency: fundamentalsCurrency,
-                                  price, change, changePercent: cp,
-                                  rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
-                                  cross: analysis?.cross, pattern: analysis?.pattern?.name,
-                                  bollingerStatus: analysis?.bollingerStatus?.status,
-                                  macdStatus: analysis?.macdStatus?.status, volRatio: analysis?.volRatio,
-                                  mentorId: m.id,
-                                  per: fundamentals?.per,
-                                  eps: fundamentals?.eps,
-                                  week52High: fundamentals?.week52High,
-                                  week52Low: fundamentals?.week52Low,
-                                  sector: fundamentals?.sector,
-                                  timeSeriesContext: symbol
-                                    ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
-                                        rawCandles[symbol],
-                                        nativeCurrency,
-                                      )
-                                    : '',
-                                }),
-                              });
-                              const data = await resp.json();
-                              if (data.success) {
-                                setMentorReport(data.report);
-                                if (data.remaining !== undefined) setAiRemaining(data.remaining);
-                                mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
-                                try {
-                                  const prev = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
-                                  localStorage.setItem('solb_ai_usage', String(prev + 1));
-                                } catch { /* ignore */ }
-                                logApiCall('mentor_analysis', symbol || undefined, { mentor: m.id });
-                                logFeatureFirstUse('mentor');
-                              } else {
-                                setMentorError(data.error || 'AI 분석 요청에 실패했어요. 잠시 후 다시 시도해주세요.');
-                              }
-                            } catch {
-                              setMentorError('네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
-                            }
-                            setMentorLoading(false);
-                          }}
-                          disabled={mentorLoading}
-                          className="transition-all disabled:cursor-default"
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 4,
-                            padding: '8px 10px',
-                            borderRadius: 12,
-                            border: isActive ? `2px solid ${m.color}` : '2px solid transparent',
-                            background: isActive ? `${m.color}10` : 'var(--bg-subtle, #F8F9FA)',
-                            minWidth: 72,
-                            flexShrink: 0,
-                            cursor: mentorLoading ? 'default' : 'pointer',
-                            opacity: mentorLoading && !isActive ? 0.5 : 1,
-                          }}
-                        >
-                          <MentorIcon id={m.id} />
-                          <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? m.color : 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
-                            {m.nameKr}
-                          </span>
-                          <span style={{ fontSize: 10, color: isActive ? m.color : 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap' }}>
-                            {mentorFocus(m.id)}
-                          </span>
-                          <span style={{ fontSize: 8, color: 'var(--text-tertiary, #B0B8C1)', whiteSpace: 'nowrap', letterSpacing: 1 }}>
-                            {'★'.repeat(m.risk)}{'☆'.repeat(5 - m.risk)}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Mentor report card */}
-                  {selectedMentor && (
-                    <div style={{
-                      marginTop: 14,
-                      borderRadius: 16,
-                      padding: 20,
-                      background: `${selectedMentor.color}08`,
-                      border: `1px solid ${selectedMentor.color}20`,
-                    }}>
-                      {/* Profile card */}
-                      <div style={{ marginBottom: 16, paddingBottom: 14, borderBottom: `1px solid ${selectedMentor.color}15` }}>
-                        <div className="flex items-start" style={{ gap: 12 }}>
-                          <MentorIcon id={selectedMentor.id} size={48} />
-                          <div style={{ flex: 1 }}>
-                            <div className="flex items-center" style={{ gap: 8 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: selectedMentor.color }}>
-                                {selectedMentor.nameKr}
-                              </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                                {mentorFocus(selectedMentor.id)}
-                              </span>
-                              <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 1 }}>
-                                리스크 {'★'.repeat(selectedMentor.risk)}{'☆'.repeat(5 - selectedMentor.risk)}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginTop: 4 }}>
-                              {selectedMentor.tagline}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap" style={{ gap: 4, marginTop: 8 }}>
-                          {selectedMentor.keywords.map(kw => (
-                            <span key={kw} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 10, background: `${selectedMentor.color}12`, color: selectedMentor.color, fontWeight: 500 }}>
-                              {kw}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      {mentorLoading && <AIProgressIndicator />}
-
-                      {mentorReport && (
-                        <>
-                          {/* Score */}
-                          {mentorReport.mentorScore && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #fff)' }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                                {selectedMentor.nameKr} 점수
-                              </span>
-                              <span style={{ marginLeft: 'auto', fontSize: 16, letterSpacing: 2 }}>
-                                {'★'.repeat(mentorReport.mentorScore)}{'☆'.repeat(5 - mentorReport.mentorScore)}
-                              </span>
-                            </div>
-                          )}
-
-                          {/* Verdict */}
-                          {mentorReport.mentorVerdict && (
-                            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', lineHeight: 1.6, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'var(--surface, #fff)', borderLeft: `3px solid ${selectedMentor.color}` }}>
-                              &ldquo;{mentorReport.mentorVerdict}&rdquo;
-                            </div>
-                          )}
-
-                          {/* Current status */}
-                          <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7, marginBottom: 14 }}>
-                            {mentorReport.currentStatus}
-                          </div>
-
-                          {/* Key advice */}
-                          {(mentorReport.keyAdvice?.length ?? 0) > 0 && (
-                            <div style={{ marginBottom: 14 }}>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', marginBottom: 8 }}>
-                                {selectedMentor.nameKr}의 관점 설명
-                              </div>
-                              {mentorReport.keyAdvice?.map((advice, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, color: 'var(--text-primary, #191F28)', lineHeight: 1.6, marginBottom: 6 }}>
-                                  <span style={{ color: selectedMentor.color, flexShrink: 0 }}>{i + 1}.</span>
-                                  <span>{advice}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Quote */}
-                          {mentorReport.quote && (
-                            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', fontStyle: 'italic', lineHeight: 1.6, padding: '10px 14px', borderRadius: 8, background: 'var(--surface, #fff)', marginBottom: 14 }}>
-                              {mentorReport.quote}
-                            </div>
-                          )}
-
-                          {/* Conclusion */}
-                          {mentorReport.conclusion && (
-                            <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, #fff)' }}>
-                              <div className="flex items-center" style={{ gap: 8, marginBottom: 6 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>정보 정리</span>
-                                <span style={{
-                                  fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-                                  background: 'var(--bg-subtle, #F2F4F6)',
-                                  color: 'var(--text-secondary, #4E5968)',
-                                }}>
-                                  {mentorReport.conclusion.label}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6 }}>
-                                {mentorReport.conclusion.desc}
-                              </div>
-                            </div>
-                          )}
-
-                          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', marginTop: 12 }}>
-                            AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
-                          </div>
-                        </>
-                      )}
-
-                      {!mentorLoading && !mentorReport && mentorError && (
-                        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
-                          {mentorError}
-                          {mentorError.includes('로그인') && (
-                            <div style={{ marginTop: 10 }}>
-                              <button
-                                onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
-                                style={{ padding: '8px 18px', borderRadius: 8, background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                              >
-                                로그인하기
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {!mentorLoading && !mentorReport && !mentorError && (
-                        <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>
-                          분석을 준비하고 있어요...
-                        </div>
-                      )}
                     </div>
-                  )}
-                </div>
+                    {selectedMentor && (
+                      <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
+                        aria-busy={mentorLoading} className={assistantStyles.answer}>
+                        <div className={assistantStyles.answerHeader}>
+                          <div>
+                            <div className={assistantStyles.eyebrow}>주비의 답변 · {displayName}</div>
+                            <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>
+                              {getStockAnalysisQuestion(selectedMentor.id)}
+                            </h4>
+                          </div>
+                          <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
+                            aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
+                        </div>
+                        {mentorLoading && <p role="status" className={assistantStyles.pending}>확인할 수 있는 자료로 설명을 준비하고 있어요.</p>}
+                        {mentorReport && <>
+                          <p>{mentorReport.currentStatus}</p>
+                          {!!mentorReport.keyAdvice?.length && <ol className={assistantStyles.advice}>
+                            {mentorReport.keyAdvice.map((advice, index) => <li key={index}>
+                              <span className={assistantStyles.number} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                              <span>{advice}</span>
+                            </li>)}
+                          </ol>}
+                          {mentorReport.conclusion && <div className={assistantStyles.conclusion}>
+                            <h5>이어서 확인할 내용</h5>
+                            <p>{mentorReport.conclusion.desc}</p>
+                          </div>}
+                          <p className={assistantStyles.note}>공개정보를 바탕으로 AI가 작성한 설명이에요. 중요한 수치는 원문과 함께 확인해주세요.</p>
+                          <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
+                        </>}
+                        {!mentorLoading && mentorError && <>
+                          <p role="alert">{mentorError}</p>
+                          {mentorError.includes('로그인') ? <button type="button" className={assistantStyles.action}
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}>로그인하고 질문하기</button>
+                            : <button type="button" className={assistantStyles.action}
+                              onClick={() => handleMentorSelect(selectedMentor.id, true)}>다시 요청하기</button>}
+                        </>}
+                      </section>
+                    )}
+                  </div>
                 )}
 
                 {analysis && !isLev && (
-                  <>
-                    {/* Chart shape summary card */}
-                    <div style={{
-                      padding: 20,
-                      borderRadius: 14,
-                      background: '#F8F9FB',
-                      border: '1px solid var(--border-light, #F2F4F6)',
-                      marginBottom: 24,
-                    }}>
-                      <div className="flex items-center" style={{ fontSize: 14, fontWeight: 700, marginBottom: 14, gap: 8 }}>
-                        차트 요약
-                      </div>
-                      <div className="flex items-center" style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, gap: 8 }}>
-                        {analysis.chartShape.icon} {analysis.chartShape.title}
-                      </div>
-                      <div style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.7, marginBottom: 16 }}>
-                        {analysis.chartShape.desc}
-                      </div>
-                      <div className="flex items-center" style={{ gap: 16, paddingTop: 14, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-                        <span
-                          className="inline-flex items-center"
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: 8,
-                            fontSize: 13,
-                            fontWeight: 700,
-                            background: analysis.chartShape.signal === 'positive' ? '#EDFCF2' :
-                                       analysis.chartShape.signal === 'caution' ? '#FFF8E6' : '#F2F4F6',
-                            color: analysis.chartShape.signal === 'positive' ? '#16A34A' :
-                                  analysis.chartShape.signal === 'caution' ? '#E8950A' : '#8B95A1',
-                          }}
-                        >
-                          {/* 매매 valence(긍정/관망) 대신 기술적 '상태' 라벨 — 방향 0 (관리·해설 도구) */}
-                          {analysis.chartShape.signal === 'positive' ? '🟢 양호' :
-                           analysis.chartShape.signal === 'caution' ? '🟡 주의' : '⚪ 중립'}
-                        </span>
-                        {analysis.rsiVal != null && (
-                          <span style={{ fontSize: 13, color: '#8B95A1', fontWeight: 500 }}>
-                            RSI {analysis.rsiVal.toFixed(0)} {analysis.rsiVal < 30 ? '(과매도)' : analysis.rsiVal > 70 ? '(과열)' : '(적정)'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* AI Report was moved outside analysis block */}
-
-                  </>
+                  <details className={assistantStyles.technical}>
+                    <summary>가격 흐름을 더 자세히 보기</summary>
+                    <h4>{analysis.chartShape.title}</h4>
+                    <p>{analysis.chartShape.desc}</p>
+                    {analysis.rsiVal != null && <p>최근 상승·하락 폭을 비교하는 RSI는 {analysis.rsiVal.toFixed(0)}이에요. 회사의 가치나 앞으로의 수익을 나타내는 점수는 아니에요.</p>}
+                  </details>
                 )}
 
                 {/* === Below here: always visible regardless of analysis data === */}

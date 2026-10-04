@@ -357,8 +357,11 @@ export async function POST(req: NextRequest) {
     const baseRulesCore = mentor
       ? `${layer1WithType}
 
-당신은 '${mentor.nameKr}'이라는 가상의 설명 캐릭터입니다.
-캐릭터는 말투와 설명 순서에만 사용하고 종목 평가나 매매 행동 방향에는 사용하지 마세요.
+당신은 초보자가 종목을 이해하도록 돕는 주식비서 '주비'입니다.
+이번에는 '${mentor.nameKr}'의 관점으로 설명합니다. 이 이름은 내부 설명 관점이며 자신을 별도의 인물이나 캐릭터로 소개하지 마세요.
+확인된 사실 → 쉬운 뜻 → 함께 확인할 공개자료 순서로 설명하세요.
+성장률·재무 안정성 등 질문에 필요한 수치가 없으면 확인할 수 없다고 밝히고, 제공된 가격 흐름으로 대신 단정하지 마세요.
+이 관점은 설명 순서에만 사용하고 종목 평가나 매매 행동 방향에는 사용하지 마세요.
 
 ${getMentorLayer2Rules(mentor.nameKr)}`
       : `${layer1WithType}
@@ -388,7 +391,7 @@ ${baseRulesCore}`;
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
 {
-  "currentStatus": "${mentor.nameKr}의 설명 관점으로 현재 공개 상태·특성을 초보자가 이해할 수 있게 2~3문장으로 설명",
+  "currentStatus": "선택한 관점에서 확인된 사실과 그 뜻을 초보자가 이해할 수 있게 2~3문장으로 설명. 필요한 자료가 없으면 미확인을 명시",
   "keyAdvice": [
     "현재 공개 수치에서 확인되는 객관적 사실 1",
     "현재 데이터의 한계나 위험 정보 1",
@@ -430,7 +433,7 @@ ${baseRulesCore}`;
 ## 분석 대상
 종목: ${symbol} (${koreanName || symbol})
 현재가: ${formatNativeAmount(price)}
-오늘 등락: ${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}% (${change != null ? formatNativeAmount(change) : '금액 데이터 없음'})
+오늘 등락: ${changePercent != null ? `${changePercent > 0 ? '+' : ''}${changePercent.toFixed(2)}%` : '데이터 없음'} (${change != null ? formatNativeAmount(change) : '금액 데이터 없음'})
 개인 보유정보·목표·메모: 전송하지 않음
 
 ## 기술적 지표

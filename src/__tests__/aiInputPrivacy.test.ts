@@ -69,9 +69,30 @@ describe('toPublicAiAnalysisInput', () => {
   it('still rejects missing required quotes and malformed optional numbers', () => {
     const quote = { symbol: 'TSLL', price: 9.71, changePercent: 4.3 };
     expect(toPublicAiAnalysisInput({ ...quote, price: null })).toBeNull();
-    expect(toPublicAiAnalysisInput({ ...quote, changePercent: null })).toBeNull();
     for (const per of ['12', {}, Infinity, NaN]) {
       expect(toPublicAiAnalysisInput({ ...quote, per })).toBeNull();
     }
+  });
+
+  it.each([null, undefined])('accepts an unknown daily change (%s) without inventing zero', changePercent => {
+    const safe = toPublicAiAnalysisInput({
+      symbol: 'AAPL', currency: 'USD', price: 220, mentorId: 'value', changePercent,
+    });
+    expect(safe).toMatchObject({ symbol: 'AAPL', price: 220, mentorId: 'value' });
+    expect(safe).not.toHaveProperty('changePercent');
+  });
+
+  it('accepts a candle price without a current daily change field', () => {
+    const safe = toPublicAiAnalysisInput({ symbol: 'AAPL', price: 220 });
+    expect(safe).toEqual({ symbol: 'AAPL', price: 220 });
+  });
+
+  it.each([0, -1.5, 2])('preserves an actual daily change of %s', changePercent => {
+    expect(toPublicAiAnalysisInput({ symbol: 'AAPL', price: 220, changePercent }))
+      .toHaveProperty('changePercent', changePercent);
+  });
+
+  it.each(['0', '', false, {}, Infinity, NaN])('rejects malformed daily change %s', changePercent => {
+    expect(toPublicAiAnalysisInput({ symbol: 'AAPL', price: 220, changePercent })).toBeNull();
   });
 });
