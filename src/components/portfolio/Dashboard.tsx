@@ -261,7 +261,7 @@ export default function Dashboard() {
       <div className="dashboard-summary-header" style={{
         position: 'relative',
         padding: '32px 24px 24px',
-        background: 'var(--surface)',
+        background: 'var(--dashboard-hero-bg)',
         overflow: 'hidden'
       }}>
 
