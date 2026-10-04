@@ -104,13 +104,13 @@ beforeEach(() => {
   vi.clearAllMocks(); notebook.ready = true; notebook.notebook.entries = {};
   frames.clear(); frameId = 0;
   let location = new URL('https://joobi.kr/?view=insights');
-  vi.stubGlobal('window', Object.assign(new EventTarget(), {
-    get location() { return location; },
+  const mockWindow = Object.assign(new EventTarget(), {
     history: { pushState: vi.fn((_state: unknown, _unused: string, path: string) => {
       location = new URL(path, location);
-      window.location = location as unknown as Location;
     }) },
-  }));
+  });
+  Object.defineProperty(mockWindow, 'location', { get: () => location });
+  vi.stubGlobal('window', mockWindow);
   vi.stubGlobal('document', { getElementById: vi.fn(() => ({ focus, scrollIntoView })) });
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frames.set(++frameId, callback); return frameId; });
   vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
