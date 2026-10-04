@@ -5,17 +5,10 @@ import { formatRelativeKo } from '@/utils/koreanDate';
 import { useNow } from '@/hooks/useNow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
+import { changeColor, signedChange } from '@/utils/stockTrendPresentation';
+import { formatNativeAmount } from '@/utils/koreanNumber';
 import WatchToggle from '@/components/common/WatchToggle';
-
-/**
- * 오늘 시장이 주목한 종목 — 회의 결과 옵션 C UI.
- *
- * 디자인 원칙:
- *   - "급등 TOP" 랭킹 ❌ → "주목한 종목" 컨텍스트
- *   - 빨간색 도파민 펌프 자제, 차분한 톤
- *   - 매수 버튼 직결 ❌ → "관심 추가" 1단계 쿠션
- *   - 한미 탭 분리
- */
+import styles from './MarketMovers.module.css';
 
 interface MoverItem {
   symbol: string;
@@ -25,7 +18,6 @@ interface MoverItem {
   todayChange: number | null;
   todayChangePct: number | null;
 }
-
 interface MoversResp {
   ok: boolean;
   ranAt: string;
@@ -35,152 +27,59 @@ interface MoversResp {
 }
 
 export default function MarketMovers() {
-  const { setAnalysisSymbol } = usePortfolioStore();
+  const setAnalysisSymbol = usePortfolioStore(state => state.setAnalysisSymbol);
   const [data, setData] = useState<MoversResp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   const [market, setMarket] = useState<'US' | 'KR'>('KR');
   const [tab, setTab] = useState<'gainers' | 'losers'>('gainers');
-  // 상대 시간은 1분마다 다시 그려야 "3분 전"이 멈춰 있지 않다.
   const now = useNow();
 
   useEffect(() => {
-    fetch('/api/market-movers')
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    let active = true;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 45_000);
+    void fetch('/api/market-movers', { signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error('unavailable');
+      const result = await response.json();
+      if (!result?.ok || !Array.isArray(result.us?.gainers) || !Array.isArray(result.us?.losers)
+        || !Array.isArray(result.kr?.gainers) || !Array.isArray(result.kr?.losers)) throw new Error('invalid');
+      if (active) { setData(result); setError(''); }
+    }).catch(() => {
+      if (active) setError(controller.signal.aborted ? '시장 자료를 가져오는 데 시간이 오래 걸리고 있어요.' : '시장 자료를 불러오지 못했어요. 잠시 후 다시 확인해주세요.');
+    }).finally(() => {
+      clearTimeout(timer);
+      if (active) setLoading(false);
+    });
+    return () => { active = false; clearTimeout(timer); controller.abort(); };
+  }, [retry]);
 
-  if (loading) {
-    return (
-      <section style={{ marginTop: 28, marginBottom: 28 }}>
-        <div style={{ height: 100, background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 12 }} />
-      </section>
-    );
-  }
+  const list = (data?.[market === 'US' ? 'us' : 'kr'][tab] || [])
+    .filter(item => item && typeof item.symbol === 'string' && typeof item.krName === 'string'
+      && !isSingleStockLeverage(item.symbol, item.krName));
+  const retryLoad = () => { setLoading(true); setError(''); setRetry(value => value + 1); };
 
-  if (!data?.ok) return null;
-
-  // 단일종목 레버리지·인버스는 순수 신규 발굴 표면에서 제외 (defense-in-depth, §6 자본시장법).
-  // 지수 레버리지(TQQQ·SQQQ 등)는 isSingleStockLeverage가 false → 영향 없음.
-  const list = data[market === 'US' ? 'us' : 'kr'][tab]
-    .filter(item => !isSingleStockLeverage(item.symbol, item.krName));
-  if (list.length === 0) return null;
-
-  return (
-    <section style={{ marginTop: 28, marginBottom: 28 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-          오늘 시장이 주목한 종목
-        </h2>
-      </div>
-      <p style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 14 }}>
-        시총 상위 universe 내 변동 · 정보 제공 · 추천 아님
-      </p>
-
-      {/* 시장 + 등락 토글 (한 줄) */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-subtle, #F2F4F6)' }}>
-          {(['KR', 'US'] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => setMarket(m)}
-              style={{
-                padding: '6px 14px', borderRadius: 6, fontSize: 12,
-                fontWeight: market === m ? 700 : 500,
-                color: market === m ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
-                background: market === m ? '#FFFFFF' : 'transparent',
-                border: 'none', cursor: 'pointer',
-              }}
-            >
-              {m === 'KR' ? '한국' : '미국'}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 8, background: 'var(--bg-subtle, #F2F4F6)' }}>
-          {(['gainers', 'losers'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: '6px 14px', borderRadius: 6, fontSize: 12,
-                fontWeight: tab === t ? 700 : 500,
-                color: tab === t ? '#191F28' : 'var(--text-tertiary, #B0B8C1)',
-                background: tab === t ? '#FFFFFF' : 'transparent',
-                border: 'none', cursor: 'pointer',
-              }}
-            >
-              {t === 'gainers' ? '상승' : '하락'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 카드 리스트 — 가로 스크롤 (모바일) / 그리드 (PC) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-        gap: 8,
-      }}>
-        {list.map(item => {
-          const isUp = (item.todayChangePct ?? 0) >= 0;
-          // 한국 핀테크 톤다운 — 진한 빨강/파랑 자제, 채도 낮춤
-          const accentColor = isUp ? '#E08585' : '#7AA0E5';
-          const accentBg = isUp ? 'rgba(224,133,133,0.06)' : 'rgba(122,160,229,0.06)';
-
-          return (
-            <div
-              key={item.symbol}
-              onClick={() => setAnalysisSymbol(item.symbol)}
-              role="button"
-              tabIndex={0}
-              style={{
-                padding: 14,
-                borderRadius: 12,
-                border: '1px solid var(--border-light, #F2F4F6)',
-                background: 'var(--surface, #FFFFFF)',
-                cursor: 'pointer',
-                transition: 'box-shadow 0.18s ease, transform 0.18s ease',
-                display: 'flex', flexDirection: 'column', gap: 6,
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
-            >
-              {/* 종목명 */}
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.krName}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', fontFamily: "'SF Mono', monospace" }}>
-                {item.symbol}
-              </div>
-
-              {/* 변동 */}
-              <div style={{
-                marginTop: 4,
-                padding: '6px 10px',
-                borderRadius: 8,
-                background: accentBg,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
-                <span style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)' }}>오늘</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: accentColor, fontVariantNumeric: 'tabular-nums' }}>
-                  {isUp ? '+' : ''}{item.todayChangePct?.toFixed(2)}%
-                </span>
-              </div>
-
-              {/* 관심 추가 — 매수 버튼 NO. 단일 컴포넌트(WatchToggle)로 통일(Mossy Teal·토스블루 회피) */}
-              <div style={{ marginTop: 4 }}>
-                <WatchToggle symbol={item.symbol} full />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <p style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 10, textAlign: 'right' }}>
-        15분 지연 · 158종 universe · {data.cached ? '캐시' : '신규'} · {formatRelativeKo(data.ranAt, now)} 조회
-      </p>
-    </section>
-  );
+  return <section className={styles.root} aria-label="시장별 가격 변화">
+    <p className={styles.intro}>주요 기업 중 전일 종가보다 많이 오르거나 내린 종목이에요. 시장 전체의 순위는 아니에요.</p>
+    <div className={styles.controls}>
+      <div role="group" aria-label="시장 선택">{(['KR', 'US'] as const).map(value => <button key={value} type="button" aria-pressed={market === value} onClick={() => setMarket(value)}>{value === 'KR' ? '한국' : '미국'}</button>)}</div>
+      <div role="group" aria-label="가격 변화 선택">{(['gainers', 'losers'] as const).map(value => <button key={value} type="button" aria-pressed={tab === value} onClick={() => setTab(value)}>{value === 'gainers' ? '상승' : '하락'}</button>)}</div>
+    </div>
+    {loading && <p className={styles.notice} role="status">{data ? '새로운 시장 자료를 확인하고 있어요.' : '종목별 시세를 모으고 있어요. 잠시만 기다려주세요.'}</p>}
+    {error && <div className={styles.notice} role="status"><p>{error}</p>{data && <p>이전에 확인한 목록을 표시하고 있어요.</p>}<button type="button" onClick={retryLoad}>다시 확인하기</button></div>}
+    {list.length > 0 ? <div className={styles.list}>{list.map(item => {
+      const change = item.todayChangePct;
+      const hasChange = change != null && Number.isFinite(change);
+      return <article key={item.symbol} className={styles.card}>
+        <button type="button" className={styles.stock} onClick={() => setAnalysisSymbol(item.symbol)} aria-label={`${item.krName || item.symbol} 살펴보기`}>
+          <strong>{item.krName || item.symbol}</strong><span>{item.symbol}</span>
+          {item.currentPrice != null && Number.isFinite(item.currentPrice) && <span className={styles.price}>{formatNativeAmount(item.currentPrice, item.market === 'KR' ? 'KRW' : 'USD')}</span>}
+          <span className={styles.change}><span>전일 종가 대비</span><b style={{ color: hasChange ? changeColor(change, 2) : 'var(--text-secondary)' }}>{hasChange ? `${signedChange(change, 2)}%` : '정보 없음'}</b></span>
+        </button>
+        <div className={styles.watch}><WatchToggle symbol={item.symbol} name={item.krName} full /></div>
+      </article>;
+    })}</div> : !loading && !error && <div className={styles.notice} role="status"><p>확인된 {market === 'KR' ? '한국' : '미국'} 종목 중 {tab === 'gainers' ? '상승' : '하락'} 목록이 없어요.</p><p>다른 시장이나 가격 변화도 선택해보세요.</p></div>}
+    {data && <p className={styles.timestamp}>{formatRelativeKo(data.ranAt, Math.max(now, Date.parse(data.ranAt) || 0))} 목록 조회 · 시세는 지연될 수 있어요</p>}
+  </section>;
 }

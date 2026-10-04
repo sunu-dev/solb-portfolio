@@ -133,7 +133,7 @@ export default function GettingStartedChecklist() {
         aria-label="시작하기 진행률"
         style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle)', overflow: 'hidden', marginBottom: 12 }}
       >
-        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--brand-primary)', transition: 'width 0.3s ease' }} />
+        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--brand-fill)', transition: 'width 0.3s ease' }} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -153,7 +153,7 @@ export default function GettingStartedChecklist() {
               <span style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 width: 22, height: 22, borderRadius: 11,
-                background: isDone ? 'var(--brand-primary)' : 'transparent',
+                background: isDone ? 'var(--brand-fill)' : 'transparent',
                 border: isDone ? 'none' : '2px solid var(--border-strong, var(--border-light))',
                 color: 'var(--on-brand-fg)',
               }}>

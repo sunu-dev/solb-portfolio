@@ -40,8 +40,9 @@ const hooks = vi.hoisted(() => {
 });
 const notebook = vi.hoisted(() => ({ ready: true, save: vi.fn(), notebook: { version: 1, entries: {} } }));
 vi.mock('react', async original => ({ ...await original<typeof import('react')>(), useState: hooks.useState, useRef: hooks.useRef, useEffect: hooks.useEffect }));
-vi.mock('@/hooks/useGuideNotebook', () => ({ useGuideNotebook: () => notebook }));
+vi.mock('@/hooks/useGuideNotebook', async original => ({ ...await original<typeof import('@/hooks/useGuideNotebook')>(), useGuideNotebook: () => notebook }));
 vi.mock('@/hooks/useEconomicEvents', () => ({ useEconomicEvents: () => ({ data: undefined, retry: vi.fn() }) }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: null }) }));
 vi.mock('@/lib/tourTelemetry', () => ({ logGuideEvent: vi.fn() }));
 vi.mock('@/store/portfolioStore', () => ({ usePortfolioStore: (selector: (state: unknown) => unknown) => selector({ stocks: { investing: [], watching: [] } }) }));
 vi.mock('@/components/economy/EconomicHighlights', () => ({ default: () => null, openEconomicCalendar: vi.fn() }));
@@ -52,6 +53,7 @@ import InsightsSection from '@/components/insights/InsightsSection';
 import { ImpactPath } from '@/components/economy/EventLearning';
 import { logGuideEvent } from '@/lib/tourTelemetry';
 import { MARKET_GUIDES } from '@/config/marketGuides';
+import { guideDraftSession } from '@/lib/guideDraftSession';
 
 type Props = { children?: unknown; id?: string; value?: string; onClick?: () => void; onChange?: (event: { target: { value: string } }) => void; guide?: unknown };
 function elements(node: unknown): ReactElement<Props>[] {
@@ -98,9 +100,17 @@ function calendarRequest(kind: EconomicKind, key: number): MarketGuideRequest {
 }
 
 beforeEach(() => {
+  guideDraftSession.clear();
   vi.clearAllMocks(); notebook.ready = true; notebook.notebook.entries = {};
   frames.clear(); frameId = 0;
-  vi.stubGlobal('window', new EventTarget());
+  let location = new URL('https://joobi.kr/?view=insights');
+  vi.stubGlobal('window', Object.assign(new EventTarget(), {
+    get location() { return location; },
+    history: { pushState: vi.fn((_state: unknown, _unused: string, path: string) => {
+      location = new URL(path, location);
+      window.location = location as unknown as Location;
+    }) },
+  }));
   vi.stubGlobal('document', { getElementById: vi.fn(() => ({ focus, scrollIntoView })) });
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frames.set(++frameId, callback); return frameId; });
   vi.stubGlobal('cancelAnimationFrame', (id: number) => frames.delete(id));
@@ -143,6 +153,21 @@ describe('report navigation keeps unsaved guide notes', () => {
     expect(reopened.textarea).toBeDefined();
   });
 
+  it('keeps the topic URL and browser Back in agreement without losing a draft', () => {
+    const mounted = report();
+    elements(mounted.render().tree).find(node => node.props.id === 'guide-rates')!.props.onClick!();
+    expect(window.location.search).toContain('guide=rates');
+    mounted.render().textarea!.props.onChange!({ target: { value: '돌아와서 이어 쓸 메모' } });
+    window.history.pushState(null, '', '/?view=insights');
+    window.dispatchEvent(new Event('popstate'));
+    expect(mounted.render().textarea).toBeUndefined();
+    window.history.pushState(null, '', '/?view=insights&guide=rates');
+    window.dispatchEvent(new Event('popstate'));
+    expect(mounted.render().textarea!.props.value).toBe('돌아와서 이어 쓸 메모');
+    mounted.render().back!.props.onClick!();
+    expect(window.location.search).not.toContain('guide=');
+  });
+
   it('waits for notebook restoration and focuses only the newest requested explanation', () => {
     notebook.ready = false;
     const mounted = report();
@@ -158,10 +183,30 @@ describe('report navigation keeps unsaved guide notes', () => {
     expect(focus).toHaveBeenCalledOnce();
   });
 
-  it('does not retain a draft after the report unmounts at the account or menu boundary', () => {
+  it('retains a draft after a different upper menu unmounts the report', () => {
+    const request = calendarRequest('fomc', 1), mounted = report();
+    mounted.render(request).textarea!.props.onChange!({ target: { value: '다른 메뉴를 다녀와도 유지할 초안' } });
+    mounted.unmount();
+    expect(report().render(request).textarea!.props.value).toBe('다른 메뉴를 다녀와도 유지할 초안');
+    expect(notebook.save).not.toHaveBeenCalled();
+  });
+
+  it('clears a draft when logout happens while the report is unmounted', () => {
     const request = calendarRequest('fomc', 1), mounted = report();
     mounted.render(request).textarea!.props.onChange!({ target: { value: '이전 계정의 초안' } });
     mounted.unmount();
+    window.dispatchEvent(new Event('solb-user-storage-clearing'));
     expect(report().render(request).textarea!.props.value).toBe('');
+  });
+
+  it('returns focus to the real report action that opened an explanation', () => {
+    const mounted = report();
+    mounted.render();
+    window.dispatchEvent(new CustomEvent('open-market-guide', { detail: { id: 'rates', returnFocusId: 'report-guide-rates' } }));
+    const request: MarketGuideRequest = { id: 'rates', key: 1 };
+    mounted.render(request); flushFrames();
+    mounted.render(request).back!.props.onClick!();
+    mounted.render(request); flushFrames();
+    expect(document.getElementById).toHaveBeenLastCalledWith('report-guide-rates');
   });
 });

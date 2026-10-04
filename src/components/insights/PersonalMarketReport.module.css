@@ -1,0 +1,46 @@
+.report { margin-bottom:24px; color:var(--text-primary); }
+.heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+.heading h2 { margin:0; font-size:18px; font-weight:750; letter-spacing:-.025em; }
+.event { padding:20px 0 0; border-top:1px solid var(--border-strong); }
+.meta { margin:8px 0; color:var(--text-body); font-size:12px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+.event h3 { margin:10px 0 16px; font-size:clamp(20px,3.5vw,25px); font-weight:750; line-height:1.5; letter-spacing:-.035em; }
+.figures { display:flex; flex-wrap:wrap; gap:14px 28px; margin:16px 0; padding:16px 18px; background:var(--bg-subtle); border-radius:12px; }
+.figures > div { min-width:0; flex:1 1 100px; }
+.figures dt { margin-bottom:4px; font-size:12px; color:var(--text-body); }
+.figures dd { margin:0; font-size:18px; font-weight:700; line-height:1.5; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+.meaning { margin:16px 0 20px; color:var(--text-body); font-size:15px; line-height:1.85; }
+.resultNote { color:var(--text-body); font-size:13px; line-height:1.8; margin:10px 0; }
+.personalHeading { margin-top:24px; }
+.personalHeading h4 { margin:0; font-size:16px; line-height:1.6; font-weight:700; }
+.personalHeading p { margin:3px 0 10px; font-size:13px; line-height:1.8; color:var(--text-body); word-break:keep-all; }
+.company { border-bottom:1px solid var(--border-light); }
+.company summary { position:relative; padding:16px 28px 16px 0; min-height:64px; list-style:none; cursor:pointer; }
+.company summary::-webkit-details-marker { display:none; }
+.companyTitle { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+.companyTitle strong { font-size:16px; line-height:1.6; }
+.companyTitle small { font-size:12px; color:var(--text-body); line-height:1.7; }
+.path { display:block; margin-top:5px; font-size:14px; color:var(--text-body); line-height:1.8; }
+.expand { position:absolute; right:0; top:24px; color:var(--text-body); }
+.company[open] > summary .expand { transform:rotate(90deg); }
+.companyBody { padding:0 0 18px; }
+.companyBody > p:not(.meta) { margin:0 0 16px; color:var(--text-body); font-size:14px; line-height:1.85; }
+.companyBody > p > strong { display:block; margin-bottom:4px; font-size:13px; color:var(--text-primary); }
+.companyActions,.eventActions { display:flex; flex-wrap:wrap; align-items:center; gap:2px 20px; }
+.companyActions a,.eventActions a { display:inline-flex; align-items:center; min-height:44px; padding:8px 0; color:var(--text-body); font-size:13px; text-decoration:underline; text-underline-offset:3px; }
+.eventActions { padding:8px 0; }
+.textButton { display:inline-flex; align-items:center; justify-content:flex-start; gap:6px; min-height:44px; padding:8px 0; border:0; background:none; color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; line-height:1.7; text-align:left; word-break:keep-all; overflow-wrap:anywhere; cursor:pointer; }
+.textButton svg { flex-shrink:0; }
+.empty { color:var(--text-body); font-size:14px; line-height:1.85; margin:16px 0; }
+.empty .textButton { display:flex; }
+.next,.resultLink { display:flex; justify-content:space-between; align-items:center; gap:16px; width:100%; border:0; background:none; padding:16px 0; text-align:left; cursor:pointer; font:inherit; color:var(--text-primary); }
+.next { margin-top:8px; padding:18px; border-radius:12px; background:var(--bg-subtle); }
+.next > span,.resultLink > span { min-width:0; }
+.next small,.resultLink small { display:block; color:var(--text-body); font-size:12px; line-height:1.8; }
+.next strong,.resultLink strong { display:block; margin-top:4px; font-size:15px; line-height:1.75; font-weight:650; word-break:keep-all; overflow-wrap:anywhere; }
+.next > span > span { display:block; margin-top:4px; font-size:13px; color:var(--text-body); line-height:1.8; }
+.next svg,.resultLink svg { flex-shrink:0; }
+.moreResults { margin-top:14px; }
+.moreResults summary,.moreCompanies > summary { min-height:48px; padding:12px 0; font-size:13px; color:var(--text-body); line-height:1.8; cursor:pointer; }
+.resultLink { border-bottom:1px solid var(--border-light); }
+.report button:focus-visible,.report a:focus-visible,.report summary:focus-visible,.companies button:focus-visible,.companies a:focus-visible,.companies summary:focus-visible { outline:2px solid var(--text-primary); outline-offset:4px; }
+@media (max-width:359px) { .heading h2 { font-size:17px; } .figures { padding:14px; gap:12px 18px; } .figures dd { font-size:17px; } .next { padding:16px; } }

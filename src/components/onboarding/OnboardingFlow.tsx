@@ -8,6 +8,7 @@ import { logApiCall } from '@/lib/apiLogger';
 import CsvImportModal from '@/components/portfolio/CsvImportModal';
 import OcrImportModal from '@/components/portfolio/OcrImportModal';
 import { OCR_DISABLED_COPY, OCR_UI_ENABLED } from '@/config/ocrFeature';
+import JoobiLockup from '@/components/brand/JoobiLockup';
 
 interface OnboardingFlowProps {
   userName: string;
@@ -16,10 +17,10 @@ interface OnboardingFlowProps {
 
 const POPULAR_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
-  { symbol: 'NVDA', label: 'NVDA' },
-  { symbol: 'AAPL', label: 'AAPL' },
-  { symbol: 'MSFT', label: 'MSFT' },
-  { symbol: 'TSLA', label: 'TSLA' },
+  { symbol: 'NVDA', label: '엔비디아' },
+  { symbol: 'AAPL', label: '애플' },
+  { symbol: 'MSFT', label: '마이크로소프트' },
+  { symbol: 'TSLA', label: '테슬라' },
 ];
 
 const SAMPLE_PORTFOLIO = [
@@ -34,21 +35,21 @@ const VALUE_CARDS = [
     title: '내 종목 변화를 모아봐요',
     desc: '자산·손익과 보유·관심 종목을 한곳에서 확인해요.',
     color: 'var(--brand-primary)',
-    background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))',
+    background: 'var(--brand-primary-bg)',
   },
   {
     badge: '설명',
     title: '시장과 내 종목을 연결해요',
     desc: '오늘의 시장 흐름, 내 종목 소식과 챙길 알림을 정리해요.',
-    color: '#16A34A',
-    background: 'rgba(22,163,74,0.08)',
+    color: 'var(--brand-primary)',
+    background: 'var(--brand-primary-bg)',
   },
   {
     badge: '안전',
     title: '기록은 확인하고 반영해요',
     desc: '가져온 변경을 먼저 비교하고, 이전 상태에는 복구 지점을 남겨요.',
-    color: '#FF9500',
-    background: 'rgba(255,149,0,0.08)',
+    color: 'var(--brand-primary)',
+    background: 'var(--brand-primary-bg)',
   },
 ];
 
@@ -104,7 +105,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         onClick={handleSkip}
         style={{
           position: 'absolute', top: 20, right: 20,
-          fontSize: 13, color: '#8B95A1', background: 'none', border: 'none', cursor: 'pointer',
+          fontSize: 13, color: 'var(--text-body)', background: 'none', border: 'none', cursor: 'pointer',
           padding: '6px 10px',
         }}
       >
@@ -133,11 +134,11 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         {/* ── Step 0 — 가치 약속 ─────────────────────────── */}
         {step === 0 && (
           <>
-            <div style={{ fontSize: '40px', fontWeight: 900, letterSpacing: '-0.04em', margin: '0 auto 12px', lineHeight: 1 }}>
-              <span style={{ background: 'linear-gradient(135deg, #1B6B3A, var(--brand-primary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>주</span><span style={{ color: 'var(--text-primary, #191F28)' }}>비</span>
+            <div style={{ margin: '0 auto 12px', lineHeight: 1 }}>
+              <JoobiLockup variant="hero" />
             </div>
-            <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 28 }}>
-              {userName}님의 <strong style={{ color: '#191F28' }}>주</strong>식 <strong style={{ color: '#191F28' }}>비</strong>서
+            <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 28 }}>
+              {userName}님의 <strong style={{ color: 'var(--text-primary)' }}>주</strong>식 <strong style={{ color: 'var(--text-primary)' }}>비</strong>서
             </p>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 24, lineHeight: 1.4 }}>
               주비가 내 주식을 챙기는 3가지
@@ -174,11 +175,11 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
           <>
             {showCsv && <CsvImportModal onClose={() => setShowCsv(false)} />}
             {OCR_UI_ENABLED && showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
-            <div style={{ width: 54, height: 54, margin: '0 auto 16px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)', fontSize: 13, fontWeight: 900 }}>CSV</div>
+            <div style={{ width: 54, height: 54, margin: '0 auto 16px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)', fontSize: 13, fontWeight: 900 }}>CSV</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8, lineHeight: 1.4 }}>
               내 종목을 알려주세요
             </h1>
-            <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 24 }}>
               CSV는 브라우저에서 먼저 비교하고, 샘플 관심 종목으로 둘러볼 수도 있어요
             </p>
 
@@ -188,7 +189,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 width: '100%', maxWidth: 320, margin: '0 auto 10px',
                 padding: '14px 20px',
-                borderRadius: 14, background: 'var(--brand-primary, #0E7C7B)', color: '#fff',
+                borderRadius: 14, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)',
                 fontSize: 14, fontWeight: 750, border: 'none', cursor: 'pointer',
               }}
             >
@@ -226,7 +227,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             >
               샘플 종목 둘러보기 (관심 목록)
             </button>
-            <p style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>
+            <p style={{ fontSize: 11, color: 'var(--text-body)', textAlign: 'center', marginTop: 2, marginBottom: 12 }}>
               실제 보유 X · 둘러보기 샘플(이 기기에서만). 언제든 삭제 가능.
             </p>
 
@@ -269,9 +270,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                     }}
                     style={{
                       display: 'inline-block', padding: '10px 18px', borderRadius: 20,
-                      background: isAdded ? 'var(--brand-primary)' : 'var(--bg-subtle, #F2F4F6)',
+                      background: isAdded ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)',
                       fontSize: 13, fontWeight: 600,
-                      color: isAdded ? '#fff' : 'var(--text-primary, #333D4B)',
+                      color: isAdded ? 'var(--on-brand-fg)' : 'var(--text-primary, #333D4B)',
                       border: 'none', cursor: isAdded ? 'default' : 'pointer', transition: 'all 0.2s',
                     }}
                   >
@@ -286,11 +287,11 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         {/* ── Step 2 — 안전한 가져오기 미리보기 ──────────────────────── */}
         {step === 2 && (
           <>
-            <div style={{ width: 54, height: 54, margin: '0 auto 14px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)', fontSize: 11, fontWeight: 900 }}>확인</div>
+            <div style={{ width: 54, height: 54, margin: '0 auto 14px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 900 }}>확인</div>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8, lineHeight: 1.4 }}>
               가져올 때는 먼저 확인해요
             </h1>
-            <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 22 }}>
+            <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 22 }}>
               아래는 실제 보유 기록에 영향을 주지 않는 예시예요
             </p>
 
@@ -305,18 +306,18 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                   style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10,
                     padding: '12px 14px', borderRadius: 12,
-                    background: row.id === 'same' ? 'var(--surface, #fff)' : 'var(--brand-primary-bg, rgba(14,124,123,0.05))',
-                    border: `1px solid ${row.id === 'same' ? 'var(--border-light, #F2F4F6)' : 'rgba(14,124,123,0.25)'}`,
+                    background: row.id === 'same' ? 'var(--surface, #fff)' : 'var(--brand-primary-bg)',
+                    border: `1px solid ${row.id === 'same' ? 'var(--border-light)' : 'var(--border-strong)'}`,
                     textAlign: 'left',
                   }}
                 >
-                  <span style={{ width: 21, height: 21, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: row.id === 'same' ? 'var(--bg-subtle, #F2F4F6)' : 'var(--brand-primary, #0E7C7B)', color: 'white', fontSize: 12 }}>
+                  <span style={{ width: 21, height: 21, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: row.id === 'same' ? 'var(--bg-subtle, #F2F4F6)' : 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 12 }}>
                     {row.id === 'same' ? '' : '✓'}
                   </span>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <strong style={{ fontSize: 13, color: 'var(--text-primary, #191F28)' }}>{row.name}</strong>
-                      <span style={{ fontSize: 10, color: row.id === 'same' ? '#8B95A1' : 'var(--brand-primary, #0E7C7B)', fontWeight: 800 }}>{row.status}</span>
+                      <span style={{ fontSize: 10, color: row.id === 'same' ? '#8B95A1' : 'var(--brand-primary)', fontWeight: 800 }}>{row.status}</span>
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>{row.detail}</div>
                   </div>
@@ -324,7 +325,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               ))}
             </div>
 
-            <div style={{ padding: '11px 14px', borderRadius: 10, background: 'rgba(52,199,89,0.08)', fontSize: 11, color: 'var(--color-success, #228B45)', lineHeight: 1.6, marginBottom: 8 }}>
+            <div style={{ padding: '11px 14px', borderRadius: 10, background: 'var(--brand-primary-bg)', fontSize: 12, color: 'var(--text-body)', lineHeight: 1.6, marginBottom: 8 }}>
               승인 직전 상태를 자동 보관해요. 변경 후에도 기록 화면에서 안전하게 복구할 수 있어요.
             </div>
           </>
@@ -341,9 +342,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               본 화면에서 빠른 투어로<br />
               주요 기능 위치를 안내해드릴게요
             </p>
-            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--bg-subtle, #F8F9FA)', fontSize: 12, color: '#4E5968', lineHeight: 1.6, borderLeft: '3px solid #1B6B3A', marginBottom: 30, textAlign: 'left' }}>
-              <strong style={{ color: '#1B6B3A' }}>주</strong>비 = <strong>주</strong>식 <strong>비</strong>서.<br />
-              <span style={{ fontSize: 11, color: '#8B95A1' }}>판단은 내가 하고, 주비는 오늘의 변화와 챙길 일을 정리해요.</span>
+            <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--bg-subtle)', fontSize: 13, color: 'var(--text-body)', lineHeight: 1.7, borderLeft: '3px solid var(--border-strong)', marginBottom: 30, textAlign: 'left' }}>
+              주비는 내 주식을 이해하는 개인 주식비서예요.<br />
+              <span>오늘의 변화와 챙길 일을 함께 살펴봐요.</span>
             </div>
           </>
         )}
@@ -353,7 +354,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
           onClick={handleNext}
           style={{
             width: '100%', height: 52, borderRadius: 12,
-            background: 'var(--brand-primary)', color: '#fff',
+            background: 'var(--brand-fill)', color: 'var(--on-brand-fg)',
             fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
           }}
         >

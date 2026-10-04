@@ -185,7 +185,7 @@ export default function HelpPage() {
           }}
           style={{
             width: '100%', padding: '14px 18px', marginBottom: 24,
-            borderRadius: 12, background: 'rgba(14,124,123,0.08)', color: 'var(--brand-primary)',
+            borderRadius: 12, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)',
             border: '1px dashed rgba(14,124,123,0.3)',
             fontSize: 14, fontWeight: 700, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -374,8 +374,8 @@ function BugReportSection() {
           disabled={status === 'sending'}
           style={{
             padding: '12px 20px', borderRadius: 10,
-            background: status === 'sending' ? '#B0B8C1' : 'var(--brand-primary, #0E7C7B)',
-            color: '#FFFFFF', border: 'none',
+            background: status === 'sending' ? 'var(--border-strong)' : 'var(--brand-fill)',
+            color: status === 'sending' ? 'var(--text-body)' : 'var(--on-brand-fg)', border: 'none',
             fontSize: 14, fontWeight: 700, cursor: status === 'sending' ? 'not-allowed' : 'pointer',
           }}
         >

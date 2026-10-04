@@ -1,10 +1,11 @@
 'use client';
-import EconomicHighlights, { openEconomicCalendar } from '@/components/economy/EconomicHighlights';
+import { openEconomicCalendar } from '@/components/economy/EconomicHighlights';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import ConversationalTimeline from '@/components/portfolio/ConversationalTimeline';
 import { ChevronRight } from 'lucide-react';
 import reportStyles from './ReportOverview.module.css';
 import MarketGuide, { type MarketGuideRequest } from './MarketGuide';
+import PersonalMarketReport from './PersonalMarketReport';
 
 export default function InsightsSection({ guideRequest }: { guideRequest?: MarketGuideRequest }) {
   const stocks = usePortfolioStore(s => s.stocks);
@@ -15,7 +16,7 @@ export default function InsightsSection({ guideRequest }: { guideRequest?: Marke
       <button onClick={() => window.dispatchEvent(new CustomEvent('open-briefing'))}>브리핑 다시 보기</button>
     </header>
     <MarketGuide request={guideRequest}>
-    <EconomicHighlights compact />
+    <PersonalMarketReport />
     <section className={reportStyles.check} data-tour="insights-story" aria-label="내 종목 점검">
       <h2>내 종목 점검</h2>
       {hasHoldings ? <ConversationalTimeline /> : <p>보유 종목을 추가하면 오늘의 변화와 함께 살펴볼 내용을 알려드려요.</p>}

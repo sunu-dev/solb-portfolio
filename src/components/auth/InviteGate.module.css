@@ -1,0 +1,20 @@
+.page { min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; background: var(--bg-subtle, #f2f4f6); color: var(--text-primary, #191f28); }
+.card { width: min(100%, 440px); padding: 32px; background: var(--surface, #fff); border: 1px solid var(--border-light, #e5e8eb); border-radius: 24px; }
+.icon { display: grid; place-items: center; margin: 28px 0 20px; width: 48px; height: 48px; border-radius: 15px; background: var(--bg-subtle, #f2f4f6); }
+.card h1 { margin: 0 0 12px; font-size: 25px; font-weight: 750; line-height: 1.4; letter-spacing: -.7px; word-break: keep-all; }
+.intro { margin: 0 0 28px; font-size: 14px; line-height: 1.8; color: var(--text-secondary, #4e5968); word-break: keep-all; }
+.label { display: block; margin-bottom: 9px; font-size: 14px; font-weight: 700; }
+.input { box-sizing: border-box; width: 100%; min-height: 54px; padding: 14px; border: 1px solid var(--border-light, #e5e8eb); border-radius: 12px; background: var(--bg-subtle, #f2f4f6); color: var(--text-primary, #191f28); font: inherit; font-size: 17px; }
+.input::placeholder { font-size: 14px; color: var(--text-secondary, #4e5968); }
+.input[aria-invalid='true'] { border-color: var(--color-danger, #ef4452); }
+.help, .error, .success { margin: 8px 0 0; font-size: 12px; line-height: 1.7; color: var(--text-secondary, #4e5968); word-break: keep-all; }
+.error { color: var(--color-danger, #ef4452); }
+.success { display: flex; align-items: center; gap: 6px; color: var(--text-primary, #191f28); }
+.submit { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 20px; padding: 12px; border: 0; border-radius: 12px; background: var(--text-primary, #191f28); color: var(--surface, #fff); font-size: 15px; font-weight: 700; cursor: pointer; }
+.submit:disabled { opacity: .4; cursor: default; }
+.other { padding-top: 22px; margin-top: 26px; border-top: 1px solid var(--border-light, #e5e8eb); }
+.other p { margin: 0 0 8px; font-size: 13px; line-height: 1.7; color: var(--text-secondary, #4e5968); word-break: keep-all; }
+.other button { display: block; min-height: 44px; width: 100%; border: 0; border-radius: 10px; background: var(--bg-subtle, #f2f4f6); color: var(--text-primary, #191f28); font-size: 14px; cursor: pointer; }
+.other .secondary { background: transparent; color: var(--text-secondary, #4e5968); margin-top: 2px; font-size: 13px; }
+.card :is(button, input):focus-visible { outline: 2px solid var(--text-primary, #191f28); outline-offset: 3px; }
+@media (max-width: 360px) { .card { padding: 24px 20px; } .card h1 { font-size: 22px; } }

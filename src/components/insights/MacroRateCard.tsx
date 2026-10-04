@@ -32,10 +32,10 @@ interface Row {
   meta: string;
 }
 
-const monthLabel = (refMonth: string) => `${Number(refMonth.split('-')[1])}월 기준`;
+const monthLabel = (refMonth: string) => `${refMonth.split('-')[0]}년 ${Number(refMonth.split('-')[1])}월 기준`;
 const dayLabel = (iso: string) => {
-  const [, m, d] = iso.split('-');
-  return `${Number(m)}.${Number(d)} 기준`;
+  const [y, m, d] = iso.split('-');
+  return `${y}.${Number(m)}.${Number(d)} 기준`;
 };
 const signed = (n: number, digits: number) => `${n >= 0 ? '+' : ''}${n.toFixed(digits)}`;
 
@@ -107,22 +107,27 @@ export default function MacroRateCard() {
   const next = useMemo(() => (loadedAt == null ? null : nextEconRelease(new Date(loadedAt))), [loadedAt]);
 
   useEffect(() => {
-    fetch('/api/macro-indicators')
+    let active = true;
+    const controller = new AbortController();
+    fetch('/api/macro-indicators', { signal: controller.signal })
       .then(r => (r.ok ? r.json() : null))
       .then((d: MacroIndicatorsResponse | null) => {
+        if (!active) return;
         setData(d && !('error' in d) ? d : null);
         setLoadedAt(Date.now());
       })
-      .catch(() => { setData(null); setLoadedAt(Date.now()); });
+      .catch(() => { if (active) { setData(null); setLoadedAt(Date.now()); } });
+    return () => { active = false; controller.abort(); };
   }, []);
 
   if (data === undefined) {
-    // 자리 예약 — 실제 행 높이(44px)와 각주 2줄을 맞춰 CLS를 줄인다
+    // 자리 예약 — 실제 행 높이(60px)와 각주 2줄을 맞춰 CLS를 줄인다
     return (
-      <div style={CARD_STYLE}>
+      <div style={CARD_STYLE} role="status" aria-label="주요 시장 지표를 불러오는 중">
+        <span className="sr-only">주요 시장 지표를 불러오고 있어요.</span>
         <div style={{ height: 20, width: 110, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4, marginBottom: 6 }} />
         {[0, 1, 2, 3, 4].map(i => (
-          <div key={i} style={{ height: 44, display: 'flex', alignItems: 'center', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+          <div key={i} style={{ height: 60, display: 'flex', alignItems: 'center', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ height: 14, width: i % 2 ? 150 : 130, background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 4 }} />
           </div>
         ))}
@@ -130,19 +135,19 @@ export default function MacroRateCard() {
       </div>
     );
   }
-  if (data === null) return null;
+  if (data === null) return <div style={CARD_STYLE}><p role="status" style={{ fontSize: 14, color: 'var(--text-body)', lineHeight: 1.8, margin: 0 }}>지금은 주요 시장 지표를 불러오지 못했어요. 잠시 후 다시 확인해주세요.</p></div>;
 
   const rows = buildRows(data);
   if (rows.length === 0) return null;
 
   return (
     <div style={CARD_STYLE}>
-      <div className="flex items-center justify-between" style={{ gap: 8, marginBottom: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
+      <div className="flex items-center justify-between" style={{ gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
           {MACRO_CARD_HEADER.title}
         </span>
         {next && (
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--bg-subtle, #F2F4F6)', padding: '3px 7px', borderRadius: 6, textAlign: 'right', wordBreak: 'keep-all' }}>
+          <span style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.7, color: 'var(--text-body)', wordBreak: 'keep-all' }}>
             {MACRO_CARD_HEADER.nextReleasePrefix} {ECON_SHORT_LABEL[next.id]} {formatReleaseKst(next)}
           </span>
         )}
@@ -169,26 +174,26 @@ export default function MacroRateCard() {
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover, #F9FAFB)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}
               style={{
-                width: '100%', minHeight: 44, padding: '8px 0', background: 'none', border: 'none',
+                width: '100%', minHeight: 60, padding: '12px 0', background: 'none', border: 'none',
                 cursor: 'pointer', textAlign: 'left', display: 'block', borderRadius: 8,
               }}
             >
               <span className="flex items-baseline justify-between" style={{ gap: 8 }}>
-                <span style={{ fontSize: 13, color: 'var(--text-primary, #191F28)', fontWeight: 500, wordBreak: 'keep-all', minWidth: 0 }}>
+                <span style={{ fontSize: 14, color: 'var(--text-primary, #191F28)', fontWeight: 500, wordBreak: 'keep-all', minWidth: 0 }}>
                   {row.edu.title}
                 </span>
                 <span className="flex items-center shrink-0" style={{ gap: 4 }}>
                   {/* 중립색 고정 — 손익색 금지 */}
-                  <span className="tabular-nums" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
+                  <span className="tabular-nums" style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', whiteSpace: 'nowrap' }}>
                     {row.value}
                   </span>
                   <ChevronDown
-                    size={13} aria-hidden="true" color="var(--text-tertiary, #8B95A1)"
+                    size={16} aria-hidden="true" color="var(--text-body)"
                     style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
                   />
                 </span>
               </span>
-              <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-tertiary, #8B95A1)', marginTop: 2, wordBreak: 'keep-all' }}>
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--text-body)', lineHeight: 1.7, marginTop: 4, wordBreak: 'keep-all' }}>
                 {row.meta}
               </span>
             </button>
@@ -199,27 +204,27 @@ export default function MacroRateCard() {
                 aria-labelledby={triggerId}
                 style={{
                   minWidth: 0, maxWidth: '100%', overflowWrap: 'anywhere',
-                  fontSize: 13, color: 'var(--text-secondary, #4E5968)',
+                  fontSize: 14, color: 'var(--text-body)',
                   lineHeight: 1.65, wordBreak: 'keep-all', padding: '2px 0 12px',
                 }}
               >
                 <p style={{ margin: '0 0 10px' }}>{row.edu.intro}</p>
 
-                <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                <p style={{ margin: '0 0 3px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                   {L.mechanicsTitle}
                 </p>
                 {row.edu.mechanics.map(sentence => (
                   <p key={sentence} style={{ margin: '0 0 5px' }}>{sentence}</p>
                 ))}
 
-                <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                <p style={{ margin: '10px 0 3px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                   {L.limitsTitle}
                 </p>
                 {row.edu.limits.map(sentence => (
                   <p key={sentence} style={{ margin: '0 0 5px' }}>{sentence}</p>
                 ))}
 
-                <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                <p style={{ margin: '10px 0 3px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                   {L.contextTitle}
                 </p>
                 <p style={{ margin: '0 0 5px' }}>{row.edu.bothWays}</p>
@@ -227,7 +232,7 @@ export default function MacroRateCard() {
 
                 {row.edu.dataNote && (
                   <>
-                    <p style={{ margin: '10px 0 3px', fontSize: 11, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                    <p style={{ margin: '10px 0 3px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
                       {L.dataTitle}
                     </p>
                     <p style={{ margin: 0 }}>{row.edu.dataNote}</p>
@@ -239,11 +244,12 @@ export default function MacroRateCard() {
         );
       })}
 
-      <div style={{ fontSize: 10, color: 'var(--text-tertiary, #8B95A1)', marginTop: 8, lineHeight: 1.5, wordBreak: 'keep-all' }}>
+      {rows.length < 5 && <p style={{ fontSize: 12, color: 'var(--text-body)', margin: '8px 0', lineHeight: 1.7 }}>일부 지표는 아직 확인하지 못했어요. 확인된 값만 표시해요.</p>}
+      <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 8, lineHeight: 1.7, wordBreak: 'keep-all' }}>
         {MACRO_CARD_HEADER.footnote}
       </div>
       {/* 일본은행 API 이용 의무 크레딧 (api_notice.pdf §2). 원문 그대로 — 임의 수정 금지 */}
-      <div style={{ fontSize: 9.5, color: 'var(--text-tertiary, #8B95A1)', marginTop: 4, lineHeight: 1.5, opacity: 0.85, wordBreak: 'keep-all' }}>
+      <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 6, lineHeight: 1.7, wordBreak: 'keep-all' }}>
         {BOJ_API_CREDIT.text}
         <br />
         {BOJ_API_CREDIT.gloss}

@@ -1,0 +1,54 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+/* Initial dialog focus belongs to the reading position, not a selected action. */
+.title:focus {
+  outline: none;
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--brand-primary-bg);
+}
+
+.close:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--text-secondary);
+  outline-offset: 2px;
+}
+
+.floatingClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}

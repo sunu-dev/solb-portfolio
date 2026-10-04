@@ -1,13 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { STOCK_KR, getAvatarColor } from '@/config/constants';
+import { STOCK_KR } from '@/config/constants';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { formatDisplayAmount, resolveUsdKrw } from '@/utils/koreanNumber';
-import { findCanonicalSnapshotNearDate, getDateDaysAgo } from '@/utils/dailySnapshot';
+import { findCanonicalSnapshotNearDate } from '@/utils/dailySnapshot';
 import { Clock3, MessageSquareText, Minus, TrendingDown, TrendingUp, type LucideIcon } from 'lucide-react';
 import { convertStockAmount } from '@/utils/stockCurrency';
+import { changeColor, roundedChange, signedChange } from '@/utils/stockTrendPresentation';
+import { useShallow } from 'zustand/react/shallow';
+import { useNow } from '@/hooks/useNow';
 
 type PeriodKey = '1d' | '1w' | '1m' | '3m' | '6m' | '1y';
 interface Period {
@@ -18,12 +21,12 @@ interface Period {
 }
 
 const PERIODS: Period[] = [
-  { key: '1d', label: '어제',  selfLabel: '어제의 당신',     days: 1 },
-  { key: '1w', label: '1주전', selfLabel: '1주 전의 당신',   days: 7 },
-  { key: '1m', label: '1달전', selfLabel: '1달 전의 당신',   days: 31 },
-  { key: '3m', label: '3달전', selfLabel: '3달 전의 당신',   days: 92 },
-  { key: '6m', label: '6달전', selfLabel: '6달 전의 당신',   days: 184 },
-  { key: '1y', label: '1년전', selfLabel: '1년 전의 당신',   days: 365 },
+  { key: '1d', label: '1일 전',  selfLabel: '지난 가격과 지금 비교',     days: 1 },
+  { key: '1w', label: '1주 전', selfLabel: '지난 가격과 지금 비교',   days: 7 },
+  { key: '1m', label: '1달 전', selfLabel: '지난 가격과 지금 비교',   days: 31 },
+  { key: '3m', label: '3달 전', selfLabel: '지난 가격과 지금 비교',   days: 92 },
+  { key: '6m', label: '6달 전', selfLabel: '지난 가격과 지금 비교',   days: 184 },
+  { key: '1y', label: '1년 전', selfLabel: '지난 가격과 지금 비교',   days: 365 },
 ];
 
 /**
@@ -33,28 +36,32 @@ const PERIODS: Period[] = [
  * - 실제 매매 이력 미반영 근사치 (Phase 1)
  */
 export default function ThrowbackCard() {
-  const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
+  const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks, macroData: state.macroData, rawCandles: state.rawCandles,
+    currency: state.currency, dailySnapshots: state.dailySnapshots,
+  })));
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('1d');
   const usdKrw = resolveUsdKrw(macroData);
+  const currentTime = useNow();
 
   // 공통: 특정 일수 전 가격 조회
-  const priceAtDaysAgo = (symbol: string, days: number): { price: number; ts: number } | null => {
+  const priceAtDaysAgo = useCallback((symbol: string, days: number): { price: number; ts: number } | null => {
     const c: CandleRaw | undefined = rawCandles[symbol];
     if (!c?.t?.length || !c?.c?.length) return null;
-    const targetTs = Date.now() / 1000 - days * 86400;
+    const targetTs = currentTime / 1000 - days * 86400;
     for (let i = c.t.length - 1; i >= 0; i--) {
       if (c.t[i] <= targetTs) {
-        return c.c[i] ? { price: c.c[i], ts: c.t[i] } : null;
+        return Number.isFinite(c.c[i]) && c.c[i] > 0 ? { price: c.c[i], ts: c.t[i] } : null;
       }
     }
     return null;
-  };
+  }, [rawCandles, currentTime]);
 
   // 각 기간별 데이터 계산
   // 우선순위: ① Daily Snapshot (실제 과거 보유) → ② Retrospective (현재 보유 × 과거 종가)
   const allData = useMemo(() => {
-    const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
-    if (investing.length === 0) return null;
+    const investing = (stocks.investing || []).filter(s => Number.isFinite(s.shares) && s.shares > 0);
+    if (investing.length === 0 || currentTime === 0) return null;
 
     interface PerfEntry {
       symbol: string;
@@ -81,7 +88,7 @@ export default function ThrowbackCard() {
 
     for (const period of PERIODS) {
       // ① 스냅샷 우선 조회 (±3일 허용)
-      const targetDate = getDateDaysAgo(period.days);
+      const targetDate = new Date(currentTime - period.days * 86400000 + 9 * 3600000).toISOString().slice(0, 10);
       const snap = findCanonicalSnapshotNearDate(dailySnapshots, targetDate, 3);
 
       if (snap && snap.stocks.length > 0) {
@@ -91,7 +98,7 @@ export default function ThrowbackCard() {
         for (const snapStock of snap.stocks) {
           const q = macroData[snapStock.symbol] as QuoteData | undefined;
           const now = q?.c || 0;
-          if (!now) continue;
+          if (!Number.isFinite(now) || now <= 0 || !Number.isFinite(snapStock.currentPrice) || snapStock.currentPrice <= 0) continue;
           const nowKrw = convertStockAmount(
             snapStock.symbol,
             now,
@@ -122,15 +129,12 @@ export default function ThrowbackCard() {
           const sorted = [...perfs].sort((a, b) => b.deltaPct - a.deltaPct);
           const totalDelta = totalNow - totalPast;
           const totalPct = totalPast > 0 ? (totalDelta / totalPast) * 100 : 0;
-          const d = new Date(snap.date);
-          const label = period.key === '1d'
-            ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (어제 실제)`
-            : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (실제)`;
+          const label = `${snap.date} 기록`;
           result[period.key] = {
             perfs, totalDelta, totalPct,
             dateLabel: label,
             best: sorted[0], worst: sorted[sorted.length - 1],
-            coverage: 1,
+            coverage: perfs.length / snap.stocks.length,
             source: 'snapshot',
           };
           continue;
@@ -142,18 +146,20 @@ export default function ThrowbackCard() {
       let hypotheticalNow = 0;
       let hypotheticalPast = 0;
       let earliestTs: number | null = null;
+      let latestTs: number | null = null;
 
       for (const s of investing) {
         const q = macroData[s.symbol] as QuoteData | undefined;
         const now = q?.c || 0;
         const past = priceAtDaysAgo(s.symbol, period.days);
-        if (!now || !past) continue;
+        if (!Number.isFinite(now) || now <= 0 || !past) continue;
 
         const nowKrw = convertStockAmount(s.symbol, now, usdKrw, s.currency).krw;
         const pastKrw = convertStockAmount(s.symbol, past.price, usdKrw, s.currency).krw;
         hypotheticalNow += nowKrw * s.shares;
         hypotheticalPast += pastKrw * s.shares;
-        earliestTs = earliestTs == null ? past.ts : Math.max(earliestTs, past.ts);
+        earliestTs = earliestTs == null ? past.ts : Math.min(earliestTs, past.ts);
+        latestTs = latestTs == null ? past.ts : Math.max(latestTs, past.ts);
 
         const deltaAbs = (nowKrw - pastKrw) * s.shares;
         const deltaPct = ((now - past.price) / past.price) * 100;
@@ -172,10 +178,10 @@ export default function ThrowbackCard() {
       const totalDelta = hypotheticalNow - hypotheticalPast;
       const totalPct = hypotheticalPast > 0 ? (totalDelta / hypotheticalPast) * 100 : 0;
 
-      const d = new Date((earliestTs ?? Date.now() / 1000) * 1000);
-      const dateLabel = period.key === '1d'
-        ? `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (어제 · 근사)`
-        : `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (근사)`;
+      const dateOnly = (ts: number) => new Date(ts * 1000 + 9 * 3600000).toISOString().slice(0, 10);
+      const firstDate = dateOnly(earliestTs!);
+      const lastDate = dateOnly(latestTs!);
+      const dateLabel = `${firstDate === lastDate ? firstDate : `${firstDate} ~ ${lastDate}`} 종가 기준`;
 
       result[period.key] = {
         perfs, totalDelta, totalPct, dateLabel,
@@ -186,8 +192,7 @@ export default function ThrowbackCard() {
     }
 
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stocks.investing, macroData, rawCandles, dailySnapshots, usdKrw]);
+  }, [stocks.investing, macroData, dailySnapshots, usdKrw, currentTime, priceAtDaysAgo]);
 
   // 기간별 "그때 메모" — 활성 기간의 ±50% 범위 내 작성된 노트
   interface PeriodNote {
@@ -200,8 +205,8 @@ export default function ThrowbackCard() {
     const out: Record<PeriodKey, PeriodNote[]> = {
       '1d': [], '1w': [], '1m': [], '3m': [], '6m': [], '1y': [],
     };
-    const investing = (stocks.investing || []).filter(s => s.avgCost > 0 && s.shares > 0);
-    const now = Date.now();
+    const investing = (stocks.investing || []).filter(s => Number.isFinite(s.shares) && s.shares > 0);
+    const now = currentTime;
     for (const stock of investing) {
       for (const note of (stock.notes || [])) {
         const isoPart = note.date.split('_')[0];
@@ -225,7 +230,7 @@ export default function ThrowbackCard() {
       out[k] = out[k].slice(0, 5);
     }
     return out;
-  }, [stocks.investing]);
+  }, [stocks.investing, currentTime]);
 
   if (!allData) return null;
 
@@ -249,17 +254,17 @@ export default function ThrowbackCard() {
         <Clock3 size={18} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
         <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            THROWBACK
+            지난 가격 돌아보기
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
-            과거의 나와 비교하기
+            그때와 지금, 얼마나 달라졌나요?
           </div>
         </div>
       </div>
 
       {/* 기간 탭 */}
       <div
-        role="tablist"
+        role="group"
         aria-label="회고 기간 선택"
         className="flex scrollbar-hide"
         style={{ gap: 4, marginBottom: 14, overflowX: 'auto', paddingBottom: 2 }}
@@ -270,8 +275,8 @@ export default function ThrowbackCard() {
           return (
             <button
               key={p.key}
-              role="tab"
-              aria-selected={isActive}
+              type="button"
+              aria-pressed={isActive}
               disabled={!hasData}
               onClick={() => setActivePeriod(p.key)}
               className="cursor-pointer shrink-0"
@@ -283,12 +288,12 @@ export default function ThrowbackCard() {
                 color: !hasData
                   ? 'var(--text-tertiary, #B0B8C1)'
                   : isActive ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #4E5968)',
-                background: isActive ? 'var(--text-primary, #191F28)' : 'var(--surface, #FFFFFF)',
+                background: isActive ? 'var(--pill-active-bg, #191F28)' : 'var(--surface, #FFFFFF)',
                 border: `1px solid ${isActive ? 'var(--text-primary, #191F28)' : 'var(--border-light, #F2F4F6)'}`,
                 cursor: hasData ? 'pointer' : 'not-allowed',
                 opacity: hasData ? 1 : 0.4,
                 whiteSpace: 'nowrap',
-                minHeight: 28,
+                minHeight: 44,
               }}
             >
               {p.label}
@@ -309,7 +314,7 @@ export default function ThrowbackCard() {
             color: 'var(--text-tertiary, #B0B8C1)',
           }}
         >
-          해당 기간 데이터를 불러올 수 없어요.<br/>잠시 후 다시 시도해주세요.
+          이 기간에 비교할 가격 자료가 없어요. 다른 기간이나 보유 종목의 가격을 확인해주세요.
         </div>
       ) : (
         <ActiveBody
@@ -317,6 +322,7 @@ export default function ThrowbackCard() {
           selfLabel={PERIODS.find(p => p.key === activePeriod)!.selfLabel}
           formatMoney={formatMoney}
           notes={activeNotes}
+          stockNames={Object.fromEntries(stocks.investing.map(stock => [stock.symbol, STOCK_KR[stock.symbol] || stock.name || stock.symbol]))}
         />
       )}
     </div>
@@ -325,7 +331,7 @@ export default function ThrowbackCard() {
 
 // ─── 활성 기간 본문 ──────────────────────────────────────────────────────────
 function ActiveBody({
-  data, selfLabel, formatMoney, notes,
+  data, selfLabel, formatMoney, notes, stockNames,
 }: {
   data: {
     perfs: Array<{ symbol: string; shares: number; priceNow: number; pricePast: number; deltaAbs: number; deltaPct: number }>;
@@ -338,10 +344,13 @@ function ActiveBody({
     source: 'snapshot' | 'retrospective';
   };
   selfLabel: string;
-  formatMoney: (usd: number) => string;
+  formatMoney: (krw: number) => string;
   notes: { symbol: string; emoji: string; text: string; daysAgo: number }[];
+  stockNames: Record<string, string>;
 }) {
-  const isGain = data.totalDelta >= 0;
+  const moneyFlat = formatMoney(data.totalDelta) === formatMoney(0);
+  const amountColor = moneyFlat ? 'var(--text-secondary)' : changeColor(data.totalDelta, 0);
+  const amountSign = moneyFlat ? '' : data.totalDelta > 0 ? '+' : '−';
   const isSnapshot = data.source === 'snapshot';
 
   return (
@@ -364,15 +373,11 @@ function ActiveBody({
             aria-label={isSnapshot ? '실제 스냅샷 기반' : '근사 계산'}
             style={{
               fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
-              background: isSnapshot
-                ? 'var(--color-success-bg, rgba(0,198,190,0.08))'
-                : 'var(--color-warning-bg, rgba(255,149,0,0.08))',
-              color: isSnapshot
-                ? 'var(--color-success, #00C6BE)'
-                : 'var(--color-warning, #FF9500)',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-secondary)',
             }}
           >
-            {isSnapshot ? '실제' : '≈ 근사'}
+            {isSnapshot ? '저장된 보유 수량' : '현재 수량으로 비교'}
           </span>
         </div>
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
@@ -380,47 +385,47 @@ function ActiveBody({
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 8 }}>
           {isSnapshot
-            ? '그날 실제 보유하던 종목의 그때 가격 vs 현재 가격'
-            : '만약 이 날 지금의 포트폴리오를 같은 수량으로 샀다면'}
+            ? '그날 저장된 보유 수량을 유지했다고 가정한 가격 변화예요.'
+            : '지금 보유한 수량에 기준일 이전의 종가를 적용한 비교예요. 종목마다 거래일이 다를 수 있어요.'}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 24, fontWeight: 800,
-            color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
+            color: amountColor,
           }}>
-            {isGain ? '+' : '-'}{formatMoney(data.totalDelta)}
+            {amountSign}{formatMoney(data.totalDelta)}
           </span>
           <span style={{
             fontSize: 13, fontWeight: 700,
-            color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)',
+            color: changeColor(data.totalPct, 2),
           }}>
-            ({isGain ? '+' : ''}{data.totalPct.toFixed(2)}%)
+            ({signedChange(data.totalPct, 2)}%)
           </span>
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 6 }}>
           {data.perfs.length}개 종목 기준
           {data.coverage < 1 && ` · 일부 종목 제외`}
-          {!isSnapshot && ' · 매매 이력 미반영'}
+           · 이후 매매·배당·환율 변화 미반영
         </div>
       </div>
 
       {/* Best/Worst */}
-      {data.best && data.worst && (
+      {data.best && data.worst && (roundedChange(data.best.deltaPct, 1) !== 0 || roundedChange(data.worst.deltaPct, 1) !== 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <PerfHighlight
-            icon={TrendingUp}
-            label={data.best.deltaPct > 0 ? '가장 많이 오른' : '가장 덜 내린'}
+            icon={roundedChange(data.best.deltaPct, 1) > 0 ? TrendingUp : roundedChange(data.best.deltaPct, 1) < 0 ? TrendingDown : Minus}
+            label={roundedChange(data.best.deltaPct, 1) > 0 ? '가장 많이 오른' : roundedChange(data.best.deltaPct, 1) < 0 ? '가장 덜 내린' : '가격 변동 없음'}
             symbol={data.best.symbol}
             pct={data.best.deltaPct}
-            isGain
+            name={stockNames[data.best.symbol]}
           />
           {data.best.symbol !== data.worst.symbol && (
             <PerfHighlight
-              icon={data.worst.deltaPct < 0 ? TrendingDown : Minus}
-              label={data.worst.deltaPct < 0 ? '가장 많이 내린' : '가장 덜 오른'}
+              icon={roundedChange(data.worst.deltaPct, 1) < 0 ? TrendingDown : Minus}
+              label={roundedChange(data.worst.deltaPct, 1) < 0 ? '가장 많이 내린' : roundedChange(data.worst.deltaPct, 1) > 0 ? '가장 덜 오른' : '가격 변동 없음'}
               symbol={data.worst.symbol}
               pct={data.worst.deltaPct}
-              isGain={data.worst.deltaPct >= 0}
+              name={stockNames[data.worst.symbol]}
             />
           )}
         </div>
@@ -442,8 +447,8 @@ function ActiveBody({
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {notes.map((n, i) => {
-              const kr = STOCK_KR[n.symbol] || n.symbol;
-              const avatarColor = getAvatarColor(n.symbol);
+              const kr = stockNames[n.symbol] || STOCK_KR[n.symbol] || n.symbol;
+              const avatarColor = 'var(--bg-subtle)';
               const daysLabel = n.daysAgo < 2
                 ? `${Math.round(n.daysAgo * 24)}시간 전`
                 : `${Math.round(n.daysAgo)}일 전`;
@@ -464,7 +469,7 @@ function ActiveBody({
                     width: 22, height: 22, borderRadius: '50%', background: avatarColor,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{n.symbol.charAt(0)}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>{kr.charAt(0)}</span>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
@@ -494,17 +499,17 @@ function ActiveBody({
 }
 
 function PerfHighlight({
-  icon: Icon, label, symbol, pct, isGain,
+  icon: Icon, label, symbol, pct, name,
 }: {
   icon: LucideIcon;
   label: string;
   symbol: string;
   pct: number;
-  isGain: boolean;
+  name?: string;
 }) {
-  const kr = STOCK_KR[symbol] || symbol;
-  const avatarColor = getAvatarColor(symbol);
-  const color = isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
+  const kr = name || STOCK_KR[symbol] || symbol;
+  const avatarColor = 'var(--bg-subtle)';
+  const color = changeColor(pct);
 
   return (
     <div
@@ -526,7 +531,7 @@ function PerfHighlight({
           width: 22, height: 22, borderRadius: '50%', background: avatarColor,
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{symbol.charAt(0)}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)' }}>{kr.charAt(0)}</span>
         </div>
         <span style={{
           fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)',
@@ -536,7 +541,7 @@ function PerfHighlight({
         </span>
       </div>
       <div style={{ fontSize: 15, fontWeight: 800, color }}>
-        {pct >= 0 ? '+' : ''}{pct.toFixed(1)}%
+        {signedChange(pct)}%
       </div>
     </div>
   );

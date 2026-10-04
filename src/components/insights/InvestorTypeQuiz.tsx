@@ -65,17 +65,17 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
           >
             <div style={{
               height: '100%', width: `${progress}%`,
-              background: 'var(--color-info, #3182F6)',
+              background: 'var(--pill-active-bg)',
               transition: 'width 0.3s ease',
             }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: 'var(--text-body)' }}>
             <span>{step + 1} / {INVESTOR_TYPE_QUIZ.length}</span>
             {onSkip && (
               <button
                 onClick={onSkip}
                 className="cursor-pointer"
-                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary, #B0B8C1)', fontSize: 11, padding: 0 }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-body)', fontSize: 13, padding: '8px 0', minHeight: 44 }}
               >
                 건너뛰기
               </button>
@@ -89,7 +89,7 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
         const q = INVESTOR_TYPE_QUIZ[step];
         return (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-info, #3182F6)', letterSpacing: 0.5, marginBottom: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-body)', letterSpacing: 0.5, marginBottom: 10 }}>
               Q{step + 1}
             </div>
             <div style={{
@@ -116,8 +116,8 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                     minHeight: 48,
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--color-info-bg, rgba(49,130,246,0.04))';
-                    e.currentTarget.style.borderColor = 'var(--color-info, #3182F6)';
+                    e.currentTarget.style.background = 'var(--bg-subtle)';
+                    e.currentTarget.style.borderColor = 'var(--text-primary)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = 'var(--surface, #FFFFFF)';
@@ -137,7 +137,7 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
         const meta = INVESTOR_TYPES[resultType];
         return (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5, marginBottom: 6, textAlign: 'center' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-body)', letterSpacing: 0.5, marginBottom: 6, textAlign: 'center' }}>
               당신에게 맞는 투자자 유형은
             </div>
 
@@ -153,12 +153,12 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                <InvestorTypeIcon type={meta.id} size={48} color={meta.accentColor} strokeWidth={1.5} />
+                <InvestorTypeIcon type={meta.id} size={48} color="var(--text-body)" strokeWidth={1.5} />
               </div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
                 {meta.nameKr}
               </div>
-              <div style={{ fontSize: 13, color: meta.accentColor, fontWeight: 600, marginBottom: 14 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-body)', fontWeight: 600, marginBottom: 14 }}>
                 {meta.tagline}
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.7, marginBottom: 16, wordBreak: 'keep-all' }}>
@@ -171,7 +171,7 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                   <span
                     key={t}
                     style={{
-                      fontSize: 11, fontWeight: 600,
+                      fontSize: 12, fontWeight: 600,
                       padding: '4px 10px', borderRadius: 20,
                       background: 'var(--bg-subtle, #F2F4F6)',
                       color: 'var(--text-secondary, #4E5968)',
@@ -188,12 +188,12 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
               style={{
                 padding: '14px 16px',
                 borderRadius: 12,
-                background: 'var(--color-info-bg, rgba(49,130,246,0.06))',
-                border: '1px solid rgba(49,130,246,0.12)',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border-light)',
                 marginBottom: 20,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--color-info, #3182F6)', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text-body)', marginBottom: 6 }}>
                 <Sparkles size={14} strokeWidth={1.75} aria-hidden="true" />
                 AI가 이렇게 달라져요
               </div>
@@ -210,8 +210,8 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                 style={{
                   padding: '14px 0', borderRadius: 12,
                   fontSize: 14, fontWeight: 700,
-                  color: 'var(--text-inverse, #fff)',
-                  background: 'var(--text-primary, #191F28)',
+                  color: 'var(--pill-active-fg)',
+                  background: 'var(--pill-active-bg)',
                   border: 'none', cursor: 'pointer',
                   minHeight: 48,
                 }}
@@ -222,7 +222,7 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                 onClick={handleRetake}
                 className="cursor-pointer"
                 style={{
-                  padding: '12px 0', borderRadius: 12,
+                  padding: '12px 0', borderRadius: 12, minHeight: 44,
                   fontSize: 13, fontWeight: 600,
                   color: 'var(--text-secondary, #4E5968)',
                   background: 'transparent',
@@ -236,9 +236,9 @@ export default function InvestorTypeQuiz({ onComplete, onSkip, onClose }: Props)
                   onClick={onClose}
                   className="cursor-pointer"
                   style={{
-                    padding: '10px 0', borderRadius: 12,
+                    padding: '10px 0', borderRadius: 12, minHeight: 44,
                     fontSize: 12, fontWeight: 500,
-                    color: 'var(--text-tertiary, #B0B8C1)',
+                    color: 'var(--text-body)',
                     background: 'transparent',
                     border: 'none',
                   }}

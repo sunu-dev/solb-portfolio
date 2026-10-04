@@ -67,26 +67,19 @@ const TICKER_EXPLANATIONS: Record<string, TickerExplanation> = {
   },
 };
 
-// ─── RAF 기반 마퀴 — 재렌더링에도 위치 유지 ────────────────────────────────
-const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem[] }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const posRef = useRef(0);
-  const rafRef = useRef<number>(0);
-  const pausedRef = useRef(false);
-  const dialogOpenRef = useRef(false);
+// Keep the numbers still while reading; the user can scroll for more markets.
+const MarketTicker = memo(function MarketTicker({ items }: { items: TickerItem[] }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [activeItem, setActiveItem] = useState<TickerItem | null>(null);
 
   const closeExplanation = useCallback(() => {
-    dialogOpenRef.current = false;
     setActiveItem(null);
     window.requestAnimationFrame(() => triggerRef.current?.focus());
   }, []);
 
   const openExplanation = useCallback((item: TickerItem, trigger: HTMLButtonElement) => {
     triggerRef.current = trigger;
-    dialogOpenRef.current = true;
     setActiveItem(item);
   }, []);
 
@@ -104,45 +97,21 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeItem, closeExplanation]);
 
-  useEffect(() => {
-    const speed = 0.5; // px/frame @ 60fps ≈ 30px/s
-
-    const tick = () => {
-      const track = trackRef.current;
-      if (track && !pausedRef.current && !dialogOpenRef.current) {
-        posRef.current -= speed;
-        const halfWidth = track.scrollWidth / 2;
-        if (halfWidth > 0 && Math.abs(posRef.current) >= halfWidth) {
-          posRef.current += halfWidth;
-        }
-        track.style.transform = `translateX(${posRef.current}px)`;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, []); // 한 번만 — 데이터 업데이트에도 루프 재시작 없음
-
   return (
     <div
-      ref={trackRef}
-      style={{ display: 'flex', willChange: 'transform' }}
-      onMouseEnter={() => { pausedRef.current = true; }}
-      onMouseLeave={() => { pausedRef.current = false; }}
+      role="group" aria-label="주요 시장 지표, 좌우로 넘겨 확인"
+      className="scrollbar-hide" style={{ display: 'flex', overflowX: 'auto', overscrollBehaviorX: 'contain' }}
     >
-      {[...items, ...items].map((item, idx) => (
+      {items.map((item, idx) => (
         <button
           key={`${item.label}-${idx}`}
           type="button"
           aria-haspopup="dialog"
           aria-label={`${TICKER_EXPLANATIONS[item.label]?.title ?? item.label} 설명 보기`}
           onClick={event => openExplanation(item, event.currentTarget)}
-          onFocus={() => { pausedRef.current = true; }}
-          onBlur={() => { pausedRef.current = false; }}
           style={{
             display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '5px 14px 5px 0', whiteSpace: 'nowrap', flexShrink: 0,
+            padding: '5px 14px 5px 0', minHeight: 44, whiteSpace: 'nowrap', flexShrink: 0,
             background: 'transparent', border: 0, cursor: 'help', font: 'inherit',
           }}
         >
@@ -151,9 +120,9 @@ const MarqueeTicker = memo(function MarqueeTicker({ items }: { items: TickerItem
           {item.cp != null && (
             <span style={{
               fontSize: '12px', fontWeight: 700,
-              color: item.neutral ? '#8B95A1' : item.cp >= 0 ? '#EF4452' : '#3182F6',
+              color: item.neutral || item.cp === 0 ? 'var(--text-secondary)' : item.cp > 0 ? 'var(--color-gain)' : 'var(--color-loss)',
             }}>
-              {item.cp >= 0 ? '+' : ''}{item.cp.toFixed(2)}{item.unit ?? '%'}
+              {item.cp > 0 ? '+' : ''}{item.cp.toFixed(2)}{item.unit ?? '%'}
             </span>
           )}
           <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
@@ -342,7 +311,7 @@ const TICKER_LABELS = ['S&P 500', 'NASDAQ', '다우존스', '코스피', '코스
 
 export default function MarketSummary() {
   const now = useNow();
-  const { macroData } = usePortfolioStore();
+  const macroData = usePortfolioStore(state => state.macroData);
   const [activeMarket, setActiveMarket] = useState<MarketKey | null>(null);
   const marketStatusRef = useRef<HTMLDivElement>(null);
 
@@ -456,7 +425,7 @@ export default function MarketSummary() {
         {/* Indices Marquee Ticker */}
         {tickerItems.length > 0 && (
           <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
-            <MarqueeTicker items={tickerItems} />
+            <MarketTicker items={tickerItems} />
           </div>
         )}
 

@@ -2,20 +2,18 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { usePortfolioStore, fmtDate } from '@/store/portfolioStore';
-import { STOCK_KR, getAvatarColor } from '@/config/constants';
+import { STOCK_KR } from '@/config/constants';
 import type { PresetEvent, QuoteData, EventCacheEntry } from '@/config/constants';
-import { Plus, CheckCircle2, Clock, XCircle, Info, X } from 'lucide-react';
+import { Plus, Info, X } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import EmptyState from '@/components/common/EmptyState';
 import { useNow } from '@/hooks/useNow';
-
-// ─── Severity helper ────────────────────────────────────────────────────────
-function getSeverity(maxDrop: number) {
-  const d = Math.abs(maxDrop);
-  if (d < 10) return { label: '경미', bg: 'rgba(52,199,89,0.1)',  color: '#34C759' };
-  if (d < 30) return { label: '보통', bg: 'rgba(255,149,0,0.1)',  color: '#FF9500' };
-  return         { label: '심각', bg: 'rgba(239,68,82,0.1)',  color: '#EF4452' };
-}
+import EventStockImpactCard from './EventStockImpactCard';
+import BottomSheet from '@/components/common/BottomSheet';
+import controlStyles from './EventControls.module.css';
+import { changeColor, signedChange } from '@/utils/stockTrendPresentation';
+import { eventPriceComparison } from '@/utils/eventPriceComparison';
+import { useShallow } from 'zustand/react/shallow';
 
 // ─── EventTimeline ───────────────────────────────────────────────────────────
 function EventTimeline({ event }: { event: PresetEvent }) {
@@ -42,8 +40,8 @@ function EventTimeline({ event }: { event: PresetEvent }) {
   return (
     <div style={{ marginTop: 14 }}>
       {ongoing && (
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#EF4452', marginBottom: 8 }}>
-          진행중 {elapsed}일째
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8 }}>
+          비교 구간 {elapsed}일째
         </div>
       )}
 
@@ -52,7 +50,7 @@ function EventTimeline({ event }: { event: PresetEvent }) {
         <div style={{
           position: 'absolute', left: 0, top: 0, height: '100%',
           width: `${pct}%`,
-          background: ongoing ? 'linear-gradient(90deg, #3182F6, #EF4452)' : '#B0B8C1',
+          background: 'var(--text-secondary)',
           borderRadius: 2, transition: 'width 0.5s ease',
         }} />
 
@@ -72,9 +70,8 @@ function EventTimeline({ event }: { event: PresetEvent }) {
           position: 'absolute', left: `${pct}%`, top: '50%',
           transform: 'translate(-50%, -50%)',
           width: 10, height: 10, borderRadius: 5,
-          background: ongoing ? '#EF4452' : '#8B95A1',
-          border: '2px solid white',
-          boxShadow: ongoing ? '0 0 0 3px rgba(239,68,82,0.2)' : 'none',
+          background: 'var(--text-secondary)',
+          border: '2px solid var(--surface)',
         }} />
       </div>
 
@@ -101,209 +98,44 @@ function EventTimeline({ event }: { event: PresetEvent }) {
 }
 
 // ─── Skeleton card ───────────────────────────────────────────────────────────
-function StockCardSkeleton({ symbol }: { symbol: string }) {
+function StockCardSkeleton({ symbol, name }: { symbol: string; name?: string }) {
   return (
     <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--border-light, #F2F4F6)', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 14, background: '#F2F4F6' }} />
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{symbol}</span>
+          <div style={{ width: 28, height: 28, borderRadius: 14, background: 'var(--bg-subtle)' }} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{STOCK_KR[symbol] || name || symbol}</span>
         </div>
-        <div style={{ width: 64, height: 20, borderRadius: 10, background: '#F2F4F6' }} />
+        <div style={{ width: 64, height: 20, borderRadius: 10, background: 'var(--bg-subtle)' }} />
       </div>
-      <div style={{ height: 6, borderRadius: 3, background: '#F2F4F6', marginBottom: 12 }} />
+      <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle)', marginBottom: 12 }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        {[0, 1, 2].map(i => <div key={i} style={{ height: 38, borderRadius: 8, background: '#F2F4F6' }} />)}
+        {[0, 1, 2].map(i => <div key={i} style={{ height: 38, borderRadius: 8, background: 'var(--bg-subtle)' }} />)}
       </div>
     </div>
   );
 }
 
 // ─── No data card ────────────────────────────────────────────────────────────
-function NoDataCard({ symbol }: { symbol: string }) {
-  const kr = STOCK_KR[symbol] || '';
+function NoDataCard({ symbol, name }: { symbol: string; name?: string }) {
+  const kr = STOCK_KR[symbol] || name || symbol;
   return (
     <div style={{
       padding: '12px 16px', borderRadius: 12, marginBottom: 8,
-      border: '1px solid rgba(255,149,0,0.2)', background: 'rgba(255,149,0,0.03)',
+      border: '1px solid var(--border-light)', background: 'var(--bg-subtle)',
       display: 'flex', alignItems: 'center', gap: 10,
     }}>
       <div style={{
         width: 28, height: 28, borderRadius: 14, flexShrink: 0,
-        background: getAvatarColor(symbol),
+        background: 'var(--bg-subtle)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 10, fontWeight: 700, color: 'white',
-      }}>{symbol.slice(0, 2)}</div>
+        fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
+      }}>{kr.charAt(0)}</div>
       <div>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{symbol}</span>
-        {kr && <span style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginLeft: 6 }}>{kr}</span>}
-        <div style={{ fontSize: 11, color: '#FF9500', marginTop: 2 }}>이 이벤트 시기 데이터 없음</div>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{STOCK_KR[symbol] || name || symbol}</span>
+
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>이 이벤트 시기 데이터 없음</div>
       </div>
-    </div>
-  );
-}
-
-// ─── Stock Impact Card ───────────────────────────────────────────────────────
-interface StockImpactCardProps {
-  symbol: string;
-  entry: EventCacheEntry;
-  event: PresetEvent;
-  currentPrice?: number;
-  avgCost?: number;
-}
-
-function StockImpactCard({ symbol, entry, event, currentPrice, avgCost }: StockImpactCardProps) {
-  const kr      = STOCK_KR[symbol] || '';
-  const ongoing = !event.endDate;
-  const sv      = getSeverity(entry.maxDrop);
-
-  // 진행중: 실시간 가격 사용 / 종료: fetched 데이터면 종료 시점 변동, precomputed면 null
-  const cc: number | null = ongoing
-    ? (currentPrice && entry.basePrice > 0 ? (currentPrice - entry.basePrice) / entry.basePrice * 100 : null)
-    : (entry.dataSource === 'fetched' ? entry.currentChange : null);
-  const ccGain = cc !== null && cc >= 0;
-
-  // 종료 이벤트의 종료 시점 가격 (fetched만 신뢰 가능)
-  const endPrice = !ongoing && entry.dataSource === 'fetched' && cc !== null
-    ? entry.basePrice * (1 + cc / 100)
-    : null;
-
-  // 개인 P&L: 진행중 이벤트에서만 의미있음
-  const personalPL = ongoing && avgCost && currentPrice ? (currentPrice - avgCost) / avgCost * 100 : null;
-
-  // Impact bar
-  const drop    = Math.abs(entry.maxDrop);
-  const barW    = Math.min(drop / 50 * 100, 100);
-  const barCol  = drop < 10 ? '#34C759' : drop < 30 ? '#FF9500' : '#EF4452';
-
-  // 최저점 가격: 저장된 값 우선, 없으면 basePrice로 계산
-  const maxDropPrice = entry.maxDropPrice ?? (entry.basePrice > 0 ? entry.basePrice * (1 + entry.maxDrop / 100) : null);
-  const maxDropDate  = entry.maxDropDate;
-
-  // Recovery cell
-  const recoveryCellContent = entry.recovered ? (
-      <div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#34C759', display: 'flex', alignItems: 'center', gap: 3 }}>
-          <CheckCircle2 style={{ width: 12, height: 12 }} />
-          {entry.recoveryDays ? `${entry.recoveryDays}일` : '완료'}
-        </div>
-      </div>
-    ) : ongoing ? (
-      <div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#FF9500', display: 'flex', alignItems: 'center', gap: 3 }}>
-          <Clock style={{ width: 12, height: 12 }} /> 진행중
-        </div>
-      </div>
-    ) : (
-      <div>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>회복</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#EF4452', display: 'flex', alignItems: 'center', gap: 3 }}>
-          <XCircle style={{ width: 12, height: 12 }} /> 미회복
-        </div>
-      </div>
-    );
-
-  return (
-    <div style={{
-      padding: 16, borderRadius: 12, marginBottom: 8,
-      border: '1px solid var(--border-light, #F2F4F6)',
-      background: 'var(--surface, #FFFFFF)',
-    }}>
-      {/* Row 1: Symbol + severity badge */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 14, flexShrink: 0,
-            background: getAvatarColor(symbol),
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 700, color: 'white',
-          }}>{symbol.slice(0, 2)}</div>
-          <div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{symbol}</span>
-            {kr && <span style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginLeft: 6 }}>{kr}</span>}
-          </div>
-        </div>
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 10, background: sv.bg, color: sv.color }}>
-          최대 하락 {entry.maxDrop.toFixed(1)}%
-        </span>
-      </div>
-
-      {/* Impact bar */}
-      <div style={{ height: 6, borderRadius: 3, background: 'var(--border-light, #F2F4F6)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${barW}%`, background: barCol, borderRadius: 3, transition: 'width 0.7s ease' }} />
-      </div>
-      {maxDropPrice !== null && (
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 5 }}>
-          최저점 <span style={{ fontWeight: 600, color: '#EF4452' }}>${maxDropPrice.toFixed(2)}</span>
-          {maxDropDate && (
-            <span> · {maxDropDate.replace(/-/g, '.').slice(2)}</span>
-          )}
-          <span style={{ color: 'var(--text-tertiary, #B0B8C1)' }}> (이벤트 시작가 대비)</span>
-        </div>
-      )}
-
-      {/* 3 micro-stat tiles */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
-        {/* Tile 1: 이벤트 시작가 + 날짜 */}
-        <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>이벤트 시작가</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', fontVariantNumeric: 'tabular-nums' }}>
-            ${entry.basePrice.toFixed(2)}
-          </div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>
-            {fmtDate(event.startDate)}
-          </div>
-        </div>
-
-        {/* Tile 2: 진행중→현재가 / 종료→종료시점가 or 최대하락 */}
-        <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          {ongoing && cc !== null && currentPrice ? (
-            <>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>현재가</div>
-              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: ccGain ? '#EF4452' : '#3182F6' }}>
-                ${currentPrice.toFixed(2)}
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: ccGain ? '#EF4452' : '#3182F6', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
-              </div>
-            </>
-          ) : !ongoing && endPrice !== null && cc !== null ? (
-            <>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>종료 시점가</div>
-              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: ccGain ? '#EF4452' : '#3182F6' }}>
-                ${endPrice.toFixed(2)}
-              </div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: ccGain ? '#EF4452' : '#3182F6', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
-                {cc >= 0 ? '+' : ''}{cc.toFixed(1)}%
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>최대 하락</div>
-              <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: '#3182F6' }}>
-                {entry.maxDrop.toFixed(1)}%
-              </div>
-            </>
-          )}
-        </div>
-
-        <div style={{ background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, padding: '8px 10px' }}>
-          {recoveryCellContent}
-        </div>
-      </div>
-
-      {/* Personal P&L row (only for investing stocks with live price) */}
-      {personalPL !== null && (
-        <div style={{ marginTop: 8, padding: '7px 10px', background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)' }}>내 평단 기준 현재</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: personalPL >= 0 ? '#EF4452' : '#3182F6' }}>
-            {personalPL >= 0 ? '+' : ''}{personalPL.toFixed(1)}%
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>(${avgCost?.toFixed(2)} 매수)</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -316,7 +148,13 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
     macroData, eventCache,
     updateEventCache, updateEventCacheEntry,
     addCustomEvent, deleteCustomEvent, restoreCustomEvent,
-  } = usePortfolioStore();
+  } = usePortfolioStore(useShallow(state => ({
+    currentEventId: state.currentEventId, setCurrentEventId: state.setCurrentEventId,
+    getAllEvents: state.getAllEvents, getAllSymbols: state.getAllSymbols, stocks: state.stocks,
+    macroData: state.macroData, eventCache: state.eventCache, updateEventCache: state.updateEventCache,
+    updateEventCacheEntry: state.updateEventCacheEntry, addCustomEvent: state.addCustomEvent,
+    deleteCustomEvent: state.deleteCustomEvent, restoreCustomEvent: state.restoreCustomEvent,
+  })));
 
   const [loadingSyms, setLoadingSyms] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(false);
@@ -382,23 +220,8 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
           for (const s of notInBase) {
             const d = map[s];
             if (d?.s === 'ok' && d.c && d.c.length > 1) {
-              const bp    = d.c[0];
-              const low   = Math.min(...d.c);
-              const last  = d.c[d.c.length - 1];
-              const lowI  = d.c.indexOf(low);
-              const ri    = d.c.findIndex((v, i) => i > lowI && v >= bp);
-              const cp    = (macroData[s] as QuoteData)?.c;
-              const lowTs = d.t?.[lowI];
-              updateEventCacheEntry(ev.id, s, {
-                basePrice: bp,
-                maxDrop: (low - bp) / bp * 100,
-                maxDropPrice: low,
-                maxDropDate: lowTs ? new Date(lowTs * 1000).toISOString().split('T')[0] : undefined,
-                currentChange: cp ? (cp - bp) / bp * 100 : (last - bp) / bp * 100,
-                recovered: ri !== -1 || (cp ? cp >= bp : last >= bp),
-                recoveryDays: ri !== -1 ? ri : null,
-                dataSource: 'fetched',
-              });
+              const entry = eventPriceComparison(d, !ev.endDate, (macroData[s] as QuoteData)?.c);
+              if (entry) updateEventCacheEntry(ev.id, s, entry);
             }
             markDone(s);
           }
@@ -422,22 +245,8 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
       for (const s of syms) {
         const d = map[s];
         if (d?.s === 'ok' && d.c && d.c.length > 1) {
-          const bp   = d.c[0];
-          const low  = Math.min(...d.c);
-          const last = d.c[d.c.length - 1];
-          const lowI = d.c.indexOf(low);
-          const ri   = d.c.findIndex((v, i) => i > lowI && v >= bp);
-          const lowTs = d.t?.[lowI];
-          updateEventCacheEntry(ev.id, s, {
-            basePrice: bp,
-            maxDrop: (low - bp) / bp * 100,
-            maxDropPrice: low,
-            maxDropDate: lowTs ? new Date(lowTs * 1000).toISOString().split('T')[0] : undefined,
-            currentChange: (last - bp) / bp * 100,
-            recovered: ri !== -1,
-            recoveryDays: ri !== -1 ? ri : null,
-            dataSource: 'fetched',
-          });
+          const entry = eventPriceComparison(d, !ev.endDate, (macroData[s] as QuoteData)?.c);
+          if (entry) updateEventCacheEntry(ev.id, s, entry);
         }
         markDone(s);
       }
@@ -471,6 +280,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
 
   const syms      = getAllSymbols();
   const eventData = eventCache[currentEventId] || {};
+  const stockMap = new Map([...stocks.sold, ...stocks.watching, ...stocks.investing].map(stock => [stock.symbol, stock]));
   const avgCostMap: Record<string, number> = {};
   for (const st of stocks.investing || []) avgCostMap[st.symbol] = st.avgCost;
 
@@ -497,15 +307,16 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
                 borderRadius: 20,
                 overflow: 'hidden',
                 border: isActive ? '1px solid var(--text-primary, #191F28)' : '1px solid var(--border-strong, #E5E8EB)',
-                background: isActive ? 'var(--text-primary, #191F28)' : 'var(--surface, #FFFFFF)',
+                background: isActive ? 'var(--pill-active-bg, #191F28)' : 'var(--surface, #FFFFFF)',
                 transition: 'all 0.15s',
               }}
             >
               <button
+                aria-pressed={isActive}
                 onClick={() => setCurrentEventId(ev.id)}
                 style={{
                   padding: isCustom ? '8px 4px 8px 14px' : '8px 16px',
-                  fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', cursor: 'pointer',
+                  fontSize: 13, fontWeight: 500, minHeight: 44, whiteSpace: 'nowrap', cursor: 'pointer',
                   background: 'transparent', border: 'none',
                   color: isActive ? 'var(--pill-active-fg, #FFFFFF)' : 'var(--text-secondary, #4E5968)',
                 }}
@@ -603,7 +414,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
                 variant="compact"
                 icon="📊"
                 title="분석할 종목이 없어요"
-                description="포트폴리오에 종목을 추가하면 이 이벤트가 내 종목에 얼마나 영향을 줬는지 분석해드려요."
+                description="포트폴리오에 종목을 추가하면 비교 기간 동안 내 종목의 가격이 얼마나 달라졌는지 보여드려요."
                 primaryAction={{
                   label: '종목 추가하기',
                   onClick: () => {
@@ -616,23 +427,24 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
               const ed        = eventData[s] as EventCacheEntry | undefined;
               const isLoading = loadingSyms.has(s) || (!ed && loadingSyms.size > 0);
               const cp        = (macroData[s] as QuoteData)?.c;
-              if (isLoading) return <StockCardSkeleton key={s} symbol={s} />;
-              if (!ed) return <NoDataCard key={s} symbol={s} />;
+              if (isLoading) return <StockCardSkeleton key={s} symbol={s} name={stockMap.get(s)?.name} />;
+              if (!ed) return <NoDataCard key={s} symbol={s} name={stockMap.get(s)?.name} />;
               return (
-                <StockImpactCard key={s} symbol={s} entry={ed} event={currentEvent}
-                  currentPrice={cp} avgCost={avgCostMap[s]} />
+                <EventStockImpactCard key={s} symbol={s} entry={ed} event={currentEvent}
+                  name={stockMap.get(s)?.name} currency={stockMap.get(s)?.currency}
+                  currentPrice={cp} quoteTime={(macroData[s] as QuoteData)?.t} avgCost={avgCostMap[s]} />
               );
             })}
           </div>
 
           {/* Insight card */}
           {currentEvent.insight && (
-            <div style={{ margin: '0 16px 20px', padding: '16px 20px', background: 'linear-gradient(135deg, #EBF3FF, #F5EEFF)', borderRadius: 14 }}>
+            <div style={{ margin: '0 16px 20px', padding: '16px 20px', background: 'var(--bg-subtle)', borderRadius: 14 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <Info style={{ width: 16, height: 16, color: '#3182F6', flexShrink: 0, marginTop: 2 }} />
+                <Info style={{ width: 16, height: 16, color: 'var(--text-secondary)', flexShrink: 0, marginTop: 2 }} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#3182F6', marginBottom: 6 }}>초보자를 위한 해석</div>
-                  <div style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.7 }}>{currentEvent.insight}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>이 기간을 살펴보는 방법</div>
+                  <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{currentEvent.insight}</div>
                 </div>
               </div>
             </div>
@@ -645,7 +457,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
         <div style={{ marginTop: 16, background: 'var(--surface, #FFFFFF)', borderRadius: 16, border: '1px solid var(--border-strong, #E5E8EB)', padding: '20px' }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 14 }}>매크로 지표 비교</div>
           {/* Column header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 76px 76px 56px', gap: 6, marginBottom: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) repeat(2, minmax(0, .9fr)) minmax(0, .75fr)', gap: 6, marginBottom: 4 }}>
             {['', '이벤트 당시', '현재', '변동'].map((h, i) => (
               <span key={i} style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', textAlign: i === 0 ? 'left' : 'right' }}>{h}</span>
             ))}
@@ -654,11 +466,11 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
             const cur      = macroData[label] as { value?: number | null } | undefined;
             const curVal   = cur?.value;
             const chg      = curVal != null && baseVal ? (curVal - baseVal) / baseVal * 100 : null;
-            const isUp     = chg !== null ? chg >= 0 : true;
+
             const isLast   = idx === arr.length - 1;
             return (
               <div key={label} style={{
-                display: 'grid', gridTemplateColumns: '1fr 76px 76px 56px',
+                display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) repeat(2, minmax(0, .9fr)) minmax(0, .75fr)',
                 alignItems: 'center', gap: 6, padding: '10px 0',
                 borderBottom: isLast ? 'none' : '1px solid var(--border-light, #F2F4F6)',
               }}>
@@ -669,8 +481,8 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
                 <span style={{ fontSize: 13, fontWeight: 600, textAlign: 'right', color: 'var(--text-primary, #191F28)', fontVariantNumeric: 'tabular-nums' }}>
                   {curVal != null ? curVal.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '--'}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: chg !== null ? (isUp ? '#EF4452' : '#3182F6') : 'var(--text-tertiary, #B0B8C1)' }}>
-                  {chg !== null ? `${isUp ? '+' : ''}${chg.toFixed(1)}%` : '--'}
+                <span style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: chg !== null ? changeColor(chg) : 'var(--text-secondary)' }}>
+                  {chg !== null ? `${signedChange(chg)}%` : '--'}
                 </span>
               </div>
             );
@@ -722,63 +534,26 @@ function AddEventModal({
     setEndDate(q.endDate); setDescription(q.description);
   };
 
-  return (
-    <>
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 50, backdropFilter: 'blur(1px)' }} onClick={onClose} />
-      <div style={{
-        position: 'fixed', left: 16, right: 16, top: '50%', transform: 'translateY(-50%)',
-        maxWidth: 480, margin: '0 auto', background: '#FFFFFF', borderRadius: 16,
-        zIndex: 51, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-        maxHeight: '90vh', overflowY: 'auto',
-      }}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 16 }}>이벤트 추가</h3>
-
-        {/* Quick picks */}
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 8 }}>빠른 선택</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {QUICK_EVENTS.map(q => (
-              <button key={q.name} onClick={() => applyQuick(q)} style={{
-                padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                background: name === q.name ? 'var(--pill-active-bg, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                color: name === q.name ? 'var(--pill-active-fg, #FFFFFF)' : 'var(--text-secondary, #4E5968)',
-                border: 'none', cursor: 'pointer', transition: 'all 0.15s',
-              }}>
-                {q.emoji} {q.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 6 }}>이벤트명 *</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="예: 미중 무역 분쟁"
-              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: 12, fontSize: 14, outline: 'none', border: 'none' }} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 6 }}>시작일 *</label>
-              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: 12, fontSize: 14, outline: 'none', border: 'none' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 6 }}>종료일 (선택)</label>
-              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: 12, fontSize: 14, outline: 'none', border: 'none' }} />
-            </div>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 6 }}>설명</label>
-            <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="이벤트 설명"
-              style={{ width: '100%', padding: '10px 14px', background: '#F2F4F6', borderRadius: 12, fontSize: 14, outline: 'none', border: 'none' }} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-          <button onClick={onClose} style={{ flex: 1, padding: 10, borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', background: '#F2F4F6', border: 'none', cursor: 'pointer' }}>취소</button>
-          <button onClick={() => onSave({ name, startDate, endDate, description })} style={{ flex: 1, padding: 10, borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#FFFFFF', background: '#3182F6', border: 'none', cursor: 'pointer' }}>저장</button>
-        </div>
+  return <BottomSheet isOpen onClose={onClose} ariaLabel="비교할 이벤트 추가" desktopVariant maxHeight="90dvh">
+    <form className={controlStyles.form} onSubmit={event => {
+      event.preventDefault();
+      onSave({ name: name.trim(), startDate, endDate, description: description.trim() });
+    }}>
+      <header><h2>비교할 이벤트 추가</h2><button type="button" onClick={onClose} aria-label="이벤트 추가 닫기"><X size={20} aria-hidden="true" /></button></header>
+      <p>비교하고 싶은 기간을 고르면 그때의 종목 가격을 확인해요.</p>
+      <div className={controlStyles.quick} role="group" aria-label="기간 예시">
+        {QUICK_EVENTS.map(quick => <button type="button" key={quick.name} aria-pressed={name === quick.name} onClick={() => applyQuick(quick)}>{quick.name}</button>)}
       </div>
-    </>
-  );
+      <label htmlFor="event-name">이벤트 이름</label>
+      <input id="event-name" required maxLength={60} value={name} onChange={event => setName(event.target.value)} placeholder="예: 미중 무역 분쟁" />
+      <div className={controlStyles.dates}>
+        <div><label htmlFor="event-start">시작일</label><input id="event-start" required type="date" value={startDate} onChange={event => setStartDate(event.target.value)} /></div>
+        <div><label htmlFor="event-end">종료일 · 선택</label><input id="event-end" type="date" min={startDate || undefined} value={endDate} onChange={event => setEndDate(event.target.value)} /></div>
+      </div>
+      <p className={controlStyles.help}>종료일을 비워두면 현재까지 비교해요.</p>
+      <label htmlFor="event-description">설명 · 선택</label>
+      <input id="event-description" value={description} maxLength={300} onChange={event => setDescription(event.target.value)} placeholder="어떤 일이 있었는지 짧게 남겨보세요" />
+      <div className={controlStyles.actions}><button type="button" onClick={onClose}>취소</button><button type="submit" disabled={!name.trim() || !startDate}>저장하기</button></div>
+    </form>
+  </BottomSheet>;
 }

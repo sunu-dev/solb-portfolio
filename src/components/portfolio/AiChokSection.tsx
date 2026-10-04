@@ -484,7 +484,7 @@ export default function AiChokSection() {
                 }}
                 style={{
                   padding: '9px 22px', borderRadius: 8,
-                  background: 'var(--brand-primary)', color: 'var(--on-brand-fg)', border: 'none',
+                  background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', border: 'none',
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}
               >

@@ -3,8 +3,24 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MarketGuideId } from '@/config/marketGuides';
 import { emptyNotebook, GUIDE_NOTEBOOK_KEY, parseGuideNotebook, updateGuideEntry, type GuideEntry } from '@/lib/guideNotebook';
+import { bindGuideDraftBoundary, guideDraftSession, type GuideDraft } from '@/lib/guideDraftSession';
 
 const CHANGE_EVENT = 'joobi-guide-notebook-changed';
+
+export function useGuideDrafts() {
+  const [snapshot, setSnapshot] = useState(guideDraftSession.getSnapshot);
+  useEffect(() => {
+    bindGuideDraftBoundary();
+    const sync = () => setSnapshot(guideDraftSession.getSnapshot());
+    const unsubscribe = guideDraftSession.subscribe(sync);
+    const frame = requestAnimationFrame(sync);
+    return () => { unsubscribe(); cancelAnimationFrame(frame); };
+  }, []);
+  return {
+    drafts: snapshot.entries,
+    updateDraft: (id: MarketGuideId, draft?: GuideDraft) => guideDraftSession.update(id, draft, snapshot.epoch),
+  };
+}
 
 export function useGuideNotebook() {
   const [notebook, setNotebook] = useState(emptyNotebook);

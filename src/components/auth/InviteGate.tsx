@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, Check, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import JoobiLockup from '@/components/brand/JoobiLockup';
 import type { User } from '@supabase/supabase-js';
+import styles from './InviteGate.module.css';
 
 interface Props {
   user: User;
@@ -16,162 +19,82 @@ export default function InviteGate({ user, onVerified }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim()) return;
+  useEffect(() => () => {
+    requestRef.current?.abort();
+    if (successTimer.current) clearTimeout(successTimer.current);
+  }, [user.id]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!code.trim() || loading || success) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
     setLoading(true);
     setError('');
-
     try {
       const session = (await supabase.auth.getSession()).data.session;
+      if (controller.signal.aborted) return;
       const token = session?.access_token;
       if (!token || session.user.id !== user.id) {
         setError('로그인 상태를 확인할 수 없어요. 다시 로그인해주세요.');
         return;
       }
-
-      const res = await fetch('/api/codes/validate', {
+      const response = await fetch('/api/codes/validate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ code: code.trim(), context: 'signup' }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-
-      if (res.ok && data.valid === true && data.applied === true) {
-        setSuccess(data.message);
-        setTimeout(() => onVerified(), 1200);
-      } else {
-        setError(data.error || '유효하지 않은 코드예요.');
-      }
+      const data = await response.json();
+      if (controller.signal.aborted) return;
+      if (response.ok && data.valid === true && data.applied === true) {
+        setSuccess('초대가 확인됐어요. 주비로 이동해요.');
+        successTimer.current = setTimeout(onVerified, 800);
+      } else setError(data.error || '코드를 다시 확인해주세요.');
     } catch {
-      setError('오류가 발생했어요. 다시 시도해주세요.');
+      if (!controller.signal.aborted) setError('초대를 확인하지 못했어요. 연결을 확인하고 다시 시도해주세요.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
+  const leave = () => {
+    requestRef.current?.abort();
+    if (successTimer.current) clearTimeout(successTimer.current);
+    void signOut();
+  };
+
   return (
-    <div style={{
-      minHeight: '100dvh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#F2F4F6',
-      padding: '24px',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 400,
-        background: '#fff',
-        borderRadius: 24,
-        padding: '40px 32px',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-        textAlign: 'center',
-      }}>
-        {/* 로고 */}
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🌊</div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>
-          주비 베타
-        </h1>
-        <p style={{ fontSize: 14, color: '#8B95A1', lineHeight: 1.6, marginBottom: 32 }}>
-          현재 베타 테스터만 이용 가능해요. 초대 코드를 입력해주세요.
-        </p>
-
+    <main className={styles.page}>
+      <section className={styles.card} aria-labelledby="invite-title">
+        <JoobiLockup variant="modal" />
+        <div className={styles.icon}><KeyRound size={24} aria-hidden="true" /></div>
+        <h1 id="invite-title">초대 코드를 입력해주세요</h1>
+        <p className={styles.intro}>주비는 현재 초대받은 분들과 함께 베타 서비스를 다듬고 있어요. 처음 한 번만 등록하면 돼요.</p>
         <form onSubmit={handleSubmit}>
-          <input
-            value={code}
-            onChange={e => {
-              setCode(e.target.value.toUpperCase());
-              setError('');
-            }}
-            placeholder="SOLB-XXXXXXXX"
-            maxLength={20}
-            disabled={loading || !!success}
-            style={{
-              width: '100%',
-              padding: '14px 16px',
-              fontSize: 18,
-              fontWeight: 700,
-              letterSpacing: 2,
-              textAlign: 'center',
-              border: `2px solid ${error ? '#EF4452' : success ? '#20C997' : 'var(--border-light, #E5E8EB)'}`,
-              borderRadius: 12,
-              outline: 'none',
-              background: '#F8F9FA',
-              color: '#191F28',
-              boxSizing: 'border-box',
-              transition: 'border-color 0.2s',
-            }}
-            autoComplete="off"
-            autoCapitalize="characters"
-          />
-
-          {error && (
-            <p style={{ fontSize: 13, color: '#EF4452', marginTop: 8, textAlign: 'center' }}>
-              {error}
-            </p>
-          )}
-          {success && (
-            <p style={{ fontSize: 13, color: '#20C997', marginTop: 8, textAlign: 'center', fontWeight: 600 }}>
-              {success}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !code.trim() || !!success}
-            style={{
-              width: '100%',
-              padding: '14px',
-              marginTop: 16,
-              fontSize: 16,
-              fontWeight: 700,
-              color: '#fff',
-              background: loading || !code.trim() || !!success ? '#B0B8C1' : '#3182F6',
-              border: 'none',
-              borderRadius: 12,
-              cursor: loading || !code.trim() || !!success ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s',
-            }}
-          >
-            {loading ? '확인 중...' : success ? '입장 중...' : '입장하기'}
+          <label className={styles.label} htmlFor="invite-code">초대 코드</label>
+          <input id="invite-code" className={styles.input} value={code}
+            onChange={event => { setCode(event.target.value.toUpperCase()); setError(''); }}
+            placeholder="받은 초대 코드를 입력해주세요" maxLength={20} disabled={loading || Boolean(success)}
+            autoComplete="off" autoCapitalize="characters" spellCheck={false}
+            aria-invalid={Boolean(error)} aria-describedby={error ? 'invite-error' : 'invite-help'} />
+          <p id="invite-help" className={styles.help}>주비를 소개해준 분에게 받은 코드를 사용해주세요.</p>
+          {error && <p id="invite-error" className={styles.error} role="alert">{error}</p>}
+          {success && <p className={styles.success} role="status"><Check size={16} aria-hidden="true" />{success}</p>}
+          <button className={styles.submit} type="submit" disabled={loading || !code.trim() || Boolean(success)}>
+            {loading ? '초대 확인 중…' : success ? '주비로 이동 중…' : '초대 확인하고 시작하기'}
+            {!loading && !success && <ArrowRight size={17} aria-hidden="true" />}
           </button>
         </form>
-
-        <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-          <p style={{ fontSize: 12, color: '#B0B8C1', marginBottom: 8 }}>
-            초대 코드가 없으신가요?
-          </p>
-          <a
-            href="https://open.kakao.com/o/주비오픈채팅"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ fontSize: 13, color: '#3182F6', fontWeight: 600, textDecoration: 'none' }}
-          >
-            카카오 오픈채팅에서 받기 →
-          </a>
+        <div className={styles.other}>
+          <p>아직 코드가 없다면 로그인 없이 먼저 둘러볼 수 있어요.</p>
+          <button type="button" onClick={leave}>로그아웃하고 둘러보기</button>
+          <button type="button" className={styles.secondary} onClick={leave}>다른 계정으로 로그인</button>
         </div>
-
-        <button
-          onClick={() => signOut()}
-          style={{
-            marginTop: 16,
-            fontSize: 12,
-            color: '#B0B8C1',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            textDecoration: 'underline',
-          }}
-        >
-          다른 계정으로 로그인
-        </button>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

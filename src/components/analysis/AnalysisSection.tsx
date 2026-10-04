@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronRight, ScanSearch, ChartNoAxesCombined, NotebookPen } from 'lucide-react';
 import styles from './AnalysisSection.module.css';
 
@@ -42,20 +43,28 @@ const tools = [
 type Tool = typeof tools[number]['id'];
 
 export default function AnalysisSection() {
-  const [group, setGroup] = useState<Group | null>(null);
-  const [tool, setTool] = useState<Tool | null>(null);
+  const params = useSearchParams();
+  const selected = tools.find(item => item.id === params.get('tool'));
+  const tool = selected?.id ?? null;
+  const group = selected?.group ?? groups.find(item => item.id === params.get('group'))?.id ?? null;
   const heading = useRef<HTMLHeadingElement>(null);
   const category = groups.find(item => item.id === group);
-  const selected = tools.find(item => item.id === tool);
   const focusHeading = () => requestAnimationFrame(() => heading.current?.focus());
-  const chooseGroup = (value: Group) => { setGroup(value); setTool(null); focusHeading(); };
-  const chooseTool = (value: Tool) => { setTool(value); focusHeading(); };
-  const openProfile = () => { setGroup('check'); chooseTool('profile'); };
+  const navigate = (nextGroup: Group | null, nextTool: Tool | null = null) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', 'events');
+    if (nextGroup) url.searchParams.set('group', nextGroup); else url.searchParams.delete('group');
+    if (nextTool) url.searchParams.set('tool', nextTool); else url.searchParams.delete('tool');
+    window.history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    focusHeading();
+  };
+  const chooseGroup = (value: Group) => navigate(value);
+  const chooseTool = (value: Tool) => navigate(tools.find(item => item.id === value)!.group, value);
+  const openProfile = () => chooseTool('profile');
 
   return <div className={styles.root}>
     {(group || tool) && <button className={styles.back} onClick={() => {
-      if (tool) setTool(null); else setGroup(null);
-      focusHeading();
+      navigate(tool ? group : null);
     }}><ArrowLeft size={18} aria-hidden="true" />{tool ? category?.title : '분석 홈'}</button>}
     <header className={styles.header}>
       {!selected && <p className={styles.eyebrow}>필요할 때, 하나씩</p>}

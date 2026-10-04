@@ -1,0 +1,22 @@
+.root { margin-bottom: 28px; }
+.intro { margin: 0 0 18px; font-size: 14px; line-height: 1.8; color: var(--text-secondary); word-break: keep-all; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.controls > div { display: flex; padding: 3px; gap: 3px; border-radius: 12px; background: var(--bg-subtle); }
+.controls button { min-height: 44px; padding: 10px 16px; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: 14px; cursor: pointer; }
+.controls button[aria-pressed='true'] { background: var(--pill-active-bg); color: var(--pill-active-fg); font-weight: 700; }
+.list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
+.card { border: 1px solid var(--border-light); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.stock { display: flex; flex-direction: column; width: 100%; gap: 6px; padding: 18px; text-align: left; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; }
+.stock:hover { background: var(--bg-subtle); }
+.stock strong { font-size: 16px; line-height: 1.5; word-break: keep-all; }
+.stock > span { color: var(--text-secondary); font-size: 12px; }
+.stock .price { font-size: 16px; color: var(--text-primary); font-variant-numeric: tabular-nums; margin-top: 8px; }
+.stock .change { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 12px; }
+.change b { font-size: 15px; font-variant-numeric: tabular-nums; }
+.watch { padding: 0 18px 16px; }
+.watch button { min-height: 44px; }
+.notice { padding: 20px; margin: 12px 0; border-radius: 14px; background: var(--bg-subtle); color: var(--text-secondary); font-size: 14px; line-height: 1.8; word-break: keep-all; }
+.notice p { margin: 0; }
+.notice button { min-height: 44px; padding: 8px 14px; margin-top: 12px; border: 1px solid var(--border-light); border-radius: 10px; background: var(--surface); color: var(--text-primary); cursor: pointer; }
+.timestamp { font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin: 16px 0 0; }
+.root button:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -3px; }

@@ -28,7 +28,7 @@ export default function InvestorTypePicker({ currentType, onSelect }: Props) {
               padding: '14px 16px',
               borderRadius: 14,
               background: isActive ? 'var(--surface, #FFFFFF)' : 'var(--bg-subtle, #F8F9FA)',
-              border: `2px solid ${isActive ? meta.accentColor : 'var(--border-light, #F2F4F6)'}`,
+              border: `2px solid ${isActive ? 'var(--text-primary)' : 'var(--border-light)'}`,
               cursor: 'pointer',
               textAlign: 'left',
               display: 'flex',
@@ -37,8 +37,8 @@ export default function InvestorTypePicker({ currentType, onSelect }: Props) {
               transition: 'all 0.15s',
             }}
           >
-            <span style={{ flexShrink: 0, color: meta.accentColor }}>
-              <InvestorTypeIcon type={meta.id} size={28} color={meta.accentColor} strokeWidth={1.6} />
+            <span style={{ flexShrink: 0, color: 'var(--text-body)' }}>
+              <InvestorTypeIcon type={meta.id} size={28} color="var(--text-body)" strokeWidth={1.6} />
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
@@ -49,17 +49,17 @@ export default function InvestorTypePicker({ currentType, onSelect }: Props) {
                 </span>
                 {isActive && (
                   <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-                    background: meta.accentColor, color: '#fff',
+                    fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                    background: 'var(--pill-active-bg)', color: 'var(--pill-active-fg)',
                   }}>
                     현재
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 12, color: meta.accentColor, fontWeight: 600, marginBottom: 6 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-body)', fontWeight: 600, marginBottom: 6 }}>
                 {meta.tagline}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.5, wordBreak: 'keep-all' }}>
                 {meta.keyTraits.slice(0, 3).join(' · ')}
               </div>
             </div>

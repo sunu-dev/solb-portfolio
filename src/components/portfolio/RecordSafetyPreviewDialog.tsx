@@ -116,7 +116,7 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
         }}
       >
         <div style={{ padding: '20px 20px 15px', display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
-          <div style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 14, background: 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: 'var(--brand-primary, #0E7C7B)' }}>
+          <div style={{ width: 42, height: 42, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 14, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)' }}>
             <ShieldCheck size={22} aria-hidden="true" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -174,23 +174,23 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: 10,
-                        border: `1.5px solid ${isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-light, #E5E8EB)'}`,
+                        border: `1.5px solid ${isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
                         borderRadius: 13,
-                        background: isSelected ? 'var(--brand-primary-bg, rgba(14,124,123,0.06))' : 'var(--surface, #FFFFFF)',
+                        background: isSelected ? 'var(--brand-primary-bg)' : 'var(--surface, #FFFFFF)',
                         opacity: row.actionable ? 1 : 0.68,
                         color: 'inherit',
                         textAlign: 'left',
                         cursor: row.actionable ? 'pointer' : 'default',
                       }}
                     >
-                      <span style={{ width: 21, height: 21, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--bg-subtle, #F2F4F6)' }}>
+                      <span style={{ width: 21, height: 21, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: isSelected ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)' }}>
                         {isSelected && <Check size={14} color="white" strokeWidth={3} aria-hidden="true" />}
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                           <strong style={{ color: 'var(--text-primary, #191F28)', fontSize: 13 }}>{row.name}</strong>
                           <span style={{ color: 'var(--text-tertiary, #8B95A1)', fontSize: 10 }}>{row.broker}</span>
-                          <span style={{ color: row.status === '그대로' ? 'var(--text-tertiary, #8B95A1)' : 'var(--brand-primary, #0E7C7B)', fontSize: 10, fontWeight: 800 }}>
+                          <span style={{ color: row.status === '그대로' ? 'var(--text-tertiary, #8B95A1)' : 'var(--brand-primary)', fontSize: 10, fontWeight: 800 }}>
                             {row.status}
                           </span>
                         </span>
@@ -203,8 +203,8 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
                 })}
               </div>
 
-              <div style={{ marginTop: 14, padding: 12, display: 'flex', gap: 9, borderRadius: 12, background: 'rgba(14,124,123,0.07)', color: 'var(--text-secondary, #4E5968)', fontSize: 11, lineHeight: 1.55 }}>
-                <FileCheck2 size={17} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" style={{ flexShrink: 0 }} />
+              <div style={{ marginTop: 14, padding: 12, display: 'flex', gap: 9, borderRadius: 12, background: 'var(--brand-primary-bg)', color: 'var(--text-secondary, #4E5968)', fontSize: 11, lineHeight: 1.55 }}>
+                <FileCheck2 size={17} color="var(--brand-primary)" aria-hidden="true" style={{ flexShrink: 0 }} />
                 선택하지 않은 항목과 같은 기록은 건드리지 않아요. 승인 전에는 실제 기록이 바뀌지 않습니다.
               </div>
 
@@ -212,7 +212,7 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
                 type="button"
                 onClick={approve}
                 disabled={selected.size === 0}
-                style={{ width: '100%', minHeight: 48, marginTop: 16, border: 0, borderRadius: 13, background: selected.size > 0 ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-strong, #D1D6DB)', color: 'white', fontSize: 14, fontWeight: 800, cursor: selected.size > 0 ? 'pointer' : 'not-allowed' }}
+                style={{ width: '100%', minHeight: 48, marginTop: 16, border: 0, borderRadius: 13, background: selected.size > 0 ? 'var(--brand-fill)' : 'var(--border-strong, #D1D6DB)', color: 'var(--on-brand-fg)', fontSize: 14, fontWeight: 800, cursor: selected.size > 0 ? 'pointer' : 'not-allowed' }}
               >
                 선택한 {selected.size}개 변경 승인
               </button>
@@ -221,7 +221,7 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
 
           {stage !== 'review' && (
             <div style={{ padding: '28px 4px 8px', textAlign: 'center' }}>
-              <div style={{ width: 58, height: 58, margin: '0 auto', display: 'grid', placeItems: 'center', borderRadius: 20, background: stage === 'approved' ? 'rgba(52,199,89,0.1)' : 'var(--brand-primary-bg, rgba(14,124,123,0.08))', color: stage === 'approved' ? 'var(--color-success, #228B45)' : 'var(--brand-primary, #0E7C7B)' }}>
+              <div style={{ width: 58, height: 58, margin: '0 auto', display: 'grid', placeItems: 'center', borderRadius: 20, background: stage === 'approved' ? 'rgba(52,199,89,0.1)' : 'var(--brand-primary-bg)', color: stage === 'approved' ? 'var(--color-success, #228B45)' : 'var(--brand-primary)' }}>
                 {stage === 'approved'
                   ? <CheckCircle2 size={29} aria-hidden="true" />
                   : <RotateCcw size={27} aria-hidden="true" />}
@@ -236,7 +236,7 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
               </p>
 
               <div style={{ marginTop: 18, padding: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 12, color: 'var(--text-secondary, #4E5968)', fontSize: 11 }}>
-                <History size={16} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+                <History size={16} color="var(--brand-primary)" aria-hidden="true" />
                 {stage === 'approved' ? '방금 전 기록 · 복구 가능' : '복구 전 기록까지 안전하게 보관'}
               </div>
 
@@ -261,7 +261,7 @@ export default function RecordSafetyPreviewDialog({ onClose }: Props) {
                 <button
                   type="button"
                   onClick={onClose}
-                  style={{ flex: 1, minHeight: 46, border: 0, borderRadius: 12, background: 'var(--brand-primary, #0E7C7B)', color: 'white', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                  style={{ flex: 1, minHeight: 46, border: 0, borderRadius: 12, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
                 >
                   체험 마치기
                 </button>

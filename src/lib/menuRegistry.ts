@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { BarChart3, Sparkles, Newspaper, CalendarDays, Star, Bell, Compass, HelpCircle, ScanSearch } from 'lucide-react';
+import { BarChart3, Sparkles, Newspaper, CalendarDays, Star, Bell, Compass, HelpCircle, ScanSearch, Info } from 'lucide-react';
 import type { MainSection } from '@/store/portfolioStore';
 import type { StockCategory } from '@/config/constants';
 
@@ -42,6 +42,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { id: 'briefing', label: '오늘의 브리핑', sub: '시장 흐름과 내 종목 변화 다시 보기', Icon: Newspaper, action: { kind: 'event', event: 'open-briefing' }, primaryNav: false, pinnable: true },
   { id: 'watchlist', label: '관심 종목', sub: '찜한 종목 모아보기', Icon: Star, action: { kind: 'section', section: 'portfolio', tab: 'watching' }, primaryNav: false, pinnable: true },
   { id: 'alerts', label: '알림 센터', sub: '주비가 챙긴 알림 모아보기', Icon: Bell, action: { kind: 'alert-center' }, primaryNav: false, pinnable: true },
+  { id: 'about', label: '주비 서비스 소개', sub: '주비가 챙겨주는 것과 이용 방법', Icon: Info, action: { kind: 'href', href: '/about' }, primaryNav: false, pinnable: true },
   { id: 'tour', label: '둘러보기', sub: '주요 기능 가이드 투어', Icon: Compass, action: { kind: 'event', event: 'open-tour' }, primaryNav: false, pinnable: true },
   { id: 'help', label: '도움말', sub: '사용법·자주 묻는 질문', Icon: HelpCircle, action: { kind: 'href', href: '/help' }, primaryNav: false, pinnable: true },
 ];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/lib/aiAgeGate';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import { resolveSignupEligibility } from '@/lib/signupEligibility';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface AgeEligibilityGateProps {
   userId: string;
@@ -45,6 +46,8 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(status !== 'eligible', dialogRef);
   const age = getAgeFromBirthDate(birthDate);
   const isAdult = isAdultBirthDate(birthDate);
   const ageInvalid = birthDate.length === 8 && !isAdult;
@@ -82,9 +85,11 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="adult-gate-title"
+      tabIndex={-1}
       style={{
         position: 'fixed',
         inset: 0,
@@ -96,7 +101,7 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
         background: 'rgba(15, 23, 42, 0.58)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 420, padding: '28px 24px', borderRadius: 20, background: 'var(--bg, #FFFFFF)', boxShadow: '0 18px 60px rgba(15, 23, 42, 0.24)' }}>
+      <div style={{ width: '100%', maxWidth: 420, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', padding: '28px 24px', borderRadius: 20, background: 'var(--bg, #FFFFFF)', boxShadow: '0 18px 60px rgba(15, 23, 42, 0.24)' }}>
         <div style={{ marginBottom: 18, textAlign: 'center' }}>
           <JoobiLockup variant="modal" />
         </div>
@@ -119,7 +124,7 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
                 setStatus('checking');
                 void readAdultConsent(userId).then(setStatus);
               }}
-              style={{ width: '100%', height: 46, border: 0, borderRadius: 12, background: 'var(--brand-primary, #0E7C7B)', color: '#FFFFFF', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+              style={{ width: '100%', height: 46, border: 0, borderRadius: 12, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
             >
               다시 확인하기
             </button>
@@ -167,14 +172,14 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
               type="button"
               onClick={() => void confirm()}
               disabled={!canConfirm}
-              style={{ width: '100%', height: 48, marginTop: 16, border: 0, borderRadius: 12, background: canConfirm ? 'var(--brand-primary, #0E7C7B)' : '#B0B8C1', color: '#FFFFFF', fontSize: 15, fontWeight: 700, cursor: canConfirm ? 'pointer' : 'not-allowed' }}
+              style={{ width: '100%', height: 48, marginTop: 16, border: 0, borderRadius: 12, background: canConfirm ? 'var(--brand-fill)' : '#B0B8C1', color: 'var(--on-brand-fg)', fontSize: 15, fontWeight: 700, cursor: canConfirm ? 'pointer' : 'not-allowed' }}
             >
               {status === 'saving' ? '확인 중...' : '확인하고 계속하기'}
             </button>
           </>
         )}
 
-        <button type="button" onClick={onSignOut} style={{ width: '100%', marginTop: 12, padding: 8, border: 0, background: 'transparent', color: 'var(--text-tertiary, #8B95A1)', fontSize: 12, cursor: 'pointer' }}>
+        <button type="button" onClick={onSignOut} style={{ width: '100%', minHeight: 44, marginTop: 12, padding: 8, border: 0, background: 'transparent', color: 'var(--text-body)', fontSize: 13, cursor: 'pointer' }}>
           다른 계정으로 로그인
         </button>
       </div>
@@ -192,8 +197,8 @@ function ConsentCheck({
   children: React.ReactNode;
 }) {
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 9, marginTop: 9, fontSize: 12.5, color: 'var(--text-secondary, #4E5968)', cursor: 'pointer' }}>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    <label style={{ display: 'flex', minHeight: 44, alignItems: 'center', gap: 9, marginTop: 2, fontSize: 13, color: 'var(--text-body)', cursor: 'pointer' }}>
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} style={{ width: 18, height: 18, accentColor: 'var(--brand-fill)' }} />
       <span>{children}</span>
     </label>
   );

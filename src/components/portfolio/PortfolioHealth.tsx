@@ -1,137 +1,26 @@
-'use client';
+"use client";
 
-import HealthInsight from './HealthInsight';
+import { calcHealthScore, type HealthStock } from '@/utils/portfolioHealth';
 
-import { calcHealthScore, getHealthColor, getHealthLabel, recommendNextAction, type HealthStock } from '@/utils/portfolioHealth';
-
-interface Props {
-  stocks: HealthStock[];
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * circumference;
-  const color = getHealthColor(score);
-  const label = getHealthLabel(score);
-
-  return (
-    <div style={{ position: 'relative', width: 100, height: 100 }}>
-      <svg viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--border-light, #F2F4F6)" strokeWidth="8" />
-        <circle
-          cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 1s ease-out' }}
-        />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontSize: 24, fontWeight: 800, color, lineHeight: 1 }}>{score}</span>
-        <span style={{ fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', marginTop: 2 }}>{label}</span>
-      </div>
-    </div>
-  );
-}
-
-function getScoreLabel(score: number, max: number): string {
-  const ratio = score / max;
-  if (ratio >= 0.8) return '건강';
-  if (ratio >= 0.5) return '주의';
-  return '위험';
-}
-
-function MetricRow({ label, score, max, detail, color }: { label: string; score: number; max: number; detail: string; color: string }) {
-  const pct = max > 0 ? (score / max) * 100 : 0;
-  const statusLabel = getScoreLabel(score, max);
-  const ratio = max > 0 ? score / max : 0;
-  const bgVar = ratio >= 0.8
-    ? 'var(--color-success-bg, rgba(22,163,74,0.08))'
-    : ratio >= 0.5
-      ? 'var(--color-warning-bg, rgba(255,149,0,0.08))'
-      : 'var(--color-danger-bg, rgba(239,68,82,0.08))';
-  return (
-    <div style={{ padding: '10px 0' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 70, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', flexShrink: 0 }}>{label}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 3, background: color, width: `${pct}%`, transition: 'width 0.7s ease-out' }} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color, padding: '1px 6px', borderRadius: 4, background: bgVar }}>
-            {statusLabel}
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', width: 32, textAlign: 'right' }}>{score}/{max}</span>
-        </div>
-      </div>
-      <div style={{ marginTop: 4, paddingLeft: 82, fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.4 }}>
-        {detail}
-      </div>
-    </div>
-  );
-}
-
-export default function PortfolioHealth({ stocks }: Props) {
+export default function PortfolioHealth({ stocks }: { stocks: HealthStock[] }) {
+  if (!stocks.length) return null;
   const health = calcHealthScore(stocks);
-
-  if (stocks.length === 0) return null;
-
-  return (
-    <div data-slot="portfolio-health" style={{ marginBottom: 32, background: 'var(--bg-subtle, #F8F9FA)', borderRadius: 16, padding: '20px 20px 12px' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 16 }}>포트폴리오 건강 점수</div>
-
-      <div className="health-layout" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <style>{`
-          @media (max-width: 768px) {
-            .health-layout { flex-direction: column !important; align-items: center !important; }
-            .health-layout > div:first-child { margin-bottom: 8px; }
-          }
-        `}</style>
-        <ScoreRing score={health.total} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <MetricRow label="집중도" score={health.concentration.score} max={30} detail={health.concentration.detail} color={health.concentration.color} />
-          <MetricRow label="섹터 분산" score={health.diversification.score} max={25} detail={health.diversification.detail} color={health.diversification.color} />
-          <MetricRow label="목표 설정" score={health.goalSetting.score} max={25} detail={health.goalSetting.detail} color={health.goalSetting.color} />
-          <MetricRow label="손익 밸런스" score={health.profitBalance.score} max={20} detail={health.profitBalance.detail} color={health.profitBalance.color} />
-        </div>
-      </div>
-
-      {/* 다음 액션 카드 — 가장 큰 약점 1개에 대한 구체 안내 (recommendNextAction) */}
-      {(() => {
-        const nextAction = recommendNextAction(health);
-        if (!nextAction) return null;
-        return (
-          <HealthInsight title={nextAction.title}>
-            {nextAction.action}
-          </HealthInsight>
-        );
-      })()}
-
-      {/* 부가 개선 제안 (기존 tips, 작게 표시) */}
-      {(() => {
-        const tips: { icon: string; text: string }[] = [];
-        if (health.concentration.score < 15) tips.push({ icon: '⚠️', text: `${health.concentration.detail}. 분산 투자를 고려해보세요.` });
-        if (health.diversification.score < 15) tips.push({ icon: '💡', text: `${health.diversification.detail}. 다른 섹터 종목을 추가해보세요.` });
-        if (health.goalSetting.score < 20) tips.push({ icon: '🎯', text: `${health.goalSetting.detail} — 목표 수익률을 설정하면 매도 시점을 판단하기 쉬워요.` });
-        if (health.profitBalance.score < 10) tips.push({ icon: '📉', text: `${health.profitBalance.detail} — 손절 기준을 점검해보세요.` });
-        if (tips.length === 0 && health.total >= 80) tips.push({ icon: '🎉', text: '포트폴리오가 잘 관리되고 있어요!' });
-        if (tips.length === 0 && health.total >= 60) tips.push({ icon: '👍', text: '전반적으로 양호해요. 약한 부분을 보완하면 더 좋아져요.' });
-        if (tips.length === 0) tips.push({ icon: '🔍', text: '포트폴리오 구성을 점검해보세요.' });
-
-        return (
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {tips.map((tip, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 12px', borderRadius: 8, background: 'var(--surface, #FFFFFF)', fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-                <span style={{ flexShrink: 0 }}>{tip.icon}</span>
-                <span>{tip.text}</span>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
-    </div>
-  );
+  const targetCount = stocks.filter(stock => stock.targetReturn > 0).length;
+  const facts = [
+    { title: '종목별 비중', value: health.concentration.detail.replace(/ — .*/, ''), description: '비중이 큰 종목의 변화가 전체 평가금액에 더 크게 반영돼요.' },
+    { title: '사업 분야', value: health.sectorBreakdown.classifiable ? `${health.sectorBreakdown.topSector} ${health.sectorBreakdown.topSectorPct}%` : '일부 종목의 사업 분야 미확인', description: '대표 사업 기준의 간이 분류예요. ETF 안에 담긴 종목까지 나눈 결과는 아니에요.' },
+    { title: '내가 정한 목표', value: `${stocks.length}개 중 ${targetCount}개에 기록했어요`, description: targetCount === stocks.length ? '목표는 내가 남긴 기준이에요. 기업의 실적이나 상황이 바뀌었는지 함께 살펴보세요.' : '목표를 기록하지 않은 상태예요. 이것만으로 투자 위험이 커졌다는 뜻은 아니에요.' },
+  ];
+  return <section data-slot="portfolio-health" style={{ marginBottom: 32, border: '1px solid var(--border-light)', borderRadius: 16, padding: 20 }}>
+    <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>내 투자 구성 살펴보기</h3>
+    <p className="reading-copy" style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.7 }}>종목의 비중과 기록한 기준을 함께 확인해요.</p>
+    <dl style={{ marginTop: 12 }}>{facts.map(fact => <div key={fact.title} style={{ padding: '16px 0', borderTop: '1px solid var(--border-light)' }}>
+      <dt style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>{fact.title}</dt>
+      <dd style={{ margin: 0 }}><strong style={{ fontSize: 15 }}>{fact.value}</strong><p className="reading-copy" style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.7, marginTop: 6 }}>{fact.description}</p></dd>
+    </div>)}</dl>
+    <details style={{ borderTop: '1px solid var(--border-light)', fontSize: 13 }}>
+      <summary style={{ minHeight: 44, padding: '12px 0', cursor: 'pointer', color: 'var(--text-secondary)' }}>기존 점수와 계산 기준</summary>
+      <p className="reading-copy" style={{ color: 'var(--text-body)', lineHeight: 1.7 }}>참고 점수 {health.total}/100. 종목 집중도 30점, 사업 분야 분산 25점, 목표 설정·달성 25점, 현재 손익 구성 20점을 합친 값이에요. 투자 안전성이나 앞으로의 수익률을 평가한 점수는 아니에요.</p>
+    </details>
+  </section>;
 }

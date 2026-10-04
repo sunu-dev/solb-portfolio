@@ -45,7 +45,7 @@ export const WIDGET_META: HomeWidget[] = [
   { id: 'value-chart', label: '자산 추이', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 0 },
   { id: 'benchmark-compare', label: '시장 대비 성과', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 1 },
   { id: 'treemap', label: '포트폴리오 맵', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 2 },
-  { id: 'portfolio-health', label: '건강 점수', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 3, onHiddenJump: 'auto-restore' },
+  { id: 'portfolio-health', label: '내 투자 구성', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 3, onHiddenJump: 'auto-restore' },
   { id: 'goal-progress', label: '목표 달성', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 4 },
   { id: 'chapter-shelf', label: '챕터 책장', zone: 'analysis', hideable: true, reorderable: false, defaultVisible: true, defaultOrder: 5 },
 ];

@@ -18,6 +18,7 @@ import { useNow } from '@/hooks/useNow';
 import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 import EconomicHighlights from '@/components/economy/EconomicHighlights';
 import { getBriefingSession } from '@/utils/briefingSession';
+import styles from './MorningBriefing.module.css';
 
 const STORAGE_KEY = 'solb_briefing_seen';
 
@@ -180,7 +181,10 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
 
   if (!data) return onClose ? (
     <div style={{ padding: 24, color: 'var(--text-body)' }}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}><strong>오늘의 브리핑</strong><button onClick={onClose} style={{minHeight:44}}>닫기</button></div>
+      <div className={styles.header}>
+        <h2 className={styles.title} data-briefing-title tabIndex={-1}>오늘의 브리핑</h2>
+        <button type="button" onClick={onClose} className={styles.close} aria-label="브리핑 닫기"><X size={20} aria-hidden="true" /></button>
+      </div>
       <EconomicHighlights compact />
       <p>보유 종목과 시세가 준비되면 시장 흐름과 내 종목의 변화를 함께 보여드려요.</p>
       <button onClick={onClose} style={{ minHeight: 44, marginTop: 16 }}>확인했어요</button>
@@ -245,35 +249,19 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
         }
       `}</style>
 
-      {/* 닫기 X */}
-      <button
-        onClick={handleDismiss}
-        aria-label="브리핑 닫기"
-        style={{
-          position: 'absolute',
-          top: 4, right: 4,
-          width: 44, height: 44,
-          borderRadius: '50%',
-          background: 'transparent',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--text-tertiary, #B0B8C1)',
-          lineHeight: 1,
-        }}
-      >
-        <X size={18} aria-hidden="true" />
-      </button>
-
       {/* 헤더 */}
-      <div style={{ marginBottom: 12, paddingRight: 32 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-body)', lineHeight: 1.6 }}>
+      <div style={{ marginBottom: 12, paddingRight: 44 }}>
+        <h2 className={styles.title} data-briefing-title tabIndex={-1} style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-body)', lineHeight: 1.6 }}>
           오늘의 브리핑 · {dateLabel}
-        </div>
+        </h2>
         <div style={{ fontSize: 22, fontWeight: 750, color: 'var(--text-primary, #191F28)', marginTop: 10, lineHeight: 1.5, letterSpacing: '-0.03em', wordBreak: 'keep-all' }}>
           {greeting}
         </div>
       </div>
+
+      <button type="button" onClick={handleDismiss} aria-label="브리핑 닫기" className={`${styles.close} ${styles.floatingClose}`}>
+        <X size={20} aria-hidden="true" />
+      </button>
 
       <EconomicHighlights compact />
 

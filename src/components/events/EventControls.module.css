@@ -1,0 +1,18 @@
+.form { padding: 12px 22px 24px; color: var(--text-primary); }
+.form header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.form h2 { margin: 0; font-size: 21px; font-weight: 750; }
+.form header button { display: grid; place-items: center; width: 44px; height: 44px; background: transparent; color: var(--text-secondary); border: 0; border-radius: 12px; cursor: pointer; }
+.form > p { margin: 8px 0 18px; color: var(--text-secondary); font-size: 14px; line-height: 1.7; word-break: keep-all; }
+.quick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.quick button { min-height: 44px; border: 1px solid var(--border-light); border-radius: 12px; padding: 9px 12px; background: var(--bg-subtle); color: var(--text-secondary); font-size: 13px; cursor: pointer; }
+.quick button[aria-pressed='true'] { background: var(--pill-active-bg); color: var(--pill-active-fg); }
+.form label { display: block; margin: 14px 0 8px; color: var(--text-primary); font-size: 14px; font-weight: 600; }
+.form input { box-sizing: border-box; display: block; width: 100%; min-width: 0; min-height: 52px; padding: 10px 12px; border: 1px solid var(--border-light); border-radius: 12px; background: var(--bg-subtle); color: var(--text-primary); font-size: 16px; }
+.dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.form .help { font-size: 12px; margin: 8px 0 0; }
+.actions { display: flex; gap: 10px; margin-top: 24px; }
+.actions button { flex: 1; min-height: 48px; border: 0; border-radius: 12px; background: var(--bg-subtle); color: var(--text-secondary); font-size: 15px; font-weight: 600; cursor: pointer; }
+.actions button[type='submit'] { background: var(--pill-active-bg); color: var(--pill-active-fg); }
+.actions button:disabled { opacity: .4; cursor: default; }
+.form :is(button, input):focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
+@media (max-width: 360px) { .dates { grid-template-columns: 1fr; gap: 0; } }

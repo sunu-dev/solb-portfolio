@@ -332,7 +332,7 @@ export default function CsvImportModal({ onClose }: Props) {
                   cursor: 'pointer',
                 }}
               >
-                <Upload size={32} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+                <Upload size={32} color="var(--brand-primary)" aria-hidden="true" />
                 <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700 }}>CSV 파일 선택</div>
                 <div style={{ marginTop: 5, color: 'var(--text-tertiary, #8B95A1)', fontSize: 12 }}>
                   UTF-8·한글 Excel CSV · 최대 1MB · 100행
@@ -393,7 +393,7 @@ export default function CsvImportModal({ onClose }: Props) {
           {step === 'review' && parsed && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, padding: 12, borderRadius: 12, background: 'var(--bg-subtle, #F8F9FA)' }}>
-                <FileSpreadsheet size={22} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+                <FileSpreadsheet size={22} color="var(--brand-primary)" aria-hidden="true" />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ overflow: 'hidden', color: 'var(--text-primary, #191F28)', fontSize: 13, fontWeight: 700, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
                   <div style={{ marginTop: 2, color: 'var(--text-tertiary, #8B95A1)', fontSize: 11 }}>{parsed.rows.length}개 행을 확인했어요</div>
@@ -466,7 +466,7 @@ export default function CsvImportModal({ onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setSelected(selectableCount === allActionable.size ? new Set() : allActionable)}
-                  style={{ border: 0, background: 'none', color: 'var(--brand-primary, #0E7C7B)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ border: 0, background: 'none', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                 >
                   {selectableCount === allActionable.size ? '전체 해제' : '변경 전체 선택'}
                 </button>
@@ -494,21 +494,21 @@ export default function CsvImportModal({ onClose }: Props) {
                         alignItems: 'flex-start',
                         gap: 10,
                         borderRadius: 12,
-                        border: `1.5px solid ${row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-light, #E5E8EB)'}`,
-                        background: isSelected ? 'var(--brand-primary-bg, rgba(14,124,123,0.06))' : 'var(--surface, #FFFFFF)',
+                        border: `1.5px solid ${row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
+                        background: isSelected ? 'var(--brand-primary-bg)' : 'var(--surface, #FFFFFF)',
                         opacity: row.status === 'unchanged' ? 0.68 : 1,
                         textAlign: 'left',
                         cursor: actionable && !blocked ? 'pointer' : 'default',
                       }}
                     >
-                      <span style={{ width: 20, height: 20, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--bg-subtle, #F2F4F6)' }}>
+                      <span style={{ width: 20, height: 20, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: isSelected ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)' }}>
                         {isSelected && <Check size={13} color="white" aria-hidden="true" />}
                       </span>
                       <span style={{ flex: 1, minWidth: 0 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', color: 'var(--text-primary, #191F28)', fontSize: 13, fontWeight: 700 }}>
                           {row.draft.name || row.draft.symbol}
                           <span style={{ color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, fontWeight: 400 }}>{row.draft.symbol}</span>
-                          <span style={{ color: row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--brand-primary, #0E7C7B)', fontSize: 10 }}>
+                          <span style={{ color: row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--brand-primary)', fontSize: 10 }}>
                             {blocked ? '반영 제한' : STATUS_COPY[row.status]}
                           </span>
                         </span>
@@ -540,7 +540,7 @@ export default function CsvImportModal({ onClose }: Props) {
                   type="button"
                   onClick={applyImport}
                   disabled={selectableCount === 0 || mutationBlocked}
-                  style={{ flex: 2, padding: 12, border: 0, borderRadius: 12, background: selectableCount > 0 && !mutationBlocked ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-strong, #D1D6DB)', color: 'white', fontSize: 13, fontWeight: 700, cursor: selectableCount > 0 && !mutationBlocked ? 'pointer' : 'not-allowed' }}
+                  style={{ flex: 2, padding: 12, border: 0, borderRadius: 12, background: selectableCount > 0 && !mutationBlocked ? 'var(--brand-fill)' : 'var(--border-strong, #D1D6DB)', color: 'var(--on-brand-fg)', fontSize: 13, fontWeight: 700, cursor: selectableCount > 0 && !mutationBlocked ? 'pointer' : 'not-allowed' }}
                 >
                   {selectableCount}개 변경 승인
                 </button>
@@ -551,7 +551,7 @@ export default function CsvImportModal({ onClose }: Props) {
           {step === 'done' && (
             <div style={{ padding: '28px 0 8px', textAlign: 'center' }}>
               {restored
-                ? <RotateCcw size={42} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
+                ? <RotateCcw size={42} color="var(--brand-primary)" aria-hidden="true" />
                 : <CheckCircle2 size={42} color="var(--color-success, #34C759)" aria-hidden="true" />}
               <div style={{ marginTop: 14, color: 'var(--text-primary, #191F28)', fontSize: 17, fontWeight: 800 }}>
                 {restored ? '가져오기 전 상태를 이 기기에 복구했어요' : 'CSV 변경을 이 기기에 반영했어요'}
@@ -568,7 +568,7 @@ export default function CsvImportModal({ onClose }: Props) {
                     되돌리기
                   </button>
                 )}
-                <button type="button" onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: 'var(--brand-primary, #0E7C7B)', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                <button type="button" onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                   완료
                 </button>
               </div>

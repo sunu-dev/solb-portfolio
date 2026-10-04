@@ -8,10 +8,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useEffect, useRef, useCallback } from 'react';
 import { usePortfolioStore, delay } from '@/store/portfolioStore';
-import type { QuoteData, CandleRaw, NewsItem } from '@/config/constants';
-import { CONFIG, PERIODS, MACRO_IND, NEWS_QUERIES, STOCK_KR } from '@/config/constants';
+import type { QuoteData, CandleRaw } from '@/config/constants';
+import { PERIODS, MACRO_IND, NEWS_QUERIES } from '@/config/constants';
 import { checkAllAlerts } from '@/utils/alertsEngine';
-import { isKoreanStockSymbol } from '@/utils/stockCurrency';
+import { newsClient, type NewsFetchResult } from '@/lib/newsFeed';
+export type { NewsFetchResult } from '@/lib/newsFeed';
 
 
 // --- Fetch candle data (서버 라우트 경유) ---
@@ -31,65 +32,9 @@ async function fetchCandleDataRaw(symbol: string): Promise<CandleRaw | null> {
 }
 
 // --- Fetch Korean news ---
-function extractSource(title: string): string {
-  const match = title.match(/ - ([^-]+)$/);
-  return match ? match[1].trim() : '';
-}
-
-function sortAndFilterNews(items: NewsItem[]): NewsItem[] {
-  const sorted = items.sort((a, b) => {
-    const dateA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
-    const dateB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
-    return dateB - dateA;
-  });
-
-  // Try 24 hours first
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const recent = sorted.filter(item => !item.pubDate || new Date(item.pubDate).getTime() > oneDayAgo);
-  if (recent.length >= 3) return recent.slice(0, 15);
-
-  // Fallback to 72 hours if not enough (weekend/night)
-  const threeDaysAgo = Date.now() - 72 * 60 * 60 * 1000;
-  const fallback = sorted.filter(item => !item.pubDate || new Date(item.pubDate).getTime() > threeDaysAgo);
-  return fallback.slice(0, 15);
-}
-
-// 뉴스 fetch 결과 — 빈 응답·네트워크 에러·서버 에러를 구분
-export type NewsFetchResult =
-  | { status: 'ok'; items: NewsItem[] }
-  | { status: 'empty'; items: NewsItem[]; reason?: string }
-  | { status: 'error'; items: NewsItem[]; reason: 'network' | 'server' | 'timeout' };
-
+// Share the same in-flight request and cache with the news screen.
 export async function fetchKoreanNews(query: string, locale?: string, maxHours?: number): Promise<NewsFetchResult> {
-  return fetchNewsAPI({ q: query, locale, maxHours });
-}
-
-async function fetchNewsAPI({ q, topic, locale, maxHours }: { q?: string; topic?: string; locale?: string; maxHours?: number }): Promise<NewsFetchResult> {
-  const ctrl = new AbortController();
-  // 서버 측 최악 8.5s (5s + 3.5s fallback)에 여유 1s
-  const timer = setTimeout(() => ctrl.abort('client-timeout'), 9500);
-  try {
-    const params = new URLSearchParams();
-    if (q) params.set('q', q);
-    if (topic) params.set('topic', topic);
-    if (locale) params.set('locale', locale);
-    if (maxHours) params.set('maxHours', String(maxHours));
-    const r = await fetch(`/api/news?${params}`, { signal: ctrl.signal });
-    if (!r.ok) {
-      return { status: 'error', items: [], reason: 'server' };
-    }
-    const d = await r.json();
-    const items: NewsItem[] = Array.isArray(d.items) ? d.items : [];
-    if (items.length > 0) return { status: 'ok', items };
-    return { status: 'empty', items: [] };
-  } catch (e) {
-    const err = e as Error;
-    const isTimeout = err.name === 'AbortError' || /abort|timeout/i.test(err.message || '');
-    console.error('News fetch failed:', err.name || err.message);
-    return { status: 'error', items: [], reason: isTimeout ? 'timeout' : 'network' };
-  } finally {
-    clearTimeout(timer);
-  }
+  return (await newsClient.load({ q: query, locale, maxHours })).result;
 }
 
 // --- Search stocks (server-side API route) ---
@@ -425,39 +370,16 @@ export function useCandleData(symbol: string | null) {
 
 // --- useNewsData ---
 export function useNewsData() {
-  const { updateNewsCache, getAllSymbols } = usePortfolioStore(useShallow(state => ({
-    updateNewsCache: state.updateNewsCache,
-    getAllSymbols: state.getAllSymbols,
-  })));
-
+  const updateNewsCache = usePortfolioStore(state => state.updateNewsCache);
   const fetchNews = useCallback(async (market: string): Promise<NewsFetchResult> => {
-    let result: NewsFetchResult;
-    if (market === 'my') {
-      const allSymbols = getAllSymbols();
-      const krNames = allSymbols.map(s => STOCK_KR[s]).filter(Boolean).slice(0, 3);
-      const usSymbols = allSymbols.filter(s => !isKoreanStockSymbol(s)).slice(0, 3);
-      let q: string;
-      if (krNames.length > 0 && usSymbols.length > 0) {
-        q = [...krNames, ...usSymbols].join(' ') + ' 주가';
-      } else if (krNames.length > 0) {
-        q = krNames.join(' ') + ' 주가';
-      } else if (usSymbols.length > 0) {
-        q = usSymbols.join(' ') + ' 주식';
-      } else {
-        q = '미국 증시 나스닥 코스피';
-      }
-      result = await fetchKoreanNews(q, 'ko', 24);
-    } else {
-      const entry = NEWS_QUERIES[market];
-      if (!entry) return { status: 'empty', items: [] };
-      result = await fetchNewsAPI({ q: entry.q, topic: entry.topic, locale: entry.locale, maxHours: entry.maxHours });
-    }
-    if (result.status === 'ok' && result.items.length) {
-      updateNewsCache(market, result.items);
-    }
+    // Personal feeds belong to the visible selection in NewsSection. Background refresh
+    // must not merge held/watched/sold stocks into an unrelated combined search.
+    const query = NEWS_QUERIES[market];
+    if (!query) return { status: 'empty', items: [] };
+    const { result } = await newsClient.load(query);
+    if (result.status !== 'error') updateNewsCache(market, result.items);
     return result;
-  }, [getAllSymbols, updateNewsCache]);
-
+  }, [updateNewsCache]);
   return { fetchNews };
 }
 

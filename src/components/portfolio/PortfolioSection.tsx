@@ -1,6 +1,7 @@
 'use client';
 
 import { useShallow } from 'zustand/react/shallow';
+import dynamic from 'next/dynamic';
 
 import { useEffect, useState, useCallback, useRef, Fragment, type ReactNode } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
@@ -23,12 +24,9 @@ import GettingStartedChecklist from '@/components/onboarding/GettingStartedCheck
 import BrokerSummaryCard from './BrokerSummaryCard';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
-import OcrImportModal from './OcrImportModal';
 import PortfolioRecordCenter from './PortfolioRecordCenter';
 import PortfolioValueChart from './PortfolioValueChart';
 import MonthlyChapter from './MonthlyChapter';
-import MonthlyWrapped from './MonthlyWrapped';
-import HomeEditSheet from './HomeEditSheet';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
 import { OCR_UI_ENABLED } from '@/config/ocrFeature';
@@ -41,14 +39,17 @@ import {
 // 시장 발견(MarketMovers)·회고 6종(ShareCard·InvestmentJournal·StockPulse·PortfolioDNA·
 // ThrowbackCard·TradePatternMirror)은 AI 인사이트 탭으로 이관(IA P1-b/P2). ChapterShelf만 잔류.
 import { autoArchiveLastMonth } from '@/utils/chapterArchive';
+const OcrImportModal = dynamic(() => import('./OcrImportModal'));
+const MonthlyWrapped = dynamic(() => import('./MonthlyWrapped'));
+const HomeEditSheet = dynamic(() => import('./HomeEditSheet'));
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
 const QUICK_ADD_STOCKS = [
   { symbol: '005930.KS', label: '삼성전자' },
-  { symbol: 'NVDA', label: 'NVDA' },
-  { symbol: 'AAPL', label: 'AAPL' },
-  { symbol: 'MSFT', label: 'MSFT' },
-  { symbol: 'TSLA', label: 'TSLA' },
+  { symbol: 'NVDA', label: '엔비디아' },
+  { symbol: 'AAPL', label: '애플' },
+  { symbol: 'MSFT', label: '마이크로소프트' },
+  { symbol: 'TSLA', label: '테슬라' },
 ];
 
 const TABS: { id: StockCategory; label: string }[] = [
@@ -712,7 +713,7 @@ export default function PortfolioSection() {
             {/* 지연 시세 안내 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#B0B8C1', whiteSpace: 'nowrap', flexShrink: 0 }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#B0B8C1', display: 'inline-block' }} />
-              15분 지연{lastUpdate && ` · ${lastUpdate}`}
+              지연 시세{lastUpdate && ` · ${lastUpdate} 조회`}
             </div>
           </div>
         )}
@@ -749,34 +750,23 @@ export default function PortfolioSection() {
             <p style={{ marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>자주 찾는 종목</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
               {QUICK_ADD_STOCKS.map(s => {
-                const allStocks = [...(stocks.investing || []), ...(stocks.watching || []), ...(stocks.sold || [])];
-                const alreadyAdded = allStocks.some(st => st.symbol === s.symbol);
                 return (
                   <button
                     key={s.symbol}
-                    onClick={() => {
-                      if (alreadyAdded) {
-                        // 해제: 해당 종목 찾아서 삭제
-                        for (const cat of ['investing', 'watching', 'sold'] as const) {
-                          const idx = (stocks[cat] || []).findIndex(st => st.symbol === s.symbol);
-                          if (idx >= 0) { deleteStock(cat, idx); break; }
-                        }
-                      } else {
-                        addStock('watching', { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
-                      }
-                    }}
+                    aria-label={`${s.label} 살펴보기`}
+                    onClick={() => setAnalysisSymbol(s.symbol)}
                     style={{
                       padding: '10px 20px',
                       borderRadius: 20,
-                      background: alreadyAdded ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
+                      background: 'var(--bg-subtle)',
                       fontSize: 14,
                       fontWeight: 500,
-                      color: alreadyAdded ? 'var(--pill-active-fg)' : 'var(--text-primary)',
+                      color: 'var(--text-primary)',
                       border: 'none',
                       cursor: 'pointer',
                     }}
                   >
-                    {alreadyAdded ? `\u2713 ${s.label}` : `+ ${s.label}`}
+                    {s.label}
                   </button>
                 );
               })}
@@ -1182,7 +1172,7 @@ export default function PortfolioSection() {
                                 style={{
                                   height: '100%',
                                   borderRadius: '2px',
-                                  background: 'var(--brand-primary, #0E7C7B)',
+                                  background: 'var(--brand-fill)',
                                   width: `${Math.min(goalPct / stock.targetReturn * 100, 100)}%`,
                                 }}
                               />
@@ -1389,10 +1379,10 @@ export default function PortfolioSection() {
 
       {/* 월간 Wrapped 풀스크린 모달 — 오버레이군. 홈 편집 시 .home-stack JSX 재정렬 전제로
           비위젯 자식(모달)을 .home-stack 밖으로 분리(홈편집 설계 Phase 0). */}
-      <MonthlyWrapped isOpen={wrappedOpen} onClose={() => setWrappedOpen(false)} />
+      {wrappedOpen && <MonthlyWrapped isOpen onClose={() => setWrappedOpen(false)} />}
 
       {/* 홈 화면 편집 시트 — Dashboard 히어로 '편집' 버튼으로 진입(solb-open-home-edit). */}
-      <HomeEditSheet isOpen={editMode} onClose={() => setHomeEditMode(false)} onToggleWidget={handleToggleWidget} />
+      {editMode && <HomeEditSheet isOpen onClose={() => setHomeEditMode(false)} onToggleWidget={handleToggleWidget} />}
 
       {/* Undo 삭제 토스트 */}
       {undoData && (

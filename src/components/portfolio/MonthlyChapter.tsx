@@ -96,10 +96,10 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            CURRENT CHAPTER
+            이번 달 기록
           </span>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary, #191F28)' }}>
-            {time.monthLabel} 챕터
+            {time.monthLabel}
           </span>
         </div>
         <span style={{
@@ -222,7 +222,7 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
           <span style={{ fontSize: 16 }}>🔥</span>
           <div>
             <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 600 }}>
-              메모 STREAK
+              연속으로 메모한 날
             </div>
             <div style={{ fontSize: 13, fontWeight: 700, fontFamily: "'SF Mono', monospace" }}>
               {stats.memoStreak}일
@@ -241,7 +241,7 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
             <span style={{ fontSize: 16 }}>🏆</span>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 600 }}>
-                챕터 챔피언
+                보유 수익률이 가장 높은 종목
               </div>
               <div style={{
                 fontSize: 12, fontWeight: 700, fontFamily: "'SF Mono', monospace",
@@ -250,7 +250,7 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
                   : 'var(--color-loss, #3182F6)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
               }}>
-                {stats.champion.symbol} {stats.champion.pctReturn >= 0 ? '+' : ''}{stats.champion.pctReturn.toFixed(1)}%
+                {STOCK_KR[stats.champion.symbol] || stats.champion.symbol} {stats.champion.pctReturn >= 0 ? '+' : ''}{stats.champion.pctReturn.toFixed(1)}%
               </div>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function MonthlyChapter({ onOpenWrapped, onOpenPreviousChapter }:
               letterSpacing: 0.4,
             }}
           >
-            WEEK {w.num} {w.status === 'done' ? '✓' : w.status === 'active' ? '●' : ''}
+            {w.num}주차 {w.status === 'done' ? '✓' : w.status === 'active' ? '●' : ''}
           </div>
         ))}
       </div>

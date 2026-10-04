@@ -83,7 +83,7 @@ export default function TourChapterSheet() {
                   <span aria-label="완료" style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     width: 24, height: 24, borderRadius: 12, flexShrink: 0,
-                    background: 'var(--brand-primary)', color: 'var(--on-brand-fg)',
+                    background: 'var(--brand-fill)', color: 'var(--on-brand-fg)',
                   }}>
                     <Check size={14} strokeWidth={3} />
                   </span>

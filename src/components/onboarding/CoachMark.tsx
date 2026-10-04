@@ -275,7 +275,7 @@ export default function CoachMark() {
               <button
                 ref={nextBtnRef}
                 onClick={next}
-                style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--brand-primary)', color: 'var(--on-brand-fg)', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
                 {stepIdx < steps.length - 1 ? '다음 →' : '완료'}
               </button>

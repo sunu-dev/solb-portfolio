@@ -7,7 +7,7 @@ import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { STOCK_KR } from '@/config/constants';
 import { getSector } from '@/utils/portfolioHealth';
 import { isSingleStockLeverage } from '@/utils/leverageGuard';
-import { iGa } from '@/utils/koreanJosa';
+import { useShallow } from 'zustand/react/shallow';
 import WatchToggle from '@/components/common/WatchToggle';
 import type { QuoteData } from '@/config/constants';
 import { CheckCircle2, Lightbulb, UsersRound } from 'lucide-react';
@@ -30,7 +30,10 @@ interface Props {
 }
 
 export default function CohortReference({ onStartQuiz }: Props = {}) {
-  const { stocks, investorType, investorTypeSetAt, setAnalysisSymbol, macroData } = usePortfolioStore();
+  const { stocks, investorType, investorTypeSetAt, setAnalysisSymbol, macroData } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks, investorType: state.investorType, investorTypeSetAt: state.investorTypeSetAt,
+    setAnalysisSymbol: state.setAnalysisSymbol, macroData: state.macroData,
+  })));
 
   const meta = INVESTOR_TYPES[investorType];
   const hasTypeSet = !!investorTypeSetAt;
@@ -90,7 +93,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
       newPicks,
       hasUserSectors: Object.keys(userSectorPct).length > 0,
     };
-  }, [stocks.investing, stocks.watching, stocks.sold, investorType, macroData, meta]);
+  }, [stocks.investing, stocks.watching, stocks.sold, macroData, meta]);
 
   // 유형 미설정 시 placeholder — 퀴즈 유도 (이전엔 null로 숨겨서 미니 nav 클릭 무반응)
   if (!hasTypeSet) {
@@ -100,37 +103,38 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
           marginBottom: 32,
           padding: '24px 20px',
           borderRadius: 16,
-          background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,115,85,0.04) 100%)',
-          border: '1px solid rgba(99,102,241,0.15)',
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border-light)',
           textAlign: 'center',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
           <UsersRound size={22} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            HIDDEN PICKS
+            성향별 참고 종목
           </div>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 6 }}>
-          내 스타일에 맞는 숨은 종목
+          관심 있는 투자 방식을 알아보세요
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5, marginBottom: 16 }}>
-          가치/성장/배당 등 투자 성향에 맞춰 큐레이션된 종목과 내 포트폴리오 섹터 분포 비교를 볼 수 있어요.
+          가치·성장·배당 등 투자 방식에 맞춰 미리 정리한 참고 종목과 업종 비중 예시를 살펴볼 수 있어요.
         </div>
         <button
           onClick={onStartQuiz}
           style={{
             padding: '10px 20px',
             borderRadius: 10,
-            background: '#3182F6',
-            color: '#FFFFFF',
+            background: 'var(--pill-active-bg)',
+            color: 'var(--pill-active-fg)',
+            minHeight: 44,
             border: 'none',
             fontSize: 13,
             fontWeight: 700,
             cursor: 'pointer',
           }}
         >
-          1분 퀴즈로 내 유형 알아보기 →
+          내 투자 성향 살펴보기 →
         </button>
       </div>
     );
@@ -151,21 +155,21 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
         <UsersRound size={18} strokeWidth={1.75} color="var(--text-secondary, #8B95A1)" aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary, #B0B8C1)', letterSpacing: 0.5 }}>
-            HIDDEN PICKS
+            성향별 참고 종목
           </div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginTop: 2 }}>
-            숨은 종목 · {meta.nameKr}{iGa(meta.nameKr)} 자주 보는
+            {meta.nameKr} 관점에서 살펴보기
           </div>
         </div>
         <span style={{
           padding: '3px 8px',
           borderRadius: 10,
-          background: `${meta.accentColor}15`,
-          color: meta.accentColor,
+          background: 'var(--bg-subtle)',
+          color: 'var(--text-secondary)',
           display: 'inline-flex',
           alignItems: 'center',
         }}>
-          <InvestorTypeIcon type={meta.id} size={15} color={meta.accentColor} />
+          <InvestorTypeIcon type={meta.id} size={15} color="var(--text-secondary)" />
         </span>
       </div>
 
@@ -181,7 +185,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
       }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
           <Lightbulb size={13} strokeWidth={1.75} aria-hidden="true" />
-          큐레이션 참고자료 · 추천·권유 아님 · 실제 투자 판단은 본인이 하세요
+          성향별로 미리 정리한 참고 목록이에요. 다른 사용자의 보유·조회 통계가 아니에요.
         </span>
       </div>
 
@@ -194,7 +198,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
             letterSpacing: 0.4,
             marginBottom: 8,
           }}>
-            섹터 분포 비교
+            내 업종 비중과 성향별 예시
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.sectorComparison.map(({ sector, refWeight, userWeight, diff }) => {
@@ -230,14 +234,14 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                       position: 'absolute', left: 0, top: 4, height: 6,
                       width: `${Math.min(refPct * 1.4, 100)}%`,
                       borderRadius: 3,
-                      background: 'rgba(0,0,0,0.08)',
+                      background: 'var(--border-light)',
                     }} />
                     {/* 본인 (컬러) */}
                     <div style={{
                       position: 'absolute', left: 0, bottom: 0, height: 6,
                       width: `${Math.min(userPct * 1.4, 100)}%`,
                       borderRadius: 3,
-                      background: meta.accentColor,
+                      background: 'var(--text-secondary)',
                       transition: 'width 0.4s ease',
                     }} />
                   </div>
@@ -249,7 +253,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                     minWidth: 70,
                     textAlign: 'right',
                   }}>
-                    {userPct}% / 평균 {refPct}%
+                    {userPct}% / 예시 {refPct}%
                   </span>
                   {(isOver || isUnder) && (
                     <span style={{
@@ -258,10 +262,8 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                       padding: '2px 6px',
                       borderRadius: 6,
                       fontFamily: "'SF Mono', monospace",
-                      background: isOver
-                        ? 'rgba(255,149,0,0.1)'
-                        : 'rgba(49,130,246,0.1)',
-                      color: isOver ? '#FF9500' : '#3182F6',
+                      background: 'var(--surface)',
+                      color: 'var(--text-secondary)',
                     }}>
                       {diffPct >= 0 ? '+' : ''}{diffPct}%p
                     </span>
@@ -282,7 +284,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
             letterSpacing: 0.4,
             marginBottom: 8,
           }}>
-            숨은 종목 6선
+            아직 살펴보지 않은 참고 종목
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.newPicks.map(pick => {
@@ -302,7 +304,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                   <button
                     onClick={() => setAnalysisSymbol(pick.symbol)}
                     style={{
-                      flex: 1, minWidth: 0,
+                      flex: 1, minWidth: 0, minHeight: 44,
                       background: 'transparent', border: 'none', padding: 0,
                       textAlign: 'left', cursor: 'pointer',
                     }}
@@ -313,10 +315,10 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                         color: 'var(--text-primary, #191F28)',
                         fontFamily: "'SF Mono', monospace",
                       }}>
-                        {pick.symbol}
+                        {kr}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                        {kr}
+                        {pick.symbol}
                       </span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.4 }}>
@@ -324,7 +326,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
                     </div>
                   </button>
                   <div style={{ flexShrink: 0 }}>
-                    <WatchToggle symbol={pick.symbol} />
+                    <WatchToggle symbol={pick.symbol} name={kr} />
                   </div>
                 </div>
               );
@@ -347,7 +349,7 @@ export default function CohortReference({ onStartQuiz }: Props = {}) {
         }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <CheckCircle2 size={14} strokeWidth={1.75} aria-hidden="true" />
-            숨은 종목 모두 이미 추적 중이에요
+            참고 목록의 종목을 모두 보유·관심·과거 기록에서 찾았어요
           </span>
         </div>
       )}

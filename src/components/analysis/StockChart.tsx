@@ -5,11 +5,11 @@ import { tsToDate, usePortfolioStore } from '@/store/portfolioStore';
 import type { CandleRaw } from '@/config/constants';
 
 // 차트 캔버스 테마 — lightweight-charts는 CSS 변수를 못 받으므로 모드별 concrete hex.
-// globals.css 다크 토큰과 1:1 (surface #1A1D2E / text-secondary #8E8E9A / border-light #2A2D3D).
+// 보더는 실행 시 CSS 토큰의 실제 색을 읽는다. CSS 변수 문자열을 캔버스에 넘기지 않는다.
 // 캔들 상승=빨강/하락=파랑(한국 컨벤션)은 테마와 무관하게 고정.
 const CHART_THEME = {
-  light: { bg: '#FFFFFF', text: '#8B95A1', grid: 'var(--border-light, #F2F4F6)', border: 'var(--border-light, #E5E8EB)' },
-  dark: { bg: '#1A1D2E', text: '#8E8E9A', grid: '#2A2D3D', border: '#2A2D3D' },
+  light: { bg: '#FFFFFF', text: '#667180', grid: '#F2F4F6', line: '#4E5968' },
+  dark: { bg: '#1A1D2E', text: '#ADB3BF', grid: '#2A2D3D', line: '#E8E8ED' },
 } as const;
 
 // 기준선 색 — 중립 회색(손익색·브랜드색 아님, 신호 오인 차단). 테마 무관 가독.
@@ -31,6 +31,7 @@ interface StockChartProps {
   macdData?: { macd: number[]; signal: number[]; histogram: number[] };
   rsiData?: number[];
   visibleBars?: number; // 0 = fit all
+  currency?: 'KRW' | 'USD';
 }
 
 export default function StockChart({
@@ -40,6 +41,7 @@ export default function StockChart({
   macdData,
   rsiData,
   visibleBars = 60,
+  currency = 'USD',
 }: StockChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
@@ -54,6 +56,7 @@ export default function StockChart({
   useEffect(() => {
     if (!containerRef.current || !raw?.t?.length) return;
     const theme = darkMode ? CHART_THEME.dark : CHART_THEME.light;
+    const borderColor = getComputedStyle(containerRef.current).getPropertyValue('--border-light').trim() || theme.grid;
 
     let isMounted = true;
 
@@ -77,18 +80,31 @@ export default function StockChart({
           fontSize: 11,
         },
         grid: {
-          vertLines: { color: theme.grid },
+          vertLines: { color: theme.grid, visible: level === 'detail' },
           horzLines: { color: theme.grid },
         },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        rightPriceScale: { borderColor: theme.border },
-        timeScale: { borderColor: theme.border, timeVisible: false },
+        rightPriceScale: { borderColor, borderVisible: false },
+        timeScale: { borderColor, timeVisible: false },
+        localization: { locale: 'ko-KR', priceFormatter: (value: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: currency === 'KRW' ? 0 : 2 }) },
+        handleScroll: { vertTouchDrag: false },
       };
 
       const chart = LightweightCharts.createChart(containerRef.current, chartOpts);
       chartRef.current = chart;
 
-      // Candlestick -- Korean convention: RED for up, BLUE for down
+      const priceFormat = { type: 'price' as const, precision: currency === 'KRW' ? 0 : 2, minMove: currency === 'KRW' ? 1 : 0.01 };
+      // The basic view answers how the closing price changed. Technical detail is opt-in.
+      const candleData = raw.t.map((t, i) => ({
+        time: tsToDate(t) as string,
+        open: raw.o[i], high: raw.h[i], low: raw.l[i], close: raw.c[i],
+      }));
+      if (level === 'basic') {
+        const closingSeries = chart.addSeries(LightweightCharts.LineSeries, {
+          color: theme.line, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, priceFormat,
+        });
+        closingSeries.setData(candleData.map(day => ({ time: day.time, value: day.close })));
+      } else {
       const candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#EF4452',
         downColor: '#3182F6',
@@ -96,14 +112,8 @@ export default function StockChart({
         borderDownColor: '#3182F6',
         wickUpColor: '#EF4452',
         wickDownColor: '#3182F6',
+        priceFormat,
       });
-      const candleData = raw.t.map((t, i) => ({
-        time: tsToDate(t) as string,
-        open: raw.o[i],
-        high: raw.h[i],
-        low: raw.l[i],
-        close: raw.c[i],
-      }));
       candleSeries.setData(candleData);
 
       // Volume
@@ -120,6 +130,7 @@ export default function StockChart({
         color: raw.c[i] >= raw.o[i] ? 'rgba(239,68,82,0.2)' : 'rgba(49,130,246,0.2)',
       }));
       volSeries.setData(volData);
+      }
 
       // 크로스헤어 OHLC 판독(학습용) — 캔들 호버 시 그날 시/고/저/종·거래량·전일대비.
       // logical index로 매칭(string/BusinessDay time 포맷 차이에 안전).
@@ -154,9 +165,8 @@ export default function StockChart({
         line.setData(data);
       };
 
-      // Always show MA 20 and 60
-      if (sma20.length) addLine(sma20, raw.t.length - sma20.length, '#ffa726', 1);
-      if (sma60.length) addLine(sma60, raw.t.length - sma60.length, '#a29bfe', 1);
+      if (level === 'detail' && sma20.length) addLine(sma20, raw.t.length - sma20.length, '#ffa726', 1);
+      if (level === 'detail' && sma60.length) addLine(sma60, raw.t.length - sma60.length, '#a29bfe', 1);
 
       // Detail: also show MA 5
       if (level === 'detail' && sma5.length) {
@@ -233,8 +243,8 @@ export default function StockChart({
             fontSize: 10,
           },
           grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
-          rightPriceScale: { borderColor: theme.border },
-          timeScale: { borderColor: theme.border, timeVisible: false },
+          rightPriceScale: { borderColor },
+          timeScale: { borderColor, timeVisible: false },
         });
         macdChartRef.current = macdChart;
 
@@ -294,8 +304,8 @@ export default function StockChart({
             fontSize: 10,
           },
           grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
-          rightPriceScale: { borderColor: theme.border },
-          timeScale: { borderColor: theme.border, timeVisible: false },
+          rightPriceScale: { borderColor },
+          timeScale: { borderColor, timeVisible: false },
         });
         rsiChartRef.current = rsiChart;
 
@@ -335,12 +345,12 @@ export default function StockChart({
       observersRef.current.forEach(ro => ro.disconnect());
       observersRef.current = [];
     };
-  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode]);
+  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode, currency]);
 
   return (
     <div>
       <div className="relative">
-        <div ref={containerRef} className="w-full rounded-lg overflow-hidden" />
+        <div ref={containerRef} role="img" aria-label={level === 'basic' ? '날짜별 종가 추이. 아래에서 기간과 가격 범위를 확인할 수 있어요.' : '일별 캔들 및 거래량 차트'} className="w-full rounded-lg overflow-hidden" />
         {legend && (
           <div
             className="absolute pointer-events-none"
@@ -357,17 +367,15 @@ export default function StockChart({
           >
             <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>{legend.date}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span>시 {fmtPrice(legend.o)}</span>
-              <span>고 {fmtPrice(legend.h)}</span>
-              <span>저 {fmtPrice(legend.l)}</span>
-              <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>종 {fmtPrice(legend.c)}</span>
+              {level === 'detail' && <><span>시가 {fmtPrice(legend.o)}</span><span>고가 {fmtPrice(legend.h)}</span><span>저가 {fmtPrice(legend.l)}</span></>}
+              <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>종가 {fmtPrice(legend.c)}</span>
               {legend.chgPct != null && (
-                <span style={{ color: legend.chgPct >= 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', fontWeight: 700 }}>
-                  {legend.chgPct >= 0 ? '+' : ''}{legend.chgPct.toFixed(2)}%
+                <span style={{ color: legend.chgPct === 0 ? 'var(--text-secondary)' : legend.chgPct > 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', fontWeight: 700 }}>
+                  {legend.chgPct > 0 ? '+' : ''}{legend.chgPct.toFixed(2)}%
                 </span>
               )}
             </div>
-            <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginTop: 2 }}>거래량 {fmtVol(legend.v)}</div>
+            {level === 'detail' && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>거래량 {fmtVol(legend.v)}</div>}
           </div>
         )}
       </div>
@@ -386,14 +394,14 @@ export default function StockChart({
         </>
       )}
 
-      <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
+      {level === 'basic' ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>하루 거래를 마친 가격을 연결한 선이에요.</p> : <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
         <span><span className="text-[#ffa726]">━</span> 20일</span>
         <span><span className="text-[#a29bfe]">━</span> 60일</span>
         {level === 'detail' && <span><span className="text-[#4fc3f7]">━</span> 5일</span>}
         {level === 'detail' && bollingerBands && (
           <span><span className="text-[#8B95A1]">┄</span> 볼린저</span>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

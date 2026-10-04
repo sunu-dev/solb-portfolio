@@ -15,21 +15,14 @@ import { usePortfolioSync } from '@/hooks/usePortfolioSync';
 import { useNotification } from '@/hooks/useNotification';
 import Header from '@/components/layout/Header';
 import MarketSummary from '@/components/layout/MarketSummary';
-import RightSidebar from '@/components/layout/RightSidebar';
-import BadgeSection from '@/components/portfolio/BadgeSection';
 import OfflineNotice from '@/components/common/OfflineNotice';
 import MobileNav from '@/components/layout/MobileNav';
-import MobileSidebar from '@/components/layout/MobileSidebar';
-import MobileAlertSheet from '@/components/layout/MobileAlertSheet';
 import EconomicCalendar from '@/components/economy/EconomicCalendar';
 import BriefingDialog from '@/components/portfolio/BriefingDialog';
 import PortfolioSection from '@/components/portfolio/PortfolioSection';
-import EditStockModal from '@/components/common/EditStockModal';
 import SettingsPanel from '@/components/common/SettingsPanel';
 // ToastAlert removed — alerts now shown in sidebar notification center
-import LoginModal from '@/components/auth/LoginModal';
 import AgeEligibilityGate from '@/components/auth/AgeEligibilityGate';
-import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
 import CoachMark from '@/components/onboarding/CoachMark';
 import TourChapterSheet from '@/components/onboarding/TourChapterSheet';
 import GuestTourBanner from '@/components/onboarding/GuestTourBanner';
@@ -41,6 +34,16 @@ import { preparePortfolioIdentity, type LocalPortfolio } from '@/lib/portfolioId
 import { clearUserStorage } from '@/lib/userStorage';
 import { isGuideId } from '@/lib/guideNotebook';
 import type { MarketGuideId } from '@/config/marketGuides';
+import { useDesktopViewport } from '@/hooks/useDesktopViewport';
+import { useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
+
+const RightSidebar = dynamic(() => import('@/components/layout/RightSidebar'));
+const BadgeSection = dynamic(() => import('@/components/portfolio/BadgeSection'));
+const MobileSidebar = dynamic(() => import('@/components/layout/MobileSidebar'));
+const MobileAlertSheet = dynamic(() => import('@/components/layout/MobileAlertSheet'));
+const EditStockModal = dynamic(() => import('@/components/common/EditStockModal'));
+const LoginModal = dynamic(() => import('@/components/auth/LoginModal'));
+const OnboardingFlow = dynamic(() => import('@/components/onboarding/OnboardingFlow'));
 
 const AnalysisSection = dynamic(() => import('@/components/analysis/AnalysisSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
 const NewsSection = dynamic(() => import('@/components/news/NewsSection'), { loading: () => <p role="status">화면을 불러오고 있어요…</p> });
@@ -92,14 +95,17 @@ export default function Home() {
 }
 
 function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
-  const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus } = usePortfolioStore(useShallow(state => ({
+  const { currentSection, loadPortfolio, analysisSymbol, darkMode, dbPortfolioStatus, editingCat } = usePortfolioStore(useShallow(state => ({
     currentSection: state.currentSection,
     loadPortfolio: state.loadPortfolio,
     analysisSymbol: state.analysisSymbol,
     darkMode: state.darkMode,
     dbPortfolioStatus: state.dbPortfolioStatus,
+    editingCat: state.editingCat,
   })));
   const { refreshAll } = useStockData();
+  const desktopViewport = useDesktopViewport();
+  useWorkspaceNavigation();
   const { user, loading: authLoading, signInWithKakao, signOut } = auth;
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -125,48 +131,31 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
     } else if (params.get('view') === 'insights' || id === 'coffee') {
       usePortfolioStore.getState().setCurrentSection('insights');
     }
-    if (isGuideId(id) || id === 'coffee' || params.get('view') === 'insights') {
-      params.delete('guide');
-      params.delete('view');
-      const query = params.toString();
-      window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
-    }
-    const handle = (event: Event) => open((event as CustomEvent<{ id?: unknown }>).detail?.id);
+    const handle = (event: Event) => {
+      const id = (event as CustomEvent<{ id?: unknown }>).detail?.id;
+      if (!isGuideId(id)) return;
+      open(id);
+      const url = new URL(window.location.href);
+      url.searchParams.set('view', 'insights');
+      url.searchParams.set('guide', id);
+      if (url.href !== window.location.href) window.history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`);
+    };
+    const restoreGuide = () => {
+      const guide = new URLSearchParams(window.location.search).get('guide');
+      if (isGuideId(guide)) setGuideRequest(previous => ({ id: guide, key: (previous?.key ?? 0) + 1 }));
+      else setGuideRequest(undefined);
+    };
+    window.addEventListener('popstate', restoreGuide);
     window.addEventListener('open-market-guide', handle);
     const unsubscribe = usePortfolioStore.subscribe((state, previous) => {
       if (previous.currentSection === 'insights' && state.currentSection !== 'insights') setGuideRequest(undefined);
     });
     return () => {
       window.removeEventListener('open-market-guide', handle);
+      window.removeEventListener('popstate', restoreGuide);
       unsubscribe();
     };
   }, []);
-
-  // 종목 상세 딥링크 — analysisSymbol ↔ ?stock= URL 동기화.
-  // PC distribution 복원: 공유·북마크·새 탭·새로고침·뒤로가기로 닫기. (전용 라우트 없이 쿼리만)
-  useEffect(() => {
-    const apply = () => {
-      const s = new URLSearchParams(window.location.search).get('stock');
-      usePortfolioStore.getState().setAnalysisSymbol(s ? s.toUpperCase() : null);
-    };
-    apply(); // 최초 진입: URL → store 복원
-    window.addEventListener('popstate', apply);
-    return () => window.removeEventListener('popstate', apply);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    const cur = params.get('stock');
-    if (analysisSymbol && cur !== analysisSymbol) {
-      params.set('stock', analysisSymbol);
-      window.history.pushState(null, '', `${window.location.pathname}?${params.toString()}`);
-    } else if (!analysisSymbol && cur) {
-      params.delete('stock');
-      const qs = params.toString();
-      window.history.replaceState(null, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
-    }
-  }, [analysisSymbol]);
 
   // Mobile alert sheet open via custom event (from header bell icon)
   useEffect(() => {
@@ -375,8 +364,7 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
         {/* Right sidebar - always visible on desktop */}
         <aside className="hidden md:block w-[280px] shrink-0 border-l border-[#F2F4F6]" style={{ padding: '32px 20px 80px 20px', position: 'sticky', top: '48px', alignSelf: 'flex-start', maxHeight: 'calc(100vh - 48px)', overflowY: 'auto' }}>
-          <RightSidebar />
-          <BadgeSection />
+          {desktopViewport && <><RightSidebar /><BadgeSection /></>}
         </aside>
       </div>
 
@@ -384,7 +372,7 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
         className="flex min-h-[120px] items-start justify-center border-t border-[#F2F4F6] px-4 pt-7 pb-[88px] text-center md:min-h-[96px] md:items-center md:py-8"
         style={{ color: 'var(--text-secondary, #8B95A1)', fontSize: 13, lineHeight: 1.5 }}
       >
-        © 2026 Joobi · made by <span style={{ fontWeight: 600 }}>sunulab</span>
+        <div><a href="/about" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'var(--text-body)', fontWeight: 600 }}>주비 서비스 소개</a><p>© 2026 Joobi · made by sunulab</p></div>
       </footer>
 
       <EconomicCalendar />
@@ -396,18 +384,18 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
       {/* Overlays */}
       {analysisSymbol && <AnalysisPanel />}
-      <EditStockModal />
+      {editingCat !== '' && <EditStockModal />}
       <SettingsPanel />
 
       {/* Auth overlays */}
-      <LoginModal
+      {showLogin && <LoginModal
         isOpen={showLogin && !authLoading && !user}
         onClose={() => setShowLogin(false)}
         onKakaoLogin={() => {
           setShowLogin(false);
           signInWithKakao();
         }}
-      />
+      />}
 
       {/* Onboarding overlay */}
       {showOnboarding && (
@@ -427,16 +415,16 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
       <MobileNav onMoreClick={() => setShowMobileSidebar(true)} />
 
       {/* Mobile alert sheet (bell icon) */}
-      <MobileAlertSheet
+      {showMobileAlerts && <MobileAlertSheet
         isOpen={showMobileAlerts}
         onClose={() => setShowMobileAlerts(false)}
-      />
+      />}
 
       {/* Mobile sidebar sheet */}
-      <MobileSidebar
+      {showMobileSidebar && <MobileSidebar
         isOpen={showMobileSidebar}
         onClose={() => setShowMobileSidebar(false)}
-      />
+      />}
     </div>
   );
   return user ? <AgeEligibilityGate userId={user.id} onSignOut={signOut}>{content}</AgeEligibilityGate> : content;

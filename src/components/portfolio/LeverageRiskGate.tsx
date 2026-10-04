@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 // ==========================================
 // LEVERAGE RISK GATE — 단일종목 레버리지 보유 등록 게이트
@@ -25,11 +26,14 @@ interface LeverageRiskGateProps {
 export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCancel }: LeverageRiskGateProps) {
   const [isAdult, setIsAdult] = useState(false);
   const [understood, setUnderstood] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen, dialogRef, onCancel);
 
   useEffect(() => {
     if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => { document.body.style.overflow = previousOverflow; };
   }, [isOpen]);
 
   const handleConfirm = useCallback(() => {
@@ -50,6 +54,11 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
       }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="leverage-risk-title"
+        tabIndex={-1}
         style={{
           width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto',
           background: 'var(--surface, #fff)', borderRadius: 16,
@@ -61,9 +70,9 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
           <div style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.14)', color: '#B45309', fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
             ⚠ 고위험 상품 — 보유 등록 확인
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          <h2 id="leverage-risk-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
             {name || symbol}
-          </div>
+          </h2>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginTop: 2, fontFamily: '"SF Mono", Menlo, monospace' }}>
             {symbol}
           </div>
@@ -89,11 +98,11 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
         {/* 동의 체크박스 */}
         <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--text-secondary, #4E5968)', cursor: 'pointer', lineHeight: 1.5 }}>
-            <input type="checkbox" checked={isAdult} onChange={(e) => setIsAdult(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, accentColor: 'var(--brand-primary, #0E7C7B)' }} />
+            <input type="checkbox" checked={isAdult} onChange={(e) => setIsAdult(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, accentColor: 'var(--brand-primary)' }} />
             <span><strong style={{ color: 'var(--text-primary, #191F28)' }}>(필수)</strong> 만 19세 이상입니다.</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'var(--text-secondary, #4E5968)', cursor: 'pointer', lineHeight: 1.5 }}>
-            <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, accentColor: 'var(--brand-primary, #0E7C7B)' }} />
+            <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, accentColor: 'var(--brand-primary)' }} />
             <span><strong style={{ color: 'var(--text-primary, #191F28)' }}>(필수)</strong> 위 위험을 이해했고, 추천이 아닌 내 판단으로 직접 보유 등록합니다.</span>
           </label>
         </div>
@@ -116,8 +125,8 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
             style={{
               flex: 1.4, padding: '12px 0', fontSize: 14, fontWeight: 700,
               border: 'none', borderRadius: 10,
-              background: ready ? 'var(--brand-primary, #0E7C7B)' : 'var(--bg-subtle, #E5E8EB)',
-              color: ready ? '#fff' : 'var(--text-tertiary, #B0B8C1)',
+              background: ready ? 'var(--brand-fill)' : 'var(--bg-subtle, #E5E8EB)',
+              color: ready ? 'var(--on-brand-fg)' : 'var(--text-tertiary, #B0B8C1)',
               cursor: ready ? 'pointer' : 'not-allowed',
             }}
           >

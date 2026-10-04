@@ -64,9 +64,11 @@ function removeRecent(symbol: string) {
 
 interface SearchBarProps {
   onClose?: () => void;
+  onExplore?: () => void;
+  active?: boolean;
 }
 
-export default function SearchBar({ onClose }: SearchBarProps) {
+export default function SearchBar({ onClose, onExplore, active = true }: SearchBarProps) {
   const { user } = useAuth();
   const { stocks, currentTab, addStock, updateMacroEntry, setEditingCat, setEditingIdx, setAnalysisSymbol } = usePortfolioStore(useShallow(state => ({
     stocks: state.stocks,
@@ -95,6 +97,8 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const searchRequestRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const exploredSymbol = useRef<string | null>(null);
 
   useEffect(() => () => {
     ++searchRequestRef.current;
@@ -103,22 +107,25 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   }, []);
 
   useEffect(() => {
-    inputRef.current?.focus({ preventScroll: true });
+    if (!active) return;
     const frame = requestAnimationFrame(() => {
       setRecent(getRecent());
+      const result = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('[data-search-symbol]') ?? [])
+        .find(element => element.dataset.searchSymbol === exploredSymbol.current);
+      (result ?? inputRef.current)?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [active]);
 
   useEffect(() => {
-    if (!onClose) return;
+    if (!onClose || !active) return;
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('[data-search-panel]')) onClose();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  }, [onClose, active]);
 
   const handleSearch = useCallback((value: string) => {
     const requestId = ++searchRequestRef.current;
@@ -265,15 +272,16 @@ export default function SearchBar({ onClose }: SearchBarProps) {
   // 검색 결과 '살펴보기' — 소유 전 학습(발견 루프 복원). 본문 클릭 → 분석 패널.
   // 레버리지 종목은 AnalysisPanel이 isLev 분기로 분석 거부 카드를 띄우므로 추가 가드 불요.
   const openAnalysis = useCallback((symbol: string) => {
-    queryRef.current = '';
     ++searchRequestRef.current;
     abortSearchRef.current?.abort();
+    exploredSymbol.current = symbol;
+    const item = results.find(result => result.symbol === symbol) ?? recent.find(result => result.symbol === symbol);
+    if (item) saveRecent({ symbol, description: item.description });
     setAnalysisSymbol(symbol.toUpperCase());
-    setQuery('');
-    setShowResults(false);
-    setResults([]);
-    if (onClose) onClose();
-  }, [setAnalysisSymbol, onClose]);
+    setSearching(false);
+    if (onExplore) onExplore();
+    else onClose?.();
+  }, [setAnalysisSymbol, onClose, onExplore, results, recent]);
 
   const handleRemoveRecent = (e: React.MouseEvent, symbol: string) => {
     e.stopPropagation();
@@ -285,6 +293,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
 
   return (
     <div
+      ref={panelRef}
       data-search-panel
       style={{
         background: 'var(--surface, white)',
@@ -319,6 +328,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             else if (e.key === 'Enter' && activeIdx >= 0 && activeIdx < results.length) { e.preventDefault(); openAnalysis(results[activeIdx].symbol); }
           }}
           placeholder="종목명, 초성 또는 종목코드 검색"
+          aria-label="종목명, 초성 또는 종목코드 검색"
           style={{
             width: '100%', padding: '14px 16px 14px 44px', fontSize: 16,
             border: 'none', outline: 'none', background: 'var(--surface, white)',
@@ -334,29 +344,28 @@ export default function SearchBar({ onClose }: SearchBarProps) {
             최근 검색
           </div>
           {recent.map((item) => (
-            <button
+            <div
               key={item.symbol}
-              onClick={() => handleAdd(item.symbol, item.description)}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                 width: '100%', padding: '10px 20px', border: 'none', cursor: 'pointer',
                 background: 'var(--surface, white)', textAlign: 'left', boxSizing: 'border-box',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button type="button" data-search-symbol={item.symbol} onClick={() => openAnalysis(item.symbol)} aria-label={`${getDisplayName(item)} 살펴보기`} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, flex: 1, background: 'none', border: 0, textAlign: 'left', cursor: 'pointer' }}>
                 <Clock style={{ width: 14, height: 14, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }} />
                 <div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{item.symbol}</span>
-                  <span style={{ fontSize: 12, color: '#8B95A1', marginLeft: 8 }}>{item.description}</span>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{getDisplayName(item)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>{item.symbol}</span>
                 </div>
-              </div>
-              <div
+              </button>
+              <button type="button" aria-label={`${getDisplayName(item)} 최근 검색에서 삭제`}
                 onClick={(e) => handleRemoveRecent(e, item.symbol)}
-                style={{ padding: 4, cursor: 'pointer', flexShrink: 0 }}
+                style={{ padding: 12, minWidth: 44, minHeight: 44, cursor: 'pointer', flexShrink: 0, border: 0, background: 'none' }}
               >
                 <X style={{ width: 12, height: 12, color: '#B0B8C1' }} />
-              </div>
-            </button>
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -367,10 +376,6 @@ export default function SearchBar({ onClose }: SearchBarProps) {
           {results.map((item, idx) => (
             <div
               key={`${item.symbol}-${idx}`}
-              role="button"
-              tabIndex={-1}
-              aria-label={`${getDisplayName(item)} 살펴보기`}
-              onClick={() => openAnalysis(item.symbol)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
               style={{
@@ -382,7 +387,7 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                 textAlign: 'left', boxSizing: 'border-box', transition: 'background 0.15s',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+              <button type="button" data-search-symbol={item.symbol} aria-label={`${getDisplayName(item)} 살펴보기`} onClick={() => openAnalysis(item.symbol)} style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, minHeight: 44, flex: 1, border: 0, background: 'none', textAlign: 'left', cursor: 'pointer' }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: '50%',
                   background: 'var(--bg-subtle, #F2F4F6)',
@@ -435,11 +440,11 @@ export default function SearchBar({ onClose }: SearchBarProps) {
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
               <button
                 onClick={(e) => { e.stopPropagation(); handleAdd(item.symbol, item.description, item.isLeverage); }}
                 aria-label={`${getDisplayName(item)} 추가`}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: 44, minWidth: 44, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6 }}
               >
                 <Plus style={{ width: 14, height: 14, color: 'var(--text-primary)' }} />
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>추가</span>

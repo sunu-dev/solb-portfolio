@@ -1,16 +1,19 @@
 {
   "name": "주비 — 개인 주식비서",
   "short_name": "주비",
-  "description": "여러 증권사 기록을 비교하고 선택한 변경만 반영하며 이전 상태를 보관하는 개인 주식비서.",
+  "description": "내 주식의 변화와 시장 소식, 낯선 용어를 연결해 이해하는 개인 주식비서.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#FFFFFF",
-  "theme_color": "#0E7C7B",
+  "theme_color": "#FFFFFF",
   "color_scheme": "light",
   "lang": "ko",
-  "categories": ["finance", "utilities"],
+  "categories": [
+    "finance",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -40,12 +43,12 @@
   "shortcuts": [
     {
       "name": "내 포트폴리오",
-      "url": "/?section=portfolio",
+      "url": "/?view=portfolio",
       "description": "내 주식 포트폴리오 확인"
     },
     {
       "name": "뉴스",
-      "url": "/?section=news",
+      "url": "/?view=news",
       "description": "최신 투자 뉴스"
     }
   ]

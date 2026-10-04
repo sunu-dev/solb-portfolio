@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================
-   Design Tokens (Toss-inspired)
+   Joobi design tokens
    ========================================== */
 :root {
   /* Dialog viewport fallback; keyboard resize values are scoped to each open panel. */
@@ -18,12 +18,12 @@
   --surface: #FFFFFF;
   --surface-hover: #F9FAFB;
 
-  /* Brand — 솔(松) + 비(雨) ─ V1.1 리브랜딩 3인 패널 합의 (2026-05-15) */
-  /* Primary: 송우 Mossy Teal — 토스블루와 시각 차별, 학습/내공 메타포 */
-  --brand-primary: #0E7C7B;
-  --brand-primary-hover: #0A6362;
-  --brand-primary-light: rgba(14, 124, 123, 0.08);
-  --brand-primary-bg: rgba(14, 124, 123, 0.06);
+  /* The red symbol identifies Joobi. Reading and controls use neutral tones. */
+  --brand-primary: #333D4B;
+  --brand-fill: #333D4B;
+  --brand-primary-hover: #191F28;
+  --brand-primary-light: rgba(51, 61, 75, 0.08);
+  --brand-primary-bg: rgba(51, 61, 75, 0.06);
   /* Wordmark: 붉은 아이콘과 분리한 채움형 검정 글자. */
   --brand-wordmark-color: #191F28;
   /* Accent: 인스타 골드 — AI 촉 강조, 페르소나 "인스타 박힘" 요구 */
@@ -35,10 +35,10 @@
   --brand-slate: #94A3B8;
   --brand-slate-strong: #64748B;
   /* Legacy (점진 마이그레이션 — V1.1 완료 시 alias 제거) */
-  --brand-sol: #1B6B3A;
+  --brand-sol: #333D4B;
   --brand-rain: #3182F6;
   --brand-gold: #D4A853;
-  --brand-gradient: linear-gradient(135deg, #0E7C7B, #14B8A6);
+  --brand-gradient: linear-gradient(135deg, #333D4B, #4E5968);
 
   /* Accent (legacy shadcn) */
   --accent: oklch(0.97 0 0);
@@ -48,9 +48,9 @@
 
   /* Text */
   --text-primary: #191F28;
-  --text-secondary: #8B95A1;
+  --text-secondary: #667180;
   --text-body: #4E5968;        /* 본문 톤(primary~secondary 사이). 인라인 #4E5968은 다크 미플립이라 토큰 사용 */
-  --text-tertiary: #B0B8C1;
+  --text-tertiary: #707A87;
   --text-disabled: #B0B8C1;
 
   /* Borders */
@@ -89,8 +89,8 @@
   /* 디자인 폴리시(5인 패널) — gradient hero·소프트섀도·검색링·토글 (다크 양쪽 정의 필수, R3). */
   --on-brand-fg: #FFFFFF;                 /* gradient 위 흰 텍스트/아이콘 — pill-active-fg는 다크 플립이라 금지 */
   --on-brand-muted: rgba(255, 255, 255, 0.82);
-  --shadow-brand-soft: 0 4px 14px rgba(14, 124, 123, 0.12);
-  --search-focus-ring: 0 0 0 3px rgba(14, 124, 123, 0.12);
+  --shadow-brand-soft: 0 4px 14px rgba(51, 61, 75, 0.12);
+  --search-focus-ring: 0 0 0 3px rgba(51, 61, 75, 0.16);
   --switch-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(0, 0, 0, 0.06);
   --switch-knob-bg: #FFFFFF;
   --inset-subtle: inset 0 1px 2px rgba(0, 0, 0, 0.03);
@@ -412,6 +412,23 @@ code, pre, kbd, samp, .font-mono {
   white-space: nowrap;
 }
 
+.main-header button:focus-visible {
+  outline: 2px solid var(--text-primary) !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .analysis-shell { padding: 0 !important; }
+  .analysis-modal {
+    max-width: 100% !important;
+    max-height: 100dvh !important;
+    height: 100dvh;
+    border-radius: 0 !important;
+    border: 0 !important;
+  }
+  .analysis-modal > .analysis-body { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
 .dark {
   /* Custom dark tokens */
   --bg: #0F1117;
@@ -421,9 +438,9 @@ code, pre, kbd, samp, .font-mono {
   --surface: #1A1D2E;
   --surface-hover: #22253A;
   --text-primary: #E8E8ED;
-  --text-secondary: #8E8E9A;
+  --text-secondary: #ADB3BF;
   --text-body: #C2C6CE;        /* 다크 본문 — surface 위 충분한 대비(라이트 #4E5968 대응) */
-  --text-tertiary: #7E8290; /* #5C5C6A는 surface 위 2.54:1로 WCAG 미달 → 3:1+로 상향 */
+  --text-tertiary: #9AA3B2;
   --border-light: #2A2D3D;
   /* 다크 elevation — 검정 그림자는 어두운 배경에서 죽으므로 hairline 보더 기반으로
      카드 경계를 확보(surface·surface-hover 동톤 뭉침 방지). 라이트는 :root 그대로. */
@@ -432,10 +449,11 @@ code, pre, kbd, samp, .font-mono {
   --shadow-lg: 0 6px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
   /* V1.1 Brand dark variants — 명도↑ 채도↓ (다크에서 형광 회피) */
-  --brand-primary: #14B8A6;
-  --brand-primary-hover: #2DD4BF;
-  --brand-primary-light: rgba(20, 184, 166, 0.15);
-  --brand-primary-bg: rgba(20, 184, 166, 0.10);
+  --brand-primary: #D1D6DE;
+  --brand-fill: #333D4B;
+  --brand-primary-hover: #E8E8ED;
+  --brand-primary-light: rgba(209, 214, 222, 0.12);
+  --brand-primary-bg: rgba(209, 214, 222, 0.08);
   --brand-wordmark-color: #E8E8ED;
   --brand-accent: #FBBF24;
   --brand-accent-hover: #F59E0B;
@@ -443,7 +461,7 @@ code, pre, kbd, samp, .font-mono {
   --brand-accent-bg: rgba(251, 191, 36, 0.10);
   --brand-slate: #94A3B8;
   --brand-slate-strong: #CBD5E1;
-  --brand-gradient: linear-gradient(135deg, #14B8A6, #5EEAD4);
+  --brand-gradient: linear-gradient(135deg, #333D4B, #4E5968);
   --border-row: #1E2030;
   --color-gain: #EF4452;
   --color-loss: #3182F6;
@@ -464,8 +482,8 @@ code, pre, kbd, samp, .font-mono {
   --pill-active-fg: #191F28; /* 다크: active 텍스트 진하게 (배경과 함께 뒤집힘) */
   --on-brand-fg: #FFFFFF;
   --on-brand-muted: rgba(255, 255, 255, 0.72);
-  --shadow-brand-soft: 0 4px 16px rgba(20, 184, 166, 0.20);
-  --search-focus-ring: 0 0 0 3px rgba(20, 184, 166, 0.22);
+  --shadow-brand-soft: 0 4px 16px rgba(0, 0, 0, 0.20);
+  --search-focus-ring: 0 0 0 3px rgba(209, 214, 222, 0.22);
   --switch-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   --switch-knob-bg: #E8E8ED;
   --inset-subtle: inset 0 1px 2px rgba(0, 0, 0, 0.2);

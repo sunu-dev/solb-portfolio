@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { Search, Settings, ChevronRight, Moon, Sun, Pin, X } from 'lucide-react';
 import {
-  PRIMARY_SECTIONS, PINNABLE_ITEMS, resolveFavorites, runMenuAction,
+  PINNABLE_ITEMS, resolveFavorites, runMenuAction,
   type MenuItem, type MenuActionContext,
 } from '@/lib/menuRegistry';
 import { logApiCall } from '@/lib/apiLogger';
@@ -15,7 +15,7 @@ interface Props {
   onNavigate: () => void;
 }
 
-const SUPPORT_IDS = new Set(['tour', 'help']);
+const SUPPORT_IDS = new Set(['about', 'tour', 'help']);
 const TOOL_ITEMS = PINNABLE_ITEMS.filter(item => !SUPPORT_IDS.has(item.id));
 const SUPPORT_ITEMS = PINNABLE_ITEMS.filter(item => SUPPORT_IDS.has(item.id));
 
@@ -23,10 +23,10 @@ const SUPPORT_ITEMS = PINNABLE_ITEMS.filter(item => SUPPORT_IDS.has(item.id));
 export default function FeatureDirectory({ onNavigate }: Props) {
   const pinButtons = useRef<Record<string, HTMLButtonElement | null>>({});
   const {
-    currentSection, setCurrentSection, setCurrentTab,
+    setCurrentSection, setCurrentTab,
     darkMode, toggleDarkMode, menuFavorites, toggleMenuFavorite,
   } = usePortfolioStore(useShallow(state => ({
-    currentSection: state.currentSection, setCurrentSection: state.setCurrentSection,
+    setCurrentSection: state.setCurrentSection,
     setCurrentTab: state.setCurrentTab, darkMode: state.darkMode,
     toggleDarkMode: state.toggleDarkMode, menuFavorites: state.menuFavorites,
     toggleMenuFavorite: state.toggleMenuFavorite,
@@ -113,34 +113,8 @@ export default function FeatureDirectory({ onNavigate }: Props) {
         </section>
       ) : null}
 
-      <section className={styles.section} aria-labelledby="menu-primary-heading">
-        <h3 id="menu-primary-heading" className={styles.sectionHeading}>주요 메뉴</h3>
-        <ul className={styles.list}>
-          {PRIMARY_SECTIONS.map(item => {
-            const isActive = item.action.kind === 'section' && currentSection === item.action.section;
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => runItem(item, false)}
-                  className={`${styles.rowButton} ${isActive ? styles.activeRow : ''}`}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  <span className={styles.icon} aria-hidden="true"><item.Icon size={22} strokeWidth={1.8} /></span>
-                  <span className={styles.rowText}>
-                    <span className={styles.label}>{item.label}</span>
-                    {item.sub ? <span className={`${styles.description} reading-copy`}>{item.sub}</span> : null}
-                  </span>
-                  {isActive ? <span className={styles.current}>현재</span> : <ChevronRight size={17} className={styles.chevron} aria-hidden="true" />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
       <section className={styles.section} aria-labelledby="menu-tools-heading">
-        <h3 id="menu-tools-heading" className={styles.sectionHeading}>투자 도구</h3>
+        <h3 id="menu-tools-heading" className={styles.sectionHeading}>더 살펴보기</h3>
         {favorites.length === 0 ? <p className={`${styles.pinHint} reading-copy`}>핀을 누르면 바로가기에 모아볼 수 있어요.</p> : null}
         <ul className={styles.list}>{TOOL_ITEMS.map(item => renderRow(item))}</ul>
       </section>

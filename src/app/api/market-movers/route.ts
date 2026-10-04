@@ -55,17 +55,22 @@ interface MoversResp {
 // 모듈 레벨 캐시 (TTL 10분)
 const TTL = 10 * 60 * 1000;
 let cache: { data: MoversResp; ts: number } | null = null;
+let pending: Promise<MoversResp> | null = null;
 
 async function fetchQuote(symbol: string, apiKey: string): Promise<FinnhubQuote | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
   try {
     const res = await fetch(
       `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${apiKey}`,
-      { cache: 'no-store' },
+      { cache: 'no-store', signal: controller.signal },
     );
     if (!res.ok) return null;
     return await res.json();
   } catch {
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -154,6 +159,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Finnhub key missing' }, { status: 500 });
   }
 
+  // A cold request fans out to the whole list. Share that work until the first
+  // response is complete instead of repeating it for every concurrent visitor.
+  if (!pending) pending = loadMovers(apiKey).finally(() => { pending = null; });
+  return NextResponse.json(await pending);
+}
+
+async function loadMovers(apiKey: string): Promise<MoversResp> {
   // 한미 universe 합치기
   const usSymbols = CHOK_UNIVERSE.map(u => ({ symbol: u.symbol, krName: u.krName, market: 'US' as const }));
   const krSymbols = KOREAN_UNIVERSE_DEDUPED.map(k => ({ symbol: k.symbol, krName: k.krName, market: 'KR' as const }));
@@ -187,7 +199,6 @@ export async function GET() {
     us: pickMovers(usData),
     kr: pickMovers(krData),
   };
-  cache = { data, ts: now };
-
-  return NextResponse.json(data);
+  cache = { data, ts: Date.now() };
+  return data;
 }

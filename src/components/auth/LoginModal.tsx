@@ -29,6 +29,7 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [inviteMode, setInviteMode] = useState<'loading' | 'required' | 'open' | 'unknown'>('loading');
   const age = getAgeFromBirthDate(birthDate);
   const isAge18Plus = isAdultBirthDate(birthDate);
   const ageInvalid = birthDate.length === 8 && !isAge18Plus;
@@ -69,6 +70,22 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const controller = new AbortController();
+    void fetch('/api/config', { signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error('config unavailable');
+      const { config } = await response.json();
+      if (controller.signal.aborted) return;
+      if (typeof config?.service_mode !== 'string') setInviteMode('unknown');
+      else if (config.service_mode !== 'beta' || config.invite_required === 'false') setInviteMode('open');
+      else setInviteMode(config.invite_required === 'true' ? 'required' : 'unknown');
+    }).catch(() => {
+      if (!controller.signal.aborted) setInviteMode('unknown');
+    });
+    return () => controller.abort();
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -84,6 +101,14 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
           <h1 id="login-title">내 주식,<br />오늘은 어때요?</h1>
           <p>가격과 소식을 한곳에서 확인해요.</p>
         </div>
+        {inviteMode !== 'open' && <aside className={styles.inviteNote} aria-live="polite">
+          <strong>{inviteMode === 'required' ? '새로 가입하려면 초대 코드가 필요해요' : '가입 안내'}</strong>
+          <p>{inviteMode === 'required'
+            ? '카카오 인증 후 초대 코드를 입력해요. 이미 초대를 등록한 계정은 바로 이용할 수 있어요.'
+            : inviteMode === 'loading' ? '가입 조건을 확인하고 있어요. 현재 운영 방식에 따라 초대 코드가 필요할 수 있어요.'
+              : '가입 조건을 확인하지 못했어요. 카카오 인증 후 초대 코드가 필요할 수 있어요.'}</p>
+          <button type="button" onClick={onClose}>코드 없이 먼저 둘러보기 <ChevronRight size={14} aria-hidden="true" /></button>
+        </aside>}
         <section aria-label="이용 연령 확인">
           <div className={styles.labelRow}>
             <label htmlFor="login-birth">생년월일</label><span>만 18세 이상 이용 가능</span>
@@ -117,7 +142,7 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
           </div>
         </fieldset>
         <div className={styles.actions}>
-          <p className={styles.actionHint}>{allChecked ? '준비됐어요. 카카오로 시작해볼까요?' : '생년월일과 필수 동의를 확인하면 시작할 수 있어요.'}</p>
+          <p className={styles.actionHint}>{allChecked ? '카카오 인증 후 주비로 돌아와요.' : '생년월일과 필수 동의를 확인해주세요.'}</p>
           <button type="button" className={styles.kakao} onClick={handleKakao} disabled={!allChecked}>
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path

@@ -10,7 +10,7 @@
 .topics svg,.back svg,.watch svg,.connections svg,.event svg { flex-shrink:0; }
 .guide { max-width:680px;margin:0 auto; }
 .back { display:inline-flex;align-items:center;gap:8px;font-size:14px;min-height:44px;margin-bottom:18px;cursor:pointer; }
-.lessonHeader h2 { font-size:clamp(26px,4.5vw,36px);font-weight:800;letter-spacing:-.045em;line-height:1.4;margin:10px 0 18px;scroll-margin-top:100px; }
+.lessonHeader h2 { font-size:clamp(24px,4.5vw,32px);font-weight:750;letter-spacing:-.04em;line-height:1.45;margin:10px 0 16px;scroll-margin-top:100px; }
 .lessonHeader>p:last-child { font-size:16px;line-height:1.9;color:var(--text-body); }
 .section { padding:32px 0;border-bottom:1px solid var(--border-light); }
 .section h3,.followup h3 { font-size:21px;line-height:1.5;font-weight:750;letter-spacing:-.025em;margin:6px 0 20px; }

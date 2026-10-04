@@ -220,7 +220,7 @@ export default function ProDemandOffer({
                   <div style={{ color: 'var(--text-primary, #191F28)', fontSize: 20, fontWeight: 800 }}>월 {formatKrw(config.monthlyPriceKrw, { prefix: false, suffix: '원', short: false })}</div>
                   <div style={{ marginTop: 5, color: 'var(--text-tertiary, #8B95A1)', fontSize: 11 }}>투자정보와 AI는 무료 사용자와 동일해요.</div>
                 </div>
-                <button type="button" onClick={handleStart} style={{ marginTop: 14, width: '100%', minHeight: 50, border: 0, borderRadius: 13, background: 'var(--brand-primary, #0E7C7B)', color: 'var(--surface, #FFFFFF)', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>
+                <button type="button" onClick={handleStart} style={{ marginTop: 14, width: '100%', minHeight: 50, border: 0, borderRadius: 13, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>
                   월 {formatKrw(config.monthlyPriceKrw, { prefix: false, suffix: '원', short: false })}으로 시작
                 </button>
                 <p style={{ margin: '9px 0 0', textAlign: 'center', color: 'var(--text-tertiary, #8B95A1)', fontSize: 10 }}>
@@ -235,7 +235,7 @@ export default function ProDemandOffer({
                 <p style={{ margin: '9px 0 20px', color: 'var(--text-secondary, #6B7684)', fontSize: 12, lineHeight: 1.65 }}>
                   출시 알림을 신청하면 준비가 끝났을 때 알려드려요. 지금은 결제되지 않아요.
                 </p>
-                <button type="button" onClick={handleWaitlist} style={{ width: '100%', minHeight: 50, border: 0, borderRadius: 13, background: 'var(--brand-primary, #0E7C7B)', color: 'var(--surface, #FFFFFF)', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>
+                <button type="button" onClick={handleWaitlist} style={{ width: '100%', minHeight: 50, border: 0, borderRadius: 13, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', cursor: 'pointer', fontSize: 14, fontWeight: 800 }}>
                   출시 알림 신청
                 </button>
                 <button type="button" onClick={close} style={{ marginTop: 8, width: '100%', minHeight: 44, border: 0, borderRadius: 12, background: 'transparent', color: 'var(--text-secondary, #6B7684)', cursor: 'pointer', fontSize: 12 }}>

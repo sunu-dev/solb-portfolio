@@ -10,7 +10,8 @@ import { formatKrw, formatUsd, resolveUsdKrwState } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
 import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
-import { calcHealthScore, getHealthLabel, getHealthColor } from '@/utils/portfolioHealth';
+import { quoteDirection } from '@/utils/quotePresentation';
+import { calcHealthScore } from '@/utils/portfolioHealth';
 import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
 import { getKrMarketLabel } from '@/utils/krMarketLabel';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
@@ -82,9 +83,9 @@ export default function Dashboard() {
       if (s.avgCost > 0 && s.shares > 0) hasPortfolioStocks = true;
       const q = macroData[s.symbol] as QuoteData | undefined;
       if (!q?.c) return;
-      const dp = q.dp || 0;
-      if (dp > bestDp) { bestDp = dp; bestSymbol = s.symbol; }
-      if (dp < worstDp) { worstDp = dp; worstSymbol = s.symbol; }
+      const dp = q.dp;
+      if (quoteDirection(dp) === 'up' && dp > bestDp) { bestDp = dp; bestSymbol = s.symbol; }
+      if (quoteDirection(dp) === 'down' && dp < worstDp) { worstDp = dp; worstSymbol = s.symbol; }
     });
 
     const summary = summarizePortfolioCurrency(
@@ -557,7 +558,7 @@ export default function Dashboard() {
         })()}
 
         {/* 건강점수 + 시장 현황 통합 1줄 */}
-        {(health || data.bestSymbol) && (
+        {(health || data.bestSymbol || data.worstSymbol) && (
           <div className="health-summary-frame">
           <div className="health-summary"
             role="group"
@@ -575,59 +576,33 @@ export default function Dashboard() {
               minHeight: 44,
             }}
           >
-            {/* 건강점수 */}
-            {health && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, color: getHealthColor(health.total), fontWeight: 800, flexShrink: 0 }}>
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>{health.total}</span>
-                  <span style={{ fontSize: 10, opacity: 0.8 }}>/100</span>
-                </div>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
-                  color: getHealthColor(health.total),
-                  background: health.total >= 80 ? 'var(--color-success-bg)' : health.total >= 60 ? 'var(--color-info-bg)' : health.total >= 40 ? 'var(--color-warning-bg)' : 'var(--color-danger-bg)',
-                }}>
-                  {getHealthLabel(health.total)}
-                </span>
-                <span className="health-summary-reason" style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', flex: '1 1 0px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-                  {(() => {
-                    const metrics = [
-                      { key: '집중도', ratio: health.concentration.score / 30 },
-                      { key: '섹터 분산', ratio: health.diversification.score / 25 },
-                      { key: '목표 설정', ratio: health.goalSetting.score / 25 },
-                      { key: '손익 밸런스', ratio: health.profitBalance.score / 20 },
-                    ].sort((a, b) => a.ratio - b.ratio);
-                    const weakest = metrics[0];
-                    if (weakest.ratio < 0.5) return `${weakest.key} 보완 필요`;
-                    if (health.total >= 80) return '전체 균형이 좋아요';
-                    return '자세히 보기';
-                  })()}
-                </span>
-              </>
-            )}
+            {health && <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)' }}>내 투자 구성</span>
+              <span style={{ display: 'block', fontSize: 13, fontWeight: 650, color: 'var(--text-body)', lineHeight: 1.6, wordBreak: 'keep-all' }}>{health.concentration.detail.replace(/ — .*/, '')}</span>
+            </div>}
 
             {/* 상승/하락 1위 — 위험 메시지와 시각 분리 (좁은 카드에서는 설명을 접고 종목명을 말줄임) */}
-            {data.bestSymbol && (
+            {(data.bestSymbol || data.worstSymbol) && (
               <div className="health-summary-movers" style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto', minWidth: 0 }}>
                 {health && (
                   <span aria-hidden style={{ width: 1, height: 14, background: 'var(--border-strong, #E5E8EB)' }} />
                 )}
-                <button
+                {data.bestSymbol && <button
                   onClick={() => setAnalysisSymbol(data.bestSymbol)}
                   title={bestKr}
                   aria-label={`상승 1위 ${bestKr} 분석`}
-                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-gain, #EF4452)', minHeight: 28 }}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--color-gain, #EF4452)', minHeight: 44 }}
                 >
                   ↑{bestKr}
-                </button>
-                <button
+                </button>}
+                {data.worstSymbol && <button
                   onClick={() => setAnalysisSymbol(data.worstSymbol)}
                   title={worstKr}
                   aria-label={`하락 1위 ${worstKr} 분석`}
-                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: 'var(--color-loss, #3182F6)', minHeight: 28 }}
+                  style={{ background: 'none', border: 'none', padding: '2px 5px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--color-loss, #3182F6)', minHeight: 44 }}
                 >
                   ↓{worstKr}
-                </button>
+                </button>}
               </div>
             )}
 
@@ -635,8 +610,8 @@ export default function Dashboard() {
             {health && (
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent('solb-goto-analysis'))}
-                aria-label="분석 탭으로 이동"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 16, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}
+                aria-label="내 투자 구성 자세히 보기"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', minHeight: 44, minWidth: 44, fontSize: 16, color: 'var(--text-tertiary, #B0B8C1)', flexShrink: 0 }}
               >
                 ›
               </button>

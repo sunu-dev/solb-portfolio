@@ -411,15 +411,15 @@ export default function OcrImportModal({ onClose }: Props) {
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ocr-import-title" tabIndex={-1} style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="ocr-import-title" tabIndex={-1} style={{ background: 'var(--surface)', borderRadius: 20, width: '100%', maxWidth: 480, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
 
         {/* 헤더 */}
         <div style={{ padding: '20px 24px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div id="ocr-import-title" style={{ fontSize: 17, fontWeight: 700, color: '#191F28' }}>스크린샷으로 가져오기</div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 3 }}>MTS/HTS 보유종목 화면 캡처 → 자동 입력</div>
+            <div id="ocr-import-title" style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>스크린샷으로 가져오기</div>
+            <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 3 }}>증권사 보유 종목 화면을 읽고 변경 내용을 확인해요</div>
           </div>
-          <button type="button" onClick={onClose} aria-label="닫기" style={{ width: 40, height: 40, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: '#B0B8C1', cursor: 'pointer', padding: 4 }}><X size={19} aria-hidden="true" /></button>
+          <button type="button" onClick={onClose} aria-label="닫기" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--text-body)', cursor: 'pointer', padding: 4 }}><X size={19} aria-hidden="true" /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
@@ -428,36 +428,45 @@ export default function OcrImportModal({ onClose }: Props) {
           {step === 'upload' && (
             <div>
               <div
+                role="button"
+                tabIndex={0}
+                aria-label="보유 종목 스크린샷 선택"
                 onDragOver={e => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={onDrop}
                 onClick={() => fileRef.current?.click()}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fileRef.current?.click();
+                  }
+                }}
                 style={{
-                  border: `2px dashed ${dragOver ? '#3182F6' : 'var(--border-light, #E5E8EB)'}`,
+                  border: `2px dashed ${dragOver ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
                   borderRadius: 16, padding: '48px 24px', textAlign: 'center',
-                  cursor: 'pointer', background: dragOver ? 'rgba(49,130,246,0.04)' : '#FAFAFA',
+                  cursor: 'pointer', background: dragOver ? 'var(--brand-primary-bg)' : 'var(--bg-subtle)',
                   transition: 'all 0.15s',
                 }}
               >
-                <Upload size={34} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 15, fontWeight: 600, color: '#191F28', marginBottom: 6 }}>보유종목 화면 스크린샷</div>
-                <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
-                  캡처해서 간단하게 첨부만하세요<br />JPG · PNG · WEBP · 최대 10MB
+                <Upload size={34} color="var(--brand-primary)" aria-hidden="true" style={{ marginBottom: 12 }} />
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>보유종목 화면 스크린샷</div>
+                <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                  보유 종목 화면을 첨부해주세요<br />JPG · PNG · WEBP · 최대 10MB
                 </div>
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               </div>
 
-              <div style={{ marginTop: 20, padding: '14px 16px', background: '#F8F9FA', borderRadius: 12 }}>
-                <div role="note" style={{ fontSize: 12, color: '#4E5968', lineHeight: 1.7, marginBottom: 12 }}>
+              <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                <div role="note" style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.7, marginBottom: 12 }}>
                   이미지는 종목 인식을 위해 Google Gemini로 전송되며 주비 서버에는 저장하지 않아요.
                   이름·계좌번호 등 개인정보는 가리고 올려주세요.{' '}
                   <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--brand-primary)', textDecoration: 'underline' }}>
                     개인정보처리방침
                   </a>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#4E5968', marginBottom: 8 }}>지원 증권사</div>
-                <div style={{ fontSize: 12, color: '#8B95A1', lineHeight: 1.8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-body)', marginBottom: 8 }}>지원 증권사</div>
+                <div style={{ fontSize: 12, color: 'var(--text-body)', lineHeight: 1.8 }}>
                   키움 영웅문 · 삼성 mPOP · 미래에셋 m.ALL<br />
                   NH투자 · 한국투자 · 토스증권 · KB증권<br />
                   Interactive Brokers · 기타 모든 MTS/HTS
@@ -472,12 +481,12 @@ export default function OcrImportModal({ onClose }: Props) {
               {preview && (
                 <img src={preview} alt="업로드된 이미지" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 12, marginBottom: 24, opacity: 0.6 }} />
               )}
-              <ScanLine size={30} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" style={{ marginBottom: 12 }} />
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#191F28', marginBottom: 6 }}>AI가 종목 정보를 읽는 중...</div>
-              <div style={{ fontSize: 13, color: '#8B95A1' }}>Gemini 2.5 Flash 분석 중 (5~10초)</div>
+              <ScanLine size={30} color="var(--brand-primary)" aria-hidden="true" style={{ marginBottom: 12 }} />
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>AI가 종목 정보를 읽는 중...</div>
+              <div style={{ fontSize: 13, color: 'var(--text-body)' }}>종목명과 수량, 평균 매수가를 확인하고 있어요</div>
               <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center', gap: 6 }}>
                 {[0, 1, 2].map(i => (
-                  <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#3182F6', animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`, opacity: 0.6 }} />
+                  <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--brand-fill)', animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`, opacity: 0.6 }} />
                 ))}
               </div>
               <style>{`@keyframes pulse { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.4);opacity:1} }`}</style>
@@ -514,9 +523,9 @@ export default function OcrImportModal({ onClose }: Props) {
                     setSelected(actionableIndices(reconcilePortfolioImport(importDrafts, stocks, selectedBroker, cat)));
                   }}
                     style={{
-                      flex: 1, padding: '8px 0', borderRadius: 10, fontSize: 13, fontWeight: 600,
-                      background: targetCat === cat ? '#191F28' : '#F2F4F6',
-                      color: targetCat === cat ? '#fff' : '#4E5968',
+                      flex: 1, minHeight: 44, padding: '8px 0', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                      background: targetCat === cat ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
+                      color: targetCat === cat ? 'var(--pill-active-fg)' : 'var(--text-body)',
                       border: 'none', cursor: 'pointer',
                     }}>
                     {label}
@@ -526,16 +535,16 @@ export default function OcrImportModal({ onClose }: Props) {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>{ocrStocks.length}개 종목 인식됨</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{ocrStocks.length}개 종목 인식됨</span>
                   {source && source !== '알 수 없음' && (
-                    <span style={{ fontSize: 12, color: '#8B95A1', marginLeft: 8 }}>{source}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-body)', marginLeft: 8 }}>{source}</span>
                   )}
                 </div>
                 <button
                   onClick={() => {
                     setSelected(selectableCount === allActionableIndices.size ? new Set() : allActionableIndices);
                   }}
-                  style={{ fontSize: 12, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                  style={{ minHeight: 44, fontSize: 12, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                 >
                   {selectableCount === allActionableIndices.size ? '전체 해제' : '변경 전체 선택'}
                 </button>
@@ -571,34 +580,45 @@ export default function OcrImportModal({ onClose }: Props) {
                       key={`${s.symbol}-${i}`}
                       style={{
                         padding: '12px 14px', borderRadius: 12,
-                        border: `1.5px solid ${status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--border-light, #E5E8EB)'}`,
-                        background: isSelected ? 'var(--brand-primary-bg, rgba(14,124,123,0.06))' : 'var(--card-bg, #FFFFFF)',
+                        border: `1.5px solid ${status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
+                        background: isSelected ? 'var(--brand-primary-bg)' : 'var(--card-bg, #FFFFFF)',
                         opacity: status === 'unchanged' ? 0.72 : 1,
                         transition: 'all 0.15s',
                       }}
                     >
                       {/* 상단: 체크 + 종목명 */}
                       <div
+                        role="checkbox"
+                        tabIndex={actionable && !blocked ? 0 : -1}
+                        aria-checked={isSelected}
+                        aria-disabled={!actionable || blocked}
+                        aria-label={`${s.name || s.symbol} 변경 선택`}
                         onClick={() => actionable && !blocked && toggleSelect(i)}
+                        onKeyDown={event => {
+                          if ((event.key === 'Enter' || event.key === ' ') && actionable && !blocked) {
+                            event.preventDefault();
+                            toggleSelect(i);
+                          }
+                        }}
                         style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: actionable && !blocked ? 'pointer' : 'default' }}
                       >
                         <div style={{
                           width: 20, height: 20, borderRadius: 6,
-                          background: isSelected ? 'var(--brand-primary, #0E7C7B)' : 'var(--bg-subtle, #F2F4F6)',
+                          background: isSelected ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                         }}>
-                          {isSelected ? <Check size={13} color="var(--text-inverse, #FFFFFF)" aria-hidden="true" /> : null}
+                          {isSelected ? <Check size={13} color="var(--on-brand-fg)" aria-hidden="true" /> : null}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             {s.name || s.symbol}
                             <span style={{ fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', fontWeight: 400 }}>{s.symbol}</span>
-                            <span style={{ fontSize: 10, color: status === 'changed' ? 'var(--brand-primary, #0E7C7B)' : status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--text-secondary, #6B7684)', fontWeight: 700 }}>
+                            <span style={{ fontSize: 10, color: status === 'changed' ? 'var(--brand-primary)' : status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--text-secondary, #6B7684)', fontWeight: 700 }}>
                               {blocked ? '반영 제한' : statusCopy.label}
                             </span>
                           </div>
                         </div>
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: s.currency === 'USD' ? 'rgba(49,130,246,0.1)' : 'rgba(0,198,190,0.1)', color: s.currency === 'USD' ? '#3182F6' : '#00C6BE', fontWeight: 600 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'var(--bg-subtle)', color: 'var(--text-body)', fontWeight: 600 }}>
                           {s.currency}
                         </span>
                       </div>
@@ -615,34 +635,36 @@ export default function OcrImportModal({ onClose }: Props) {
                         ) : status === 'needs_review' && row?.reason === 'missing_values' ? (
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                               <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: 10, color: '#8B95A1', display: 'block', marginBottom: 2 }}>평균매수가</label>
+                                <label style={{ fontSize: 10, color: 'var(--text-body)', display: 'block', marginBottom: 2 }}>평균매수가</label>
                                 <input
                                   type="number"
+                                  aria-label={`${s.name || s.symbol} 평균 매수가`}
                                   placeholder={s.currency === 'KRW' ? '0' : '0.00'}
                                   value={s.editAvgCost}
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => updateField(i, 'editAvgCost', e.target.value)}
                                   style={{
-                                    width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
+                                    width: '100%', minHeight: 44, padding: '6px 8px', fontSize: 16, fontWeight: 600,
                                     border: `1px solid ${s.editAvgCost ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
-                                    borderRadius: 8, outline: 'none', boxSizing: 'border-box',
-                                    background: '#fff',
+                                    borderRadius: 8, boxSizing: 'border-box', color: 'var(--text-primary)',
+                                    background: 'var(--surface)',
                                   }}
                                 />
                               </div>
                               <div style={{ flex: 1 }}>
-                                <label style={{ fontSize: 10, color: '#8B95A1', display: 'block', marginBottom: 2 }}>보유수량</label>
+                                <label style={{ fontSize: 10, color: 'var(--text-body)', display: 'block', marginBottom: 2 }}>보유수량</label>
                                 <input
                                   type="number"
+                                  aria-label={`${s.name || s.symbol} 보유 수량`}
                                   placeholder="0"
                                   value={s.editShares}
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => updateField(i, 'editShares', e.target.value)}
                                   style={{
-                                    width: '100%', padding: '6px 8px', fontSize: 13, fontWeight: 600,
+                                    width: '100%', minHeight: 44, padding: '6px 8px', fontSize: 16, fontWeight: 600,
                                     border: `1px solid ${s.editShares ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
-                                    borderRadius: 8, outline: 'none', boxSizing: 'border-box',
-                                    background: '#fff',
+                                    borderRadius: 8, boxSizing: 'border-box', color: 'var(--text-primary)',
+                                    background: 'var(--surface)',
                                   }}
                                 />
                               </div>
@@ -667,13 +689,13 @@ export default function OcrImportModal({ onClose }: Props) {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}>
+                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}>
                   다시 촬영
                 </button>
                 <button
                   onClick={applyToPortfolio}
                   disabled={selectableCount === 0}
-                  style={{ flex: 2, padding: '12px 0', background: selectableCount > 0 ? '#3182F6' : '#B0B8C1', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', cursor: selectableCount > 0 ? 'pointer' : 'not-allowed' }}
+                  style={{ flex: 2, padding: '12px 0', background: selectableCount > 0 ? 'var(--brand-fill)' : 'var(--border-strong)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: selectableCount > 0 ? 'pointer' : 'not-allowed' }}
                 >
                   {selectableCount}개 변경 승인
                 </button>
@@ -708,18 +730,18 @@ export default function OcrImportModal({ onClose }: Props) {
                     : errorDetail.code === 'network' ? <WifiOff size={30} color="var(--color-danger, #EF4452)" aria-hidden="true" />
                     : <AlertTriangle size={30} color="var(--color-danger, #EF4452)" aria-hidden="true" />}
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#191F28', marginBottom: 8, lineHeight: 1.4 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8, lineHeight: 1.4 }}>
                   {errorDetail.title}
                 </div>
-                <div style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6, wordBreak: 'keep-all' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6, wordBreak: 'keep-all' }}>
                   {errorDetail.hint}
                 </div>
               </div>
 
               {/* 캡처 가이드 — 인식 실패류에만 노출 */}
               {(errorDetail.code === 'image_empty' || errorDetail.code === 'parse_failed') && (
-                <div style={{ marginTop: 12, padding: '12px 14px', background: '#F8F9FA', borderRadius: 10, fontSize: 12, color: '#4E5968', lineHeight: 1.8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, marginBottom: 4, color: '#191F28' }}><FileImage size={14} aria-hidden="true" /> 캡처 팁</div>
+                <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-subtle)', borderRadius: 10, fontSize: 12, color: 'var(--text-body)', lineHeight: 1.8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}><FileImage size={14} aria-hidden="true" /> 캡처 팁</div>
                   <div>· 보유종목 또는 계좌 화면 전체를 캡처해주세요</div>
                   <div>· 종목명·수량·평단가가 한 화면에 모두 보여야 해요</div>
                   <div>· 글자가 선명하도록 확대해서 캡처하면 정확해요</div>
@@ -729,21 +751,21 @@ export default function OcrImportModal({ onClose }: Props) {
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
                 <button
                   onClick={switchToCsv}
-                  style={{ flex: '1 1 140px', padding: '12px 0', background: 'var(--brand-primary, #0E7C7B)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+                  style={{ flex: '1 1 140px', padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}
                 >
                   CSV로 안전하게 전환
                 </button>
                 {errorDetail.code === 'unauthorized' ? (
                   <button
                     onClick={switchToLogin}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
                   >
                     로그인하기
                   </button>
                 ) : (
                   <button
                     onClick={reset}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
                   >
                     다른 이미지
                   </button>
@@ -751,7 +773,7 @@ export default function OcrImportModal({ onClose }: Props) {
                 {errorDetail.canRetry && (
                   <button
                     onClick={retryLast}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: '#3182F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}
                   >
                     다시 시도
                   </button>
@@ -763,15 +785,15 @@ export default function OcrImportModal({ onClose }: Props) {
           {/* STEP: done */}
           {step === 'done' && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
-              <div style={{ width: 52, height: 52, margin: '0 auto 16px', display: 'grid', placeItems: 'center', borderRadius: 16, background: 'var(--brand-primary-light, rgba(14,124,123,0.08))' }}>
+              <div style={{ width: 52, height: 52, margin: '0 auto 16px', display: 'grid', placeItems: 'center', borderRadius: 16, background: 'var(--brand-primary-light)' }}>
                 {restored
-                  ? <RotateCcw size={24} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />
-                  : <CheckCircle2 size={24} color="var(--brand-primary, #0E7C7B)" aria-hidden="true" />}
+                  ? <RotateCcw size={24} color="var(--brand-primary)" aria-hidden="true" />
+                  : <CheckCircle2 size={24} color="var(--brand-primary)" aria-hidden="true" />}
               </div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
                 {restored ? '가져오기 전 기록으로 복구했어요' : `${applied + updated}개 변경을 반영했어요`}
               </div>
-              <div style={{ fontSize: 13, color: '#8B95A1', marginBottom: 24, lineHeight: 1.8 }}>
+              <div style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 24, lineHeight: 1.8 }}>
                 {applied > 0 && <>새 항목 {applied}개<br /></>}
                 {updated > 0 && <>기존 항목 변경 {updated}개<br /></>}
                 {skippedUntouched > 0 && <>그대로 두거나 확인이 필요한 항목 {skippedUntouched}개<br /></>}
@@ -789,10 +811,10 @@ export default function OcrImportModal({ onClose }: Props) {
                 </button>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: '#F2F4F6', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: '#4E5968', cursor: 'pointer' }}>
+                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}>
                   더 가져오기
                 </button>
-                <button onClick={onClose} style={{ flex: 2, padding: '12px 0', background: '#191F28', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+                <button onClick={onClose} style={{ flex: 2, padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}>
                   완료
                 </button>
               </div>

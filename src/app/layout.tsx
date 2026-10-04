@@ -18,10 +18,10 @@ const joobiWordmark = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://solb-portfolio.vercel.app'),
+  metadataBase: new URL('https://joobi.kr'),
   title: '주비 | 내 주식 비서',
   icons: { icon: [{ url: '/joobi-icon.svg?v=20260908', type: 'image/svg+xml' }], shortcut: '/favicon.ico?v=20260908' },
-  description: '내 자산과 종목 변화, 시장 흐름, 알림을 한곳에서 정리하고 기록까지 안전하게 관리하는 개인 주식비서.',
+  description: '내 주식의 변화와 시장 소식, 낯선 용어를 연결해 이해하도록 돕는 개인 주식비서.',
   openGraph: {
     title: '주비 — 오늘 내 주식을 챙기는 개인 주식비서',
     description: '내 자산과 종목 변화, 시장 흐름, 챙길 일을 한곳에서 확인해요.',
@@ -47,7 +47,7 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="color-scheme" content="light" />
-        <meta name="theme-color" content="#0E7C7B" />
+        <meta name="theme-color" content="#FFFFFF" />
         {/* iOS PWA */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

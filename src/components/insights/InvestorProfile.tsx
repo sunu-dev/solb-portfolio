@@ -1,5 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useModalViewport } from '@/hooks/useModalViewport';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { inferInvestorBehavior } from '@/utils/investorBehavior';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
@@ -8,8 +11,14 @@ import InvestorTypeIcon from './InvestorTypeIcon';
 import { ChevronRight, GitCompare, ScanSearch } from 'lucide-react';
 
 export default function InvestorProfile() {
-  const { stocks, macroData, investorType, investorTypeSetAt, setInvestorType } = usePortfolioStore();
+  const { stocks, macroData, investorType, investorTypeSetAt, setInvestorType } = usePortfolioStore(useShallow(state => ({
+    stocks: state.stocks, macroData: state.macroData, investorType: state.investorType,
+    investorTypeSetAt: state.investorTypeSetAt, setInvestorType: state.setInvestorType,
+  })));
   const [showQuiz, setShowQuiz] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(showQuiz, dialogRef, () => setShowQuiz(false));
+  useModalViewport(showQuiz, dialogRef);
   const hasAnyStock = stocks.investing.length + stocks.watching.length > 0;
   const hasTypeSet = !!investorTypeSetAt;
   const typeMeta = INVESTOR_TYPES[investorType];
@@ -24,22 +33,22 @@ export default function InvestorProfile() {
             width: '100%', marginBottom: 16,
             padding: '14px 16px',
             borderRadius: 14,
-            background: 'linear-gradient(135deg, var(--color-info-bg, rgba(49,130,246,0.08)) 0%, rgba(175,82,222,0.06) 100%)',
-            border: '1px solid rgba(49,130,246,0.18)',
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-light)',
             textAlign: 'left', cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 12,
           }}
         >
-          <ScanSearch size={24} strokeWidth={1.75} color="var(--color-info, #3182F6)" aria-hidden="true" />
+          <ScanSearch size={24} strokeWidth={1.75} color="var(--text-body)" aria-hidden="true" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
               내 투자 유형 알아보기
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-              1분 퀴즈로 나에게 맞춘 AI를 받아보세요
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
+              간단한 질문으로 선호하는 설명 방식을 골라보세요
             </div>
           </div>
-          <ChevronRight size={16} color="var(--text-tertiary, #B0B8C1)" aria-hidden="true" />
+          <ChevronRight size={16} color="var(--text-body)" aria-hidden="true" />
         </button>
       )}
 
@@ -51,17 +60,17 @@ export default function InvestorProfile() {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             marginBottom: behavior?.isMismatch ? 8 : 14,
-            padding: '6px 12px', borderRadius: 20,
+            padding: '8px 12px', borderRadius: 12, minHeight: 44,
             background: 'var(--bg-subtle, #F8F9FA)',
-            border: `1px solid ${typeMeta.accentColor}33`,
+            border: '1px solid var(--border-light)',
             cursor: 'pointer',
           }}
         >
-          <InvestorTypeIcon type={typeMeta.id} size={15} color={typeMeta.accentColor} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: typeMeta.accentColor }}>
+          <InvestorTypeIcon type={typeMeta.id} size={18} color="var(--text-body)" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
             {typeMeta.nameKr}
           </span>
-          <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)' }}>변경 ›</span>
+          <span style={{ fontSize: 12, color: 'var(--text-body)' }}>변경 ›</span>
         </button>
       )}
 
@@ -74,8 +83,8 @@ export default function InvestorProfile() {
             marginBottom: 14,
             padding: '12px 14px',
             borderRadius: 12,
-            background: `linear-gradient(135deg, ${bestFitMeta.accentColor}10, ${typeMeta.accentColor}08)`,
-            border: `1px solid ${bestFitMeta.accentColor}30`,
+            background: 'var(--bg-subtle)',
+            border: '1px solid var(--border-light)',
             display: 'flex',
             alignItems: 'center',
             gap: 10,
@@ -83,11 +92,11 @@ export default function InvestorProfile() {
         >
           <GitCompare size={18} color="var(--text-secondary, #8B95A1)" strokeWidth={1.75} aria-hidden="true" />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-              자가진단은 <strong style={{ color: typeMeta.accentColor }}>{typeMeta.nameKr}</strong>인데,
-              현재 포트폴리오는 <strong style={{ color: bestFitMeta.accentColor }}>{bestFitMeta.nameKr}</strong> 패턴에 더 가까워요
+            <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
+              자가진단은 <strong style={{ color: 'var(--text-primary)' }}>{typeMeta.nameKr}</strong>인데,
+              현재 포트폴리오는 <strong style={{ color: 'var(--text-primary)' }}>{bestFitMeta.nameKr}</strong> 패턴에 더 가까워요
             </div>
-            <div style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 4 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 4 }}>
               섹터 분포 {behavior.gapPct.toFixed(0)}%p 차이 · 의도적이라면 무시하세요
             </div>
           </div>
@@ -95,13 +104,13 @@ export default function InvestorProfile() {
             onClick={() => setShowQuiz(true)}
             style={{
               flexShrink: 0,
-              padding: '5px 10px',
+              padding: '8px 10px', minHeight: 44,
               borderRadius: 8,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: 600,
               background: 'var(--surface, #FFFFFF)',
-              border: `1px solid ${bestFitMeta.accentColor}40`,
-              color: bestFitMeta.accentColor,
+              border: '1px solid var(--border-strong)',
+              color: 'var(--text-primary)',
               cursor: 'pointer',
             }}
           >
@@ -113,6 +122,7 @@ export default function InvestorProfile() {
       {/* 퀴즈 모달 */}
       {showQuiz && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="투자자 유형 퀴즈"
@@ -127,7 +137,7 @@ export default function InvestorProfile() {
           <div
             style={{
               background: 'var(--surface, #FFFFFF)', borderRadius: 20,
-              maxHeight: '92vh', overflow: 'auto',
+              maxHeight: 'calc(var(--modal-viewport-height, 100dvh) - 32px)', overflow: 'auto',
               padding: '28px 24px 24px', width: '100%', maxWidth: 480,
             }}
           >

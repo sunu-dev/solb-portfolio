@@ -2,7 +2,8 @@
 
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { Download, FileJson, RotateCcw, Upload } from 'lucide-react';
-import CsvImportModal from '@/components/portfolio/CsvImportModal';
+import dynamic from 'next/dynamic';
+const CsvImportModal = dynamic(() => import('@/components/portfolio/CsvImportModal'));
 import { usePortfolioStore } from '@/store/portfolioStore';
 import {
   buildPortfolioCsv,

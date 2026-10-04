@@ -19,7 +19,7 @@ import {
  *   3. 베스트 종목 — 챔피언 강조
  *   4. 최고의 하루 — 그날 무슨 일?
  *   5. 메모 통계 — Streak + 작성 일수
- *   6. 시간 비교 — 30일 전 vs 지금
+ *   6. 시간 비교 — 30일 전과 지금
  *   7. 챕터 키워드 + 공유 CTA
  *
  * 닫으면 onClose. 자동 트리거: 말일 첫 진입 시 (Phase 6 cron 푸시 연동 가능).
@@ -32,53 +32,48 @@ interface Props {
 export default function MonthlyWrapped({ isOpen, onClose }: Props) {
   const { stocks, macroData, rawCandles, currency, dailySnapshots } = usePortfolioStore();
   const [slideIdx, setSlideIdx] = useState(0);
+  const [openedAt] = useState(() => Date.now());
 
   const data = useMemo(() => {
     const time = computeChapterTime();
     const stats = buildChapterStats({
       stocks, macroData, rawCandles, snapshots: dailySnapshots,
     });
-    return stats ? { time, stats } : null;
-  }, [stocks, macroData, rawCandles, dailySnapshots]);
+    const target = openedAt - 30 * 86400 * 1000;
+    const prev30Snap = dailySnapshots.filter(isCanonicalKrwSnapshot)
+      .find(snapshot => Math.abs(new Date(snapshot.date).getTime() - target) < 2 * 86400 * 1000);
+    const previous = prev30Snap ? getSnapshotKrwTotals(prev30Snap) : null;
+    const prev30Pct = previous && previous.totalCostKrw > 0
+      ? ((previous.totalValueKrw - previous.totalCostKrw) / previous.totalCostKrw) * 100
+      : null;
+    return stats ? { time, stats, prev30Pct } : null;
+  }, [stocks, macroData, rawCandles, dailySnapshots, openedAt]);
+  const slideCount = data ? 4 + Number(Boolean(data.stats.champion)) + Number(Boolean(data.stats.bestDay)) + Number(data.prev30Pct !== null) : 0;
 
   // ESC로 닫기
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || slideCount === 0) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') setSlideIdx(i => Math.min(i + 1, slides.length - 1));
+      if (e.key === 'ArrowRight') setSlideIdx(i => Math.min(i + 1, slideCount - 1));
       if (e.key === 'ArrowLeft') setSlideIdx(i => Math.max(i - 1, 0));
     };
     document.addEventListener('keydown', handler);
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.removeEventListener('keydown', handler);
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  }, [isOpen, onClose, slideCount]);
 
   // 모달 닫혀있거나 데이터 없으면 렌더 안 함
   if (!isOpen || !data) return null;
-  const { time, stats } = data;
+  const { time, stats, prev30Pct } = data;
 
   const usdKrw = resolveUsdKrw(macroData);
   const isGain = stats.totalAbsReturn >= 0;
   const fmt = (krw: number) => formatDisplayAmount(krw, currency, usdKrw);
-
-  // 30일 전 비교
-  const prev30Snap = dailySnapshots.filter(isCanonicalKrwSnapshot).find(s => {
-    const ts = new Date(s.date).getTime();
-    const target = Date.now() - 30 * 86400 * 1000;
-    return Math.abs(ts - target) < 2 * 86400 * 1000;
-  });
-  const prev30Totals = prev30Snap ? getSnapshotKrwTotals(prev30Snap) : null;
-  const prev30Pct = prev30Totals && prev30Totals.totalCostKrw > 0
-    ? (
-      (prev30Totals.totalValueKrw - prev30Totals.totalCostKrw)
-      / prev30Totals.totalCostKrw
-    ) * 100
-    : null;
 
   // 챕터 키워드 (Phase 5 연동 — localStorage)
   let chapterKeyword: string | null = null;
@@ -87,20 +82,20 @@ export default function MonthlyWrapped({ isOpen, onClose }: Props) {
   } catch { /* ignore */ }
 
   // 공유 텍스트 빌드
-  const shareText = `${time.monthLabel} 챕터 회고
-누적 ${isGain ? '+' : ''}${stats.totalPctReturn.toFixed(2)}%
-${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.champion.symbol} ${stats.champion.pctReturn >= 0 ? '+' : ''}${stats.champion.pctReturn.toFixed(1)}%` : ''}
-🔥 메모 streak ${stats.memoStreak}일`;
+  const shareText = `${time.monthLabel} 투자 돌아보기
+누적 ${stats.totalAbsReturn > 0 ? '+' : ''}${stats.totalPctReturn.toFixed(2)}%
+${stats.champion ? `보유 수익률 최고: ${STOCK_KR[stats.champion.symbol] || stats.champion.symbol} ${stats.champion.pctReturn >= 0 ? '+' : ''}${stats.champion.pctReturn.toFixed(1)}%` : ''}
+연속 기록 ${stats.memoStreak}일`;
 
   // 슬라이드 정의
   const slides: Slide[] = [
     {
       id: 'cover',
-      bgGradient: 'linear-gradient(135deg, #AF52DE 0%, #3182F6 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 1 }}>
-            CHAPTER WRAPPED
+            이번 달 돌아보기
           </div>
           <div style={{ fontSize: 48, fontWeight: 800, color: '#FFFFFF', marginTop: 8, letterSpacing: '-0.02em' }}>
             {time.monthLabel}
@@ -113,13 +108,13 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
     },
     {
       id: 'pnl',
-      bgGradient: isGain
+      bgGradient: stats.totalAbsReturn === 0 ? 'var(--brand-gradient)' : isGain
         ? 'linear-gradient(135deg, #EF4452 0%, #B71C1C 100%)'
         : 'linear-gradient(135deg, #3182F6 0%, #0D47A1 100%)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            이번 챕터 누적
+            현재 보유 종목의 누적 손익
           </div>
           <div style={{
             fontSize: 60, fontWeight: 800, color: '#FFFFFF',
@@ -127,30 +122,30 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
             fontFamily: "'SF Mono', monospace",
             fontVariantNumeric: 'tabular-nums',
           }}>
-            {isGain ? '+' : '-'}{fmt(stats.totalAbsReturn)}
+            {stats.totalAbsReturn > 0 ? '+' : ''}{fmt(stats.totalAbsReturn)}
           </div>
           <div style={{
             fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.9)',
             marginTop: 6, fontFamily: "'SF Mono', monospace",
           }}>
-            {isGain ? '+' : ''}{stats.totalPctReturn.toFixed(2)}%
+            {stats.totalAbsReturn > 0 ? '+' : ''}{stats.totalPctReturn.toFixed(2)}%
           </div>
         </>
       ),
     },
     stats.champion ? {
       id: 'champion',
-      bgGradient: 'linear-gradient(135deg, #FFA500 0%, #FF6B35 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            챕터 챔피언 🏆
+            보유 수익률이 가장 높은 종목
           </div>
           <div style={{
             fontSize: 48, fontWeight: 800, color: '#FFFFFF',
             marginTop: 8, fontFamily: "'SF Mono', monospace",
           }}>
-            {stats.champion.symbol}
+            {STOCK_KR[stats.champion.symbol] || stats.champion.symbol}
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>
             {STOCK_KR[stats.champion.symbol] || stats.champion.symbol}
@@ -166,11 +161,11 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
     } : null,
     stats.bestDay ? {
       id: 'bestDay',
-      bgGradient: 'linear-gradient(135deg, #16A34A 0%, #064E3B 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            이번 챕터 최고의 하루
+            이번 달 기록 중 변화가 가장 컸던 날
           </div>
           <div style={{
             fontSize: 32, fontWeight: 800, color: '#FFFFFF',
@@ -192,11 +187,11 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
     } : null,
     {
       id: 'memo',
-      bgGradient: 'linear-gradient(135deg, #6366F1 0%, #4338CA 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            메모 STREAK 🔥
+            연속으로 기록한 날
           </div>
           <div style={{
             fontSize: 64, fontWeight: 800, color: '#FFFFFF',
@@ -205,18 +200,18 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
             {stats.memoStreak}일
           </div>
           <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.85)', marginTop: 8 }}>
-            이번 챕터 작성한 메모 {stats.notesThisMonth}개
+            이번 달 남긴 메모 {stats.notesThisMonth}개
           </div>
         </>
       ),
     },
     prev30Pct !== null ? {
       id: 'compare',
-      bgGradient: 'linear-gradient(135deg, #14B8A6 0%, #0F766E 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            30일 전 vs 지금
+            30일 전과 지금
           </div>
           <div style={{
             display: 'flex', gap: 24, alignItems: 'center', marginTop: 16,
@@ -232,7 +227,7 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>지금</div>
               <div style={{ fontSize: 32, fontWeight: 800, color: '#FFFFFF' }}>
-                {isGain ? '+' : ''}{stats.totalPctReturn.toFixed(2)}%
+                {stats.totalAbsReturn > 0 ? '+' : ''}{stats.totalPctReturn.toFixed(2)}%
               </div>
             </div>
           </div>
@@ -241,11 +236,11 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
     } : null,
     {
       id: 'wrap',
-      bgGradient: 'linear-gradient(135deg, #1F2937 0%, #111827 100%)',
+      bgGradient: 'var(--brand-gradient)',
       content: (
         <>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.75)', letterSpacing: 0.6 }}>
-            {time.monthLabel} 챕터 마무리
+            {time.monthLabel} 투자 돌아보기
           </div>
           {chapterKeyword && (
             <div style={{
@@ -256,8 +251,8 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
             </div>
           )}
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginTop: 24, lineHeight: 1.5 }}>
-            한 달이 모여 한 챕터가 돼요.<br/>
-            챕터들이 모여 당신의 투자 인생이 돼요.
+            이번 달 내 투자는 어땠나요?<br/>
+            기록을 보며 달라진 점을 살펴보세요.
           </div>
           <button
             onClick={(e) => {
@@ -351,7 +346,7 @@ ${stats.champion ? `🏆 챔피언: ${STOCK_KR[stats.champion.symbol] || stats.c
           aria-label="회고 닫기"
           style={{
             position: 'absolute', top: 22, right: 16,
-            width: 32, height: 32, borderRadius: '50%',
+            width: 44, height: 44, borderRadius: '50%',
             background: 'rgba(0,0,0,0.2)',
             border: 'none', color: '#FFFFFF',
             fontSize: 16, cursor: 'pointer',

@@ -251,7 +251,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
         }}
         role="dialog"
         aria-modal="true"
-        aria-label={`${stock?.symbol || ''} 설정`}
+        aria-label={`${kr} 설정`}
       >
         <style>{`
           .edit-stock-modal {
@@ -271,7 +271,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
         {/* Header */}
         <div style={{ padding: '24px 24px 16px', flexShrink: 0, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-            {stock?.symbol} {kr !== stock?.symbol ? kr : ''} 설정
+            {kr} 설정
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
             {editingCat === 'watching' ? '목표 매수가를 설정하세요' : '매수 정보와 목표가를 설정하세요'}
@@ -291,7 +291,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                     border: 'none',
                   }}
                 >
-                  {m === 'basic' ? '기본 (초보자)' : '상세'}
+                  {m === 'basic' ? '기본' : '상세'}
                 </button>
               ))}
             </div>

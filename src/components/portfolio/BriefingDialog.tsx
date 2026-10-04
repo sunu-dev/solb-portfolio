@@ -19,6 +19,12 @@ export default function BriefingDialog({ userId, signedInAt, ready }: {
   const checkedResults = useRef<string | null>(null);
   const dismissed = useRef<string | null>(null);
   const close = useCallback(() => dialog.current?.close(), []);
+  const open = useCallback(() => {
+    const element = dialog.current;
+    if (!element || element.open) return;
+    element.showModal();
+    element.querySelector<HTMLElement>('[data-briefing-title]')?.focus({ preventScroll: true });
+  }, []);
   const markSeen = () => {
     if (!userId) return;
     dismissed.current = userId;
@@ -35,13 +41,10 @@ export default function BriefingDialog({ userId, signedInAt, ready }: {
     checkedResults.current = userId;
     let seen: string[] = [];
     try { const raw = JSON.parse(localStorage.getItem(`joobi_economic_seen:${userId}`) || '[]'); if (Array.isArray(raw)) seen = raw; } catch { /* storage disabled */ }
-    if (unseenResults(recentResults(data.events).slice(0, 1), seen).length && !dialog.current?.open) dialog.current?.showModal();
-  }, [ready, userId, data]);
+    if (unseenResults(recentResults(data.events).slice(0, 1), seen).length) open();
+  }, [ready, userId, data, open]);
 
   useEffect(() => {
-    const open = () => {
-      if (!dialog.current?.open) dialog.current?.showModal();
-    };
     const openGuide = (event: Event) => {
       if (isGuideId((event as CustomEvent).detail?.id) && dialog.current?.open) dialog.current.close();
     };
@@ -51,7 +54,7 @@ export default function BriefingDialog({ userId, signedInAt, ready }: {
       window.removeEventListener('open-briefing', open);
       window.removeEventListener('open-market-guide', openGuide);
     };
-  }, []);
+  }, [open]);
 
   useEffect(() => {
     if (!userId || !signedInAt || !ready) return;
@@ -62,12 +65,12 @@ export default function BriefingDialog({ userId, signedInAt, ready }: {
     } catch { /* 메모리에서 중복 열림 방지 */ }
     const frame = requestAnimationFrame(() => {
       if (!dialog.current) return;
-      if (!dialog.current.open) dialog.current.showModal();
+      open();
       shown.current = login;
       try { localStorage.setItem(SEEN_KEY, login); } catch { /* storage 차단 */ }
     });
     return () => cancelAnimationFrame(frame);
-  }, [userId, signedInAt, ready]);
+  }, [userId, signedInAt, ready, open]);
 
   return (
     <dialog ref={dialog} className="briefing-dialog" aria-label="오늘의 브리핑" onClose={markSeen}

@@ -3,16 +3,20 @@
 import { useShallow } from 'zustand/react/shallow';
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
 import { useModalViewport } from '@/hooks/useModalViewport';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import SearchBar from '@/components/portfolio/SearchBar';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
 import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
 import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
 import JoobiLockup from '@/components/brand/JoobiLockup';
+
+const SearchBar = dynamic(() => import('@/components/portfolio/SearchBar'), {
+  loading: () => <p role="status" style={{ padding: 20 }}>검색을 준비하고 있어요…</p>,
+});
 
 // 최상위 탭 — menuRegistry SSOT에서 파생(3곳 표류 방지). 풀 라벨 사용(헤더는 폭 여유).
 const NAV_ITEMS: { label: string; section: MainSection }[] = PRIMARY_SECTIONS.map((m) => ({
@@ -27,17 +31,21 @@ interface HeaderProps {
 }
 
 export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
-  const { currentSection, setCurrentSection, darkMode, toggleDarkMode } = usePortfolioStore(useShallow(state => ({
+  const { currentSection, setCurrentSection, darkMode, toggleDarkMode, analysisSymbol } = usePortfolioStore(useShallow(state => ({
     currentSection: state.currentSection,
     setCurrentSection: state.setCurrentSection,
     darkMode: state.darkMode,
     toggleDarkMode: state.toggleDarkMode,
+    analysisSymbol: state.analysisSymbol,
   })));
   const unreadCount = useUnreadAlertCount();
   const [showSearch, setShowSearch] = useState(false);
+  const [searchOpened, setSearchOpened] = useState(false);
+  const searchVisible = showSearch && !analysisSymbol;
+  const openSearch = () => { setSearchOpened(true); setShowSearch(true); };
   const searchRef = useRef<HTMLDivElement>(null);
-  useModalViewport(showSearch, searchRef);
-  useFocusTrap(showSearch, searchRef, () => setShowSearch(false));
+  useModalViewport(searchVisible, searchRef);
+  useFocusTrap(searchVisible, searchRef, () => setShowSearch(false));
 
   // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)
   useEffect(() => {
@@ -46,13 +54,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         const active = document.activeElement;
         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
         e.preventDefault();
+        setSearchOpened(true);
         setShowSearch(true);
       }
-      if (e.key === 'Escape') {
-        setShowSearch(false);
-      }
     };
-    const openSearch = () => setShowSearch(true);
+    const openSearch = () => { setSearchOpened(true); setShowSearch(true); };
     window.addEventListener('keydown', handler);
     window.addEventListener('open-search', openSearch);
     return () => { window.removeEventListener('keydown', handler); window.removeEventListener('open-search', openSearch); };
@@ -133,11 +139,11 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
         {/* Dark mode toggle */}
         <button
-          onClick={(e) => { e.currentTarget.blur(); toggleDarkMode(); }}
+          onClick={toggleDarkMode}
           className="flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
-            width: '36px',
-            height: '36px',
+            width: '44px',
+            height: '44px',
             borderRadius: '8px',
             fontSize: '16px',
             background: 'transparent',
@@ -156,14 +162,13 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Help button — 투어 재시작 + /help 페이지 진입 */}
         <button
           data-tour="help-button"
-          onClick={(e) => {
-            e.currentTarget.blur();
+          onClick={() => {
             window.location.href = '/help';
           }}
           className="header-help flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
-            width: '36px',
-            height: '36px',
+            width: '44px',
+            height: '44px',
             borderRadius: '8px',
             background: 'transparent',
             border: 'none',
@@ -179,8 +184,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
         {/* Alert bell */}
         <button
-          onClick={(e) => {
-            e.currentTarget.blur();
+          onClick={() => {
             // Desktop (lg+): scroll to sidebar alert center
             const el = document.getElementById('solb-alert-center');
             if (el && window.innerWidth >= 1024) {
@@ -192,8 +196,8 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           }}
           className="relative flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
           style={{
-            width: '36px',
-            height: '36px',
+            width: '44px',
+            height: '44px',
             borderRadius: '8px',
             background: 'transparent',
             border: 'none',
@@ -202,6 +206,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             outline: 'none',
           }}
           title="알림"
+          aria-label={unreadCount > 0 ? `알림, 읽지 않은 알림 ${unreadCount}개` : '알림'}
         >
           <Bell className="w-[16px] h-[16px]" />
           {unreadCount > 0 && (
@@ -231,7 +236,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
           <button
             data-slot="search-trigger"
             aria-label="종목 검색"
-            onClick={() => setShowSearch(!showSearch)}
+            aria-expanded={searchVisible}
+            aria-controls="stock-search-dialog"
+            onClick={() => searchVisible ? setShowSearch(false) : openSearch()}
             className="flex items-center cursor-pointer hover:bg-[#F2F4F6] dark:hover:bg-[var(--surface-hover)] transition-colors"
             style={{
               gap: '6px',
@@ -261,9 +268,9 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
               /
             </kbd>
           </button>
-          {showSearch && (
-            <div ref={searchRef} role="dialog" aria-modal="true" aria-label="종목 검색" tabIndex={-1} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
-              <SearchBar onClose={() => setShowSearch(false)} />
+          {searchOpened && (
+            <div id="stock-search-dialog" hidden={!searchVisible} ref={searchRef} role="dialog" aria-modal={searchVisible || undefined} aria-label="종목 검색" tabIndex={-1} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
+              <SearchBar active={searchVisible} onExplore={() => { /* Keep this search session while the detail is open. */ }} onClose={() => setShowSearch(false)} />
             </div>
           )}
         </div>
@@ -303,6 +310,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
                 background: 'none',
                 border: 'none',
                 padding: '6px 12px',
+                minHeight: 44,
                 borderRadius: '8px',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F0F6FF)')}

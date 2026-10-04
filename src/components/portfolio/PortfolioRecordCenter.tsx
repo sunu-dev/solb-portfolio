@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 import {
   AlertTriangle,
@@ -24,8 +25,8 @@ import type {
 } from '@/lib/portfolioReconciliation';
 import { logFeatureFirstUse, logTourEvent } from '@/lib/tourTelemetry';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import CsvImportModal from './CsvImportModal';
-import RecordSafetyPreviewDialog from './RecordSafetyPreviewDialog';
+const CsvImportModal = dynamic(() => import('./CsvImportModal'));
+const RecordSafetyPreviewDialog = dynamic(() => import('./RecordSafetyPreviewDialog'));
 
 interface Props {
   ocrEnabled: boolean;

@@ -38,50 +38,36 @@ const WIDGET_ICON: Record<WidgetId, IconType> = {
   'chapter-shelf': BookOpen,
 };
 
-// 위젯 칩 카테고리 컬러(허브 톤 통일·하단 단조 해소). 정의된 토큰만(R3). 손익색 미사용.
-const WIDGET_ACCENT: Record<WidgetId, { bg: string; fg: string }> = {
-  'morning-briefing': { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
-  'broker-block': { bg: 'var(--color-info-bg, rgba(49,130,246,0.08))', fg: 'var(--color-info, #3182F6)' },
-  'monthly-chapter': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
-  'ai-hunch-link': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
-  'value-chart': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
-  'benchmark-compare': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
-  'treemap': { bg: 'var(--color-success-bg, rgba(0,198,190,0.08))', fg: 'var(--color-success, #00C6BE)' },
-  'portfolio-health': { bg: 'var(--brand-primary-light, rgba(14,124,123,0.08))', fg: 'var(--brand-primary)' },
-  'goal-progress': { bg: 'var(--color-warning-bg, rgba(255,149,0,0.08))', fg: 'var(--color-warning, #FF9500)' },
-  'chapter-shelf': { bg: 'var(--color-purple-bg, rgba(175,82,222,0.08))', fg: 'var(--color-purple, #AF52DE)' },
-};
-
 const ZONES: { zone: WidgetZone; label: string; sub: string }[] = [
   { zone: 'above-core', label: '상단', sub: '자산 요약 바로 아래' },
   { zone: 'below-core', label: '보유 종목 아래', sub: '순서도 바꿀 수 있어요' },
   { zone: 'analysis', label: '분석 탭', sub: '분석 탭에 보이는 위젯' },
 ];
 
-// iOS 스타일 토글 스위치 — ON=teal, 흰 knob.
+// 시각 트랙은 28px, 실제 터치 영역은 44px 이상 유지한다.
 function ToggleSwitch({ on, onClick, label }: { on: boolean; onClick: () => void; label: string }) {
   return (
     <button
       role="switch" aria-checked={on} aria-label={label} onClick={onClick}
       style={{
-        flexShrink: 0, width: 46, height: 28, borderRadius: 999, padding: 3, border: 'none', cursor: 'pointer',
-        background: on ? 'var(--brand-primary)' : 'var(--border-strong, #E5E8EB)',
+        flexShrink: 0, width: 46, height: 44, padding: 0, border: 'none', cursor: 'pointer', background: 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'flex-start',
-        transition: 'background 0.22s ease',
       }}
     >
+      <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', width: 46, height: 28, padding: 3, borderRadius: 999, background: on ? 'var(--brand-fill)' : 'var(--border-strong)' }}>
       <span style={{
         width: 22, height: 22, borderRadius: 999,
         background: 'var(--switch-knob-bg, #FFFFFF)', boxShadow: 'var(--switch-knob-shadow)',
         transform: on ? 'translateX(18px)' : 'translateX(0)',
         transition: 'transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }} />
+      </span>
     </button>
   );
 }
 
 const reorderBtn = (disabled: boolean): CSSProperties => ({
-  width: 32, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
   background: 'transparent', border: 'none', cursor: disabled ? 'default' : 'pointer',
   color: disabled ? 'var(--text-tertiary, #B0B8C1)' : 'var(--text-secondary, #4E5968)', opacity: disabled ? 0.35 : 1,
 });
@@ -99,7 +85,6 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
   const renderRow = (w: HomeWidget, order?: { first: boolean; last: boolean }, isLast?: boolean) => {
     const hidden = isWidgetHidden(w.id, hiddenWidgets); // non-hideable이면 항상 false
     const Icon = WIDGET_ICON[w.id];
-    const ac = WIDGET_ACCENT[w.id];
     return (
       <div
         key={w.id}
@@ -112,7 +97,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
         <span style={{
           flexShrink: 0, width: 38, height: 38, borderRadius: 12,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: ac.bg, color: ac.fg,
+          background: 'var(--bg-subtle)', color: 'var(--text-body)',
           opacity: hidden ? 0.45 : 1,
         }}>
           {Icon ? <Icon size={19} strokeWidth={2} /> : null}
@@ -148,7 +133,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
         ) : (
           <span style={{
             flexShrink: 0, padding: '5px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 700,
-            background: 'var(--brand-primary-light, rgba(14,124,123,0.08))', color: 'var(--brand-primary)',
+            background: 'var(--brand-primary-light)', color: 'var(--brand-primary)',
           }}>항상 표시</span>
         )}
       </div>
@@ -163,7 +148,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
           <span style={{
             flexShrink: 0, width: 44, height: 44, borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'var(--brand-gradient, linear-gradient(135deg, #0E7C7B, #14B8A6))', color: 'var(--on-brand-fg, #FFFFFF)',
+            background: 'var(--brand-fill)', color: 'var(--on-brand-fg, #FFFFFF)',
             boxShadow: 'var(--shadow-md)',
           }}>
             <SlidersHorizontal size={22} strokeWidth={2} />
@@ -185,7 +170,7 @@ export default function HomeEditSheet({ isOpen, onClose, onToggleWidget }: Props
           return (
             <div key={zone} className={`edit-stagger stag-${zi + 1}`} style={{ marginBottom: 22 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '0 6px 10px' }}>
-                <span style={{ width: 3, height: 13, borderRadius: 2, background: 'var(--brand-primary)', flexShrink: 0 }} />
+                <span style={{ width: 3, height: 13, borderRadius: 2, background: 'var(--brand-fill)', flexShrink: 0 }} />
                 <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary, #191F28)', letterSpacing: '-0.01em' }}>{label}</span>
                 <span style={{ fontSize: 11.5, color: 'var(--text-tertiary, #B0B8C1)' }}>{sub}</span>
               </div>
