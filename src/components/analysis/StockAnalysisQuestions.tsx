@@ -1,7 +1,7 @@
 'use client';
 
-import { useId, useState } from 'react';
-import { Activity, ArrowUpRight, ChevronDown, ChevronRight, Layers, Scale, Search, Shield, Sprout } from 'lucide-react';
+import { Fragment, useId, useState, type ReactNode } from 'react';
+import { Activity, ChevronDown, ChevronRight, Layers, Scale, Search, Shield, Sprout } from 'lucide-react';
 import styles from './StockAnalysisQuestions.module.css';
 
 const QUESTIONS = [
@@ -53,6 +53,8 @@ interface StockAnalysisQuestionsProps {
   selectedId: string | null;
   loading: boolean;
   onSelect: (id: string) => void;
+  answer?: ReactNode;
+  remaining?: number | null;
 }
 
 interface QuestionButtonProps extends StockAnalysisQuestionsProps {
@@ -61,7 +63,6 @@ interface QuestionButtonProps extends StockAnalysisQuestionsProps {
 
 function QuestionButton({ item, selectedId, loading, onSelect }: QuestionButtonProps) {
   const selected = item.id === selectedId;
-  const pending = selected && loading;
   const { Icon } = item;
 
   return (
@@ -69,7 +70,7 @@ function QuestionButton({ item, selectedId, loading, onSelect }: QuestionButtonP
       type="button"
       className={styles.question}
       data-question-id={item.id}
-      aria-pressed={selected}
+      aria-expanded={selected}
       aria-disabled={loading}
       aria-controls={selected ? 'stock-assistant-answer' : undefined}
       onClick={() => {
@@ -80,14 +81,9 @@ function QuestionButton({ item, selectedId, loading, onSelect }: QuestionButtonP
       <span className={styles.copy}>
         <span className={styles.questionTitle}>{item.question}</span>
         <span className={styles.description}>{item.description}</span>
-        {selected ? (
-          <span className={styles.selection}>
-            {pending ? '설명 준비 중' : '선택한 질문'}
-          </span>
-        ) : null}
       </span>
       {selected ? (
-        <ArrowUpRight className={styles.arrow} size={18} strokeWidth={1.7} aria-hidden="true" />
+        <ChevronDown className={styles.arrow} size={18} strokeWidth={1.7} aria-hidden="true" />
       ) : (
         <ChevronRight className={styles.arrow} size={18} strokeWidth={1.7} aria-hidden="true" />
       )}
@@ -95,7 +91,7 @@ function QuestionButton({ item, selectedId, loading, onSelect }: QuestionButtonP
   );
 }
 
-export default function StockAnalysisQuestions({ selectedId, loading, onSelect }: StockAnalysisQuestionsProps) {
+export default function StockAnalysisQuestions({ selectedId, loading, onSelect, answer, remaining }: StockAnalysisQuestionsProps) {
   const headingId = useId();
   const moreId = useId();
   const [showMore, setShowMore] = useState(false);
@@ -107,14 +103,27 @@ export default function StockAnalysisQuestions({ selectedId, loading, onSelect }
       <div className={styles.heading}>
         <h3 id={headingId} className={styles.title}>주비에게 더 물어보기</h3>
         <p className={styles.intro}>궁금한 질문을 고르면 확인할 점을 풀어드려요.</p>
+        <p className={styles.usage}>
+          {remaining === 0
+            ? '오늘 새 답변을 모두 사용했어요. 이 화면에서 받은 답변은 다시 볼 수 있어요.'
+            : typeof remaining === 'number' && remaining > 0
+              ? `AI 분석 ${remaining}회 남음 · 새 답변 1회 사용`
+              : '새 답변은 AI 분석 1회를 사용해요.'}
+        </p>
       </div>
 
       <div className={styles.list}>
         {QUESTIONS.slice(0, 3).map(item => (
-          <QuestionButton key={item.id} item={item} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+          <Fragment key={item.id}>
+            <QuestionButton item={item} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+            {item.id === selectedId ? answer : null}
+          </Fragment>
         ))}
         {!showMore && selectedAdditionalQuestion ? (
-          <QuestionButton item={selectedAdditionalQuestion} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+          <>
+            <QuestionButton item={selectedAdditionalQuestion} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+            {answer}
+          </>
         ) : null}
       </div>
 
@@ -132,7 +141,10 @@ export default function StockAnalysisQuestions({ selectedId, loading, onSelect }
 
       <div id={moreId} className={styles.additional} hidden={!showMore}>
         {showMore ? QUESTIONS.slice(3).map(item => (
-          <QuestionButton key={item.id} item={item} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+          <Fragment key={item.id}>
+            <QuestionButton item={item} selectedId={selectedId} loading={loading} onSelect={onSelect} />
+            {item.id === selectedId ? answer : null}
+          </Fragment>
         )) : null}
       </div>
 

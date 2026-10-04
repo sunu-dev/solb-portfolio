@@ -267,6 +267,7 @@ export async function POST(req: NextRequest) {
     await gate.finalize(429, 'daily_total_limit');
     return NextResponse.json({
       error: '오늘 AI 분석 서비스 이용량이 초과되었어요. 내일 다시 이용해주세요.',
+      code: 'daily_total_limit',
       limitReached: true,
     }, { status: 429 });
   }
@@ -278,6 +279,7 @@ export async function POST(req: NextRequest) {
     await gate.finalize(429, 'daily_user_limit');
     return NextResponse.json({
       error: msg,
+      code: 'daily_user_limit',
       limitReached: true,
       remaining: 0,
       dailyLimit: perUserLimit,

@@ -24,8 +24,9 @@ import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
+import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining, readAnalysisQuotaResponse, type AnalysisQuota } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
-import StockAnalysisQuestions, { getStockAnalysisQuestion } from './StockAnalysisQuestions';
+import StockAnalysisQuestions from './StockAnalysisQuestions';
 import assistantStyles from './StockAssistant.module.css';
 import StockLearning from './StockLearning';
 import { isSingleStockLeverage, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
@@ -223,12 +224,33 @@ export default function AnalysisPanel() {
   const [aiReport, setAiReport] = useState<AnalysisReport | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [aiErrorAction, setAiErrorAction] = useState<'login' | 'daily' | 'unavailable' | 'retry'>('retry');
+  const aiRequestRef = useRef<AbortController | null>(null);
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [mentorReport, setMentorReport] = useState<MentorReport | null>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
   const [mentorError, setMentorError] = useState('');
+  const [mentorCachedAt, setMentorCachedAt] = useState<number | null>(null);
+  const [mentorErrorAction, setMentorErrorAction] = useState<'login' | 'daily' | 'unavailable' | 'retry'>('retry');
   const mentorRequestRef = useRef<AbortController | null>(null);
-  const [aiRemaining, setAiRemaining] = useState<number | null>(null);
+  const [aiQuota, setAiQuota] = useState<AnalysisQuota | null>(null);
+  const aiRemaining = aiQuota?.remaining ?? null;
+
+  useEffect(() => {
+    if (!aiQuota) return;
+    const expire = () => {
+      if (getAnalysisRemaining(aiQuota) === null) setAiQuota(null);
+    };
+    const nextDay = Date.parse(`${aiQuota.day}T00:00:00+09:00`) + 24 * 60 * 60 * 1000;
+    const timer = setTimeout(expire, Math.max(0, nextDay - Date.now()));
+    window.addEventListener('focus', expire);
+    document.addEventListener('visibilitychange', expire);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('focus', expire);
+      document.removeEventListener('visibilitychange', expire);
+    };
+  }, [aiQuota]);
   const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const hasFundamentalValues = !!fundamentals && (
     [fundamentals.per, fundamentals.eps, fundamentals.marketCap,
@@ -363,6 +385,8 @@ export default function AnalysisPanel() {
     return () => {
       mentorRequestRef.current?.abort();
       mentorRequestRef.current = null;
+      aiRequestRef.current?.abort();
+      aiRequestRef.current = null;
     };
   }, [symbol]);
 
@@ -429,6 +453,7 @@ export default function AnalysisPanel() {
     setSelectedMentor(null);
     setMentorReport(null);
     setMentorError('');
+    setMentorCachedAt(null);
     const more = dialogRef.current?.querySelector<HTMLButtonElement>('[data-question-more]');
     const hiddenAfterClose = more?.getAttribute('aria-expanded') === 'false'
       && !['safe', 'value', 'growth'].includes(selectedMentor?.id ?? '');
@@ -443,10 +468,18 @@ export default function AnalysisPanel() {
     setSelectedMentor(mentor);
     setMentorReport(null);
     setMentorError('');
+    setMentorCachedAt(null);
+    setMentorErrorAction('retry');
     const cacheKey = `${symbol}-${id}`;
     const cached = mentorReportCache[cacheKey];
-    if (!retry && cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    if (!retry && cached && (Date.now() - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0)) {
       setMentorReport(cached.report);
+      setMentorCachedAt(cached.timestamp);
+      return;
+    }
+    if (getAnalysisRemaining(aiQuota) === 0) {
+      setMentorError(ANALYSIS_DAILY_LIMIT_MESSAGE);
+      setMentorErrorAction('daily');
       return;
     }
     const controller = new AbortController();
@@ -486,9 +519,10 @@ export default function AnalysisPanel() {
       });
       const data = await response.json();
       if (!isCurrent()) return;
+      const quota = readAnalysisQuotaResponse(data);
+      if (quota) setAiQuota(quota);
       if (response.ok && data.success && data.report) {
         setMentorReport(data.report);
-        if (data.remaining !== undefined) setAiRemaining(data.remaining);
         mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
         try {
           const previous = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
@@ -497,7 +531,9 @@ export default function AnalysisPanel() {
         logApiCall('mentor_analysis', symbol, { mentor: mentor.id });
         logFeatureFirstUse('mentor');
       } else {
-        setMentorError(data.error || '설명을 불러오지 못했어요. 잠시 후 다시 요청해주세요.');
+        setMentorError(quota?.remaining === 0 ? ANALYSIS_DAILY_LIMIT_MESSAGE : data.error || '설명을 불러오지 못했어요. 잠시 후 다시 요청해주세요.');
+        setMentorErrorAction(data.loginForMore || response.status === 401 ? 'login'
+          : quota?.remaining === 0 ? 'daily' : data.code === 'daily_total_limit' ? 'unavailable' : 'retry');
       }
     } catch {
       if (isCurrent()) setMentorError('연결이 원활하지 않아요. 잠시 후 다시 요청해주세요.');
@@ -505,6 +541,131 @@ export default function AnalysisPanel() {
       if (isCurrent()) {
         mentorRequestRef.current = null;
         setMentorLoading(false);
+      }
+    }
+  };
+
+  const handleAIReportToggle = async (retry = false) => {
+    if (aiRequestRef.current) return;
+    // 단일종목 레버리지: AI 분석 거부 — API 호출·쿼터 차감·로딩 없이 거부 카드만 토글 (§6).
+    if (isLev) { setShowAIReport(p => !p); return; }
+    if (showAIReport && !retry) { setShowAIReport(false); return; }
+    setShowAIReport(true);
+    setAiError('');
+    setAiErrorAction('retry');
+    if (aiReport) return; // already loaded
+    // Check cache first
+    const cached = symbol ? aiReportCache[symbol] : null;
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0)) {
+      setAiReport(cached.report);
+      return;
+    }
+    if (getAnalysisRemaining(aiQuota) === 0) {
+      setAiError(ANALYSIS_DAILY_LIMIT_MESSAGE);
+      setAiErrorAction('daily');
+      return;
+    }
+    const controller = new AbortController();
+    aiRequestRef.current = controller;
+    const isCurrent = () => !controller.signal.aborted && aiRequestRef.current === controller
+      && usePortfolioStore.getState().analysisSymbol === symbol;
+    setAiLoading(true);
+    try {
+      // AI 분석 시 뉴스를 새로 가져옴 (최신 반영)
+      const freshKr = STOCK_KR[symbol] || symbol;
+      const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
+      const freshNewsResult = await fetchKoreanNews(freshQuery);
+      if (!isCurrent()) return;
+      const freshNewsItems = freshNewsResult.items;
+      if (freshNewsItems.length) setTickerNews(freshNewsItems.slice(0, 6));
+      // 24시간 이내 뉴스 필터링 + 날짜 레이블
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const recentOnly = (freshNewsItems.length ? freshNewsItems : tickerNews).filter(n => {
+        if (!n.pubDate) return false;
+        return new Date(n.pubDate).getTime() > oneDayAgo;
+      });
+      const newsText = recentOnly.length > 0
+        ? recentOnly.slice(0, 5).map(n => {
+            const hoursAgo = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 3600000);
+            const label = hoursAgo < 1 ? '방금 전' : `${hoursAgo}시간 전`;
+            return `[${label}] ${n.title}`;
+          }).join('\n')
+        : '최근 24시간 내 관련 뉴스 없음';
+      // 최신 가격을 새로 가져옴
+      let latestPrice = price;
+      let latestChange = change;
+      let latestCp = cp;
+      try {
+        const qd = await fetchQuoteViaServer(symbol);
+        if (qd?.c) {
+          latestPrice = qd.c;
+          latestChange = qd.d || 0;
+          latestCp = qd.dp || 0;
+        }
+      } catch { /* use existing price */ }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isCurrent()) return;
+      const resp = await fetch('/api/ai-analysis', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({
+          symbol,
+          koreanName: displayName,
+          currency: fundamentalsCurrency,
+          price: latestPrice,
+          change: latestChange,
+          changePercent: latestCp,
+          rsi: analysis?.rsiVal?.toFixed(0),
+          trend: analysis?.trend,
+          cross: analysis?.cross,
+          pattern: analysis?.pattern?.name,
+          bollingerStatus: analysis?.bollingerStatus?.status,
+          macdStatus: analysis?.macdStatus?.status,
+          volRatio: analysis?.volRatio,
+          recentNews: newsText,
+          per: fundamentals?.per,
+          eps: fundamentals?.eps,
+          week52High: fundamentals?.week52High,
+          week52Low: fundamentals?.week52Low,
+          sector: fundamentals?.sector,
+          timeSeriesContext: symbol
+            ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
+                rawCandles[symbol],
+                nativeCurrency,
+              )
+            : '',
+        }),
+      });
+      const data = await resp.json();
+      if (!isCurrent()) return;
+      const quota = readAnalysisQuotaResponse(data);
+      if (quota) setAiQuota(quota);
+      if (resp.ok && data.success && data.report) {
+        setAiReport(data.report);
+        if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
+        try {
+          const prev = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
+          localStorage.setItem('solb_ai_usage', String(prev + 1));
+        } catch { /* ignore */ }
+        logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
+        logFeatureFirstUse('analysis');
+      }
+      else {
+        setAiError(quota?.remaining === 0 ? ANALYSIS_DAILY_LIMIT_MESSAGE : data.error || 'AI 분석에 실패했어요.');
+        setAiErrorAction(data.loginForMore || resp.status === 401 ? 'login'
+          : quota?.remaining === 0 ? 'daily' : data.code === 'daily_total_limit' ? 'unavailable' : 'retry');
+      }
+    } catch {
+      if (isCurrent()) setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.');
+    } finally {
+      if (isCurrent()) {
+        aiRequestRef.current = null;
+        setAiLoading(false);
       }
     }
   };
@@ -1135,104 +1296,7 @@ export default function AnalysisPanel() {
 
                 {/* AI 분석 리포트 버튼 */}
                 <button
-                  onClick={async () => {
-                    // 단일종목 레버리지: AI 분석 거부 — API 호출·쿼터 차감·로딩 없이 거부 카드만 토글 (§6).
-                    if (isLev) { setShowAIReport(p => !p); return; }
-                    if (showAIReport) { setShowAIReport(false); return; }
-                    setShowAIReport(true);
-                    if (aiReport) return; // already loaded
-                    // Check cache first
-                    const cached = symbol ? aiReportCache[symbol] : null;
-                    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-                      setAiReport(cached.report);
-                      return;
-                    }
-                    setAiLoading(true);
-                    setAiError('');
-                    try {
-                      // AI 분석 시 뉴스를 새로 가져옴 (최신 반영)
-                      const freshKr = STOCK_KR[symbol] || symbol;
-                      const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
-                      const freshNewsResult = await fetchKoreanNews(freshQuery);
-                      const freshNewsItems = freshNewsResult.items;
-                      if (freshNewsItems.length) setTickerNews(freshNewsItems.slice(0, 6));
-                      // 24시간 이내 뉴스 필터링 + 날짜 레이블
-                      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-                      const recentOnly = (freshNewsItems.length ? freshNewsItems : tickerNews).filter(n => {
-                        if (!n.pubDate) return false;
-                        return new Date(n.pubDate).getTime() > oneDayAgo;
-                      });
-                      const newsText = recentOnly.length > 0
-                        ? recentOnly.slice(0, 5).map(n => {
-                            const hoursAgo = Math.round((Date.now() - new Date(n.pubDate).getTime()) / 3600000);
-                            const label = hoursAgo < 1 ? '방금 전' : `${hoursAgo}시간 전`;
-                            return `[${label}] ${n.title}`;
-                          }).join('\n')
-                        : '최근 24시간 내 관련 뉴스 없음';
-                      // 최신 가격을 새로 가져옴
-                      let latestPrice = price;
-                      let latestChange = change;
-                      let latestCp = cp;
-                      try {
-                        const qd = await fetchQuoteViaServer(symbol);
-                        if (qd?.c) {
-                          latestPrice = qd.c;
-                          latestChange = qd.d || 0;
-                          latestCp = qd.dp || 0;
-                        }
-                      } catch { /* use existing price */ }
-
-                      const { data: { session } } = await supabase.auth.getSession();
-                      const resp = await fetch('/api/ai-analysis', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
-                        },
-                        body: JSON.stringify({
-                          symbol,
-                          koreanName: displayName,
-                          currency: fundamentalsCurrency,
-                          price: latestPrice,
-                          change: latestChange,
-                          changePercent: latestCp,
-                          rsi: analysis?.rsiVal?.toFixed(0),
-                          trend: analysis?.trend,
-                          cross: analysis?.cross,
-                          pattern: analysis?.pattern?.name,
-                          bollingerStatus: analysis?.bollingerStatus?.status,
-                          macdStatus: analysis?.macdStatus?.status,
-                          volRatio: analysis?.volRatio,
-                          recentNews: newsText,
-                          per: fundamentals?.per,
-                          eps: fundamentals?.eps,
-                          week52High: fundamentals?.week52High,
-                          week52Low: fundamentals?.week52Low,
-                          sector: fundamentals?.sector,
-                          timeSeriesContext: symbol
-                            ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
-                                rawCandles[symbol],
-                                nativeCurrency,
-                              )
-                            : '',
-                        }),
-                      });
-                      const data = await resp.json();
-                      if (data.success) {
-                        setAiReport(data.report);
-                        if (data.remaining !== undefined) setAiRemaining(data.remaining);
-                        if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
-                        try {
-                          const prev = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
-                          localStorage.setItem('solb_ai_usage', String(prev + 1));
-                        } catch { /* ignore */ }
-                        logApiCall('ai_analysis', symbol || undefined, { conclusion: data.report?.conclusion?.label });
-                        logFeatureFirstUse('analysis');
-                      }
-                      else { setAiError(data.error || 'AI 분석에 실패했어요.'); }
-                    } catch { setAiError('AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.'); }
-                    setAiLoading(false);
-                  }}
+                  onClick={() => handleAIReportToggle()}
                   disabled={aiLoading}
                   className="flex items-center justify-center transition-colors disabled:cursor-default"
                   style={{
@@ -1253,7 +1317,7 @@ export default function AnalysisPanel() {
                 >
                   {isLev
                     ? <><ShieldAlert size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">이 상품은 AI 분석을 제공하지 않아요</span></>
-                    : <><Sparkles size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">{aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : '주비 AI에게 분석 요청하기'}</span></>}
+                    : <><Sparkles size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">{aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : aiReport ? '받은 AI 분석 보기' : aiRemaining === 0 ? '오늘 AI 분석을 모두 사용했어요' : '주비 AI에게 분석 요청하기'}</span></>}
                   {aiRemaining !== null && !showAIReport && !aiLoading && !isLev && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
@@ -1309,9 +1373,9 @@ export default function AnalysisPanel() {
                     {aiLoading && <AIProgressIndicator />}
 
                     {aiError && (
-                      <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
-                        {aiError}
-                        {aiError.includes('로그인') ? (
+                      <div role="alert" style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6 }}>
+                        {aiErrorAction === 'daily' && aiRemaining !== 0 ? '날짜가 바뀌었어요. 새 분석을 요청할 수 있어요.' : aiError}
+                        {aiErrorAction === 'login' ? (
                           <div style={{ marginTop: 10 }}>
                             <button
                               onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}
@@ -1320,11 +1384,11 @@ export default function AnalysisPanel() {
                               로그인하기
                             </button>
                           </div>
-                        ) : (
+                        ) : aiErrorAction !== 'unavailable' && (aiErrorAction !== 'daily' || aiRemaining !== 0) ? (
                           <div style={{ marginTop: 8 }}>
-                            <span onClick={() => { setAiReport(null); setShowAIReport(false); setTimeout(() => setShowAIReport(true), 100); }} style={{ color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>다시 시도 ›</span>
+                            <button type="button" className={assistantStyles.action} onClick={() => handleAIReportToggle(true)}>다시 요청하기</button>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     )}
 
@@ -1414,52 +1478,50 @@ export default function AnalysisPanel() {
                 {!isLev && (
                   <div id="anchor-assistant" className={assistantStyles.section}>
                     <div className={assistantStyles.overview}>
-                    <StockCheckup checkup={buildStockCheckup({
-                      price, candles: rawCandles[symbol], fundamentals, currency: nativeCurrency,
-                    })} />
-                    <div className={assistantStyles.questions}>
-                      <StockAnalysisQuestions key={symbol} selectedId={selectedMentor?.id ?? null}
-                        loading={mentorLoading} onSelect={handleMentorSelect} />
+                      <StockCheckup checkup={buildStockCheckup({
+                        price, candles: rawCandles[symbol], fundamentals, currency: nativeCurrency,
+                      })} />
+                      <div className={assistantStyles.questions}>
+                        <StockAnalysisQuestions key={symbol} selectedId={selectedMentor?.id ?? null}
+                          loading={mentorLoading} onSelect={handleMentorSelect} remaining={aiRemaining}
+                          answer={selectedMentor ? (
+                            <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
+                              aria-busy={mentorLoading} className={assistantStyles.answer}>
+                              <div className={assistantStyles.answerHeader}>
+                                <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>주비의 답변 · {displayName}</h4>
+                                <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
+                                  aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
+                              </div>
+                              {mentorLoading && <p role="status" className={assistantStyles.pending}>확인할 수 있는 자료로 설명을 준비하고 있어요.</p>}
+                              {mentorReport && <>
+                                {mentorCachedAt && <p className={assistantStyles.pending}>
+                                  {new Date(mentorCachedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}에 받은 답변이에요. 최신 자료와 다를 수 있어요.
+                                </p>}
+                                <p>{mentorReport.currentStatus}</p>
+                                {!!mentorReport.keyAdvice?.length && <ol className={assistantStyles.advice}>
+                                  {mentorReport.keyAdvice.map((advice, index) => <li key={index}>
+                                    <span className={assistantStyles.number} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                                    <span>{advice}</span>
+                                  </li>)}
+                                </ol>}
+                                {mentorReport.conclusion && <div className={assistantStyles.conclusion}>
+                                  <h5>이어서 확인할 내용</h5>
+                                  <p>{mentorReport.conclusion.desc}</p>
+                                </div>}
+                                <p className={assistantStyles.note}>공개정보를 바탕으로 AI가 작성한 설명이에요. 중요한 수치는 원문과 함께 확인해주세요.</p>
+                                <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
+                              </>}
+                              {!mentorLoading && mentorError && <>
+                                <p role="alert">{mentorErrorAction === 'daily' && aiRemaining !== 0 ? '날짜가 바뀌었어요. 새 답변을 요청할 수 있어요.' : mentorError}</p>
+                                {mentorErrorAction === 'login' ? <button type="button" className={assistantStyles.action}
+                                  onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}>로그인하고 질문하기</button>
+                                  : mentorErrorAction !== 'unavailable' && (mentorErrorAction !== 'daily' || aiRemaining !== 0) ? <button type="button" className={assistantStyles.action}
+                                    onClick={() => handleMentorSelect(selectedMentor.id, true)}>다시 요청하기</button> : null}
+                              </>}
+                            </section>
+                          ) : null} />
+                      </div>
                     </div>
-                    </div>
-                    {selectedMentor && (
-                      <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
-                        aria-busy={mentorLoading} className={assistantStyles.answer}>
-                        <div className={assistantStyles.answerHeader}>
-                          <div>
-                            <div className={assistantStyles.eyebrow}>주비의 답변 · {displayName}</div>
-                            <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>
-                              {getStockAnalysisQuestion(selectedMentor.id)}
-                            </h4>
-                          </div>
-                          <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
-                            aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
-                        </div>
-                        {mentorLoading && <p role="status" className={assistantStyles.pending}>확인할 수 있는 자료로 설명을 준비하고 있어요.</p>}
-                        {mentorReport && <>
-                          <p>{mentorReport.currentStatus}</p>
-                          {!!mentorReport.keyAdvice?.length && <ol className={assistantStyles.advice}>
-                            {mentorReport.keyAdvice.map((advice, index) => <li key={index}>
-                              <span className={assistantStyles.number} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-                              <span>{advice}</span>
-                            </li>)}
-                          </ol>}
-                          {mentorReport.conclusion && <div className={assistantStyles.conclusion}>
-                            <h5>이어서 확인할 내용</h5>
-                            <p>{mentorReport.conclusion.desc}</p>
-                          </div>}
-                          <p className={assistantStyles.note}>공개정보를 바탕으로 AI가 작성한 설명이에요. 중요한 수치는 원문과 함께 확인해주세요.</p>
-                          <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
-                        </>}
-                        {!mentorLoading && mentorError && <>
-                          <p role="alert">{mentorError}</p>
-                          {mentorError.includes('로그인') ? <button type="button" className={assistantStyles.action}
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}>로그인하고 질문하기</button>
-                            : <button type="button" className={assistantStyles.action}
-                              onClick={() => handleMentorSelect(selectedMentor.id, true)}>다시 요청하기</button>}
-                        </>}
-                      </section>
-                    )}
                   </div>
                 )}
 

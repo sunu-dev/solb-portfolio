@@ -47,6 +47,12 @@ export function useFocusTrap(
 
     const onKey = (e: KeyboardEvent) => {
       if (activeTraps.at(-1) !== token) return;
+      if (e.key !== 'Tab' && e.key !== 'Escape') return;
+      // A native modal (for example login) owns keyboard navigation above this
+      // custom dialog. A custom trap inside that modal may still handle its keys.
+      const nativeModal = document.activeElement?.closest('dialog:modal')
+        ?? document.querySelector('dialog:modal');
+      if (nativeModal && !nativeModal.contains(container)) return;
       if (e.key === 'Escape' && escapeRef.current) {
         e.preventDefault();
         e.stopPropagation();

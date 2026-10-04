@@ -1,10 +1,9 @@
 .section { container-type: inline-size; margin: 8px 0 28px; min-width: 0; scroll-margin-top: 56px; }
 .overview { min-width: 0; }
 .questions { margin-top: 32px; }
-.answer { margin-top: 20px; border: 1px solid var(--border-strong); border-radius: 16px; padding: 24px; background: var(--surface); color: var(--text-body); font-size: 14px; line-height: 1.85; word-break: keep-all; overflow-wrap: anywhere; text-wrap: pretty; }
-.answerHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--border-light); }
-.eyebrow { font-size: 12px; font-weight: 650; color: var(--text-secondary); margin: 0 0 4px; }
-.answerTitle { margin: 0; color: var(--text-primary); font-size: 17px; line-height: 1.65; letter-spacing: -0.03em; font-weight: 700; }
+.answer { margin: 0 0 12px; border-bottom: 1px solid var(--border-light); padding: 20px 16px; background: var(--surface); color: var(--text-body); font-size: 14px; line-height: 1.85; word-break: keep-all; overflow-wrap: anywhere; text-wrap: pretty; }
+.answerHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.answerTitle { margin: 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; letter-spacing: -0.02em; font-weight: 650; }
 .close { flex-shrink: 0; display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 10px; background: var(--bg-subtle); color: var(--text-secondary); cursor: pointer; }
 .answer p { margin: 0 0 16px; }
 .advice { margin: 20px 0; padding: 0; list-style: none; display: grid; gap: 14px; }
