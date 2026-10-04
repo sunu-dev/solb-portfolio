@@ -27,6 +27,7 @@ import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
 import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining, readAnalysisQuotaResponse, type AnalysisQuota } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions from './StockAnalysisQuestions';
+import StockAnswerLoading from './StockAnswerLoading';
 import assistantStyles from './StockAssistant.module.css';
 import StockLearning from './StockLearning';
 import AnalysisNavigation from './AnalysisNavigation';
@@ -1449,13 +1450,13 @@ export default function AnalysisPanel() {
                           loading={mentorLoading} onSelect={handleMentorSelect} remaining={aiRemaining}
                           answer={selectedMentor ? (
                             <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
-                              aria-busy={mentorLoading} className={assistantStyles.answer}>
+                              className={assistantStyles.answer}>
                               <div className={assistantStyles.answerHeader}>
                                 <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>주비의 답변 · {displayName}</h4>
                                 <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
                                   aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
                               </div>
-                              {mentorLoading && <p role="status" className={assistantStyles.pending}>확인할 수 있는 자료로 설명을 준비하고 있어요.</p>}
+                              {mentorLoading && <StockAnswerLoading onCancel={closeMentorAnswer} />}
                               {mentorReport && <>
                                 {mentorCachedAt && <p className={assistantStyles.pending}>
                                   {new Date(mentorCachedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}에 받은 답변이에요. 최신 자료와 다를 수 있어요.

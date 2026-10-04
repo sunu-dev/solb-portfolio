@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useId, useState, type ReactNode } from 'react';
-import { Activity, ChevronDown, ChevronRight, Layers, Scale, Search, Shield, Sprout } from 'lucide-react';
+import { Activity, ChevronDown, ChevronRight, Layers, LoaderCircle, Scale, Search, Shield, Sprout } from 'lucide-react';
 import styles from './StockAnalysisQuestions.module.css';
 
 const QUESTIONS = [
@@ -82,7 +82,9 @@ function QuestionButton({ item, selectedId, loading, onSelect }: QuestionButtonP
         <span className={styles.questionTitle}>{item.question}</span>
         <span className={styles.description}>{item.description}</span>
       </span>
-      {selected ? (
+      {selected && loading ? (
+        <LoaderCircle className={`${styles.arrow} ${styles.pendingIcon}`} size={18} strokeWidth={1.7} aria-hidden="true" />
+      ) : selected ? (
         <ChevronDown className={styles.arrow} size={18} strokeWidth={1.7} aria-hidden="true" />
       ) : (
         <ChevronRight className={styles.arrow} size={18} strokeWidth={1.7} aria-hidden="true" />
@@ -95,7 +97,6 @@ export default function StockAnalysisQuestions({ selectedId, loading, onSelect, 
   const headingId = useId();
   const moreId = useId();
   const [showMore, setShowMore] = useState(false);
-  const selectedQuestion = QUESTIONS.find(question => question.id === selectedId);
   const selectedAdditionalQuestion = QUESTIONS.slice(3).find(question => question.id === selectedId);
 
   return (
@@ -148,9 +149,6 @@ export default function StockAnalysisQuestions({ selectedId, loading, onSelect, 
         )) : null}
       </div>
 
-      <p className={styles.screenReaderOnly} role="status" aria-live="polite" aria-atomic="true">
-        {loading && selectedQuestion ? `주비가 ‘${selectedQuestion.question}’ 설명을 준비하고 있어요.` : ''}
-      </p>
     </section>
   );
 }
