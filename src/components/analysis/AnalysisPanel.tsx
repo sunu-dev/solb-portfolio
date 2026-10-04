@@ -29,6 +29,7 @@ import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions from './StockAnalysisQuestions';
 import assistantStyles from './StockAssistant.module.css';
 import StockLearning from './StockLearning';
+import AnalysisNavigation from './AnalysisNavigation';
 import { isSingleStockLeverage, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
 import AiResultMeta from '@/components/common/AiResultMeta';
 import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
@@ -363,6 +364,7 @@ export default function AnalysisPanel() {
   const usdKrw = fx.rate;
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  const analysisBodyRef = useRef<HTMLDivElement>(null);
 
   const close = useCallback(() => {
     setAnalysisSymbol(null);
@@ -763,34 +765,13 @@ export default function AnalysisPanel() {
             </div>
           </div>
 
+          {!loading && <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
+            hasChart={!!analysis && !isLev} hasFundamentals={!!fundamentals} hasAssistant={!isLev}
+            layoutKey={`${symbol}-${wideMode}`} />}
+
           {/* Scrollable body */}
-          <div className={`flex-1 analysis-body${wideMode && analysis && !isLev ? ' body-2col' : ''}`} style={{ overflowY: 'auto', padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .analysis-anchors { grid-column: 1 / -1; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 2 / span 99; align-self: start; } } @media (max-width: 1023px) { .analysis-anchors { display: none !important; } }`}</style>
-            {/* PC 섹션 점프 칩 (lg+ 전용, 실제 렌더된 섹션만) — 모달 스캔성. 토스블루 회피(중립 칩) */}
-            <div className="analysis-anchors" style={{ position: 'sticky', top: 0, zIndex: 3, display: 'flex', gap: 6, padding: '2px 0 10px', background: 'var(--surface, #FFFFFF)' }}>
-              {analysis && !isLev && (
-                <button
-                  onClick={() => document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                >차트</button>
-              )}
-              <button
-                onClick={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >뉴스</button>
-              {fundamentals && <button
-                onClick={() => document.getElementById('anchor-fundamentals')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-body)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >기업 지표</button>}
-              {!isLev && <button
-                onClick={() => document.getElementById('anchor-assistant')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ fontSize: 12, fontWeight: 600, minHeight: 44, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle)', color: 'var(--text-body)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >주비 노트</button>}
-              <button
-                onClick={() => document.getElementById('anchor-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >배우기</button>
-            </div>
+          <div ref={analysisBodyRef} className={`flex-1 analysis-body${wideMode && analysis && !isLev ? ' body-2col' : ''}`} style={{ overflowY: 'auto', minHeight: 0, padding: 24 }}>
+            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 1 / span 99; align-self: start; } }`}</style>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
@@ -1276,24 +1257,6 @@ export default function AnalysisPanel() {
                   </div>
                 )}
 
-                {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
-                <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <StockLearning
-                    key={symbol}
-                    name={displayName}
-                    onChart={analysis && !isLev ? (days) => {
-                      setChartRange(days);
-                      document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } : undefined}
-                    onNews={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                    onNotes={stockData ? () => {
-                      const notes = document.getElementById('anchor-notes');
-                      notes?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      notes?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
-                    } : undefined}
-                  />
-                </div>
-
                 {/* AI 분석 리포트 버튼 */}
                 <button
                   onClick={() => handleAIReportToggle()}
@@ -1524,6 +1487,24 @@ export default function AnalysisPanel() {
                     </div>
                   </div>
                 )}
+
+                {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
+                <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
+                  <StockLearning
+                    key={symbol}
+                    name={displayName}
+                    onChart={analysis && !isLev ? (days) => {
+                      setChartRange(days);
+                      document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } : undefined}
+                    onNews={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    onNotes={stockData ? () => {
+                      const notes = document.getElementById('anchor-notes');
+                      notes?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      notes?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+                    } : undefined}
+                  />
+                </div>
 
                 {analysis && !isLev && (
                   <details className={assistantStyles.technical}>
