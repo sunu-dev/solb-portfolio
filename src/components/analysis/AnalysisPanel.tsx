@@ -24,6 +24,7 @@ import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
+import { buildAnalysisLoadingFacts, type AnalysisLoadingFact } from '@/utils/analysisLoadingFacts';
 import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining, readAnalysisQuotaResponse, type AnalysisQuota } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions from './StockAnalysisQuestions';
@@ -231,6 +232,8 @@ export default function AnalysisPanel() {
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [mentorReport, setMentorReport] = useState<MentorReport | null>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
+  const [mentorLoadingPhase, setMentorLoadingPhase] = useState<'preparing' | 'waiting'>('preparing');
+  const [mentorLoadingFacts, setMentorLoadingFacts] = useState<AnalysisLoadingFact[]>([]);
   const [mentorError, setMentorError] = useState('');
   const [mentorCachedAt, setMentorCachedAt] = useState<number | null>(null);
   const [mentorErrorAction, setMentorErrorAction] = useState<'login' | 'daily' | 'unavailable' | 'retry'>('retry');
@@ -489,6 +492,8 @@ export default function AnalysisPanel() {
     mentorRequestRef.current = controller;
     const isCurrent = () => !controller.signal.aborted && mentorRequestRef.current === controller
       && usePortfolioStore.getState().analysisSymbol === symbol;
+    setMentorLoadingPhase('preparing');
+    setMentorLoadingFacts([]);
     setMentorLoading(true);
     try {
       const [{ data: { session } }, { buildTimeSeriesContext }, refreshedQuote] = await Promise.all([
@@ -502,6 +507,12 @@ export default function AnalysisPanel() {
         return;
       }
       if (refreshedQuote?.c) usePortfolioStore.getState().updateMacroEntry(symbol, refreshedQuote);
+      const requestVolumeRatio = getStockVolumeRatio(rawCandles[symbol]);
+      setMentorLoadingFacts(buildAnalysisLoadingFacts({
+        price: requestPrice, currency: fundamentalsCurrency, volRatio: requestVolumeRatio,
+        per: fundamentals?.per, eps: fundamentals?.eps,
+      }));
+      setMentorLoadingPhase('waiting');
       const response = await fetch('/api/ai-analysis', {
         method: 'POST', signal: controller.signal,
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
@@ -513,7 +524,7 @@ export default function AnalysisPanel() {
           cross: analysis?.cross, pattern: analysis?.pattern?.name,
           bollingerStatus: analysis?.bollingerStatus?.status,
           macdStatus: analysis?.macdStatus?.status,
-          volRatio: getStockVolumeRatio(rawCandles[symbol]),
+          volRatio: requestVolumeRatio,
           mentorId: mentor.id, per: fundamentals?.per, eps: fundamentals?.eps,
           week52High: fundamentals?.week52High, week52Low: fundamentals?.week52Low,
           sector: fundamentals?.sector,
@@ -1456,7 +1467,8 @@ export default function AnalysisPanel() {
                                 <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
                                   aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
                               </div>
-                              {mentorLoading && <StockAnswerLoading onCancel={closeMentorAnswer} />}
+                              {mentorLoading && <StockAnswerLoading onCancel={closeMentorAnswer}
+                                stockName={displayName} phase={mentorLoadingPhase} facts={mentorLoadingFacts} />}
                               {mentorReport && <>
                                 {mentorCachedAt && <p className={assistantStyles.pending}>
                                   {new Date(mentorCachedAt).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}에 받은 답변이에요. 최신 자료와 다를 수 있어요.
