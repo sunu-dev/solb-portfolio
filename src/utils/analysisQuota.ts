@@ -38,6 +38,9 @@ export function readAnalysisQuotaResponse(data: unknown, now = Date.now()): Anal
     && response.limitReached === true && isRemaining(response.dailyLimit);
   if (response.success !== true && response.code !== 'daily_user_limit' && !legacyDailyLimit) return null;
 
-  const day = getAnalysisDay(now);
+  const day = response.day === undefined ? getAnalysisDay(now)
+    : typeof response.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(response.day)
+      && getAnalysisDay(Date.parse(`${response.day}T00:00:00+09:00`)) === response.day
+      ? response.day : '';
   return day ? { remaining: response.remaining, day } : null;
 }

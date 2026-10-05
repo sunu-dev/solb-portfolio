@@ -39,6 +39,16 @@ describe('daily AI analysis quota', () => {
     }
   });
 
+  it('keeps the server accounting date when a response crosses Korean midnight', () => {
+    const quota = readAnalysisQuotaResponse({ success: true, remaining: 0, day: '2026-10-04' }, MIDNIGHT);
+    expect(quota).toEqual({ remaining: 0, day: '2026-10-04' });
+    expect(getAnalysisRemaining(quota, MIDNIGHT)).toBeNull();
+  });
+
+  it.each(['2026-02-30', '2026-13-01', 'yesterday', '', null, 42])('rejects an invalid explicit accounting date: %s', day => {
+    expect(readAnalysisQuotaResponse({ success: true, remaining: 0, day }, MIDNIGHT)).toBeNull();
+  });
+
   it.each([
     { loginForMore: true, limitReached: true, remaining: 0 },
     { code: 'rate_limit', remaining: 0, resetAt: 1_800_000_000 },

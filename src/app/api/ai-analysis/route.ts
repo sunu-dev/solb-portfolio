@@ -7,6 +7,7 @@ import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
+import { getAnalysisUsage } from '@/lib/analysisUsage';
 import { isSingleStockLeverage, LEVERAGE_HOLDING_RISK_NOTE } from '@/utils/leverageGuard';
 import { recordAiCost } from '@/lib/aiCostLedger';
 import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
@@ -24,8 +25,6 @@ const GEMINI_KEYS = [
 ].filter(Boolean) as string[];
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 const DAILY_LIMIT_TOTAL = parseInt(process.env.AI_DAILY_LIMIT_TOTAL || '250', 10);
-
-const CHOK_USAGE_TAG = 'ai-chok';
 
 // Supabase server client
 
@@ -68,38 +67,15 @@ function getTodayKST(): string {
   return kst.toISOString().split('T')[0];
 }
 
-// AI 분석 사용량 — mentor_id != 'ai-chok' 만 카운트 (촉과 분리)
-async function getAnalysisUsage(userId: string): Promise<{ available: boolean; userCount: number; totalCount: number }> {
-  // 사용량은 전체 사용자 합산을 포함하므로 service role로만 조회한다.
-  // anon client에 맡기면 RLS 정책에 따라 0으로 집계되거나 요청 전체가 503으로 닫힌다.
-  const supabaseAdmin = getServiceClient();
-  if (!supabaseAdmin) return { available: false, userCount: 0, totalCount: 0 };
-  const today = getTodayKST();
-  try {
-    const [totalResult, userResult] = await Promise.all([
-      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true }).eq('date', today),
-      supabaseAdmin.from('ai_usage').select('*', { count: 'exact', head: true })
-        .eq('date', today).eq('user_id', userId)
-        .or(`mentor_id.is.null,mentor_id.neq.${CHOK_USAGE_TAG}`),
-    ]);
-    if (totalResult.error || userResult.error) {
-      console.error('[AI analysis] usage guard unavailable:', totalResult.error?.message || userResult.error?.message);
-      return { available: false, userCount: 0, totalCount: 0 };
-    }
-    return { available: true, userCount: userResult.count || 0, totalCount: totalResult.count || 0 };
-  } catch {
-    return { available: false, userCount: 0, totalCount: 0 };
-  }
-}
-
-async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string) {
+async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string, day: string) {
   const client = getServiceClient() ?? getAuthClient();
   if (!client) return false;
   try {
     const { error } = await client.from('ai_usage').insert({
       ip,
       user_id: userId,
-      date: getTodayKST(),
+      // Keep a request that crosses midnight on the day its limit was checked.
+      date: day,
       symbol: symbol || null,
       mentor_id: mentorId || null,
     });
@@ -187,23 +163,55 @@ function enforceLeverageReport(report: unknown): unknown {
   return r;
 }
 
-export async function POST(req: NextRequest) {
-  // 인증을 설정·레이트리밋·본문 파싱보다 먼저 확인한다.
-  // 비로그인 요청이 AI 상태를 추측하거나 잘못된 본문으로 500을 만들지 않게 한다.
-  let userId: string | undefined;
+async function getAuthenticatedUserId(req: NextRequest): Promise<string | undefined> {
   const authHeader = req.headers.get('authorization');
   const supabase = getAuthClient();
   if (authHeader?.startsWith('Bearer ') && supabase) {
     try {
       const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-      userId = user?.id;
+      return user?.id;
     } catch { /* not logged in */ }
   }
+  return undefined;
+}
+
+/** Read-only preflight: no model, usage insert, cost ledger, or rate-limit record. */
+export async function GET(req: NextRequest) {
+  const headers = { 'Cache-Control': 'private, no-store' };
+  const userId = await getAuthenticatedUserId(req);
+  if (!userId) {
+    return NextResponse.json({
+      error: 'AI 분석은 로그인 후 이용할 수 있어요.',
+      code: 'unauthorized',
+      loginForMore: true,
+    }, { status: 401, headers });
+  }
+
+  const [usage, tier] = await Promise.all([getAnalysisUsage(userId), getUserTier(userId)]);
+  if (!usage.available) {
+    return NextResponse.json({
+      error: 'AI 사용량을 확인하지 못했어요. 잠시 후 다시 확인해주세요.',
+      code: 'daily_usage_unavailable',
+    }, { status: 503, headers });
+  }
+  const dailyLimit = getTierLimits(tier).analysisDaily;
+  return NextResponse.json({
+    success: true,
+    remaining: Math.max(0, dailyLimit - usage.userCount),
+    dailyLimit,
+    tier,
+    day: usage.day,
+  }, { headers });
+}
+
+export async function POST(req: NextRequest) {
+  // 인증을 설정·레이트리밋·본문 파싱보다 먼저 확인한다.
+  // 비로그인 요청이 AI 상태를 추측하거나 잘못된 본문으로 500을 만들지 않게 한다.
+  const userId = await getAuthenticatedUserId(req);
   if (!userId) {
     return NextResponse.json({
       error: 'AI 분석은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
       limitReached: true,
-      remaining: 0,
       loginForMore: true,
     }, { status: 401 });
   }
@@ -249,11 +257,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '분석할 종목과 시세 정보를 확인해주세요.' }, { status: 400 });
   }
 
+  const requestedMentorId = (body as Record<string, unknown>).mentorId;
+  if (requestedMentorId != null && (
+    typeof requestedMentorId !== 'string'
+    || (requestedMentorId.trim() !== '' && !Object.hasOwn(MENTOR_MAP, requestedMentorId.trim()))
+  )) {
+    await gate.finalize(400, 'invalid_mentor');
+    return NextResponse.json({ error: '질문 유형을 다시 선택해주세요.', code: 'invalid_mentor' }, { status: 400 });
+  }
+
   // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
   const tier = await getUserTier(userId);
   const perUserLimit = getTierLimits(tier).analysisDaily;
 
-  const { available: usageAvailable, userCount, totalCount } = await getAnalysisUsage(userId!);
+  const { available: usageAvailable, userCount, totalCount, day } = await getAnalysisUsage(userId!);
 
   if (!usageAvailable) {
     await gate.finalize(503, 'daily_usage_unavailable');
@@ -284,6 +301,7 @@ export async function POST(req: NextRequest) {
       remaining: 0,
       dailyLimit: perUserLimit,
       tier,
+      day,
     }, { status: 429 });
   }
 
@@ -492,7 +510,7 @@ ${responseFormat}`;
 
         // 성공: 사용량 기록 (병렬)
         const [usageRecorded] = await Promise.all([
-          recordUsage(ip, symbol, mentorId, userId!),
+          recordUsage(ip, symbol, mentorId, userId!, day),
           recordGeminiKeyUsage(keyIndex),
         ]);
         const newTotal = totalCount + 1;
@@ -510,12 +528,12 @@ ${responseFormat}`;
           const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
           await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
           await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
-          return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier });
+          return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, day });
         } catch {
           await gate.finalize(200, usageRecorded ? 'parse_fallback' : 'usage_record_failed');
           const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
           await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
-          return NextResponse.json({ success: true, report: fbReport, remaining, dailyLimit: perUserLimit, tier });
+          return NextResponse.json({ success: true, report: fbReport, remaining, dailyLimit: perUserLimit, tier, day });
         }
       } catch (e) {
         lastError = e;
@@ -543,16 +561,16 @@ ${responseFormat}`;
         if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
         const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
         await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
-        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!);
+        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
         const newTotal = totalCount + 1;
         const remaining = perUserLimit - userCount - 1;
         if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
           sendSlackAlert(newTotal);
         }
         await gate.finalize(200, usageRecorded ? `fallback_${aiRes.provider}` : 'usage_record_failed');
-        return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, provider: aiRes.provider });
+        return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, day, provider: aiRes.provider });
       } catch {
-        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!);
+        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
         await gate.finalize(200, usageRecorded ? 'fallback_parse_fail' : 'usage_record_failed');
         const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
         await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
@@ -562,6 +580,7 @@ ${responseFormat}`;
           remaining: perUserLimit - userCount - 1,
           dailyLimit: perUserLimit,
           tier,
+          day,
           provider: aiRes.provider,
         });
       }

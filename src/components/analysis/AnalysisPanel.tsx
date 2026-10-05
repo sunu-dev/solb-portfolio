@@ -7,6 +7,8 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { lockBodyScroll } from '@/lib/bodyScrollLock';
 import { useCandleData, fetchKoreanNews } from '@/hooks/useStockData';
+import { useAnalysisQuota } from '@/hooks/useAnalysisQuota';
+import { useNow } from '@/hooks/useNow';
 import {
   calcSMA, calcRSI, calcBollingerBands, calcMACD,
   detectTrend, detectCross, detectPattern, generateSummary,
@@ -25,7 +27,7 @@ import Disclaimer from '@/components/common/Disclaimer';
 import type { Mentor } from '@/config/mentors';
 import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
 import { buildAnalysisLoadingFacts, type AnalysisLoadingFact } from '@/utils/analysisLoadingFacts';
-import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining, readAnalysisQuotaResponse, type AnalysisQuota } from '@/utils/analysisQuota';
+import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions from './StockAnalysisQuestions';
 import StockAnswerLoading from './StockAnswerLoading';
@@ -238,24 +240,8 @@ export default function AnalysisPanel() {
   const [mentorCachedAt, setMentorCachedAt] = useState<number | null>(null);
   const [mentorErrorAction, setMentorErrorAction] = useState<'login' | 'daily' | 'unavailable' | 'retry'>('retry');
   const mentorRequestRef = useRef<AbortController | null>(null);
-  const [aiQuota, setAiQuota] = useState<AnalysisQuota | null>(null);
-  const aiRemaining = aiQuota?.remaining ?? null;
-
-  useEffect(() => {
-    if (!aiQuota) return;
-    const expire = () => {
-      if (getAnalysisRemaining(aiQuota) === null) setAiQuota(null);
-    };
-    const nextDay = Date.parse(`${aiQuota.day}T00:00:00+09:00`) + 24 * 60 * 60 * 1000;
-    const timer = setTimeout(expire, Math.max(0, nextDay - Date.now()));
-    window.addEventListener('focus', expire);
-    document.addEventListener('visibilitychange', expire);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('focus', expire);
-      document.removeEventListener('visibilitychange', expire);
-    };
-  }, [aiQuota]);
+  const { quota: aiQuota, remaining: aiRemaining, status: quotaStatus, acceptResponse: acceptQuotaResponse } = useAnalysisQuota(!!analysisSymbol);
+  const now = useNow();
   const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
   const hasFundamentalValues = !!fundamentals && (
     [fundamentals.per, fundamentals.eps, fundamentals.marketCap,
@@ -471,14 +457,15 @@ export default function AnalysisPanel() {
     const mentor = MENTORS.find(item => item.id === id);
     if (!mentor || mentorRequestRef.current) return;
     if (selectedMentor?.id === id && !retry) { closeMentorAnswer(); return; }
+    const cacheKey = `${symbol}-${id}`;
+    const cached = mentorReportCache[cacheKey];
+    if (quotaStatus === 'checking' && (retry || !cached)) return;
     setSelectedMentor(mentor);
     setMentorReport(null);
     setMentorError('');
     setMentorCachedAt(null);
     setMentorErrorAction('retry');
-    const cacheKey = `${symbol}-${id}`;
-    const cached = mentorReportCache[cacheKey];
-    if (!retry && cached && (Date.now() - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0)) {
+    if (!retry && cached && (now - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0 || quotaStatus === 'checking')) {
       setMentorReport(cached.report);
       setMentorCachedAt(cached.timestamp);
       return;
@@ -533,8 +520,7 @@ export default function AnalysisPanel() {
       });
       const data = await response.json();
       if (!isCurrent()) return;
-      const quota = readAnalysisQuotaResponse(data);
-      if (quota) setAiQuota(quota);
+      const quota = acceptQuotaResponse(data, session?.user.id ?? null);
       if (response.ok && data.success && data.report) {
         setMentorReport(data.report);
         mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
@@ -564,13 +550,14 @@ export default function AnalysisPanel() {
     // 단일종목 레버리지: AI 분석 거부 — API 호출·쿼터 차감·로딩 없이 거부 카드만 토글 (§6).
     if (isLev) { setShowAIReport(p => !p); return; }
     if (showAIReport && !retry) { setShowAIReport(false); return; }
+    const cached = symbol ? aiReportCache[symbol] : null;
+    if (quotaStatus === 'checking' && !aiReport && !cached) return;
     setShowAIReport(true);
     setAiError('');
     setAiErrorAction('retry');
     if (aiReport) return; // already loaded
     // Check cache first
-    const cached = symbol ? aiReportCache[symbol] : null;
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0)) {
+    if (cached && (now - cached.timestamp < CACHE_TTL || getAnalysisRemaining(aiQuota) === 0 || quotaStatus === 'checking')) {
       setAiReport(cached.report);
       return;
     }
@@ -657,8 +644,7 @@ export default function AnalysisPanel() {
       });
       const data = await resp.json();
       if (!isCurrent()) return;
-      const quota = readAnalysisQuotaResponse(data);
-      if (quota) setAiQuota(quota);
+      const quota = acceptQuotaResponse(data, session?.user.id ?? null);
       if (resp.ok && data.success && data.report) {
         setAiReport(data.report);
         if (symbol) aiReportCache[symbol] = { report: data.report, timestamp: Date.now() };
@@ -683,6 +669,13 @@ export default function AnalysisPanel() {
       }
     }
   };
+
+  const cacheReadable = (entry: { timestamp: number } | undefined) => !!entry
+    && (now - entry.timestamp < CACHE_TTL || aiRemaining === 0 || quotaStatus === 'checking');
+  const cachedQuestionIds = MENTORS.filter(mentor => cacheReadable(mentorReportCache[`${symbol}-${mentor.id}`])).map(mentor => mentor.id);
+  const hasCachedAnalysis = cacheReadable(aiReportCache[symbol]);
+  const aiActionBlocked = !isLev && !showAIReport && !aiReport && !hasCachedAnalysis
+    && (quotaStatus === 'checking' || aiRemaining === 0);
 
   return (
     <>
@@ -1272,14 +1265,14 @@ export default function AnalysisPanel() {
                 {/* AI 분석 리포트 버튼 */}
                 <button
                   onClick={() => handleAIReportToggle()}
-                  disabled={aiLoading}
+                  disabled={aiLoading || aiActionBlocked}
                   className="flex items-center justify-center transition-colors disabled:cursor-default"
                   style={{
                     width: '100%',
                     padding: 14,
                     // 레버리지: 회색 disabled(고장처럼)가 아니라 의도적 정책임을 앰버 톤으로
-                    background: isLev ? 'rgba(245,158,11,0.10)' : aiLoading ? 'var(--bg-subtle)' : 'var(--pill-active-bg)',
-                    color: isLev ? '#B45309' : aiLoading ? 'var(--text-secondary)' : 'var(--pill-active-fg)',
+                    background: isLev ? 'rgba(245,158,11,0.10)' : aiLoading || aiActionBlocked ? 'var(--bg-subtle)' : 'var(--pill-active-bg)',
+                    color: isLev ? '#B45309' : aiLoading || aiActionBlocked ? 'var(--text-secondary)' : 'var(--pill-active-fg)',
                     borderRadius: 12,
                     fontSize: isLev ? 13.5 : 15,
                     fontWeight: isLev ? 700 : 600,
@@ -1287,18 +1280,19 @@ export default function AnalysisPanel() {
                     marginBottom: 24,
                     gap: 8,
                     flexWrap: 'wrap',
-                    cursor: aiLoading ? 'default' : 'pointer',
+                    cursor: aiLoading || aiActionBlocked ? 'default' : 'pointer',
                   }}
                 >
                   {isLev
                     ? <><ShieldAlert size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">이 상품은 AI 분석을 제공하지 않아요</span></>
-                    : <><Sparkles size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">{aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : aiReport ? '받은 AI 분석 보기' : aiRemaining === 0 ? '오늘 AI 분석을 모두 사용했어요' : '주비 AI에게 분석 요청하기'}</span></>}
+                    : <><Sparkles size={17} style={{ flexShrink: 0 }} aria-hidden="true" /><span className="reading-title">{aiLoading ? 'AI 분석 중...' : showAIReport ? 'AI 분석 닫기' : aiReport || hasCachedAnalysis ? '받은 AI 분석 보기' : quotaStatus === 'checking' ? '남은 횟수 확인 중' : aiRemaining === 0 ? '오늘 AI 분석을 모두 사용했어요' : '주비 AI에게 분석 요청하기'}</span></>}
                   {aiRemaining !== null && !showAIReport && !aiLoading && !isLev && (
                     <span style={{ fontSize: 10, opacity: 0.7, marginLeft: 6 }}>({aiRemaining}회 남음)</span>
                   )}
                 </button>
                 {!isLev && (
                   <div className="reading-copy" style={{ marginTop: -14, marginBottom: 24, textAlign: 'center', fontSize: 12, lineHeight: 1.65, color: 'var(--text-body)' }}>
+                    {aiRemaining === 0 && <span style={{ display: 'block', marginBottom: 6 }}>새 분석은 내일 0시(한국시간)에 다시 이용할 수 있어요.</span>}
                     AI에는 종목·공개 시세·지표·뉴스만 전송하며, 평단·수량·목표·메모는 보내지 않아요.
                   </div>
                 )}
@@ -1349,7 +1343,7 @@ export default function AnalysisPanel() {
 
                     {aiError && (
                       <div role="alert" style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6 }}>
-                        {aiErrorAction === 'daily' && aiRemaining !== 0 ? '날짜가 바뀌었어요. 새 분석을 요청할 수 있어요.' : aiError}
+                        {aiErrorAction === 'daily' && (aiRemaining ?? 0) > 0 ? '새 분석을 요청할 수 있어요.' : aiError}
                         {aiErrorAction === 'login' ? (
                           <div style={{ marginTop: 10 }}>
                             <button
@@ -1361,7 +1355,8 @@ export default function AnalysisPanel() {
                           </div>
                         ) : aiErrorAction !== 'unavailable' && (aiErrorAction !== 'daily' || aiRemaining !== 0) ? (
                           <div style={{ marginTop: 8 }}>
-                            <button type="button" className={assistantStyles.action} onClick={() => handleAIReportToggle(true)}>다시 요청하기</button>
+                            <button type="button" className={assistantStyles.action} disabled={quotaStatus === 'checking' || aiRemaining === 0}
+                              onClick={() => handleAIReportToggle(true)}>{quotaStatus === 'checking' ? '횟수 확인 중' : '다시 요청하기'}</button>
                           </div>
                         ) : null}
                       </div>
@@ -1459,6 +1454,7 @@ export default function AnalysisPanel() {
                       <div className={assistantStyles.questions}>
                         <StockAnalysisQuestions key={symbol} selectedId={selectedMentor?.id ?? null}
                           loading={mentorLoading} onSelect={handleMentorSelect} remaining={aiRemaining}
+                          quotaStatus={quotaStatus} cachedQuestionIds={cachedQuestionIds}
                           answer={selectedMentor ? (
                             <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
                               className={assistantStyles.answer}>
@@ -1488,11 +1484,12 @@ export default function AnalysisPanel() {
                                 <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
                               </>}
                               {!mentorLoading && mentorError && <>
-                                <p role="alert">{mentorErrorAction === 'daily' && aiRemaining !== 0 ? '날짜가 바뀌었어요. 새 답변을 요청할 수 있어요.' : mentorError}</p>
+                                <p role="alert">{mentorErrorAction === 'daily' && (aiRemaining ?? 0) > 0 ? '새 답변을 요청할 수 있어요.' : mentorError}</p>
                                 {mentorErrorAction === 'login' ? <button type="button" className={assistantStyles.action}
                                   onClick={() => window.dispatchEvent(new CustomEvent('open-login'))}>로그인하고 질문하기</button>
                                   : mentorErrorAction !== 'unavailable' && (mentorErrorAction !== 'daily' || aiRemaining !== 0) ? <button type="button" className={assistantStyles.action}
-                                    onClick={() => handleMentorSelect(selectedMentor.id, true)}>다시 요청하기</button> : null}
+                                    disabled={quotaStatus === 'checking' || aiRemaining === 0}
+                                    onClick={() => handleMentorSelect(selectedMentor.id, true)}>{quotaStatus === 'checking' ? '횟수 확인 중' : '다시 요청하기'}</button> : null}
                               </>}
                             </section>
                           ) : null} />
