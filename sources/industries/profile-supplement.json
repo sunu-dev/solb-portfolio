@@ -1,0 +1,494 @@
+{
+  "records": [
+    {
+      "symbol": "AMRO",
+      "name": "Amaero Inc.",
+      "industry": "Other Industrial Metals & Mining",
+      "url": "https://stockanalysis.com/stocks/amro/company/",
+      "checkedAt": "2026-10-10T15:40:08.010Z"
+    },
+    {
+      "symbol": "ATAI",
+      "name": "AtaiBeckley Inc.",
+      "industry": "Biotechnology",
+      "url": "https://stockanalysis.com/stocks/atai/company/",
+      "checkedAt": "2026-10-10T15:40:08.251Z",
+      "listingNote": "Sept 11, 2026 - ATAI was delisted (reason: acquired by LLY)"
+    },
+    {
+      "symbol": "BLFS",
+      "name": "BioLife Solutions, Inc.",
+      "industry": "Medical Instruments & Supplies",
+      "url": "https://stockanalysis.com/stocks/blfs/company/",
+      "checkedAt": "2026-10-10T15:40:08.277Z",
+      "listingNote": "Oct 6, 2026 - BLFS was delisted (reason: acquired by RGEN)"
+    },
+    {
+      "symbol": "BRNS",
+      "name": "Barinthus Biotherapeutics plc",
+      "industry": "Biotechnology",
+      "url": "https://stockanalysis.com/stocks/brns/company/",
+      "checkedAt": "2026-10-10T15:40:08.634Z",
+      "listingNote": "Sep 9, 2026 - BRNS was delisted (reason: merged with CLYD)"
+    },
+    {
+      "symbol": "CHWM",
+      "name": "Chilwa Minerals Limited",
+      "industry": "Other Industrial Metals & Mining",
+      "url": "https://stockanalysis.com/stocks/chwm/company/",
+      "checkedAt": "2026-10-10T15:40:09.029Z"
+    },
+    {
+      "symbol": "COLA",
+      "name": "Columbus Acquisition Corp",
+      "industry": "Shell Companies",
+      "url": "https://stockanalysis.com/stocks/cola/company/",
+      "checkedAt": "2026-10-10T15:40:09.053Z"
+    },
+    {
+      "symbol": "CURX",
+      "name": "Curanex Pharmaceuticals Inc",
+      "industry": "Biotechnology",
+      "url": "https://stockanalysis.com/stocks/curx/company/",
+      "checkedAt": "2026-10-10T15:40:09.538Z"
+    },
+    {
+      "symbol": "CYCN",
+      "name": "Cyclerion Therapeutics, Inc.",
+      "industry": "Biotechnology",
+      "url": "https://stockanalysis.com/stocks/cycn/company/",
+      "checkedAt": "2026-10-10T15:40:09.537Z"
+    },
+    {
+      "symbol": "DBRG",
+      "name": "DigitalBridge Group, Inc.",
+      "industry": "Asset Management",
+      "url": "https://stockanalysis.com/stocks/dbrg/company/",
+      "checkedAt": "2026-10-10T15:40:17.398Z",
+      "listingNote": "Sep 30, 2026 - DBRG was delisted (reason: acquired by SFBQF)"
+    },
+    {
+      "symbol": "FSEA",
+      "name": "First Seacoast Bancorp, Inc.",
+      "industry": "Banks - Regional",
+      "url": "https://stockanalysis.com/stocks/fsea/company/",
+      "checkedAt": "2026-10-10T15:40:10.428Z",
+      "listingNote": "Oct 1, 2026 - FSEA was delisted (reason: acquired by Cambridge Financial)"
+    },
+    {
+      "symbol": "GBTG",
+      "name": "Global Business Travel Group, Inc.",
+      "industry": "Travel Services",
+      "url": "https://stockanalysis.com/stocks/gbtg/company/",
+      "checkedAt": "2026-10-10T15:40:17.639Z",
+      "listingNote": "Sep 29, 2026 - GBTG was delisted (reason: acquired by Long Lake)"
+    },
+    {
+      "symbol": "HCWC",
+      "name": "Healthy Choice Wellness Corp.",
+      "industry": "Grocery Stores",
+      "url": "https://stockanalysis.com/stocks/hcwc/company/",
+      "checkedAt": "2026-10-10T15:40:20.019Z",
+      "listingNote": "Sept 17, 2026 - HCWC was delisted (reason: merged into HOST)"
+    },
+    {
+      "symbol": "HVII",
+      "name": "Hennessy Capital Investment Corp. VII",
+      "industry": "Shell Companies",
+      "url": "https://stockanalysis.com/stocks/hvii/company/",
+      "checkedAt": "2026-10-10T15:40:11.640Z",
+      "listingNote": "Sep 23, 2026 - HVII was delisted (reason: merged into ONEN)"
+    },
+    {
+      "symbol": "IPEX",
+      "name": "Inflection Point Acquisition Corp. V",
+      "industry": "Shell Companies",
+      "url": "https://stockanalysis.com/stocks/ipex/company/",
+      "checkedAt": "2026-10-10T15:40:12.157Z",
+      "listingNote": "Sep 25, 2026 - IPEX was delisted (reason: merged into GOW)"
+    },
+    {
+      "symbol": "LPSN",
+      "name": "LivePerson, Inc.",
+      "industry": "Software - Application",
+      "url": "https://stockanalysis.com/stocks/lpsn/company/",
+      "checkedAt": "2026-10-10T15:40:12.679Z",
+      "listingNote": "Sep 4, 2026 - LPSN was delisted (reason: acquired by SOUN)"
+    },
+    {
+      "symbol": "MAMK",
+      "name": "MaxsMaking Inc.",
+      "industry": "Conglomerates",
+      "url": "https://stockanalysis.com/stocks/mamk/company/",
+      "checkedAt": "2026-10-10T15:40:13.050Z"
+    },
+    {
+      "symbol": "NSTS",
+      "name": "NSTS Bancorp, Inc.",
+      "industry": "Banks - Regional",
+      "url": "https://stockanalysis.com/stocks/nsts/company/",
+      "checkedAt": "2026-10-10T15:40:13.725Z",
+      "listingNote": "Oct 1, 2026 - NSTS was delisted (reason: acquired by Brookfield Bancshares)"
+    },
+    {
+      "symbol": "PLTS",
+      "name": "Platinum Analytics Cayman Limited",
+      "industry": "Software - Application",
+      "url": "https://stockanalysis.com/stocks/plts/company/",
+      "checkedAt": "2026-10-10T15:40:13.752Z"
+    },
+    {
+      "symbol": "QRVO",
+      "name": "Qorvo, Inc.",
+      "industry": "Semiconductors",
+      "url": "https://stockanalysis.com/stocks/qrvo/company/",
+      "checkedAt": "2026-10-10T15:40:14.356Z",
+      "listingNote": "Oct 5, 2026 - QRVO was delisted (reason: merged into SWKS)"
+    },
+    {
+      "symbol": "SLP",
+      "name": "Simulations Plus, Inc.",
+      "industry": "Health Information Services",
+      "url": "https://stockanalysis.com/stocks/slp/company/",
+      "checkedAt": "2026-10-10T15:40:15.299Z",
+      "listingNote": "Oct 6, 2026 - SLP was delisted (reason: acquired by Altaris)"
+    },
+    {
+      "symbol": "TBPH",
+      "name": "Theravance Biopharma, Inc.",
+      "industry": "Biotechnology",
+      "url": "https://stockanalysis.com/stocks/tbph/company/",
+      "checkedAt": "2026-10-10T15:40:16.346Z",
+      "listingNote": "Sep 23, 2026 - TBPH was delisted (reason: acquired by ZYME)"
+    },
+    {
+      "symbol": "VACI",
+      "name": "Viking Acquisition Corp. I",
+      "industry": "Shell Companies",
+      "url": "https://stockanalysis.com/stocks/vaci/company/",
+      "checkedAt": "2026-10-10T15:40:19.248Z"
+    },
+    {
+      "symbol": "VRME",
+      "name": "VerifyMe, Inc.",
+      "industry": "Security & Protection Services",
+      "url": "https://stockanalysis.com/stocks/vrme/company/",
+      "checkedAt": "2026-10-10T15:40:16.346Z"
+    },
+    {
+      "symbol": "WBD",
+      "name": "Warner Bros. Discovery, Inc.",
+      "industry": "Entertainment",
+      "url": "https://stockanalysis.com/stocks/wbd/company/",
+      "checkedAt": "2026-10-10T15:40:16.876Z",
+      "listingNote": "Oct 6, 2026 - WBD was delisted (reason: acquired by SKYD)"
+    }
+  ],
+  "failures": [
+    {
+      "symbol": "ANY",
+      "url": "https://stockanalysis.com/stocks/any/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "AIXC",
+      "url": "https://stockanalysis.com/stocks/aixc/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "BDAI",
+      "url": "https://stockanalysis.com/stocks/bdai/company/",
+      "reason": "No profile industry"
+    },
+    {
+      "symbol": "BRR",
+      "url": "https://stockanalysis.com/stocks/brr/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "BTAI",
+      "url": "https://stockanalysis.com/stocks/btai/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "FCNCN",
+      "url": "https://stockanalysis.com/stocks/fcncn/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "DOMO",
+      "url": "https://stockanalysis.com/stocks/domo/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "DRCT",
+      "url": "https://stockanalysis.com/stocks/drct/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "FEED",
+      "url": "https://stockanalysis.com/stocks/feed/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "FGNX",
+      "url": "https://stockanalysis.com/stocks/fgnx/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "GOOGM",
+      "url": "https://stockanalysis.com/stocks/googm/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "GOOGN",
+      "url": "https://stockanalysis.com/stocks/googn/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "GTERA",
+      "url": "https://stockanalysis.com/stocks/gtera/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "GLMD",
+      "url": "https://stockanalysis.com/stocks/glmd/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "HBANZ",
+      "url": "https://stockanalysis.com/stocks/hbanz/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "HKIT",
+      "url": "https://stockanalysis.com/stocks/hkit/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "HWH",
+      "url": "https://stockanalysis.com/stocks/hwh/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "ILLR",
+      "url": "https://stockanalysis.com/stocks/illr/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "LKSPR",
+      "url": "https://stockanalysis.com/stocks/lkspr/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "LESL",
+      "url": "https://stockanalysis.com/stocks/lesl/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "KWM",
+      "url": "https://stockanalysis.com/stocks/kwm/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "MFICL",
+      "url": "https://stockanalysis.com/stocks/mficl/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "NEWTP",
+      "url": "https://stockanalysis.com/stocks/newtp/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "NHIC",
+      "url": "https://stockanalysis.com/stocks/nhic/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "NVNI",
+      "url": "https://stockanalysis.com/stocks/nvni/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "PSNYW",
+      "url": "https://stockanalysis.com/stocks/psnyw/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "PSKY",
+      "url": "https://stockanalysis.com/stocks/psky/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "RAY",
+      "url": "https://stockanalysis.com/stocks/ray/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SAIQ",
+      "url": "https://stockanalysis.com/stocks/saiq/company/",
+      "reason": "No profile industry"
+    },
+    {
+      "symbol": "SMCIP",
+      "url": "https://stockanalysis.com/stocks/smcip/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "RITR",
+      "url": "https://stockanalysis.com/stocks/ritr/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SPKL",
+      "url": "https://stockanalysis.com/stocks/spkl/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SNYR",
+      "url": "https://stockanalysis.com/stocks/snyr/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SOBR",
+      "url": "https://stockanalysis.com/stocks/sobr/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SVA",
+      "url": "https://stockanalysis.com/stocks/sva/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "WALD",
+      "url": "https://stockanalysis.com/stocks/wald/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "CCID",
+      "url": "https://stockanalysis.com/stocks/ccid/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "WKEY",
+      "url": "https://stockanalysis.com/stocks/wkey/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "CSAN",
+      "url": "https://stockanalysis.com/stocks/csan/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "CFND",
+      "url": "https://stockanalysis.com/stocks/cfnd/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "EIIA",
+      "url": "https://stockanalysis.com/stocks/eiia/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "DXYZ",
+      "url": "https://stockanalysis.com/stocks/dxyz/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "GJT",
+      "url": "https://stockanalysis.com/stocks/gjt/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "GETY",
+      "url": "https://stockanalysis.com/stocks/gety/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "NXDT",
+      "url": "https://stockanalysis.com/stocks/nxdt/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "PDCC",
+      "url": "https://stockanalysis.com/stocks/pdcc/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "GWH",
+      "url": "https://stockanalysis.com/stocks/gwh/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "PYT",
+      "url": "https://stockanalysis.com/stocks/pyt/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "SAV",
+      "url": "https://stockanalysis.com/stocks/sav/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "RVII",
+      "url": "https://stockanalysis.com/stocks/rvii/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "RVI",
+      "url": "https://stockanalysis.com/stocks/rvi/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "SRJN",
+      "url": "https://stockanalysis.com/stocks/srjn/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "SBXD",
+      "url": "https://stockanalysis.com/stocks/sbxd/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "XTND",
+      "url": "https://stockanalysis.com/stocks/xtnd/company/",
+      "reason": "No profile industry"
+    },
+    {
+      "symbol": "FISK",
+      "url": "https://stockanalysis.com/stocks/fisk/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "AMZE",
+      "url": "https://stockanalysis.com/stocks/amze/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "HOST",
+      "url": "https://stockanalysis.com/stocks/host/company/",
+      "reason": "No profile industry"
+    },
+    {
+      "symbol": "OGCP",
+      "url": "https://stockanalysis.com/stocks/ogcp/company/",
+      "reason": "HTTP 404"
+    },
+    {
+      "symbol": "NSTR",
+      "url": "https://stockanalysis.com/stocks/nstr/company/",
+      "reason": "No profile industry"
+    },
+    {
+      "symbol": "PHGE",
+      "url": "https://stockanalysis.com/stocks/phge/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    },
+    {
+      "symbol": "VTAK",
+      "url": "https://stockanalysis.com/stocks/vtak/company/",
+      "reason": "Exact common-stock symbol not confirmed"
+    }
+  ]
+}

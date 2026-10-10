@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storedIndustryFields } from '@/lib/storedIndustry';
+import type { StoredIndustryProfile } from '@/lib/industryRegistry';
 import { logServerApi } from '@/lib/serverLogger';
-import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
+import { getStockCurrency, getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
 const YAHOO_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)';
 
@@ -20,6 +22,7 @@ export interface FundamentalData {
   industry: string | null;   // 산업
   currency: 'KRW' | 'USD';
   resolvedSymbol: string;
+  classification?: StoredIndustryProfile;
 }
 
 export async function GET(req: NextRequest) {
@@ -28,10 +31,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'symbol required' }, { status: 400 });
   }
 
+  const stored = storedIndustryFields(symbol);
+  const canUseProviderIndustry = !['etp', 'shell', 'instrument', 'conflict'].includes(stored.classification.status);
   try {
     let resolvedSymbol = '';
     let meta: YahooMeta | null = null;
-    for (const candidate of getYahooSymbolCandidates(symbol)) {
+    for (const candidate of getYahooSymbolCandidates(stored.classification.symbol)) {
       try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(candidate)}?range=1d&interval=1d`;
         const r = await fetch(url, {
@@ -49,15 +54,15 @@ export async function GET(req: NextRequest) {
         // 접미사 없는 한국 종목은 다음 거래소 후보를 계속 확인한다.
       }
     }
-    if (!meta || !resolvedSymbol) return NextResponse.json({ data: null });
+    if (!resolvedSymbol) resolvedSymbol = stored.classification.symbol;
 
     // quoteSummary for PE, EPS, dividendYield, sector
     const summaryUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(resolvedSymbol)}?modules=defaultKeyStatistics,summaryDetail,assetProfile`;
     let per: number | null = null;
     let eps: number | null = null;
     let dividendYield: number | null = null;
-    let sector: string | null = null;
-    let industry: string | null = null;
+    let sector: string | null = stored.sector;
+    let industry: string | null = stored.industry;
     let week52High: number | null = null;
     let week52Low: number | null = null;
 
@@ -74,27 +79,28 @@ export async function GET(req: NextRequest) {
         const detail = result.summaryDetail || {};
         const profile = result.assetProfile || {};
 
-        per = detail.trailingPE?.raw || stats.trailingPE?.raw || null;
-        eps = stats.trailingEps?.raw || null;
-        dividendYield = detail.dividendYield?.raw ? +(detail.dividendYield.raw * 100).toFixed(2) : null;
+        per = detail.trailingPE?.raw ?? stats.trailingPE?.raw ?? null;
+        eps = stats.trailingEps?.raw ?? null;
+        dividendYield = detail.dividendYield?.raw != null ? +(detail.dividendYield.raw * 100).toFixed(2) : null;
         week52High = detail.fiftyTwoWeekHigh?.raw || null;
         week52Low = detail.fiftyTwoWeekLow?.raw || null;
-        sector = profile.sector || null;
-        industry = profile.industry || null;
+        sector = stored.sector || (canUseProviderIndustry ? profile.sector : null) || null;
+        industry = stored.industry || (canUseProviderIndustry ? profile.industry : null) || null;
       }
     } catch { /* summary not available */ }
 
     const result: FundamentalData = {
       per,
       eps,
-      marketCap: meta.marketCap || null,
+      marketCap: meta?.marketCap || null,
       dividendYield,
       week52High,
       week52Low,
       sector,
       industry,
-      currency: meta.currency === 'KRW' ? 'KRW' : 'USD',
+      currency: getStockCurrency(stored.classification.symbol, meta?.currency === 'KRW' ? 'KRW' : 'USD'),
       resolvedSymbol,
+      classification: stored.classification,
     };
 
     logServerApi('api_fundamentals', { symbol, resolved_symbol: resolvedSymbol });

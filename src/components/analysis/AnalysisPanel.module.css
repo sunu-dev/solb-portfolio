@@ -50,8 +50,8 @@
 .period:hover { color:var(--text-primary); }
 .fundamentals { margin:28px 0; padding:24px 0; border-block:1px solid var(--border-light); scroll-margin-top:48px; }
 .panel [data-context-exploration] { border:0; border-top:1px solid var(--border-light); border-radius:0; padding:24px 0; margin:24px 0; background:var(--surface); }
-.panel [data-context-exploration] button { border-radius:6px; }
-.panel [data-context-exploration] h3 { letter-spacing:-.035em; font-size:20px; }
+.panel [data-context-exploration] button { border-radius:0; }
+.panel [data-context-exploration] h3 { letter-spacing:-.045em; }
 @media(min-width:1024px) {
   .wideControl { display:inline-flex; }
   .panel:global(.wide) { max-width:1160px; }

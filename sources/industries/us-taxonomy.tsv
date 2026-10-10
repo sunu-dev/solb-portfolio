@@ -1,0 +1,146 @@
+# Parent sector | source industry | Korean display name
+communication|Advertising Agencies|광고
+industrials|Aerospace & Defense|항공우주·방위산업
+materials|Agricultural Inputs|농업용 화학·비료
+industrials|Airlines|항공운송
+industrials|Airports & Air Services|공항·항공서비스
+materials|Aluminum|알루미늄
+consumer-discretionary|Apparel Manufacturing|의류 제조
+consumer-discretionary|Apparel Retail|의류 소매
+financials|Asset Management|자산운용
+consumer-discretionary|Auto & Truck Dealerships|자동차 유통
+consumer-discretionary|Auto Manufacturers|완성차
+consumer-discretionary|Auto Parts|자동차 부품
+financials|Banks - Diversified|종합은행
+financials|Banks - Regional|지역은행
+consumer-staples|Beverages - Brewers|맥주
+consumer-staples|Beverages - Non-Alcoholic|비알코올 음료
+consumer-staples|Beverages - Wineries & Distilleries|와인·증류주
+healthcare|Biotechnology|바이오 기술
+communication|Broadcasting|방송
+materials|Building Materials|건축 기초소재
+industrials|Building Products & Equipment|건축 자재·설비
+industrials|Business Equipment & Supplies|업무용 장비·소모품
+financials|Capital Markets|증권·자본시장
+materials|Chemicals|기초 화학
+materials|Coking Coal|제철용 석탄
+technology|Communication Equipment|통신 장비
+technology|Computer Hardware|컴퓨터 하드웨어
+consumer-staples|Confectioners|제과
+industrials|Conglomerates|복합 산업
+industrials|Consulting Services|컨설팅
+technology|Consumer Electronics|전자기기
+materials|Copper|구리
+financials|Credit Services|결제·신용서비스
+consumer-discretionary|Department Stores|백화점
+healthcare|Diagnostics & Research|진단·의학 연구
+consumer-staples|Discount Stores|할인점
+healthcare|Drug Manufacturers - General|종합 제약
+healthcare|Drug Manufacturers - Specialty & Generic|전문·복제약
+consumer-discretionary|Education & Training Services|교육·훈련
+industrials|Electrical Equipment & Parts|전력 장비·부품
+technology|Electronic Components|전자 부품
+communication|Electronic Gaming & Multimedia|게임·멀티미디어
+technology|Electronics & Computer Distribution|전자기기·컴퓨터 유통
+industrials|Engineering & Construction|엔지니어링·건설
+communication|Entertainment|엔터테인먼트
+industrials|Farm & Heavy Construction Machinery|농업·건설 중장비
+consumer-staples|Farm Products|농축산물
+financials|Financial - Diversified|종합 금융서비스
+financials|Financial Conglomerates|금융 복합기업
+financials|Financial Data & Stock Exchanges|금융정보·거래소
+consumer-staples|Food Distribution|식품 유통
+consumer-discretionary|Footwear & Accessories|신발·패션잡화
+consumer-discretionary|Furnishings, Fixtures & Appliances|가구·가전
+consumer-discretionary|Gambling|베팅·복권
+materials|Gold|금
+consumer-staples|Grocery Stores|식료품 소매
+healthcare|Health Information Services|의료 정보서비스
+healthcare|Healthcare Plans|건강보험·관리
+consumer-discretionary|Home Improvement Retail|주택개선 용품 소매
+consumer-staples|Household & Personal Products|생활·개인용품
+industrials|Industrial Distribution|산업용품 유통
+technology|Information Technology Services|IT 서비스
+industrials|Infrastructure Operations|기반시설 운영
+financials|Insurance - Diversified|종합보험
+financials|Insurance - Life|생명보험
+financials|Insurance - Property & Casualty|손해보험
+financials|Insurance - Reinsurance|재보험
+financials|Insurance - Specialty|특수보험
+financials|Insurance Brokers|보험중개
+industrials|Integrated Freight & Logistics|종합 물류
+communication|Internet Content & Information|인터넷 콘텐츠·정보
+consumer-discretionary|Internet Retail|온라인 소매
+consumer-discretionary|Leisure|여가용품
+consumer-discretionary|Lodging|숙박
+materials|Lumber & Wood Production|목재
+consumer-discretionary|Luxury Goods|고급 소비재
+industrials|Marine Shipping|해운
+healthcare|Medical Care Facilities|의료시설·진료
+healthcare|Medical Devices|의료기기
+healthcare|Medical Distribution|의료 유통
+healthcare|Medical Instruments & Supplies|의료도구·소모품
+industrials|Metal Fabrication|금속 가공
+financials|Mortgage Finance|주택담보 금융
+energy|Oil & Gas Drilling|원유·가스 시추
+energy|Oil & Gas Equipment & Services|원유·가스 장비·서비스
+energy|Oil & Gas Exploration & Production|원유·가스 탐사·생산
+energy|Oil & Gas Integrated|종합 석유·가스
+energy|Oil & Gas Midstream|원유·가스 운송·저장
+energy|Oil & Gas Refining & Marketing|정유·연료 판매
+materials|Other Industrial Metals & Mining|산업용 금속·광업
+materials|Other Precious Metals & Mining|귀금속·광업
+consumer-staples|Packaged Foods|가공식품
+materials|Packaging & Containers|포장재·용기
+materials|Paper & Paper Products|종이·제지
+consumer-discretionary|Personal Services|개인 서비스
+consumer-staples|Pharmaceutical Retailers|약국·의약품 소매
+industrials|Pollution & Treatment Controls|오염 제어·처리 장비
+communication|Publishing|출판
+real-estate|REIT - Diversified|복합 부동산 리츠
+real-estate|REIT - Healthcare Facilities|의료시설 리츠
+real-estate|REIT - Hotel & Motel|호텔 리츠
+real-estate|REIT - Industrial|산업·물류시설 리츠
+financials|REIT - Mortgage|모기지 리츠
+real-estate|REIT - Office|오피스 리츠
+real-estate|REIT - Residential|주거 리츠
+real-estate|REIT - Retail|상업시설 리츠
+real-estate|REIT - Specialty|특수시설 리츠
+industrials|Railroads|철도운송
+real-estate|Real Estate - Development|부동산 개발
+real-estate|Real Estate - Diversified|종합 부동산
+real-estate|Real Estate Services|부동산 서비스
+consumer-discretionary|Recreational Vehicles|레저용 차량
+industrials|Rental & Leasing Services|장비 임대·리스
+consumer-discretionary|Residential Construction|주택 건설
+consumer-discretionary|Resorts & Casinos|리조트·카지노
+consumer-discretionary|Restaurants|외식
+technology|Scientific & Technical Instruments|과학·계측기기
+industrials|Security & Protection Services|보안·경비
+technology|Semiconductor Equipment & Materials|반도체 장비·소재
+technology|Semiconductors|반도체 제조·설계
+materials|Silver|은
+technology|Software - Application|응용 소프트웨어
+technology|Software - Infrastructure|기반 소프트웨어
+technology|Solar|태양광 장비
+industrials|Specialty Business Services|전문 사업서비스
+materials|Specialty Chemicals|특수 화학
+industrials|Specialty Industrial Machinery|산업용 특수기계
+consumer-discretionary|Specialty Retail|전문 소매
+industrials|Staffing & Employment Services|인력·채용서비스
+materials|Steel|철강
+communication|Telecom Services|통신서비스
+consumer-discretionary|Textile Manufacturing|섬유 제조
+energy|Thermal Coal|발전용 석탄
+consumer-staples|Tobacco|담배
+industrials|Tools & Accessories|공구·부속품
+consumer-discretionary|Travel Services|여행서비스
+industrials|Trucking|도로 화물운송
+energy|Uranium|우라늄
+utilities|Utilities - Diversified|종합 유틸리티
+utilities|Utilities - Independent Power Producers|독립 발전
+utilities|Utilities - Regulated Electric|규제 전력사업
+utilities|Utilities - Regulated Gas|규제 가스사업
+utilities|Utilities - Regulated Water|상하수도
+utilities|Utilities - Renewable|재생에너지 발전
+industrials|Waste Management|폐기물 관리

@@ -32,7 +32,7 @@ import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions, { getStockAnalysisAnswerTitle } from './StockAnalysisQuestions';
 import IntradayStockChart from './IntradayStockChart';
 import ContextExploration from '@/components/explore/ContextExploration';
-import { stockExploration } from '@/lib/contextExploration';
+import { explorationCompany, stockExploration } from '@/lib/contextExploration';
 import StockAnswerLoading from './StockAnswerLoading';
 import assistantStyles from './StockAssistant.module.css';
 import panelStyles from './AnalysisPanel.module.css';
@@ -148,6 +148,7 @@ interface MentorReport extends AnalysisReport {
 }
 
 interface Fundamentals {
+  classification?: import('@/lib/industryRegistry').StoredIndustryProfile;
   per?: number;
   eps?: number;
   marketCap?: number;
@@ -155,6 +156,7 @@ interface Fundamentals {
   week52High?: number;
   week52Low?: number;
   sector?: string;
+  industry?: string;
   currency?: 'KRW' | 'USD';
   resolvedSymbol?: string;
 }
@@ -306,7 +308,7 @@ export default function AnalysisPanel() {
 
   // 단일종목 레버리지·인버스: 매수 매력도·매매 방향(차트 신호·기술 지표 '매수' 배지)을 가리고
   // 위험 해설만 — §6 자문업 차단. 영속 종목명(stockData.name) 우선 → 한국 ETF 16종 키워드 탐지.
-  const displayName = stockData?.name || kr;
+  const displayName = stockData?.name || (symbol ? explorationCompany(symbol)?.name : undefined) || kr;
   const isLev = isSingleStockLeverage(symbol || '', displayName);
 
   const analysis = useMemo(() => {
@@ -1461,7 +1463,7 @@ export default function AnalysisPanel() {
 
                 {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
                 <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <ContextExploration key={symbol} topics={stockExploration(symbol)} context={`${displayName} 살펴보기`} />
+                  <ContextExploration key={symbol} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`} />
                   <StockLearning
                     key={symbol}
                     name={displayName}
