@@ -411,6 +411,16 @@ code, pre, kbd, samp, .font-mono {
   white-space: nowrap;
 }
 
+/* Neutral keyboard focus is the default; pointer interaction has no focus decoration.
+   Components may provide a more specific accessible focus treatment. */
+:where(button, a[href], summary, [role="button"]):focus:not(:focus-visible) {
+  outline: none;
+}
+:where(button, a[href], summary, [role="button"]):focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
 .main-header button:focus-visible {
   outline: 2px solid var(--text-primary) !important;
   outline-offset: 2px;

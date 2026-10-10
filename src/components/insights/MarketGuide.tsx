@@ -15,6 +15,8 @@ import { openEconomicCalendar } from '@/components/economy/EconomicHighlights';
 import ReadingText from '@/components/common/ReadingText';
 import CompanyConnections from './CompanyConnections';
 import styles from './MarketGuide.module.css';
+import ContextExploration from '@/components/explore/ContextExploration';
+import { explorationTopic } from '@/lib/contextExploration';
 
 const dateLabel = (at: string | number) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric' }).format(new Date(at));
 
@@ -143,6 +145,7 @@ function GuideLesson({ guide, entry, draftEntry, updateDraft, save }: {
         : <p className={styles.hint}><ReadingText>{holdings.length === 0 ? '보유·관심 종목을 추가하면 함께 살펴볼 종목을 여기에서 볼 수 있어요.' : unmatchedHint}</ReadingText></p>}
     </section>
     {guide.eventKinds.length > 0 && <GuideFollowup guide={guide} />}
+    <ContextExploration key={guide.id} topics={explorationTopic(guide.id).related} context={guide.category} />
     <details className={styles.notes} open={!!entry?.savedAt || hasLocalDraft}>
     <summary><strong>{entry?.savedAt ? '내 메모' : '메모 남기기'}</strong></summary>
     <section className={styles.section} aria-label="메모">

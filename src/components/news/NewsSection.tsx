@@ -10,6 +10,8 @@ import { NEWS_QUERIES } from '@/config/constants';
 import { decodeNewsTitle, getNewsTargets, mergeRelatedNews, newsClient, NEWS_BATCH_SIZE, NEWS_STALE_MS,
   type NewsQuery, type NewsResponse, type NewsTarget, type RelatedNewsItem } from '@/lib/newsFeed';
 import styles from './NewsSection.module.css';
+import ContextExploration from '@/components/explore/ContextExploration';
+import { newsExploration } from '@/lib/contextExploration';
 
 const NEWS_TABS = [
   { id: 'all', label: '내 종목' }, { id: 'us', label: '미국 시장' },
@@ -146,6 +148,7 @@ export default function NewsSection() {
                 <div className={styles.meta}>{item.source && <span>{item.source}</span>}{published && <time dateTime={item.pubDate}>{published}</time>}</div>
               </div><ArrowUpRight className={styles.external} size={17} aria-hidden="true" />
             </a>
+            <ContextExploration topics={newsExploration(title)} context="이 소식" compact />
           </li>;
         })}
       </ul> : visible.pending && !isEmptyPortfolio ? <div className={styles.skeleton} aria-hidden="true">

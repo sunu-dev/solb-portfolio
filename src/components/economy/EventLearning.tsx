@@ -5,6 +5,8 @@ import type { EconomicKind } from '@/lib/economicEvents';
 import { ECON_EDUCATION, RATE_STORIES } from '@/lib/economicEducation';
 import styles from './EconomicCalendar.module.css';
 import ReadingText from '@/components/common/ReadingText';
+import ContextExploration from '@/components/explore/ContextExploration';
+import { eventExploration } from '@/lib/contextExploration';
 import type { MarketGuideId } from '@/config/marketGuides';
 
 const GUIDE_LINKS: Partial<Record<EconomicKind, { id: MarketGuideId; label: string }>> = {
@@ -48,6 +50,7 @@ export function ImpactPath({ kind }: { kind: EconomicKind }) {
       onClick={() => window.dispatchEvent(new CustomEvent('open-market-guide', { detail: { id: guide.id } }))}>
       {guide.label} <span aria-hidden="true">→</span>
     </button></div>}
+    <ContextExploration key={kind} topics={eventExploration(kind)} context={content.term} />
     <a className={styles.link} href={content.source} target="_blank" rel="noreferrer">용어·원리의 공식 설명 ↗</a>
   </section>;
 }

@@ -50,9 +50,14 @@ export default function JoobiLockup({ variant = 'header' }: Props) {
   }, []);
 
   return (
-    <span className={`joobi-lockup joobi-lockup--${variant}`}>
+    <span className={`joobi-lockup joobi-lockup--${variant}`} style={variant === 'loading' ? {
+      // The initial HTML must stay legible even when the stylesheet fails to load.
+      display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 32,
+      fontFamily: "'Joobi Sunflower', 'Pretendard Variable', Pretendard, sans-serif",
+      fontWeight: 700, lineHeight: 1, whiteSpace: 'nowrap',
+    } : undefined}>
       <span ref={markRef} className="joobi-lockup__motion" aria-hidden="true">
-      <svg className="joobi-lockup__symbol" viewBox="0 0 40 40" fill="none" aria-hidden="true" focusable="false">
+      <svg className="joobi-lockup__symbol" width="40" height="40" viewBox="0 0 40 40" fill="none" aria-hidden="true" focusable="false">
         <path className="joobi-lockup__line" d="M7 31 L15 20 L22 24 L33 10" pathLength="1" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
         <circle className="joobi-lockup__tip" cx="33" cy="10" r="3.2" fill="currentColor" />
       </svg>

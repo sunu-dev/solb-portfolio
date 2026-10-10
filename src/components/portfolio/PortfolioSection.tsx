@@ -16,6 +16,7 @@ import ProDemandOffer from '@/components/pro/ProDemandOffer';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import PortfolioTreemap from './PortfolioTreemap';
+import ContextExploration from '@/components/explore/ContextExploration';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
@@ -1287,6 +1288,7 @@ export default function PortfolioSection() {
               .filter((id) => !isHidden(id))
               .map((id) => <Fragment key={id}>{belowCore[id]?.()}</Fragment>);
           })()}
+          <ContextExploration topics={['currency', 'rates', 'compare']} context="내 투자 이해하기" />
         </div>{/* /.home-stack */}
 
         {/* 결제 없는 가격 가설 검증 — 로그인·적격 사용자·서버 플래그가 모두 맞을 때만 노출. */}

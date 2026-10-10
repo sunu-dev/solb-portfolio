@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { latestIntradaySession } from '@/lib/intradayCandles';
 import { logServerApi } from '@/lib/serverLogger';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
@@ -8,21 +9,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'symbol required' }, { status: 400 });
   }
 
+  const intraday = req.nextUrl.searchParams.get('range') === '1d';
   let fetchFailed = false;
 
   for (const yahooSymbol of getYahooSymbolCandidates(symbol)) {
     try {
       // Yahoo Finance chart API — works for US and KR stocks.
       // 접미사 없는 6자리 한국 코드는 .KS → .KQ 순으로 조회한다.
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1y&interval=1d`;
+      const period = intraday ? 'range=5d&interval=5m&includePrePost=false' : 'range=1y&interval=1d';
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?${period}`;
       const resp = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
         signal: AbortSignal.timeout(8000),
       });
+      if (!resp.ok) { fetchFailed = true; continue; }
       const data = await resp.json();
       const result = data?.chart?.result?.[0];
 
       if (!result?.timestamp || !result?.indicators?.quote?.[0]) continue;
+
+      if (intraday) {
+        const session = latestIntradaySession(result);
+        if (!session) continue;
+        logServerApi('api_candle', { symbol, resolved_symbol: yahooSymbol, points: session.t.length, interval: '5m' });
+        return NextResponse.json(session, { headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30' } });
+      }
 
       const quote = result.indicators.quote[0];
       const timestamps = result.timestamp;

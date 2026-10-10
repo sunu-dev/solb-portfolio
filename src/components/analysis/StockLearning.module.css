@@ -1,8 +1,9 @@
 .card {
   margin-bottom: 24px;
-  padding: 20px;
-  border-radius: 16px;
-  background: var(--bg-subtle);
+  padding: 24px 0;
+  border-top: 1px solid var(--border-light);
+  border-radius: 0;
+  background: var(--surface);
   color: var(--text-primary);
   min-width: 0;
   scroll-margin-top: 56px;
@@ -12,12 +13,12 @@
 .heading svg { flex-shrink: 0; color: var(--text-secondary); }
 .progress { margin-left: auto; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
 .intro { margin: 8px 0 20px; font-size: 14px; line-height: 1.6; color: var(--text-body); overflow-wrap: anywhere; }
-.chartActions { padding: 12px; border-radius: 12px; background: var(--bg-subtle); font-size: 12px; }
+.chartActions { padding: 12px; border-radius: 6px; background: var(--bg-subtle); font-size: 12px; }
 .actions, .topics { display: flex; flex-wrap: wrap; gap: 8px; }
 .actions { margin: 10px 0; }
 .topics { margin-top: 14px; }
-.card button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 12px; background: var(--surface); color: var(--text-primary); font-size: 14px; cursor: pointer; }
-.card .entry { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; padding: 20px; text-align: left; border: none; border-radius: 18px; }
+.card button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--surface); color: var(--text-primary); font-size: 14px; cursor: pointer; }
+.card .entry { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; padding: 20px; text-align: left; border: none; border-radius: 6px; }
 .entry strong { font-size: 20px; line-height: 1.5; letter-spacing: -0.03em; word-break: keep-all; }
 .entry span { color: var(--text-body); font-size: 14px; line-height: 1.65; }
 .entry strong span { color: inherit; font: inherit; }
@@ -32,7 +33,7 @@
 .lesson { padding-top: 18px; }
 .lesson h3 { font-size: 21px; margin: 0 0 16px; line-height: 1.5; letter-spacing: -0.03em; }
 .lesson p { font-size: 15px; color: var(--text-body); line-height: 1.75; margin: 0 0 20px; word-break: keep-all; overflow-wrap: anywhere; }
-.example, .observation { padding: 18px; background: var(--surface); border-radius: 16px; }
+.example, .observation { padding: 18px; background: var(--surface); border-radius: 6px; }
 .quiz { padding: 0; border: 0; margin: 18px 0 8px; min-width: 0; }
 .quiz legend { font-size: 15px; font-weight: 650; margin-bottom: 12px; line-height: 1.6; }
 .quiz label { display: flex; gap: 10px; align-items: center; min-height: 48px; font-size: 15px; cursor: pointer; }
@@ -42,4 +43,4 @@
 .footer a { display: inline-flex; gap: 4px; align-items: center; min-height: 44px; font-size: 12px; color: var(--text-body); text-decoration: underline; }
 .card small { display: block; color: var(--text-body); font-size: 12px; line-height: 1.6; }
 .intro, .entry > span, .lesson p, .quiz legend, .quiz label, .card small { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
-@media (max-width: 380px) { .card { padding: 20px; } .heading h2 { font-size: 19px; } .card button { padding-inline: 12px; } }
+@media (max-width: 380px) { .card { padding: 20px 0; } .heading h2 { font-size: 19px; } .card button { padding-inline: 12px; } }

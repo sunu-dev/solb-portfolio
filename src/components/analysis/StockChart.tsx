@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { tsToDate, usePortfolioStore } from '@/store/portfolioStore';
+import type { Time, UTCTimestamp } from 'lightweight-charts';
 import type { CandleRaw } from '@/config/constants';
 
 // 차트 캔버스 테마 — lightweight-charts는 CSS 변수를 못 받으므로 모드별 concrete hex.
@@ -32,6 +33,7 @@ interface StockChartProps {
   rsiData?: number[];
   visibleBars?: number; // 0 = fit all
   currency?: 'KRW' | 'USD';
+  intradayTimeZone?: string;
 }
 
 export default function StockChart({
@@ -42,6 +44,7 @@ export default function StockChart({
   rsiData,
   visibleBars = 60,
   currency = 'USD',
+  intradayTimeZone,
 }: StockChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
@@ -55,9 +58,16 @@ export default function StockChart({
 
   useEffect(() => {
     if (!containerRef.current || !raw?.t?.length) return;
-    const theme = darkMode ? CHART_THEME.dark : CHART_THEME.light;
-    const borderColor = getComputedStyle(containerRef.current).getPropertyValue('--border-light').trim() || theme.grid;
+    const fallbackTheme = darkMode ? CHART_THEME.dark : CHART_THEME.light;
+    const css = getComputedStyle(containerRef.current);
+    const color = (token: string, fallback: string) => css.getPropertyValue(token).trim() || fallback;
+    const theme = { bg: color('--surface', fallbackTheme.bg), text: color('--text-secondary', fallbackTheme.text), grid: color('--border-light', fallbackTheme.grid), line: color('--text-body', fallbackTheme.line) };
+    const borderColor = theme.grid;
 
+    const toTime = (timestamp: number): Time => intradayTimeZone ? timestamp as UTCTimestamp : tsToDate(timestamp);
+    const timeLabel = (time: Time) => typeof time === 'number' && intradayTimeZone
+      ? new Intl.DateTimeFormat('ko-KR', { timeZone: intradayTimeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time * 1000))
+      : String(time);
     let isMounted = true;
 
     import('lightweight-charts').then((LightweightCharts) => {
@@ -85,8 +95,8 @@ export default function StockChart({
         },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
         rightPriceScale: { borderColor, borderVisible: false },
-        timeScale: { borderColor, timeVisible: false },
-        localization: { locale: 'ko-KR', priceFormatter: (value: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: currency === 'KRW' ? 0 : 2 }) },
+        timeScale: { borderColor, timeVisible: !!intradayTimeZone, secondsVisible: false, ...(intradayTimeZone ? { tickMarkFormatter: timeLabel } : {}) },
+        localization: { locale: 'ko-KR', ...(intradayTimeZone ? { timeFormatter: timeLabel } : {}), priceFormatter: (value: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: currency === 'KRW' ? 0 : 2 }) },
         handleScroll: { vertTouchDrag: false },
       };
 
@@ -96,12 +106,12 @@ export default function StockChart({
       const priceFormat = { type: 'price' as const, precision: currency === 'KRW' ? 0 : 2, minMove: currency === 'KRW' ? 1 : 0.01 };
       // The basic view answers how the closing price changed. Technical detail is opt-in.
       const candleData = raw.t.map((t, i) => ({
-        time: tsToDate(t) as string,
+        time: toTime(t),
         open: raw.o[i], high: raw.h[i], low: raw.l[i], close: raw.c[i],
       }));
       if (level === 'basic') {
         const closingSeries = chart.addSeries(LightweightCharts.LineSeries, {
-          color: theme.line, lineWidth: 2, priceLineVisible: false, lastValueVisible: false, priceFormat,
+          color: theme.line, lineWidth: 2, pointMarkersVisible: raw.t.length === 1, priceLineVisible: false, lastValueVisible: false, priceFormat,
         });
         closingSeries.setData(candleData.map(day => ({ time: day.time, value: day.close })));
       } else {
@@ -125,7 +135,7 @@ export default function StockChart({
         scaleMargins: { top: 0.85, bottom: 0 },
       });
       const volData = raw.t.map((t, i) => ({
-        time: tsToDate(t) as string,
+        time: toTime(t),
         value: raw.v[i],
         color: raw.c[i] >= raw.o[i] ? 'rgba(239,68,82,0.2)' : 'rgba(49,130,246,0.2)',
       }));
@@ -146,7 +156,7 @@ export default function StockChart({
         const d = candleData[idx];
         const prev = idx > 0 ? candleData[idx - 1].close : null;
         const chgPct = prev != null && prev !== 0 ? ((d.close - prev) / prev) * 100 : null;
-        setLegend({ date: String(d.time), o: d.open, h: d.high, l: d.low, c: d.close, v: raw.v[idx] ?? 0, chgPct });
+        setLegend({ date: timeLabel(d.time), o: d.open, h: d.high, l: d.low, c: d.close, v: raw.v[idx] ?? 0, chgPct });
       });
 
       // SMA lines helper
@@ -159,7 +169,7 @@ export default function StockChart({
           crosshairMarkerVisible: false,
         });
         const data = arr.map((v, i) => ({
-          time: tsToDate(raw.t[startIdx + i]) as string,
+          time: toTime(raw.t[startIdx + i]),
           value: v,
         }));
         line.setData(data);
@@ -193,11 +203,11 @@ export default function StockChart({
           crosshairMarkerVisible: false,
         });
         upperLine.setData(bollingerBands.map((b, i) => ({
-          time: tsToDate(raw.t[startIdx + i]) as string,
+          time: toTime(raw.t[startIdx + i]),
           value: b.upper,
         })));
         lowerLine.setData(bollingerBands.map((b, i) => ({
-          time: tsToDate(raw.t[startIdx + i]) as string,
+          time: toTime(raw.t[startIdx + i]),
           value: b.lower,
         })));
         // 볼린저 중심선(20일 이동평균 기준) — 학습 스캐폴딩, 중립 회색 점선
@@ -206,7 +216,7 @@ export default function StockChart({
           priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         midLine.setData(bollingerBands.map((b, i) => ({
-          time: tsToDate(raw.t[startIdx + i]) as string,
+          time: toTime(raw.t[startIdx + i]),
           value: b.middle,
         })));
       }
@@ -253,7 +263,7 @@ export default function StockChart({
           priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
         });
         histSeries.setData(macdData.histogram.map((v, i) => ({
-          time: tsToDate(raw.t[histStart + i]) as string,
+          time: toTime(raw.t[histStart + i]),
           value: v,
           color: v >= 0 ? 'rgba(239,68,82,0.4)' : 'rgba(49,130,246,0.4)',
         })));
@@ -263,7 +273,7 @@ export default function StockChart({
           color: '#3182F6', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         macdLineSeries.setData(macdData.macd.map((v, i) => ({
-          time: tsToDate(raw.t[macdStart + i]) as string, value: v,
+          time: toTime(raw.t[macdStart + i]), value: v,
         })));
         // 0 기준선 — MACD가 0 위/아래(추세 전환 참고). 중립 회색 점선.
         macdLineSeries.createPriceLine({ price: 0, color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '0' });
@@ -273,7 +283,7 @@ export default function StockChart({
           color: '#ffa726', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         signalLineSeries.setData(macdData.signal.map((v, i) => ({
-          time: tsToDate(raw.t[signalStart + i]) as string, value: v,
+          time: toTime(raw.t[signalStart + i]), value: v,
         })));
 
         // Sync visible range with main chart
@@ -314,7 +324,7 @@ export default function StockChart({
           color: '#a29bfe', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         rsiLineSeries.setData(rsiData.map((v, i) => ({
-          time: tsToDate(raw.t[rsiStart + i]) as string, value: v,
+          time: toTime(raw.t[rsiStart + i]), value: v,
         })));
         // 과열 70 / 과매도 30 기준선 — 중립 회색 점선, 임계값 명칭만(행동 유발 표현 금지)
         rsiLineSeries.createPriceLine({ price: 70, color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '과열 70' });
@@ -345,12 +355,12 @@ export default function StockChart({
       observersRef.current.forEach(ro => ro.disconnect());
       observersRef.current = [];
     };
-  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode, currency]);
+  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode, currency, intradayTimeZone]);
 
   return (
     <div>
       <div className="relative">
-        <div ref={containerRef} role="img" aria-label={level === 'basic' ? '날짜별 종가 추이. 아래에서 기간과 가격 범위를 확인할 수 있어요.' : '일별 캔들 및 거래량 차트'} className="w-full rounded-lg overflow-hidden" />
+        <div ref={containerRef} role="img" aria-label={intradayTimeZone ? `거래소 현지 시각 기준 5분 간격 ${level === 'basic' ? '가격 흐름' : '캔들·거래량'} 차트` : level === 'basic' ? '날짜별 종가 추이. 아래에서 기간과 가격 범위를 확인할 수 있어요.' : '일별 캔들 및 거래량 차트'} className="w-full rounded-lg overflow-hidden" />
         {legend && (
           <div
             className="absolute pointer-events-none"
@@ -368,10 +378,10 @@ export default function StockChart({
             <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>{legend.date}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {level === 'detail' && <><span>시가 {fmtPrice(legend.o)}</span><span>고가 {fmtPrice(legend.h)}</span><span>저가 {fmtPrice(legend.l)}</span></>}
-              <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>종가 {fmtPrice(legend.c)}</span>
+              <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>{intradayTimeZone ? '가격' : '종가'} {fmtPrice(legend.c)}</span>
               {legend.chgPct != null && (
                 <span style={{ color: legend.chgPct === 0 ? 'var(--text-secondary)' : legend.chgPct > 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', fontWeight: 700 }}>
-                  {legend.chgPct > 0 ? '+' : ''}{legend.chgPct.toFixed(2)}%
+                  {legend.chgPct > 0 ? '+' : ''}{legend.chgPct.toFixed(2)}%{intradayTimeZone ? ' · 직전 구간 대비' : ''}
                 </span>
               )}
             </div>
@@ -394,7 +404,7 @@ export default function StockChart({
         </>
       )}
 
-      {level === 'basic' ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>하루 거래를 마친 가격을 연결한 선이에요.</p> : <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
+      {intradayTimeZone ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>거래소 현지 시각 · 5분 간격{level === 'basic' ? ' 가격을 연결했어요.' : ' 캔들과 거래량이에요.'}</p> : level === 'basic' ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>하루 거래를 마친 가격을 연결한 선이에요.</p> : <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
         <span><span className="text-[#ffa726]">━</span> 20일</span>
         <span><span className="text-[#a29bfe]">━</span> 60일</span>
         {level === 'detail' && <span><span className="text-[#4fc3f7]">━</span> 5일</span>}

@@ -83,12 +83,28 @@ export default function Home() {
 
   // Do not mount portfolio readers, quote requests or cloud sync before this boundary.
   if (failed || auth.loading || !prepared || prepared.identity !== identity) {
-    return <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: 'var(--bg, #FFFFFF)' }}>
+    // Critical startup layout travels with the HTML, independent of CSS/JS chunks.
+    return <div data-startup-screen style={{
+      minHeight: '100svh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24,
+      background: 'var(--bg, #FFFFFF)', color: 'var(--text-primary, #191F28)',
+      fontFamily: 'system-ui, sans-serif', textAlign: 'center',
+    }}>
       <JoobiLockup variant="loading" />
-      <p role={failed ? 'alert' : 'status'}>{failed
+      <p role={failed ? 'alert' : 'status'} style={{ margin: 0, maxWidth: 360, fontSize: 14, lineHeight: 1.7 }}>{failed
         ? '이전 기록을 안전하게 보관하지 못했어요. 브라우저 저장 공간을 확인한 뒤 다시 시도해주세요.'
         : '로그인 상태와 내 정보를 확인하고 있어요.'}</p>
-      {failed && <button type="button" onClick={() => window.location.reload()}>다시 시도하기</button>}
+      <details open={failed || undefined} style={{ maxWidth: 360, fontSize: 13, lineHeight: 1.7 }}>
+        <summary style={{ cursor: 'pointer', padding: 12 }}>화면이 열리지 않나요?</summary>
+        <p style={{ margin: '0 0 12px' }}>연결 상태를 확인한 뒤 다시 불러와 주세요.</p>
+        {/* Native navigation also works when the app's JavaScript has not loaded. */}
+        <form action="/" method="get">
+          <button type="submit" style={{
+            padding: '12px 20px', borderRadius: 12, border: '1px solid #D1D6DB',
+            background: '#FFFFFF', color: '#191F28', font: 'inherit', cursor: 'pointer',
+          }}>다시 불러오기</button>
+        </form>
+      </details>
     </div>;
   }
   return <HomeContent key={identity ?? 'guest'} auth={auth} />;

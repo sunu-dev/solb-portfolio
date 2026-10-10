@@ -47,6 +47,14 @@ type Question = (typeof QUESTIONS)[number];
 type QuotaStatus = 'checking' | 'ready' | 'unavailable' | 'signed-out';
 const EMPTY_CACHED_IDS: readonly string[] = [];
 
+export function getStockAnalysisAnswerTitle(id: string, name: string): string {
+  const subjects: Record<string, string> = {
+    safe: '먼저 살펴볼 위험', value: '실적과 가격의 관계', growth: '성장 근거와 달라질 조건',
+    balance: '다른 종목과 함께 볼 점', trend: '최근 가격과 거래량 흐름', simple: '시장 전체 투자와 비교할 점',
+  };
+  return `${name} · ${subjects[id] ?? '질문에 대한 설명'}`;
+}
+
 export function getStockAnalysisQuestion(id: string): string {
   return QUESTIONS.find(question => question.id === id)?.question ?? '선택한 관점으로 살펴보기';
 }

@@ -18,7 +18,7 @@ import { buildChartNarrative } from '@/utils/chartNarrative';
 import { STOCK_KR } from '@/config/constants';
 import { quoteDirection, quoteTimestamp } from '@/utils/quotePresentation';
 import type { AIReport, StockItem, QuoteData, NewsItem } from '@/config/constants';
-import { BarChart3, Check, ChevronLeft, ChevronRight, ShieldAlert, Sparkles, X } from 'lucide-react';
+import { BarChart3, Check, ChevronLeft, ChevronRight, Maximize2, Minimize2, ShieldAlert, Sparkles, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
@@ -29,9 +29,13 @@ import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
 import { buildAnalysisLoadingFacts, type AnalysisLoadingFact } from '@/utils/analysisLoadingFacts';
 import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
-import StockAnalysisQuestions from './StockAnalysisQuestions';
+import StockAnalysisQuestions, { getStockAnalysisAnswerTitle } from './StockAnalysisQuestions';
+import IntradayStockChart from './IntradayStockChart';
+import ContextExploration from '@/components/explore/ContextExploration';
+import { stockExploration } from '@/lib/contextExploration';
 import StockAnswerLoading from './StockAnswerLoading';
 import assistantStyles from './StockAssistant.module.css';
+import panelStyles from './AnalysisPanel.module.css';
 import StockLearning from './StockLearning';
 import AnalysisNavigation from './AnalysisNavigation';
 import { isSingleStockLeverage, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
@@ -224,7 +228,7 @@ export default function AnalysisPanel() {
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
-  const [chartRange, setChartRange] = useState<number>(60); // default 3M (60 trading days)
+  const [chartRange, setChartRange] = useState<number>(1); // 1 = latest intraday session; other values = daily bars
   const [showAIReport, setShowAIReport] = useState(false);
   const [aiReport, setAiReport] = useState<AnalysisReport | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -373,7 +377,7 @@ export default function AnalysisPanel() {
   useEffect(() => {
     setShowAIReport(false); setAiReport(null); setAiLoading(false); setAiError('');
     setSelectedMentor(null); setMentorReport(null); setMentorLoading(false); setMentorError('');
-    setChartLevel('basic'); setChartRange(60); setFundamentals(null); setTickerNews([]);
+    setChartLevel('basic'); setChartRange(1); setFundamentals(null); setTickerNews([]);
     return () => {
       mentorRequestRef.current?.abort();
       mentorRequestRef.current = null;
@@ -685,57 +689,35 @@ export default function AnalysisPanel() {
       {/* Panel */}
       <div className="analysis-shell fixed inset-0 z-[70] flex items-center justify-center" style={{ padding: 16 }}>
         <div
-          className={`flex flex-col analysis-modal${wideMode ? ' wide' : ''}`}
-          style={{
-            width: '100%',
-            maxWidth: 'min(700px, 95vw)',
-            maxHeight: '90vh',
-            background: 'var(--surface, #FFFFFF)',
-            borderRadius: 20,
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            border: '1px solid var(--border-light, #F2F4F6)',
-          }}
+          className={`flex flex-col analysis-modal ${panelStyles.panel}${wideMode ? ' wide' : ''}`}
           ref={dialogRef}
           tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-label={`${displayName} 살펴보기`}
         >
-          {/* Header */}
-          <div
-            className="flex items-center justify-between"
-            style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-light, #F2F4F6)', flexShrink: 0 }}
-          >
-            <div className="flex items-center" style={{ gap: 12 }}>
-              <div
-                className="flex items-center justify-center"
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: 'var(--bg-subtle)',
-                }}
-              >
-                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-body)' }}>{displayName.charAt(0)}</span>
-              </div>
+          <div className={panelStyles.header}>
+            <div className={panelStyles.identity}>
+              <div className={panelStyles.avatar} aria-hidden="true">{displayName.charAt(0)}</div>
               <div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>{displayName}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                  {symbol} · {isKoreanStock ? '한국 주식' : '미국 주식'}
-                </div>
+                <h2 className={panelStyles.name} tabIndex={-1} data-dialog-initial-focus>{displayName}</h2>
+                <div className={panelStyles.symbol}>{symbol} · {isKoreanStock ? '한국 주식' : '미국 주식'}</div>
               </div>
             </div>
-            <div className="flex items-center" style={{ marginLeft: 'auto', gap: 2 }}>
+            <div className={panelStyles.controls}>
               {/* 넓게 보기 — lg+ 전용(CSS로 노출). 차트가 넓어짐. 기본 880 / 넓게 1080. */}
               <button
-                onClick={() => setWideMode((v) => { try { localStorage.setItem('solb_analysis_wide', v ? '0' : '1'); } catch { /* */ } return !v; })}
+                onClick={(event) => {
+                  if (event.detail > 0) event.currentTarget.blur();
+                  setWideMode((v) => { try { localStorage.setItem('solb_analysis_wide', v ? '0' : '1'); } catch { /* */ } return !v; });
+                }}
                 aria-pressed={wideMode}
                 aria-label={wideMode ? '기본 너비로' : '넓게 보기'}
-                className="analysis-wide-toggle items-center justify-center cursor-pointer"
-                style={{ display: 'none', height: 32, padding: '0 10px', borderRadius: 8, background: wideMode ? 'var(--bg-subtle)' : 'transparent', color: wideMode ? 'var(--text-primary)' : 'var(--text-secondary)', border: 'none', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}
+                title={wideMode ? '기본 너비로' : '화면 넓게 보기'}
+                className={`${panelStyles.control} ${panelStyles.wideControl}`}
               >
-                {wideMode ? '기본' : '넓게'}
+                {wideMode ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
+                {wideMode ? '기본 너비' : '화면 넓게'}
               </button>
               {showSwitcher && (
                 <>
@@ -743,8 +725,7 @@ export default function AnalysisPanel() {
                     onClick={() => { if (symIdx > 0) setAnalysisSymbol(allSymbols[symIdx - 1]); }}
                     disabled={symIdx <= 0}
                     aria-label="이전 종목"
-                    className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
-                    style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                    className={panelStyles.control}
                   >
                     <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
                   </button>
@@ -752,8 +733,7 @@ export default function AnalysisPanel() {
                     onClick={() => { if (symIdx < allSymbols.length - 1) setAnalysisSymbol(allSymbols[symIdx + 1]); }}
                     disabled={symIdx >= allSymbols.length - 1}
                     aria-label="다음 종목"
-                    className="flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:cursor-default"
-                    style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none' }}
+                    className={panelStyles.control}
                   >
                     <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
                   </button>
@@ -762,8 +742,7 @@ export default function AnalysisPanel() {
               <button
                 onClick={close}
                 aria-label="닫기"
-                className="flex items-center justify-center cursor-pointer transition-colors"
-                style={{ width: 44, height: 44, borderRadius: 8, background: 'transparent', border: 'none' }}
+                className={panelStyles.control}
               >
                 <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
               </button>
@@ -771,12 +750,11 @@ export default function AnalysisPanel() {
           </div>
 
           {!loading && <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
-            hasChart={!!analysis && !isLev} hasFundamentals={!!fundamentals} hasAssistant={!isLev}
+            hasChart={!isLev} hasFundamentals={!!fundamentals} hasAssistant={!isLev}
             layoutKey={`${symbol}-${wideMode}`} />}
 
           {/* Scrollable body */}
-          <div ref={analysisBodyRef} className={`flex-1 analysis-body${wideMode && analysis && !isLev ? ' body-2col' : ''}`} style={{ overflowY: 'auto', minHeight: 0, padding: 24 }}>
-            <style>{`@media (max-width: 768px) { .analysis-body { padding: 16px !important; } } @media (min-width: 1024px) { .analysis-modal { max-width: 880px !important; } .analysis-modal.wide { max-width: 1120px !important; } .analysis-wide-toggle { display: inline-flex !important; } .analysis-body.body-2col { display: grid; grid-template-columns: minmax(0,1.55fr) minmax(0,1fr); gap: 24px; align-items: start; } .analysis-body.body-2col > * { grid-column: 2; min-width: 0; } .analysis-body.body-2col > .detail-chart-col { grid-column: 1; grid-row: 1 / span 99; align-self: start; } }`}</style>
+          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}${wideMode && analysis && !isLev ? ` ${panelStyles.wideBody}` : ''}`}>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
@@ -794,8 +772,10 @@ export default function AnalysisPanel() {
             ) : (
               <>
                 {/* Price hero */}
-                <div style={{ textAlign: 'center', marginBottom: 28 }}>
-                  <div style={{ fontSize: 'clamp(24px, 7vw, 32px)', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+                <div className={panelStyles.priceHero}>
+                  <div>
+                  <div className={panelStyles.priceLabel}>현재 가격</div>
+                  <div className={panelStyles.price}>
                     {price
                       ? nativeCurrency === 'KRW'
                         ? formatKrw(priceAmounts.krw)
@@ -808,48 +788,33 @@ export default function AnalysisPanel() {
                       {' '}({cp > 0 ? '+' : ''}{cp.toFixed(2)}%) · 전일 종가 대비
                     </>}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
+                  </div>
+                  <div className={panelStyles.priceMeta}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     {asOf ? `${asOf} 기준 · 한국시간` : '시세 기준 시각 미확인'} · 지연될 수 있어요
                   </div>
                   {price > 0 && <details style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}><summary style={{ cursor: 'pointer', padding: 8 }}>다른 통화로 보기</summary>{nativeCurrency === 'KRW' ? formatUsd(priceAmounts.usd) : formatKrw(priceAmounts.krw)} · {fx.stale ? '환율 미확인 · 임시 환율로 환산' : '환율에 따른 환산 금액'}</details>}
+                  </div>
                 </div>
 
-                {analysis && !isLev && (
+                {!isLev && (
                   <div className="detail-chart-col">
-                    {/* Chart Tabs */}
-                    <div id="anchor-chart" className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, scrollMarginTop: 44 }}>
+                    <div className={panelStyles.chartToolbar}>
+                    <div id="anchor-chart" className={panelStyles.chartHeading}>
                       가격 차트
                     </div>
 
-                    {/* Chart level tabs: 2 tabs */}
-                    <div className="flex items-center" style={{ border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
-                      {(['basic', 'detail'] as ChartLevel[]).map((lvl, idx) => (
-                        <button
-                          key={lvl}
-                          onClick={() => setChartLevel(lvl)}
-                          className="cursor-pointer transition-colors"
-                          style={{
-                            flex: 1,
-                            padding: '10px 0',
-                            textAlign: 'center',
-                            fontSize: 14,
-                            fontWeight: chartLevel === lvl ? 700 : 500,
-                            color: chartLevel === lvl ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
-                            background: chartLevel === lvl ? 'var(--pill-active-bg)' : 'var(--surface)',
-                            borderTop: 'none',
-                            borderBottom: 'none',
-                            borderLeft: 'none',
-                            borderRight: idx < 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
-                          }}
-                        >
-                          {lvl === 'basic' ? '기본' : '상세'}
-                        </button>
-                      ))}
+                    <div className={panelStyles.chartLevels} role="group" aria-label="차트 표현">
+                      {(['basic', 'detail'] as ChartLevel[]).map(lvl => <button key={lvl}
+                        type="button" className={panelStyles.chartLevel} aria-pressed={chartLevel === lvl}
+                        onClick={() => setChartLevel(lvl)}>{lvl === 'basic' ? '기본' : '상세'}</button>)}
                     </div>
 
+                    </div>
                     {/* Timeframe selector */}
-                    <div className="flex items-center justify-center" style={{ gap: 4, marginBottom: 16 }}>
+                    <div className={panelStyles.periods} role="group" aria-label="차트 기간">
                       {([
+                        { label: '1일', days: 1 },
                         { label: '1개월', days: 22 },
                         { label: '3개월', days: 60 },
                         { label: '6개월', days: 120 },
@@ -859,24 +824,18 @@ export default function AnalysisPanel() {
                           key={tf.label}
                           onClick={() => setChartRange(tf.days)}
                           aria-pressed={chartRange === tf.days}
-                          className="cursor-pointer"
-                          style={{
-                            padding: '5px 14px',
-                            minHeight: 44,
-                            borderRadius: 8,
-                            fontSize: 12,
-                            fontWeight: chartRange === tf.days ? 700 : 500,
-                            color: chartRange === tf.days ? 'var(--text-primary)' : 'var(--text-secondary)',
-                            background: chartRange === tf.days ? 'var(--bg-subtle)' : 'transparent',
-                            border: 'none',
-                          }}
+                          type="button"
+                          className={panelStyles.period}
                         >
                           {tf.label}
                         </button>
                       ))}
                     </div>
 
-                    {/* Chart */}
+                    {chartRange === 1 ? <IntradayStockChart key={symbol} symbol={symbol} currency={nativeCurrency} level={chartLevel} /> : !analysis ? (
+                      <p role="status" style={{ color: 'var(--text-body)', fontSize: 13 }}>이 기간의 일별 가격 자료가 충분하지 않아요. 1일 차트에서 장중 자료를 확인해보세요.</p>
+                    ) : <>
+                    {/* Daily chart and indicators stay on daily data. */}
                     <StockChart
                       raw={analysis.raw}
                       sma5={analysis.sma5}
@@ -1081,9 +1040,11 @@ export default function AnalysisPanel() {
                       </div>
                     </div>
                     </details>
+                    </>}
                   </div>
                 )}
 
+                <div className={panelStyles.details}>
                 {!analysis && !loading && (
                   <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
                     {isThinData
@@ -1201,7 +1162,7 @@ export default function AnalysisPanel() {
 
                 {/* 재무 데이터 */}
                 {fundamentals && (
-                  <div id="anchor-fundamentals" style={{ marginTop: 24, marginBottom: 24, padding: 24, borderRadius: 24, background: 'var(--bg-subtle)', scrollMarginTop: 44 }}>
+                  <div id="anchor-fundamentals" className={panelStyles.fundamentals}>
                     <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
                       기업·가격 지표
                     </div>
@@ -1365,28 +1326,9 @@ export default function AnalysisPanel() {
                     {aiReport && (
                       <>
                         <div style={{ marginBottom: 20 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>현재 상태</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>지금 알아둘 이야기</div>
                           <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.currentStatus}</div>
                         </div>
-                        {aiReport.indicators?.length > 0 && (
-                          <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>주요 지표</div>
-                            <div className="flex flex-col" style={{ gap: 8 }}>
-                              {aiReport.indicators.map((ind, idx) => (
-                                <div key={idx} style={{ padding: '12px 14px', background: '#fff', borderRadius: 10 }}>
-                                  <div style={{ fontSize: 12, fontWeight: 600, color: '#8B95A1', marginBottom: 4 }}>{ind.name}</div>
-                                  <div style={{ fontSize: 13, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#4E5968', lineHeight: 1.6 }}>{ind.value}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {aiReport.historicalNote && (
-                          <div style={{ marginBottom: 20 }}>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>과거 유사 상황</div>
-                            <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.historicalNote}</div>
-                          </div>
-                        )}
                         {aiReport.newsAnalysis && aiReport.newsAnalysis.length > 0 ? (
                           <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>뉴스 기반 분석</div>
@@ -1405,6 +1347,25 @@ export default function AnalysisPanel() {
                             <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.newsContext}</div>
                           </div>
                         ) : null}
+                        {aiReport.indicators?.length > 0 && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 10 }}>주요 지표</div>
+                            <div className="flex flex-col" style={{ gap: 8 }}>
+                              {aiReport.indicators.map((ind, idx) => (
+                                <div key={idx} style={{ padding: '12px 14px', background: '#fff', borderRadius: 10 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 600, color: '#8B95A1', marginBottom: 4 }}>{ind.name}</div>
+                                  <div style={{ fontSize: 13, color: ind.signal === 'positive' ? '#EF4452' : ind.signal === 'negative' ? '#3182F6' : '#4E5968', lineHeight: 1.6 }}>{ind.value}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {aiReport.historicalNote && (
+                          <div style={{ marginBottom: 20 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>52주 가격 범위에서의 위치</div>
+                            <div style={{ fontSize: 14, color: '#191F28', lineHeight: 1.7 }}>{aiReport.historicalNote}</div>
+                          </div>
+                        )}
                         {aiReport.scenarios && (
                           <div style={{ marginBottom: 20 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>이런 상황이 올 수 있어요</div>
@@ -1459,7 +1420,7 @@ export default function AnalysisPanel() {
                             <section id="stock-assistant-answer" aria-labelledby="stock-assistant-answer-title"
                               className={assistantStyles.answer}>
                               <div className={assistantStyles.answerHeader}>
-                                <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>주비의 답변 · {displayName}</h4>
+                                <h4 id="stock-assistant-answer-title" className={assistantStyles.answerTitle}>{getStockAnalysisAnswerTitle(selectedMentor.id, displayName)}</h4>
                                 <button type="button" className={assistantStyles.close} onClick={closeMentorAnswer}
                                   aria-label={mentorLoading ? '답변 요청 취소' : '답변 닫기'}><X size={18} aria-hidden="true" /></button>
                               </div>
@@ -1500,6 +1461,7 @@ export default function AnalysisPanel() {
 
                 {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
                 <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
+                  <ContextExploration key={symbol} topics={stockExploration(symbol)} context={`${displayName} 살펴보기`} />
                   <StockLearning
                     key={symbol}
                     name={displayName}
@@ -1650,6 +1612,7 @@ export default function AnalysisPanel() {
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 16 }}>
                   AI가 생성한 참고 자료이며, 투자 자문이 아니에요. 투자 판단의 책임은 이용자에게 있어요.
+                </div>
                 </div>
               </>
             )}

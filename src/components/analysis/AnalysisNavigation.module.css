@@ -9,9 +9,9 @@
 .list {
   display: flex;
   min-width: 0;
-  gap: 24px;
+  gap: 28px;
   overflow-x: auto;
-  padding: 0 24px;
+  padding: 0 28px;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
 }
@@ -30,7 +30,7 @@
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 550;
   line-height: 1.5;
   letter-spacing: -0.025em;
@@ -51,7 +51,7 @@
 
 .item[aria-current='location'] {
   color: var(--text-primary);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .item[aria-current='location']::after {
