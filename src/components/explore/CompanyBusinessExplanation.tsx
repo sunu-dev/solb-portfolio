@@ -10,7 +10,7 @@ export default function CompanyBusinessExplanation({ symbol }: { symbol: string 
   const reviewed = explorationCompany(symbol);
   if (!story) return reviewed ? <details className={styles.sources} data-company-business={symbol}>
     <summary>사업 설명의 근거 보기</summary>
-    <a href={reviewed.source.url} target="_blank" rel="noopener noreferrer">{reviewed.source.label} ↗<span className="sr-only"> (새 창)</span></a>
+    <a href={reviewed.source.url} target="_blank" rel="noopener noreferrer">{reviewed.source.label}{'reviewedAt' in reviewed.source ? ` · ${reviewed.source.reviewedAt} 확인` : ''} ↗<span className="sr-only"> (새 창)</span></a>
   </details> : null;
 
   return <div data-company-business={symbol}>

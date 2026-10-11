@@ -10,7 +10,7 @@ import IndustryDirectory from './IndustryDirectory';
 import CompanyBusinessExplanation from './CompanyBusinessExplanation';
 import { companyBusinessSummary } from '@/lib/companyStories';
 import styles from './ContextExploration.module.css';
-import SectorIllustration, { SECTOR_ILLUSTRATION_CAPTIONS } from './SectorIllustration';
+import SectorIllustration, { hasSectorIllustration, SECTOR_ILLUSTRATION_CAPTIONS } from './SectorIllustration';
 
 type Step = { topic: ExplorationId } | { company: string } | { sector: SectorId } | { industry: string; industryCompany?: string };
 interface Props { topics: ExplorationId[]; context: string; compact?: boolean; symbol?: string; profile?: SectorProfile }
@@ -35,7 +35,7 @@ export default function ContextExploration({ topics, context, compact = false, s
   const choices = topic?.related ?? (step && 'company' in step ? sector && sector.id !== 'semiconductors' ? sectorQuestions(sector.id) : companyExploration(step.company) : sector ? sectorQuestions(sector.id) : topics);
   const companies = company ? [] : sector ? topic && sectorForTopic(topic.id) && topic.companies.length ? topic.companies : sector.companies : topic?.companies ?? [];
   const sectorIntro = !!sector && !topic && !company;
-  const title = topic?.title ?? (company ? `${company.name}는 어떤 역할을 하나요?` : sectorIntro && !compact ? !step && originCompany ? `${originCompany.name} 옆에는 어떤 회사가 있을까요?` : `${sector.name}, 어떤 회사부터 볼까요?` : '다음으로 무엇이 궁금하세요?');
+  const title = topic?.title ?? (company ? `${company.name}는 어떤 역할을 하나요?` : sectorIntro && !compact ? !step && originCompany ? `${originCompany.name} · ${sector.name}` : `${sector.name}, 어떤 회사부터 볼까요?` : '다음으로 무엇이 궁금하세요?');
   const navigate = (next: Step[]) => {
     setTrail(next);
     setHasNavigated(true);
@@ -64,12 +64,13 @@ export default function ContextExploration({ topics, context, compact = false, s
         <button type="button" onClick={() => navigate([])}>처음 질문</button>
         <span>{trail.length}번째 설명</span>
       </nav>}
-      <div className={`${styles.hero} ${sectorIntro && !compact ? styles.sectorHero : ''}`}>
+      {sector && <p className={styles.note} data-business-sector>{sector.parent ? `${sectorById(sector.parent).name} → ` : ''}{sector.name}</p>}
+      <div className={`${styles.hero} ${sectorIntro && !compact && sector && hasSectorIllustration(sector.id) ? styles.sectorHero : ''}`}>
         <div>
           <h3 ref={heading} tabIndex={-1}>{title}</h3>
-          {!topic && !company && <p className={styles.summary}>{sector?.intro ?? '궁금한 주제부터 이어서 읽어보세요.'}</p>}
+          {!topic && !company && <p className={styles.summary}>{!step && originCompany ? companyBusinessSummary(symbol!) : sector?.intro ?? '궁금한 주제부터 이어서 읽어보세요.'}</p>}
         </div>
-        {sectorIntro && !compact && <div className={styles.diagram}>
+        {sectorIntro && !compact && hasSectorIllustration(sector.id) && <div className={styles.diagram}>
           <SectorIllustration sector={sector.id} />
           <p className={styles.diagramCaption}>{SECTOR_ILLUSTRATION_CAPTIONS[sector.id] ?? sector.flow.join(' · ')}</p>
         </div>}
@@ -110,7 +111,8 @@ export default function ContextExploration({ topics, context, compact = false, s
       {choices.length > 3 && <details className={styles.selection}><summary>연결된 질문 더 보기</summary><div className={styles.sectorLinks}>{choices.slice(3).map(next => <button type="button" key={next} onClick={() => navigate([...trail, { topic: next }])}>{explorationTopic(next).title} →</button>)}</div></details>}
       {sector && <nav className={styles.sectorLinks} aria-label="이어지는 산업"><span>이 산업은 어디로 이어질까요?</span>{sector.connections.map(next => <button type="button" key={next} onClick={() => navigate([...trail, { sector: next }])}>{sectorById(next).name} →</button>)}</nav>}
       <details className={styles.directory} data-sector-directory><summary>주요 산업 이야기 <span>{SECTORS.filter(item => !item.parent).length}개 산업 · {SECTORS.filter(item => item.parent).length}개 세부 분야</span></summary><div className={styles.directoryGrid}>{SECTORS.filter(item => !item.parent).map(group => <div key={group.id}><button type="button" onClick={() => navigate([...trail, { sector: group.id }])}>{group.name} →</button>{SECTORS.filter(item => item.parent === group.id).map(child => <button type="button" key={child.id} className={styles.subsector} onClick={() => navigate([...trail, { sector: child.id }])}>{child.name} →</button>)}</div>)}</div></details>
-      {!compact && <IndustryDirectory onSelect={industry => navigate([...trail, { industry }])} />}
+      {!compact && (!step || ('company' in step && getStockIdentityKey(step.company) === getStockIdentityKey(symbol ?? ''))) && profile?.classification?.industryId && <details className={styles.selection}><summary>원본 업종 분류와 사업 분야의 차이</summary><p className={styles.note}>자료 제공처의 업종은 ‘{industryGroup(profile.classification.industryId)?.name}’예요. 주비의 사업 분야는 확인된 제품·서비스를 기준으로 나눴으며, 회사의 모든 사업이나 매출 비중을 뜻하지 않아요.</p><button type="button" onClick={() => navigate([...trail, { industry: profile.classification!.industryId! }])}>원본 업종의 기업 보기 →</button></details>}
+      {!compact && <IndustryDirectory onSelect={industry => navigate([...trail, { industry }])} onSector={sector => navigate([...trail, { sector }])} />}
     </div>}
   </section>;
 }

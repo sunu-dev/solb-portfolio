@@ -33,6 +33,7 @@ import StockAnalysisQuestions, { getStockAnalysisAnswerTitle } from './StockAnal
 import IntradayStockChart from './IntradayStockChart';
 import ContextExploration from '@/components/explore/ContextExploration';
 import { explorationCompany, stockExploration } from '@/lib/contextExploration';
+import { sectorsForCompany } from '@/lib/sectorExploration';
 import StockAnswerLoading from './StockAnswerLoading';
 import assistantStyles from './StockAssistant.module.css';
 import panelStyles from './AnalysisPanel.module.css';
@@ -308,6 +309,7 @@ export default function AnalysisPanel() {
 
   // 단일종목 레버리지·인버스: 매수 매력도·매매 방향(차트 신호·기술 지표 '매수' 배지)을 가리고
   // 위험 해설만 — §6 자문업 차단. 영속 종목명(stockData.name) 우선 → 한국 ETF 16종 키워드 탐지.
+  const businessSectors = symbol ? sectorsForCompany(symbol).filter(sector => sector.parent) : [];
   const displayName = stockData?.name || (symbol ? explorationCompany(symbol)?.name : undefined) || kr;
   const isLev = isSingleStockLeverage(symbol || '', displayName);
 
@@ -1215,9 +1217,13 @@ export default function AnalysisPanel() {
                           </span>
                         </div>
                       )}
+                      {businessSectors.length > 0 && <div className="flex justify-between gap-4" style={{ gridColumn: 'span 2' }} data-business-sector-label>
+                        <span style={{ color: 'var(--text-secondary, #8B95A1)', flexShrink: 0 }}>사업 분야</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)', textAlign: 'right', wordBreak: 'keep-all' }}>{businessSectors.map(sector => sector.name).join(' · ')}</span>
+                      </div>}
                       {fundamentals.sector && (
                         <div className="flex justify-between" style={{ gridColumn: 'span 2' }}>
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>섹터</span>
+                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>제공처 대분류</span>
                           <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.sector}</span>
                         </div>
                       )}

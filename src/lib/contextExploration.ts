@@ -153,6 +153,14 @@ export function eventExploration(kind: EconomicKind): ExplorationId[] {
 export function newsExploration(title: string): ExplorationId[] {
   const topics: ExplorationId[] = [];
   const matches: [RegExp, SectorId][] = [
+    [/양자내성|양자 보안|양자보안|아르킷|실스큐|\b(?:PQC|ARQQ|LAES)\b/i, 'post-quantum-security'],
+    [/양자|아이온큐|리게티|디웨이브|\b(?:quantum|IONQ|RGTI|QBTS)\b/i, 'quantum'],
+    [/낸드|SSD|\bNAND\b/i, 'nand-storage'],
+    [/하드디스크|\bHDD\b/i, 'hdd-storage'],
+    [/사이버보안|사이버 보안|\bcybersecurity\b/i, 'cybersecurity'],
+    [/소형모듈원전|소형 모듈 원전|뉴스케일|오클로|\bSMR\b/i, 'advanced-nuclear'],
+    [/우라늄|핵연료|\buranium\b/i, 'nuclear-fuel'],
+    [/위성통신|위성 통신/i, 'satellite-communications'],
     [/광소재|광통신|코히런트|루멘텀|\b(?:photonics|coherent|lumentum)\b/i, 'photonics'],
     [/소부장|노광|반도체 장비|\bASML\b/i, 'equipment'],
     [/신약|임상|의약|바이오|제약|\b(?:pharma|biotech)\b/i, 'pharma'],

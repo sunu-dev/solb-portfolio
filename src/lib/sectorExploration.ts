@@ -1,8 +1,9 @@
+import { ADDITIONAL_COMPANY_EVIDENCE, ADDITIONAL_SECTORS } from './businessSubsectors';
 import { industryGroup, providerIndustryParent, type StoredIndustryProfile } from './industryRegistry';
 import { getStockIdentityKey } from '@/utils/stockCurrency';
 
 /** Major industry groups plus editorial sub-industries. Not a licensed classification or a live ranking. */
-export type SectorId = 'semiconductors' | 'technology' | 'communication' | 'consumer-discretionary' | 'consumer-staples' | 'energy' | 'financials' | 'healthcare' | 'industrials' | 'materials' | 'real-estate' | 'utilities' | 'photonics' | 'pharma' | 'equipment' | 'defense' | 'aerospace' | 'shipbuilding' | 'batteries' | 'automotive' | 'fuel-cells';
+export type SectorId = 'semiconductors' | 'technology' | 'communication' | 'consumer-discretionary' | 'consumer-staples' | 'energy' | 'financials' | 'healthcare' | 'industrials' | 'materials' | 'real-estate' | 'utilities' | 'photonics' | 'pharma' | 'equipment' | 'defense' | 'aerospace' | 'shipbuilding' | 'batteries' | 'automotive' | 'fuel-cells' | 'quantum' | 'servers' | 'nand-storage' | 'hdd-storage' | 'networking' | 'data-center-power' | 'cybersecurity' | 'cloud-data' | 'space-launch' | 'satellite-communications' | 'advanced-nuclear' | 'nuclear-fuel' | 'nuclear-generation' | 'surgical-robotics' | 'biomanufacturing' | 'payments' | 'brokerage' | 'digital-assets' | 'solar-equipment' | 'post-quantum-security' | 'industrial-gases';
 export type SectorTopicId = `sector:${SectorId}` | `sector:${SectorId}:driver` | `sector:${SectorId}:check`;
 export interface SectorProfile { sector?: string | null; industry?: string | null; classification?: StoredIndustryProfile }
 export interface SectorCompany {
@@ -16,6 +17,7 @@ export interface SectorDefinition {
 }
 
 export const SECTOR_COMPANY_EVIDENCE: SectorCompany[] = [
+  ...ADDITIONAL_COMPANY_EVIDENCE,
   {
     symbol: 'BE', name: '블룸에너지', role: '연료전지 발전장비',
     business: '연료전지는 연료를 불에 태우지 않고 전기로 바꾸는 장치예요. 블룸에너지는 천연가스·바이오가스·수소 등을 이용해 고객 현장에서 전기를 만드는 발전장비와 관련 서비스를 공급해요. 전기를 저장하는 배터리나 석유를 생산하는 회사와는 사업이 달라요.',
@@ -332,6 +334,7 @@ export const SECTOR_COMPANY_EVIDENCE: SectorCompany[] = [
 ];
 
 export const INDUSTRY_SECTORS: SectorDefinition[] = [
+  ...ADDITIONAL_SECTORS,
   {
     id: 'fuel-cells', name: '연료전지·분산발전', parent: 'industrials', anchor: 'BE', companies: ['BE'],
     flow: ['발전장비', '현장 설치', '전력 공급'],
@@ -1091,6 +1094,49 @@ export const INDUSTRY_SECTORS: SectorDefinition[] = [
     ]
   },
   {
+    "id": "automotive",
+    "flow": ["생산", "판매", "서비스"],
+    "name": "자동차",
+    "parent": "consumer-discretionary",
+    "anchor": "TSLA",
+    "companies": [
+      "TSLA",
+      "005380.KS"
+    ],
+    "intro": "차량 판매량·가격·할인·부품 비용을 함께 봐야 실적을 이해할 수 있어요.",
+    "driver": "자동차 판매량이 늘어도 이익이 줄 수 있나요?",
+    "steps": [
+      {
+        "title": "가격과 수량",
+        "body": "많이 팔아도 판매 가격을 더 크게 내리면 매출·이익 효과가 달라져요."
+      },
+      {
+        "title": "차종과 생산 비용",
+        "body": "비싼 차와 저렴한 차의 판매 구성, 공장 가동·부품 비용도 이익을 바꿔요."
+      },
+      {
+        "title": "다른 사업은 별도로",
+        "body": "테슬라는 에너지 사업도 운영해요. 차량 판매만으로 회사 전체를 평가하지 않아요."
+      }
+    ],
+    "watch": "판매량·가격·할인·차종 구성·사업별 이익률을 봐요.",
+    "check": "전기차 수요는 배터리와 전력에 어떻게 이어질까요?",
+    "checks": [
+      {
+        "title": "차량에서 배터리로",
+        "body": "생산 계획과 고객 계약을 통해 배터리 공급사의 물량을 확인해요."
+      },
+      {
+        "title": "충전에서 전력으로",
+        "body": "충전 설비·이용량·전력망 투자로 연결되지만 시간과 규제 조건을 함께 봐야 해요."
+      }
+    ],
+    "connections": [
+      "batteries",
+      "utilities"
+    ]
+  },
+  {
     "id": "batteries",
     "flow": ["고객 주문", "배터리 생산", "차량·저장"],
     "name": "배터리",
@@ -1133,49 +1179,6 @@ export const INDUSTRY_SECTORS: SectorDefinition[] = [
       "utilities",
       "materials"
     ]
-  },
-  {
-    "id": "automotive",
-    "flow": ["생산", "판매", "서비스"],
-    "name": "자동차",
-    "parent": "consumer-discretionary",
-    "anchor": "TSLA",
-    "companies": [
-      "TSLA",
-      "005380.KS"
-    ],
-    "intro": "차량 판매량·가격·할인·부품 비용을 함께 봐야 실적을 이해할 수 있어요.",
-    "driver": "자동차 판매량이 늘어도 이익이 줄 수 있나요?",
-    "steps": [
-      {
-        "title": "가격과 수량",
-        "body": "많이 팔아도 판매 가격을 더 크게 내리면 매출·이익 효과가 달라져요."
-      },
-      {
-        "title": "차종과 생산 비용",
-        "body": "비싼 차와 저렴한 차의 판매 구성, 공장 가동·부품 비용도 이익을 바꿔요."
-      },
-      {
-        "title": "다른 사업은 별도로",
-        "body": "테슬라는 에너지 사업도 운영해요. 차량 판매만으로 회사 전체를 평가하지 않아요."
-      }
-    ],
-    "watch": "판매량·가격·할인·차종 구성·사업별 이익률을 봐요.",
-    "check": "전기차 수요는 배터리와 전력에 어떻게 이어질까요?",
-    "checks": [
-      {
-        "title": "차량에서 배터리로",
-        "body": "생산 계획과 고객 계약을 통해 배터리 공급사의 물량을 확인해요."
-      },
-      {
-        "title": "충전에서 전력으로",
-        "body": "충전 설비·이용량·전력망 투자로 연결되지만 시간과 규제 조건을 함께 봐야 해요."
-      }
-    ],
-    "connections": [
-      "batteries",
-      "utilities"
-    ]
   }
 ];
 
@@ -1195,7 +1198,8 @@ export function sectorsForCompany(symbol: string): SectorDefinition[] {
   const identity = getStockIdentityKey(symbol);
   const matches = SECTORS.filter(item => item.companies.some(value => getStockIdentityKey(value) === identity));
   // Specific product markets first, then broader industries; preserve editorial order within each.
-  return [...matches.filter(item => item.parent), ...matches.filter(item => !item.parent)];
+  const parents = matches.filter(item => item.parent).map(item => sectorById(item.parent!));
+  return [...new Map([...matches.filter(item => item.parent), ...matches.filter(item => !item.parent), ...parents].map(item => [item.id, item])).values()];
 }
 const PROFILE_SECTORS: Record<string, SectorId> = {
   'technology': 'technology', 'communication services': 'communication',

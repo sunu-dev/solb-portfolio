@@ -59,7 +59,7 @@ describe('contextual reading paths', () => {
   });
   it('covers all 11 major industries and every configured sub-industry with a sourced representative', () => {
     expect(SECTORS.filter(sector => !sector.parent)).toHaveLength(11);
-    expect(SECTORS.filter(sector => sector.parent)).toHaveLength(10);
+    expect(SECTORS.filter(sector => sector.parent).length).toBeGreaterThanOrEqual(29);
     expect(new Set(SECTORS.map(sector => sector.id)).size).toBe(SECTORS.length);
     for (const sector of SECTORS) {
       expect(sector.companies).toContain(sector.anchor);

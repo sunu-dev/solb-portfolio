@@ -1,15 +1,94 @@
 import type { ReactNode } from 'react';
 import type { SectorId } from '@/lib/sectorExploration';
+import { ADDITIONAL_CAPTIONS, ADDITIONAL_ILLUSTRATIONS } from './AdditionalSectorIllustrations';
 
 // Original editorial line drawings. A shared pen, not a shared scene.
 // Opacity washes inherit currentColor so the same artwork works in both themes.
 const wash = { fill: 'currentColor', fillOpacity: 0.055 };
 const shade = { fill: 'currentColor', fillOpacity: 0.12 };
 export const SECTOR_ILLUSTRATION_CAPTIONS: Partial<Record<SectorId, string>> = {
+  ...ADDITIONAL_CAPTIONS,
   'fuel-cells': '건물 가까이에서 전기를 만들어요',
   photonics: '빛에 데이터를 실어 광섬유로 보내요',
+  quantum: '양자 상태를 제어해 계산해요 · 작동 원리의 개념도',
+  'post-quantum-security': '양자컴퓨터의 공격에 대비하는 암호 기술로 정보를 보호해요',
+  'advanced-nuclear': '원자로 설계가 실증·허가·건설로 이어지는지 봐요',
+  'nuclear-fuel': '우라늄을 가공해 원자로에 쓰는 연료를 공급해요',
+  'nuclear-generation': '발전소를 운영해 만든 전기를 고객에게 판매해요',
 };
 const illustrations = {
+  ...ADDITIONAL_ILLUSTRATIONS,
+  quantum: {
+    label: '제어 장치가 양자 장치의 상태를 조절하고 계산 결과를 컴퓨터로 받는 개념도. 실제 구현 방식은 기업마다 다름',
+    art: <>
+      <rect x="18" y="52" width="61" height="68" rx="5" {...wash} />
+      <rect x="27" y="62" width="43" height="25" rx="2" />
+      <path d="m32 77 6-7 6 11 6-9 7 5h7M28 99h20m-20 8h13" />
+      <circle cx="61" cy="103" r="5" />
+      <path d="M86 86h18m-5-4 5 4-5 4" />
+      <rect x="111" y="38" width="59" height="93" rx="8" {...wash} />
+      <path d="M120 48h41m-41 72h41M124 68v36m33-36v36M124 86h33" opacity=".5" />
+      {[132, 141, 150].map(x => <circle key={x} cx={x} cy="86" r="3" {...shade} />)}
+      <path d="M177 86h18m-5-4 5 4-5 4" />
+      <rect x="203" y="57" width="60" height="49" rx="3" {...wash} />
+      <path d="M233 106v13m-17 0h34M214 94V82m10 12V74m10 20V85m10 9V69m10 25V78" />
+      <g fill="currentColor" stroke="none" fontSize="14" textAnchor="middle"><text x="49" y="155">제어 장치</text><text x="141" y="155">양자 장치</text><text x="233" y="155">계산 결과</text></g>
+    </>,
+  },
+  'post-quantum-security': {
+    label: '두 컴퓨터 사이의 암호화한 정보를 보호하는 보안 기술. 양자컴퓨터를 제조하는 장면이 아님',
+    art: <>
+      <rect x="19" y="64" width="58" height="43" rx="4" {...wash} />
+      <path d="M48 107v12m-17 0h34M29 77h21m-21 9h31m-31 9h15" />
+      <path d="M85 85h23m-5-4 5 4-5 4" />
+      <path d="M117 61c10 0 18-4 24-10 6 6 14 10 24 10v38c0 15-14 26-24 32-10-6-24-17-24-32Z" {...wash} />
+      <rect x="130" y="80" width="23" height="22" rx="3" {...shade} />
+      <path d="M135 80v-8a7 7 0 0 1 14 0v8m-7 10v5" />
+      <path d="M174 85h22m-5-4 5 4-5 4" />
+      <rect x="204" y="64" width="58" height="43" rx="4" {...wash} />
+      <path d="M233 107v12m-17 0h34M215 77h21m-21 9h31m-31 9h15" />
+      <g fill="currentColor" stroke="none" fontSize="14" textAnchor="middle"><text x="141" y="31">양자 공격 대비</text><text x="48" y="155">보내는 정보</text><text x="141" y="155">암호·보안</text><text x="233" y="155">받는 정보</text></g>
+    </>,
+  },
+  'advanced-nuclear': {
+    label: '설계 도면과 원자로 모형, 실증과 허가 확인을 보여주는 원자로 개발 과정. 가동 중인 발전소와 구분',
+    art: <>
+      <rect x="18" y="42" width="63" height="85" rx="3" {...wash} />
+      <path d="M28 56h29m-29 9h19M32 109V86a16 16 0 0 1 32 0v23Zm5-13h22m-22 7h22m-10-23v29M28 119h35" />
+      <path d="M88 86h18m-5-4 5 4-5 4" />
+      <path d="M116 116V67a25 25 0 0 1 50 0v49c0 14-50 14-50 0Z" {...wash} />
+      <path d="M125 108V72a16 16 0 0 1 32 0v36m-28-29h24m-24 28h24m-18-28v28m6-28v28m6-28v28M112 130h58" />
+      <path d="M178 86h18m-5-4 5 4-5 4" />
+      <rect x="204" y="52" width="57" height="74" rx="4" {...wash} />
+      <path d="M218 48h29v10h-29Zm-4 27 4 4 7-8m-11 20 4 4 7-8m-11 20 4 4 7-8m6-32h20m-20 16h20m-20 16h20" />
+      <g fill="currentColor" stroke="none" fontSize="14" textAnchor="middle"><text x="49" y="155">설계</text><text x="141" y="155">원자로 개발</text><text x="233" y="155">실증·허가</text></g>
+    </>,
+  },
+  'nuclear-fuel': {
+    label: '우라늄 원료를 가공한 작은 연료 펠릿과 원자로에 넣는 연료봉. 핵연료 공급 과정의 개념도',
+    art: <>
+      <path d="m19 110 10-37 25-17 24 32-7 31-32 9Zm10-37 19 19 6-36m-35 54 29-18 23 27m-23-27 30-4" {...wash} />
+      <path d="M87 91h20m-5-4 5 4-5 4" />
+      {[119, 136, 153].map(x => <g key={x}><path d={`M${x} 78v23c0 7 13 7 13 0V78`} {...wash} /><ellipse cx={x + 6.5} cy="78" rx="6.5" ry="4" /></g>)}
+      <path d="M176 91h20m-5-4 5 4-5 4" />
+      {[212, 228, 244].map(x => <g key={x}><rect x={x} y="43" width="9" height="82" rx="4.5" {...wash} /><path d={`M${x + 2} 59h5m-5 13h5m-5 13h5m-5 13h5m-5 13h5`} opacity=".5" /></g>)}
+      <path d="M207 53h51m-51 65h51" />
+      <g fill="currentColor" stroke="none" fontSize="14" textAnchor="middle"><text x="49" y="155">우라늄</text><text x="142" y="155">연료 가공</text><text x="233" y="155">연료봉</text></g>
+    </>,
+  },
+  'nuclear-generation': {
+    label: '원자력 발전소에서 터빈과 발전기를 통해 만든 전기를 송전선으로 고객 건물에 보내는 모습',
+    art: <>
+      <path d="M20 120V77a22 22 0 0 1 44 0v43Zm-2 7h51M26 92h33m-33 10h33" {...wash} />
+      <path d="M65 86h20v15h10m-5-4 5 4-5 4" />
+      <circle cx="112" cy="101" r="15" {...wash} /><circle cx="112" cy="101" r="4" />
+      <path d="m112 87 4 9 10 3m-6 12-9-4-8 6m-3-18 9 3 3-11M112 116v9m-17 0h37M128 101h19" />
+      <path d="M147 87h30v30h-30Z" {...wash} /><path d="m160 94-6 10h7l-2 7 10-12h-8Z" />
+      <path d="M178 102h17v-28h25m-5-4 5 4-5 4" />
+      <path d="M223 122V80l17-13 21 13v42Zm13 0v-18h10v18m-18-34h8v8h-8Zm17 0h8v8h-8Z" {...wash} />
+      <g fill="currentColor" stroke="none" fontSize="14" textAnchor="middle"><text x="42" y="155">발전소</text><text x="123" y="155">전기 생산</text><text x="242" y="155">고객</text><text x="80" y="63" fontSize="12">열·증기</text><text x="194" y="56" fontSize="12">전력</text></g>
+    </>,
+  },
   'fuel-cells': {
     label: '연료전지 발전장비에서 만든 전기가 옆 건물로 공급되는 모습',
     art: <>
@@ -257,10 +336,13 @@ const illustrations = {
       <path d="m33 158 21-3m52 12 72-11m45-4 22-4M40 64l29-7m-18-5 29-7" opacity=".35" />
     </>,
   },
-} satisfies Record<SectorId, { label: string; art: ReactNode }>;
+} satisfies Partial<Record<SectorId, { label: string; art: ReactNode }>>;
+
+export const hasSectorIllustration = (sector: SectorId) => sector in illustrations;
 
 export default function SectorIllustration({ sector }: { sector: SectorId }) {
-  const illustration = illustrations[sector];
+  const illustration = illustrations[sector as keyof typeof illustrations];
+  if (!illustration) return null;
   return <svg viewBox="0 0 280 180" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" role="img" aria-label={illustration.label} data-sector-illustration={sector}>
     {illustration.art}
   </svg>;
