@@ -31,7 +31,7 @@ import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining } from '@/utils/anal
 import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions, { getStockAnalysisAnswerTitle } from './StockAnalysisQuestions';
 import IntradayStockChart from './IntradayStockChart';
-import ContextExploration from '@/components/explore/ContextExploration';
+import ContextExploration, { type ExplorationReadingState } from '@/components/explore/ContextExploration';
 import { explorationCompany, stockExploration } from '@/lib/contextExploration';
 import { sectorsForCompany } from '@/lib/sectorExploration';
 import StockAnswerLoading from './StockAnswerLoading';
@@ -363,6 +363,24 @@ export default function AnalysisPanel() {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const analysisBodyRef = useRef<HTMLDivElement>(null);
+  const [readingVisits, setReadingVisits] = useState(() => new Map<string, { reading: ExplorationReadingState; learningOffset: number }>());
+
+  useEffect(() => {
+    if (!symbol || loading) return;
+    const visit = readingVisits.get(symbol);
+    const frame = requestAnimationFrame(() => {
+      const body = analysisBodyRef.current;
+      const learning = body?.querySelector<HTMLElement>('#anchor-learning');
+      if (body) body.scrollTop = visit && learning
+        ? body.scrollTop + learning.getBoundingClientRect().top - body.getBoundingClientRect().top - visit.learningOffset
+        : 0;
+      const target = visit
+        ? dialogRef.current?.querySelector<HTMLElement>('#anchor-learning h3')
+        : dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [symbol, loading, readingVisits]);
 
   const close = useCallback(() => {
     setAnalysisSymbol(null);
@@ -1472,7 +1490,20 @@ export default function AnalysisPanel() {
 
                 {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
                 <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <ContextExploration key={symbol} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`} />
+                  <ContextExploration key={symbol} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
+                    initialReadingState={readingVisits.get(symbol)?.reading}
+                    onOpenStock={(next, reading) => {
+                      if (next === symbol) {
+                        analysisBodyRef.current?.scrollTo({ top: 0 });
+                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
+                        return;
+                      }
+                      const body = analysisBodyRef.current;
+                      const learning = body?.querySelector<HTMLElement>('#anchor-learning');
+                      const learningOffset = body && learning ? learning.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
+                      setReadingVisits(visits => new Map(visits).set(symbol, { reading, learningOffset }));
+                      setAnalysisSymbol(next);
+                    }} />
                   <StockLearning
                     key={symbol}
                     name={displayName}

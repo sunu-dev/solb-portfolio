@@ -8,18 +8,24 @@ import { industryGroup } from '@/lib/industryRegistry';
 import CatalogIndustryExploration from './CatalogIndustryExploration';
 import IndustryDirectory from './IndustryDirectory';
 import CompanyBusinessExplanation from './CompanyBusinessExplanation';
+import StockExplorationLink from './StockExplorationLink';
 import { companyBusinessSummary } from '@/lib/companyStories';
 import styles from './ContextExploration.module.css';
 import SectorIllustration, { hasSectorIllustration, SECTOR_ILLUSTRATION_CAPTIONS } from './SectorIllustration';
 
 type Step = { topic: ExplorationId } | { company: string } | { sector: SectorId } | { industry: string; industryCompany?: string };
-interface Props { topics: ExplorationId[]; context: string; compact?: boolean; symbol?: string; profile?: SectorProfile }
+export interface ExplorationReadingState { trail: Step[]; expanded: boolean; catalogDismissed: boolean }
+interface Props {
+  topics: ExplorationId[]; context: string; compact?: boolean; symbol?: string; profile?: SectorProfile;
+  initialReadingState?: ExplorationReadingState;
+  onOpenStock?: (symbol: string, reading: ExplorationReadingState) => void;
+}
 
 /** Local, session-only reading trail. No AI call, portfolio write, or tracking of reading content. */
-export default function ContextExploration({ topics, context, compact = false, symbol, profile }: Props) {
-  const [trail, setTrail] = useState<Step[]>([]);
-  const [expanded, setExpanded] = useState(!compact);
-  const [catalogDismissed, setCatalogDismissed] = useState(false);
+export default function ContextExploration({ topics, context, compact = false, symbol, profile, initialReadingState, onOpenStock }: Props) {
+  const [trail, setTrail] = useState<Step[]>(initialReadingState?.trail ?? []);
+  const [expanded, setExpanded] = useState(initialReadingState?.expanded ?? !compact);
+  const [catalogDismissed, setCatalogDismissed] = useState(initialReadingState?.catalogDismissed ?? false);
   const [hasNavigated, setHasNavigated] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const id = useId();
@@ -45,9 +51,10 @@ export default function ContextExploration({ topics, context, compact = false, s
     });
   };
   if (!topics.length) return null;
+  const openStock = onOpenStock ? (next: string) => onOpenStock(next, { trail, expanded, catalogDismissed }) : undefined;
   const catalog = industryGroup(step && 'industry' in step ? step.industry : !step && !catalogDismissed && classification.basis === 'catalog' ? profile?.classification?.industryId : undefined);
   if (!compact && catalog) return <CatalogIndustryExploration key={catalog.id} focusOnMount={hasNavigated} group={catalog} current={profile?.classification} context={context}
-    selectedCompanySymbol={step && 'industry' in step ? step.industryCompany : undefined}
+    selectedCompanySymbol={step && 'industry' in step ? step.industryCompany : undefined} onOpenStock={openStock}
     onCompany={company => navigate([...trail, { industry: catalog.id, industryCompany: company }])}
     onIndustry={industry => navigate([...trail, { industry }])}
     onTopic={topic => navigate([...trail, { topic }])} onSector={sector => navigate([...trail, { sector }])}
@@ -100,8 +107,8 @@ export default function ContextExploration({ topics, context, compact = false, s
       {company && step && 'company' in step && <>
         <p className={styles.summary}>{companyBusinessSummary(step.company)}</p>
         <CompanyBusinessExplanation key={step.company} symbol={step.company} />
-        <a className={styles.stock} href={`/?stock=${encodeURIComponent(step.company)}`} target="_blank" rel="noopener noreferrer">{company.name} 시세·뉴스·분석 열기 ↗ <small>(새 탭)</small></a>
-        <p className={styles.note}>이 설명을 남겨두고 종목을 살펴볼 수 있어요. 돌아오면 이어서 읽을 수 있어요.</p>
+        <StockExplorationLink symbol={step.company} onNavigate={openStock}>{company.name} 시세·뉴스·분석 열기</StockExplorationLink>
+        <p className={styles.note}>같은 창에서 종목을 살펴볼 수 있어요. 뒤로 가면 읽던 설명으로 돌아와요.</p>
       </>}
       <div className={styles.sectionHeading}><h4>{step ? '이것도 궁금하지 않으세요?' : '이런 것도 궁금하다면'}</h4></div>
       <div className={styles.questions} aria-label="연결된 질문">{choices.slice(0, 3).map((next, index) => <button type="button" key={next} aria-label={explorationTopic(next).title} onClick={() => navigate([...trail, { topic: next }])}>

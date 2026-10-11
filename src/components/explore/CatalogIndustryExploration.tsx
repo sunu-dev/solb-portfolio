@@ -7,6 +7,7 @@ import { sectorById, sectorsForCompany, type SectorId } from '@/lib/sectorExplor
 import { explorationCompany, type ExplorationId } from '@/lib/contextExploration';
 import { companyBusinessSummary, companyStory } from '@/lib/companyStories';
 import CompanyBusinessExplanation from './CompanyBusinessExplanation';
+import StockExplorationLink from './StockExplorationLink';
 import SectorIllustration from './SectorIllustration';
 import IndustryDirectory from './IndustryDirectory';
 import styles from './ContextExploration.module.css';
@@ -16,9 +17,10 @@ interface Props {
   onIndustry: (id: string) => void; onTopic: (id: ExplorationId) => void;
   onSector: (id: SectorId) => void; onExit: () => void;
   focusOnMount?: boolean; selectedCompanySymbol?: string; onCompany: (symbol: string) => void;
+  onOpenStock?: (symbol: string) => void;
 }
 const companyName = (company: { symbol: string; name: string }) => companyStory(company.symbol)?.name || explorationCompany(company.symbol)?.name || STOCK_KR[company.symbol] || company.name;
-export default function CatalogIndustryExploration({ group, current, context, onIndustry, onTopic, onSector, onExit, focusOnMount = false, selectedCompanySymbol, onCompany }: Props) {
+export default function CatalogIndustryExploration({ group, current, context, onIndustry, onTopic, onSector, onExit, focusOnMount = false, selectedCompanySymbol, onCompany, onOpenStock }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (focusOnMount) { heading.current?.focus({ preventScroll: true }); heading.current?.scrollIntoView({ block: 'nearest' }); } }, [group.id, focusOnMount, selectedCompanySymbol]);
   const source = industrySource(group);
@@ -43,7 +45,7 @@ export default function CatalogIndustryExploration({ group, current, context, on
       {!company && <div className={styles.diagram}><SectorIllustration sector={illustration} /><p className={styles.diagramCaption}>{sectorById(illustration).name}의 대표 장면</p></div>}
     </div>
     {company && <CompanyBusinessExplanation key={company.symbol} symbol={company.symbol} />}
-    {company ? <><a className={styles.stock} href={`/?stock=${encodeURIComponent(company.symbol)}`} target="_blank" rel="noopener noreferrer">{companyName(company)} 시세·뉴스·분석 열기 ↗ <small>(새 탭)</small></a><p className={styles.note}>이 설명을 남겨두고 종목을 살펴볼 수 있어요.</p></> : <div className={styles.companies}><div className={styles.sectionHeading}><h4>원본 업종에 함께 분류된 기업</h4></div><div className={styles.companyGrid}>{examples.map(item => <button type="button" key={item.symbol} onClick={() => onCompany(item.symbol)} aria-label={companyName(item)}><span className={styles.role}>{group.name}{origin?.symbol === item.symbol ? ' · 지금 보고 있는 기업' : ''}</span><span className={styles.companyName}>{companyName(item)} <span aria-hidden="true">→</span></span><span className={styles.companyDetail}>{item.products || `${item.symbol} · ${source.name} 업종 분류`}</span></button>)}</div></div>}
+    {company ? <><StockExplorationLink symbol={company.symbol} onNavigate={onOpenStock}>{companyName(company)} 시세·뉴스·분석 열기</StockExplorationLink><p className={styles.note}>같은 창에서 종목을 살펴볼 수 있어요. 뒤로 가면 읽던 설명으로 돌아와요.</p></> : <div className={styles.companies}><div className={styles.sectionHeading}><h4>원본 업종에 함께 분류된 기업</h4></div><div className={styles.companyGrid}>{examples.map(item => <button type="button" key={item.symbol} onClick={() => onCompany(item.symbol)} aria-label={companyName(item)}><span className={styles.role}>{group.name}{origin?.symbol === item.symbol ? ' · 지금 보고 있는 기업' : ''}</span><span className={styles.companyName}>{companyName(item)} <span aria-hidden="true">→</span></span><span className={styles.companyDetail}>{item.products || `${item.symbol} · ${source.name} 업종 분류`}</span></button>)}</div></div>}
     <details className={styles.selection}><summary>분류와 기업 선정 근거</summary><p className={styles.note}>{source.name} 자료 확인일 · {source.checkedAt.slice(0, 10)}. 원래 업종명은 ‘{group.raw}’예요. {group.market === 'us' ? '기업 예시는 이 자료에 실린 시가총액이 큰 순서로 최대 3개를 골랐어요. 현재 시가총액 순위나 제품 점유율 1위를 뜻하지 않아요.' : '기업 예시는 거래소 자료의 회사명 순서로 최대 3개를 골랐어요. 순위나 대표성 평가가 아니에요.'} 지금 보고 있는 기업은 먼저 표시해요. 직접 거래 관계나 투자 추천을 뜻하지 않아요.</p><a className={styles.source} href={source.url} target="_blank" rel="noopener noreferrer">{source.name} 원문 ↗<span className="sr-only"> (새 창)</span></a></details>
     <div className={styles.sectionHeading}><h4>이것도 궁금하지 않으세요?</h4></div>
     <div className={styles.questions}><button type="button" onClick={() => onTopic('compare')}><span>같은 업종 회사도 실적이 다른 이유는 뭘까요?</span><span aria-hidden="true"> →</span></button><button type="button" onClick={() => onTopic('earnings')}><span>매출이 늘면 이익도 늘어날까요?</span><span aria-hidden="true"> →</span></button><button type="button" onClick={() => onSector(group.parent)}><span>{parent.name}의 다른 사업도 살펴볼까요?</span><span aria-hidden="true"> →</span></button></div>
