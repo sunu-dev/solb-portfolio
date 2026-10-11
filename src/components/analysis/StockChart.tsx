@@ -95,7 +95,7 @@ export default function StockChart({
         },
         crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
         rightPriceScale: { borderColor, borderVisible: false },
-        timeScale: { borderColor, timeVisible: !!intradayTimeZone, secondsVisible: false, ...(intradayTimeZone ? { tickMarkFormatter: timeLabel } : {}) },
+        timeScale: { borderColor, lockVisibleTimeRangeOnResize: true, timeVisible: !!intradayTimeZone, secondsVisible: false, ...(intradayTimeZone ? { tickMarkFormatter: timeLabel } : {}) },
         localization: { locale: 'ko-KR', ...(intradayTimeZone ? { timeFormatter: timeLabel } : {}), priceFormatter: (value: number) => value.toLocaleString('ko-KR', { maximumFractionDigits: currency === 'KRW' ? 0 : 2 }) },
         handleScroll: { vertTouchDrag: false },
       };
@@ -254,7 +254,7 @@ export default function StockChart({
           },
           grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
           rightPriceScale: { borderColor },
-          timeScale: { borderColor, timeVisible: false },
+          timeScale: { borderColor, lockVisibleTimeRangeOnResize: true, timeVisible: false },
         });
         macdChartRef.current = macdChart;
 
@@ -315,7 +315,7 @@ export default function StockChart({
           },
           grid: { vertLines: { color: theme.grid }, horzLines: { color: theme.grid } },
           rightPriceScale: { borderColor },
-          timeScale: { borderColor, timeVisible: false },
+          timeScale: { borderColor, lockVisibleTimeRangeOnResize: true, timeVisible: false },
         });
         rsiChartRef.current = rsiChart;
 

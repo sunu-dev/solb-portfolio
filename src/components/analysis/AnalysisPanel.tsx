@@ -819,6 +819,7 @@ export default function AnalysisPanel() {
                     <div className={panelStyles.periods} role="group" aria-label="차트 기간">
                       {([
                         { label: '1일', days: 1 },
+                        { label: '1주일', days: 5 },
                         { label: '1개월', days: 22 },
                         { label: '3개월', days: 60 },
                         { label: '6개월', days: 120 },
@@ -839,6 +840,7 @@ export default function AnalysisPanel() {
                     {chartRange === 1 ? <IntradayStockChart key={symbol} symbol={symbol} currency={nativeCurrency} level={chartLevel} /> : !analysis ? (
                       <p role="status" style={{ color: 'var(--text-body)', fontSize: 13 }}>이 기간의 일별 가격 자료가 충분하지 않아요. 1일 차트에서 장중 자료를 확인해보세요.</p>
                     ) : <>
+                    {chartRange === 5 && <p style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)' }}>최근 5거래일 기준이에요. 주말·휴장일은 제외해요.</p>}
                     {/* Daily chart and indicators stay on daily data. */}
                     <StockChart
                       raw={analysis.raw}
@@ -868,7 +870,8 @@ export default function AnalysisPanel() {
                       const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
                       const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
                       // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
-                      const periodLabel = chartRange === 22 ? '최근 한 달'
+                      const periodLabel = chartRange === 5 ? '최근 일주일(5거래일)'
+                        : chartRange === 22 ? '최근 한 달'
                         : chartRange === 120 ? '최근 여섯 달'
                         : chartRange === 0 ? '최근 1년'
                         : '최근 석 달';
