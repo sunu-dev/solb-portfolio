@@ -25,6 +25,7 @@ import ListingsPanel from '@/components/admin/ListingsPanel';
 import AiAuditPanel from '@/components/admin/AiAuditPanel';
 import ProReadinessPanel from '@/components/admin/ProReadinessPanel';
 import JoobiLockup from '@/components/brand/JoobiLockup';
+import styles from './page.module.css';
 
 const GEMINI_RPD_PER_KEY = 500;
 
@@ -266,19 +267,15 @@ export default function AdminPage() {
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: 32, gap: 0 }}>
+      <nav className={styles.tabs} aria-label="관리자 메뉴">
         {ADMIN_TABS.map(({ id, label, Icon }) => (
-          <button key={id} onClick={() => setActiveTab(id)} style={{
-            flexShrink: 0, minHeight: 44, padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
-            color: activeTab === id ? '#191F28' : '#8B95A1',
-            background: 'none', border: 'none', borderBottom: activeTab === id ? '2px solid #191F28' : '2px solid transparent',
-            cursor: 'pointer', marginBottom: -1, display: 'inline-flex', alignItems: 'center', gap: 6,
-          }}>
+          <button key={id} type="button" className={styles.tab} aria-pressed={activeTab === id}
+            onClick={() => setActiveTab(id)}>
             <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
             {label}
           </button>
         ))}
-      </div>
+      </nav>
 
       {activeTab === 'usage' && <UsagePanel />}
       {activeTab === 'growth' && <GrowthPanel />}
