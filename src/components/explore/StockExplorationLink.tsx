@@ -1,5 +1,6 @@
 'use client';
 
+import { usageEvent } from '@/lib/usageTelemetry';
 import type { ReactNode } from 'react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { workspaceUrl } from '@/lib/workspaceNavigation';
@@ -13,6 +14,7 @@ export default function StockExplorationLink({ symbol, children, onNavigate }: {
   return <a className={styles.stock} href={workspaceUrl('https://joobi.kr/', section, symbol)} onClick={event => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
+    usageEvent('related_company');
     if (onNavigate) onNavigate(symbol);
     else usePortfolioStore.getState().setAnalysisSymbol(symbol);
   }}>{children} →</a>;

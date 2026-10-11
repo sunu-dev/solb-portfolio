@@ -28,6 +28,7 @@ export default function PrivacyPage() {
           <li><strong>알림 발송 로그</strong>: 어떤 알림이 언제 누구에게 발송되었는지(분쟁 증거)</li>
           <li><strong>멤버십 등급</strong>: Free / PRO 구분, 등급 변경 이력</li>
           <li><strong>온보딩·투어 이벤트</strong>: 단계별 도달·이탈, 도움말 페이지 열람 여부 (UX 개선용)</li>
+          <li><strong>서비스 이용 기록</strong>: 무작위 방문·브라우저 식별자, 회원 계정 식별자(로그인 시), 기능별 활성 사용시간·설명 탐색 이벤트. 보유종목·메모·검색어·URL은 이 기록에 포함하지 않음</li>
           <li><strong>로그인 스트릭</strong>: 연속 접속 일수</li>
           <li><strong>자동 수집 정보</strong>: IP 주소, 접속 시간, 브라우저/OS 정보, 에러 로그</li>
         </ul>
@@ -71,6 +72,7 @@ export default function PrivacyPage() {
               <td style={{ padding: '8px 4px' }}>OCR 원본 이미지</td>
               <td style={{ padding: '8px 4px' }}>현재 기능 비활성화 — 미수집·미전송</td>
             </tr>
+            <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}><td style={{ padding: '8px 4px' }}>활성 이용시간·설명 탐색 기록</td><td style={{ padding: '8px 4px' }}>30일 보관 후 정기 삭제 · 회원 탈퇴 시 계정 연결 기록 즉시 삭제</td></tr>
             <tr>
               <td style={{ padding: '8px 4px' }}>회원 탈퇴 시 그 외 모든 데이터</td>
               <td style={{ padding: '8px 4px' }}>탈퇴 즉시 삭제</td>
@@ -162,7 +164,7 @@ export default function PrivacyPage() {
       <Section title="8. 자동 수집 장치의 설치·운영 및 거부">
         서비스는 쿠키(Cookie)를 사용하지 않습니다. 다음의 브라우저 저장소를 이용 편의를 위해 사용합니다:
         <ul>
-          <li><strong>Local Storage</strong>: 포트폴리오 캐시, 시세 캐시, 온보딩 진행 상태, 투어 진행 여부, 환율 캐시</li>
+          <li><strong>Local Storage</strong>: 포트폴리오 캐시, 시세 캐시, 온보딩 진행 상태, 투어 진행 여부, 환율 캐시, 무작위 이용 브라우저 식별자</li>
           <li><strong>Service Worker Cache (PWA)</strong>: 정적 리소스 캐시 (오프라인 동작용)</li>
           <li><strong>IndexedDB</strong>: 사용 안 함</li>
         </ul>

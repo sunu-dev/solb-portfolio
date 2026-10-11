@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       adminClient.from('bug_reports').delete().eq('user_id', userId),
       adminClient.from('api_calls').delete().eq('user_id', userId),
       adminClient.from('api_logs').delete().eq('user_id', userId),
+      adminClient.from('usage_samples').delete().eq('user_id', userId),
       adminClient.from('tour_events').delete().eq('user_id', userId),
       adminClient.from('ai_cost_ledger').delete().eq('user_id', userId),
       adminClient.from('pro_demand_events').delete().eq('user_id', userId),

@@ -1,0 +1,28 @@
+.panel { color: var(--text-primary, #191f28); }
+.toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.toolbar h2 { font-size: 20px; margin: 0 0 8px; }
+.panel p { line-height: 1.7; font-size: 13px; }
+.toolbar p, .note { color: var(--text-secondary, #6b7684); }
+.controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.controls button { min-height: 44px; border: 1px solid var(--border-light, #e5e8eb); border-radius: 8px; padding: 8px 14px; background: var(--bg-card, #fff); color: inherit; cursor: pointer; }
+.controls button[aria-pressed='true'] { background: var(--text-primary, #191f28); color: var(--bg, #fff); }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cards article, .block { padding: 20px; border: 1px solid var(--border-light, #e5e8eb); border-radius: 12px; background: var(--bg-card, #fff); }
+.cards span { display: block; min-height: 34px; line-height: 1.5; font-size: 12px; color: var(--text-secondary, #6b7684); }
+.cards strong { display: block; font-size: 25px; margin-top: 12px; overflow-wrap: anywhere; }
+.block { margin-top: 20px; }
+.block h3 { margin: 0 0 16px; font-size: 16px; }
+.features { display: grid; gap: 18px; }
+.features > div > div:first-child { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.features span { color: var(--text-secondary, #6b7684); }
+.track { height: 6px; background: var(--bg-subtle, #f2f4f6); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.track > div { height: 100%; background: #3182f6; }
+.funnel { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 16px; font-size: 13px; }
+.funnel strong { display: block; margin-top: 8px; font-size: 20px; }
+.tableWrap { overflow-x: auto; }
+.panel table { border-collapse: collapse; width: 100%; white-space: nowrap; font-size: 13px; }
+.panel th, .panel td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-light, #e5e8eb); }
+.panel summary { min-height: 44px; cursor: pointer; display: flex; align-items: center; font-size: 14px; font-weight: 600; }
+.error { color: var(--negative, #e54959); }
+@media (min-width: 768px) { .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .block { padding: 16px; } .cards article { padding: 14px; } .cards strong { font-size: 22px; } .toolbar h2 { font-size: 18px; } }

@@ -48,6 +48,7 @@ export const GET = defineRoute({
     api_calls_deleted: 0,
     alert_log_deleted: 0,
     tour_events_deleted: 0,
+    usage_samples_deleted: 0,
     errors: [] as string[],
   };
 
@@ -110,6 +111,10 @@ export const GET = defineRoute({
     } else {
       stats.tour_events_deleted = tourDel || 0;
     }
+
+    const usage = await supabase.from('usage_samples').delete({ count: 'exact' }).lt('started_at', daysAgoIso(30));
+    if (usage.error) stats.errors.push(`usage_samples delete: ${usage.error.message}`);
+    else stats.usage_samples_deleted = usage.count || 0;
 
     return NextResponse.json({
       ok: stats.errors.length === 0,

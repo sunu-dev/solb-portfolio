@@ -35,6 +35,7 @@ import { clearUserStorage } from '@/lib/userStorage';
 import { isGuideId } from '@/lib/guideNotebook';
 import type { MarketGuideId } from '@/config/marketGuides';
 import { useDesktopViewport } from '@/hooks/useDesktopViewport';
+import UsageTelemetry from '@/components/common/UsageTelemetry';
 import { useWorkspaceNavigation } from '@/hooks/useWorkspaceNavigation';
 
 const RightSidebar = dynamic(() => import('@/components/layout/RightSidebar'));
@@ -351,6 +352,8 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
   const content = (
     <div className="min-h-screen flex flex-col overflow-x-hidden" style={{ background: 'var(--bg, #FFFFFF)' }}>
+      <UsageTelemetry enabled={hydrated && !authLoading && (!user || inviteAccess === 'allowed')} userId={userId ?? null}
+        feature={analysisSymbol ? 'analysis' : currentSection === 'portfolio' ? 'portfolio' : currentSection === 'news' ? 'news' : currentSection === 'insights' ? 'insights' : 'other'} />
       {/* Sticky Header - 48px */}
       <Header
         user={user}

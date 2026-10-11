@@ -1,5 +1,6 @@
 'use client';
 
+import UsagePanel from '@/components/admin/UsagePanel';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
@@ -81,10 +82,11 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-type AdminTab = 'stats' | 'growth' | 'api' | 'audit' | 'listings' | 'codes' | 'config' | 'pro';
+type AdminTab = 'usage' | 'stats' | 'growth' | 'api' | 'audit' | 'listings' | 'codes' | 'config' | 'pro';
 
 const ADMIN_TABS = [
   { id: 'stats', label: '통계', Icon: BarChart3 },
+  { id: 'usage', label: '이용 현황', Icon: Activity },
   { id: 'growth', label: '성장', Icon: ChartNoAxesCombined },
   { id: 'api', label: 'API 관측', Icon: Activity },
   { id: 'audit', label: 'AI 감사', Icon: SearchCheck },
@@ -264,10 +266,10 @@ export default function AdminPage() {
       </div>
 
       {/* 탭 */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: 32, gap: 0 }}>
+      <div style={{ display: 'flex', overflowX: 'auto', borderBottom: '1px solid var(--border-light, #F2F4F6)', marginBottom: 32, gap: 0 }}>
         {ADMIN_TABS.map(({ id, label, Icon }) => (
           <button key={id} onClick={() => setActiveTab(id)} style={{
-            padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
+            flexShrink: 0, minHeight: 44, padding: '10px 20px', fontSize: 14, fontWeight: activeTab === id ? 700 : 400,
             color: activeTab === id ? '#191F28' : '#8B95A1',
             background: 'none', border: 'none', borderBottom: activeTab === id ? '2px solid #191F28' : '2px solid transparent',
             cursor: 'pointer', marginBottom: -1, display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -278,6 +280,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {activeTab === 'usage' && <UsagePanel />}
       {activeTab === 'growth' && <GrowthPanel />}
       {activeTab === 'api' && <ApiStatsPanel />}
       {activeTab === 'audit' && <AiAuditPanel />}
@@ -306,7 +309,7 @@ export default function AdminPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
         <StatCard label="총 가입자" value={stats.totalUsers} unit="명" color="#3182F6" />
         <StatCard label="총 AI 분석 누적" value={stats.totalAiCalls} unit="회" color="#AF52DE" />
-        <StatCard label="오늘 활성 유저 (AI 사용)" value={stats.todayActiveUsers} unit="명" color="#00C6BE" />
+        <StatCard label="오늘 AI 사용 회원" value={stats.todayActiveUsers} unit="명" color="#00C6BE" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 32 }}>
         <StatCard label="오늘 AI 분석 (클릭)" value={stats.todayAiCalls} unit="회" color="#FF9500" />
@@ -842,6 +845,10 @@ interface GrowthData {
   todayDau: number;
   totalUsers: number;
   totalAiUsage: number;
+  totalAiUsers: number;
+  aiUsageRate: number;
+  d1Cohort: { eligible: number; returned: number };
+  d7Cohort: { eligible: number; returned: number };
   checks: { id: string; label: string; target: number; current: number; unit: string; done: boolean }[];
   readinessPct: number;
   // P0-6 신규 KPI
@@ -876,30 +883,35 @@ function GrowthPanel() {
   const [data, setData] = useState<GrowthData | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(14);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
+      setError('');
+      try {
       const { supabase: sb } = await import('@/lib/supabase');
       const token = (await sb.auth.getSession()).data.session?.access_token ?? '';
       const res = await fetch(`/api/admin/growth?days=${days}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const json = await res.json();
+      if (!res.ok) throw new Error('성장 지표를 읽지 못했어요. 다시 시도해주세요.');
       if (!cancelled) {
         setData(json);
         setLoading(false);
       }
+      } catch (e) { if (!cancelled) { setData(null); setError(e instanceof Error ? e.message : '불러오기 실패'); setLoading(false); } }
     };
     void load();
     return () => { cancelled = true; };
   }, [days]);
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>성장 데이터 불러오는 중...</div>;
-  if (!data) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>불러오기 실패</div>;
+  if (!data) return <div role="alert" style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error || '불러오기 실패'}</div>;
 
-  const aiRate = data.totalUsers > 0 ? Math.round((data.totalAiUsage / data.totalUsers) * 100) : 0;
+  const aiRate = data.aiUsageRate;
 
   return (
     <div>
@@ -972,6 +984,7 @@ function GrowthPanel() {
         ))}
       </div>
 
+      <p style={{ fontSize: 12, color: 'var(--text-secondary, #6B7684)', lineHeight: 1.7 }}>D1/D7의 가입 기준은 포트폴리오 첫 저장일이며 계정 생성일과 차이가 있을 수 있어요. 이 기준일 이후 정확히 1일·7일째의 활동 기록으로 재방문을 판단합니다(한국 시간, 최근 완료된 7개 대상 날짜). D1 {data.d1Cohort.returned}/{data.d1Cohort.eligible}명 · D7 {data.d7Cohort.returned}/{data.d7Cohort.eligible}명. AI 사용률: 선택 기간에 분석을 쓴 회원 {data.totalAiUsers}/{data.totalUsers}명. 이 탭의 DAU·재방문은 기존 활동 로그 기준이며, 실제 활성 사용시간은 ‘이용 현황’에서 확인합니다.</p>
       {/* 일별 차트 3종 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
         {[

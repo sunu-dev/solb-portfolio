@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireServiceClient } from '@/lib/supabaseServer';
 import { defineRoute } from '@/lib/apiRoute';
+import { readAllPages } from '@/lib/readAllRows';
+import { retention } from '@/lib/usageMetrics';
 
 // 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
 // (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
@@ -18,42 +20,32 @@ export const GET = defineRoute({
   name: '/api/admin/growth',
   auth: 'admin',
   handler: async ({ req }) => {
-  const days = parseInt(req.nextUrl.searchParams.get('days') || '14');
-  const since = getDaysAgo(days);
+  const days = Number(req.nextUrl.searchParams.get('days') || '14');
+  if (![7, 14, 30].includes(days)) return NextResponse.json({ error: 'invalid days' }, { status: 400 });
+  const since = getDaysAgo(days - 1);
+  const snapshot = new Date().toISOString();
 
   try {
-    const [signupsRes, logsRes, aiRes, totalUsersRes, feedbackRes] = await Promise.all([
-      // 일별 신규 가입 (user_portfolios.created_at 기준)
-      supabaseAdmin()
-        .from('user_portfolios')
-        .select('created_at')
-        .gte('created_at', since + 'T00:00:00+09:00'),
-
-      // 일별 활성 유저 (api_logs의 user_id 기준) — metadata는 feature_first_use 채택 코호트용
-      supabaseAdmin()
-        .from('api_logs')
-        .select('user_id, action, created_at, metadata')
-        .gte('created_at', since + 'T00:00:00+09:00')
-        .not('user_id', 'is', null),
-
-      // 일별 AI 사용 (ai_usage 기준)
-      supabaseAdmin()
-        .from('ai_usage')
-        .select('date, user_id, mentor_id')
-        .gte('date', since),
-
-      // 전체 가입자 수
-      supabaseAdmin()
-        .from('user_portfolios')
-        .select('created_at, user_id'),
-
-      // AI 피드백 (ai_feedback 테이블, P0-3)
-      supabaseAdmin()
-        .from('ai_feedback')
-        .select('source, rating, created_at')
-        .gte('created_at', since + 'T00:00:00+09:00'),
+    const [signupsRes, activityRes, aiRes, totalUsersRes, feedbackRes] = await Promise.all([
+      readAllPages((from, to) => supabaseAdmin().from('user_portfolios').select('created_at')
+        .gte('created_at', since + 'T00:00:00+09:00').lte('created_at', snapshot).order('user_id').range(from, to)),
+      readAllPages((from, to) => supabaseAdmin().from('api_logs').select('user_id, action, created_at, metadata')
+        .gte('created_at', getDaysAgo(Math.max(days - 1, 16)) + 'T00:00:00+09:00').lte('created_at', snapshot)
+        .not('user_id', 'is', null).order('id').range(from, to)),
+      readAllPages((from, to) => supabaseAdmin().from('ai_usage').select('date, user_id, mentor_id')
+        .gte('date', since).lte('created_at', snapshot).order('id').range(from, to)),
+      readAllPages((from, to) => supabaseAdmin().from('user_portfolios').select('created_at, user_id')
+        .lte('created_at', snapshot).order('user_id').range(from, to)),
+      readAllPages((from, to) => supabaseAdmin().from('ai_feedback').select('source, rating, created_at')
+        .gte('created_at', since + 'T00:00:00+09:00').lte('created_at', snapshot).order('id').range(from, to)),
     ]);
-
+    const logsRes = { data: activityRes.data.filter(row => getKSTDateString(new Date(row.created_at)) >= since) };
+    const activityByDay = new Map<string, Set<string>>();
+    for (const row of activityRes.data) {
+      const day = getKSTDateString(new Date(row.created_at));
+      const ids = activityByDay.get(day) ?? new Set<string>();
+      ids.add(row.user_id); activityByDay.set(day, ids);
+    }
     // ── 날짜 배열 생성 (최근 N일) ──────────────────────────────
     const dateList: string[] = [];
     for (let i = days - 1; i >= 0; i--) {
@@ -89,33 +81,12 @@ export const GET = defineRoute({
       if (aiByDate[row.date] !== undefined) aiByDate[row.date]++;
     });
 
-    // ── D7 리텐션 계산 ────────────────────────────────────────
-    // 14일 전 ~ 7일 전 가입자 중 이후 7일 내 재방문한 비율
-    const allUsers = signupsRes.data || [];
-    const cohortStart = getDaysAgo(14);
-    const cohortEnd = getDaysAgo(7);
-    const cohortUsers = (totalUsersRes.data || []).filter(u => {
-      const d = getKSTDateString(new Date(u.created_at));
-      return d >= cohortStart && d <= cohortEnd;
-    });
-
-    const activeUserIds = new Set((logsRes.data || []).map(r => r.user_id));
-    const returnedCount = cohortUsers.filter(u => activeUserIds.has(u.user_id)).length;
-    const d7Retention = cohortUsers.length > 0
-      ? Math.round((returnedCount / cohortUsers.length) * 100)
-      : null;
-
-    // ── D1 리텐션 ─────────────────────────────────────────────
-    const d1CohortStart = getDaysAgo(8);
-    const d1CohortEnd = getDaysAgo(2);
-    const d1Cohort = (totalUsersRes.data || []).filter(u => {
-      const d = getKSTDateString(new Date(u.created_at));
-      return d >= d1CohortStart && d <= d1CohortEnd;
-    });
-    const d1Returned = d1Cohort.filter(u => activeUserIds.has(u.user_id)).length;
-    const d1Retention = d1Cohort.length > 0
-      ? Math.round((d1Returned / d1Cohort.length) * 100)
-      : null;
+    // Exact KST signup+1/+7 day, seven completed target-day cohorts.
+    const d1Cohort = retention(totalUsersRes.data, activityByDay, getDaysAgo(0), 1);
+    const d7Cohort = retention(totalUsersRes.data, activityByDay, getDaysAgo(0), 7);
+    const d1Retention = d1Cohort.rate;
+    const d7Retention = d7Cohort.rate;
+    const activeUserIds = new Set(logsRes.data.map(r => r.user_id));
 
     // ── 최고 DAU ──────────────────────────────────────────────
     const dauValues = dateList.map(d => dauByDate[d].size);
@@ -126,12 +97,16 @@ export const GET = defineRoute({
     const totalUsers = (totalUsersRes.data || []).length;
     const totalAiUsage = (aiRes.data || []).filter(r => r.mentor_id !== 'ai-chok').length;
 
+    const memberIds = new Set(totalUsersRes.data.map(r => r.user_id));
+    const totalAiUsers = new Set(aiRes.data.filter(r => r.mentor_id !== 'ai-chok' && r.user_id && memberIds.has(r.user_id)).map(r => r.user_id)).size;
+    const aiUsageRate = totalUsers ? Math.round(totalAiUsers / totalUsers * 100) : 0;
+
     // ── 앱스토어 준비도 체크리스트 ────────────────────────────
     const checks = [
       { id: 'users',     label: '가입자 30명 이상',           target: 30,  current: totalUsers,  unit: '명', done: totalUsers >= 30 },
       { id: 'dau',       label: 'DAU 10명 이상 달성',         target: 10,  current: peakDau,     unit: '명', done: peakDau >= 10 },
       { id: 'd7',        label: 'D7 리텐션 30% 이상',         target: 30,  current: d7Retention ?? 0, unit: '%', done: (d7Retention ?? 0) >= 30 },
-      { id: 'ai_rate',   label: 'AI 분석 사용률 40% 이상',    target: 40,  current: totalUsers > 0 ? Math.round((totalAiUsage / totalUsers) * 100) : 0, unit: '%', done: totalUsers > 0 && totalAiUsage / totalUsers >= 0.4 },
+      { id: 'ai_rate',   label: 'AI 분석 사용률 40% 이상',    target: 40,  current: aiUsageRate, unit: '%', done: aiUsageRate >= 40 },
       { id: 'retention', label: 'D1 리텐션 50% 이상',         target: 50,  current: d1Retention ?? 0, unit: '%', done: (d1Retention ?? 0) >= 50 },
     ];
     const readinessPct = Math.round((checks.filter(c => c.done).length / checks.length) * 100);
@@ -192,11 +167,11 @@ export const GET = defineRoute({
       started: number; sampleLoaded: number; toLogin: number; anchorMissing: number;
     } = { available: false, distinctGuests: 0, started: 0, sampleLoaded: 0, toLogin: 0, anchorMissing: 0 };
     try {
-      const ge = await supabaseAdmin()
+      const ge = await readAllPages((from, to) => supabaseAdmin()
         .from('tour_events')
         .select('event, anon_id, auth_state')
-        .gte('created_at', since + 'T00:00:00+09:00');
-      if (!ge.error && ge.data) {
+        .gte('created_at', since + 'T00:00:00+09:00').lte('created_at', snapshot).order('id').range(from, to));
+      if (ge.data) {
         const guests = new Set<string>();
         let started = 0, sampleLoaded = 0, toLogin = 0, anchorMissing = 0;
         (ge.data as { event: string; anon_id: string; auth_state: string }[]).forEach(row => {
@@ -240,7 +215,7 @@ export const GET = defineRoute({
       peakDau,
       todayDau,
       totalUsers,
-      totalAiUsage,
+      totalAiUsage, totalAiUsers, aiUsageRate, d1Cohort, d7Cohort,
       checks,
       readinessPct,
       // P0-6 신규 KPI

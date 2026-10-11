@@ -1,6 +1,7 @@
 'use client';
 
 import { useId, useRef, useState } from 'react';
+import { usageEvent } from '@/lib/usageTelemetry';
 import { companyExploration, explorationCompany, explorationTopic, sectorForTopic, sectorQuestions, explorationRole, type ExplorationId } from '@/lib/contextExploration';
 import { classifiedSectors, SECTORS, sectorById, sectorsForCompany, type SectorId, type SectorProfile } from '@/lib/sectorExploration';
 import { getStockIdentityKey } from '@/utils/stockCurrency';
@@ -43,6 +44,7 @@ export default function ContextExploration({ topics, context, compact = false, s
   const sectorIntro = !!sector && !topic && !company;
   const title = topic?.title ?? (company ? `${company.name}는 어떤 역할을 하나요?` : sectorIntro && !compact ? !step && originCompany ? `${originCompany.name} · ${sector.name}` : `${sector.name}, 어떤 회사부터 볼까요?` : '다음으로 무엇이 궁금하세요?');
   const navigate = (next: Step[]) => {
+    if (next.length > trail.length) usageEvent('explore_step');
     setTrail(next);
     setHasNavigated(true);
     requestAnimationFrame(() => {
