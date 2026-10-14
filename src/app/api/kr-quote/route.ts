@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeSearchText } from '@/config/stockSearchAliases';
 import { getStockCatalog } from '@/lib/stockCatalog';
 import { createStockSearchIndex, searchStockIndex } from '@/lib/stockSearchIndex';
-import { yahooPreviousClose } from '@/utils/yahooPreviousClose';
+import { buildYahooQuote } from '@/utils/yahooQuote';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
@@ -107,11 +107,8 @@ export async function GET(req: NextRequest) {
       if (!result) continue;
 
       const meta = result.meta;
-      const prevClose = yahooPreviousClose(result);
-      if (prevClose === null) continue;
-      const price = meta.regularMarketPrice;
-      const change = price - prevClose;
-      const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+      const quote = buildYahooQuote(result, yahooSymbol.endsWith('=X'));
+      if (!quote) continue;
       const stockName = KR_NAME_BY_SYMBOL[yahooSymbol]
         || meta.longName
         || meta.shortName
@@ -120,13 +117,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         symbol: yahooSymbol,
         name: stockName,
-        c: price,
-        d: change,
-        dp: changePercent,
-        h: meta.regularMarketDayHigh || meta.fiftyTwoWeekHigh,
-        l: meta.regularMarketDayLow || meta.fiftyTwoWeekLow,
-        pc: prevClose,
-        t: meta.regularMarketTime || 0,
+        ...quote,
         currency: meta.currency,
         exchange: meta.exchangeName,
       });

@@ -3,6 +3,7 @@
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { MACRO_IND } from '@/config/constants';
 import type { MacroEntry } from '@/config/constants';
+import { changeColor } from '@/utils/stockTrendPresentation';
 
 export default function BottomTicker() {
   const { macroData } = usePortfolioStore();
@@ -11,8 +12,8 @@ export default function BottomTicker() {
     const d = (macroData[ind.label] as MacroEntry) || {};
     const v = d.value;
     const change = d.change || 0;
-    const cp = d.changePercent || 0;
-    const isGain = cp >= 0;
+    const cp = typeof d.changePercent === 'number' && Number.isFinite(d.changePercent) ? d.changePercent : null;
+    const isGain = cp != null && cp > 0;
     return { label: ind.label, value: v, change, cp, isGain };
   }).filter(item => {
     // Always show USD/KRW if available
@@ -50,8 +51,8 @@ export default function BottomTicker() {
                     : item.value
                   : '--'}
               </span>
-              <span className={`font-medium tabular-nums ${item.isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                {item.cp !== 0 ? `${item.isGain ? '+' : ''}${item.cp.toFixed(2)}%` : ''}
+              <span className="font-medium tabular-nums" style={{ color: changeColor(item.cp ?? 0, 2) }}>
+                {item.cp === null ? '전일 대비 미확인' : `${item.isGain ? '+' : ''}${item.cp.toFixed(2)}%`}
               </span>
             </div>
           ))}

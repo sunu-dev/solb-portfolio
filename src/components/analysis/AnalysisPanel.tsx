@@ -944,31 +944,31 @@ export default function AnalysisPanel() {
                       기술적 지표
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 24 }}>
+                    <div className={panelStyles.technicalGrid} data-technical-indicators>
                       {/* RSI */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>RSI (14)</div>
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>RSI (14)</div>
                         <div style={{
                           fontSize: 14,
                           fontWeight: 700,
                           color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
-                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : '#191F28',
+                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : 'var(--text-primary)',
                         }}>
                           {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.rsiVal != null && analysis.rsiVal < 30 ? '30 아래\n과매도 구간' :
                            analysis.rsiVal != null && analysis.rsiVal > 70 ? '70 위\n과열 구간' : '30~70\n중간 구간'}
                         </div>
                       </div>
 
                       {/* MA 20 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 20일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
-                          {analysis.sma20.length ? `$${analysis.sma20[analysis.sma20.length - 1].toFixed(2)}` : '--'}
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 20일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {analysis.sma20.length ? fmtNativePrice(analysis.sma20[analysis.sma20.length - 1], nativeCurrency) : '--'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
                             ? '현재가가 20일\n평균보다 위'
                             : '현재가가 20일\n평균보다 아래'}
@@ -976,12 +976,12 @@ export default function AnalysisPanel() {
                       </div>
 
                       {/* MA 60 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: '#F8F9FA', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: '#B0B8C1', marginBottom: 6 }}>MA 60일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28' }}>
-                          {analysis.sma60.length ? `$${analysis.sma60[analysis.sma60.length - 1].toFixed(2)}` : '--'}
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 60일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {analysis.sma60.length ? fmtNativePrice(analysis.sma60[analysis.sma60.length - 1], nativeCurrency) : '--'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#8B95A1', marginTop: 4, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
                           {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
                             ? '현재가가 60일\n평균보다 위'
                             : '현재가가 60일\n평균보다 아래'}
@@ -991,9 +991,9 @@ export default function AnalysisPanel() {
 
                     {/* Bollinger interpretation */}
                     {analysis.bollingerStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
                         <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>볼린저 밴드</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>볼린저 밴드</span>
                           <span style={{
                             fontSize: 11,
                             fontWeight: 600,
@@ -1005,12 +1005,12 @@ export default function AnalysisPanel() {
                             {analysis.bollingerStatus.status}
                           </span>
                         </div>
-                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                           {analysis.bollingerStatus.desc}
                           {analysis.lastBollinger && (
                             <>
                               <br />
-                              상단: ${analysis.lastBollinger.upper.toFixed(2)} · 중단: ${analysis.lastBollinger.middle.toFixed(2)} · 하단: ${analysis.lastBollinger.lower.toFixed(2)}
+                              상단: {fmtNativePrice(analysis.lastBollinger.upper, nativeCurrency)} · 중단: {fmtNativePrice(analysis.lastBollinger.middle, nativeCurrency)} · 하단: {fmtNativePrice(analysis.lastBollinger.lower, nativeCurrency)}
                             </>
                           )}
                         </div>
@@ -1019,9 +1019,9 @@ export default function AnalysisPanel() {
 
                     {/* MACD interpretation */}
                     {analysis.macdStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 12 }}>
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
                         <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>MACD</span>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>MACD</span>
                           <span style={{
                             fontSize: 11,
                             fontWeight: 600,
@@ -1033,7 +1033,7 @@ export default function AnalysisPanel() {
                             {analysis.macdStatus.status}
                           </span>
                         </div>
-                        <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                           {analysis.macdStatus.desc}
                           {analysis.macdResult.macd.length > 0 && (
                             <>
@@ -1046,9 +1046,9 @@ export default function AnalysisPanel() {
                     )}
 
                     {/* Volume interpretation */}
-                    <div style={{ padding: '16px 20px', borderRadius: 14, background: '#F8F9FA', marginBottom: 24 }}>
+                    <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 24 }}>
                       <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#191F28' }}>거래량</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>거래량</span>
                         <span style={{
                           fontSize: 11,
                           fontWeight: 600,
@@ -1060,7 +1060,7 @@ export default function AnalysisPanel() {
                           {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
                         </span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#8B95A1', lineHeight: 1.6 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                         최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
                       </div>
                     </div>

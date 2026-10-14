@@ -125,6 +125,7 @@ const MarketTicker = memo(function MarketTicker({ items }: { items: TickerItem[]
               {item.cp > 0 ? '+' : ''}{item.cp.toFixed(2)}{item.unit ?? '%'}
             </span>
           )}
+          {item.cp == null && <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>전일 대비 미확인</span>}
           <span style={{ fontSize: '11px', color: '#E5E8EB', margin: '0 4px' }}>|</span>
         </button>
       ))}
@@ -335,7 +336,7 @@ export default function MarketSummary() {
     const items = TICKER_LABELS.map(label => {
       const entry = macroData[label] as MacroEntry | undefined;
       if (!entry?.value) return null;
-      const cp = entry.changePercent || 0;
+      const cp = typeof entry.changePercent === 'number' && Number.isFinite(entry.changePercent) ? entry.changePercent : null;
       const val = entry.value;
       const isUSDKRW = label === 'USD/KRW';
       const isVIX = label === 'VIX';

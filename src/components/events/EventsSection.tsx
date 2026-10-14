@@ -13,6 +13,7 @@ import BottomSheet from '@/components/common/BottomSheet';
 import controlStyles from './EventControls.module.css';
 import { changeColor, signedChange } from '@/utils/stockTrendPresentation';
 import { eventPriceComparison } from '@/utils/eventPriceComparison';
+import { macroValue } from '@/utils/macroQuote';
 import { useShallow } from 'zustand/react/shallow';
 
 // ─── EventTimeline ───────────────────────────────────────────────────────────
@@ -463,8 +464,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
             ))}
           </div>
           {Object.entries(currentEvent.baseMacro).map(([label, baseVal], idx, arr) => {
-            const cur      = macroData[label] as { value?: number | null } | undefined;
-            const curVal   = cur?.value;
+            const curVal   = macroValue(macroData, label);
             const chg      = curVal != null && baseVal ? (curVal - baseVal) / baseVal * 100 : null;
 
             const isLast   = idx === arr.length - 1;

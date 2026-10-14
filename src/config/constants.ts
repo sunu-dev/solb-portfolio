@@ -113,8 +113,8 @@ export interface MacroIndicator {
 
 export interface MacroEntry {
   value: number | null;
-  change: number;
-  changePercent: number;
+  change: number | null;
+  changePercent: number | null;
 }
 
 export interface QuoteData {

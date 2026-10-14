@@ -160,7 +160,7 @@ export interface UsdKrwState {
 export function resolveUsdKrwState(macroData: Record<string, unknown> | undefined): UsdKrwState {
   const entry = macroData?.['USD/KRW'] as { value?: number } | undefined;
   const value = entry?.value;
-  return typeof value === 'number' && value > 0
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
     ? { rate: value, stale: false }
     : { rate: DEFAULT_USD_KRW, stale: true };
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { yahooPreviousClose } from '@/utils/yahooPreviousClose';
+import { buildYahooQuote, type YahooQuote } from '@/utils/yahooQuote';
 import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { logServerApi } from '@/lib/serverLogger';
 import {
@@ -30,7 +30,7 @@ interface QuoteResult {
   t: number;
 }
 
-async function fetchFromYahoo(symbol: string): Promise<QuoteResult | null> {
+async function fetchFromYahoo(symbol: string): Promise<YahooQuote | null> {
   const yahooSymbol = YAHOO_INDEX_MAP[symbol] || symbol;
   try {
     const r = await fetch(
@@ -41,24 +41,7 @@ async function fetchFromYahoo(symbol: string): Promise<QuoteResult | null> {
     const result = data?.chart?.result?.[0];
     if (!result) return null;
 
-    const meta = result.meta;
-    const price = meta.regularMarketPrice;
-    const prevClose = yahooPreviousClose(result);
-    if (!price || prevClose === null) return null;
-
-    const change = prevClose ? +(price - prevClose).toFixed(2) : 0;
-    const changePct = prevClose ? +(((price - prevClose) / prevClose) * 100).toFixed(2) : 0;
-
-    return {
-      c: price,
-      d: change,
-      dp: changePct,
-      h: meta.regularMarketDayHigh || price,
-      l: meta.regularMarketDayLow || price,
-      o: meta.regularMarketOpen || price,
-      pc: prevClose || price,
-      t: meta.regularMarketTime || 0,
-    };
+    return buildYahooQuote(result, symbol.endsWith('=X'));
   } catch { return null; }
 }
 
@@ -73,7 +56,7 @@ async function fetchFromFinnhub(symbol: string, apiKey: string): Promise<QuoteRe
   } catch { return null; }
 }
 
-async function fetchBareKoreanCode(symbol: string): Promise<QuoteResult | null> {
+async function fetchBareKoreanCode(symbol: string): Promise<YahooQuote | null> {
   for (const candidate of getYahooSymbolCandidates(symbol)) {
     const quote = await fetchFromYahoo(candidate);
     if (quote) return quote;
@@ -107,7 +90,7 @@ export const POST = defineRoute({
     if (!apiKey) return NextResponse.json({ error: 'Quote provider unavailable' }, { status: 503 });
 
     const syms = symbols.slice(0, 50);
-    const results: Record<string, QuoteResult | null> = {};
+    const results: Record<string, QuoteResult | YahooQuote | null> = {};
 
     // Split: index/한국(.KS/.KQ) → Yahoo Finance, 미국 stocks → Finnhub.
     // 한국 종목을 Yahoo로 보내는 이유: Finnhub 무료 티어는 .KS/.KQ 미지원이라 배치에서 null이
@@ -118,7 +101,7 @@ export const POST = defineRoute({
     const indexSymbols = syms.filter(isYahooSym);
     const stockSymbols = syms.filter(s => !isYahooSym(s));
 
-    let usdKrw: { c: number; d: number; dp: number } | null = null;
+    let usdKrw: { c: number; d: number | null; dp: number | null } | null = null;
 
     await Promise.all([
       // Index quotes via Yahoo Finance (Finnhub free tier doesn't support indices)

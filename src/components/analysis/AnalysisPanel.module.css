@@ -37,6 +37,8 @@
 .priceMeta { max-width:320px; color:var(--text-secondary); }
 .chartToolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
 .details { min-width:0; }
+.technicalGrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap:10px; margin-bottom:24px; }
+.technicalGrid > div { min-width:0; overflow-wrap:anywhere; }
 .priceLabel { margin-bottom:8px; font-size:11px; letter-spacing:.04em; color:var(--text-secondary); }
 .price { font-size:clamp(32px, 6vw, 44px); font-weight:650; color:var(--text-primary); letter-spacing:-.055em; line-height:1.15; font-variant-numeric:tabular-nums; }
 .chartHeading { display:flex; align-items:center; gap:6px; margin-bottom:0; scroll-margin-top:48px; font-size:17px; font-weight:650; letter-spacing:-.035em; }

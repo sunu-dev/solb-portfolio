@@ -5,6 +5,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { MACRO_IND } from '@/config/constants';
 import type { MacroEntry } from '@/config/constants';
 import type { FearGreedData } from '@/app/api/fear-greed/route';
+import { changeColor } from '@/utils/stockTrendPresentation';
 
 // ─── Fear & Greed helpers ────────────────────────────────────────────────────
 function fgColor(score: number): string {
@@ -71,18 +72,18 @@ export default function MacroStrip() {
   useEffect(() => {
     fetch('/api/fear-greed')
       .then(r => r.ok ? r.json() : null)
-      .then((d: FearGreedData | null) => { if (d?.score) setFg(d); })
+      .then((d: FearGreedData | null) => { if (d && Number.isFinite(d.score) && d.score >= 0 && d.score <= 100) setFg(d); })
       .catch(() => {});
   }, []);
 
   return (
     <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide py-3 mb-4 border-b border-[#F2F4F6] dark:border-[var(--border-light)]">
-      {MACRO_IND.map((ind, idx) => {
+      {MACRO_IND.map((ind) => {
         const d = (macroData[ind.label] as MacroEntry) || {};
         const v  = d.value;
-        const cp = d.changePercent || 0;
-        const change = d.change || 0;
-        const isGain = cp >= 0;
+        const cp = d.changePercent;
+        const change = d.change;
+        const hasChange = cp != null && change != null && Number.isFinite(cp) && Number.isFinite(change);
 
         return (
           <div key={ind.label} className="flex items-center shrink-0">
@@ -94,8 +95,8 @@ export default function MacroStrip() {
                 <span className="text-[15px] font-bold text-[#191F28] tabular-nums whitespace-nowrap dark:text-[var(--text-primary)]">
                   {v != null ? (typeof v === 'number' ? v.toLocaleString(undefined, { maximumFractionDigits: 2 }) : v) : '--'}
                 </span>
-                <span className={`text-[12px] font-semibold tabular-nums whitespace-nowrap ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                  {isGain ? '+' : ''}{change.toLocaleString(undefined, { maximumFractionDigits: 2 })}({isGain ? '+' : ''}{cp.toFixed(2)}%)
+                <span className="text-[12px] font-semibold tabular-nums whitespace-nowrap" style={{ color: changeColor(hasChange ? cp : 0, 2) }}>
+                  {hasChange ? `${change > 0 ? '+' : ''}${change.toLocaleString(undefined, { maximumFractionDigits: 2 })}(${cp > 0 ? '+' : ''}${cp.toFixed(2)}%)` : '전일 대비 미확인'}
                 </span>
               </div>
             </div>
