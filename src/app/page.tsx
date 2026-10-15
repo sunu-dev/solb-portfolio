@@ -69,7 +69,7 @@ export default function Home() {
         const persisted = usePortfolioStore.persist.getOptions().partialize!(store) as LocalPortfolio;
         preparePortfolioIdentity(identity, persisted, localStorage, () => {
           // OAuth consent belongs to the in-progress login, not the legacy portfolio.
-          clearUserStorage({ preservePendingConsent: true });
+          clearUserStorage({ preservePendingConsent: true, preserveGuestDiscovery: identity === null && !persisted.portfolioOwnerId });
           store.resetPortfolio();
         }, portfolioOwnerId => usePortfolioStore.setState({ portfolioOwnerId }));
         setFailed(false);

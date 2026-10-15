@@ -51,7 +51,7 @@ export const USER_STORAGE_KEY_PREFIXES = [
 ] as const;
 
 /** 모든 사용자 데이터 키 정리 */
-export function clearUserStorage(options: { preservePendingConsent?: boolean } = {}): void {
+export function clearUserStorage(options: { preservePendingConsent?: boolean; preserveGuestDiscovery?: boolean } = {}): void {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('solb-user-storage-clearing'));
   }
@@ -65,6 +65,9 @@ export function clearUserStorage(options: { preservePendingConsent?: boolean } =
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
+      // A routine anonymous startup may retain only its public reading history.
+      // Sign-out/account switching never passes this option and still clears every identity.
+      if (options.preserveGuestDiscovery && key === 'joobi_discovery_v1:guest') continue;
       if (USER_STORAGE_KEY_PREFIXES.some(p => key.startsWith(p))) {
         toRemove.push(key);
       }

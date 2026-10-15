@@ -18,7 +18,7 @@ import {
   stockQuestion,
 } from "@/config/stockQuestions";
 import { STOCK_LESSONS } from "@/config/stockLearning";
-import { USER_STORAGE_KEY_PREFIXES } from "@/lib/userStorage";
+import { clearUserStorage, USER_STORAGE_KEY_PREFIXES } from "@/lib/userStorage";
 import type { NewsItem } from "@/config/constants";
 const now = Date.parse("2026-10-15T09:00:00Z");
 const article = (title = "실적 발표", time = now - 3600000): NewsItem => ({
@@ -204,4 +204,30 @@ it("every explanation has meaningful valid onward links and the graph is connect
   };
   visit("earnings");
   expect(visited.size).toBe(ids.size);
+});
+
+it("keeps only guest reading history on anonymous startup and clears it on account changes", () => {
+  const entries = new Map([
+    ["joobi_discovery_v1:guest", "guest history"],
+    ["joobi_discovery_v1:alice", "private account history"],
+    ["solb-portfolio-storage", "portfolio"],
+  ]);
+  vi.stubGlobal("window", { dispatchEvent: vi.fn() });
+  vi.stubGlobal("localStorage", {
+    get length() {
+      return entries.size;
+    },
+    key: (i: number) => [...entries.keys()][i] ?? null,
+    getItem: (k: string) => entries.get(k) ?? null,
+    removeItem: (k: string) => entries.delete(k),
+  });
+  vi.stubGlobal("sessionStorage", {
+    length: 0,
+    key: () => null,
+    removeItem: vi.fn(),
+  });
+  clearUserStorage({ preserveGuestDiscovery: true });
+  expect([...entries]).toEqual([["joobi_discovery_v1:guest", "guest history"]]);
+  clearUserStorage();
+  expect(entries.size).toBe(0);
 });
