@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function InviteGate({ user, onVerified }: Props) {
-  const { signOut } = useAuth();
+  const { signOut, switchAccount } = useAuth();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,10 +61,10 @@ export default function InviteGate({ user, onVerified }: Props) {
     }
   };
 
-  const leave = () => {
+  const leave = (changeAccount = false) => {
     requestRef.current?.abort();
     if (successTimer.current) clearTimeout(successTimer.current);
-    void signOut();
+    void (changeAccount ? switchAccount() : signOut());
   };
 
   return (
@@ -91,8 +91,8 @@ export default function InviteGate({ user, onVerified }: Props) {
         </form>
         <div className={styles.other}>
           <p>아직 코드가 없다면 로그인 없이 먼저 둘러볼 수 있어요.</p>
-          <button type="button" onClick={leave}>로그아웃하고 둘러보기</button>
-          <button type="button" className={styles.secondary} onClick={leave}>다른 계정으로 로그인</button>
+          <button type="button" onClick={() => leave()}>로그아웃하고 둘러보기</button>
+          <button type="button" className={styles.secondary} onClick={() => leave(true)}>다른 계정으로 로그인</button>
         </div>
       </section>
     </main>

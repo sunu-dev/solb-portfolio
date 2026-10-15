@@ -26,6 +26,7 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
   // Gemini API 약관에 맞춰 만 18세 이상만 가입 가능. 생년월일은 브라우저에서
   // 성인 여부 계산에만 쓰고 sessionStorage·DB·외부 서비스로 보내지 않는다.
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -63,6 +64,7 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
     const dialog = dialogRef.current;
     const previousOverflow = document.body.style.overflow;
     dialog?.showModal();
+    titleRef.current?.focus({ preventScroll: true });
     document.body.style.overflow = 'hidden';
     return () => {
       dialog?.close();
@@ -95,10 +97,10 @@ export default function LoginModal({ isOpen, onClose, onKakaoLogin }: LoginModal
       <div className={styles.card}>
         <header className={styles.header}>
           <JoobiLockup variant="modal" />
-          <button type="button" className={styles.close} onClick={onClose} aria-label="로그인 닫기" autoFocus><X size={21} aria-hidden="true" /></button>
+          <button type="button" className={styles.close} onClick={onClose} aria-label="로그인 닫기"><X size={21} aria-hidden="true" /></button>
         </header>
         <div className={styles.intro}>
-          <h1 id="login-title">내 주식,<br />오늘은 어때요?</h1>
+          <h1 id="login-title" ref={titleRef} tabIndex={-1}>내 주식,<br />오늘은 어때요?</h1>
           <p>가격과 소식을 한곳에서 확인해요.</p>
         </div>
         {inviteMode !== 'open' && <aside className={styles.inviteNote} aria-live="polite">

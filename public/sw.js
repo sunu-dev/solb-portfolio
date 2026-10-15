@@ -23,6 +23,8 @@ self.addEventListener('fetch', (event) => {
   // SW cache-first로 잡으면 이전 청크가 새 HTML과 섞여 module factory 오류가 발생한다.
   // 브라우저/Next의 HTTP 캐시에 맡기고 서비스 워커는 절대 가로채지 않는다.
   if (url.pathname.startsWith('/_next/')) return;
+  // Sector drawings keep stable URLs; let HTTP revalidation pick up revised artwork.
+  if (url.pathname.startsWith('/illustrations/sectors/')) return;
   // 버전과 무관한 앱 정적 자산만 cache-first
   if (url.pathname.match(/\.(png|svg|ico|woff2?)$/)) {
     event.respondWith(

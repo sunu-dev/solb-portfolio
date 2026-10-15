@@ -34,7 +34,7 @@ vi.mock('@/lib/aiAgeGate', () => ({ hasCurrentAdultAiConsent: state.consent }));
 let GET: (request: NextRequest) => Promise<Response>;
 let POST: (request: NextRequest) => Promise<Response>;
 const NOW = Date.parse('2026-10-05T03:00:00Z');
-const report = { text: JSON.stringify({ currentStatus: '제공된 기업 지표를 확인했어요.', keyAdvice: [] }) };
+const report = { text: JSON.stringify({ currentStatus: '제공된 기업 지표를 확인했어요.', keyAdvice: ['공식 실적 자료를 확인할 수 있어요.'], indicators: [{ name: 'RSI', value: '자료 미확인', signal: 'neutral' }], conclusion: { label: '정보 정리', signal: 'neutral', desc: '추가 자료가 필요해요.' } }) };
 
 beforeAll(async () => {
   vi.stubEnv('GEMINI_API_KEY', 'unit-test-only');
@@ -230,10 +230,51 @@ describe('POST uses the same personal daily ledger', () => {
     expect(await (await GET(request())).json()).toMatchObject({ remaining: 3 });
   });
 
-  it('preserves the existing policy of counting a generated response even if its JSON is invalid', async () => {
+  it('returns a retryable failure without charging usage for unusable answers', async () => {
     state.generate.mockResolvedValue({ text: 'not valid JSON' });
     const response = await POST(request('POST', { mentorId: 'safe' }));
+    expect(response.status).toBe(502);
+    const body = await response.json();
+    expect(body).toMatchObject({ success: false, code: 'invalid_ai_response', retryable: true, remaining: 3 });
+    expect(body).not.toHaveProperty('report');
+    expect(state.insert.mock.calls.filter(([table]) => table === 'ai_usage')).toHaveLength(0);
+    expect(state.audit).not.toHaveBeenCalled();
+    expect(state.cost).toHaveBeenCalledWith(expect.objectContaining({ success: false, errorCode: 'invalid_ai_response' }));
+    expect(state.finalize).toHaveBeenCalledExactlyOnceWith(502, 'invalid_ai_response');
+  });
+
+  it('retries malformed output and charges exactly once for a usable answer', async () => {
+    state.generate.mockResolvedValueOnce({ text: '{"currentStatus":' }).mockResolvedValueOnce(report);
+    const response = await POST(request('POST', { mentorId: 'safe' }));
+    expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ success: true, remaining: 2 });
+    expect(state.generate).toHaveBeenCalledTimes(2);
+    expect(state.cost).toHaveBeenCalledTimes(2);
     expect(state.insert.mock.calls.filter(([table]) => table === 'ai_usage')).toHaveLength(1);
+    expect(state.fallback).not.toHaveBeenCalled();
+    expect(state.generate.mock.calls[0][0].config.responseJsonSchema.required).toContain('keyAdvice');
+  });
+
+  it.each(['null', '[]', '{"currentStatus":"hello","conclusion":null}'])('rejects valid JSON with the wrong UI shape: %s', async text => {
+    state.generate.mockResolvedValue({ text });
+    state.fallback.mockResolvedValue({ text, provider: 'claude', model: 'fixture' });
+    expect((await POST(request('POST'))).status).toBe(502);
+    expect(state.rows).toHaveLength(0);
+  });
+
+  it('accepts complete markdown JSON, but rejects truncated finish reasons', async () => {
+    state.generate.mockResolvedValueOnce({ ...report, candidates: [{ finishReason: 'MAX_TOKENS' }] })
+      .mockResolvedValueOnce({ text: '```json\n' + report.text + '\n```', candidates: [{ finishReason: 'STOP' }] });
+    expect((await POST(request('POST'))).status).toBe(200);
+    expect(state.generate).toHaveBeenCalledTimes(2);
+    expect(state.rows).toHaveLength(1);
+  });
+
+  it('does not retry generation or charge usage if report auditing unexpectedly throws', async () => {
+    state.audit.mockRejectedValue(new Error('audit fixture failure'));
+    expect((await POST(request('POST'))).status).toBe(500);
+    expect(state.generate).toHaveBeenCalledTimes(1);
+    expect(state.fallback).not.toHaveBeenCalled();
+    expect(state.rows).toHaveLength(0);
   });
 });

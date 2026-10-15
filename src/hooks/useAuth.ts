@@ -90,7 +90,7 @@ export function useAuth() {
     if (error) console.error('Kakao login error:', error);
   }, []);
 
-  const signOut = useCallback(async () => {
+  const clearSession = useCallback(async (redirect: '/' | '/?login=1') => {
     // 원격 로그아웃 응답을 기다리는 동안에도 이전 계정의 조회/저장을 중단한다.
     clearUserStorage();
     usePortfolioStore.getState().resetPortfolio();
@@ -110,9 +110,12 @@ export function useAuth() {
     // 완전 클린 상태 보장 — 컴포넌트 트리 전부 다시 마운트되어 stale state/effect 제거.
     // 디바운스 중인 usePortfolioSync save effect의 race도 reload로 회피.
     if (typeof window !== 'undefined') {
-      window.location.href = '/';
+      window.location.href = redirect;
     }
   }, []);
 
-  return { user, session, loading, signInWithGoogle, signInWithKakao, signOut };
+  const signOut = useCallback(() => clearSession('/'), [clearSession]);
+  const switchAccount = useCallback(() => clearSession('/?login=1'), [clearSession]);
+
+  return { user, session, loading, signInWithGoogle, signInWithKakao, signOut, switchAccount };
 }

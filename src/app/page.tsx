@@ -27,6 +27,7 @@ import CoachMark from '@/components/onboarding/CoachMark';
 import TourChapterSheet from '@/components/onboarding/TourChapterSheet';
 import GuestTourBanner from '@/components/onboarding/GuestTourBanner';
 import InviteGate from '@/components/auth/InviteGate';
+import AccountAccessStatus from '@/components/auth/AccountAccessStatus';
 import { logApiCall } from '@/lib/apiLogger';
 import { recordProDemandVisit } from '@/lib/proDemandActivity';
 import JoobiLockup from '@/components/brand/JoobiLockup';
@@ -123,7 +124,7 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
   const { refreshAll } = useStockData();
   const desktopViewport = useDesktopViewport();
   useWorkspaceNavigation();
-  const { user, loading: authLoading, signInWithKakao, signOut } = auth;
+  const { user, loading: authLoading, signInWithKakao, signOut, switchAccount } = auth;
   const [hydrated, setHydrated] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -328,19 +329,10 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
 
   if (!hydrated || authLoading || (user && inviteAccess !== 'allowed')) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg, #FFFFFF)' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ marginBottom: 8 }}><JoobiLockup variant="loading" /></div>
-          <div role="status" className="text-[#B0B8C1] text-[12px]">
-            {inviteAccess === 'error' ? '가입 정보를 확인하지 못했어요. 다시 확인해주세요.' : '가입 정보를 확인하고 있어요. 잠시만 기다려주세요.'}
-          </div>
-          {user && inviteAccess === 'error' && <button type="button" onClick={() => {
-            setInviteCheck(null);
-            setInviteRetry(value => value + 1);
-          }}>다시 확인하기</button>}
-          {user && <button type="button" onClick={() => void signOut()}>다른 계정으로 로그인</button>}
-        </div>
-      </div>
+      <AccountAccessStatus error={inviteAccess === 'error'} onRetry={() => {
+        setInviteCheck(null);
+        setInviteRetry(value => value + 1);
+      }} onSwitchAccount={user ? () => void switchAccount() : undefined} />
     );
   }
 

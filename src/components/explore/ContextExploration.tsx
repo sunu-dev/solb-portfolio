@@ -99,6 +99,7 @@ export default function ContextExploration({ topics, context, compact = false, s
           return <button type="button" key={companySymbol} aria-label={info.name} onClick={() => navigate([...trail, { company: companySymbol }])}>
             {role && <span className={styles.role}>{role.role}{sector?.anchor === companySymbol ? ' · 대표 기업' : ''}</span>}
             <span className={styles.companyName}>{info.name}<span aria-hidden="true"> →</span></span>
+            <span className={styles.ticker}>{companySymbol}</span>
             <span className={styles.companyDetail}>{role && 'detail' in role ? role.detail : info.business}</span>
             {symbol && getStockIdentityKey(symbol) === getStockIdentityKey(companySymbol) && <span className={styles.current}>지금 보고 있는 기업</span>}
           </button>;

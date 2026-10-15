@@ -19,6 +19,16 @@ export interface SectorDefinition {
 export const SECTOR_COMPANY_EVIDENCE: SectorCompany[] = [
   ...ADDITIONAL_COMPANY_EVIDENCE,
   {
+    symbol: 'FCEL', name: '퓨얼셀에너지', role: '발전용 연료전지·열 공급',
+    business: '연료전지 발전설비로 현장에서 전기를 만들고, 발생한 열을 함께 쓰는 장비와 서비스를 공급해요. 블룸에너지와 발전용 연료전지라는 분야는 겹치지만 사용하는 기술과 프로젝트 조건은 달라요.',
+    source: { label: '퓨얼셀에너지 · 공식 발전 기술 소개', url: 'https://www.fuelcellenergy.com/platform', reviewedAt: '2026-10-15' },
+  },
+  {
+    symbol: 'PLUG', name: '플러그파워', role: '수소 연료전지·수소 공급',
+    business: '수소를 이용하는 연료전지와 수소 공급·충전 설비를 제공해요. 물류 장비와 전력 공급 등 쓰임이 다양해요. 현장 발전만 비교하기보다 수소 공급망과 고객 용도를 나눠 살펴봐야 해요.',
+    source: { label: '플러그파워 · 공식 연료전지 사업 소개', url: 'https://www.plugpower.com/fuel-cell-power/', reviewedAt: '2026-10-15' },
+  },
+  {
     symbol: 'BE', name: '블룸에너지', role: '연료전지 발전장비',
     business: '연료전지는 연료를 불에 태우지 않고 전기로 바꾸는 장치예요. 블룸에너지는 천연가스·바이오가스·수소 등을 이용해 고객 현장에서 전기를 만드는 발전장비와 관련 서비스를 공급해요. 전기를 저장하는 배터리나 석유를 생산하는 회사와는 사업이 달라요.',
     source: { label: '블룸에너지 · 공식 연료전지 기술 소개', url: 'https://www.bloomenergy.com/technology/', reviewedAt: '2026-10-10' },
@@ -336,7 +346,7 @@ export const SECTOR_COMPANY_EVIDENCE: SectorCompany[] = [
 export const INDUSTRY_SECTORS: SectorDefinition[] = [
   ...ADDITIONAL_SECTORS,
   {
-    id: 'fuel-cells', name: '연료전지·분산발전', parent: 'industrials', anchor: 'BE', companies: ['BE'],
+    id: 'fuel-cells', name: '연료전지·분산발전', parent: 'industrials', anchor: 'BE', companies: ['BE', 'FCEL', 'PLUG'],
     flow: ['발전장비', '현장 설치', '전력 공급'],
     intro: '연료전지는 연료를 전기로 바꾸는 장치예요. 전기를 쓰는 건물 가까이에서 직접 발전하는 방식을 분산발전이라고 해요.',
     driver: '데이터센터가 늘면 블룸에너지 매출도 늘까요?',

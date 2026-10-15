@@ -13,7 +13,8 @@ import { recordAiCost } from '@/lib/aiCostLedger';
 import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
 import { sampleAiOutput } from '@/lib/aiOutputAudit';
 import { attachAiResultMeta } from '@/lib/aiResultMeta';
-import { createAiAnalysisParseFallback, governAiAnalysisReport } from '@/lib/aiAnalysisGuard';
+import { governAiAnalysisReport } from '@/lib/aiAnalysisGuard';
+import { analysisResponseSchema, InvalidAnalysisResponse, parseAnalysisResponse } from '@/lib/aiAnalysisResponse';
 import { toPublicAiAnalysisInput } from '@/lib/aiInputPrivacy';
 import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 import { getStockCurrency } from '@/utils/stockCurrency';
@@ -410,6 +411,7 @@ ${baseRulesCore}`;
 
     const responseFormat = mentor
       ? `## 응답 형식 (반드시 JSON으로)
+newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건의 뜻·전달 경로·미확인 내용) 문자열을 가진 객체를 최대 3개 넣고, 없으면 빈 배열로 작성하세요. 기사 본문을 읽은 듯이 말하거나 원인을 확정하지 마세요.
 {
   "currentStatus": "선택한 관점에서 확인된 사실과 그 뜻을 초보자가 이해할 수 있게 2~3문장으로 설명. 필요한 자료가 없으면 미확인을 명시",
   "keyAdvice": [
@@ -417,7 +419,7 @@ ${baseRulesCore}`;
     "현재 데이터의 한계나 위험 정보 1",
     "추가로 확인할 공시·실적·출처 정보 1"
   ],
-  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "제공된 제목에서 확인되는 사건 → 수요·비용 등 사업으로 전달될 수 있는 경로 → 아직 확인할 내용을 2~3문장. 원인 확정이나 본문을 읽은 듯한 표현 금지"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "newsAnalysis": [],
   "newsContext": "뉴스 없을 때만: '전달받은 최근 뉴스 자료가 없어 이번 변동의 이유는 확인하지 못했어요'",
   "quote": "현재 지표를 쉽게 설명하는 짧은 비유 1개 (행동 권고 금지)",
   "conclusion": {
@@ -427,6 +429,7 @@ ${baseRulesCore}`;
   }
 }`
       : `## 응답 형식 (반드시 JSON으로)
+newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건의 뜻·전달 경로·미확인 내용) 문자열을 가진 객체를 최대 3개 넣고, 없으면 빈 배열로 작성하세요. 기사 본문을 읽은 듯이 말하거나 원인을 확정하지 마세요.
 {
   "currentStatus": "지금 알아둘 핵심과 그 뜻을 쉬운 말로 2~3문장. 사건이 제공됐다면 먼저 설명하고, 주가 변동 원인이 미확인이면 명시",
   "indicators": [
@@ -437,7 +440,7 @@ ${baseRulesCore}`;
     { "name": "거래량", "value": "과거 평균 대비 수준", "signal": "neutral" }
   ],
   "historicalNote": "제공된 52주 고가·저가 범위에서 현재 가격의 산술적 위치를 1~2문장으로",
-  "newsAnalysis": [뉴스가 있을 경우: {"headline": "기사 제목 그대로", "impact": "제공된 제목에서 확인되는 사건 → 수요·비용 등 사업으로 전달될 수 있는 경로 → 아직 확인할 내용을 2~3문장. 원인 확정이나 본문을 읽은 듯한 표현 금지"} 형태로 최대 3개. 뉴스가 없으면 빈 배열 []],
+  "newsAnalysis": [],
   "newsContext": "뉴스 없을 때만: '전달받은 최근 뉴스 자료가 없어 이번 변동의 이유는 확인하지 못했어요'",
   "conclusion": {
     "label": "정보 정리",
@@ -476,119 +479,82 @@ ${recentNews || '관련 뉴스 없음'}
 
 ${responseFormat}`;
 
-    // 키 × 모델 로테이션: 2.5-flash 실패 시 2.5-flash-lite로 fallback
+    // Validate before user usage is charged. Provider costs still include malformed attempts.
     const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
     const shuffledKeys = [...GEMINI_KEYS].sort(() => Math.random() - 0.5);
     let lastError: unknown;
-    for (const model of MODELS) {
+    let invalidResponse = false;
+    let answer: { report: Record<string, unknown>; provider: string; model: string } | undefined;
+    attempts: for (const model of MODELS) {
       for (const apiKey of shuffledKeys) {
-      const keyIndex = GEMINI_KEYS.indexOf(apiKey);
-      try {
-        const startedAt = Date.now();
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: { responseMimeType: 'application/json', temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
-        });
-
-        const latencyMs = Date.now() - startedAt;
-        const metadata = response.usageMetadata;
-        await recordAiCost({
-          feature: 'ai-analysis',
-          provider: 'gemini',
-          model,
-          userId: userId!,
-          inputTokens: metadata?.promptTokenCount ?? 0,
-          outputTokens: metadata?.candidatesTokenCount ?? 0,
-          cachedInputTokens: metadata?.cachedContentTokenCount ?? 0,
-          reasoningTokens: metadata?.thoughtsTokenCount ?? 0,
-          latencyMs,
-        });
-
-        const text = response.text || '';
-
-        // 성공: 사용량 기록 (병렬)
-        const [usageRecorded] = await Promise.all([
-          recordUsage(ip, symbol, mentorId, userId!, day),
-          recordGeminiKeyUsage(keyIndex),
-        ]);
-        const newTotal = totalCount + 1;
-        const remaining = perUserLimit - userCount - 1;
-
-        if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
-          sendSlackAlert(newTotal);
-        }
-
+        const keyIndex = GEMINI_KEYS.indexOf(apiKey);
         try {
-          const parsed = JSON.parse(text);
-          const structurallySafe = isLev ? enforceLeverageReport(parsed) : parsed;
-          const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
-          if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
-          const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
-          await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
-          await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
-          return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, day });
-        } catch {
-          await gate.finalize(200, usageRecorded ? 'parse_fallback' : 'usage_record_failed');
-          const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: 'gemini', aiModel: model });
-          await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
-          return NextResponse.json({ success: true, report: fbReport, remaining, dailyLimit: perUserLimit, tier, day });
-        }
-      } catch (e) {
-        lastError = e;
-        continue;
-      }
-      } // end keys loop
-    } // end models loop
-
-    // 모든 키/모델 실패 — Claude Haiku fallback 시도 (일일 상한 내)
-    const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
-    console.warn('[주비 AI] all Gemini failed, trying Claude fallback:', errorMessage.slice(0, 120));
-
-    try {
-      const aiRes = await callAiJson({
-        prompt,
-        temperature: 0.3,
-        maxTokens: 4096,
-        feature: 'ai-analysis',
-        userId: userId!,
-      });
-      try {
-        const parsed = JSON.parse(aiRes.text);
-        const structurallySafe = isLev ? enforceLeverageReport(parsed) : parsed;
-        const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
-        if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
-        const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
-        await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
-        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
-        const newTotal = totalCount + 1;
-        const remaining = perUserLimit - userCount - 1;
-        if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) {
-          sendSlackAlert(newTotal);
-        }
-        await gate.finalize(200, usageRecorded ? `fallback_${aiRes.provider}` : 'usage_record_failed');
-        return NextResponse.json({ success: true, report: finalReport, remaining, dailyLimit: perUserLimit, tier, day, provider: aiRes.provider });
-      } catch {
-        const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
-        await gate.finalize(200, usageRecorded ? 'fallback_parse_fail' : 'usage_record_failed');
-        const fbReport = attachAiResultMeta(createAiAnalysisParseFallback(isLev), 'ai-analysis', { symbol, aiProvider: aiRes.provider, aiModel: aiRes.model });
-        await sampleAiOutput({ feature: 'ai-analysis', symbol, output: fbReport, sourceSnapshot: auditSnapshot });
-        return NextResponse.json({
-          success: true,
-          report: fbReport,
-          remaining: perUserLimit - userCount - 1,
-          dailyLimit: perUserLimit,
-          tier,
-          day,
-          provider: aiRes.provider,
-        });
-      }
-    } catch (fallbackErr) {
-      if (fallbackErr instanceof AiProviderError) {
-        console.error('[주비 AI] all providers failed:', fallbackErr.causes);
+          const startedAt = Date.now();
+          const ai = new GoogleGenAI({ apiKey });
+          const response = await ai.models.generateContent({
+            model, contents: prompt,
+            config: {
+              responseMimeType: 'application/json', responseJsonSchema: analysisResponseSchema(Boolean(mentor)),
+              maxOutputTokens: 4096, temperature: 0.3, thinkingConfig: { thinkingBudget: 0 },
+            },
+          });
+          const metadata = response.usageMetadata;
+          let parsed: Record<string, unknown> | undefined;
+          try {
+            parsed = parseAnalysisResponse(response.text || '', Boolean(mentor), response.candidates?.[0]?.finishReason);
+          } catch (error) {
+            if (!(error instanceof InvalidAnalysisResponse)) throw error;
+            invalidResponse = true;
+            lastError = error;
+          }
+          await Promise.all([
+            recordAiCost({
+              feature: 'ai-analysis', provider: 'gemini', model, userId: userId!,
+              inputTokens: metadata?.promptTokenCount ?? 0, outputTokens: metadata?.candidatesTokenCount ?? 0,
+              cachedInputTokens: metadata?.cachedContentTokenCount ?? 0, reasoningTokens: metadata?.thoughtsTokenCount ?? 0,
+              latencyMs: Date.now() - startedAt, success: Boolean(parsed),
+              ...(!parsed ? { errorCode: 'invalid_ai_response' } : {}),
+            }),
+            recordGeminiKeyUsage(keyIndex),
+          ]);
+          if (!parsed) continue;
+          answer = { report: parsed, provider: 'gemini', model };
+          break attempts;
+        } catch (error) { lastError = error; }
       }
     }
+
+    if (!answer) {
+      try {
+        const result = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096, feature: 'ai-analysis', userId: userId! });
+        answer = { report: parseAnalysisResponse(result.text, Boolean(mentor)), provider: result.provider, model: result.model };
+      } catch (error) {
+        if (error instanceof InvalidAnalysisResponse) invalidResponse = true;
+        // Never log provider payloads, which can contain request text or credentials.
+        if (error instanceof AiProviderError) console.warn('[주비 AI] fallback providers unavailable');
+      }
+    }
+
+    if (answer) {
+      const structurallySafe = isLev ? enforceLeverageReport(answer.report) : answer.report;
+      const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
+      if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
+      const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: answer.provider, aiModel: answer.model });
+      await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
+      const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
+      const newTotal = totalCount + 1;
+      if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) void sendSlackAlert(newTotal);
+      await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
+      return NextResponse.json({ success: true, report: finalReport, remaining: perUserLimit - userCount - 1, dailyLimit: perUserLimit, tier, day });
+    }
+    if (invalidResponse) {
+      await gate.finalize(502, 'invalid_ai_response');
+      return NextResponse.json({ success: false, code: 'invalid_ai_response', retryable: true,
+        error: 'AI 답변을 끝까지 확인하지 못했어요. 이용 횟수는 차감하지 않았어요. 다시 시도해주세요.',
+        remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day,
+      }, { status: 502, headers: { 'Cache-Control': 'private, no-store' } });
+    }
+    const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
 
     // Gemini + Claude 모두 실패 — 최종 에러 분류
     let parsedCode: unknown = null;
@@ -598,13 +564,13 @@ ${responseFormat}`;
       parsedCode = parsed?.error?.code;
       parsedStatus = parsed?.error?.status;
     } catch { /* not JSON */ }
-    console.error('[주비 AI] all keys failed:', parsedCode, '|', parsedStatus, '|', errorMessage);
+    console.error('[주비 AI] all keys failed:', parsedCode, '|', parsedStatus);
 
     const isQuotaExhausted = parsedCode === 429 || String(parsedStatus) === 'RESOURCE_EXHAUSTED';
     const isServerBusy = parsedCode === 503 || String(parsedStatus) === 'UNAVAILABLE';
 
     const userMsg = isQuotaExhausted
-      ? '오늘 AI 분석 한도를 모두 소진했어요. 내일 다시 이용해주세요.'
+      ? 'AI 제공 서버의 사용량이 몰렸어요. 이용 횟수는 차감하지 않았어요. 잠시 후 다시 시도해주세요.'
       : isServerBusy
         ? 'AI 서버가 혼잡해요. 잠시 후 다시 시도해주세요.'
         : 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.';
