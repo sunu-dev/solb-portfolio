@@ -727,7 +727,7 @@ export default function AnalysisPanel() {
               </div>
             </div>
             <div className={panelStyles.controls}>
-              {/* 넓게 보기 — lg+ 전용(CSS로 노출). 차트가 넓어짐. 기본 880 / 넓게 1080. */}
+              {/* 넓게 보기 — 읽는 순서를 유지하고 패널·차트 폭을 900 → 1160px로 확장. */}
               <button
                 onClick={(event) => {
                   if (event.detail > 0) event.currentTarget.blur();
@@ -776,7 +776,7 @@ export default function AnalysisPanel() {
             layoutKey={`${symbol}-${wideMode}`} />}
 
           {/* Scrollable body */}
-          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}${wideMode && analysis && !isLev ? ` ${panelStyles.wideBody}` : ''}`}>
+          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}`}>
             {loading ? (
               <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
                 <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>

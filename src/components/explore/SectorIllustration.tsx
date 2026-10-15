@@ -14,11 +14,6 @@ function Artwork({ id, art, industryId }: { id: string; art: SectorArtwork; indu
     </div>
     <figcaption>
       <p className={styles.caption}>{art.caption}</p>
-      <details className={styles.explanation}>
-        <summary>그림에서 무엇을 보나요?</summary>
-        <ul>{art.parts.map(part => <li key={part}>{part}</li>)}</ul>
-        <p>{art.note}</p>
-      </details>
     </figcaption>
   </figure>;
 }

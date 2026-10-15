@@ -1,8 +1,9 @@
-.explore { margin:24px 0; padding:24px 0; border-top:1px solid var(--border-light); background:var(--surface); color:var(--text-primary); overflow-wrap:anywhere; }
+.explore { container:sector-exploration / inline-size; min-width:0; margin:24px 0; padding:24px 0; border-top:1px solid var(--border-light); background:var(--surface); color:var(--text-primary); overflow-wrap:anywhere; }
  .eyebrow { margin:0 0 24px; color:var(--text-secondary); font-size:11px; line-height:1.7; }
 .hero { margin-bottom:28px; }
 .explore h3 { margin:0 0 14px; font-size:26px; font-weight:600; letter-spacing:-.045em; line-height:1.4; word-break:keep-all; }
 .sectorHero { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,340px); align-items:center; gap:28px; padding:8px 0 28px; border-bottom:1px solid var(--border-light); }
+.sectorHero > div { min-width:0; }
 .sectorHero h3 { font-size:36px; max-width:13em; font-weight:600; line-height:1.35; }
 .diagram { color:var(--text-body); width:100%; max-width:340px; }
 .sectionHeading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; margin:28px 0 8px; }
@@ -47,7 +48,7 @@
 .explore button:hover,.stock:hover { background:var(--bg-subtle); }
 .explore :is(button,a,summary):focus-visible { outline:1px solid var(--text-primary); outline-offset:3px; }
 .explore h3:focus { outline:none; }
-@media(max-width:600px) {
+@container sector-exploration (max-width:600px) {
   .eyebrow { margin-bottom:18px; }
   .sectorHero { grid-template-columns:minmax(0,1fr); gap:12px; padding:0 0 24px; margin-bottom:24px; }
   .sectorHero h3 { font-size:29px; max-width:11em; }

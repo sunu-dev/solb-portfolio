@@ -57,10 +57,6 @@
 @media(min-width:1024px) {
   .wideControl { display:inline-flex; }
   .panel:global(.wide) { max-width:1160px; }
-  .wideBody { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:0 36px; align-items:start; }
-  .wideBody > .priceHero { grid-column:1 / -1; grid-row:1; }
-  .wideBody > :global(.detail-chart-col) { grid-column:1; grid-row:2; min-width:0; }
-  .wideBody > .details { grid-column:2; grid-row:2; border-left:1px solid var(--border-light); padding-left:24px; }
 }
 @media(max-width:768px) {
   .header { padding:12px 16px; gap:8px; }
