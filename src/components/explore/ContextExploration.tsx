@@ -12,7 +12,7 @@ import CompanyBusinessExplanation from './CompanyBusinessExplanation';
 import StockExplorationLink from './StockExplorationLink';
 import { companyBusinessSummary } from '@/lib/companyStories';
 import styles from './ContextExploration.module.css';
-import SectorIllustration, { hasSectorIllustration, SECTOR_ILLUSTRATION_CAPTIONS } from './SectorIllustration';
+import SectorIllustration, { hasSectorIllustration } from './SectorIllustration';
 
 type Step = { topic: ExplorationId } | { company: string } | { sector: SectorId } | { industry: string; industryCompany?: string };
 export interface ExplorationReadingState { trail: Step[]; expanded: boolean; catalogDismissed: boolean }
@@ -81,7 +81,6 @@ export default function ContextExploration({ topics, context, compact = false, s
         </div>
         {sectorIntro && !compact && hasSectorIllustration(sector.id) && <div className={styles.diagram}>
           <SectorIllustration sector={sector.id} />
-          <p className={styles.diagramCaption}>{SECTOR_ILLUSTRATION_CAPTIONS[sector.id] ?? sector.flow.join(' · ')}</p>
         </div>}
 
       </div>

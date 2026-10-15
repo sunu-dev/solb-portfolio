@@ -20,15 +20,3 @@ export const industrySource = (group: IndustryGroup) => INDUSTRY_SOURCES[group.m
 
 const providerParents = new Map(INDUSTRY_GROUPS.map(group => [group.raw.trim().toLowerCase(), group.parent]));
 export const providerIndustryParent = (industry?: string | null) => providerParents.get(industry?.trim().toLowerCase() ?? '');
-
-// Reuse a specific scene only where the source label actually matches its subject.
-const illustrationScenes: Record<string, SectorId> = {
-  Semiconductors: 'semiconductors', '반도체 제조업': 'semiconductors',
-  'Semiconductor Equipment & Materials': 'equipment',
-  'Drug Manufacturers - General': 'pharma', 'Drug Manufacturers - Specialty & Generic': 'pharma',
-  Biotechnology: 'pharma', '의약품 제조업': 'pharma', '기초 의약물질 제조업': 'pharma',
-  'Auto Manufacturers': 'automotive', '자동차용 엔진 및 자동차 제조업': 'automotive',
-  'Aerospace & Defense': 'aerospace', '항공기,우주선 및 부품 제조업': 'aerospace',
-  '선박 및 보트 건조업': 'shipbuilding', '일차전지 및 이차전지 제조업': 'batteries',
-};
-export const industryIllustration = (group: IndustryGroup): SectorId => illustrationScenes[group.raw] ?? group.parent;

@@ -2,13 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import { STOCK_KR } from '@/config/constants';
-import { industryIllustration, industrySource, type IndustryGroup, type StoredIndustryProfile } from '@/lib/industryRegistry';
+import { industrySource, type IndustryGroup, type StoredIndustryProfile } from '@/lib/industryRegistry';
 import { sectorById, sectorsForCompany, type SectorId } from '@/lib/sectorExploration';
 import { explorationCompany, type ExplorationId } from '@/lib/contextExploration';
 import { companyBusinessSummary, companyStory } from '@/lib/companyStories';
 import CompanyBusinessExplanation from './CompanyBusinessExplanation';
 import StockExplorationLink from './StockExplorationLink';
-import SectorIllustration from './SectorIllustration';
+import { IndustryIllustration } from './SectorIllustration';
 import IndustryDirectory from './IndustryDirectory';
 import styles from './ContextExploration.module.css';
 
@@ -30,7 +30,6 @@ export default function CatalogIndustryExploration({ group, current, context, on
   const company = examples.find(item => item.symbol === selectedCompanySymbol);
   const businessSubject = company ?? origin;
   const business = company ? companyBusinessSummary(company.symbol, company.products) : undefined;
-  const illustration = industryIllustration(group);
   return <section className={styles.explore} aria-label={`${context} 이어서 알아보기`} data-context-exploration data-sector-id={group.parent} data-industry-id={group.id}>
     <p className={styles.eyebrow}>{context} · 이어서 알아보기</p>
     <nav className={styles.history} aria-label="설명 탐색 경로"><button type="button" onClick={onExit}>← 이전 설명</button><button type="button" onClick={() => onSector(group.parent)}>{parent.name} 전체 보기</button></nav>
@@ -42,7 +41,7 @@ export default function CatalogIndustryExploration({ group, current, context, on
     <div className={`${styles.hero} ${company ? '' : styles.sectorHero}`}>
       <div><h3 ref={heading} tabIndex={-1}>{company ? business ? `${companyName(company)}는 어떤 회사인가요?` : `${companyName(company)}의 업종·종목 정보` : origin ? `${companyName(origin)}와 같은 업종에는 어떤 회사가 있을까요?` : `${group.name}, 어떤 회사부터 볼까요?`}</h3>
         <p className={styles.summary}>{company ? business ?? `현재 확인된 정보는 ‘${group.name}’ 업종 분류예요. 이 회사의 구체적인 사업 설명은 아직 준비되지 않았어요.` : `${source.name}의 ‘${group.name}’ 분류에 포함된 기업을 함께 살펴보세요. 같은 업종이어도 제품과 고객, 수익 구조는 다를 수 있어요.`}</p></div>
-      {!company && <div className={styles.diagram}><SectorIllustration sector={illustration} /><p className={styles.diagramCaption}>{sectorById(illustration).name}의 대표 장면</p></div>}
+      {!company && <div className={styles.diagram}><IndustryIllustration industryId={group.id} /></div>}
     </div>
     {company && <CompanyBusinessExplanation key={company.symbol} symbol={company.symbol} />}
     {company ? <><StockExplorationLink symbol={company.symbol} onNavigate={onOpenStock}>{companyName(company)} 시세·뉴스·분석 열기</StockExplorationLink><p className={styles.note}>같은 창에서 종목을 살펴볼 수 있어요. 뒤로 가면 읽던 설명으로 돌아와요.</p></> : <div className={styles.companies}><div className={styles.sectionHeading}><h4>원본 업종에 함께 분류된 기업</h4></div><div className={styles.companyGrid}>{examples.map(item => <button type="button" key={item.symbol} onClick={() => onCompany(item.symbol)} aria-label={companyName(item)}><span className={styles.role}>{group.name}{origin?.symbol === item.symbol ? ' · 지금 보고 있는 기업' : ''}</span><span className={styles.companyName}>{companyName(item)} <span aria-hidden="true">→</span></span><span className={styles.companyDetail}>{item.products || `${item.symbol} · ${source.name} 업종 분류`}</span></button>)}</div></div>}

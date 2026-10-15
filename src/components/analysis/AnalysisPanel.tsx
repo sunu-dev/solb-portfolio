@@ -1490,7 +1490,7 @@ export default function AnalysisPanel() {
 
                 {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
                 <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <ContextExploration key={symbol} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
+                  <ContextExploration key={`exploration:${symbol}`} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
                     initialReadingState={readingVisits.get(symbol)?.reading}
                     onOpenStock={(next, reading) => {
                       if (next === symbol) {
@@ -1505,7 +1505,7 @@ export default function AnalysisPanel() {
                       setAnalysisSymbol(next);
                     }} />
                   <StockLearning
-                    key={symbol}
+                    key={`learning:${symbol}`}
                     name={displayName}
                     onChart={analysis && !isLev ? (days) => {
                       setChartRange(days);

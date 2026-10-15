@@ -1,0 +1,1214 @@
+{
+  "us-903e39563339": {
+    "raw": "Semiconductors",
+    "scene": "semiconductors"
+  },
+  "us-e2d9f85be493": {
+    "raw": "Consumer Electronics",
+    "scene": "electronics"
+  },
+  "us-8a52beae2753": {
+    "raw": "Internet Content & Information",
+    "scene": "media"
+  },
+  "us-4e058c9d66d3": {
+    "raw": "Software - Infrastructure",
+    "scene": "software"
+  },
+  "us-c8cc477cf8fb": {
+    "raw": "Internet Retail",
+    "scene": "retail"
+  },
+  "us-fe3d4f1e8b3c": {
+    "raw": "Aerospace & Defense",
+    "scene": "aerospace"
+  },
+  "us-003a6944faa8": {
+    "raw": "Auto Manufacturers",
+    "scene": "automotive"
+  },
+  "us-83797a753038": {
+    "raw": "Insurance - Diversified",
+    "scene": "insurance"
+  },
+  "us-8b1a099f96dc": {
+    "raw": "Drug Manufacturers - General",
+    "scene": "pharma"
+  },
+  "us-3a3248c77fe0": {
+    "raw": "Banks - Diversified",
+    "scene": "banking"
+  },
+  "us-dcdb41f3bf9e": {
+    "raw": "Discount Stores",
+    "scene": "retail"
+  },
+  "us-62260fbc2b69": {
+    "raw": "Credit Services",
+    "scene": "payments"
+  },
+  "us-fde07228d10d": {
+    "raw": "Oil & Gas Integrated",
+    "scene": "energy"
+  },
+  "us-0b8941aadbf8": {
+    "raw": "Semiconductor Equipment & Materials",
+    "scene": "equipment"
+  },
+  "us-90a91ee128f6": {
+    "raw": "Communication Equipment",
+    "scene": "networking"
+  },
+  "us-fed0352ddaeb": {
+    "raw": "Beverages - Non-Alcoholic",
+    "scene": "beverages"
+  },
+  "us-2bd6d374be3d": {
+    "raw": "Computer Hardware",
+    "scene": "servers"
+  },
+  "us-dacb2f262d7a": {
+    "raw": "Farm & Heavy Construction Machinery",
+    "scene": "machinery"
+  },
+  "us-c596f3001379": {
+    "raw": "Household & Personal Products",
+    "scene": "consumer-staples"
+  },
+  "us-980b3078aaaa": {
+    "raw": "Healthcare Plans",
+    "scene": "insurance"
+  },
+  "us-d00a0fc15692": {
+    "raw": "Tobacco",
+    "scene": "tobacco"
+  },
+  "us-7d4c8dd3fb27": {
+    "raw": "Capital Markets",
+    "scene": "brokerage"
+  },
+  "us-ceaa553e838f": {
+    "raw": "Entertainment",
+    "scene": "media"
+  },
+  "us-ea046be3d383": {
+    "raw": "Home Improvement Retail",
+    "scene": "retail"
+  },
+  "us-f9620462df37": {
+    "raw": "Specialty Industrial Machinery",
+    "scene": "machinery"
+  },
+  "us-4e00453c7387": {
+    "raw": "Software - Application",
+    "scene": "software"
+  },
+  "us-9658858fc165": {
+    "raw": "Diagnostics & Research",
+    "scene": "lab"
+  },
+  "us-acd8776514f3": {
+    "raw": "Specialty Chemicals",
+    "scene": "chemicals"
+  },
+  "us-edd0f3d8fd76": {
+    "raw": "Other Industrial Metals & Mining",
+    "scene": "mining"
+  },
+  "us-1ee47860ab70": {
+    "raw": "Electronic Components",
+    "scene": "electronics"
+  },
+  "us-f8af2a58e996": {
+    "raw": "Information Technology Services",
+    "scene": "software"
+  },
+  "us-d35b0efe2128": {
+    "raw": "Copper",
+    "scene": "mining"
+  },
+  "us-2fe368d1be59": {
+    "raw": "Asset Management",
+    "scene": "asset-management"
+  },
+  "us-81d93a4de584": {
+    "raw": "Telecom Services",
+    "scene": "communication"
+  },
+  "us-7a25ddfb5226": {
+    "raw": "Medical Devices",
+    "scene": "healthcare"
+  },
+  "us-0beeae358e66": {
+    "raw": "Restaurants",
+    "scene": "restaurant"
+  },
+  "us-66a512380c3c": {
+    "raw": "Railroads",
+    "scene": "rail"
+  },
+  "us-5c22f61a8d6c": {
+    "raw": "REIT - Healthcare Facilities",
+    "scene": "medical-facility"
+  },
+  "us-f08a109599e7": {
+    "raw": "Utilities - Regulated Electric",
+    "scene": "utilities"
+  },
+  "us-57e9cb1b560d": {
+    "raw": "Oil & Gas Exploration & Production",
+    "scene": "energy"
+  },
+  "us-2d7a68165cb7": {
+    "raw": "Apparel Retail",
+    "scene": "retail"
+  },
+  "us-1cba2a5dc7fe": {
+    "raw": "Beverages - Brewers",
+    "scene": "beverages"
+  },
+  "us-dff4ff484def": {
+    "raw": "Medical Instruments & Supplies",
+    "scene": "medical-supplies"
+  },
+  "us-411c444839ce": {
+    "raw": "Insurance - Property & Casualty",
+    "scene": "insurance"
+  },
+  "us-83a08ea52f66": {
+    "raw": "Biotechnology",
+    "scene": "pharma"
+  },
+  "us-73215b0badd3": {
+    "raw": "Oil & Gas Refining & Marketing",
+    "scene": "oil-tanks"
+  },
+  "us-f65082cb04b9": {
+    "raw": "REIT - Industrial",
+    "scene": "reit-industrial"
+  },
+  "us-55ce08446d2b": {
+    "raw": "Banks - Regional",
+    "scene": "banking"
+  },
+  "us-6249df4367d0": {
+    "raw": "Gold",
+    "scene": "mining"
+  },
+  "us-3231bd9d4538": {
+    "raw": "Travel Services",
+    "scene": "travel"
+  },
+  "us-7d2c92b680be": {
+    "raw": "Financial Data & Stock Exchanges",
+    "scene": "brokerage"
+  },
+  "us-dc68f4123d83": {
+    "raw": "Medical Distribution",
+    "scene": "medical-supplies"
+  },
+  "us-6eb1c8f1ea58": {
+    "raw": "Engineering & Construction",
+    "scene": "construction"
+  },
+  "us-1bb0af581306": {
+    "raw": "Utilities - Independent Power Producers",
+    "scene": "utilities"
+  },
+  "us-56836149f5b3": {
+    "raw": "Building Products & Equipment",
+    "scene": "construction"
+  },
+  "us-5b611206bf23": {
+    "raw": "Oil & Gas Midstream",
+    "scene": "oil-tanks"
+  },
+  "us-201bc5a141bc": {
+    "raw": "REIT - Specialty",
+    "scene": "real-estate"
+  },
+  "us-9118f4445943": {
+    "raw": "Medical Care Facilities",
+    "scene": "medical-facility"
+  },
+  "us-a0179e912833": {
+    "raw": "Lodging",
+    "scene": "hotel"
+  },
+  "us-62b0d5170678": {
+    "raw": "Electrical Equipment & Parts",
+    "scene": "power-equipment"
+  },
+  "us-6b2bc8b857bf": {
+    "raw": "Advertising Agencies",
+    "scene": "media"
+  },
+  "us-515cfe156f0f": {
+    "raw": "Insurance Brokers",
+    "scene": "insurance"
+  },
+  "us-1cacc98021f0": {
+    "raw": "Waste Management",
+    "scene": "recycling"
+  },
+  "us-07770cda07b1": {
+    "raw": "Conglomerates",
+    "scene": "industrials"
+  },
+  "us-7cce48efbe33": {
+    "raw": "Integrated Freight & Logistics",
+    "scene": "warehouse"
+  },
+  "us-8754bffdc399": {
+    "raw": "Specialty Business Services",
+    "scene": "business-services"
+  },
+  "us-008018689f20": {
+    "raw": "Electronic Gaming & Multimedia",
+    "scene": "media"
+  },
+  "us-3605046d7050": {
+    "raw": "Confectioners",
+    "scene": "food"
+  },
+  "us-b3f4a4311892": {
+    "raw": "REIT - Retail",
+    "scene": "reit-retail"
+  },
+  "us-c0c9be6ec779": {
+    "raw": "Oil & Gas Equipment & Services",
+    "scene": "oil-tanks"
+  },
+  "us-d624ff99944b": {
+    "raw": "Auto & Truck Dealerships",
+    "scene": "retail"
+  },
+  "us-ee9443652a24": {
+    "raw": "Insurance - Life",
+    "scene": "insurance"
+  },
+  "us-4af17008e94d": {
+    "raw": "Auto Parts",
+    "scene": "auto-parts"
+  },
+  "us-75ee15d81573": {
+    "raw": "Rental & Leasing Services",
+    "scene": "machinery"
+  },
+  "us-179d3146f99a": {
+    "raw": "Scientific & Technical Instruments",
+    "scene": "lab"
+  },
+  "us-81bbcaf45791": {
+    "raw": "Industrial Distribution",
+    "scene": "warehouse"
+  },
+  "us-dc688543a5e2": {
+    "raw": "Drug Manufacturers - Specialty & Generic",
+    "scene": "pharma"
+  },
+  "us-ea9973d1460e": {
+    "raw": "Steel",
+    "scene": "materials"
+  },
+  "us-90d0f1ba8b96": {
+    "raw": "Building Materials",
+    "scene": "construction"
+  },
+  "us-852fe9ec16a1": {
+    "raw": "Airlines",
+    "scene": "airline"
+  },
+  "us-7440fc5112f5": {
+    "raw": "Utilities - Diversified",
+    "scene": "utilities"
+  },
+  "us-474a456c2dbd": {
+    "raw": "Footwear & Accessories",
+    "scene": "retail"
+  },
+  "us-221acd861dc2": {
+    "raw": "Beverages - Wineries & Distilleries",
+    "scene": "beverages"
+  },
+  "us-36280dde209c": {
+    "raw": "Health Information Services",
+    "scene": "software"
+  },
+  "us-d802c926b2aa": {
+    "raw": "REIT - Residential",
+    "scene": "housing"
+  },
+  "us-3b23da367094": {
+    "raw": "Financial Conglomerates",
+    "scene": "asset-management"
+  },
+  "us-8c83435c415e": {
+    "raw": "Farm Products",
+    "scene": "agriculture"
+  },
+  "us-0a5bbb1093ad": {
+    "raw": "Food Distribution",
+    "scene": "warehouse"
+  },
+  "us-12b454d4b27e": {
+    "raw": "Uranium",
+    "scene": "nuclear-fuel"
+  },
+  "us-08193a335a2b": {
+    "raw": "Real Estate Services",
+    "scene": "business-services"
+  },
+  "us-fa00632ed486": {
+    "raw": "Trucking",
+    "scene": "truck"
+  },
+  "us-204d4422095b": {
+    "raw": "Residential Construction",
+    "scene": "construction"
+  },
+  "us-e88b9b33b043": {
+    "raw": "Grocery Stores",
+    "scene": "consumer-staples"
+  },
+  "us-0724517169af": {
+    "raw": "Mortgage Finance",
+    "scene": "mortgage-finance"
+  },
+  "us-73ac1f75f717": {
+    "raw": "Agricultural Inputs",
+    "scene": "chemicals"
+  },
+  "us-5c5b90a9eb44": {
+    "raw": "Specialty Retail",
+    "scene": "retail"
+  },
+  "us-cb110c174c26": {
+    "raw": "Utilities - Regulated Gas",
+    "scene": "gas-supply"
+  },
+  "us-602300b7756e": {
+    "raw": "Packaged Foods",
+    "scene": "food"
+  },
+  "us-bae73b0434e2": {
+    "raw": "Metal Fabrication",
+    "scene": "materials"
+  },
+  "us-d5052dc85ff1": {
+    "raw": "Furnishings, Fixtures & Appliances",
+    "scene": "furniture"
+  },
+  "us-9cd9ecaeea21": {
+    "raw": "Utilities - Regulated Water",
+    "scene": "water"
+  },
+  "us-687c71d88690": {
+    "raw": "REIT - Diversified",
+    "scene": "real-estate"
+  },
+  "us-69d744847022": {
+    "raw": "Pollution & Treatment Controls",
+    "scene": "machinery"
+  },
+  "us-d0119fec5598": {
+    "raw": "Resorts & Casinos",
+    "scene": "leisure"
+  },
+  "us-aca6a4a75fa7": {
+    "raw": "Consulting Services",
+    "scene": "business-services"
+  },
+  "us-0ec4ae8723db": {
+    "raw": "Luxury Goods",
+    "scene": "jewelry"
+  },
+  "us-93930bc22f31": {
+    "raw": "Apparel Manufacturing",
+    "scene": "apparel"
+  },
+  "us-f995198bb033": {
+    "raw": "Electronics & Computer Distribution",
+    "scene": "retail"
+  },
+  "us-8b4bff7fa84e": {
+    "raw": "Packaging & Containers",
+    "scene": "paper"
+  },
+  "us-73fda182833f": {
+    "raw": "Chemicals",
+    "scene": "chemicals"
+  },
+  "us-84c0b185c4d2": {
+    "raw": "Utilities - Renewable",
+    "scene": "renewable-generation"
+  },
+  "us-31ce6e791780": {
+    "raw": "Solar",
+    "scene": "solar-equipment"
+  },
+  "us-ea7a027ab95b": {
+    "raw": "Tools & Accessories",
+    "scene": "machinery"
+  },
+  "us-87118bb82abe": {
+    "raw": "Insurance - Reinsurance",
+    "scene": "insurance"
+  },
+  "us-ae4dbd7e5a2d": {
+    "raw": "Leisure",
+    "scene": "leisure"
+  },
+  "us-6ce078aa5cf9": {
+    "raw": "REIT - Hotel & Motel",
+    "scene": "hotel"
+  },
+  "us-6b755618a622": {
+    "raw": "Personal Services",
+    "scene": "business-services"
+  },
+  "us-a34a9dc89717": {
+    "raw": "Gambling",
+    "scene": "leisure"
+  },
+  "us-1e69a58da305": {
+    "raw": "REIT - Mortgage",
+    "scene": "mortgage-finance"
+  },
+  "us-7b6c2e7938ce": {
+    "raw": "Security & Protection Services",
+    "scene": "physical-security"
+  },
+  "us-f972822231a2": {
+    "raw": "Airports & Air Services",
+    "scene": "airline"
+  },
+  "us-68c26ff0189d": {
+    "raw": "Other Precious Metals & Mining",
+    "scene": "mining"
+  },
+  "us-bf61918ceda3": {
+    "raw": "Aluminum",
+    "scene": "mining"
+  },
+  "us-26c81739396d": {
+    "raw": "Publishing",
+    "scene": "publishing"
+  },
+  "us-7f7eaf170d6f": {
+    "raw": "Paper & Paper Products",
+    "scene": "paper"
+  },
+  "us-99c07ec2492a": {
+    "raw": "REIT - Office",
+    "scene": "real-estate"
+  },
+  "us-9a6b96c06fdb": {
+    "raw": "Insurance - Specialty",
+    "scene": "insurance"
+  },
+  "us-b475c952ceac": {
+    "raw": "Broadcasting",
+    "scene": "media"
+  },
+  "us-b2a35b0f5fe3": {
+    "raw": "Department Stores",
+    "scene": "retail"
+  },
+  "us-c7ba25ad0b86": {
+    "raw": "Education & Training Services",
+    "scene": "education"
+  },
+  "us-a0b43df06f52": {
+    "raw": "Silver",
+    "scene": "mining"
+  },
+  "us-0526cf73ee31": {
+    "raw": "Marine Shipping",
+    "scene": "shipping"
+  },
+  "us-7ab4b30cdd29": {
+    "raw": "Lumber & Wood Production",
+    "scene": "wood"
+  },
+  "us-6be39a5517d3": {
+    "raw": "Oil & Gas Drilling",
+    "scene": "energy"
+  },
+  "us-a48116db8c4e": {
+    "raw": "Coking Coal",
+    "scene": "coal"
+  },
+  "us-0be1f7da601a": {
+    "raw": "Thermal Coal",
+    "scene": "coal"
+  },
+  "us-13f8038d39b5": {
+    "raw": "Real Estate - Development",
+    "scene": "construction"
+  },
+  "us-f9769113ea46": {
+    "raw": "Recreational Vehicles",
+    "scene": "automotive"
+  },
+  "us-71ad0a7fd896": {
+    "raw": "Staffing & Employment Services",
+    "scene": "business-services"
+  },
+  "us-de46f4fd64c4": {
+    "raw": "Infrastructure Operations",
+    "scene": "construction"
+  },
+  "us-877c6ba0b37f": {
+    "raw": "Real Estate - Diversified",
+    "scene": "real-estate"
+  },
+  "us-3826a038d98f": {
+    "raw": "Business Equipment & Supplies",
+    "scene": "furniture"
+  },
+  "us-49e49a299039": {
+    "raw": "Textile Manufacturing",
+    "scene": "apparel"
+  },
+  "us-e910bbe17ba7": {
+    "raw": "Pharmaceutical Retailers",
+    "scene": "pharmacy"
+  },
+  "us-f50a5674a677": {
+    "raw": "Financial - Diversified",
+    "scene": "business-services"
+  },
+  "kr-224617f5376b": {
+    "raw": "특수 목적용 기계 제조업",
+    "scene": "machinery"
+  },
+  "kr-95f2d847f0f0": {
+    "raw": "항공기,우주선 및 부품 제조업",
+    "scene": "aerospace"
+  },
+  "kr-8847c02a41f4": {
+    "raw": "반도체 제조업",
+    "scene": "semiconductors"
+  },
+  "kr-010a5bc5ceba": {
+    "raw": "소프트웨어 개발 및 공급업",
+    "scene": "software"
+  },
+  "kr-3a6c47fe3afd": {
+    "raw": "기타 생활용품 소매업",
+    "scene": "retail"
+  },
+  "kr-e88989990994": {
+    "raw": "의료용 기기 제조업",
+    "scene": "healthcare"
+  },
+  "kr-17afece8dbfe": {
+    "raw": "기타 금융업",
+    "scene": "business-services"
+  },
+  "kr-ad2f1f677d85": {
+    "raw": "봉제의복 제조업",
+    "scene": "apparel"
+  },
+  "kr-2189bfafe073": {
+    "raw": "자연과학 및 공학 연구개발업",
+    "scene": "lab"
+  },
+  "kr-a4ec75ec7f09": {
+    "raw": "통신 및 방송 장비 제조업",
+    "scene": "networking"
+  },
+  "kr-60ede6d52f05": {
+    "raw": "무점포 소매업",
+    "scene": "retail"
+  },
+  "kr-ceaa99e4919f": {
+    "raw": "영상 및 음향기기 제조업",
+    "scene": "electronics"
+  },
+  "kr-eecc6f475482": {
+    "raw": "기초 의약물질 제조업",
+    "scene": "pharma"
+  },
+  "kr-1949514cff19": {
+    "raw": "광고업",
+    "scene": "media"
+  },
+  "kr-a64b1e857718": {
+    "raw": "전동기, 발전기 및 전기 변환 · 공급 · 제어 장치 제조업",
+    "scene": "power-equipment"
+  },
+  "kr-e651d5facbde": {
+    "raw": "섬유, 의복, 신발 및 가죽제품 소매업",
+    "scene": "retail"
+  },
+  "kr-cd6497b967f5": {
+    "raw": "가정용 기기 제조업",
+    "scene": "appliances"
+  },
+  "kr-45aec773e230": {
+    "raw": "플라스틱제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-07324c9fe56d": {
+    "raw": "기타 전기장비 제조업",
+    "scene": "power-equipment"
+  },
+  "kr-a83c9089a5d5": {
+    "raw": "기타 사업지원 서비스업",
+    "scene": "business-services"
+  },
+  "kr-fabafc8d0d65": {
+    "raw": "은행 및 저축기관",
+    "scene": "banking"
+  },
+  "kr-04d5749921cd": {
+    "raw": "연료용 가스 제조 및 배관공급업",
+    "scene": "gas-supply"
+  },
+  "kr-5466ecf82375": {
+    "raw": "기타 금속 가공제품 제조업",
+    "scene": "industrials"
+  },
+  "kr-077ba3526d7a": {
+    "raw": "일반 목적용 기계 제조업",
+    "scene": "machinery"
+  },
+  "kr-e8b08c919ed2": {
+    "raw": "건축기술, 엔지니어링 및 관련 기술 서비스업",
+    "scene": "construction"
+  },
+  "kr-52dad682b381": {
+    "raw": "수산물 가공 및 저장 처리업",
+    "scene": "food"
+  },
+  "kr-ac4e3d9d2d09": {
+    "raw": "절연선 및 케이블 제조업",
+    "scene": "cables"
+  },
+  "kr-c1e72882c73a": {
+    "raw": "그외 기타 전문, 과학 및 기술 서비스업",
+    "scene": "business-services"
+  },
+  "kr-9b8f4a0ee327": {
+    "raw": "기타 화학제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-cc304d9fc82c": {
+    "raw": "의약품 제조업",
+    "scene": "pharma"
+  },
+  "kr-bdae7b582f1f": {
+    "raw": "전자부품 제조업",
+    "scene": "electronics"
+  },
+  "kr-50e15d70559f": {
+    "raw": "영화, 비디오물, 방송프로그램 제작 및 배급업",
+    "scene": "media"
+  },
+  "kr-b4090902d58f": {
+    "raw": "사진장비 및 광학기기 제조업",
+    "scene": "optics"
+  },
+  "kr-84a5b4f0c373": {
+    "raw": "가전제품 및 정보통신장비 소매업",
+    "scene": "retail"
+  },
+  "kr-c71cf6f73482": {
+    "raw": "합성고무 및 플라스틱 물질 제조업",
+    "scene": "chemicals"
+  },
+  "kr-66da5f60dfda": {
+    "raw": "자동차 신품 부품 제조업",
+    "scene": "auto-parts"
+  },
+  "kr-91f05c9e2115": {
+    "raw": "무기 및 총포탄 제조업",
+    "scene": "defense"
+  },
+  "kr-c19ec9626519": {
+    "raw": "선박 및 보트 건조업",
+    "scene": "shipbuilding"
+  },
+  "kr-8633e50afa76": {
+    "raw": "신탁업 및 집합투자업",
+    "scene": "asset-management"
+  },
+  "kr-31d7baf9439f": {
+    "raw": "기타 식품 제조업",
+    "scene": "food"
+  },
+  "kr-b5425c2c079a": {
+    "raw": "의료용품 및 기타 의약 관련제품 제조업",
+    "scene": "medical-supplies"
+  },
+  "kr-62c4a35e7f75": {
+    "raw": "구조용 금속제품, 탱크 및 증기발생기 제조업",
+    "scene": "industrials"
+  },
+  "kr-bbc1abc18beb": {
+    "raw": "전기 통신업",
+    "scene": "communication"
+  },
+  "kr-fdfb746d9966": {
+    "raw": "보험업",
+    "scene": "insurance"
+  },
+  "kr-afb7d988c32a": {
+    "raw": "유리 및 유리제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-0369aee41ef3": {
+    "raw": "도시락 및 식사용 조리식품 제조업",
+    "scene": "restaurant"
+  },
+  "kr-6f94abaf5cb0": {
+    "raw": "컴퓨터 프로그래밍, 시스템 통합 및 관리업",
+    "scene": "software"
+  },
+  "kr-8c4e84bca529": {
+    "raw": "기타 정보 서비스업",
+    "scene": "media"
+  },
+  "kr-fabf0be53c04": {
+    "raw": "기타 교육기관",
+    "scene": "education"
+  },
+  "kr-6cc7507961db": {
+    "raw": "신발 및 신발 부분품 제조업",
+    "scene": "apparel"
+  },
+  "kr-6f478b88dabe": {
+    "raw": "창작 및 예술관련 서비스업",
+    "scene": "media"
+  },
+  "kr-c7b48396df9b": {
+    "raw": "상품 종합 도매업",
+    "scene": "warehouse"
+  },
+  "kr-28a57c6bef5c": {
+    "raw": "그외 기타 제품 제조업",
+    "scene": "industrials"
+  },
+  "kr-72880cf07b9a": {
+    "raw": "일차전지 및 이차전지 제조업",
+    "scene": "batteries"
+  },
+  "kr-80999720fcfc": {
+    "raw": "기초 화학물질 제조업",
+    "scene": "chemicals"
+  },
+  "kr-17f61ebd86f0": {
+    "raw": "1차 비철금속 제조업",
+    "scene": "materials"
+  },
+  "kr-68552cb96568": {
+    "raw": "측정, 시험, 항해, 제어 및 기타 정밀기기 제조업; 광학기기 제외",
+    "scene": "lab"
+  },
+  "kr-bc13e6a006bd": {
+    "raw": "유원지 및 기타 오락관련 서비스업",
+    "scene": "leisure"
+  },
+  "kr-462b230f7e85": {
+    "raw": "편조의복 제조업",
+    "scene": "apparel"
+  },
+  "kr-2032a10039a7": {
+    "raw": "건물 건설업",
+    "scene": "construction"
+  },
+  "kr-6cc9154cff83": {
+    "raw": "기타 전문 도매업",
+    "scene": "warehouse"
+  },
+  "kr-bcb1b4f6aec2": {
+    "raw": "가죽, 가방 및 유사제품 제조업",
+    "scene": "jewelry"
+  },
+  "kr-aaa35e85995d": {
+    "raw": "기타 전문 서비스업",
+    "scene": "business-services"
+  },
+  "kr-dc27e660f6b9": {
+    "raw": "기타 과학기술 서비스업",
+    "scene": "lab"
+  },
+  "kr-7d2b0d4f457c": {
+    "raw": "서적, 잡지 및 기타 인쇄물 출판업",
+    "scene": "publishing"
+  },
+  "kr-fe6ed609cea3": {
+    "raw": "과실, 채소 가공 및 저장 처리업",
+    "scene": "food"
+  },
+  "kr-e06465314a68": {
+    "raw": "해상 운송업",
+    "scene": "shipping"
+  },
+  "kr-e355b7cb3920": {
+    "raw": "1차 철강 제조업",
+    "scene": "materials"
+  },
+  "kr-d3d1bd4f1edc": {
+    "raw": "컴퓨터 및 주변장치 제조업",
+    "scene": "electronics"
+  },
+  "kr-fc1f9d8f9394": {
+    "raw": "내화, 비내화 요업제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-c04fe3af70a3": {
+    "raw": "음·식료품 및 담배 도매업",
+    "scene": "warehouse"
+  },
+  "kr-2faa26af33a8": {
+    "raw": "기타 섬유제품 제조업",
+    "scene": "apparel"
+  },
+  "kr-300f0e6b0bb9": {
+    "raw": "부동산 임대 및 공급업",
+    "scene": "real-estate"
+  },
+  "kr-378064ed3687": {
+    "raw": "종합 소매업",
+    "scene": "retail"
+  },
+  "kr-b3db25c23755": {
+    "raw": "전기 및 통신 공사업",
+    "scene": "construction"
+  },
+  "kr-c94d8c62e01e": {
+    "raw": "가구 제조업",
+    "scene": "furniture"
+  },
+  "kr-cc85c3cc8de8": {
+    "raw": "마그네틱 및 광학 매체 제조업",
+    "scene": "electronics"
+  },
+  "kr-6d5a9e1cda54": {
+    "raw": "제재 및 목재 가공업",
+    "scene": "wood"
+  },
+  "kr-305fe80e9882": {
+    "raw": "동물용 사료 및 조제식품 제조업",
+    "scene": "food"
+  },
+  "kr-3c962a5db764": {
+    "raw": "운송장비 임대업",
+    "scene": "machinery"
+  },
+  "kr-4512b2ccd516": {
+    "raw": "개인 및 가정용품 수리업",
+    "scene": "retail"
+  },
+  "kr-d665194ddca7": {
+    "raw": "생활용품 도매업",
+    "scene": "warehouse"
+  },
+  "kr-652d2c2afa1f": {
+    "raw": "의복 액세서리 제조업",
+    "scene": "jewelry"
+  },
+  "kr-e3430e13aabc": {
+    "raw": "운동 및 경기용구 제조업",
+    "scene": "leisure"
+  },
+  "kr-0fb5a12dd090": {
+    "raw": "보험 및 연금관련 서비스업",
+    "scene": "insurance"
+  },
+  "kr-41a96065ef1c": {
+    "raw": "상품 중개업",
+    "scene": "warehouse"
+  },
+  "kr-49d18764a58b": {
+    "raw": "자동차 부품 및 내장품 판매업",
+    "scene": "retail"
+  },
+  "kr-65f0d9507010": {
+    "raw": "오디오물 출판 및 원판 녹음업",
+    "scene": "media"
+  },
+  "kr-532a9b8e6a5f": {
+    "raw": "금융 지원 서비스업",
+    "scene": "business-services"
+  },
+  "kr-f964f479e4c8": {
+    "raw": "자동차 판매업",
+    "scene": "retail"
+  },
+  "kr-d4eeedc3c74d": {
+    "raw": "그외 기타 운송장비 제조업",
+    "scene": "machinery"
+  },
+  "kr-851ab03d64b3": {
+    "raw": "알코올음료 제조업",
+    "scene": "beverages"
+  },
+  "kr-03031bdb94dc": {
+    "raw": "화학섬유 제조업",
+    "scene": "apparel"
+  },
+  "kr-cab6a331c758": {
+    "raw": "토목 건설업",
+    "scene": "construction"
+  },
+  "kr-4894940ada50": {
+    "raw": "비료, 농약 및 살균, 살충제 제조업",
+    "scene": "chemicals"
+  },
+  "kr-ea0a7b63880c": {
+    "raw": "전구 및 조명장치 제조업",
+    "scene": "lighting"
+  },
+  "kr-44ca73a21bf0": {
+    "raw": "시장조사 및 여론조사업",
+    "scene": "business-services"
+  },
+  "kr-b1437416a871": {
+    "raw": "일반 교습 학원",
+    "scene": "education"
+  },
+  "kr-f600937ccfac": {
+    "raw": "기타 운송관련 서비스업",
+    "scene": "warehouse"
+  },
+  "kr-b6f55b88bb2e": {
+    "raw": "도축, 육류 가공 및 저장 처리업",
+    "scene": "food"
+  },
+  "kr-15409bc15789": {
+    "raw": "자료처리, 호스팅, 포털 및 기타 인터넷 정보매개 서비스업",
+    "scene": "media"
+  },
+  "kr-a23e096a80fc": {
+    "raw": "여행사 및 기타 여행보조 서비스업",
+    "scene": "travel"
+  },
+  "kr-4c07c4e502a4": {
+    "raw": "항공 여객 운송업",
+    "scene": "airline"
+  },
+  "kr-dbdde9b16c21": {
+    "raw": "스포츠 서비스업",
+    "scene": "leisure"
+  },
+  "kr-2f8efa131b6e": {
+    "raw": "건물설비 설치 공사업",
+    "scene": "construction"
+  },
+  "kr-39eabba74dd3": {
+    "raw": "시멘트, 석회, 플라스터 및 그 제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-f2abb26ad64b": {
+    "raw": "작물 재배업",
+    "scene": "agriculture"
+  },
+  "kr-846a518cb565": {
+    "raw": "기타 비금속 광물제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-0719ae75d29b": {
+    "raw": "개인 및 가정용품 임대업",
+    "scene": "retail"
+  },
+  "kr-ecfc5bc46dad": {
+    "raw": "자동차용 엔진 및 자동차 제조업",
+    "scene": "automotive"
+  },
+  "kr-3006647eb8f6": {
+    "raw": "기계장비 및 관련 물품 도매업",
+    "scene": "warehouse"
+  },
+  "kr-5c8199bb13fd": {
+    "raw": "동·식물성 유지 및 낙농제품 제조업",
+    "scene": "food"
+  },
+  "kr-7649db650ebb": {
+    "raw": "떡, 빵 및 과자류 제조업",
+    "scene": "food"
+  },
+  "kr-3bbe07ff267c": {
+    "raw": "일반 및 생활 숙박시설 운영업",
+    "scene": "hotel"
+  },
+  "kr-93d6cdff871f": {
+    "raw": "산업용 기계 및 장비 임대업",
+    "scene": "machinery"
+  },
+  "kr-7acf0cf077cd": {
+    "raw": "비알코올음료 및 얼음 제조업",
+    "scene": "beverages"
+  },
+  "kr-0d3ffd81431a": {
+    "raw": "펄프, 종이 및 판지 제조업",
+    "scene": "paper"
+  },
+  "kr-9ad09f24eb78": {
+    "raw": "실내건축 및 건축마무리 공사업",
+    "scene": "construction"
+  },
+  "kr-e1c21d0a1bc7": {
+    "raw": "산업용 농·축산물 및 동·식물 도매업",
+    "scene": "warehouse"
+  },
+  "kr-f0053136f70d": {
+    "raw": "자동차 차체나 트레일러 제조업",
+    "scene": "automotive"
+  },
+  "kr-4428c37e8779": {
+    "raw": "텔레비전 방송업",
+    "scene": "media"
+  },
+  "kr-841ddd85f416": {
+    "raw": "고무제품 제조업",
+    "scene": "chemicals"
+  },
+  "kr-c7706680d039": {
+    "raw": "도로 화물 운송업",
+    "scene": "truck"
+  },
+  "kr-79f687a5edf8": {
+    "raw": "연료 소매업",
+    "scene": "oil-tanks"
+  },
+  "kr-89f65973aa05": {
+    "raw": "증기, 냉·온수 및 공기조절 공급업",
+    "scene": "utilities"
+  },
+  "kr-250bb4473a48": {
+    "raw": "금속 주조업",
+    "scene": "materials"
+  },
+  "kr-3dfed4c4a24d": {
+    "raw": "기반조성 및 시설물 축조관련 전문공사업",
+    "scene": "construction"
+  },
+  "kr-e824d2e680fd": {
+    "raw": "석유 정제품 제조업",
+    "scene": "oil-tanks"
+  },
+  "kr-0e127c3c894d": {
+    "raw": "초등 교육기관",
+    "scene": "education"
+  },
+  "kr-685ced3d56c5": {
+    "raw": "폐기물 처리업",
+    "scene": "recycling"
+  },
+  "kr-cac49d3615db": {
+    "raw": "귀금속 및 장신용품 제조업",
+    "scene": "jewelry"
+  },
+  "kr-b65652023587": {
+    "raw": "육상 여객 운송업",
+    "scene": "truck"
+  },
+  "kr-592875603135": {
+    "raw": "영상·오디오물 제공 서비스업",
+    "scene": "media"
+  },
+  "kr-dce5968ab85c": {
+    "raw": "기타 종이 및 판지 제품 제조업",
+    "scene": "paper"
+  },
+  "kr-ca85278e2330": {
+    "raw": "교육지원 서비스업",
+    "scene": "education"
+  },
+  "kr-38153df12e45": {
+    "raw": "회사 본부 및 경영 컨설팅 서비스업",
+    "scene": "business-services"
+  },
+  "kr-a17d46af8e7d": {
+    "raw": "자동차 재제조 부품 제조업",
+    "scene": "auto-parts"
+  },
+  "kr-28056987a5c7": {
+    "raw": "직물직조 및 직물제품 제조업",
+    "scene": "apparel"
+  },
+  "kr-408516fc78fa": {
+    "raw": "골판지, 종이 상자 및 종이용기 제조업",
+    "scene": "paper"
+  },
+  "kr-a52aeb29127a": {
+    "raw": "전기업",
+    "scene": "utilities"
+  },
+  "kr-440f36afc335": {
+    "raw": "기타 상품 전문 소매업",
+    "scene": "retail"
+  },
+  "kr-2048732511e1": {
+    "raw": "기록매체 복제업",
+    "scene": "publishing"
+  },
+  "kr-f0ca96113399": {
+    "raw": "그외 기타 개인 서비스업",
+    "scene": "business-services"
+  },
+  "kr-bec86c47df9c": {
+    "raw": "음·식료품 및 담배 소매업",
+    "scene": "consumer-staples"
+  },
+  "kr-92fbe720eeb3": {
+    "raw": "사업시설 유지·관리 서비스업",
+    "scene": "business-services"
+  },
+  "kr-359831bfc089": {
+    "raw": "전문디자인업",
+    "scene": "business-services"
+  },
+  "kr-0325b46533b9": {
+    "raw": "섬유제품 염색, 정리 및 마무리 가공업",
+    "scene": "apparel"
+  },
+  "kr-58eea2e73328": {
+    "raw": "곡물가공품, 전분 및 전분제품 제조업",
+    "scene": "food"
+  },
+  "kr-cfb3911f9510": {
+    "raw": "담배 제조업",
+    "scene": "tobacco"
+  },
+  "kr-812c0c72f7f7": {
+    "raw": "해체, 선별 및 원료 재생업",
+    "scene": "recycling"
+  },
+  "kr-5a9ff0bda79e": {
+    "raw": "어로 어업",
+    "scene": "fishing"
+  },
+  "kr-d1e02bbe7ac4": {
+    "raw": "인쇄 및 인쇄관련 산업",
+    "scene": "publishing"
+  },
+  "kr-a2ea9397bddc": {
+    "raw": "경비, 경호 및 탐정업",
+    "scene": "physical-security"
+  },
+  "kr-3502653cd90a": {
+    "raw": "나무제품 제조업",
+    "scene": "wood"
+  },
+  "kr-6632a36cbc08": {
+    "raw": "악기 제조업",
+    "scene": "musical-instruments"
+  },
+  "kr-b830c29aa155": {
+    "raw": "건축자재, 철물 및 난방장치 도매업",
+    "scene": "warehouse"
+  },
+  "kr-86ad7e66f3c4": {
+    "raw": "방적 및 가공사 제조업",
+    "scene": "apparel"
+  },
+  "kr-5e72e39d2030": {
+    "raw": "재 보험업",
+    "scene": "insurance"
+  }
+}

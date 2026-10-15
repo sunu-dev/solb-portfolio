@@ -2,11 +2,9 @@
  .eyebrow { margin:0 0 24px; color:var(--text-secondary); font-size:11px; line-height:1.7; }
 .hero { margin-bottom:28px; }
 .explore h3 { margin:0 0 14px; font-size:26px; font-weight:600; letter-spacing:-.045em; line-height:1.4; word-break:keep-all; }
-.sectorHero { display:grid; grid-template-columns:minmax(0,1fr) 240px; align-items:center; gap:36px; padding:8px 0 28px; border-bottom:1px solid var(--border-light); }
+.sectorHero { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,340px); align-items:center; gap:28px; padding:8px 0 28px; border-bottom:1px solid var(--border-light); }
 .sectorHero h3 { font-size:36px; max-width:13em; font-weight:600; line-height:1.35; }
-.diagram { color:var(--text-body); width:240px; max-width:100%; }
-.diagram svg { display:block; width:100%; height:auto; }
-.diagramCaption { margin:8px 0 0; text-align:center; font-size:10px; line-height:1.7; color:var(--text-secondary); word-break:keep-all; }
+.diagram { color:var(--text-body); width:100%; max-width:340px; }
 .sectionHeading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; margin:28px 0 8px; }
 .sectionHeading h4 { margin:0; font-size:16px; font-weight:600; letter-spacing:-.03em; }
 .sectionHeading > span { font-size:11px; color:var(--text-secondary); }
@@ -53,8 +51,7 @@
   .sectorHero { grid-template-columns:minmax(0,1fr); gap:12px; padding:0 0 24px; margin-bottom:24px; }
   .sectorHero h3 { font-size:29px; max-width:11em; }
   .sectorHero .summary { font-size:13px; }
-  .diagram { width:200px; justify-self:end; margin-top:0; }
-  .diagramCaption { margin-top:4px; }
+  .diagram { width:100%; justify-self:center; margin-top:4px; }
   .companyGrid { column-gap:20px; }
   .companyGrid button { padding:16px 0; }
   .companyName { font-size:15px; }
