@@ -25,11 +25,15 @@ export function createStockSearchIndex(stocks: CatalogStock[]) {
     merged.set(symbol, { symbol, description });
   }
   return [...merged.values()].map((item): IndexedStock => {
+    const koreanAlias = EXTRA_ALIASES[item.symbol]?.find(name => /[가-힣]/.test(name));
+    const displayItem = !/[가-힣]/.test(item.description) && koreanAlias
+      ? { ...item, description: koreanAlias, englishName: item.englishName || item.description }
+      : item;
     const names = [...new Set([
       item.description, item.englishName || '', STOCK_KR[item.symbol] || '',
       ...(EXTRA_ALIASES[item.symbol] || []),
     ].map(normalizeSearchText).filter(Boolean))];
-    return { item, symbol: normalizeSearchText(item.symbol),
+    return { item: displayItem, symbol: normalizeSearchText(item.symbol),
       code: normalizeSearchText(item.symbol.replace(/\.K[SQ]$/, '')),
       names, initials: names.map(initials) };
   });

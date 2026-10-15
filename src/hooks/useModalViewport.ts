@@ -4,11 +4,11 @@ import { useEffect, type RefObject } from 'react';
 import { lockBodyScroll } from '@/lib/bodyScrollLock';
 
 /** Follow the keyboard's visible viewport without rerendering the dialog on every resize. */
-export function useModalViewport(active: boolean, ref: RefObject<HTMLElement | null>) {
+export function useModalViewport(active: boolean, ref: RefObject<HTMLElement | null>, { lockScroll = true }: { lockScroll?: boolean } = {}) {
   useEffect(() => {
     if (!active || !ref.current) return;
     const panel = ref.current;
-    const unlock = lockBodyScroll();
+    const unlock = lockScroll ? lockBodyScroll() : () => {};
     const viewport = window.visualViewport;
     let frame = 0;
     const update = () => {
@@ -34,5 +34,5 @@ export function useModalViewport(active: boolean, ref: RefObject<HTMLElement | n
       panel.style.removeProperty('--modal-viewport-bottom');
       unlock();
     };
-  }, [active, ref]);
+  }, [active, ref, lockScroll]);
 }

@@ -941,7 +941,8 @@ button, a, [role="button"] {
   .stock-search-popover {
     max-height: calc(var(--modal-viewport-height, 100dvh) - 64px);
     overflow-y: auto;
-    overscroll-behavior: contain;
+    /* Search is a non-modal popover; swiping an empty result must reach the page. */
+    overscroll-behavior: auto;
   }
   body:has(input:focus, textarea:focus, select:focus) .mobile-bottom-nav {
     visibility: hidden;

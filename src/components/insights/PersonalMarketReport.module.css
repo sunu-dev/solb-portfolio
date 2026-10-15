@@ -13,16 +13,30 @@
 .personalHeading { margin-top:24px; }
 .personalHeading h4 { margin:0; font-size:16px; line-height:1.6; font-weight:700; }
 .personalHeading p { margin:3px 0 10px; font-size:13px; line-height:1.8; color:var(--text-body); word-break:keep-all; }
-.company { border-bottom:1px solid var(--border-light); }
-.company summary { position:relative; padding:16px 28px 16px 0; min-height:64px; list-style:none; cursor:pointer; }
+.companies { margin-top:16px; }
+.company { margin:10px 0; border:1px solid var(--border-light); border-radius:14px; background:var(--surface); overflow:hidden; }
+.company summary { position:relative; padding:18px 40px 18px 18px; min-height:64px; list-style:none; cursor:pointer; }
 .company summary::-webkit-details-marker { display:none; }
 .companyTitle { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
-.companyTitle strong { font-size:16px; line-height:1.6; }
-.companyTitle small { font-size:12px; color:var(--text-body); line-height:1.7; }
-.path { display:block; margin-top:5px; font-size:14px; color:var(--text-body); line-height:1.8; }
-.expand { position:absolute; right:0; top:24px; color:var(--text-body); }
+.companyTitle strong { font-size:18px; line-height:1.6; letter-spacing:-.025em; }
+.companyTitle small { padding:2px 7px; border-radius:5px; background:var(--bg-subtle); font-size:11px; color:var(--text-body); line-height:1.7; }
+.path { display:block; margin-top:12px; padding-left:12px; border-left:2px solid var(--border-strong); font-size:14px; color:var(--text-primary); line-height:1.8; }
+.expand { position:absolute; right:16px; top:24px; color:var(--text-body); }
 .company[open] > summary .expand { transform:rotate(90deg); }
-.companyBody { padding:0 0 18px; }
+.companyBody { padding:0 18px 18px; }
+.rowHint { display:block; margin-top:12px; color:var(--text-secondary); font-size:12px; }
+.connectionHeading > strong { font-size:14px; font-weight:700; color:var(--text-primary); }
+.connectionHeading strong span { margin-left:4px; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.connectionHeading p { margin:5px 0 12px; color:var(--text-body); font-size:12px; line-height:1.8; }
+.connectionFacts { display:grid; gap:18px; margin:0 0 14px; padding:18px; background:var(--bg-subtle); border-radius:10px; }
+.connectionFacts dt { margin-bottom:5px; color:var(--text-primary); font-size:12px; font-weight:700; }
+.connectionFacts dd { margin:0; color:var(--text-body); font-size:14px; line-height:1.85; }
+.unverified { margin-top:18px; padding:18px; border-radius:14px; background:var(--bg-subtle); }
+.unverified > p { margin:8px 0 14px; color:var(--text-body); font-size:13px; line-height:1.85; word-break:keep-all; overflow-wrap:anywhere; }
+.stockChips { display:flex; flex-wrap:wrap; gap:8px; }
+.stockChip { display:inline-flex; align-items:center; gap:6px; max-width:100%; min-height:44px; padding:9px 12px; border:1px solid var(--border-light); border-radius:8px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:13px; text-align:left; overflow-wrap:anywhere; cursor:pointer; }
+.stockChip svg { flex-shrink:0; }
+.stockChip:hover { border-color:var(--border-strong); }
 .companyBody > p:not(.meta) { margin:0 0 16px; color:var(--text-body); font-size:14px; line-height:1.85; }
 .companyBody > p > strong { display:block; margin-bottom:4px; font-size:13px; color:var(--text-primary); }
 .companyActions,.eventActions { display:flex; flex-wrap:wrap; align-items:center; gap:2px 20px; }

@@ -22,6 +22,7 @@ export default function AnalysisNavigation({
   scrollRef, hasChart, hasFundamentals, hasAssistant, layoutKey,
 }: AnalysisNavigationProps) {
   const items = useMemo<NavigationItem[]>(() => [
+    { id: 'anchor-company', label: '기업 이해' },
     ...(hasChart ? [{ id: 'anchor-chart', label: '차트' }] : []),
     { id: 'anchor-news', label: '뉴스' },
     ...(hasFundamentals ? [{ id: 'anchor-fundamentals', label: '기업 지표' }] : []),

@@ -5,6 +5,8 @@ export const EXTRA_ALIASES: Record<string, string[]> = {
   GOOGL: ['알파벳', '알파벳A', '알파벳 클래스 A', '구글', 'Alphabet', 'Google'],
   GOOG: ['알파벳', '알파벳C', '알파벳 클래스 C', '구글', 'Alphabet', 'Google'],
   BE: ['블룸에너지', '블룸 에너지', '블룸', 'Bloom Energy'],
+  // Public exchange master: SDEV / STABLECOIN DEVELOPMENT CORPORATION.
+  SDEV: ['스테이블코인 디벨롭먼트', '스테이블코인 디벨로프먼트', '스테이블코인 데벨롭먼트', 'Stablecoin Development'],
 };
 
 export function normalizeSearchText(value: string): string {

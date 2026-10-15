@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useNow } from '@/hooks/useNow';
 import { nextRelatedEvent, type StockGuideConnection } from '@/lib/guideConnections';
@@ -18,31 +18,48 @@ export default function CompanyConnections({ connections, events, now }: {
 }) {
   const currentTime = useNow();
   if (!connections.length) return null;
+  const supported = [...connections.filter(item => item.level === 'company'), ...connections.filter(item => item.level === 'currency')];
+  const unverified = connections.filter(item => item.level === 'unverified');
+  const openStock = (symbol: string) => usePortfolioStore.getState().setAnalysisSymbol(symbol);
   function row(connection: StockGuideConnection) {
     const { stock, evidence } = connection;
-    const next = nextRelatedEvent({ kind: 'earnings', symbol: stock.symbol }, events ?? [], now ?? currentTime);
+    // A fund or a currency-only connection must not acquire a fictitious company earnings schedule.
+    const next = connection.level === 'company' ? nextRelatedEvent({ kind: 'earnings', symbol: stock.symbol }, events ?? [], now ?? currentTime) : undefined;
     return <details key={stock.symbol} className={styles.company}>
       <summary>
-        <span className={styles.companyTitle}><strong>{connection.name}</strong><small>{connection.level === 'company' ? '공시에서 찾은 연결' : connection.level === 'currency' ? '거래 통화 기준' : '사업 연결 확인 필요'}</small></span>
+        <span className={styles.companyTitle}><strong>{connection.name}</strong><small>{connection.level === 'company' ? '사업 자료로 확인' : '거래 통화 기준'}</small></span>
         <span className={`${styles.path} reading-copy`}><ReadingText>{connection.path}</ReadingText></span>
+        <span className={styles.rowHint}>근거와 확인할 점</span>
         <ChevronRight size={18} className={styles.expand} aria-hidden="true" />
       </summary>
       <div className={styles.companyBody}>
-        <p className="reading-copy"><strong>확인한 근거</strong><ReadingText>{connection.basis}</ReadingText></p>
-        <p className="reading-copy"><strong>달라질 조건</strong><ReadingText>{connection.condition}</ReadingText></p>
-        <p className="reading-copy"><strong>다음에 볼 것</strong><ReadingText>{connection.watch}</ReadingText></p>
-        {next ? <button type="button" className={styles.textButton} onClick={() => openEconomicCalendar(next.key)}>다음 실적 · {dateLabel(next.at)} · {eventTime(next)}<ChevronRight size={16} aria-hidden="true" /></button>
-          : <p className={styles.meta}>{events === undefined ? '실적 일정을 확인하고 있어요…' : events === null ? '실적 일정을 불러오지 못했어요. 회사의 공식 발표를 확인해주세요.' : '확인된 다음 실적 일정이 없어요. 회사의 공식 발표를 확인해주세요.'}</p>}
+        <dl className={styles.connectionFacts}>
+          <div><dt>연결의 근거</dt><dd className="reading-copy"><ReadingText>{connection.basis}</ReadingText></dd></div>
+          <div><dt>달라질 조건</dt><dd className="reading-copy"><ReadingText>{connection.condition}</ReadingText></dd></div>
+          <div><dt>다음에 볼 것</dt><dd className="reading-copy"><ReadingText>{connection.watch}</ReadingText></dd></div>
+        </dl>
+        {connection.level === 'company' && (next ? <button type="button" className={styles.textButton} onClick={() => openEconomicCalendar(next.key)}>다음 실적 · {dateLabel(next.at)} · {eventTime(next)}<ChevronRight size={16} aria-hidden="true" /></button>
+          : <p className={styles.meta}>{events === undefined ? '실적 일정을 확인하고 있어요…' : events === null ? '실적 일정을 불러오지 못했어요. 회사의 공식 발표를 확인해주세요.' : '확인된 다음 실적 일정이 없어요. 회사의 공식 발표를 확인해주세요.'}</p>)}
         <div className={styles.companyActions}>
-          <button type="button" className={styles.textButton} onClick={() => usePortfolioStore.getState().setAnalysisSymbol(stock.symbol)}>{connection.name} 자세히<ChevronRight size={16} aria-hidden="true" /></button>
-          {evidence && <a href={evidence.source.url} target="_blank" rel="noopener noreferrer">사업 근거 읽기<span className="sr-only"> (새 창)</span> ↗</a>}
+          <button type="button" className={styles.textButton} onClick={() => openStock(stock.symbol)}>{connection.name} 알아보기<ChevronRight size={16} aria-hidden="true" /></button>
+          {evidence && <a href={evidence.source.url} target="_blank" rel="noopener noreferrer">사업 자료 원문<span className="sr-only"> (새 창)</span><ArrowUpRight size={14} aria-hidden="true" /></a>}
         </div>
-        {evidence && <p className={styles.meta}>{evidence.source.period} 자료 · {evidence.source.reviewedAt} 근거 확인<br />사업 자료를 바탕으로 정리한 점검 경로예요. 이번 발표의 실적 영향이 확인됐다는 뜻은 아니에요.</p>}
+        {evidence && <p className={styles.meta}>{evidence.source.period} 자료 · {evidence.source.reviewedAt} 근거 확인<br />사업 자료로 정리한 점검 경로이며, 이번 발표의 실적 영향이 확인됐다는 뜻은 아니에요.</p>}
       </div>
     </details>;
   }
+  const stockLink = (connection: StockGuideConnection) => <button key={connection.stock.symbol} type="button" className={styles.stockChip} onClick={() => openStock(connection.stock.symbol)}>{connection.name}<ChevronRight size={14} aria-hidden="true" /></button>;
   return <div className={styles.companies}>
-    {connections.slice(0, 2).map(row)}
-    {connections.length > 2 && <details className={styles.moreCompanies}><summary>다른 등록 종목 {connections.length - 2}개도 보기</summary>{connections.slice(2).map(row)}</details>}
+    {supported.length > 0 && <>
+      <div className={styles.connectionHeading}><strong>확인된 연결 <span>{supported.length}</span></strong><p>사업 근거가 있는 종목부터 보여드려요. 주가 영향 순위는 아니에요.</p></div>
+      {supported.slice(0, 2).map(row)}
+      {supported.length > 2 && <details className={styles.moreCompanies}><summary>확인된 다른 연결 {supported.length - 2}개</summary>{supported.slice(2).map(row)}</details>}
+    </>}
+    {unverified.length > 0 && <div className={styles.unverified}>
+      <div className={styles.connectionHeading}><strong>연결을 더 확인할 종목 <span>{unverified.length}</span></strong></div>
+      <p>이번 발표와의 구체적인 사업 연결 근거는 아직 확인하지 못했어요. 종목을 눌러 사업이나 상품 구조부터 살펴보세요.</p>
+      <div className={styles.stockChips}>{unverified.slice(0, 6).map(stockLink)}</div>
+      {unverified.length > 6 && <details className={styles.moreCompanies}><summary>다른 종목 {unverified.length - 6}개 보기</summary><div className={styles.stockChips}>{unverified.slice(6).map(stockLink)}</div></details>}
+    </div>}
   </div>;
 }

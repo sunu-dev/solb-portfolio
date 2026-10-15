@@ -119,12 +119,12 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
 
   useEffect(() => {
     if (!onClose || !active) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('[data-search-panel]')) onClose();
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
   }, [onClose, active]);
 
   const handleSearch = useCallback((value: string) => {
@@ -330,11 +330,12 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
           placeholder="종목명, 초성 또는 종목코드 검색"
           aria-label="종목명, 초성 또는 종목코드 검색"
           style={{
-            width: '100%', padding: '14px 16px 14px 44px', fontSize: 16,
+            width: '100%', padding: `14px ${onClose ? 48 : 16}px 14px 44px`, fontSize: 16,
             border: 'none', outline: 'none', background: 'var(--surface, white)',
             color: 'var(--text-primary, #191F28)', boxSizing: 'border-box',
           }}
         />
+        {onClose && <button type="button" aria-label="검색 닫기" onClick={onClose} style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', width: 44, height: 44, display: 'grid', placeItems: 'center', border: 0, background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}><X size={18} aria-hidden="true" /></button>}
       </div>
 
       {/* 최근 검색 */}
@@ -477,13 +478,13 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
             </div>
           </div>
         ) : /[가-힣]/.test(query) ? (
-          // ② 한국 종목 추정 — 오타 또는 아직 미수록
+          // 한글 입력만으로 국내 종목이라고 가정하지 않는다.
           <div style={{ padding: '20px', textAlign: 'left', fontSize: 13, color: 'var(--text-secondary, #4E5968)', borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
             <div style={{ marginBottom: 6, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
               ‘{query}’ 검색 결과가 없어요
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', lineHeight: 1.6 }}>
-              종목명이나 초성, 종목코드로 다시 검색해보세요. 예: 삼성전자 · ㅅㅅㅈㅈ · 005930
+              해외 종목은 한글 이름이 아직 연결되지 않았을 수 있어요. 영문 회사명이나 종목코드로도 검색해보세요. 예: 마이크론 · MU
             </div>
           </div>
         ) : (

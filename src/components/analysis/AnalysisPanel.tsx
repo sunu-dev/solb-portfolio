@@ -369,19 +369,19 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const analysisBodyRef = useRef<HTMLDivElement>(null);
-  const [readingVisits, setReadingVisits] = useState(() => new Map<string, { reading: ExplorationReadingState; learningOffset: number }>());
+  const [readingVisits, setReadingVisits] = useState(() => new Map<string, { reading: ExplorationReadingState; companyOffset: number }>());
 
   useEffect(() => {
     if (!symbol || loading) return;
     const visit = readingVisits.get(symbol);
     const frame = requestAnimationFrame(() => {
       const body = analysisBodyRef.current;
-      const learning = body?.querySelector<HTMLElement>('#anchor-learning');
-      if (body) body.scrollTop = visit && learning
-        ? body.scrollTop + learning.getBoundingClientRect().top - body.getBoundingClientRect().top - visit.learningOffset
+      const companyIntro = body?.querySelector<HTMLElement>('#anchor-company');
+      if (body) body.scrollTop = visit && companyIntro
+        ? body.scrollTop + companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top - visit.companyOffset
         : 0;
       const target = visit
-        ? dialogRef.current?.querySelector<HTMLElement>('#anchor-learning h3')
+        ? dialogRef.current?.querySelector<HTMLElement>('#anchor-company h3')
         : dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
       target?.focus({ preventScroll: true });
     });
@@ -816,6 +816,24 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
               </div>
             ) : (
               <>
+                {/* 사업과 산업을 먼저 이해하고 가격·뉴스로 이어진다. */}
+                <div id="anchor-company" style={{ scrollMarginTop: 56 }}>
+                  <ContextExploration key={`exploration:${symbol}`} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
+                    initialReadingState={readingVisits.get(symbol)?.reading}
+                    onOpenStock={(next, reading) => {
+                      if (next === symbol) {
+                        analysisBodyRef.current?.scrollTo({ top: 0 });
+                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
+                        return;
+                      }
+                      const body = analysisBodyRef.current;
+                      const companyIntro = body?.querySelector<HTMLElement>('#anchor-company');
+                      const companyOffset = body && companyIntro ? companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
+                      setReadingVisits(visits => new Map(visits).set(symbol, { reading, companyOffset }));
+                      setAnalysisSymbol(next);
+                    }} />
+                </div>
+
                 {/* Price hero */}
                 <div className={panelStyles.priceHero}>
                   <div>
@@ -1515,24 +1533,10 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
                 {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
                 <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <ContextExploration key={`exploration:${symbol}`} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
-                    initialReadingState={readingVisits.get(symbol)?.reading}
-                    onOpenStock={(next, reading) => {
-                      if (next === symbol) {
-                        analysisBodyRef.current?.scrollTo({ top: 0 });
-                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
-                        return;
-                      }
-                      const body = analysisBodyRef.current;
-                      const learning = body?.querySelector<HTMLElement>('#anchor-learning');
-                      const learningOffset = body && learning ? learning.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
-                      setReadingVisits(visits => new Map(visits).set(symbol, { reading, learningOffset }));
-                      setAnalysisSymbol(next);
-                    }} />
                   <StockLearning
                     key={`learning:${owner}:${symbol}:${learningEntry?.symbol===symbol?learningEntry.sequence:0}`}
                     initialLessonId={learningEntry?.symbol===symbol?learningEntry.id:undefined}
-                    onCompany={()=>document.querySelector('#anchor-learning [data-context-exploration]')?.scrollIntoView({block:'start'})}
+                    onCompany={()=>document.querySelector('#anchor-company [data-context-exploration]')?.scrollIntoView({block:'start'})}
                     name={displayName} owner={owner} tags={questionTags}
                     onChart={analysis && !isLev ? (days) => {
                       setChartRange(days);

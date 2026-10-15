@@ -5,6 +5,12 @@ const index = createStockSearchIndex(snapshot.stocks);
 const symbols = (query: string) => searchStockIndex(index, query).map(item => item.symbol);
 
 describe('전체 종목 한글 검색', () => {
+  it.each(['스테이블코인 디벨롭먼트', '스테이블코인 디벨로프먼트', 'Stablecoin Development', 'SDEV', 'ㅅㅌㅇㅂㅋㅇㄷㅂㄹㅁㅌ'])('%s로 영문명만 있는 SDEV를 찾는다', query => {
+    const [found] = searchStockIndex(index, query);
+    expect(found.symbol).toBe('SDEV');
+    expect(found.description).toBe('스테이블코인 디벨롭먼트');
+    expect(found.englishName).toBe('STABLECOIN DEVELOPMENT CORPORATION');
+  });
   it.each(['SFA 반도체', 'sfa반도체', '에스에프에이반도체', '036540', 'ＳＦＡ 반도체'])('%s', query => {
     expect(symbols(query)[0]).toBe('036540.KQ');
   });

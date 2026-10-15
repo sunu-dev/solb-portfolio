@@ -7,7 +7,6 @@ import dynamic from 'next/dynamic';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { Settings, Bell, Search, HelpCircle, LayoutGrid, Sun, Moon } from 'lucide-react';
 import { useModalViewport } from '@/hooks/useModalViewport';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
 import UserMenu from '@/components/auth/UserMenu';
 import type { User } from '@supabase/supabase-js';
 import { useUnreadAlertCount } from '@/hooks/useActiveAlerts';
@@ -44,8 +43,12 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
   const searchVisible = showSearch && !analysisSymbol;
   const openSearch = () => { setSearchOpened(true); setShowSearch(true); };
   const searchRef = useRef<HTMLDivElement>(null);
-  useModalViewport(searchVisible, searchRef);
-  useFocusTrap(searchVisible, searchRef, () => setShowSearch(false));
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  useModalViewport(searchVisible, searchRef, { lockScroll: false });
+  const closeSearch = () => {
+    if (searchRef.current?.contains(document.activeElement)) searchTriggerRef.current?.focus({ preventScroll: true });
+    setShowSearch(false);
+  };
 
   // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)
   useEffect(() => {
@@ -234,6 +237,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
         {/* Search toggle */}
         <div className="relative">
           <button
+            ref={searchTriggerRef}
             data-slot="search-trigger"
             aria-label="종목 검색"
             aria-expanded={searchVisible}
@@ -269,8 +273,8 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
             </kbd>
           </button>
           {searchOpened && (
-            <div id="stock-search-dialog" hidden={!searchVisible} ref={searchRef} role="dialog" aria-modal={searchVisible || undefined} aria-label="종목 검색" tabIndex={-1} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
-              <SearchBar active={searchVisible} onExplore={() => { /* Keep this search session while the detail is open. */ }} onClose={() => setShowSearch(false)} />
+            <div id="stock-search-dialog" hidden={!searchVisible} ref={searchRef} role="dialog" aria-label="종목 검색" tabIndex={-1} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); closeSearch(); } }} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
+              <SearchBar active={searchVisible} onExplore={() => { /* Keep this search session while the detail is open. */ }} onClose={closeSearch} />
             </div>
           )}
         </div>

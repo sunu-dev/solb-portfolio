@@ -54,6 +54,7 @@
 .panel [data-context-exploration] { border:0; border-top:1px solid var(--border-light); border-radius:0; padding:24px 0; margin:24px 0; background:var(--surface); }
 .panel [data-context-exploration] button { border-radius:0; }
 .panel [data-context-exploration] h3 { letter-spacing:-.045em; }
+.panel :global(#anchor-company) > [data-context-exploration] { margin-top:0; padding-top:0; border-top:0; }
 @media(min-width:1024px) {
   .wideControl { display:inline-flex; }
   .panel:global(.wide) { max-width:1160px; }
