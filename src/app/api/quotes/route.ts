@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { buildYahooQuote, type YahooQuote } from '@/utils/yahooQuote';
+import { buildYahooQuote, isMacroQuoteSymbol, type YahooQuote } from '@/utils/yahooQuote';
 import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { logServerApi } from '@/lib/serverLogger';
 import {
@@ -41,7 +41,7 @@ async function fetchFromYahoo(symbol: string): Promise<YahooQuote | null> {
     const result = data?.chart?.result?.[0];
     if (!result) return null;
 
-    return buildYahooQuote(result, symbol.endsWith('=X'));
+    return buildYahooQuote(result, isMacroQuoteSymbol(symbol));
   } catch { return null; }
 }
 

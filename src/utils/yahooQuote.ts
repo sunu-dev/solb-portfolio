@@ -17,7 +17,12 @@ type YahooChart = Parameters<typeof yahooPreviousClose>[0] & {
   };
 };
 
-/** FX conversion needs the current rate even when the daily comparison is unavailable. */
+/** Macro levels remain useful independently of the daily comparison. Stocks keep the stricter contract. */
+export function isMacroQuoteSymbol(symbol: string): boolean {
+  return symbol.startsWith('^') || symbol.endsWith('=X') || symbol === 'USOIL' || symbol === 'CL=F';
+}
+
+/** Keep a valid macro level even when yesterday's close is unavailable. */
 export function buildYahooQuote(result: YahooChart, allowMissingPreviousClose = false): YahooQuote | null {
   const meta = result.meta;
   const price = meta?.regularMarketPrice;

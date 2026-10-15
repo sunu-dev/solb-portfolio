@@ -47,7 +47,9 @@ export default function BenchmarkCompare() {
 
     // S&P 500 오늘 일일 변동 — 같은 시간 축
     const sp = macroData['S&P 500'] as MacroEntry | undefined;
-    const spTodayPct = sp?.changePercent || 0;
+    const spTodayPct = sp?.changePercent;
+    // An unknown index comparison must not imply a flat market or fabricated alpha.
+    if (typeof spTodayPct !== 'number' || !Number.isFinite(spTodayPct)) return null;
 
     // 알파 = 포트폴리오 오늘 - 시장 오늘 (시장 대비 초과 수익)
     const alpha = myTodayPct - spTodayPct;

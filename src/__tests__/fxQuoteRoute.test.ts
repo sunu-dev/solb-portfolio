@@ -19,6 +19,10 @@ const missingPrevious = {
   indicators: { quote: [{ close: [1339.08, 1342.99, 1340.84, 1334.13, null, 1335.03] }] },
 };
 const yahooResponse = (result: unknown) => Response.json({ chart: { result: [result] } });
+const incompleteMacro = (price: number) => ({
+  meta: { regularMarketPrice: price, chartPreviousClose: price - 10 },
+  indicators: { quote: [{ close: [price - 10, price - 5, null, price] }] },
+});
 const batchRequest = () => new NextRequest('http://localhost/api/quotes', {
   method: 'POST', body: JSON.stringify({ symbols: ['^KS11', '^KQ11'], macro: true }),
 });
@@ -27,6 +31,25 @@ beforeEach(() => vi.stubEnv('FINNHUB_API_KEY', 'test-key'));
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe('FX quote API contracts', () => {
+  it('keeps current KOSDAQ and WTI levels when their previous session is missing', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string) => yahooResponse(incompleteMacro(input.includes('CL=F') ? 94.7 : 777.8))));
+    const response = await batchQuote(new NextRequest('http://localhost/api/quotes', {
+      method: 'POST', body: JSON.stringify({ symbols: ['^KQ11', 'USOIL'] }),
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ quotes: {
+      '^KQ11': { c: 777.8, pc: null, d: null, dp: null },
+      USOIL: { c: 94.7, pc: null, d: null, dp: null },
+    } });
+  });
+
+  it.each([['^KQ11', 777.8], ['CL=F', 94.7]] as const)('keeps the current macro value via individual route: %s', async (symbol, price) => {
+    vi.stubGlobal('fetch', vi.fn(async () => yahooResponse(incompleteMacro(price))));
+    const response = await individualQuote(new NextRequest(`http://localhost/api/kr-quote?symbol=${encodeURIComponent(symbol)}`));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ c: price, pc: null, d: null, dp: null });
+  });
+
   it('returns the current FX rate and both Korean indices through the public batch route', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: string) => yahooResponse(input.includes('USDKRW=X')
       ? missingPrevious : { meta: { regularMarketPrice: 6000, previousClose: 5900 } })));

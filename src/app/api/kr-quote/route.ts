@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { normalizeSearchText } from '@/config/stockSearchAliases';
 import { getStockCatalog } from '@/lib/stockCatalog';
 import { createStockSearchIndex, searchStockIndex } from '@/lib/stockSearchIndex';
-import { buildYahooQuote } from '@/utils/yahooQuote';
+import { buildYahooQuote, isMacroQuoteSymbol } from '@/utils/yahooQuote';
 import { KOREAN_UNIVERSE_DEDUPED } from '@/config/koreanUniverse';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       if (!result) continue;
 
       const meta = result.meta;
-      const quote = buildYahooQuote(result, yahooSymbol.endsWith('=X'));
+      const quote = buildYahooQuote(result, isMacroQuoteSymbol(yahooSymbol));
       if (!quote) continue;
       const stockName = KR_NAME_BY_SYMBOL[yahooSymbol]
         || meta.longName
