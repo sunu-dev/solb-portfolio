@@ -24,7 +24,11 @@ import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
 import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
-import type { Mentor } from '@/config/mentors';
+import { STOCK_QUESTIONS, stockQuestion, discoveryTags, lessonForQuestion, type StockQuestion } from '@/config/stockQuestions';
+import { evidenceRevision, publicQuestionNews, recentDiscoveryNews, updateDiscovery } from '@/lib/stockDiscovery';
+import StockReturnBrief from './StockReturnBrief';
+import { usageEvent } from '@/lib/usageTelemetry';
+import { STOCK_LESSONS } from '@/config/stockLearning';
 import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
 import { buildAnalysisLoadingFacts, type AnalysisLoadingFact } from '@/utils/analysisLoadingFacts';
 import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining } from '@/utils/analysisQuota';
@@ -214,7 +218,7 @@ async function fetchQuoteViaServer(symbol: string): Promise<QuoteData | null> {
   return json?.quotes?.[symbol] ?? null;
 }
 
-export default function AnalysisPanel() {
+export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const {
     analysisSymbol, setAnalysisSymbol,
     macroData, rawCandles,
@@ -228,7 +232,9 @@ export default function AnalysisPanel() {
   })));
 
   const { fetchCandle } = useCandleData(analysisSymbol);
+  const [learningEntry,setLearningEntry]=useState<{symbol:string;id:string;sequence:number}|null>(null);
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
+  const [newsState,setNewsState]=useState<{symbol:string;status:'ok'|'empty'|'error'}|null>(null);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
   const [chartRange, setChartRange] = useState<number>(1); // 1 = latest intraday session; other values = daily bars
@@ -238,7 +244,7 @@ export default function AnalysisPanel() {
   const [aiError, setAiError] = useState('');
   const [aiErrorAction, setAiErrorAction] = useState<'login' | 'daily' | 'unavailable' | 'retry'>('retry');
   const aiRequestRef = useRef<AbortController | null>(null);
-  const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
+  const [selectedMentor, setSelectedMentor] = useState<StockQuestion | null>(null);
   const [mentorReport, setMentorReport] = useState<MentorReport | null>(null);
   const [mentorLoading, setMentorLoading] = useState(false);
   const [mentorLoadingPhase, setMentorLoadingPhase] = useState<'preparing' | 'waiting'>('preparing');
@@ -293,7 +299,7 @@ export default function AnalysisPanel() {
     const krName = STOCK_KR[symbol] || symbol;
     const q = (krName !== symbol ? krName + ' ' : '') + symbol + ' 주가';
     fetchKoreanNews(q).then(result => {
-      if (active) setTickerNews(result.items.slice(0, 5));
+      if (active) { setTickerNews(result.items.slice(0, 5)); setNewsState({symbol,status:result.status}); }
     });
     return () => { active = false; };
   }, [symbol]);
@@ -472,21 +478,22 @@ export default function AnalysisPanel() {
     setMentorReport(null);
     setMentorError('');
     setMentorCachedAt(null);
-    const more = dialogRef.current?.querySelector<HTMLButtonElement>('[data-question-more]');
-    const hiddenAfterClose = more?.getAttribute('aria-expanded') === 'false'
-      && !['safe', 'value', 'growth'].includes(selectedMentor?.id ?? '');
-    if (hiddenAfterClose) more?.focus();
-    else dialogRef.current?.querySelector<HTMLButtonElement>(`[data-question-id="${selectedMentor?.id}"]`)?.focus();
+    requestAnimationFrame(()=>{
+      const question=dialogRef.current?.querySelector<HTMLButtonElement>(`[data-question-id="${selectedMentor?.id}"]`);
+      if(question?.getClientRects().length)question.focus();
+      else dialogRef.current?.querySelector<HTMLButtonElement>('[data-question-more]')?.focus();
+    });
   };
 
   const handleMentorSelect = async (id: string, retry = false) => {
-    const mentor = MENTORS.find(item => item.id === id);
-    if (!mentor || mentorRequestRef.current) return;
+    const question = stockQuestion(id);
+    const mentor = MENTORS.find(item => item.id === question?.mentor);
+    if (!question || !mentor || mentorRequestRef.current) return;
     if (selectedMentor?.id === id && !retry) { closeMentorAnswer(); return; }
-    const cacheKey = `${symbol}-${id}`;
+    const cacheKey = `${owner}-${symbol}-${id}-${questionRevision}`;
     const cached = mentorReportCache[cacheKey];
     if (quotaStatus === 'checking' && (retry || !cached)) return;
-    setSelectedMentor(mentor);
+    setSelectedMentor(question);
     setMentorReport(null);
     setMentorError('');
     setMentorCachedAt(null);
@@ -509,9 +516,10 @@ export default function AnalysisPanel() {
     setMentorLoadingFacts([]);
     setMentorLoading(true);
     try {
-      const [{ data: { session } }, { buildTimeSeriesContext }, refreshedQuote] = await Promise.all([
+      const [{ data: { session } }, { buildTimeSeriesContext }, refreshedQuote, requestedNews] = await Promise.all([
         supabase.auth.getSession(), import('@/utils/timeSeries'),
         Number.isFinite(price) && price > 0 ? Promise.resolve(null) : fetchQuoteViaServer(symbol),
+        newsState?.symbol===symbol && newsState.status!=='error' ? Promise.resolve(null) : fetchKoreanNews(`${STOCK_KR[symbol]||symbol} ${symbol} 주가`),
       ]);
       if (!isCurrent()) return;
       const requestPrice = Number.isFinite(price) && price > 0 ? price : refreshedQuote?.c;
@@ -519,6 +527,10 @@ export default function AnalysisPanel() {
         setMentorError('가격 자료를 확인하지 못했어요. 잠시 후 다시 요청하면 시세부터 확인할게요.');
         return;
       }
+      const requestNews = requestedNews?.status==='ok' ? requestedNews.items.slice(0,5) : tickerNews;
+      if(requestedNews){setTickerNews(requestNews);setNewsState({symbol,status:requestedNews.status});}
+      const requestRevision=evidenceRevision(requestNews,(quote?.t??refreshedQuote?.t)?(quote?.t??refreshedQuote!.t!)*1000:undefined,requestPrice,fundamentals?.per,fundamentals?.eps);
+      const responseCacheKey=`${owner}-${symbol}-${id}-${requestRevision}`;
       if (refreshedQuote?.c) usePortfolioStore.getState().updateMacroEntry(symbol, refreshedQuote);
       const requestVolumeRatio = getStockVolumeRatio(rawCandles[symbol]);
       setMentorLoadingFacts(buildAnalysisLoadingFacts({
@@ -538,7 +550,7 @@ export default function AnalysisPanel() {
           bollingerStatus: analysis?.bollingerStatus?.status,
           macdStatus: analysis?.macdStatus?.status,
           volRatio: requestVolumeRatio,
-          mentorId: mentor.id, per: fundamentals?.per, eps: fundamentals?.eps,
+          mentorId: mentor.id, questionId: question.id, recentNews: publicQuestionNews(requestNews), per: fundamentals?.per, eps: fundamentals?.eps,
           week52High: fundamentals?.week52High, week52Low: fundamentals?.week52Low,
           sector: fundamentals?.sector,
           timeSeriesContext: buildTimeSeriesContext(rawCandles[symbol], nativeCurrency),
@@ -549,7 +561,9 @@ export default function AnalysisPanel() {
       const quota = acceptQuotaResponse(data, session?.user.id ?? null);
       if (response.ok && data.success && data.report) {
         setMentorReport(data.report);
-        mentorReportCache[cacheKey] = { report: data.report, timestamp: Date.now() };
+        setMentorCachedAt(Date.now());
+        mentorReportCache[responseCacheKey] = { report: data.report, timestamp: Date.now() };
+        Object.entries(mentorReportCache).sort((a,b)=>b[1].timestamp-a[1].timestamp).slice(100).forEach(([key])=>delete mentorReportCache[key]);
         try {
           const previous = parseInt(localStorage.getItem('solb_ai_usage') || '0', 10) || 0;
           localStorage.setItem('solb_ai_usage', String(previous + 1));
@@ -698,8 +712,17 @@ export default function AnalysisPanel() {
 
   const cacheReadable = (entry: { timestamp: number } | undefined) => !!entry
     && (now - entry.timestamp < CACHE_TTL || aiRemaining === 0 || quotaStatus === 'checking');
-  const cachedQuestionIds = MENTORS.filter(mentor => cacheReadable(mentorReportCache[`${symbol}-${mentor.id}`])).map(mentor => mentor.id);
+  const questionRevision = evidenceRevision(tickerNews,quote?.t ? quote.t*1000 : undefined,price,fundamentals?.per,fundamentals?.eps);
+  const newsStatus=newsState?.symbol===symbol?newsState.status:'loading';
+  const questionTags = discoveryTags(recentDiscoveryNews(tickerNews).map(item=>item.title).join(' '));
+  const cachedQuestionIds = STOCK_QUESTIONS.filter(question => cacheReadable(mentorReportCache[`${owner}-${symbol}-${question.id}-${questionRevision}`])).map(question => question.id);
   const hasCachedAnalysis = cacheReadable(aiReportCache[symbol]);
+  const openLearning=(topic='evidence')=>{
+    const id=STOCK_LESSONS.some(item=>item.id===topic)?topic:'evidence';
+    updateDiscovery(owner,h=>{h.resume=id;});usageEvent('learning_open');
+    setLearningEntry(previous=>({symbol,id,sequence:(previous?.sequence??0)+1}));
+    requestAnimationFrame(()=>document.querySelector('[data-stock-learning]')?.scrollIntoView({block:'start'}));
+  };
   const aiActionBlocked = !isLev && !showAIReport && !aiReport && !hasCachedAnalysis
     && (quotaStatus === 'checking' || aiRemaining === 0);
 
@@ -1437,12 +1460,13 @@ export default function AnalysisPanel() {
 
                 {!isLev && (
                   <div id="anchor-assistant" className={assistantStyles.section}>
+                    <StockReturnBrief key={`brief:${owner}:${symbol}`} owner={owner} symbol={symbol} items={tickerNews} newsStatus={newsStatus} price={quote?.c??0} quoteAt={quote?.t?quote.t*1000:undefined} currency={nativeCurrency} onLearn={openLearning}/>
                     <div className={assistantStyles.overview}>
                       <StockCheckup checkup={buildStockCheckup({
                         price, candles: rawCandles[symbol], fundamentals, currency: nativeCurrency,
                       })} />
                       <div className={assistantStyles.questions}>
-                        <StockAnalysisQuestions key={symbol} selectedId={selectedMentor?.id ?? null}
+                        <StockAnalysisQuestions key={`${owner}:${symbol}`} owner={owner} tags={questionTags} onLearn={id=>openLearning(lessonForQuestion(id))} selectedId={selectedMentor?.id ?? null}
                           loading={mentorLoading} onSelect={handleMentorSelect} remaining={aiRemaining}
                           quotaStatus={quotaStatus} cachedQuestionIds={cachedQuestionIds}
                           answer={selectedMentor ? (
@@ -1471,6 +1495,7 @@ export default function AnalysisPanel() {
                                   <p>{mentorReport.conclusion.desc}</p>
                                 </div>}
                                 <p className={assistantStyles.note}>공개정보를 바탕으로 AI가 작성한 설명이에요. 중요한 수치는 원문과 함께 확인해주세요.</p>
+                                <button type="button" className={assistantStyles.action} onClick={()=>openLearning(lessonForQuestion(selectedMentor.id))}>이 답변의 배경 개념 더 알아보기 →</button>
                                 <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
                               </>}
                               {!mentorLoading && mentorError && <>
@@ -1505,8 +1530,10 @@ export default function AnalysisPanel() {
                       setAnalysisSymbol(next);
                     }} />
                   <StockLearning
-                    key={`learning:${symbol}`}
-                    name={displayName}
+                    key={`learning:${owner}:${symbol}:${learningEntry?.symbol===symbol?learningEntry.sequence:0}`}
+                    initialLessonId={learningEntry?.symbol===symbol?learningEntry.id:undefined}
+                    onCompany={()=>document.querySelector('#anchor-learning [data-context-exploration]')?.scrollIntoView({block:'start'})}
+                    name={displayName} owner={owner} tags={questionTags}
                     onChart={analysis && !isLev ? (days) => {
                       setChartRange(days);
                       document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

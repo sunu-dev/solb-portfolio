@@ -42,6 +42,10 @@ describe('active time and metric definitions', () => {
       sample({ session_id:'wrong-order', feature:'company', event:'view', started_at:'2026-10-11T01:03:00Z' })];
     expect(aggregateUsage(rows,'2026-10-11',7).exploration).toEqual({ viewed:2,related:1,continued:1,rate:50 });
   });
+  it('counts discovery events once per visitor-session without leaking content',()=>{
+    const rows=[sample({event:'brief_read'}),sample({event:'brief_read'}),sample({event:'learning_read'}),sample({session_id:'next',event:'learning_continue'})];
+    expect(aggregateUsage(rows,'2026-10-11',7).discovery).toEqual({brief_read:1,fresh_news_open:0,learning_open:0,learning_read:1,learning_continue:1});
+  });
   it('requires signup + exact target day and excludes incomplete target-day cohorts', () => {
     const users = [ {user_id:'signup-only',created_at:'2026-10-03T03:00:00Z'}, {user_id:'returned',created_at:'2026-10-03T03:00:00Z'},
       {user_id:'wrong-day',created_at:'2026-10-03T03:00:00Z'}, {user_id:'not-complete',created_at:'2026-10-04T03:00:00Z'} ];

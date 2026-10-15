@@ -394,7 +394,7 @@ function HomeContent({ auth }: { auth: ReturnType<typeof useAuth> }) {
       />
 
       {/* Overlays */}
-      {analysisSymbol && <AnalysisPanel />}
+      {analysisSymbol && <AnalysisPanel key={user?.id??'guest'} owner={user?.id??'guest'} />}
       {editingCat !== '' && <EditStockModal />}
       <SettingsPanel />
 

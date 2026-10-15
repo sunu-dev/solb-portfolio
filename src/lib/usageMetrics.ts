@@ -4,7 +4,7 @@ export const USAGE_LABELS: Record<UsageFeature, string> = {
   portfolio: '내 투자', analysis: '종목 탐색', chart: '차트', news: '뉴스', fundamentals: '기업 지표',
   assistant: '주비 노트', learning: '배우기', company: '기업·산업 설명', insights: '시장 해설', other: '기타',
 };
-export const USAGE_EVENTS = ['view', 'explore_step', 'related_company'] as const;
+export const USAGE_EVENTS = ['view', 'explore_step', 'related_company', 'brief_read', 'fresh_news_open', 'learning_open', 'learning_read', 'learning_continue'] as const;
 export type UsageEvent = typeof USAGE_EVENTS[number];
 export interface UsageSample {
   id: string; session_id: string; started_at: string; ended_at: string;
@@ -60,12 +60,15 @@ export function aggregateUsage(rows: UsageRow[], today: string, days: number) {
     && kstDay(r.started_at) <= today && (guest ? !r.user_id : !!r.user_id)).map(r => guest ? r.visitor_id : r.user_id)).size;
   const selected = rows.filter(r => kstDay(r.started_at) >= since && kstDay(r.started_at) <= today);
   const sessions = new Map<string, { ms: number; user: string; guest: boolean; dates: Set<string>; viewed: boolean; related: boolean; continued: boolean }>();
+  const discoveryEvents = ['brief_read','fresh_news_open','learning_open','learning_read','learning_continue'] as const;
+  const discoverySessions = Object.fromEntries(discoveryEvents.map(event=>[event,new Set<string>()])) as Record<typeof discoveryEvents[number],Set<string>>;
   const feature = new Map<UsageFeature, { ms: number; users: Set<string>; sessions: Set<string> }>();
   const daily = new Map<string, { ms: number; members: Set<string>; guests: Set<string>; sessions: Set<string> }>();
   for (let i = days - 1; i >= 0; i--) daily.set(shiftDay(today, -i), { ms: 0, members: new Set(), guests: new Set(), sessions: new Set() });
   for (const r of selected.sort((a, b) => a.started_at.localeCompare(b.started_at) || a.id.localeCompare(b.id))) {
     const user = r.user_id ? `u:${r.user_id}` : `g:${r.visitor_id}`;
     const key = `${user}:${r.session_id}`;
+    if (r.event && discoveryEvents.includes(r.event as typeof discoveryEvents[number])) discoverySessions[r.event as typeof discoveryEvents[number]].add(key);
     const s = sessions.get(key) ?? { ms: 0, user, guest: !r.user_id, dates: new Set<string>(), viewed: false, related: false, continued: false };
     if (s.related && r.event === 'explore_step') s.continued = true;
     if (r.feature === 'company') s.viewed = true;
@@ -88,6 +91,7 @@ export function aggregateUsage(rows: UsageRow[], today: string, days: number) {
   const related = [...sessions.values()].filter(s => s.related).length;
   const continued = [...sessions.values()].filter(s => s.continued).length;
   return {
+    discovery: Object.fromEntries(discoveryEvents.map(event=>[event,discoverySessions[event].size])) as Record<typeof discoveryEvents[number],number>,
     members: { dau: periods(1, false), wau: periods(7, false), mau: periods(30, false) },
     guests: { dau: periods(1, true), wau: periods(7, true), mau: periods(30, true) },
     sessions: durations.length, totalMs, averageMs: durations.length ? Math.round(totalMs / durations.length) : null,

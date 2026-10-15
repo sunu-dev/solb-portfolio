@@ -46,6 +46,7 @@ export const USER_STORAGE_KEYS = [
  */
 export const USER_STORAGE_KEY_PREFIXES = [
   'solb_chapter_keyword_',
+  'joobi_discovery_v1:',
   'solb_portfolio_sync_outbox_v1:',
 ] as const;
 

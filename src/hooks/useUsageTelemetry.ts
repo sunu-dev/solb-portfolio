@@ -99,6 +99,8 @@ export function useUsageTelemetry({ enabled, userId, feature }: { enabled: boole
         if (!USAGE_EVENTS.includes(kind) || !foreground) return;
         interact();
         if (kind === 'explore_step' || kind === 'related_company') current = 'company';
+        if (kind.startsWith('learning_')) current='learning';
+        if (kind==='brief_read'||kind==='fresh_news_open') current='assistant';
         push(Date.now(), Date.now(), 0, kind); flush();
       };
       const hide = () => { measure(); flush(); foreground = false; };

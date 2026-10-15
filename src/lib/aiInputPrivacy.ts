@@ -14,6 +14,7 @@ export interface PublicAiAnalysisInput {
   volRatio?: number;
   recentNews?: string;
   mentorId?: string;
+  questionId?: string;
   per?: number;
   eps?: number;
   week52High?: number;
@@ -57,6 +58,7 @@ const optionalStringLimits = {
   macdStatus: 100,
   recentNews: 12_000,
   mentorId: 64,
+  questionId: 64,
   sector: 100,
   description: 300,
   timeSeriesContext: 12_000,

@@ -8,39 +8,284 @@
   min-width: 0;
   scroll-margin-top: 56px;
 }
-.heading { display: flex; align-items: center; gap: 8px; }
-.heading h2 { margin: 0; font-size: 20px; font-weight: 750; letter-spacing: -0.03em; }
-.heading svg { flex-shrink: 0; color: var(--text-secondary); }
-.progress { margin-left: auto; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
-.intro { margin: 8px 0 20px; font-size: 14px; line-height: 1.6; color: var(--text-body); overflow-wrap: anywhere; }
-.chartActions { padding: 12px; border-radius: 6px; background: var(--bg-subtle); font-size: 12px; }
-.actions, .topics { display: flex; flex-wrap: wrap; gap: 8px; }
-.actions { margin: 10px 0; }
-.topics { margin-top: 14px; }
-.card button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 10px 14px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--surface); color: var(--text-primary); font-size: 14px; cursor: pointer; }
-.card .entry { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; width: 100%; padding: 20px; text-align: left; border: none; border-radius: 6px; }
-.entry strong { font-size: 20px; line-height: 1.5; letter-spacing: -0.03em; word-break: keep-all; }
-.entry span { color: var(--text-body); font-size: 14px; line-height: 1.65; }
-.entry strong span { color: inherit; font: inherit; }
-.entry .entryLink { display: flex; align-items: center; gap: 6px; color: var(--text-primary); font-weight: 650; margin-top: 4px; }
-.explore { margin-top: 12px; }
-.explore summary { padding: 12px 0; min-height: 44px; cursor: pointer; font-size: 14px; color: var(--text-body); }
-.explore summary:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
-.topics button { flex: 1; }
-.topics button[aria-expanded='true'] { color: var(--pill-active-fg); border-color: var(--pill-active-bg); background: var(--pill-active-bg); font-weight: 700; }
-.card button:hover { border-color: var(--text-secondary); }
-.card button:focus-visible, .card a:focus-visible, .card input:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 3px; }
-.lesson { padding-top: 18px; }
-.lesson h3 { font-size: 21px; margin: 0 0 16px; line-height: 1.5; letter-spacing: -0.03em; }
-.lesson p { font-size: 15px; color: var(--text-body); line-height: 1.75; margin: 0 0 20px; word-break: keep-all; overflow-wrap: anywhere; }
-.example, .observation { padding: 18px; background: var(--surface); border-radius: 6px; }
-.quiz { padding: 0; border: 0; margin: 18px 0 8px; min-width: 0; }
-.quiz legend { font-size: 15px; font-weight: 650; margin-bottom: 12px; line-height: 1.6; }
-.quiz label { display: flex; gap: 10px; align-items: center; min-height: 48px; font-size: 15px; cursor: pointer; }
-.quiz input { accent-color: var(--text-primary); }
-.feedback { color: var(--text-secondary); }
-.footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 8px; }
-.footer a { display: inline-flex; gap: 4px; align-items: center; min-height: 44px; font-size: 12px; color: var(--text-body); text-decoration: underline; }
-.card small { display: block; color: var(--text-body); font-size: 12px; line-height: 1.6; }
-.intro, .entry > span, .lesson p, .quiz legend, .quiz label, .card small { word-break: keep-all; overflow-wrap: break-word; text-wrap: pretty; }
-@media (max-width: 380px) { .card { padding: 20px 0; } .heading h2 { font-size: 19px; } .card button { padding-inline: 12px; } }
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+.heading svg {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.progress {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.intro {
+  margin: 8px 0 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-body);
+  overflow-wrap: anywhere;
+}
+.chartActions {
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+.actions,
+.topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.actions {
+  margin: 10px 0;
+}
+.topics {
+  margin-top: 14px;
+}
+.card button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+.card .entry {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  border: none;
+  border-radius: 6px;
+}
+.entry strong {
+  font-size: 20px;
+  line-height: 1.5;
+  letter-spacing: -0.03em;
+  word-break: keep-all;
+}
+.entry span {
+  color: var(--text-body);
+  font-size: 14px;
+  line-height: 1.65;
+}
+.entry strong span {
+  color: inherit;
+  font: inherit;
+}
+.entry .entryLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-weight: 650;
+  margin-top: 4px;
+}
+.explore {
+  margin-top: 12px;
+}
+.explore summary {
+  padding: 12px 0;
+  min-height: 44px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-body);
+}
+.explore summary:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+.topics button {
+  flex: 1;
+}
+.topics button[aria-expanded="true"] {
+  color: var(--pill-active-fg);
+  border-color: var(--pill-active-bg);
+  background: var(--pill-active-bg);
+  font-weight: 700;
+}
+.card button:hover {
+  border-color: var(--text-secondary);
+}
+.card button:focus-visible,
+.card a:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+}
+.lesson {
+  padding-top: 18px;
+}
+.lesson h3 {
+  font-size: 21px;
+  margin: 0 0 16px;
+  line-height: 1.5;
+  letter-spacing: -0.03em;
+}
+.lesson p {
+  font-size: 15px;
+  color: var(--text-body);
+  line-height: 1.75;
+  margin: 0 0 20px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.example,
+.observation {
+  padding: 18px;
+  background: var(--surface);
+  border-radius: 6px;
+}
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+.footer a {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-height: 44px;
+  font-size: 12px;
+  color: var(--text-body);
+  text-decoration: underline;
+}
+.card small {
+  display: block;
+  color: var(--text-body);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.intro,
+.entry > span,
+.lesson p,
+.card small {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+}
+@media (max-width: 380px) {
+  .card {
+    padding: 20px 0;
+  }
+  .heading h2 {
+    font-size: 19px;
+  }
+  .card button {
+    padding-inline: 12px;
+  }
+}
+.recommendations {
+  display: grid;
+  gap: 4px;
+}
+.recommendations .entry {
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  padding-inline: 0;
+}
+.card .entry > span:first-child {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.card .entry > strong {
+  font-size: 18px;
+}
+.topics button {
+  flex: 0 1 auto;
+  text-align: left;
+}
+.lesson h4 {
+  font-size: 15px;
+  margin: 20px 0 8px;
+}
+.lesson .example {
+  background: var(--bg-subtle);
+}
+.lesson .observation {
+  padding: 0;
+}
+.lesson .nextTopic {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.card .termLink {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px dotted var(--text-secondary);
+  border-radius: 0;
+  color: var(--text-primary);
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+  text-align: inherit;
+}
+.card .termLink:hover {
+  border-bottom-style: solid;
+}
+.related {
+  margin: 28px 0 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+.related h4 {
+  margin-bottom: 12px;
+}
+.related button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  line-height: 1.65;
+}
+.related button > span {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.related strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.card .back {
+  border: 0;
+  padding-inline: 0;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.lesson h3 {
+  scroll-margin-top: 56px;
+}
+.lesson h3:focus {
+  outline: none;
+}

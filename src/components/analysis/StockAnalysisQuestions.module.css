@@ -76,21 +76,21 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.question[aria-expanded='true'] {
+.question[aria-expanded="true"] {
   background: var(--bg-subtle);
   box-shadow: none;
 }
 
-.question[aria-disabled='true'] {
+.question[aria-disabled="true"] {
   cursor: default;
 }
 
-.question[aria-disabled='true']:not([aria-expanded='true']) {
+.question[aria-disabled="true"]:not([aria-expanded="true"]) {
   color: var(--text-secondary);
 }
 
-.question[aria-disabled='true']:not([aria-expanded='true']) .icon,
-.question[aria-disabled='true']:not([aria-expanded='true']) .arrow {
+.question[aria-disabled="true"]:not([aria-expanded="true"]) .icon,
+.question[aria-disabled="true"]:not([aria-expanded="true"]) .arrow {
   color: var(--text-tertiary);
 }
 
@@ -166,7 +166,7 @@
   transition: transform 150ms ease;
 }
 
-.more[aria-expanded='true'] .expandIcon {
+.more[aria-expanded="true"] .expandIcon {
   transform: rotate(180deg);
 }
 
@@ -180,11 +180,13 @@
 }
 
 @keyframes questionPending {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (hover: hover) {
-  .question[aria-disabled='false']:hover,
+  .question[aria-disabled="false"]:hover,
   .more:hover {
     background: var(--bg-subtle);
   }
@@ -205,9 +207,33 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pendingIcon { animation: none; }
+  .pendingIcon {
+    animation: none;
+  }
   .question,
   .expandIcon {
     transition: none;
   }
+}
+.questionGroup {
+  border-bottom: 1px solid var(--border-light);
+}
+.questionGroup .question {
+  border-bottom: 0;
+}
+.background {
+  display: block;
+  padding: 0 0 12px 34px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.background:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
 }
