@@ -1051,7 +1051,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
             </div>
           </div>
 
-          <JoobiAssistantLauncher key={symbol} symbol={symbol} name={displayName} inline />
+          <JoobiAssistantLauncher key={`ask:${symbol}`} symbol={symbol} name={displayName} inline />
           <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
             hasChart={true} hasCheckup={!isFund} hasResources={!isLev} hasAssistant={!isLev}
             hasPersonal={!!symbol && (!!stockData || (!isLev && price > 0))} isFund={isFund}

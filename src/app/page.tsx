@@ -70,5 +70,5 @@ export default function Home() {
       : undefined} />;
   }
   const content = Workspace ? <Workspace key={identity ?? 'guest'} auth={auth} /> : <AccountAccessStatus />;
-  return <><PortfolioSync key={identity ?? 'guest'} user={auth.user} />{auth.user ? <AccountEntryGate key={auth.user.id} user={auth.user} onSignOut={auth.signOut} onSwitchAccount={auth.switchAccount}>{content}</AccountEntryGate> : content}</>;
+  return <><PortfolioSync key={`sync:${identity ?? 'guest'}`} user={auth.user} />{auth.user ? <AccountEntryGate key={auth.user.id} user={auth.user} onSignOut={auth.signOut} onSwitchAccount={auth.switchAccount}>{content}</AccountEntryGate> : content}</>;
 }

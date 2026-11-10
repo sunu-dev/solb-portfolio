@@ -5,7 +5,7 @@ import { resolveAssistantSubject } from '@/lib/assistantSubject';
 import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
 import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
 import { collectAssistantArticles } from '@/lib/assistantArticleSources';
-import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles } from '@/lib/assistantQuestion';
+import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion } from '@/lib/assistantQuestion';
 import { fundAnalysisContext, fundAnalysisSources, isFundAnalysis } from '@/lib/fundQuestionContext';
 import { fundProfile } from '@/lib/fundExploration';
 import { questionsForInstrument, stockQuestion } from '@/config/stockQuestions';
@@ -606,7 +606,8 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
         ? measure('evidence', () => collectAssistantEvidence(userQuestion!.symbol ?? (userQuestion!.market === 'us' ? '^GSPC' : '^KS11'), userQuestion!.period ?? '1d', isFund || isLev, userQuestion!.sessionReference, userQuestion!.industryFocus)) : undefined,
     ]);
     let assistantEvidence: AssistantEvidencePacket | undefined = collectedEvidence ? { ...collectedEvidence, evidence: [...collectedEvidence.evidence] } : undefined;
-    if (assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)) {
+    // 근황 질문은 기사를 찾아보되, 없으면 가격·제목만 확인한 범위로 답한다(아래 503은 원인 질문에만 적용).
+    if (assistantEvidence && userQuestion && (assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
       progress('articles');
       const articlePacket = assistantEvidence;
       const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => { pendingCosts.push(write); }));

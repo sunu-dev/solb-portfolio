@@ -24,8 +24,15 @@ export async function readPublishedBusiness(symbol: string, now = new Date().toI
   try {
     // Leave room inside the client's 5-second deadline for the database round trip
     // and a cold function connection. A failure still hides any previously withdrawn story.
-    const { data, error } = await db.rpc('read_company_business', { p_symbol: resolved.symbol }).abortSignal(AbortSignal.timeout(3000));
-    if (error) return { status: 'unavailable' };
+    // 이 읽기는 보통 0.3초 안에 끝난다. 한 번 멈춘 연결 때문에 설명 전체가 숨지 않도록
+    // 같은 3초 예산을 둘로 나눠 한 번만 다시 읽는다(읽기 전용 호출).
+    let data: { withheld?: boolean; snapshot?: unknown; approval?: { kind?: string; draftHash?: string; evidenceHash?: string } } | null = null;
+    for (let attempt = 0; ; attempt++) {
+      const result = await db.rpc('read_company_business', { p_symbol: resolved.symbol }).abortSignal(AbortSignal.timeout(1500))
+        .then(value => value, () => ({ data: null, error: { message: 'request_failed' } }));
+      if (!result.error) { data = result.data; break; }
+      if (attempt === 1) return { status: 'unavailable' };
+    }
     if (!data) return { status: 'none' };
     if (data.withheld === true) return { status: 'withheld' };
     const snapshot = data.snapshot as BusinessSnapshot;

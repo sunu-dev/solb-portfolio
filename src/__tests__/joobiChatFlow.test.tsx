@@ -288,3 +288,34 @@ it('switches scope and period without granting consent or sending a draft', () =
   expect(h.session).not.toHaveBeenCalled();
   expect(render().find(node => node.type === 'textarea')!.props.value).toBe('보내지 않은 질문');
 });
+
+it('answers a greeting or thanks on screen without consent, a request, or a used question', async () => {
+  fill('안녕!'); submit();
+  expect(h.fetch).not.toHaveBeenCalled(); expect(h.session).not.toHaveBeenCalled(); expect(h.accept).not.toHaveBeenCalled();
+  let turns = render().filter(node => node.type === 'section' && String(node.props['aria-label']).endsWith('번째 질문과 답변'));
+  expect(turns).toHaveLength(1);
+  expect(render().some(node => typeof node.props.text === 'string' && node.props.text.includes('안녕하세요, 주비예요.'))).toBe(true);
+  expect(text(turns[0].props.children)).toContain('질문 횟수는 쓰지 않았어요');
+  expect(text(turns[0].props.children)).not.toContain('답변에 제공한 자료');
+  expect(render().find(node => node.type === 'textarea')!.props.value).toBe('');
+  // The first real question still needs the explicit consent button.
+  expect(render().some(node => node.type === 'button' && text(node.props.children) === '물어보기')).toBe(true);
+
+  fill('마이크론을 쉽게 설명해주세요'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  fill('ㅇㅇ 알겠어 고마워'); submit();
+  fill('그럼 메모리는 뭐야?'); submit();
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(2));
+  expect(h.fetch).toHaveBeenCalledTimes(2);
+  // Local turns stay visible but are never sent as conversation history.
+  const payload = JSON.parse(h.fetch.mock.calls[1][1].body);
+  expect(payload.questionHistory.map((item: { question: string }) => item.question)).toEqual(['마이크론을 쉽게 설명해주세요']);
+  turns = render().filter(node => node.type === 'section' && String(node.props['aria-label']).endsWith('번째 질문과 답변'));
+  expect(turns).toHaveLength(4);
+});
+
+it('treats a greeting followed by a real question as a question', () => {
+  fill('안녕! 주식 처음인데 뭐부터 하면 돼?'); submit();
+  expect(render().filter(node => node.type === 'section')).toHaveLength(0);
+  expect(render().find(node => node.type === 'textarea')!.props.value).toBe('안녕! 주식 처음인데 뭐부터 하면 돼?');
+});

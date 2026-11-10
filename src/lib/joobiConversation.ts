@@ -4,6 +4,8 @@ import type { AssistantSessionReference } from './assistantSession';
 
 export interface ConversationAnswer {
   qualityReceipt?: string;
+  /** AI에 보내지 않고 화면에서 바로 답한 인사·감사. 다음 질문의 대화 맥락으로 보내지 않는다. */
+  local?: boolean;
   turnId: number; question: string; symbol: string; market?: 'kr' | 'us'; period?: AssistantPeriod; currentStatus: string; keyAdvice: string[];
   conclusion: { desc: string }; _meta?: AiResultMeta; assistantEvidence?: AssistantEvidencePacket;
   assistantInsights?: AssistantInsight[]; followUps?: string[];

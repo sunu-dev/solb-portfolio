@@ -40,7 +40,7 @@ export function comparablePrices(target: PriceComparison, comparison: PriceCompa
 /** Unadjusted close-to-close prices; reject split windows instead of misreading splits as crashes. */
 export function parseAssistantPrice(symbol: string, label: string, input: unknown, period: AssistantPeriod, now = Date.now(), throughDay?: string): PriceComparison | null {
   const result = (input as { chart?: { result?: Array<{
-    meta?: { regularMarketTime?: number; currency?: string; exchangeTimezoneName?: string };
+    meta?: { regularMarketTime?: number; regularMarketPrice?: number; currency?: string; exchangeTimezoneName?: string };
     timestamp?: number[]; indicators?: { quote?: Array<{ close?: (number | null)[]; low?: (number | null)[]; high?: (number | null)[] }> };
     events?: { splits?: Record<string, { date?: number }> };
   }> } })?.chart?.result?.[0];
@@ -54,6 +54,10 @@ export function parseAssistantPrice(symbol: string, label: string, input: unknow
     if (times.some((t, i) => !Number.isFinite(t) || t * 1000 > now + 60_000 || i > 0 && t <= times[i - 1])) return null;
     const rows = times.map((t, i) => ({ t, c: closes[i], index: i }));
     if (!rows.length || date(rows.at(-1)!.t) !== date(meta.regularMarketTime)) return null;
+    // 한국 장 마감 뒤 자정 무렵에는 마지막 일봉의 종가가 비어서 오는 일이 있다. 같은 거래일의
+    // 마지막 체결가(regularMarketPrice)가 있으면 그 값으로 채운다. 다른 날의 가격으로 대신하지 않는다.
+    const lastRow = rows.at(-1)!;
+    if (lastRow.c == null && typeof meta.regularMarketPrice === 'number' && Number.isFinite(meta.regularMarketPrice) && meta.regularMarketPrice > 0) lastRow.c = meta.regularMarketPrice;
     if (throughDay !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(throughDay) || !Number.isFinite(Date.parse(throughDay)) || new Date(throughDay).toISOString().slice(0, 10) !== throughDay)) return null;
     const selected = throughDay ? rows.filter(row => date(row.t) <= throughDay) : rows;
     const count = period === '1d' ? 1 : period === '5d' ? 5 : 20;
@@ -77,7 +81,12 @@ export function parseAssistantPrice(symbol: string, label: string, input: unknow
     const calendar = usCalendarDay(selectedDay);
     // The latest daily bar can still be forming. A post-close fetch does not
     // turn a delayed intraday quote into a confirmed closing price.
-    const sessionState = usSession && calendar.known && !calendar.holiday
+    // 한국 정규장은 15:30에 끝난다. 마지막 체결이 그 시각 이후거나 그날 18시가 지났으면 마감으로 본다
+    // (개장이 늦춰지는 날에도 장중을 마감으로 부르지 않기 위한 여유).
+    const krClose = meta.exchangeTimezoneName === 'Asia/Seoul' ? Date.parse(`${selectedDay}T15:30:00+09:00`) : undefined;
+    const sessionState = krClose !== undefined
+      ? at >= krClose || now >= krClose + 150 * 60_000 ? 'closed' : now >= Date.parse(`${selectedDay}T09:00:00+09:00`) ? 'intraday' : 'unknown'
+      : usSession && calendar.known && !calendar.holiday
       ? selectedDay < date(meta.regularMarketTime) || usSession.phase === 'post' ? 'closed' : usSession.phase === 'open' ? 'intraday' : 'unknown'
       : 'unknown';
     return { ...range, sessionState, ...(throughDay ? { timeBasis: 'retrieval' as const } : {}), symbol, label, day: selectedDay, baselineDay: date(first.t), at: new Date(throughDay ? now : at).toISOString(), price: last.c!,
@@ -150,6 +159,11 @@ export function assistantMoneyClaimsMatch(report: Record<string, unknown>, packe
     const values: Array<{ currency: string; amount: number }> = [];
     const pattern = /(?:(US\$|\$|USD|KRW|₩)\s*)?(\d[\d,]*(?:\.\d+)?)\s*(trillion|billion|million|bn|조|억|만|천)?\s*(달러|원|USD|KRW|dollars?)?/gi;
     const factors: Record<string, number> = { trillion: 1e12, billion: 1e9, million: 1e6, bn: 1e9, 조: 1e12, 억: 1e8, 만: 1e4, 천: 1e3 };
+    // "3조4000억원"은 하나의 금액이다. 조와 억을 따로 읽으면 같은 값을 "3.4조 원"으로 쓴 답을 틀렸다고 거절한다.
+    text = text.replace(/(\d[\d,]*(?:\.\d+)?)\s*조\s*(\d[\d,]*(?:\.\d+)?)\s*억\s*(달러|원)/g, (_, trillions: string, hundredMillions: string, unit: string) => {
+      values.push({ currency: unit === '원' ? 'KRW' : 'USD', amount: Number(trillions.replaceAll(',', '')) * 1e12 + Number(hundredMillions.replaceAll(',', '')) * 1e8 });
+      return ' ';
+    });
     for (const match of text.matchAll(pattern)) {
       const unit = match[1] || match[4];
       if (!unit) continue;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { X } from 'lucide-react';
@@ -14,6 +14,7 @@ import { getUsClockChangeNotice } from '@/utils/usClockChange';
 import UsMarketClockNotice from '@/components/portfolio/UsMarketClockNotice';
 import { usePersonalDictionary } from './PersonalLearningProvider';
 import JoobiAvatar from './JoobiAvatar';
+import { peekPendingQuestion } from '@/lib/joobiPendingQuestion';
 import styles from './JoobiAssistantLauncher.module.css';
 
 const AskJoobi = dynamic(() => import('./AskJoobi'), {
@@ -48,6 +49,16 @@ function AssistantDialog({ symbol, showUsNotice, now, onClose }: {
 /** A visible entry on the app shell, or inside the detail dialog's focus boundary. */
 export default function JoobiAssistantLauncher({ symbol, name, inline = false, iconOnly = false }: { symbol?: string; name?: string; inline?: boolean; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [resumedSymbol, setResumedSymbol] = useState<string | undefined>(undefined);
+  const { owner } = usePersonalDictionary();
+  // 로그인 전에 적은 질문이 있으면 로그인 직후 질문창을 다시 열어 이어 쓰게 한다. 자동 전송은 하지 않는다.
+  useEffect(() => {
+    if (owner === 'guest' || inline || iconOnly || symbol) return;
+    const pending = peekPendingQuestion();
+    if (!pending) return;
+    const frame = requestAnimationFrame(() => { setResumedSymbol(pending.symbol); setOpen(true); });
+    return () => cancelAnimationFrame(frame);
+  }, [owner, inline, iconOnly, symbol]);
   const now = useNow();
   const hasUsStocks = usePortfolioStore(state => [...state.stocks.investing, ...state.stocks.watching]
     .some(stock => !stock.demo && getStockCurrency(stock.symbol, stock.currency) === 'USD'));
@@ -62,6 +73,6 @@ export default function JoobiAssistantLauncher({ symbol, name, inline = false, i
       <span className={styles.label}><strong>주비에게 물어보기</strong>
         <span>{notice && !acknowledged ? notice.title : symbol ? `${name || symbol}, 어떤 점이 궁금하세요?` : '궁금한 주식 이야기를 들려주세요'}</span></span>
     </button>
-    {open && <AssistantDialog symbol={symbol} showUsNotice={showUsNotice} now={now} onClose={() => setOpen(false)} />}
+    {open && <AssistantDialog symbol={symbol ?? resumedSymbol} showUsNotice={showUsNotice} now={now} onClose={() => { setOpen(false); setResumedSymbol(undefined); }} />}
   </>;
 }

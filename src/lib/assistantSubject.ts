@@ -44,7 +44,7 @@ export function resolveAssistantSubject(question: AssistantQuestion): { question
   question = { ...question, sessionReference };
   let matches = mentionedAssistantStocks(question.text);
   const market = mentionedMarket(question.text);
-  const period = /(?:최근\s*)?5\s*(?:거래)?일|이번\s*주/.test(question.text) ? '5d' : /최근\s*(?:한|1)\s*(?:달|개월)|20\s*거래일/.test(question.text) ? '1m' : /오늘|어제|최근\s*거래일/.test(question.text) ? '1d' : question.history?.at(-1)?.period ?? question.period;
+  const period = /(?:최근\s*)?5\s*(?:거래)?일|이번\s*주|요즘|요새|근황/.test(question.text) ? '5d' : /최근\s*(?:한|1)\s*(?:달|개월)|20\s*거래일/.test(question.text) ? '1m' : /오늘|어제|최근\s*거래일/.test(question.text) ? '1d' : question.history?.at(-1)?.period ?? question.period;
   const inheritedMarket = [...(question.history ?? [])].reverse().map(turn => turn.market ?? mentionedMarket(turn.question)).find(Boolean) ?? (question.symbol ? /\.K[SQ]$/.test(question.symbol) ? 'kr' : 'us' : question.market);
   const explicitIndustries = mentionedIndustries(question.text);
   let industryFocus: AssistantIndustry[] = [];
