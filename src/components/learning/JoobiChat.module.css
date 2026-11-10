@@ -150,8 +150,12 @@
 .response h4 { margin:0 0 6px; color:var(--text-primary); font-size:14px; font-weight:600; line-height:1.6; }
 .response a { color:var(--text-body); text-underline-offset:3px; overflow-wrap:anywhere; }
 .response small { display:block; color:var(--text-secondary); font-size:12px; }
-.response .detailGroup { margin:12px 0; padding:0; }
-.response .detailGroup > summary { min-height:44px; padding:10px 0; font-size:13px; }
+/* 근거·자료는 필요할 때 펼치는 보조 정보다. 답변 본문보다 조용하게, 두 줄이 붙어 보이게 한다. */
+.response .detailGroup { margin:0; padding:0; }
+.response .detailGroup:first-of-type { margin-top:8px; }
+.response .detailGroup > summary { min-height:44px; padding:10px 0; font-size:13px; font-weight:500; color:var(--text-secondary); }
+.response .detailGroup[open] > summary { color:var(--text-primary); }
+.response .detailGroup + .detailGroup { border-top:1px solid var(--border-light); }
 .priceComparison { margin:4px 0 12px; padding:14px; border:1px solid var(--border-light); border-radius:var(--chat-control-radius); background:var(--surface); }
 .priceComparison header p { margin:0; }
 .priceComparison dl { margin:10px 0 0; }

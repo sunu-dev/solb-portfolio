@@ -250,14 +250,18 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     {!!answers.length && <div className={chat.thread} aria-label="주비와 나눈 대화">
       {answers.map((answer, index) => {
         const latest = index === answers.length - 1;
+        // 같은 종목·같은 거래일 답이 이어지면 대상 표시를 반복하지 않는다.
+        const previous = answers.slice(0, index).findLast(item => !item.local);
+        const sameSubjectAsPrevious = !!previous && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
         return <section key={answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
           <p className={chat.userMessage}><span className="sr-only">내 질문: </span>{answer.question}</p>
           <div className={chat.assistantLabel}><JoobiAvatar /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
-      {!answer.local && (answer.symbol !== GENERAL_SUBJECT || answer.market) && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
+      {!answer.local && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
       {!answer.local && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에 적은 {STOCK_KR[answer.symbol] || answer.symbol}을 기준으로 답했어요.</p>}
       <AnswerParagraphs text={answer.currentStatus} />
+      {answer.keyAdvice.map((text, index) => <AnswerParagraphs key={index} text={text} />)}
       {(answer.assistantEvidence?.price || !!answer.assistantInsights?.length) && <details className={chat.detailGroup}><summary className={readingUI.disclosure}>근거와 비교 더 보기</summary>
       {answer.assistantEvidence?.price && <section className={chat.priceComparison} aria-label="같은 기간의 주가 비교">
         <header><h4>{answer.assistantEvidence.comparisons.length ? '같은 기간의 움직임' : '가격 변화'}</h4><p className={chat.muted}>{answer.assistantEvidence.price.baselineDay} 종가 대비<br />{answer.assistantEvidence.price.day} 마지막 가격</p></header>
@@ -267,14 +271,13 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       </section>}
       {answer.assistantInsights?.map((insight, index) => <section key={index} className={chat.insight}><h4>{insight.kind === 'interpretation' ? '이런 영향으로 이어질 수 있어요' : '자료에서 살펴본 내용'}</h4><p><FinancialText>{insight.text}</FinancialText></p><div className={chat.evidenceLinks}>{insight.evidenceIds.map(evidenceId => { const evidence = answer.assistantEvidence?.evidence.find(e => e.id === evidenceId); return evidence && <a key={evidenceId} href={evidence.url} target="_blank" rel="noopener noreferrer">{evidence.kind === 'article' ? '기사 본문' : evidence.kind === 'headline' ? '기사 제목' : evidence.kind === 'price' ? '가격 자료' : evidence.kind === 'reference' ? '회사·상품 자료' : '공시 자료'} · {evidence.publisher}<span className="sr-only"> (새 창)</span></a>; })}</div></section>)}
       </details>}
-      {answer.keyAdvice.map((text, index) => <AnswerParagraphs key={index} text={text} />)}
       {!answer.local && !answer.followUps?.length && <p><FinancialText>{answer.conclusion.desc}</FinancialText></p>}
       {!answer.local && <details className={chat.detailGroup}><summary className={readingUI.disclosure}>답변에 제공한 자료</summary><p className={chat.muted}>제공한 자료 목록이에요. 답변의 모든 문장을 검증했다는 뜻은 아니에요.</p>
         {answer.assistantEvidence && <><p className={chat.muted}>자료를 받은 시각: {new Date(answer.assistantEvidence.checkedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (한국 시간)</p>{answer.assistantEvidence.gaps.map((gap, i) => <p className={chat.muted} key={i}>{gap}</p>)}</>}
         {answer._meta?.sourceDetails?.length ? <ul className={chat.sourceList}>{answer._meta.sourceDetails.map((source, index) => <li key={index}>{source.url && /^https:\/\//.test(source.url) ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name} · {source.provider}<span className="sr-only"> (새 창)</span></a> : `${source.name} · ${source.provider}`}{source.note && <small>{source.note}</small>}</li>)}</ul> : <p>이번 질문에 연결된 출처 자료가 없어요. 최신 회사 소식이나 실적은 확인하지 못했어요.</p>}</details>}
-      {latest && !!answer.followUps?.length && <div className={chat.followUps}><h4>{answer.local ? '이런 것부터 물어볼 수 있어요' : '여기서 더 궁금하다면'}</h4><p className={chat.muted}>{quota.remaining === 0 ? '오늘은 질문을 모두 사용했어요. 용어 설명과 지난 답변은 계속 볼 수 있어요.' : '누르면 입력창에 담겨요. 질문을 보내야 AI 분석 1회를 사용해요.'}</p>{answer.followUps.map(text => <button type="button" key={text} className={chat.secondary} disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}><CornerDownRight size={16} aria-hidden="true" />{text}</button>)}</div>}
+      {latest && !!answer.followUps?.length && <div className={chat.followUps}><h4>{answer.local ? '이런 것부터 물어볼 수 있어요' : '여기서 더 궁금하다면'}</h4>{quota.remaining === 0 && <p className={chat.muted}>오늘은 질문을 모두 사용했어요. 용어 설명과 지난 답변은 계속 볼 수 있어요.</p>}{answer.followUps.map(text => <button type="button" key={text} className={chat.secondary} disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}><CornerDownRight size={16} aria-hidden="true" />{text}</button>)}</div>}
       {answer.qualityReceipt && <AnswerFeedback receipt={answer.qualityReceipt} question={answer.question} answer={[answer.currentStatus, ...answer.keyAdvice, ...(answer.assistantInsights ?? []).map(insight => insight.text)].join('\n\n')} />}
-      <p className={chat.muted}>{answer.local ? '바로 드린 답이라 질문 횟수는 쓰지 않았어요.' : '밑줄 있는 용어를 누르면 뜻을 읽고 내 주식사전에 저장할 수 있어요.'}</p>
+      {answer.local ? <p className={chat.muted}>바로 드린 답이라 질문 횟수는 쓰지 않았어요.</p> : latest && <p className={chat.muted}>밑줄 있는 용어를 누르면 뜻을 읽고 내 주식사전에 저장할 수 있어요.</p>}
     </article>
         </section>;
       })}
