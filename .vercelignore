@@ -20,6 +20,7 @@ public/fonts/brand-preview/korean/style-1[0-2].ttf
 src/app/qa-import/
 src/app/qa-question-quality/
 /*.md
+/HANDOFF.txt
 design-mockup.html
 *.tsbuildinfo
 **/._*

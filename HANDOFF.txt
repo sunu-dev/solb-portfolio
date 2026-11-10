@@ -1,0 +1,69 @@
+주비 공통 작업 인계 — 최신 상태
+갱신일: 2026-11-10
+마지막 담당: Codex
+상태: 인계 준비 완료. 다음 담당 Claude Code가 작업 시작 시 담당·범위를 갱신한다.
+현재 진행 중인 제품 코드 작업/테스트 프로세스: 없음
+
+현재 목표
+주식 초보자의 실제 흐름으로 챗봇·주식사전·종목 상세를 검수하고, 재현한 문제부터 개선한다.
+새 세션은 AGENTS.md와 이 파일을 읽고 실제 Git 상태를 확인한다. 채팅 전체를 복구할 필요는 없다.
+
+코드와 운영 기준
+- 브랜치: main. 검증한 제품·검사환경 코드 기준: 9c68686.
+- ea1fdc3: 운영 소스 기준. 670d2c1: 별도 개발 변경을 보존한 리뷰 스냅샷.
+- 이후 공통 인계 문서 변경은 제품 코드 검증 기준과 구분한다. 최신 커밋은 git log로 확인한다.
+- 운영: https://joobi.kr / dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa.
+- 최근 챗봇 후속 질문 맥락·주식사전 이해 표시 개선은 운영 반영 완료.
+- 현재 HEAD 전체가 운영에 배포된 것은 아니다. 아래 별도 개발 기능을 포함한다.
+- 이전 인계 작업까지는 로컬 커밋만 수행했고 push와 추가 운영 배포는 하지 않았다.
+- artifacts, 환경 파일, 로컬 pilot 상태는 보존하지만 커밋하지 않는다. 세션 기록은 Git으로 보존한다.
+
+완료한 구현·검증
+- 챗봇: 자연어 재설명 요청을 인식하고, 직전 매수/매도 고민을 이어가도록 수정. 재설명에서 불필요한 시세·기사 조회 생략.
+- 사전: 명시적인 이해 표시 → 기본 목록/퀴즈 제외 → 다시 보기/복습 복원. 메모 유지와 삭제 취소/확정 확인.
+- 검사환경: 보관된 옛 소스를 TypeScript/Vitest/ESLint에서 제외. Node 도구 테스트를 별도 실행하고 verify/prebuild에 포함.
+- 9c68686 코드 검사: 앱2623통과15생략, Node 도구4통과, quality-lab66통과, 타입검사·공통검사5종·Next.js webpack빌드 통과.
+- 기존 경고: ai-chok data-tour 미등록1건. 테스트 생략과 경고를 전체 검증 완료로 해석하지 않는다.
+
+실제 사용자 흐름을 확인한 범위
+- Claude Chrome 게스트: 사전 저장/메모/이해/복원/퀴즈/삭제, 채팅 종목·기간/초안/고지 왕복/Escape 확인.
+- 운영 API 별도3턴: 성공, Sonnet5.5, 22.697/7.275/6.355초. 브라우저 전송 검수가 아니다.
+- 수정 프롬프트: 같은 생성 함수로 실제 모델 재검수. 마지막3.443초는 생성 단일 표본이며 종단 속도나 p95가 아니다.
+- 구조 검사를 통과한 답변에도 투자금/손실금 혼동이 있었고 사람이 불합격 처리했다. 자동 검사만으로 의미 정확성을 보장하지 않는다.
+
+아직 확인하거나 구현할 것
+- 로그인한 Chrome 실제 대화 전송 → 답변 스크롤 → 용어 팝업 → 사전 저장 → 대화 복귀.
+- Chrome에서만 화면이 깨진다는 제보: 아직 미재현. 실제 뷰포트/CSS·폰트/콘솔/확장 환경을 기록한다.
+- 실제 iPhone 키보드·IME·VoiceOver, 카카오 OAuth 완료, 기기간 사전 동기화.
+- 최초 답변·DB 요청 지연의 근본 원인과 반복 측정. 첫22.7초는 해결 완료가 아니다.
+- 투자 기록 암호화·패스키·기기 이전: 별도 개발 기능, 기본 비활성, SQL은 proposal. 실기·DB 전환 검수 없이 활성화하지 않는다.
+- 종목 상세·산업 그림·로딩 시안과 수집·검수 도구: 기술 검사와 별개로 현재 HEAD의 사용자 검수/운영 적용 판단이 필요하다.
+
+다음 작업 — 우선순위
+1. git status와 최근 커밋을 확인하고 Chrome 연결/로그인 상태를 확인한다.
+2. docs/CLAUDE_REVIEW_HANDOFF_2026-11-10.txt의 실제 초보자 시나리오를 진행한다. 운영 사이트와 HEAD의 검수 결과를 구분한다.
+3. 확인된 P0/P1 문제부터 재현 근거와 함께 수정·검증하고 이 파일을 갱신한다. 재현되지 않은 문제를 고쳤다고 하지 않는다.
+
+진입 파일과 기록
+- 공통 제품 원칙: docs/JOOBI_EXPLANATION_PRINCIPLES.md
+- 전체 리뷰 절차/커밋 비교: docs/CLAUDE_REVIEW_HANDOFF_2026-11-10.txt (당시 상세 기록)
+- 운영 근거: docs/CLAUDE_REVIEW_RELEASE_BASELINE_2026-11-10.txt, docs/CLAUDE_REVIEW_EVIDENCE_2026-11-10.txt
+- 채팅/사전 디자인: docs/JOOBI_CHAT_DESIGN_SYSTEM.md, docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md
+- 보호 보관 전환: docs/PORTFOLIO_VAULT_ROLLOUT.md
+- 전체 미해결 목록: sessionary/TODO.md
+- 최근 마무리 기록: sessionary/2026-11-10-zzzzzzz-final-claude-handoff.md
+
+검사 명령
+npm run typecheck
+npm test -- --maxWorkers=2
+npm run test:tools
+npm --prefix quality-lab test
+npm run lint:ui && npm run lint:alerts && npm run lint:korean && npm run lint:darkmode && npm run lint:tour-anchors
+npm run build
+격리 복사본에서 외부 node_modules symlink를 쓰는 경우 npx next build --webpack으로 검증했다.
+
+계정·실행 상태와 주의점
+- 이전 QA 계정은 데이터 정리·비활성화 완료. 실제 사용/비용 원장은 보존했다. 기존 QA 세션을 살아 있다고 가정하지 않는다.
+- 인증 자동 이동은 자동 승인 검토에서 거절된 이력이 있다. 다른 도구나 쿠키 주입으로 우회하지 않고 필요한 사용자 로그인을 인계한다.
+- localhost 로그인 안내 서버와 검수 프로세스는 종료했다. 새 세션 시작 시 실제 프로세스 상태를 다시 확인한다.
+- 이 파일의 완료 항목은 위 범위만 뜻한다. 실제 코드/검사 결과와 다르면 먼저 정정한다.

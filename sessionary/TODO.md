@@ -1,5 +1,7 @@
 # 미해결 TODO
 
+현재 담당·최근 검증·바로 다음 작업은 루트 `HANDOFF.txt`를 먼저 확인한다. 이 파일은 전체 미해결 목록이며, 날짜별 기록을 최신 상태로 오인하지 않는다.
+
 - [ ] **Claude 전체리뷰 진입(커밋완료):** 운영기준 `ea1fdc3`, 미반영작업스냅샷 `670d2c1`, 이전기준 `03ae229`. `docs/CLAUDE_REVIEW_HANDOFF_2026-11-10.txt`부터읽기. HEAD전체를바로배포하지않는다. 로컬커밋만/push없음. 최종인계에서artifacts검사혼입/Node테스트러너혼입/시안문구검사오류수정. 루트타입통과,앱2623/도구4/quality-lab66통과. 최종인계문서기준으로새Claude세션에서이어간다.
 
 - **최신 운영(2026-11-10 후속 질문):** `dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa` /g4awox82t, 정본 `/private/tmp/joobi-followup-20261110`, 복구 DUTtMdxZbhK4ur9ApiaN9RT7xz1y. 4파일선별: 자연어재설명분류/최근의도유지/직전답재설명/불필요시세기사조회생략. 로컬2457통과13생략/원격2454통과16생략/빌드/홈200·비로그인API401. `artifacts/chat-qa-live-20261110/followup-release-manifest.json`. 루트전체배포금지.
