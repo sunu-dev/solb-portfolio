@@ -15,3 +15,11 @@ src/app/brand-preview/type/
 src/app/brand-preview/twelve/
 public/fonts/brand-preview/korean/style-[1-8].ttf
 public/fonts/brand-preview/korean/style-1[0-2].ttf
+
+# Keep review-only routes and local tooling out of deployment uploads.
+src/app/qa-import/
+src/app/qa-question-quality/
+/*.md
+design-mockup.html
+*.tsbuildinfo
+**/._*

@@ -29,7 +29,7 @@
 - 자료: `/private/tmp/joobi-shelf-{single-390,many-1280,long-320,dark-final,actual-390}.png`, `joobi-shelf-browser-checks.json`, `joobi-shelf-final-checks.json`.
 
 ## 미해결 TODO
-- [ ] 승인된 책장 운영 배포 및 최종 확인.
+- 운영 반영 완료: 커밋 `b94fc2d`, 배포 `dpl_8izjWt4UWfzKaUrYY5BA3BohG9Y8`, joobi.kr/www.joobi.kr.
 - [ ] 실제 iPhone Safari에서 가로 책 목록/키보드/글자 크기 확인.
 
 ## 다음 세션 진입점
@@ -37,4 +37,10 @@
 - 여러 권: http://localhost:3000/chapter-shelf-preview?case=many
 - `ChapterShelf.tsx`, `ChapterShelf.module.css`, `chapterArchive.ts`, `chapterArchiveSubscription.test.ts`, `chapter-shelf-preview/page.tsx`.
 - 배포 시 최신 운영 기준 `/private/tmp/joobi-heatmap-release-gynt18tz`에 승인된 책장 변경만 추가. 다른 미커밋 건강점수·검색·관리자 기능 포함 금지.
-- 영구 메모리 승급 후보 없음. 디자인은 검토 전이며 이번 변경 흐름으로 기록.
+- 영구 메모리 승급 후보 없음. 승인과 배포 흐름은 이 기록에 보관.
+
+## 운영 반영 결과
+- 운영 소스 522개 SHA1 대조 후 승인된 런타임/테스트 4개 파일만 추가. 커밋·푸시 완료.
+- Vercel 59.23.2 빌드 성공, 테스트 1,036개 통과/4개 건너뜀. HTTP 200 확인 후 운영 승격.
+- 실제 운영 샘플 → 분석 탭에서 320/390/768/1280px 책장 넘침 없음, 상세 펼치기 정상, 기존 히트맵 유지. 브라우저 오류/서버 오류 로그 0. 샘플 체험은 리로드로 종료.
+- 배포 소스 `/private/tmp/joobi-shelf-release-b3x2lto8`, 감사 자료 `/private/tmp/joobi-shelf-release-audit.json`, 브라우저 결과 `/private/tmp/joobi-shelf-production-browser.json`.

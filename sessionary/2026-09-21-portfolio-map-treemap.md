@@ -32,8 +32,8 @@
 - 자료: `/private/tmp/joobi-heatmap-final-global-{1280,390}.png`, `joobi-heatmap-actual-{320,390,1280,1600}.png`, `joobi-heatmap-share.png`, `joobi-heatmap-dark.png`, `joobi-heatmap-final-checks.json`.
 
 ## 미해결 TODO
-- [ ] 운영 배포 요청 시 승인된 맵만 기존 운영 소스에 반영. 현재 디자인은 확정됨.
-- [ ] 전체 빌드의 기존 `src/lib/apiRoute.ts` 반환 핸들러 두 번째 인자 타입 문제 해결. `/api/admin/api-stats` GET export에서 Next.js 16.2.1 타입 검사 실패. 맵 커밋과 무관한 기존 코드이며 별도 수정 필요.
+- 운영 배포 완료: 아래 운영 배포 결과 참고.
+- [ ] 로컬 webpack 빌드에서 발생한 기존 관리자 API route export 타입 문제는 별도 검토. 운영 소스 기반 Vercel Turbopack 빌드는 타입 검사를 포함해 통과했음.
 - [ ] 실제 iPhone Safari 터치/OS 공유창 확인.
 
 ## 푸시 전 분리 검증
@@ -51,3 +51,18 @@
 - 배포 승인 시 기존 운영 소스 복원 폴더에 승인된 맵 변경만 적용. 미커밋 기능·건강 점수·책장 실험 포함 금지.
 - 원형 컴포넌트/좌표 지도 실험 파일은 남아 있지만 현재 맵에서 import하지 않음. 이전 원형 백업: `/private/tmp/joobi-rejected-round-map-20260921`.
 - 영구 메모리 승급 후보 없음. 사용자 화면 검토 전의 구현 및 반려 흐름으로 기록.
+
+
+## 운영 배포 완료
+- 사용자 운영 배포 승인 후 Vercel CLI 59.23.2로 배포.
+- 기존 운영 `dpl_E7zGy1FTALR6gVzdhCG8jidRHcKp` 소스 517개를 SHA1 대조: 보관본과 전부 일치. 이 운영 소스에 `6e36da0`의 맵 파일 7개만 적용. 기존 파일 2개 교체·신규 5개 추가, 나머지 운영 소스 515개 유지. 개발용 미리보기와 다른 미커밋 기능은 제외.
+- 새 배포: `dpl_FfWPHm7yYUURzrfogJd3sd4zY9B4`, READY, production.
+- URL: https://solb-portfolio-cuz4z8qwj-sunudevelop-1252s-projects.vercel.app
+- `--prod --skip-domain` 빌드 후 HTTP 200/주비 페이지 확인, 그 뒤 promote 실행. https://joobi.kr 및 https://www.joobi.kr이 모두 새 배포를 가리키는지 API로 확인.
+- 운영 원격 빌드: 규칙 검사·1033 tests passed / 4 skipped·TypeScript·67페이지 생성 통과. 로컬 별도 webpack 검사에서 보였던 관리자 API 타입 오류는 이 운영 Turbopack 빌드에서 재현되지 않음.
+- 실제 joobi.kr에서 비로그인 샘플 체험 → 내 주식 → 분석 탭 확인. 320/390/768/1023/1280/1600px 전부 3칸 정상, 페이지 넘침 및 칸 밖 텍스트 0.
+- 오늘/누적 전환 시 칸 위치 유지, 종목 클릭 상세 열림, 브라우저 런타임 예외 0. 새로고침으로 샘플 체험 종료 확인. 실제 계정 데이터 변경 없음.
+- 배포 후 해당 deployment 최근 20분 error 로그 0건(검사 시점). 실제 iPhone Safari/OS 공유창은 미검증.
+- 운영 소스 폴더: `/private/tmp/joobi-heatmap-release-gynt18tz`.
+- 자료: `/private/tmp/joobi-heatmap-release-audit.json`, `joobi-heatmap-production-deploy.log`, `joobi-heatmap-production-browser.json`, `joobi-heatmap-production-{320,390,1600}.png`, `joobi-heatmap-production-errors.jsonl`.
+- 다음 배포의 기준은 이번 운영 소스/배포 ID. 로컬 전체 작업 폴더나 오래된 운영 복원본을 그대로 덮어 배포하지 않기.
