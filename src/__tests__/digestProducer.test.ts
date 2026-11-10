@@ -9,6 +9,16 @@ vi.mock('@/lib/moverNote', () => ({ buildMoverNote: async () => null }));
 vi.mock('@/lib/apiRoute', () => ({ defineRoute: () => vi.fn() }));
 import { runDigest } from '@/app/api/cron/morning-brief/route';
 
+it('stops personalized digest generation before database or quote access during cutover', async () => {
+  vi.stubEnv('PORTFOLIO_PRIVATE_NOTIFICATIONS_PAUSED', 'on');
+  mocks.db = {};
+  const response = await runDigest(new NextRequest('https://example.test/api/cron/morning-brief'), 'morning');
+  expect(await response.json()).toEqual({ ok: true, skipped: 'private-notifications-paused' });
+  expect(fetch).not.toHaveBeenCalled();
+  expect(mocks.queue).not.toHaveBeenCalled();
+  expect(mocks.process).not.toHaveBeenCalled();
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('FINNHUB_API_KEY', 'test-not-a-key');

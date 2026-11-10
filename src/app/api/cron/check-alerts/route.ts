@@ -1,3 +1,4 @@
+import { privateNotificationsPaused, PRIVATE_NOTIFICATION_PAUSE_REASON } from '@/lib/privateNotificationPause';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient, requireServiceClient } from '@/lib/supabaseServer';
 import webpush from 'web-push';
@@ -298,6 +299,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
+
   // Supabase 키 판정은 팩토리에 위임한다 — env 이름을 여기서 다시 하드코딩하면
   // `SUPABASE_SERVICE_ROLE_KEY`만 설정된 환경에서 잘못 503을 내며 알림이 무기한 정지한다.
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY || !getServiceClient()) {
@@ -404,6 +407,7 @@ export async function POST(req: NextRequest) {
     });
 
     try {
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
       await webpush.sendNotification(
         pushSub as webpush.PushSubscription,
         payload,

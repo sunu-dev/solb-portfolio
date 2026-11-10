@@ -1,3 +1,4 @@
+import { privateNotificationsPaused, PRIVATE_NOTIFICATION_PAUSE_REASON } from '@/lib/privateNotificationPause';
 import { NextResponse } from 'next/server';
 import { requireServiceClient } from '@/lib/supabaseServer';
 import { defineRoute } from '@/lib/apiRoute';
@@ -121,6 +122,7 @@ export const GET = defineRoute({
   auth: 'cron',
   rateLimit: false,
   handler: async () => {
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
 
   const time = computeKstDaysRemaining();
   // D-3만 발송 (운영 안정성: 월말 D-3 ±0)
@@ -206,6 +208,7 @@ export const GET = defineRoute({
           tag: 'solb-chapter-d3',
         });
         try {
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
           await webpush.sendNotification(pushSub as webpush.PushSubscription, payload);
           stats.sent++;
         } catch (e: unknown) {
@@ -225,6 +228,7 @@ export const GET = defineRoute({
           body, '',
           `회고 작성 가기: ${appUrl}/?openWrapped=1`,
         ].join('\n');
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
         const result = await sendEmail({
           to: emailMap[userId],
           subject: title,

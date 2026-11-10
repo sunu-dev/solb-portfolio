@@ -32,7 +32,7 @@ export default function CatalogIndustryExploration({ group, current, context, on
   const company = [...(origin ? [origin] : []), ...examples].find(item => item.symbol === selectedCompanySymbol);
   const businessSubject = company ?? origin;
   const business = company ? companyBusinessSummary(company.symbol, company.products) : undefined;
-  return <section className={`${styles.explore} ${layout.catalog}`} aria-label={`${context} 이어서 알아보기`} data-context-exploration data-sector-id={group.parent} data-industry-id={group.id}>
+  return <section className={`${styles.explore} ${styles.stockReader} ${layout.catalog}`} aria-label={`${context} 이어서 알아보기`} data-context-exploration data-sector-id={group.parent} data-industry-id={group.id}>
     <nav className={layout.history} aria-label="설명 탐색 경로"><button type="button" onClick={onExit}>← 이전 설명</button><button type="button" onClick={() => onSector(group.parent)}>{parent.name} 전체 보기</button></nav>
     {origin?.securityType === 'preferred' && <p className={styles.note}>우선주예요. 발행 회사의 업종으로 연결했으며 보통주와 배당·의결권 조건이 다를 수 있어요.</p>}
     {origin?.listingNote && <p className={styles.note}>보고 있는 종목은 자료 제공처에서 상장폐지 이력이 확인됐어요. 과거 기업의 업종을 연결한 것이며 현재 거래 가능 여부는 별도 확인이 필요해요. 원문: {origin.listingNote}</p>}

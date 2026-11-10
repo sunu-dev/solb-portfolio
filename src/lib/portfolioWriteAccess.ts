@@ -1,10 +1,16 @@
 import { usePortfolioStore } from '@/store/portfolioStore';
 
 type WriteState = Pick<ReturnType<typeof usePortfolioStore.getState>,
-  'portfolioOwnerId' | 'portfolioCloudLoadStatus' | 'portfolioSyncStatus'>;
+  'portfolioOwnerId' | 'portfolioCloudLoadStatus' | 'portfolioSyncStatus'>
+  & Partial<Pick<ReturnType<typeof usePortfolioStore.getState>, 'portfolioProtectionStatus'>>;
 
 export function portfolioWriteBlockReason(state: WriteState): string | null {
   if (!state.portfolioOwnerId || state.portfolioCloudLoadStatus === 'guest') return 'login';
+  if (state.portfolioProtectionStatus && !['legacy', 'ready'].includes(state.portfolioProtectionStatus)) {
+    return state.portfolioProtectionStatus === 'closing'
+      ? '변경한 기록을 안전하게 보관하고 있어요. 잠시만 기다려주세요.'
+      : '투자 기록의 잠금을 해제한 뒤 변경할 수 있어요.';
+  }
   if (state.portfolioCloudLoadStatus === 'loading') return '기존 기록을 불러온 뒤 변경할 수 있어요. 잠시만 기다려주세요.';
   if (state.portfolioCloudLoadStatus === 'error') return '기존 기록을 불러오지 못했어요. 연결을 확인한 뒤 다시 시도해주세요.';
   if (state.portfolioSyncStatus === 'conflict') return '다른 기기의 기록과 충돌했어요. 기록·가져오기·복구에서 사용할 기록을 먼저 선택해주세요.';

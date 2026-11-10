@@ -20,8 +20,8 @@ import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
 import PortfolioDataTools from './PortfolioDataTools';
-import JoobiCharacterSettings from './JoobiCharacterSettings';
 import ArrivalPreferences from '../portfolio/ArrivalPreferences';
+import JoobiCharacterSettings from './JoobiCharacterSettings';
 
 // ─── 이메일 구독 토글 (재사용) ─────────────────────────────────────────────
 interface EmailToggleProps {
@@ -271,6 +271,7 @@ export default function SettingsPanel({ isLoggedIn }: { isLoggedIn: boolean }) {
 
         {/* Body */}
         <div className={styles.body}>
+
           <JoobiCharacterSettings />
 
           {/* Auto Refresh Toggle Section */}

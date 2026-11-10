@@ -1,0 +1,25 @@
+﻿서비스,분야,출처,근거 날짜,직접 UI 검수,확인 패턴 수,현재 화면·자료 범위 연결,근거·출처 확인,이어 묻기·결과 다듬기,질문 예시·자유 입력 진입,확인된 변화 먼저 안내,대화·결과 보관과 다시 찾기,캐릭터·메이트 역할,답변 실패·담당 전환,사용성 점수
+ChatGPT,검색·대화,https://help.openai.com/en/articles/9237897-searching-the-web-with-chatgpt,2026-11-04,미실시,1,미확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+Claude,검색·대화,https://www.anthropic.com/news/projects,2026-11-04,미실시,1,미확인,미확인,미확인,미확인,미확인,문서 확인,미확인,미확인,미측정
+Google Gemini,검색·대화,https://support.google.com/gemini/answer/14143489?hl=en,2026-11-04,미실시,1,미확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+Perplexity,검색·대화,https://www.perplexity.ai/help-center/en/articles/10352895-how-does-perplexity-work,2026-11-04,미실시,2,미확인,문서 확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미측정
+Microsoft Copilot Pages,검색·대화,https://support.microsoft.com/en-us/microsoft-365-copilot/draft-content-with-microsoft-365-copilot-chat-and-copilot-pages,2026-11-04,미실시,1,미확인,미확인,미확인,미확인,미확인,문서 확인,미확인,미확인,미측정
+Gemini Notebook (구 NotebookLM),검색·대화,https://support.google.com/gemininotebook/answer/16179559,2026-11-04,미실시,4,문서 확인,문서 확인,문서 확인,미확인,미확인,문서 확인,미확인,미확인,미측정
+Notion Agent,화면 속 비서,https://www.notion.com/help/notion-agent,2026-11-04,미실시,1,문서 확인,미확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+Slack AI / Slackbot,화면 속 비서,https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack,2026-11-04,미실시,2,문서 확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+Canva AI,화면 속 비서,https://www.canva.com/newsroom/news/canva-create-2026-ai/,2026-11-04,미실시,1,미확인,미확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미측정
+Shopify Sidekick,화면 속 비서,https://help.shopify.com/en/manual/ai-powered-tools/sidekick/set-up,2026-11-04,미실시,3,문서 확인,미확인,미확인,문서 확인,미확인,문서 확인,미확인,미확인,미측정
+Intercom Fin,상담·복구,https://www.intercom.com/help/en/articles/11433030-conversational-fin-experience,2026-11-04,미실시,3,미확인,문서 확인,문서 확인,미확인,미확인,미확인,미확인,문서 확인,미측정
+Zendesk AI agents,상담·복구,https://support.zendesk.com/hc/en-us/articles/4408824482586-Managing-conversation-handoff-and-handback,2026-11-04,미실시,1,미확인,미확인,미확인,미확인,미확인,미확인,미확인,문서 확인,미측정
+Amazon Alexa for Shopping (구 Rufus),상거래·추천,https://www.aboutamazon.com/news/retail/how-to-use-amazon-rufus,2026-11-04,미실시,2,문서 확인,미확인,미확인,문서 확인,미확인,미확인,미확인,미확인,미측정
+Booking.com AI Trip Planner,상거래·추천,https://news.booking.com/bookingcom-launches-new-ai-trip-planner-to-enhance-travel-planning-experience,2026-11-04,미실시,1,미확인,미확인,문서 확인,미확인,미확인,미확인,미확인,미확인,미측정
+Duolingo Lily,캐릭터·학습,https://blog.duolingo.com/product-highlights/,2026-11-04,미실시,1,미확인,미확인,미확인,미확인,미확인,미확인,문서 확인,미확인,미측정
+Khan Academy Khanmigo,캐릭터·학습,https://blog.khanacademy.org/how-khan-academy-is-building-a-better-ai-tutor-our-most-recent-learnings/,2026-11-04,미실시,0,미확인,미확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+Snapchat My AI,캐릭터·학습,https://help.snapchat.com/hc/en-gb/articles/14857095089940-How-do-I-customize-the-avatar-for-My-AI,2026-11-04,미실시,1,미확인,미확인,미확인,미확인,미확인,미확인,문서 확인,미확인,미측정
+Spotify AI Playlist,상거래·추천,https://newsroom.spotify.com/2024-04-07/spotify-premium-users-can-now-turn-any-idea-into-a-personalized-playlist-with-ai-playlist-in-beta/,2026-11-04,미실시,2,미확인,미확인,문서 확인,문서 확인,미확인,미확인,미확인,미확인,미측정
+Bank of America Erica,금융 비서,https://info.bankofamerica.com/en/digital-banking/erica,2026-11-04,미실시,2,미확인,미확인,미확인,미확인,문서 확인,미확인,미확인,문서 확인,미측정
+Capital One Eno,금융 비서,https://www.capitalone.com/digital/tools/eno/,2026-11-04,미실시,2,미확인,미확인,미확인,문서 확인,문서 확인,미확인,미확인,미확인,미측정
+Cleo,금융 비서,https://intercom-help.meetcleo.com/en/articles/15377584-what-is-cleo-pro,2026-11-04,미실시,2,미확인,미확인,문서 확인,미확인,미확인,문서 확인,미확인,미확인,미측정
+Public Alpha,금융 비서,https://help.public.com/en/articles/9354354-what-is-alpha,2026-11-04,미실시,3,문서 확인,문서 확인,미확인,문서 확인,미확인,미확인,미확인,미확인,미측정
+Robinhood Cortex,금융 비서,https://robinhood.com/us/en/careers/blog/loop-stays-dumb-so-the-model-can-be-smart/,2026-11-04,미실시,1,문서 확인,미확인,미확인,미확인,미확인,미확인,미확인,미확인,미측정
+카카오 카나나,캐릭터·학습,https://www.kakaocorp.com/page/detail/11738,2026-11-04,미실시,2,미확인,미확인,미확인,미확인,미확인,문서 확인,문서 확인,미확인,미측정

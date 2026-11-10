@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "total_weight": 100,
+  "status": "protocol_not_completed_user_study",
+  "anchors": {
+    "0": "과제 수행 불가",
+    "1": "도움이 있어도 실패 반복",
+    "2": "도움을 받아 수행 가능",
+    "3": "도움 없이 수행하지만 마찰 있음",
+    "4": "도움 없이 핵심 과제 수행",
+    "5": "핵심·오류·모바일 과제까지 일관되게 수행"
+  },
+  "rule": "동일 과제·대상자 조건으로 측정한 항목만 점수화. 미측정은 null이며 0점 대입 금지. 모든 항목을 측정하기 전 총점·경쟁 순위 금지. 정확성 실패를 화면 점수로 상쇄하지 않음.",
+  "criteria": [
+    {
+      "id": "start",
+      "label": "질문 시작의 쉬움",
+      "weight": 20,
+      "measure": "질문 시작까지 조작 수·소요 시간·도움 없이 시작한 비율",
+      "score": null
+    },
+    {
+      "id": "read",
+      "label": "답변 읽기와 이어 묻기",
+      "weight": 20,
+      "measure": "첫 답의 핵심 이해·후속 질문 성공·대화 위치 확인",
+      "score": null
+    },
+    {
+      "id": "context",
+      "label": "종목·시장·기간 이해",
+      "weight": 15,
+      "measure": "대상을 잘못 고른 비율·대화 범위 변경의 이해",
+      "score": null
+    },
+    {
+      "id": "evidence",
+      "label": "근거 확인",
+      "weight": 15,
+      "measure": "핵심 근거·날짜 찾기 성공률·출처 일치",
+      "score": null
+    },
+    {
+      "id": "recovery",
+      "label": "대기·오류·복귀",
+      "weight": 10,
+      "measure": "응답 시간 p50/p95·취소/재시도 성공·읽던 위치 복귀",
+      "score": null
+    },
+    {
+      "id": "accessibility",
+      "label": "모바일·키보드·다크",
+      "weight": 10,
+      "measure": "320/390/1440px와 키보드에서 입력·전송·닫기·가림·대비",
+      "score": null
+    },
+    {
+      "id": "character",
+      "label": "캐릭터의 역할",
+      "weight": 10,
+      "measure": "질문·대기·안내를 돕는지, 정보 읽기를 방해하는지",
+      "score": null
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import { USER_STORAGE_KEYS, USER_STORAGE_KEY_PREFIXES } from './userStorage';
+import { allowLegacyPortfolioWrite } from './portfolioVaultPolicy';
 
 // Recovery copies are deliberately outside clearUserStorage's key lists.
 export const PORTFOLIO_RECOVERY_PREFIX = 'solb_portfolio_recovery_v1:';
@@ -24,6 +25,9 @@ export function preserveUnsyncedPortfolio(
   const outboxKey = `solb_portfolio_sync_outbox_v1:${ownerId}`;
   const pending = storage.getItem(outboxKey);
   if (!pending && !['saving', 'error', 'storage-error', 'local-only', 'conflict'].includes(syncStatus)) return;
+  // The secure runtime must await its encrypted outbox before changing accounts.
+  // Until that hand-off is connected, refuse the reset instead of leaking data.
+  if (!allowLegacyPortfolioWrite(ownerId, storage)) throw new Error('encrypted_portfolio_handoff_required');
   const records: Record<string, string> = {};
   if (pending) records[outboxKey] = pending;
   // A recovery copy is never loaded as the next user's active portfolio.
@@ -58,6 +62,9 @@ export function preparePortfolioIdentity(
     || state.customEvents?.length || state.recentSymbols?.length
     || Object.keys(records).some(key => key.startsWith('solb_portfolio_sync_outbox_v1:')));
   if (hasRecords) {
+    if (!allowLegacyPortfolioWrite(state.portfolioOwnerId ?? null, storage)) {
+      throw new Error('encrypted_portfolio_handoff_required');
+    }
     const backup = JSON.stringify({ ownerId: state.portfolioOwnerId ?? null, state, records });
     const key = `${PORTFOLIO_RECOVERY_PREFIX}${crypto.randomUUID()}`;
     // Fail closed BEFORE any reset when storage is full/blocked. Never discard unsynced data.

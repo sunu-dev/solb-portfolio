@@ -1,0 +1,46 @@
+{
+  "scope": "실제 브라우저, 핸들러 검사, 합성 질문의 실제 Haiku 공급자 응답 검증을 구분한다. 로그인 사용자 E2E는 미완료.",
+  "cases": [
+    {
+      "input": "MU 상세에서 왜 떨어졌어?",
+      "expected": "보고 있는 종목을 유지하고 확인한 기간·가격·기사로 답한다. 실제 하락 여부가 맞지 않으면 먼저 바로잡는다.",
+      "live_result": null
+    },
+    {
+      "input": "그럼 내가 뭘 봐야 해?",
+      "expected": "직전 답의 핵심 요인과 연결된 다음 확인사항을 답하고, 처음 설명을 그대로 반복하지 않는다.",
+      "live_result": null
+    },
+    {
+      "input": "그 말이 어려워",
+      "expected": "직전 답의 어려운 용어를 생활 예시로 다시 설명한다. 모르는 단어를 다른 전문용어로 바꾸지 않는다.",
+      "live_result": null
+    },
+    {
+      "input": "답변을 기다리는 동안 다음 질문 입력",
+      "expected": "첫 질문은 말풍선에 유지하고 다음 초안은 답변 도착 후에도 보존한다. 입력 포커스를 빼앗지 않는다.",
+      "live_result": null
+    },
+    {
+      "input": "기다리기 중단 후 수정",
+      "expected": "늦은 답변이 새 대화를 덮지 않는다. 중단은 무료 취소라고 표시하지 않는다.",
+      "live_result": null
+    },
+    {
+      "input": "기억 범위를 넘는 예전 이야기",
+      "expected": "전달된 최근 대화 밖의 내용을 기억하는 척하지 않는다. 종목·시장·기간별 같은 탭 최근20개 보관·요청 이전3개 범위를 고지한다.",
+      "live_result": null
+    }
+  ],
+  "provider_qa": {
+    "artifact": "../../artifacts/joobi-conversation-20261105/live-conversation.json",
+    "questions": [
+      "메모리 반도체는 뭐야?",
+      "더 쉽게 설명해 줘",
+      "예를 들어 설명해 줘",
+      "마이크론은 뭘 파는 회사야?"
+    ],
+    "result": "schema_valid_and_editorially_reviewed",
+    "limitations": "이 네 응답만 검토. 시장 하락 원인·로그인 프런트엔드·모든 종목 품질을 통과했다는 뜻이 아님."
+  }
+}

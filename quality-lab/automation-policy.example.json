@@ -1,0 +1,11 @@
+{
+  "version": "automation-v1",
+  "enabled": false,
+  "workerRelease": null,
+  "incidentHold": true,
+  "maxJobs": 1,
+  "dartConfigured": false,
+  "providerQuotaVerified": false,
+  "quotaVerifiedAt": null,
+  "captureAfter": true
+}

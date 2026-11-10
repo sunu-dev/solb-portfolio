@@ -90,6 +90,96 @@
 .primaryQuestion .questionCopy strong { font-weight:650; }
 .questionNumber { flex-shrink:0; }
 
+/* Stock detail: one reading scale, with the company explanation before exploration. */
+.stockReader .eyebrow { margin-bottom: 12px; font-size: var(--type-caption-size); }
+.stockReader h3, .stockReader .sectorHero h3 { font-size: var(--type-section-size); font-weight: var(--type-section-weight); line-height: 1.5; max-width: none; letter-spacing: -.03em; }
+.stockReader .sectorHero { grid-template-columns: minmax(0, 1fr) minmax(240px, 340px); gap: 24px; padding: 0; border: 0; margin-bottom: 20px; }
+.stockReader .summary { font-size: var(--type-body-size); line-height: 1.85; max-width: 60ch; }
+.stockReader .diagram { max-width: 340px; }
+.stockReader .sectionHeading { margin-top: 32px; margin-bottom: 12px; }
+.stockReader .sectionHeading h4 { font-size: 16px; font-weight: 650; }
+.stockReader .questions { gap: 8px; margin-top: 0; }
+.stockReader .questions button { padding: 16px; border: 1px solid var(--border-light); border-radius: 8px; min-height: 88px; }
+.stockReader .questions button.primaryQuestion { background: var(--bg-subtle); border-color: var(--border-strong); }
+.stockReader .questionCopy strong { font-size: 15px; line-height: 1.65; }
+.stockReader .questionNumber { color: var(--text-secondary); }
+.stockReader .companyName { font-size: 16px; }
+.stockReader .companyDetail { font-size: var(--type-caption-size); }
+.businessEntry { margin: 16px 0; padding: 0 16px; border: 1px solid var(--border-light); border-radius: 8px; }
+.businessEntry[open] { padding-bottom: 16px; }
+.stockReader .sectorLinks { margin: 12px 0 24px; gap: 4px 16px; }
+.stockReader .sectorLinks > span { width: auto; }
+@container sector-exploration (max-width: 600px) {
+  .stockReader .sectorHero { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .stockReader .diagram { width: 100%; max-width: 340px; justify-self: center; }
+  .stockReader .questions button { gap: 12px; }
+}
+
+.nextPreview { display: block; margin-top: 4px; color: var(--text-secondary); font-size: var(--type-caption-size); font-weight: 400; line-height: 1.7; }
+
+/* Company, industry and answer chapters share the same reading rhythm. */
+.stockReader .hero { margin-bottom:24px; }
+.stockReader .sectorHero { grid-template-columns:minmax(0,1fr) minmax(300px,380px); gap:32px; align-items:center; }
+.stockReader .sectorHero h3 { font-size:24px; font-weight:650; line-height:1.5; }
+.stockReader .diagram { max-width:380px; }
+.stockReader .eyebrow { color:var(--text-secondary); margin-bottom:20px; }
+.stockReader .questions { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.stockReader .questions button { align-items:flex-start; gap:12px; padding:20px; min-height:128px; border-radius:12px; }
+.stockReader .questions button > span:last-child { margin-left:auto; align-self:center; }
+.stockReader .questionNumber { display:none; }
+.stockReader .questionCopy strong { font-size:16px; font-weight:650; }
+.stockReader .questionCopy small { margin-top:8px; font-size:13px; line-height:1.75; }
+.stockReader .questions button.primaryQuestion { border-color:var(--border-light); }
+.stockReader .questions button:hover { border-color:var(--border-strong); }
+.stockReader .companyGrid { gap:0 24px; }
+.stockReader .companyGrid button { padding-block:20px; }
+.stockReader .companyName { font-size:17px; }
+.stockReader .ticker { font-size:11px; }
+.stockReader .companyDetail { font-size:13px; line-height:1.75; }
+.stockReader .sectionHeading { margin-top:36px; }
+.stockReader .sectionHeading h4 { font-size:17px; }
+.stockReader .steps { list-style:none; padding:0; counter-reset:reading-step; }
+.stockReader .steps li { position:relative; padding:0 0 24px 38px; margin:0; border-left:1px solid var(--border-light); margin-left:12px; counter-increment:reading-step; }
+.stockReader .steps li:last-child { border-left-color:transparent; padding-bottom:0; }
+.stockReader .steps li::before { content:counter(reading-step); position:absolute; left:-13px; top:0; width:26px; height:26px; display:grid; place-items:center; border:1px solid var(--border-light); border-radius:50%; background:var(--surface); color:var(--text-secondary); font-size:12px; }
+.stockReader .steps strong { font-size:16px; }
+.stockReader .steps p { font-size:15px; line-height:1.85; margin-top:8px; }
+.stockReader .watch { border:0; border-radius:12px; padding:20px; background:var(--bg-subtle); margin-block:24px; }
+.stockReader .history { gap:8px; }
+.stockReader .history button { padding:8px 12px; border:1px solid var(--border-light); border-radius:8px; font-size:14px; }
+.stockReader .sectorLinks { gap:4px 16px; }
+.stockReader .selection { margin-top:12px; }
+.stockReader .directory { margin-top:32px; }
+@container sector-exploration (max-width:680px) {
+  .stockReader .sectorHero { grid-template-columns:minmax(0,1fr); gap:20px; }
+  .stockReader .diagram { width:100%; max-width:380px; justify-self:center; }
+}
+@container sector-exploration (max-width:480px) {
+  .stockReader .questions { grid-template-columns:minmax(0,1fr); }
+  .stockReader .questions button { padding:18px; min-height:104px; }
+  .stockReader .companyGrid { grid-template-columns:minmax(0,1fr); }
+  .stockReader .sectorHero h3 { font-size:22px; }
+}
+
+.stockReader .sectorHero { align-items:start; }
+.stockReader .sectorHero > div:first-child { padding-top:8px; }
+.stockReader .sectorHero .sectionHeading { margin-top:24px; }
+.stockReader .sectorHero .questions { grid-template-columns:minmax(0,1fr); }
+.stockReader .sectorHero .questions button { min-height:88px; padding:14px 16px; }
+.stockReader .sectorHero .questionCopy strong { font-size:15px; }
+.stockReader .sectorHero .questionCopy small { margin-top:4px; font-size:12px; }
+.stockReader .sectorHero .selection { margin-top:4px; }
+.stockReader .sectorHero .diagram { padding-top:8px; }
+@container sector-exploration (max-width:680px) {
+  .stockReader .sectorHero { display:flex; flex-direction:column; }
+  .stockReader .sectorHero > div:first-child { display:contents; }
+  .stockReader .sectorHero h3 { order:0; margin-bottom:0; }
+  .stockReader .sectorHero .summary { order:1; }
+  .stockReader .sectorHero .diagram { order:2; align-self:center; }
+  .stockReader .sectorHero .nextReading { order:3; width:100%; }
+  .stockReader .sectorHero .sectionHeading { margin-top:8px; }
+}
+
 /* Readable company and industry explanations, including narrow detail panels. */
 .explore .summary, .explore .sectorHero .summary,
 .explore .steps p, .explore .watch p,

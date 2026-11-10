@@ -5,9 +5,11 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { clearUserStorage } from '@/lib/userStorage';
 import { resolveOAuthRedirect } from '@/lib/oauthRedirect';
 import { preserveUnsyncedPortfolio, type LocalPortfolio } from '@/lib/portfolioIdentity';
+import { finishPortfolioVaultHandoff } from '@/lib/portfolioVaultHandoff';
 import type { User, Session } from '@supabase/supabase-js';
 
-function preserveOutgoingEdits(ownerId: string | null) {
+async function preserveOutgoingEdits(ownerId: string | null) {
+  if (ownerId && await finishPortfolioVaultHandoff(ownerId)) return;
   const state = usePortfolioStore.getState();
   const persisted = usePortfolioStore.persist.getOptions().partialize!(state) as LocalPortfolio;
   preserveUnsyncedPortfolio(ownerId, persisted, state.portfolioSyncStatus, localStorage);
@@ -20,11 +22,10 @@ export function useAuth() {
   const [error, setError] = useState(false);
   // 정합성 결함 C2-data 수정 — 직전 user.id 추적해 계정 전환 감지
   const prevUserIdRef = useRef<string | null>(null);
-  const retry = useCallback(() => {
-    // A failed SDK initialization can outlive this hook. Re-running getSession
-    // on the same client repeats that failure; a reload creates a fresh client.
-    // Keep persisted sessions and edits, and never turn a retry into sign-out.
-    try { preserveOutgoingEdits(prevUserIdRef.current); }
+  const retry = useCallback(async () => {
+    // Restart a stalled auth client without clearing its session or local edits.
+    // This workspace also has encrypted handoff work: finish it before reload.
+    try { await preserveOutgoingEdits(prevUserIdRef.current); }
     catch { setError(true); setLoading(false); return; }
     window.location.reload();
   }, []);
@@ -32,6 +33,8 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
     let receivedAuthEvent = false;
+    let identityGeneration = 0;
+    let transitionPending = false;
     const fail = () => {
       if (!active || receivedAuthEvent) return;
       // Keep the identity boundary closed; never treat a failed lookup as logout.
@@ -57,54 +60,63 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!active) return;
       // The SDK also emits INITIAL_SESSION(null) when its initial read fails.
-      // getSession carries the error, so let that result distinguish a guest
-      // from an unavailable account. A real SIGNED_OUT still closes access.
+      // getSession distinguishes a genuine guest from an unavailable account.
       if (_event === 'INITIAL_SESSION' && !newSession) return;
       receivedAuthEvent = true;
       clearTimeout(timer);
       setError(false);
       const prevId = prevUserIdRef.current;
       const newId = newSession?.user?.id ?? null;
+      const generation = ++identityGeneration;
 
-      if (prevId && prevId !== newId) {
-        try { preserveOutgoingEdits(prevId); }
-        catch {
-          // Close the reader boundary before exposing the new identity. Keep the original edits intact.
-          setError(true);
-          setLoading(false);
-          return;
+      const applyIdentity = () => {
+        if (!active || generation !== identityGeneration) return;
+        transitionPending = false;
+        // 계정 전환(A → B) 감지 시 이전 사용자 데이터 즉시 정리.
+        // 직접 OAuth 전환·다른 탭 로그인 등 signOut 미경유 케이스 대응.
+        // anon → 로그인(prev=null, new=non-null)은 사용자 데이터 이전을 위해 keep.
+        if (prevId && newId && prevId !== newId) {
+          console.log('[useAuth] 계정 전환 감지 — 이전 데이터 정리');
+          clearUserStorage();
+          usePortfolioStore.getState().resetPortfolio();
         }
-      }
 
-      // 계정 전환(A → B) 감지 시 이전 사용자 데이터 즉시 정리.
-      // 직접 OAuth 전환·다른 탭 로그인 등 signOut 미경유 케이스 대응.
-      // anon → 로그인(prev=null, new=non-null)은 사용자 데이터 이전을 위해 keep.
-      if (prevId && newId && prevId !== newId) {
-        console.log('[useAuth] 계정 전환 감지 — 이전 데이터 정리');
-        clearUserStorage();
-        usePortfolioStore.getState().resetPortfolio();
-      }
+        // 로그아웃 감지(prev=non-null, new=null) — 다른 탭 로그아웃·토큰 만료·signOut 실패
+        // 시점에도 로컬 데이터 잔존 차단. signOut() 호출도 결국 이 listener를 거치므로
+        // 어떤 경로든 일관된 정리 보장.
+        if (prevId && !newId) {
+          console.log('[useAuth] 로그아웃 감지 — 로컬 데이터 정리');
+          clearUserStorage();
+          usePortfolioStore.getState().resetPortfolio();
+        }
 
-      // 로그아웃 감지(prev=non-null, new=null) — 다른 탭 로그아웃·토큰 만료·signOut 실패
-      // 시점에도 로컬 데이터 잔존 차단. signOut() 호출도 결국 이 listener를 거치므로
-      // 어떤 경로든 일관된 정리 보장.
-      if (prevId && !newId) {
-        console.log('[useAuth] 로그아웃 감지 — 로컬 데이터 정리');
-        clearUserStorage();
-        usePortfolioStore.getState().resetPortfolio();
-      }
+        // 동의 저장은 AgeEligibilityGate가 조회보다 먼저 수행한다.
+        // 인증 콜백과 초기 getSession 경로에서 저장/조회가 경합하지 않게 한다.
+        if (!prevId && newId) {
+          // 게스트 체험 데모(demo:true)는 계정으로 이전 금지 — 로컬 keep 정책 전에 먼저 제거.
+          usePortfolioStore.getState().clearGuestDemo();
+        }
 
-      // 동의 저장은 AgeEligibilityGate가 조회보다 먼저 수행한다.
-      // 인증 콜백과 초기 getSession 경로에서 저장/조회가 경합하지 않게 한다.
-      if (!prevId && newId) {
-        // 게스트 체험 데모(demo:true)는 계정으로 이전 금지 — 로컬 keep 정책 전에 먼저 제거.
-        usePortfolioStore.getState().clearGuestDemo();
-      }
+        prevUserIdRef.current = newId;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        setLoading(false);
+      };
 
-      prevUserIdRef.current = newId;
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      setLoading(false);
+      if (prevId && (prevId !== newId || transitionPending)) {
+        // Close every consumer's reader immediately. The callback itself must
+        // stay synchronous: Supabase holds its auth lock while dispatching it.
+        transitionPending = true;
+        setLoading(true);
+        queueMicrotask(() => {
+          if (!active || generation !== identityGeneration) return;
+          void preserveOutgoingEdits(prevId).then(applyIdentity, () => {
+            if (!active || generation !== identityGeneration) return;
+            transitionPending = false;
+            setError(true); setLoading(false);
+          });
+        });
+      } else applyIdentity();
     });
 
     return () => {
@@ -143,7 +155,8 @@ export function useAuth() {
   }, []);
 
   const clearSession = useCallback(async (redirect: '/' | '/?login=1') => {
-    try { preserveOutgoingEdits(prevUserIdRef.current); }
+    setLoading(true);
+    try { await preserveOutgoingEdits(prevUserIdRef.current); }
     catch {
       setError(true);
       setLoading(false);

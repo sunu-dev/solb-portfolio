@@ -1,0 +1,248 @@
+{
+  "count": 40,
+  "default": "F",
+  "alternative": "D",
+  "note": "사용자 선택은 만족도 조사 점수가 아님. A/B/C는 하나의 보드에 세 가지 시안.",
+  "items": [
+    {
+      "id": "A",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-board.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "B",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-board.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "C",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-board.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "D",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-d.png",
+      "status": "설정 선택",
+      "user_score": null
+    },
+    {
+      "id": "E",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-e.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "F",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-f.png",
+      "status": "기본 선택",
+      "user_score": null
+    },
+    {
+      "id": "G",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-g.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "H",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-h.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "I",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-i.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "J",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-j.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "K",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-k.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "L",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-l.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "M",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-m.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "N",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-n.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "O",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-o.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "P",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-p.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "Q",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-q.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "R",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-r.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "S",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-s.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "T",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-t.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "U",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-u.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "V",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-v.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "W",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-w.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "X",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-x.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "Y",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-y.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "Z",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-z.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AA",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-aa.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AB",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ab.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AC",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ac.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AD",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ad.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AE",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ae.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AF",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-af.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AG",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ag.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AH",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ah.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AI",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ai.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AJ",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-aj.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AK",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-ak.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AL",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-al.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AM",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-am.png",
+      "status": "보관 시안",
+      "user_score": null
+    },
+    {
+      "id": "AN",
+      "image": "../../artifacts/joobi-mascot-20261104/concept-an.png",
+      "status": "보관 시안",
+      "user_score": null
+    }
+  ]
+}

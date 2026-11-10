@@ -6,6 +6,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ---
 
+## 주비 제품 원칙 — 모든 제품 작업에 적용
+
+주비는 **주식비서**이며, 핵심 타깃은 **주식 초보자**다. 사용자가 시장과 자신의 투자를 이해하면서 **서비스에 오래 머무르고 다시 방문하게 만드는 것**을 목표로 한다.
+
+기능·콘텐츠·문구·UI를 변경하기 전에 [제품 및 설명 원칙](docs/JOOBI_EXPLANATION_PRINCIPLES.md)을 읽고 적용한다. 용어의 뜻 → 사건 → 영향이 전달되는 과정 → 내 투자와의 관계를 쉽게 설명하며, 첫 화면은 간결하게 하고 자세한 설명으로 이어지게 한다. 이 원칙은 FOMC뿐 아니라 모든 발표·뉴스·이벤트에 적용한다.
+
 ## Session Management Protocol (v3.1)
 
 이 프로젝트는 세션 관리 방법론 v3.1을 따른다. 매 세션 시작 시 이 프로토콜을 인지하고 행동한다.

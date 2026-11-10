@@ -13,6 +13,8 @@ import {
 import { discoveryTags } from "@/config/stockQuestions";
 import { lessonById } from "@/lib/learningNavigation";
 import { usageEvent } from "@/lib/usageTelemetry";
+import { matchesStockContext, type StockContextPacket } from '@/lib/stockContextPacket';
+import StockContextExplanation from './StockContextExplanation';
 import readingUI from '../ui/ReadingUI.module.css';
 import styles from "./StockReturnBrief.module.css";
 interface Props {
@@ -27,6 +29,7 @@ interface Props {
   onRetryNews?: () => void;
   renderExplanation?: (originId: string) => ReactNode;
   isFund?: boolean;
+  contextPacket?: StockContextPacket;
 }
 const date = (time: number) =>
   new Date(time).toLocaleString("ko-KR", {
@@ -58,6 +61,7 @@ function ReturnVisit({
   renderExplanation,
   previous,
   isFund,
+  contextPacket,
 }: Props & { previous?: DiscoverySnapshot }) {
   // Acknowledge updates storage for the NEXT visit; it never erases the comparison being read now.
   const [baseline] = useState(previous);
@@ -80,7 +84,8 @@ function ReturnVisit({
   const shown = [...newItems, ...news.filter(item => !freshKeys.has(newsKey(item)))].slice(0, 5);
   current.news = shown.map(newsKey);
   const topics = [...new Set(news.flatMap(item => discoveryTags(item.title)))];
-  const backgroundTopics = shown.map(item => isFund ? 'watch' : discoveryTags(item.title)[0] ?? 'evidence');
+  const context = !isFund && contextPacket && newsStatus === 'ok' && shown.some(item => matchesStockContext(contextPacket, symbol, item, now)) ? contextPacket : undefined;
+  const backgroundTopics = shown.map(item => context && matchesStockContext(context, symbol, item, now) ? null : isFund ? 'watch' : discoveryTags(item.title)[0] ?? 'evidence');
   const watch = isFund
     ? "운용사 공지에서 투자 대상·배수·분배금·분할 및 병합 여부가 바뀌었는지 확인해요. 상품 구조와 실제 가격 변동 원인은 나눠 봐요."
     : topics.includes("backlog")
@@ -126,6 +131,7 @@ function ReturnVisit({
           ? " · 최신 거래 자료인지 확인이 필요해요. 휴장 중일 수도 있어요."
           : ""}
       </p>
+      {context && <StockContextExplanation packet={context} />}
       {newsStatus === "loading" ? (
         <p role="status">최근 소식을 확인하고 있어요…</p>
       ) : newsStatus === "error" ? (
@@ -158,7 +164,7 @@ function ReturnVisit({
                         {date(Date.parse(item.pubDate))} · 원문 새 창
                       </span>
                     </a>
-                    {(backgroundTopics.indexOf(backgroundTopics[index]) === index || !!renderExplanation?.(`news-${newsKey(item)}`)) && <button
+                    {backgroundTopics[index] && (backgroundTopics.indexOf(backgroundTopics[index]) === index || !!renderExplanation?.(`news-${newsKey(item)}`)) && <button
                       type="button"
                       className={styles.backgroundLink}
                       data-news-background
@@ -187,7 +193,7 @@ function ReturnVisit({
           )}
         </>
       )}
-      {watch && newsStatus === 'ok' && shown.length > 0 && <aside className={styles.watch}>
+      {watch && !context && newsStatus === 'ok' && shown.length > 0 && <aside className={styles.watch}>
         <span className={styles.watchIcon} aria-hidden="true"><ArrowRight size={18} /></span>
         <div><h4>다음에 확인할 것</h4><p>{watch}</p></div>
       </aside>}

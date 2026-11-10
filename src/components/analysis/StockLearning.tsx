@@ -12,6 +12,7 @@ import readingUI from '../ui/ReadingUI.module.css';
 import styles from "./StockLearning.module.css";
 import ReadingText from "@/components/common/ReadingText";
 import LearningText from "./LearningText";
+import type { StockContextPacket } from '@/lib/stockContextPacket';
 
 export type { LearningReadingState } from "@/lib/learningNavigation";
 
@@ -32,6 +33,7 @@ interface Props {
   entrySequence?: number;
   initialReading?: LearningReadingState;
   onReadingChange?: (reading: LearningReadingState) => void;
+  contextPacket?: StockContextPacket;
 }
 
 /** External entries reset the reader; following a concept inside it preserves its trail. */
@@ -40,7 +42,7 @@ export default function StockLearning(props: Props) {
 }
 
 function LearningReader({ name, owner, tags, onChart, onNews, onNotes, initialLessonId, onCompany,
-  instrument = 'stock', embedded = false, returnLabel = '원래 질문으로 돌아가기', onReturn, initialReading, onReadingChange }: Props) {
+  instrument = 'stock', embedded = false, returnLabel = '원래 질문으로 돌아가기', onReturn, initialReading, onReadingChange, contextPacket }: Props) {
   const id = useId();
   const { history, ready } = useDiscoveryHistory(owner);
   const [restored] = useState(() => restoreLearningReading(initialReading, initialLessonId));
@@ -99,6 +101,7 @@ function LearningReader({ name, owner, tags, onChart, onNews, onNotes, initialLe
       {onReturn && <button type="button" className={styles.back} onClick={onReturn}>← {returnLabel}</button>}
     </> : <>
       {!embedded && !lesson && <div className={styles.recommendations}>
+        {contextPacket && <button type="button" className={styles.entry} data-context-entry onClick={onNews}><span>공시 해설 미리보기</span><strong>{contextPacket.title}</strong><ArrowRight className={styles.entryArrow} size={20} aria-hidden="true" /></button>}
         {ready && resume && <button type="button" className={styles.entry} data-learning-resume onClick={() => openLesson(resume.id)}><span>읽던 설명 이어서</span><strong>{resume.title}</strong><ArrowRight className={styles.entryArrow} size={20} aria-hidden="true" /></button>}
         {entry && (!ready || resume?.id !== entry.id) && <button type="button" className={styles.entry} data-learning-suggestion="general-concept" data-lesson-id={entry.id} onClick={() => openLesson(entry.id)}><span>관련 개념</span><strong>{entry.title}</strong><ArrowRight className={styles.entryArrow} size={20} aria-hidden="true" /></button>}
       </div>}

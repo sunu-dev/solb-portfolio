@@ -8,6 +8,8 @@ import { preparePortfolioIdentity, type LocalPortfolio } from '@/lib/portfolioId
 import { clearUserStorage } from '@/lib/userStorage';
 import AccountAccessStatus from '@/components/auth/AccountAccessStatus';
 import AccountEntryGate from '@/components/auth/AccountEntryGate';
+import { PORTFOLIO_VAULT_READER_ENABLED } from '@/lib/portfolioVaultPolicy';
+import PortfolioVaultBoundary from '@/components/portfolio/PortfolioVaultBoundary';
 
 // Keep the primary account data loading alongside access checks, without
 // mounting quote polling, telemetry or other workspace effects.
@@ -34,7 +36,7 @@ export default function Home() {
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (auth.loading || auth.error) return;
+    if (auth.loading || auth.error || (identity && PORTFOLIO_VAULT_READER_ENABLED)) return;
     let done = false;
     const prepare = () => {
       if (done) return;
@@ -59,6 +61,9 @@ export default function Home() {
   }, [auth.loading, auth.error, identity]);
 
   // Do not mount portfolio readers, quote requests or cloud sync before this boundary.
+  if (!auth.loading && !auth.error && identity && PORTFOLIO_VAULT_READER_ENABLED) {
+    return <PortfolioVaultBoundary key={identity} ownerId={identity} />;
+  }
   if (failed || auth.error || auth.loading || !prepared || prepared.identity !== identity || workspaceError) {
     return <AccountAccessStatus phase={failed || workspaceError ? undefined : 'session'} error={failed || auth.error || workspaceError} onRetry={auth.error || workspaceError ? auth.retry : undefined} message={failed
       ? '이전 기록을 안전하게 보관하지 못했어요. 브라우저 저장 공간을 확인한 뒤 다시 시도해주세요.'

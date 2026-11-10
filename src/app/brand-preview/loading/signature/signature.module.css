@@ -1,0 +1,82 @@
+.back { display:flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; }
+.back b { font-family:'Joobi Sunflower',sans-serif; font-size:20px; }
+.back>span { font-size:12px; color:var(--muted); margin-left:4px; }
+.intro { color:var(--muted); font-size:12px; line-height:1.8; margin:12px 0 0; }
+.originalLink { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); text-decoration:none; white-space:nowrap; }
+.cardKind { margin-left:16px!important; font-size:10px; }
+.signature { --cycle:3.8s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; position:relative; min-height:130px; color:var(--ink); }
+.lockup { display:flex; align-items:center; gap:8px; }
+.name { font-family:'Joobi Sunflower',sans-serif; font-size:39px; line-height:1.25; font-weight:700; letter-spacing:.005em; }
+.markWrap { position:relative; width:48px; height:48px; flex-shrink:0; }
+.symbol { position:relative; width:100%; height:100%; overflow:visible; }
+.symbol path { fill:none; stroke:var(--accent); stroke-width:4.5; stroke-linecap:round; stroke-linejoin:round; }
+.symbol .ghost { opacity:.15; }
+.tip { fill:var(--accent); transform-box:fill-box; transform-origin:center; }
+.underline { width:28px; height:2px; background:var(--accent); border-radius:2px; animation:underline var(--cycle) ease-in-out infinite; }
+.signature[data-variant='1'] .ink,
+.signature[data-variant='7'] .ink,
+.signature[data-variant='10'] .ink { stroke-dasharray:1; animation:draw var(--cycle) cubic-bezier(.42,0,.2,1) infinite; }
+.signature[data-variant='1'] .tip,
+.signature[data-variant='7'] .tip,
+.signature[data-variant='10'] .tip { animation:arrive var(--cycle) ease-in-out infinite; }
+.signature[data-variant='2'] .tip { animation:tipBeat 2.8s cubic-bezier(.42,0,.2,1) infinite; }
+.signature[data-variant='2'] { gap:0; }
+.symbol .highlight { stroke:#ffb7c3; stroke-width:3; stroke-dasharray:.16 .84; animation:highlight 2.8s ease-in-out infinite; }
+.signature[data-variant='4'] .markWrap { width:80px; height:80px; }
+.signature[data-variant='4'] .ink { opacity:.35; }
+.traveler { position:absolute; top:0; left:0; width:8px; height:8px; border-radius:50%; background:var(--accent); offset-path:path('M14 62 L30 40 L44 48 L66 20'); animation:travel 3.6s cubic-bezier(.4,0,.2,1) infinite; }
+.signature[data-variant='4'] .tip { opacity:.45; }
+.segments path { stroke-dasharray:1; animation:segmentA 4s ease-in-out infinite; }
+.segments path:nth-child(2) { animation-name:segmentB; }
+.segments path:nth-child(3) { animation-name:segmentC; }
+.signature[data-variant='5'] .tip { animation:segmentTip 4s ease-in-out infinite; }
+.signature[data-variant='5'] .markWrap { width:52px; height:52px; }
+.flowRail { position:relative; width:170px; height:1px; background:var(--line); overflow:hidden; }
+.flowRail>i { position:absolute; height:1px; width:34px; left:-34px; top:0; background:var(--accent); animation:flow 2.4s ease-in-out infinite; }
+.signature[data-variant='6'] { gap:26px; }
+.signature[data-variant='7'] .lockup { flex-direction:column; gap:14px; }
+.signature[data-variant='7'] .markWrap { width:58px; height:58px; }
+.signature[data-variant='7'] .name { font-size:30px; }
+.signature[data-variant='7'] { --cycle:4.6s; }
+.signature[data-variant='8'] { width:228px; align-items:flex-start; gap:24px; }
+.signature[data-variant='8'] .lockup { gap:6px; }
+.signature[data-variant='8'] .name { font-size:33px; }
+.signature[data-variant='8'] .markWrap { width:40px; height:40px; }
+.editorialRail { position:relative; height:1px; width:100%; background:var(--line); }
+.editorialRail>i { position:absolute; width:5px; height:5px; left:0; top:-2px; border-radius:50%; background:var(--accent); animation:editorial 3.8s ease-in-out infinite; }
+.signature[data-variant='9'] .lockup { flex-direction:column; gap:18px; }
+.signature[data-variant='9'] .markWrap { width:94px; height:94px; }
+.signature[data-variant='9'] .name { font-size:26px; }
+.signature[data-variant='9'] .tip { animation:tipGlow 4s ease-in-out infinite; }
+.halo { position:absolute; width:25px; height:25px; right:4px; top:11px; border-radius:50%; background:var(--accent); opacity:.08; animation:halo 4s ease-in-out infinite; pointer-events:none; }
+.signature[data-variant='10'] { min-height:138px; width:232px; border:1px solid var(--line); border-radius:8px; gap:22px; box-shadow:0 8px 28px #17202a04; background:var(--sheet); }
+.signature[data-variant='10'] .name { font-size:32px; }
+.signature[data-variant='10'] .markWrap { width:38px; height:38px; }
+.signature[data-variant='10'] .underline { width:20px; }
+@keyframes draw { 0% { stroke-dashoffset:1; } 30%,88% { stroke-dashoffset:0; } 100% { stroke-dashoffset:0; } }
+@keyframes arrive { 0%,22% { opacity:.25; transform:scale(.7); } 32% { opacity:1; transform:scale(1.15); } 42%,100% { opacity:1; transform:scale(1); } }
+@keyframes underline { 0%,100% { opacity:.3; transform:scaleX(.6); } 45%,70% { opacity:1; transform:scaleX(1); } }
+@keyframes tipBeat { 0%,100% { transform:scale(.9); opacity:.7; } 45% { transform:scale(1.35); opacity:1; } 65% { transform:scale(1); opacity:1; } }
+@keyframes highlight { 0%,12% { stroke-dashoffset:.2; opacity:0; } 24% { opacity:1; } 72% { opacity:1; } 88%,100% { stroke-dashoffset:-1; opacity:0; } }
+@keyframes travel { 0%,10% { offset-distance:0%; opacity:.5; } 70%,88% { offset-distance:100%; opacity:1; } 100% { offset-distance:100%; opacity:.5; } }
+@keyframes segmentA { 0%,5% { stroke-dashoffset:1; } 24%,100% { stroke-dashoffset:0; } }
+@keyframes segmentB { 0%,24% { stroke-dashoffset:1; } 41%,100% { stroke-dashoffset:0; } }
+@keyframes segmentC { 0%,41% { stroke-dashoffset:1; } 62%,100% { stroke-dashoffset:0; } }
+@keyframes segmentTip { 0%,55% { opacity:.2; transform:scale(.8); } 65% { opacity:1; transform:scale(1.25); } 75%,100% { opacity:1; transform:scale(1); } }
+@keyframes flow { 0% { left:-34px; opacity:0; } 12%,75% { opacity:1; } 100% { left:100%; opacity:0; } }
+@keyframes editorial { 0%,100% { left:0; } 50% { left:calc(100% - 5px); } }
+@keyframes tipGlow { 0%,100% { opacity:.65; } 50% { opacity:1; } }
+@keyframes halo { 0%,100% { transform:scale(.55); opacity:.08; } 50% { transform:scale(1.6); opacity:.15; } }
+@media (prefers-reduced-motion:reduce) {
+  .signature * { animation:none!important; }
+  .signature .highlight { opacity:0; }
+  .traveler { offset-distance:100%; }
+}
+@media (max-width:720px) {
+  .back { gap:7px; }
+  .back>span { font-size:10px; }
+  .intro { font-size:11px; }
+  .cardKind { font-size:9px; }
+}
+
+.error .signature * { animation:none!important; }

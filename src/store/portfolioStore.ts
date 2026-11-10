@@ -4,6 +4,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { readPortfolioWithUiPreferences, routeProtectedPortfolioPersistence } from '@/lib/portfolioVaultPolicy';
 import { NON_HIDEABLE_IDS, getWidget, resolveWidgetOrder, type WidgetId } from '@/lib/homeWidgetRegistry';
 import type {
   StockItem, StockCategory, PortfolioStocks,
@@ -62,12 +63,15 @@ function notifyLocalRecordStorage(
 export type MainSection = 'portfolio' | 'events' | 'news' | 'insights';
 export type PortfolioSyncStatus = 'idle' | 'saving' | 'synced' | 'local-only' | 'error' | 'storage-error' | 'conflict';
 export type PortfolioCloudLoadStatus = 'guest' | 'loading' | 'ready' | 'error';
+export type PortfolioProtectionStatus = 'legacy' | 'locked' | 'opening' | 'ready' | 'closing' | 'error';
 
 // Categories that hold actual stock arrays (excludes 'all')
 type StockCategoryKey = 'investing' | 'watching' | 'sold';
 
 interface PortfolioState {
   portfolioOwnerId: string | null;
+  /** Transient reader/edit boundary. Never stored with neutral preferences. */
+  portfolioProtectionStatus: PortfolioProtectionStatus;
   // Portfolio data
   stocks: PortfolioStocks;
   macroData: Record<string, MacroEntry | QuoteData>;
@@ -232,6 +236,7 @@ export const usePortfolioStore = create<PortfolioState>()(
       widgetOrder: [],
       editMode: false,
       analysisSymbol: null,
+      portfolioProtectionStatus: 'legacy',
       recentSymbols: [],
 
       currency: 'KRW' as 'KRW' | 'USD',
@@ -687,6 +692,7 @@ export const usePortfolioStore = create<PortfolioState>()(
 
       resetPortfolio: () => set({
         portfolioOwnerId: null,
+        portfolioProtectionStatus: 'legacy',
         recentSymbols: [],
         analysisSymbol: null,
         currentSection: 'portfolio',
@@ -755,9 +761,13 @@ export const usePortfolioStore = create<PortfolioState>()(
       // setItem 실패 시 (QuotaExceededError 등) 콘솔 경고 + 가장 오래된 dailySnapshots부터 trim 시도
       storage: createJSONStorage(() => ({
         getItem: (name: string) => {
-          try { return localStorage.getItem(name); } catch { return null; }
+          try { return readPortfolioWithUiPreferences(localStorage.getItem(name), localStorage); } catch { return null; }
         },
         setItem: (name: string, value: string) => {
+          // This boundary is BEFORE legacy quota retries, which also write raw
+          // JSON. A protected account never falls through to those retries.
+          try { if (routeProtectedPortfolioPersistence(value, localStorage)) return; }
+          catch { notifyLocalRecordStorage('failed'); return; }
           try {
             localStorage.setItem(name, value);
           } catch (e) {

@@ -8,6 +8,7 @@ import { SectorArtworkView } from '../explore/SectorIllustration';
 import readingUI from '../ui/ReadingUI.module.css';
 import styles from './StockCompanyOverview.module.css';
 import CompanyBusinessFlow from './CompanyBusinessFlow';
+import { companyBusinessFlow } from '@/lib/companyBusinessFlow';
 import StockPriceDrivers from './StockPriceDrivers';
 import InstrumentExplorationEntry from '../explore/InstrumentExplorationEntry';
 import type { ExplorationReadingState } from '../explore/ContextExploration';
@@ -45,13 +46,15 @@ export default function StockCompanyOverview({ symbol, name, profile, onRetry, e
       </div>
 
     </div>
-    {detail && !restricted && <p className={styles.lead}><FinancialText>{detail.revenue ?? ''}</FinancialText></p>}
-
-    {detail && !restricted && <details className={styles.businessQuestion}><summary className={readingUI.disclosure}>고객과 수익 구조 자세히 보기</summary><div className={styles.chapters}>
-      <section className={styles.chapter}><span className={styles.number} aria-hidden="true">01</span><div><h4>누가, 왜 쓰나요?</h4><p><FinancialText>{detail.customers ?? ''}</FinancialText></p></div></section>
-      <section className={styles.chapter}><span className={styles.number} aria-hidden="true">02</span><div><h4>어떻게 돈을 버나요?</h4><p><FinancialText>{detail.revenue ?? ''}</FinancialText></p>{business.origin !== 'engine' && <CompanyBusinessFlow symbol={symbol} />}</div></section>
-      <section className={styles.chapter}><span className={styles.number} aria-hidden="true">03</span><div><h4>다음 실적에서 볼 것</h4><p>{detail.watch?.replace(/^주비의 점검 관점이에요\.\s*/, '')}</p><span className={styles.editorialNote}>주비의 점검 관점</span></div></section>
-    </div></details>}
+    {detail && !restricted && <div className={styles.chapters}>
+      <section className={styles.chapter}><h4>누가, 왜 쓰나요?</h4><p><FinancialText>{detail.customers ?? ''}</FinancialText></p></section>
+      <section className={styles.chapter}><h4>어떻게 돈을 버나요?</h4><p><FinancialText>{detail.revenue ?? ''}</FinancialText></p>
+        {business.origin !== 'engine' && companyBusinessFlow(symbol) && <details className={styles.businessFlow}><summary className={readingUI.disclosure}>돈이 들어오는 과정 살펴보기</summary><CompanyBusinessFlow symbol={symbol} /></details>}
+      </section>
+    </div>}
+    {detail && !restricted && <details className={styles.businessQuestion}><summary className={readingUI.disclosure}>실적을 볼 때 무엇을 확인할까요?</summary>
+      <p><FinancialText>{detail.watch?.replace(/^주비의 점검 관점이에요\.\s*/, '') ?? ''}</FinancialText></p><span className={styles.editorialNote}>주비의 점검 관점</span>
+    </details>}
     {summary && !restricted && <StockPriceDrivers />}
     {story && business.origin !== 'engine' && !restricted && <div className={styles.companyQuestions} aria-label={`${name} 더 알아보기`}>{story.questions.map(question => <details key={question.id} className={styles.businessQuestion}>
       <summary className={readingUI.disclosure}>{question.question}</summary>

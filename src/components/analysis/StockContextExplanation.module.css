@@ -1,0 +1,12 @@
+.context{margin:20px 0 32px;padding:0 0 24px;border-bottom:1px solid var(--border-light);color:var(--text-primary);}
+.context .preview{margin:0 0 12px;font-size:12px;color:var(--text-secondary);}
+.context h3{margin:0 0 14px;font-size:22px;font-weight:700;line-height:1.5;letter-spacing:-.025em;}
+.context .summary{max-width:66ch;margin:0 0 22px;font-size:16px;line-height:1.8;color:var(--text-body);}
+.questions details{border-top:1px solid var(--border-light);}
+.questions summary{min-height:48px;padding:14px 4px;font-size:15px;font-weight:650;line-height:1.7;cursor:pointer;}
+.questions summary:focus-visible{outline:2px solid var(--text-body);outline-offset:3px;}
+.questions p{max-width:66ch;margin:0;padding:0 4px 20px;font-size:15px;line-height:1.85;color:var(--text-body);}
+.context .watch{margin:20px 0 12px;font-size:14px;line-height:1.8;color:var(--text-body);}
+.watch strong{display:block;margin-bottom:5px;color:var(--text-primary);font-weight:650;}
+.context .source{display:inline-flex;align-items:center;min-height:44px;font-size:12px;font-weight:400;color:var(--text-secondary);text-decoration:underline;text-underline-offset:3px;}
+@media(max-width:480px){.context h3{font-size:20px;}.context .summary{font-size:15px;}}

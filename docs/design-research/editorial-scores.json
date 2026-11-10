@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "review_date": "2026-11-05",
+  "kind": "collected_material_applicability_editorial_judgment",
+  "axes": [
+    "화면 디자인 참고",
+    "캐릭터 역할 참고",
+    "대화 진행 패턴 참고",
+    "편의성 설계 근거"
+  ],
+  "anchors": {
+    "0": "현재 조사자료에 해당 근거가 없음",
+    "1": "간접 아이디어로 참고 가능",
+    "2": "구체적인 설계·조작 근거로 참고 가능"
+  },
+  "limits": "평가자는 현재 자료를 해석한 설계 판단이다. 제품 기능 유무·실제 사용성·만족도·성과 점수가 아니다. 0은 제품에 기능이 없다는 뜻이 아니다. 총점이나 서비스 순위로 합산하지 않는다.",
+  "services": [
+    {
+      "name": "ChatGPT",
+      "scores": [
+        2,
+        0,
+        1,
+        1
+      ],
+      "reason": "인라인 인용·출처 미리보기는 구체적 화면 근거. 초보자 이해 효과는 미측정.",
+      "source": "https://help.openai.com/en/articles/9237897-searching-the-web-with-chatgpt"
+    },
+    {
+      "name": "Claude",
+      "scores": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "reason": "대화 옆 Artifacts와 Projects의 자료 범위·작업 흐름 참고.",
+      "source": "https://www.anthropic.com/news/projects"
+    },
+    {
+      "name": "Google Gemini",
+      "scores": [
+        2,
+        0,
+        1,
+        1
+      ],
+      "reason": "Sources와 옆 패널의 구체적 배치 참고. 출처가 없는 답변도 구분.",
+      "source": "https://support.google.com/gemini/answer/14143489?hl=en"
+    },
+    {
+      "name": "Perplexity",
+      "scores": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "reason": "번호 인용과 이전 질문 맥락 유지가 답변·후속 대화 설계 근거.",
+      "source": "https://www.perplexity.ai/help-center/en/articles/10352895-how-does-perplexity-work"
+    },
+    {
+      "name": "Microsoft Copilot Pages",
+      "scores": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "reason": "대화 답변을 옆 Pages로 옮겨 수정하고 다시 찾는 흐름 참고.",
+      "source": "https://support.microsoft.com/en-us/microsoft-365-copilot/draft-content-with-microsoft-365-copilot-chat-and-copilot-pages"
+    },
+    {
+      "name": "Gemini Notebook (구 NotebookLM)",
+      "scores": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "reason": "자료 선택·원문 이동·길이 조절·인용 보존 저장이 구체적 조작 근거.",
+      "source": "https://support.google.com/gemininotebook/answer/16179559"
+    },
+    {
+      "name": "Notion Agent",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "현재 페이지를 맥락으로 선택하는 흐름은 직접 참고. 화면 배치 세부 근거는 제한적.",
+      "source": "https://www.notion.com/help/notion-agent"
+    },
+    {
+      "name": "Slack AI / Slackbot",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "자연어 검색 필터 수정과 출처로 이동하는 흐름 참고.",
+      "source": "https://slack.com/help/articles/25076892548883-Guide-to-AI-features-in-Slack"
+    },
+    {
+      "name": "Canva AI",
+      "scores": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "reason": "대화로 생성한 결과의 요소를 고치며 맥락을 유지하는 구조 참고.",
+      "source": "https://www.canva.com/newsroom/news/canva-create-2026-ai/"
+    },
+    {
+      "name": "Shopify Sidekick",
+      "scores": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "reason": "옆 패널·시작 제안·확대·이전 대화·변경 검토가 구체적 조작 근거.",
+      "source": "https://help.shopify.com/en/manual/ai-powered-tools/sidekick/set-up"
+    },
+    {
+      "name": "Intercom Fin",
+      "scores": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "reason": "인라인 출처·관련 후속 질문·반복/좌절 시 전환이 구체적 복구 설계 근거.",
+      "source": "https://www.intercom.com/help/en/articles/11433030-conversational-fin-experience"
+    },
+    {
+      "name": "Zendesk AI agents",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "AI와 사람의 담당 전환·복귀 상태 참고. 주비의 상담 제공을 뜻하지 않음.",
+      "source": "https://support.zendesk.com/hc/en-us/articles/4408824482586-Managing-conversation-handoff-and-handback"
+    },
+    {
+      "name": "Amazon Alexa for Shopping (구 Rufus)",
+      "scores": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "reason": "상품 상세의 시작 질문과 설명·리뷰·비교 이동이 구체적 진입 근거.",
+      "source": "https://www.aboutamazon.com/news/retail/how-to-use-amazon-rufus"
+    },
+    {
+      "name": "Booking.com AI Trip Planner",
+      "scores": [
+        2,
+        0,
+        2,
+        1
+      ],
+      "reason": "대화 조건 수정과 결과 카드·상세 화면 이동 참고. 과거 베타 사례.",
+      "source": "https://news.booking.com/bookingcom-launches-new-ai-trip-planner-to-enhance-travel-planning-experience"
+    },
+    {
+      "name": "Duolingo Lily",
+      "scores": [
+        1,
+        2,
+        2,
+        2
+      ],
+      "reason": "Lily 정체성·초보자 자막·Push-To-Talk·피드백의 구체적 역할 참고.",
+      "source": "https://blog.duolingo.com/product-highlights/"
+    },
+    {
+      "name": "Khan Academy Khanmigo",
+      "scores": [
+        0,
+        0,
+        1,
+        2
+      ],
+      "reason": "대기 시간과 학습 정확도를 측정한 실험은 평가 방식 참고. 화면·캐릭터 근거로 쓰지 않음.",
+      "source": "https://blog.khanacademy.org/how-khan-academy-is-building-a-better-ai-tutor-our-most-recent-learnings/"
+    },
+    {
+      "name": "Snapchat My AI",
+      "scores": [
+        1,
+        2,
+        1,
+        0
+      ],
+      "reason": "Bitmoji 외형·의상 개인화 자료. 주식 설명 이해도 근거는 없음.",
+      "source": "https://help.snapchat.com/hc/en-gb/articles/14857095089940-How-do-I-customize-the-avatar-for-My-AI"
+    },
+    {
+      "name": "Spotify AI Playlist",
+      "scores": [
+        2,
+        0,
+        2,
+        2
+      ],
+      "reason": "예시/입력으로 시작하고 미리보기→수정→저장하는 구체적 흐름.",
+      "source": "https://newsroom.spotify.com/2024-04-07/spotify-premium-users-can-now-turn-any-idea-into-a-personalized-playlist-with-ai-playlist-in-beta/"
+    },
+    {
+      "name": "Bank of America Erica",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "계좌 질문·선제 안내·담당 연결을 규칙과 연결하는 역할 참고.",
+      "source": "https://info.bankofamerica.com/en/digital-banking/erica"
+    },
+    {
+      "name": "Capital One Eno",
+      "scores": [
+        1,
+        0,
+        2,
+        2
+      ],
+      "reason": "질문 예시·자유 입력·이벤트 알림이 진입과 안내의 구체적 근거.",
+      "source": "https://www.capitalone.com/digital/tools/eno/"
+    },
+    {
+      "name": "Cleo",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "대화·목표 기억과 빠른/깊은 대화 모드 참고. 지역·플랜 한계 유지.",
+      "source": "https://intercom-help.meetcleo.com/en/articles/15377584-what-is-cleo-pro"
+    },
+    {
+      "name": "Public Alpha",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "자산/보유 화면에서 질문하고 투자 자료를 연결하는 흐름 참고.",
+      "source": "https://help.public.com/en/articles/9354354-what-is-alpha"
+    },
+    {
+      "name": "Robinhood Cortex",
+      "scores": [
+        1,
+        0,
+        2,
+        1
+      ],
+      "reason": "실계좌 맥락·시장 조사·앱 동작의 비서 역할 참고. 주비 권한 범위와 구분.",
+      "source": "https://robinhood.com/us/en/careers/blog/loop-stays-dumb-so-the-model-can-be-smart/"
+    },
+    {
+      "name": "카카오 카나나",
+      "scores": [
+        1,
+        2,
+        2,
+        1
+      ],
+      "reason": "개인/그룹/주제별 메이트의 정체성과 대화 메모리·가독성 개선 참고.",
+      "source": "https://www.kakaocorp.com/page/detail/11738"
+    }
+  ]
+}

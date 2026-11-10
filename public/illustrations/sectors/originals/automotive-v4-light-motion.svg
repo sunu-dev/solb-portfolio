@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" fill="none" aria-hidden="true"><style>
+path{stroke:#9b83bb;stroke-width:7;stroke-linecap:round;opacity:0;animation-duration:2.6s;animation-iteration-count:1;animation-fill-mode:both}
+.flow{stroke-dasharray:18 82;animation-name:flow}
+.steam{animation-name:steam;stroke-width:6}
+.wind{stroke-dasharray:28 72;animation-name:wind;stroke-width:5}
+.sheen{stroke:#eee7fb;stroke-width:14;stroke-dasharray:25 75;animation-name:flow}
+.lamp{stroke:#e1d4f6;stroke-width:13;animation-name:lamp}
+@keyframes lamp{0%,100%{opacity:0}20%,65%{opacity:1}}
+@keyframes flow{0%{opacity:0;stroke-dashoffset:25}15%,70%{opacity:.8}90%,100%{opacity:0;stroke-dashoffset:-100}}
+@keyframes steam{0%{opacity:0;transform:translateY(16px)}25%,55%{opacity:.55}100%{opacity:0;transform:translateY(-45px)}}
+@keyframes wind{0%{opacity:0;stroke-dashoffset:35;transform:translateX(-15px)}25%,55%{opacity:.65}100%{opacity:0;stroke-dashoffset:-100;transform:translateX(25px)}}
+@media(prefers-reduced-motion:reduce){path{animation:none!important;opacity:0!important}}
+</style><path class="lamp" pathLength="100" d="M1000 443 L1010 450"/><path class="lamp" pathLength="100" d="M674 227 L685 229"/></svg>

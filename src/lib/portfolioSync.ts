@@ -6,6 +6,7 @@ import {
 } from '@/lib/portfolioReconciliation';
 import { normalizePortfolioSyncPayload } from '@/lib/portfolioSyncOutbox';
 import type { DailySnapshot } from '@/utils/dailySnapshot';
+import { allowLegacyPortfolioWrite, isProtectedPortfolioOwner } from '@/lib/portfolioVaultPolicy';
 
 export type LoadResult =
   | {
@@ -69,6 +70,9 @@ function toLoadResult(
  * 반환해 기기 안의 복구 기록을 실수로 빈 배열로 덮지 않는다.
  */
 export async function loadPortfolio(userId: string): Promise<LoadResult> {
+  try {
+    if (isProtectedPortfolioOwner(userId)) return { status: 'error', error: '투자 기록의 잠금을 해제한 뒤 다시 확인해주세요.' };
+  } catch { return { status: 'error', error: '기록 보호 상태를 확인하지 못했어요.' }; }
   const primary = await supabase
     .from('user_portfolios')
     .select('stocks, daily_snapshots, portfolio_history, updated_at')
@@ -156,6 +160,9 @@ export async function savePortfolioToDB(
   portfolioHistory?: PortfolioVersionEntry[],
   expectedUpdatedAt?: string | null,
 ): Promise<SaveResult> {
+  if (!allowLegacyPortfolioWrite(userId)) {
+    return { status: 'error', error: '보호된 투자 기록은 암호화 저장 경로에서만 변경할 수 있어요.' };
+  }
   const requestedSnapshots = dailySnapshots !== undefined;
   const requestedHistory = portfolioHistory !== undefined;
   const cleanStocks = stripDemoStocks(stocks);

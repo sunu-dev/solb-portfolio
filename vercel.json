@@ -88,38 +88,6 @@
       "schedule": "0 5 * * 2-6"
     },
     {
-      "path": "/api/cron/market-policy?authority=fed",
-      "schedule": "0 19 * * *"
-    },
-    {
-      "path": "/api/cron/market-policy?authority=bok",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-recovery",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-observe",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-recovery?group=chips",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-recovery?group=compute",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-recovery?group=platforms",
-      "schedule": "0 12 * * *"
-    },
-    {
-      "path": "/api/cron/market-cause-recovery?group=consumer",
-      "schedule": "0 14 * * *"
-    },
-    {
       "path": "/api/cron/company-business",
       "schedule": "20 0 * * *"
     },

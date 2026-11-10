@@ -1,0 +1,66 @@
+{
+  "review_date": "2026-11-05",
+  "baseline_deployment": "dpl_CAvDBkbx4wrjmTD9W7PyMMcDGLTE",
+  "candidate": "/private/tmp/joobi-chat-interior-20261105",
+  "candidate_status": "ready_unpromoted_pending_visual_review",
+  "usability_total": null,
+  "note": "변경 후 값은 로컬 후보 구조 점검이며 운영 결과 또는 실제 사용자 평가가 아니다.",
+  "metrics": [
+    {
+      "metric": "첫 화면에 펼쳐진 종목·시장·기간 선택 상자",
+      "before": 3,
+      "after_candidate": 0,
+      "unit": "개",
+      "basis": "기존 사용자 화면과 Chrome 운영 화면 / 후보 Chrome 데스크톱에서 접힌 설정 확인"
+    },
+    {
+      "metric": "처음 제안하는 질문 예시",
+      "before": 2,
+      "after_candidate": 2,
+      "unit": "개",
+      "basis": "사용자 화면 / 후보 정적 렌더"
+    },
+    {
+      "metric": "화면 내 보관하는 최근 대화 상한",
+      "before": 4,
+      "after_candidate": 4,
+      "unit": "질문/답변 쌍",
+      "basis": "보관 범위 유지, 후보는 시간순으로 펼쳐 읽게 변경"
+    },
+    {
+      "metric": "첫 전송 전 AI 전송 동의",
+      "before": true,
+      "after_candidate": true,
+      "unit": "명시적 확인",
+      "basis": "기존 체크박스 / 후보 처음 보내기 후 동의하고 보내기"
+    },
+    {
+      "metric": "대화와 별개로 하단 입력창 유지",
+      "before": false,
+      "after_candidate": true,
+      "unit": "레이아웃 구조",
+      "basis": "Chrome 데스크톱에서 하단 입력 확인. 모바일 가상 키보드는 미검수"
+    },
+    {
+      "metric": "질문 시작 시간 p50",
+      "before": null,
+      "after_candidate": null,
+      "unit": "초",
+      "basis": "실제 브라우저 미측정"
+    },
+    {
+      "metric": "초보자 과제 성공률",
+      "before": null,
+      "after_candidate": null,
+      "unit": "%",
+      "basis": "대상자 시험 미실시"
+    },
+    {
+      "metric": "모바일 입력창 가림",
+      "before": null,
+      "after_candidate": null,
+      "unit": "발생/미발생",
+      "basis": "해당 크기 실제 브라우저 미측정"
+    }
+  ]
+}

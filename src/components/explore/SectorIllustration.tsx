@@ -12,7 +12,6 @@ export const hasSectorIllustration = (sector: SectorId) => !!sectorArtwork(secto
 
 export function SectorArtworkView({ id, art, industryId }: { id: string; art: SectorArtwork; industryId?: string }) {
   const figure = useRef<HTMLElement>(null);
-  const canAnimate = !!art.motionScene;
   const instance = useId();
   const [run, setRun] = useState(0);
   const [reduced, setReduced] = useState(true);
@@ -20,7 +19,6 @@ export function SectorArtworkView({ id, art, industryId }: { id: string; art: Se
   const [settledRun, setSettledRun] = useState(0);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (!canAnimate) return;
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => { setReduced(preference.matches); if (preference.matches) setPlaying(false); };
     sync();
@@ -33,7 +31,7 @@ export function SectorArtworkView({ id, art, industryId }: { id: string; art: Se
     }, { threshold: .35 });
     if (figure.current) observer.observe(figure.current);
     return () => { observer.disconnect(); preference.removeEventListener('change', sync); };
-  }, [canAnimate]);
+  }, []);
   useEffect(() => {
     if (!playing) return;
     const timer = setTimeout(() => { setSettledRun(run); setPlaying(false); }, 2600);
@@ -56,10 +54,10 @@ export function SectorArtworkView({ id, art, industryId }: { id: string; art: Se
     </div>
     <figcaption className={styles.captionArea}>
       <p className={styles.caption}>{art.caption}</p>
-      {canAnimate && <button type="button" className={styles.replay} aria-label={`${art.title} 그림 다시 재생`} disabled={reduced || failed || animated}
+      <button type="button" className={styles.replay} aria-label={`${art.title} 그림 다시 재생`} disabled={reduced || failed || animated}
         onClick={() => { setPlaying(false); setRun(value => value + 1); }}>
         <RotateCcw size={13} aria-hidden="true" /> {animated ? playing ? '재생 중' : '불러오는 중' : '다시 보기'}
-      </button>}
+      </button>
     </figcaption>
   </figure>;
 }

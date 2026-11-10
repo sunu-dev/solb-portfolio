@@ -17,7 +17,8 @@
 | 종목명 매핑 | `STOCK_KR` (`src/config/constants.ts`) | 한국 30종 + 미국 매핑 | — |
 | 손익 컬러 (한국 컨벤션) | 디자인 시스템 SSOT (메모리) | 빨강 #DC2626 ↑ / 파랑 #2563EB ↓ | — |
 | 금지 어휘 | `src/utils/alertCompliance.ts:FORBIDDEN_PHRASES` | 자본시장법 §6 회피 (매매 권유·맞춤 추천·단일종목 레버리지·인기/같이/함께) | 2026-05-15~28 |
-| 타이포그래피 | `globals.css` font-family | Pretendard + Apple SD Gothic + Noto Sans KR fallback | — |
+| 타이포그래피 | `globals.css`의 `--font-ui` | Pretendard + Apple SD Gothic + Noto Sans KR fallback. body·Tailwind·상속 컨트롤의 단일 글꼴 경로 | 2026-10-16 |
+| 읽기 UI | [READING_UI_SYSTEM.md](READING_UI_SYSTEM.md), `ReadingUI.module.css` | 종목 상세의 제목·펼치기·보조 버튼·출처 역할. 같은 동작은 같은 타이포그래피 사용 | 2026-10-16 |
 | 환각 통계·확률 금지 | 메모리 [feedback_hallucinated_stats] | 검증 안 된 통계·확률 노출 차단 | 2026-05-20 |
 | 숫자·통화 포맷 | `src/utils/koreanNumber.ts` | 만/억/조 단위, KRW/USD 포맷, 손익 부호 | 2026-05-29 |
 | 상대 시간 | `src/utils/koreanDate.ts` | "방금", "N분 전", "N시간 전", "어제", "N일 전" | 2026-05-29 |
@@ -202,3 +203,5 @@
 ## 8. 변경 이력
 
 - **2026-05-29**: 문서 신설. globals.css keep-all, koreanNumber·koreanDate·koreanCopy 유틸 신설, lint:korean 스크립트 신설, 패널 시스템 부재 신호 룰 추가.
+
+앱의 동작·입력·탭·스위치와 제목은 [공통 UI 기준](UI_SYSTEM.md)을 따른다. 읽기 화면은 [읽기 공통 기준](READING_UI_SYSTEM.md)을 함께 적용한다.

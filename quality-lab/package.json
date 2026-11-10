@@ -1,0 +1,14 @@
+{
+  "name": "joobi-quality-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/cli.mjs serve",
+    "test": "node --test test/*.test.mjs",
+    "capture": "node src/cli.mjs capture",
+    "evaluate": "node src/cli.mjs evaluate"
+  },
+  "devDependencies": { "playwright": "1.60.0" }
+}

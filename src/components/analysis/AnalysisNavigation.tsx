@@ -10,29 +10,36 @@ interface AnalysisNavigationProps {
   hasResources: boolean;
   hasAssistant: boolean;
   hasPersonal?: boolean;
+  isFund?: boolean;
+  onReadingInteraction?: () => void;
   layoutKey: string;
 }
 
 interface NavigationItem {
   id: string;
   label: string;
+  group: 'now' | 'understand' | 'personal';
 }
 
 const DESTINATION_GAP = 16;
 
 export default function AnalysisNavigation({
-  scrollRef, hasChart, hasCheckup = false, hasResources, hasAssistant, hasPersonal = false, layoutKey,
+  scrollRef, hasChart, hasCheckup = false, hasResources, hasAssistant, hasPersonal = false, isFund = false, onReadingInteraction, layoutKey,
 }: AnalysisNavigationProps) {
-  const items = useMemo<NavigationItem[]>(() => [
-    ...(hasChart ? [{ id: 'anchor-chart', label: '차트' }] : []),
-    { id: 'anchor-news', label: '거래일 브리핑' },
-    { id: 'anchor-company', label: hasCheckup ? '회사 이해' : '종목 이해' },
-    ...(hasCheckup ? [{ id:'anchor-checkup', label:'가격·거래량' }] : []),
-    ...(hasAssistant ? [{ id: 'anchor-assistant', label: '주비 노트' }] : []),
-    ...(hasResources ? [{ id: 'anchor-resources', label: '자료·비교' }] : []),
-    { id: 'anchor-learning', label: '배우기' },
-    ...(hasPersonal ? [{ id: 'anchor-personal', label: '내 투자' }] : []),
-  ], [hasChart, hasCheckup, hasResources, hasAssistant, hasPersonal]);
+  const items = useMemo<NavigationItem[]>(() => {
+    const sections: NavigationItem[] = [{ id: 'anchor-overview', label: '지금 상황', group: 'now' }];
+    if (hasChart) sections.push({ id: 'anchor-chart', label: '지금 상황', group: 'now' });
+    sections.push({ id: 'anchor-news', label: '지금 상황', group: 'now' });
+    if (hasCheckup) sections.push({ id: 'anchor-checkup', label: '지금 상황', group: 'now' });
+    const label = isFund ? '상품 이해' : '회사 이해';
+    sections.push({ id: 'anchor-company', label, group: 'understand' });
+    if (hasAssistant) sections.push({ id: 'anchor-assistant', label, group: 'understand' });
+    if (hasResources) sections.push({ id: 'anchor-resources', label, group: 'understand' });
+    sections.push({ id: 'anchor-learning', label, group: 'understand' });
+    if (hasPersonal) sections.push({ id: 'anchor-personal', label: '내 투자', group: 'personal' });
+    return sections;
+  }, [hasChart, hasCheckup, hasResources, hasAssistant, hasPersonal, isFund]);
+  const destinations = items.filter((item, index) => items.findIndex(other => other.group === item.group) === index);
   const [activeId, setActiveId] = useState(items[0].id);
   const activeIdRef = useRef(activeId);
   const listRef = useRef<HTMLDivElement>(null);
@@ -123,6 +130,7 @@ export default function AnalysisNavigation({
       schedule();
     };
     const releaseRequested = () => {
+      onReadingInteraction?.();
       requestedRef.current = null;
       pinnedRef.current = null;
       if (settleTimerRef.current !== null) clearTimeout(settleTimerRef.current);
@@ -159,11 +167,12 @@ export default function AnalysisNavigation({
       root.removeEventListener('keydown', releaseRequested);
       window.removeEventListener('resize', invalidateLayout);
     };
-  }, [items, layoutKey, scrollRef]);
+  }, [items, layoutKey, scrollRef, onReadingInteraction]);
 
   useEffect(() => {
     const list = listRef.current;
-    const button = list?.querySelector<HTMLButtonElement>(`[data-analysis-section="${activeId}"]`);
+    const group = items.find(item => item.id === activeId)?.group;
+    const button = list?.querySelector<HTMLButtonElement>(`[data-analysis-group="${group}"]`);
     if (!list || !button) return;
     const listBounds = list.getBoundingClientRect();
     const buttonBounds = button.getBoundingClientRect();
@@ -171,12 +180,13 @@ export default function AnalysisNavigation({
     if (buttonBounds.left < listBounds.left + 12) offset = buttonBounds.left - listBounds.left - 12;
     else if (buttonBounds.right > listBounds.right - 12) offset = buttonBounds.right - listBounds.right + 12;
     if (offset) list.scrollTo({ left: list.scrollLeft + offset, behavior: 'auto' });
-  }, [activeId]);
+  }, [activeId, items]);
 
   const goToSection = (id: string) => {
     const root = scrollRef.current;
     const target = root?.querySelector<HTMLElement>(`#${id}`);
     if (!root || !target) return;
+    onReadingInteraction?.();
     if (target instanceof HTMLDetailsElement) target.open = true;
     const desiredTop = root.scrollTop + target.getBoundingClientRect().top
       - root.getBoundingClientRect().top - DESTINATION_GAP;
@@ -201,14 +211,15 @@ export default function AnalysisNavigation({
   return (
     <nav className={styles.navigation} aria-label="종목 상세 탐색">
       <div className={styles.list} ref={listRef}>
-        {items.map(item => (
+        {destinations.map(item => (
           <button
             key={item.id}
             type="button"
             className={styles.item}
             data-analysis-section={item.id}
+            data-analysis-group={item.group}
             aria-controls={item.id}
-            aria-current={activeId === item.id ? 'location' : undefined}
+            aria-current={items.find(section => section.id === activeId)?.group === item.group ? 'location' : undefined}
             onClick={() => goToSection(item.id)}
           >
             {item.label}

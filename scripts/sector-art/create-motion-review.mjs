@@ -1,0 +1,20 @@
+import { readFileSync, writeFileSync } from 'node:fs';
+import { originalMotion, motionSvg } from './original-motion.mjs';
+const originals = JSON.parse(readFileSync('src/data/sector-originals.json', 'utf8'));
+const manifest = JSON.parse(readFileSync('src/data/sector-illustrations.json', 'utf8'));
+for (const id of Object.keys(originals)) for (const theme of ['light', 'dark']) {
+  writeFileSync(`public/illustrations/sectors/originals/${id}-${originals[id].version ?? 'v2'}-${theme}-motion.svg`, motionSvg(id, theme));
+}
+const cards = Object.keys(originals).map(id => {
+  const version = originals[id].version ?? 'v2';
+  return `<article data-id="${id}" data-version="${version}" data-motion="${originals[id].motion ?? ''}"><div class="scene"><img class="still" src="assets/originals/${id}-${version}-light.png" alt="${manifest.scenes[id].title}"><div class="motion" aria-hidden="true"></div></div><h2>${manifest.scenes[id].title}</h2><p>${originalMotion[id].label}</p><button class="replay">다시 보기</button></article>`;
+}).join('');
+writeFileSync('artifacts/sector-art-revision-20261017/motion.html', `<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>산업 원화 · 짧은 모션</title><style>
+*{box-sizing:border-box}body{margin:0;padding:24px;background:#fafaf9;color:#292534;font:15px/1.6 system-ui}body.dark{background:#19191d;color:#eee}h1{font-size:26px;margin:0}p{color:#85808e;margin:6px 0 14px}button{font:inherit;color:inherit;background:transparent;padding:8px 16px;border:1px solid #8885;border-radius:8px;cursor:pointer;min-height:44px}button:disabled{opacity:.45}main{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}article{border:1px solid #8883;border-radius:12px;padding:12px}img{display:block;width:100%;aspect-ratio:3/2;object-fit:contain}h2{font-size:16px;margin:8px 0 0}.scene{position:relative}.motion{position:absolute;inset:0;pointer-events:none}.motion img{width:100%;height:100%}@media(max-width:900px){main{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){main{grid-template-columns:1fr}body{padding:16px}}@media(prefers-reduced-motion:reduce){.motion{display:none}.replay,#all{display:none}}
+</style><h1>산업 원화 · 짧은 모션</h1><p>기존 톤 유지 · 2.6초 한 번 재생 · 자동차 제조·조립 라인 수정안 · 로컬 미리보기</p><button id="theme">다크 보기</button> <button id="all">전체 다시 보기</button><main>${cards}</main><script>
+const reduced=matchMedia('(prefers-reduced-motion:reduce)');let run=0;
+function play(card){if(reduced.matches)return;if(card.dataset.motion){const theme=document.body.classList.contains('dark')?'dark':'light';const button=card.querySelector('.replay');clearTimeout(card.timer);button.disabled=true;const img=card.querySelector('.still');img.onload=()=>{img.onload=null;card.timer=setTimeout(()=>button.disabled=false,2600)};img.src='assets/originals/'+card.dataset.id+'-'+card.dataset.version+'-'+theme+'-'+card.dataset.motion+'.svg?play='+ ++run;return;}const theme=document.body.classList.contains('dark')?'dark':'light';const host=card.querySelector('.motion');const button=card.querySelector('.replay');clearTimeout(card.timer);host.replaceChildren();const img=new Image();img.alt='';img.onload=()=>{button.disabled=true;card.timer=setTimeout(()=>{host.replaceChildren();button.disabled=false},2600)};img.src='assets/originals/'+card.dataset.id+'-'+card.dataset.version+'-'+theme+'-motion.svg?play='+ ++run;host.append(img)}
+document.querySelectorAll('article').forEach(card=>{card.querySelector('.replay').onclick=()=>play(card)});
+document.querySelector('#all').onclick=()=>document.querySelectorAll('article').forEach(play);
+document.querySelector('#theme').onclick=()=>{const dark=document.body.classList.toggle('dark');document.querySelector('#theme').textContent=dark?'라이트 보기':'다크 보기';document.querySelectorAll('article').forEach(card=>{card.querySelector('.still').src='assets/originals/'+card.dataset.id+'-'+card.dataset.version+'-'+(dark?'dark':'light')+'.png';card.querySelector('.motion').replaceChildren();clearTimeout(card.timer);card.querySelector('.replay').disabled=false})};
+</script></html>`);

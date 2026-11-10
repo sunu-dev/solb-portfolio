@@ -1,3 +1,4 @@
+import { privateNotificationsPaused, PRIVATE_NOTIFICATION_PAUSE_REASON } from '@/lib/privateNotificationPause';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireServiceClient } from '@/lib/supabaseServer';
 import { defineRoute } from '@/lib/apiRoute';
@@ -85,6 +86,7 @@ export const GET = defineRoute({
  * 각자 자기 슬롯을 고정 주입한다. ?slot=는 수동 테스트 override만.
  */
 export async function runDigest(req: NextRequest, defaultSlot: DigestSlot) {
+  if (privateNotificationsPaused()) return NextResponse.json({ ok: true, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON });
   // 인증은 호출 라우트의 defineRoute({ auth: 'cron' })가 담당한다.
   // (morning-brief GET / morning-brief-close GET 둘 다 cron 가드를 통과한 뒤에만 여기 도달)
   const db = getAdmin();

@@ -63,6 +63,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "quality-lab/**",
   ]),
   {
     files: ["src/**/*.ts", "src/**/*.tsx"],

@@ -8,10 +8,12 @@ import { ArrowLeft, HelpCircle } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { PRIVACY_HELP } from '@/config/privacyHelp';
 
 interface Section {
+  id?: string;
   title: string;
-  items: { q: string; a: string }[];
+  items: readonly { q: string; a: string }[];
 }
 
 const SECTIONS: Section[] = [
@@ -30,6 +32,7 @@ const SECTIONS: Section[] = [
     { q: '증권사 계좌와 자동으로 연결되나요?', a: '현재는 직접 입력하거나 파일로 가져온 기록을 사용해요. 종목 추가·편집에서 증권사를 구분할 수 있지만 실제 계좌와 자동으로 동기화되지는 않아요. 스크린샷 가져오기는 현재 비활성 상태예요.' },
     { q: '기록을 옮기거나 복구하려면 어떻게 하나요?', a: '설정의 기록·가져오기·복구에서 사용할 도구를 골라보세요. 파일에 담긴 종목·수량·평균 매수가를 확인하고, 안내에 따라 기존 기록에 반영할 수 있어요.' },
   ] },
+  { id: 'privacy', title: '내 정보와 기록 보호', items: PRIVACY_HELP },
   { title: '시장 변화와 과거 비교', items: [
     { q: '시장 전체를 실시간으로 확인하나요?', a: '리포트에서 정해진 지수·업종·공시·기사 범위를 주기적으로 확인해요. ‘무엇을 얼마나 확인했나요?’에서 확인 범위와 누락·지연을 볼 수 있어요. 소식이 없다는 것이 시장에 아무 일도 없다는 뜻은 아니에요.' },
     { q: '과거 시장과 비교한 수익률은 내 수익률인가요?', a: '선택한 기간의 종가를 비교한 가격 변화예요. 내 매수일·매수가·배당·비용을 반영한 실제 투자 수익률과 달라요. 기준일과 출처를 함께 확인해 주세요.' },
@@ -87,7 +90,7 @@ export default function HelpPage() {
         </button>
 
         {SECTIONS.map((sec) => (
-          <section key={sec.title} style={{ marginBottom: 32 }}>
+          <section id={sec.id} key={sec.title} style={{ marginBottom: 32, scrollMarginTop: 80 }}>
             <h2 className={readingUI.sectionTitle} style={{ color: 'var(--text-primary)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
               {sec.title}
             </h2>

@@ -7,10 +7,13 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { lockBodyScroll } from '@/lib/bodyScrollLock';
 import ShortPriceHistory from './ShortPriceHistory';
+import StockDetailIntroduction from './StockDetailIntroduction';
 import { useCandleData } from '@/hooks/useStockData';
 import { fetchCompanyNews } from '@/lib/newsFeed';
 import { useAnalysisQuota } from '@/hooks/useAnalysisQuota';
 import { useNow } from '@/hooks/useNow';
+import { useStockContext } from '@/hooks/useStockContext';
+import { matchesStockContext } from '@/lib/stockContextPacket';
 import {
   calcSMA, calcRSI, calcBollingerBands, calcMACD,
   detectTrend, detectCross, detectPattern, generateSummary,
@@ -219,6 +222,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const wideMode = useSyncExternalStore(subscribeWideMode, readWideMode, serverWideMode);
 
   const symbol = analysisSymbol;
+  const contextPackets = useStockContext(symbol ?? '');
   const readingKey = `${owner}:${symbol}`;
   const learningEntry = learningEntries[readingKey];
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
@@ -353,6 +357,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const [companyExplorations, setCompanyExplorations] = useState<Record<string, { open?: boolean; reading?: ExplorationReadingState }>>({});
 
   const restoredReadingKey = useRef<string | null>(null);
+  const markReadingHandled = useCallback(() => { restoredReadingKey.current = readingKey; }, [readingKey]);
   useEffect(() => { restoredReadingKey.current = null; }, [symbol, owner]);
   useEffect(() => {
     if (!symbol || loading || restoredReadingKey.current === readingKey) return;
@@ -361,6 +366,9 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
     const body = analysisBodyRef.current;
     if (!body) return;
     const position = readingPositions.current.get(readingKey);
+    // Initial focus is handled by the dialog. Finishing a quote request must not
+    // reset a first-time reader's scroll position or steal their current focus.
+    if (!position) { restoredReadingKey.current = readingKey; return; }
     const visit = position?.kind === 'company' ? readingVisits.get(readingKey) : undefined;
     if (position) setChartRange(position.range);
     let frame = 0;
@@ -701,9 +709,13 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const questionRevision = evidenceRevision(tickerNews,quote?.t ? quote.t*1000 : undefined,price);
   const newsStatus=newsState?.symbol===symbol?newsState.status:'loading';
   const questionTags = [...new Set(recentDiscoveryNews(tickerNews).flatMap(item => discoveryTags(item.title)))];
+  const contextPacket = newsStatus === 'ok' ? contextPackets.find(packet => tickerNews.some(item => matchesStockContext(packet, symbol, item, now))) : undefined;
   const cachedQuestionIds = STOCK_QUESTIONS.filter(question => cacheReadable(mentorReportCache[`${owner}-${symbol}-${question.id}-${questionRevision}`])).map(question => question.id);
   const hasCachedAnalysis = cacheReadable(aiReportCache[symbol]);
-  const goTo = (id: string) => analysisBodyRef.current?.querySelector<HTMLElement>(`#${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const goTo = (id: string) => {
+    markReadingHandled();
+    analysisBodyRef.current?.querySelector<HTMLElement>(`#${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const fundTopic = (topic: string): FundQuestionId => {
     if (['target', 'returns', 'pitfall', 'compare', 'distribution', 'currency', 'watch'].includes(topic)) return topic as FundQuestionId;
     return ({ 'fund-target': 'target', 'fund-returns': 'returns', 'fund-risk': 'pitfall', 'fund-compare': 'compare', index: 'target', price: 'returns', dividends: 'distribution', fx: 'currency' } as Record<string, FundQuestionId>)[topic] ?? 'watch';
@@ -1040,31 +1052,19 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
           </div>
 
           <JoobiAssistantLauncher key={symbol} symbol={symbol} name={displayName} inline />
-          {!loading && <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
+          <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
             hasChart={true} hasCheckup={!isFund} hasResources={!isLev} hasAssistant={!isLev}
-            hasPersonal={!!symbol && (!!stockData || (!isLev && price > 0))}
-            layoutKey={`${symbol}-${wideMode}`} />}
+            hasPersonal={!!symbol && (!!stockData || (!isLev && price > 0))} isFund={isFund}
+            onReadingInteraction={markReadingHandled}
+            layoutKey={`${readingKey}-${wideMode}`} />
 
           {/* Scrollable body */}
-          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}`}>
-            {loading ? (
-              <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
-                <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: 'var(--text-primary)', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>분석 데이터를 불러오는 중...</div>
-                <style>{`
-                  @keyframes loadingBar {
-                    0% { width: 0%; }
-                    50% { width: 70%; }
-                    100% { width: 100%; }
-                  }
-                `}</style>
-              </div>
-            ) : (
+          <div key={readingKey} ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}`}>
+            {loading && <p className={panelStyles.loadingPrice} role="status">시세와 차트를 확인하고 있어요.</p>}
+            {(
               <>
                 {/* Price hero */}
-                <div className={panelStyles.priceHero}>
+                <div id="anchor-overview" className={panelStyles.priceHero}>
                   <div>
                   <div className={panelStyles.priceLabel}>현재 가격</div>
                   <div className={panelStyles.price}>
@@ -1088,6 +1088,10 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                   {price > 0 && <details style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}><summary className={panelStyles.referenceSummary}>다른 통화로 보기</summary>{nativeCurrency === 'KRW' ? formatUsd(priceAmounts.usd) : formatKrw(priceAmounts.krw)} · {fx.stale ? '환율 미확인 · 임시 환율로 환산' : '환율에 따른 환산 금액'}</details>}
                   </div>
                 </div>
+
+                <StockDetailIntroduction symbol={symbol} name={displayName} isFund={isFund}
+                  profile={companyProfile ?? { business: { symbol, level: 'missing', sources: [], origin: 'engine', availability: 'loading' } }}
+                  onOpen={() => goTo('anchor-company')} />
 
                 {
                   <div className="detail-chart-col">
@@ -1126,7 +1130,8 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                     </div>
 
                     {chartRange === 1 ? <IntradayStockChart key={`${owner}:${symbol}`} symbol={symbol} currency={nativeCurrency} level={isLev ? 'basic' : chartLevel}
-                      analysisQuota={{ status: quotaStatus, remaining: aiRemaining, acceptResponse: acceptQuotaResponse }} allowAnalysis={!isLev} onNews={() => goTo('anchor-news')} /> : !analysis ? (
+                      analysisQuota={{ status: quotaStatus, remaining: aiRemaining, acceptResponse: acceptQuotaResponse }} allowAnalysis={!isLev}
+                      onNews={() => goTo('anchor-news')} /> : !analysis ? (
                       <ShortPriceHistory raw={rawCandles[symbol]} currency={nativeCurrency} status={candleStatus} onRetry={() => void fetchCandle()} />
                     ) : <>
                     {chartRange === 5 && <p style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)' }}>최근 5거래일 기준이에요. 주말·휴장일은 제외해요.</p>}
@@ -1349,6 +1354,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                 <div id="anchor-news" className={panelStyles.news}>
                   <StockDailyBrief key={`daily:${symbol}`} symbol={symbol} />
                   <StockReturnBrief key={`brief:${owner}:${symbol}`} owner={owner} symbol={symbol} items={tickerNews}
+                    contextPacket={contextPacket}
                     onRetryNews={() => { setNewsState(null); setNewsRequest(value => value + 1); }}
                     newsStatus={newsStatus} isFund={isFund} price={quote?.c ?? 0} quoteAt={quote?.t ? quote.t * 1000 : undefined}
                     currency={nativeCurrency} onLearn={(topic, originId) => openLearning(isFund ? 'watch' : topic, originId, '이 기사로 돌아가기')}
@@ -1357,6 +1363,19 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
                 <StockVisitSummary owner={owner} symbol={symbol} items={tickerNews} status={newsStatus} isFund={isFund}
                   onCompany={() => goTo('anchor-company')} onNews={() => goTo('anchor-news')} />
+
+                {!analysis && !loading && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
+                    {isThinData
+                      ? '현재 받은 일별 가격 자료가 적어요. 차트에서 확인된 기간의 가격을 살펴볼 수 있어요.'
+                      : '일별 가격 자료를 불러오지 못했어요. 차트에서 기간을 바꾸거나 다시 불러와 주세요.'}
+                  </div>
+                )}
+
+                {!isFund && <div id="anchor-checkup" style={{ scrollMarginTop: 56 }}>
+                  <StockCheckup checkup={buildStockCheckup({ price, candles: rawCandles[symbol], currency: nativeCurrency })} />
+                </div>}
+
 
                 <div id="anchor-company" style={{ scrollMarginTop: 56 }}>
                   {!isFund && <StockCompanyOverview symbol={symbol} name={displayName} profile={companyProfile ?? { business: { symbol, level: 'missing', sources: [], origin: 'engine', availability: 'loading' } }} onRetry={() => { setCompanyProfile(null); setCompanyProfileRequest(n => n + 1); }}
@@ -1393,18 +1412,6 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                 </div>
 
                 <div className={panelStyles.details}>
-                {!analysis && !loading && (
-                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
-                    {isThinData
-                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
-                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
-                  </div>
-                )}
-
-                {!isFund && <div id="anchor-checkup" style={{ scrollMarginTop: 56 }}>
-                  <StockCheckup checkup={buildStockCheckup({ price, candles: rawCandles[symbol], currency: nativeCurrency })} />
-                </div>}
-
                 {!isLev && (
                   <div id="anchor-assistant" className={assistantStyles.section}>
                     <div className={panelStyles.assistantReading}>
@@ -1507,6 +1514,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                       {renderInline('library')}
                     </> : <p>이 상품의 구조 자료는 아직 확인하지 못했어요. 상품 이해에서 확인된 상품과 자료 범위를 살펴볼 수 있어요.</p>}
                   </section> : <StockLearning key={`learning:${owner}:${symbol}`}
+                    contextPacket={contextPacket}
                     name={displayName} owner={owner} symbol={symbol} instrument="stock" tags={questionTags}
                     initialReading={libraryReadings[readingKey]}
                     onReadingChange={reading => setLibraryReadings(previous => ({ ...previous, [readingKey]: reading }))}

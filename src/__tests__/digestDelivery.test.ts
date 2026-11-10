@@ -32,6 +32,23 @@ function database(options: { consent?: boolean; recipient?: string; duplicate?: 
 beforeEach(() => { vi.clearAllMocks(); vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-22T02:00:00Z')); mocks.send.mockResolvedValue({ ok: true, id: 'provider-id' }); claims([]); });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 describe('channel-aware digest delivery', () => {
+  it('pauses producers, queue claims and direct retries without reading private rows or contacting providers', async () => {
+    vi.stubEnv('PORTFOLIO_PRIVATE_NOTIFICATIONS_PAUSED', 'on');
+    const { db } = database();
+    expect(await queueDigest(db, { userId: 'test-user', type: 'morning_brief', date: '2026-10-22', channel: 'email', payload: row.payload })).toBe(false);
+    expect(await processDigestQueue(db)).toMatchObject({ sent: 0, skipped: 'private-notifications-paused' });
+    expect(await attemptDigest(row, db)).toMatchObject({ status: 'retryable', error: 'private-notifications-paused' });
+    expect(db.from).not.toHaveBeenCalled();
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+  it('rechecks pause after an email delay before the provider call', async () => {
+    const { db } = database();
+    const result = await attemptDigest(row, db, async () => { vi.stubEnv('PORTFOLIO_PRIVATE_NOTIFICATIONS_PAUSED', 'on'); });
+    expect(result).toMatchObject({ status: 'retryable', error: 'private-notifications-paused' });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
   it('uses the same provider key and body on an email retry', async () => {
     const { db } = database();
     mocks.send.mockResolvedValueOnce({ ok: false, retryable: true, error: 'http_503' });

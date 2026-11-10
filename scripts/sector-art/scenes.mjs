@@ -1,3 +1,4 @@
+import { reviseScenes } from './editorial-scenes.mjs';
 // Concepts and assemblies are authored before geometry. Captions describe a representative
 // activity, never every company or an actual customer's installation.
 const entries = [];
@@ -287,5 +288,6 @@ extra('musical-instruments', '악기', '크기가 다른 음판을 배치해 소
 });
 extra('renewable-generation', '재생에너지 발전', '태양광 같은 재생에너지 설비를 운영해 전기를 생산해요.', ['발전 패널', '전력 변환', '운영 설비'], s => { s.solar(-91, -35, 11, true); s.cabinet(45, -21, 43, 43, 61, 5); });
 
+reviseScenes(entries);
 export const SCENES = entries;
 export const CORE_SCENE_IDS = entries.slice(0, 42).map(x => x.id);

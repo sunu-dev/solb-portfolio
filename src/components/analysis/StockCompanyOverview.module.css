@@ -11,12 +11,13 @@
 .artwork figure > div { border-radius:12px; }
 .artwork figcaption > p { font-size:13px; margin-top:10px; }
 .artNote { margin:6px 0 0; color:var(--text-secondary); font-size:11px; line-height:1.7; }
-.chapters { margin-top:32px; }
-.chapter { display:grid; grid-template-columns:24px minmax(0,1fr); gap:12px; border-top:1px solid var(--border-light); padding:24px 0; }
-.number { padding-top:4px; font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-secondary); }
+.chapters { margin-top:24px; }
+.chapter { border-top:1px solid var(--border-light); padding:24px 0; }
 .chapter h4 { margin:0 0 8px; font-size:17px; font-weight:650; line-height:1.6; letter-spacing:-.025em; }
 .chapter p { margin:0; max-width:64ch; color:var(--text-body); font-size:16px; line-height:1.85; }
 .chapter figure { margin:20px 0 0; }
+.businessFlow { margin-top:12px; }
+.businessFlow summary { min-height:44px; font-size:13px; color:var(--text-secondary); }
 .editorialNote { display:block; margin-top:8px; font-size:12px; color:var(--text-secondary); }
 .references { display:flex; flex-wrap:wrap; gap:0 24px; border-top:1px solid var(--border-light); }
 .references details { flex:1 1 220px; min-width:0; }
@@ -27,7 +28,7 @@
 @container (min-width:680px) { .chapters { max-width:680px; } }
 @media(max-width:480px) { .lead {font-size:16px;} .hero {gap:20px;} .chapters {margin-top:24px;} .chapter {padding-block:22px;} }
 
-.businessQuestion { margin:0 0 24px; padding:8px 18px; background:var(--bg-subtle); border-radius:10px; }
+.businessQuestion { margin:0 0 24px; padding:0; border-block:1px solid var(--border-light); background:none; }
 .businessQuestion summary { min-height:48px; padding:10px 0; font-size:15px; line-height:1.7; font-weight:600; color:var(--text-primary); }
 .businessQuestion p { margin:4px 0 12px; color:var(--text-body); font-size:15px; line-height:1.85; }
 

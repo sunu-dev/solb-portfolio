@@ -117,6 +117,7 @@
 .assistantReading { padding:0; border:0; }
 .reportReference { margin:0; padding:0; border-bottom:1px solid var(--border-light); }
 .reportReference > summary { min-height:52px; padding:14px 0; margin:0; font-size:14px; font-weight:500; color:var(--text-body); }
+.loadingPrice { margin:0 0 16px; color:var(--text-secondary); font-size:12px; line-height:1.7; }
 
 .panel { --type-section-size:24px; --type-section-weight:650; }
 @media(max-width:480px) { .panel { --type-section-size:22px; } }

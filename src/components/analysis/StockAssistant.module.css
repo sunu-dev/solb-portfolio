@@ -25,7 +25,7 @@
 @media (max-width: 480px) { .answer { padding: 18px 16px; } }
 @container (min-width: 720px) {
   .overview { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
-  .questions { margin-top: 0; padding-left: 28px; border-left: 1px solid var(--border-light); }
+  .overview > .questions { margin-top: 0; padding-left: 28px; border-left: 1px solid var(--border-light); }
 }
 
 .close:hover { background: var(--bg-subtle); color: var(--text-primary); }

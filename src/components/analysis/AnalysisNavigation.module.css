@@ -9,7 +9,7 @@
 .list {
   display: flex;
   min-width: 0;
-  gap: 28px;
+  gap: 24px;
   overflow-x: auto;
   padding: 0 28px;
   overscroll-behavior-x: contain;
@@ -24,13 +24,14 @@
   position: relative;
   flex-shrink: 0;
   min-width: 44px;
+  flex: 1;
   min-height: 48px;
   padding: 0 2px;
   border: 0;
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 550;
   line-height: 1.5;
   letter-spacing: -0.025em;
@@ -60,7 +61,7 @@
 
 .item:focus-visible {
   border-radius: 4px;
-  outline: 2px solid var(--text-primary);
+  outline: 1px solid var(--text-secondary);
   outline-offset: -4px;
 }
 
@@ -77,6 +78,9 @@
   }
 
   .item {
-    font-size: 13px;
+    font-size: 14px;
   }
 }
+.list { padding-inline:32px; gap:24px; }
+.item { min-height:52px; font-size:14px; }
+@media(max-width:768px) { .list { padding-inline:16px; gap:16px; } .item { font-size:14px; } }

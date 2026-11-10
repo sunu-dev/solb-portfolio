@@ -18,6 +18,9 @@ describe('개인 기록 변경 진입 경계',()=>{
   expect(portfolioWriteBlockReason(ready)).toBeNull();
   expect(portfolioWriteBlockReason({...ready,portfolioSyncStatus:'saving'})).toBeNull();
  });
+ it.each(['locked','opening','closing','error'] as const)('보호 기록 %s 중에는 기존 ready 표시에 관계없이 변경을 막는다',portfolioProtectionStatus=>{
+  expect(portfolioWriteBlockReason({...ready,portfolioProtectionStatus})).not.toBeNull();
+ });
  it('화면을 연 뒤 로그아웃한 경우에도 최신 상태로 승인하지 않는다',()=>{
   const previous=usePortfolioStore.getState();
   const dispatchEvent=vi.fn(), alert=vi.fn();vi.stubGlobal('window',{dispatchEvent,alert});
@@ -25,6 +28,9 @@ describe('개인 기록 변경 진입 경계',()=>{
    usePortfolioStore.setState(ready);
    expect(requirePortfolioWriteAccess()).toBe(true);
    usePortfolioStore.setState({portfolioOwnerId:null,portfolioCloudLoadStatus:'guest'});
+   // Persistence may report unavailable storage in this window-only fixture.
+   // Inspect the authorization action's events separately from store updates.
+   dispatchEvent.mockClear();
    expect(requirePortfolioWriteAccess()).toBe(false);
    expect(dispatchEvent.mock.calls[0][0].type).toBe('open-login');
    expect(alert).not.toHaveBeenCalled();

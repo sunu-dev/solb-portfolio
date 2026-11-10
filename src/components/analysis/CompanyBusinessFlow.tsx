@@ -1,22 +1,17 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Building2, Monitor, ReceiptText, RotateCcw } from 'lucide-react';
-import { getStockIdentityKey } from '@/utils/stockCurrency';
+import { companyBusinessFlow } from '@/lib/companyBusinessFlow';
 import styles from './CompanyBusinessFlow.module.css';
 
-// A schematic of reviewed business facts, not revenue proportions or a live transaction.
-const flows: Record<string, readonly [string, string, string]> = {
-  MSFT: ['개인·기업·기관', '업무 도구·클라우드', '구독료·사용료 등'],
-  PLTR: ['정부기관·민간 기업', '데이터·AI 소프트웨어', '구독·운영·서비스'],
-  ORCL: ['기업·기관', '데이터베이스·클라우드', '소프트웨어·서비스 매출'],
-};
 export default function CompanyBusinessFlow({ symbol }: { symbol: string }) {
-  const labels = flows[getStockIdentityKey(symbol)];
+  const labels = companyBusinessFlow(symbol);
   const ref = useRef<HTMLElement>(null);
   const [run, setRun] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [reduced, setReduced] = useState(true);
   useEffect(() => {
+    if (!labels) return;
     const media = matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => { setReduced(media.matches); if (media.matches) setPlaying(false); };
     sync(); media.addEventListener('change', sync);
@@ -28,7 +23,7 @@ export default function CompanyBusinessFlow({ symbol }: { symbol: string }) {
     }, { threshold: .6 });
     if (ref.current) observer.observe(ref.current);
     return () => { observer.disconnect(); media.removeEventListener('change', sync); };
-  }, []);
+  }, [labels]);
   useEffect(() => {
     if (!playing) return;
     const timer = setTimeout(() => setPlaying(false), 3000);

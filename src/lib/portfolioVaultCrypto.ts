@@ -106,7 +106,7 @@ function exactObject(value: unknown, fields: string[], code: VaultErrorCode): Re
   return value as Record<string, unknown>;
 }
 
-function protectedKey(value: unknown): ProtectedPortfolioKey {
+export function parseProtectedPortfolioKey(value: unknown): ProtectedPortfolioKey {
   const row = exactObject(value, ['format', 'keyId', 'salt', 'wrappedKey'], 'invalid_key');
   if (row.format !== PORTFOLIO_KEY_FORMAT) throw new PortfolioVaultError('invalid_key');
   decode(row.keyId, 16, 16, 'invalid_key');
@@ -174,7 +174,7 @@ export async function createPortfolioVaultKey(ownerId: string, unlockMaterial: U
 }
 
 export async function unlockPortfolioVaultKey(ownerId: string, stored: unknown, unlockMaterial: Uint8Array): Promise<PortfolioVaultKey> {
-  const envelope = protectedKey(stored);
+  const envelope = parseProtectedPortfolioKey(stored);
   return handle(ownerId, envelope.keyId, await unwrap(ownerId, envelope, unlockMaterial, false));
 }
 
@@ -184,7 +184,7 @@ export async function unlockPortfolioVaultKey(ownerId: string, stored: unknown, 
 export async function rewrapPortfolioVaultKey(
   ownerId: string, stored: unknown, previousMaterial: Uint8Array, nextMaterial: Uint8Array,
 ): Promise<ProtectedPortfolioKey> {
-  const previous = protectedKey(stored);
+  const previous = parseProtectedPortfolioKey(stored);
   const next: ProtectedPortfolioKey = {
     ...previous, salt: base64url(webCrypto().getRandomValues(new Uint8Array(32))), wrappedKey: '',
   };

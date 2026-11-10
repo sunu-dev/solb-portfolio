@@ -1,0 +1,5 @@
+.introduction { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:16px; padding:0 0 24px; color:var(--text-body); }
+.copy { margin:0; max-width:58ch; font-size:15px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+.more { display:inline-flex; align-items:center; justify-content:center; gap:2px; min-height:44px; padding:0 2px; margin-top:-8px; border:0; background:transparent; color:var(--text-secondary); font:inherit; font-size:13px; white-space:nowrap; cursor:pointer; }
+.more:focus-visible { outline:1px solid var(--text-secondary); outline-offset:3px; border-radius:3px; }
+@media(max-width:480px) { .introduction { gap:12px; padding-bottom:20px; } .copy { font-size:14px; } }

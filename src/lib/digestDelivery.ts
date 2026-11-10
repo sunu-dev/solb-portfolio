@@ -3,6 +3,7 @@ import webpush from 'web-push';
 import { requireServiceClient } from './supabaseServer';
 import { sendEmail, type SendEmailOpts } from '@/utils/email';
 import { sendCronAlert } from './cronAlert';
+import { privateNotificationsPaused, PRIVATE_NOTIFICATION_PAUSE_REASON } from './privateNotificationPause';
 
 export type DigestPayload = { email: SendEmailOpts } | { push: { title: string; body: string; url: string; tag: string } };
 export interface DigestDelivery {
@@ -24,12 +25,14 @@ async function lookup<T>(request: PromiseLike<T>): Promise<T> {
 export async function queueDigest(db: Db, input: {
   userId: string; type: string; date: string; channel: 'email' | 'push'; payload: DigestPayload;
 }) {
+  if (privateNotificationsPaused()) return false;
   // Rolling transition: an old worker may already have sent today's message.
   // Its legacy 'sending' outcome is unknown, so never replay it automatically.
   const legacy = await db.from('notification_log').select('user_id')
     .eq('user_id', input.userId).eq('notification_type', input.type).eq('sent_date', input.date).limit(1);
   if (legacy.error) throw new Error('Cannot verify previous digest delivery');
   if (legacy.data?.length) return false;
+  if (privateNotificationsPaused()) return false;
   const inserted = await db.from('digest_deliveries').insert({
     user_id: input.userId, notification_type: input.type, sent_date: input.date,
     channel: input.channel, payload: input.payload,
@@ -43,6 +46,7 @@ export async function queueDigest(db: Db, input: {
 export async function attemptDigest(row: DigestDelivery, db: Db, beforeEmailSend?: () => Promise<void>): Promise<{
   status: 'sent' | 'retryable' | 'failed' | 'cancelled'; error?: string; providerId?: string;
 }> {
+  if (privateNotificationsPaused()) return { status: 'retryable', error: PRIVATE_NOTIFICATION_PAUSE_REASON };
   if (Date.parse(row.deadline_at) <= Date.now()) return { status: 'failed', error: 'expired' };
   if (row.channel === 'email' && 'email' in row.payload) {
     await beforeEmailSend?.();
@@ -53,6 +57,7 @@ export async function attemptDigest(row: DigestDelivery, db: Db, beforeEmailSend
     if (user.error) return { status: 'retryable', error: 'recipient_lookup_failed' };
     if (!user.data.user?.email || user.data.user.email !== row.payload.email.to) return { status: 'cancelled', error: 'recipient_changed' };
     if (Date.parse(row.deadline_at) <= Date.now()) return { status: 'failed', error: 'expired' };
+    if (privateNotificationsPaused()) return { status: 'retryable', error: PRIVATE_NOTIFICATION_PAUSE_REASON };
     const sent = await sendEmail({ ...row.payload.email, idempotencyKey: `joobi-digest/${row.id}` });
     return sent.ok ? { status: 'sent', providerId: sent.id }
       : { status: sent.retryable ? 'retryable' : 'failed', error: sent.error };
@@ -65,6 +70,7 @@ export async function attemptDigest(row: DigestDelivery, db: Db, beforeEmailSend
     if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return { status: 'failed', error: 'push_not_configured' };
     webpush.setVapidDetails(process.env.VAPID_EMAIL || 'mailto:admin@joobi.kr', process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
     try {
+      if (privateNotificationsPaused()) return { status: 'retryable', error: PRIVATE_NOTIFICATION_PAUSE_REASON };
       await webpush.sendNotification(sub.data.subscription as webpush.PushSubscription, JSON.stringify(row.payload.push), { timeout: 10000, TTL: 3600 });
       return { status: 'sent' };
     } catch (error) {
@@ -85,7 +91,9 @@ export async function attemptDigest(row: DigestDelivery, db: Db, beforeEmailSend
   return { status: 'failed', error: 'invalid_payload' };
 }
 
-export async function processDigestQueue(db: Db = requireServiceClient()) {
+export async function processDigestQueue(client?: Db) {
+  if (privateNotificationsPaused()) return { sent: 0, retryable: 0, failed: 0, cancelled: 0, reportedFailures: 0, skipped: PRIVATE_NOTIFICATION_PAUSE_REASON };
+  const db = client ?? requireServiceClient();
   const owner = randomUUID();
   const claimed = await lookup(db.rpc('claim_digest_deliveries', { p_owner: owner, p_limit: 10 }));
   if (claimed.error) throw new Error('Could not claim digest deliveries');

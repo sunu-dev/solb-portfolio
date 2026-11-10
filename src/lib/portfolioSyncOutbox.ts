@@ -1,4 +1,5 @@
 import type { PortfolioStocks, StockItem } from '@/config/constants';
+import { allowLegacyPortfolioWrite } from '@/lib/portfolioVaultPolicy';
 import {
   clonePortfolioStocks,
   emptyReconciliationSummary,
@@ -159,6 +160,7 @@ export function writePortfolioSyncOutbox(
   storage: StorageLike | null = browserStorage(),
 ): PortfolioSyncOutbox | null {
   if (!storage) return null;
+  if (!allowLegacyPortfolioWrite(userId, storage)) return null;
   const normalized = normalizePortfolioSyncPayload(payload);
   if (!normalized) return null;
   const outbox: PortfolioSyncOutbox = {
@@ -181,6 +183,7 @@ export function rebasePortfolioSyncOutbox(
   baseUpdatedAt: string | null,
   storage: StorageLike | null = browserStorage(),
 ): PortfolioSyncOutbox | null {
+  if (!allowLegacyPortfolioWrite(userId, storage)) return null;
   const outbox = readPortfolioSyncOutbox(userId, storage);
   if (!outbox || !storage) return null;
   const rebased = { ...outbox, baseUpdatedAt };

@@ -21,11 +21,7 @@ export class Scene {
   screws(x, y, w, d, z) { for (const a of [x + 3, x + w - 3]) for (const b of [y + 3, y + d - 3]) this.round(a, b, .85, z, .6, false, 'lo'); }
   base() {
     this.subject = 'base';
-    this.box(-116, -65, 232, 130, -5, 5, false, 'lo', 5);
-    for (const x of [-102, 102]) for (const y of [-51, 51]) {
-      this.round(x, y, 5, -11, 2, false, 'lo'); this.round(x, y, 4, -9, 4, false, 'lo');
-      this.round(x, y, 2.2, 0, .5, false, 'lo'); this.round(x, y, 1.2, .5, .6, false, 'mid');
-    }
+    this.box(-110, -65, 220, 140, -2, 2, false, 'hi', 12);
   }
   cabinet(x, y, w = 38, d = 35, h = 64, bays = 5, lit = false) {
     this.box(x, y, w, d, 0, h, false, 'mid', 2);

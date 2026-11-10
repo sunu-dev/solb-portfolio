@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createPortfolioVaultKey, encryptPortfolioRecord, type PortfolioRecordContext } from '@/lib/portfolioVaultCrypto';
-import { openPortfolioPayload, sealPortfolioPayload } from '@/lib/portfolioVaultPayload';
+import { openPortfolioPayload, sealPortfolioPayload, normalizeLosslessPortfolioVaultPayload } from '@/lib/portfolioVaultPayload';
 import type { PortfolioSyncPayload } from '@/lib/portfolioSyncOutbox';
 
 const context: PortfolioRecordContext = { ownerId: 'vault-payload-fixture', purpose: 'portfolio', revision: 3 };
@@ -21,6 +21,30 @@ const payload: PortfolioSyncPayload = {
 const create = () => createPortfolioVaultKey(context.ownerId, crypto.getRandomValues(new Uint8Array(32)));
 
 describe('portfolio vault payload contract', () => {
+  it('preserves more than twenty recovery entries without trimming older records', async () => {
+    const { key } = await create();
+    const source = { ...payload, history: Array.from({ length: 25 }, (_, index) => ({ ...payload.history[0], id: `history-${index}` })) };
+    const record = await sealPortfolioPayload(key, context, source);
+    expect((await openPortfolioPayload(key, context, record)).history).toEqual(source.history);
+  });
+
+  it.each([
+    { privateFutureField: 'must not disappear' },
+    { changes: [{ symbol: 'INVALID_PRIVATE_CHANGE' }] },
+    { summary: { ...payload.history[0].summary, added: -1 } },
+  ])('refuses lossy history normalization', async fields => {
+    const { key } = await create();
+    const source = { ...payload, history: [{ ...payload.history[0], ...fields }] } as PortfolioSyncPayload;
+    await expect(sealPortfolioPayload(key, context, source)).rejects.toMatchObject({ code: 'invalid_record' });
+    const record = await encryptPortfolioRecord(key, context, new TextEncoder().encode(JSON.stringify(source)));
+    await expect(openPortfolioPayload(key, context, record)).rejects.toMatchObject({ code: 'invalid_record' });
+  });
+
+  it('requires explicit reconciliation of discarded demo or unknown categories before migration', () => {
+    expect(normalizeLosslessPortfolioVaultPayload(payload)).toEqual(payload);
+    expect(normalizeLosslessPortfolioVaultPayload({ ...payload, stocks: { ...stocks, futureCategory: [] } })).toBeNull();
+    expect(normalizeLosslessPortfolioVaultPayload({ ...payload, stocks: { ...stocks, watching: [{ ...stocks.investing[0], demo: true }] } })).toBeNull();
+  });
   it('preserves private holdings, notes, snapshots and restore checkpoints inside the ciphertext', async () => {
     const { key } = await create();
     const record = await sealPortfolioPayload(key, context, payload);
