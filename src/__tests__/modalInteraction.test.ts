@@ -40,6 +40,7 @@ class TestElement {
   querySelectorAll() { return this.children; }
   querySelector() { return null; }
   getClientRects() { return this.visible ? [{}] : []; }
+  checkVisibility() { return this.visible; }
   closest(selector: string) { return selector === 'dialog:modal' ? this.nativeModal : null; }
 }
 let doc: { body: TestElement; activeElement: TestElement; contains: (el: TestElement) => boolean; querySelector: ReturnType<typeof vi.fn>; addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn> };
@@ -64,6 +65,18 @@ beforeEach(() => {
 afterEach(() => { hooks.reset(); vi.unstubAllGlobals(); });
 
 describe('dialog focus', () => {
+  it('skips a collapsed control even when it still has layout boxes', () => {
+    const panel = new TestElement(); const close = new TestElement(); const summary = new TestElement();
+    const hiddenSelect = new TestElement(); const input = new TestElement();
+    hiddenSelect.visible = false;
+    hiddenSelect.getClientRects = () => [{}];
+    panel.children = [close, summary, hiddenSelect, input];
+    hooks.render(hooks.create(), () => useFocusTrap(true, ref(panel)));
+    key('Tab'); expect(doc.activeElement).toBe(summary);
+    key('Tab'); expect(doc.activeElement).toBe(input);
+    key('Tab', true); expect(doc.activeElement).toBe(summary);
+    expect(hiddenSelect.focus).not.toHaveBeenCalled();
+  });
   it('keeps typing focus across rerenders while using the latest close callback', () => {
     const panel = new TestElement(); const close = new TestElement(); const input = new TestElement();
     panel.children = [close, input]; const panelRef = ref(panel); const scope = hooks.create();
@@ -171,8 +184,17 @@ describe('keyboard and nested scroll locks', () => {
     viewport.dispatchEvent(new Event('resize')); viewport.dispatchEvent(new Event('scroll'));
     expect(frames.size).toBe(1); frames.forEach(callback => callback(0)); frames.clear();
     expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-height', '400px');
+    expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-top', '40px');
     expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-bottom', '404px');
+    Object.assign(viewport, { offsetTop: 90 }); viewport.dispatchEvent(new Event('scroll'));
+    frames.forEach(callback => callback(0)); frames.clear();
+    expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-top', '90px');
+    Object.assign(viewport, { height: 844, offsetTop: -10 }); viewport.dispatchEvent(new Event('resize'));
+    frames.forEach(callback => callback(0)); frames.clear();
+    expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-top', '0px');
+    expect(panel.style.setProperty).toHaveBeenCalledWith('--modal-viewport-bottom', '0px');
     hooks.unmount(scope); viewport.dispatchEvent(new Event('resize')); expect(frames.size).toBe(0);
     expect(doc.body.style.position).toBe('');
+    expect(panel.style.removeProperty).toHaveBeenCalledWith('--modal-viewport-top');
   });
 });

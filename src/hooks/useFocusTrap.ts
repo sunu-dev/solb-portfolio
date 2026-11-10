@@ -33,10 +33,12 @@ export function useFocusTrap(
     const token = Symbol('focus-trap');
     activeTraps.push(token);
     const SELECTOR =
-      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      'a[href], button:not([disabled]), summary, textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const focusables = (): HTMLElement[] =>
       Array.from(container.querySelectorAll<HTMLElement>(SELECTOR)).filter(
-        (el) => el.getClientRects().length > 0 && !el.closest('[inert]'),
+        // Closed details can leave descendants with layout boxes even though
+        // they cannot receive focus. Include their summary, not hidden controls.
+        (el) => el.checkVisibility({ checkVisibilityCSS: true }) && !el.closest('[inert]'),
       );
 
     // 마운트 시 첫 포커서블로 이동(없으면 컨테이너 자체)

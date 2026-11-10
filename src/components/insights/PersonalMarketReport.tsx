@@ -1,4 +1,5 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { ChevronRight } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
@@ -41,7 +42,7 @@ export default function PersonalMarketReport() {
     {!featured && next && data && holdings.length > 0 && <UpcomingConnections event={next} stocks={holdings} events={data.events} now={now} />}
     {next && <button type="button" className={styles.next} onClick={() => openEconomicCalendar(next.key)}><span><small>{featured ? '같은 발표, 다음 확인' : '다음에 확인할 발표'}</small><strong>{next.title}</strong><span>{dateLabel(next.at)} · {eventTime(next)} (한국시간)</span></span><ChevronRight size={19} aria-hidden="true" /></button>}
     {(featured || next) && <ContextExploration key={(featured || next)!.key} topics={eventExploration((featured || next)!.kind)} context={(featured || next)!.title} />}
-    {recent.length > 1 && <details className={styles.moreResults}><summary>최근 확인된 다른 발표 {recent.length - 1}개</summary>{recent.slice(1).map(event => <button type="button" key={event.key} className={styles.resultLink} onClick={() => openEconomicCalendar(event.key)}><span><small>{dateLabel(event.at)} · {event.title}</small><strong className="reading-copy">{event.result?.headline}</strong></span><ChevronRight size={17} aria-hidden="true" /></button>)}</details>}
+    {recent.length > 1 && <details className={styles.moreResults}><summary className={readingUI.disclosure}>최근 확인된 다른 발표 {recent.length - 1}개</summary>{recent.slice(1).map(event => <button type="button" key={event.key} className={styles.resultLink} onClick={() => openEconomicCalendar(event.key)}><span><small>{dateLabel(event.at)} · {event.title}</small><strong className="reading-copy">{event.result?.headline}</strong></span><ChevronRight size={17} aria-hidden="true" /></button>)}</details>}
     {data && <p className={styles.meta}>{checkedLabel(data.checkedAt) ? `자료 확인 ${checkedLabel(data.checkedAt)} (한국시간) · ` : ''}확인된 발표 수치를 표시해요.{data.warnings.length > 0 ? ' 일부 자료는 확인 중이에요.' : ''}</p>}
   </section>;
 }

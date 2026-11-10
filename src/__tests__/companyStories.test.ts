@@ -28,6 +28,8 @@ describe('company explanations answer the business question', () => {
   it('does not invent a customer or revenue model from a stock code or a product list', () => {
     expect(companyStory('UNKNOWN-FIXTURE')).toBeUndefined();
     expect(companyBusinessSummary('UNKNOWN-FIXTURE')).toBeUndefined();
-    expect(companyBusinessSummary('UNKNOWN-FIXTURE', '의약품')).toBe('거래소 자료에 등록된 주요 제품·사업은 의약품예요.');
+    expect(companyBusinessSummary('UNKNOWN-FIXTURE', '의약품')).toBe('주요 제품·사업은 ‘의약품’으로 등록돼 있어요.');
+    expect(companyBusinessSummary('UNKNOWN-FIXTURE', 'AI데이터 플랫폼')).toBe('주요 제품·사업은 ‘AI데이터 플랫폼’으로 등록돼 있어요.');
+    expect(companyBusinessSummary('UNKNOWN-FIXTURE', '소프트웨어')).toBe('주요 제품·사업은 ‘소프트웨어’로 등록돼 있어요.');
   });
 });

@@ -1,0 +1,33 @@
+.header { position:sticky;top:0;z-index:40;height:var(--app-header-height);background:var(--surface);border-bottom:1px solid var(--border-light); }
+.inner { display:flex;align-items:center;gap:28px;height:100%;max-width:1440px;margin:auto;padding:0 32px; }
+.home { display:flex;align-items:center;min-height:44px;flex-shrink:0;background:transparent;border:0;cursor:pointer; }
+.desktop { display:flex;align-items:center;gap:4px;height:100%; }
+.item { position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 14px;border:0;border-radius:8px;background:transparent;color:var(--text-secondary);font:inherit;font-size:14px;font-weight:550;white-space:nowrap;cursor:pointer; }
+.item:hover { color:var(--text-primary);background:var(--bg-subtle); }
+.item[aria-current='page'] { color:var(--text-primary);font-weight:700; }
+.item[aria-current='page']::after { content:'';position:absolute;bottom:4px;left:14px;right:14px;height:3px;border-radius:3px;background:var(--brand-highlight); }
+.actions { display:flex;align-items:center;gap:4px;margin-left:auto; }
+.action { display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border:0;border-radius:8px;background:transparent;color:var(--text-body);cursor:pointer; }
+.action:hover { background:var(--bg-subtle); }
+.notification { position:relative; }
+.count { position:absolute;top:2px;right:0;min-width:16px;padding:1px 4px;border-radius:12px;background:var(--color-danger);color:var(--text-inverse);font-size:10px;font-weight:700;line-height:16px;text-align:center; }
+.search { display:flex;align-items:center;gap:8px;min-width:170px;min-height:44px;margin-left:4px;padding:10px 12px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-subtle);color:var(--text-body);font:inherit;font-size:13px;cursor:pointer;text-align:left; }
+.search kbd { margin-left:auto;padding:0 5px;border:1px solid var(--border-strong);border-radius:4px;color:var(--text-secondary);font:inherit;font-size:11px; }
+.search[aria-expanded='true'] { border-color:var(--border-strong);background:var(--surface); }
+.searchWrap { position:relative; }
+.popover { position:absolute;right:0;top:calc(100% + 12px);width:360px;z-index:50; }
+.login { margin-left:8px;flex-shrink:0; }
+.guestSettings { display:grid; }
+.bottom { position:fixed;bottom:0;left:0;right:0;z-index:50;display:flex;border-top:1px solid var(--border-light);background:var(--surface);padding:4px 8px env(safe-area-inset-bottom,0px); }
+.bottomItem { flex:1;min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 0;border:0;background:transparent;color:var(--text-secondary);font:inherit;font-size:12px;font-weight:500;cursor:pointer; }
+.bottomIcon { display:grid;place-items:center;min-width:44px;height:30px;border-radius:10px; }
+.bottomItem[aria-current='page'] { color:var(--text-primary);font-weight:700; }
+.bottomItem[aria-current='page'] .bottomIcon { background:var(--surface-warm); }
+.bottomItem span:last-child { white-space:nowrap;max-width:100%; }
+.header button:focus-visible,.bottom button:focus-visible { outline:2px solid var(--text-primary);outline-offset:2px; }
+@media(min-width:1024px) { .bottom { display:none; } }
+@media(max-width:1199px) { .inner { gap:12px;padding-inline:24px; } .item { padding-inline:10px; } .search { min-width:140px; } }
+@media(max-width:1023px) { .desktop,.guestSettings { display:none; } .inner { padding-inline:20px; } }
+@media(max-width:767px) { .inner { gap:8px;padding-inline:16px; } .search { min-width:44px;width:44px;padding:10px;justify-content:center;border:0;background:transparent; } .search span,.search kbd { display:none; } .popover { position:fixed;left:12px;right:12px;top:calc(var(--app-header-height) + 6px);width:auto; } .login { margin-left:0; } }
+@media(max-width:390px) { .help { display:none; } .inner { gap:0;padding-inline:12px; } .actions { gap:0; } }
+@media(prefers-reduced-motion:no-preference) { .item,.action,.search,.bottomIcon { transition:background 150ms ease,color 150ms ease; } }

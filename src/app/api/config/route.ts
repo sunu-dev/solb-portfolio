@@ -14,6 +14,7 @@ const supabaseAdmin = () => requireServiceClient();
  * 클라이언트 부팅에 실제로 필요한 키만 여기 등재하고, 나머지는 관리자 토큰이 있을 때만 준다.
  */
 const PUBLIC_CONFIG_KEYS = new Set(['service_mode', 'invite_required']);
+const CONFIG_READ_TIMEOUT_MS = 8000;
 
 /** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
 async function isAdminRequest(req: NextRequest): Promise<boolean> {
@@ -23,11 +24,19 @@ async function isAdminRequest(req: NextRequest): Promise<boolean> {
 // GET /api/config — 공개 키만 반환. 관리자 토큰이 있으면 전체 반환.
 export async function GET(req: NextRequest) {
   try {
-    const { data, error } = await supabaseAdmin()
+    const { data, error, status } = await supabaseAdmin()
       .from('app_config')
-      .select('key, value, description, updated_at');
+      .select('key, value, description, updated_at')
+      .abortSignal(AbortSignal.timeout(CONFIG_READ_TIMEOUT_MS));
 
-    if (error) throw error;
+    if (error) {
+      // 공급자가 HTML 오류 페이지를 반환할 수 있다. 원문 전체를 로그에 남기지 않는다.
+      console.error('Config GET upstream failure:', { status, code: error.code || 'unknown' });
+      return NextResponse.json({ error: 'config unavailable' }, {
+        status: 503,
+        headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' },
+      });
+    }
 
     const admin = await isAdminRequest(req);
     const config: Record<string, string> = {};
@@ -44,8 +53,11 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e) {
-    console.error('Config GET error:', e);
-    return NextResponse.json({ error: 'internal error' }, { status: 500 });
+    console.error('Config GET error:', e instanceof Error ? e.name : 'unknown');
+    return NextResponse.json({ error: 'config unavailable' }, {
+      status: 503,
+      headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' },
+    });
   }
 }
 

@@ -14,6 +14,7 @@ import { defineRoute } from '@/lib/apiRoute';
 export const GET = defineRoute({
   name: '/api/me/admin',
   auth: 'optional',
+  deferLog: true,
   handler: async ({ isAdmin }) =>
     NextResponse.json({ isAdmin }, {
       headers: { 'Cache-Control': 'private, no-store' },

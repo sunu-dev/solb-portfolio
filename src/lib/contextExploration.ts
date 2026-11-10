@@ -1,10 +1,11 @@
+import { DISCOVERY_SIGNALS } from '@/config/stockQuestions';
 import { MARKET_GUIDES, type MarketGuideId } from '@/config/marketGuides';
 import { getCompanyEvidence } from '@/lib/guideCompanyEvidence';
 import { getStockIdentityKey } from '@/utils/stockCurrency';
 import type { EconomicKind } from '@/lib/economicEvents';
 import { INDUSTRY_SECTORS, SECTORS, classifiedSectors, sectorById, sectorCompany, sectorOverview, type SectorId, type SectorProfile, type SectorTopicId } from '@/lib/sectorExploration';
 
-export type ExplorationId = MarketGuideId | 'ai' | 'semiconductors' | 'leaders' | 'compare' | 'hbm' | 'memory-cycle' | 'gpu' | SectorTopicId;
+export type ExplorationId = MarketGuideId | 'ai' | 'semiconductors' | 'leaders' | 'compare' | 'hbm' | 'hbm-production' | 'memory-cycle' | 'gpu' | SectorTopicId;
 export interface ExplorationTopic {
   id: ExplorationId; title: string; summary: string;
   steps: { title: string; body: string }[];
@@ -44,7 +45,7 @@ export function sectorQuestions(id: SectorId): ExplorationId[] {
   return id === 'semiconductors' ? ['leaders', 'hbm', 'memory-cycle'] : [sectorOverview(id), `sector:${id}:driver`, `sector:${id}:check`];
 }
 export function sectorForTopic(id: ExplorationId) {
-  if (['semiconductors', 'hbm', 'gpu', 'memory-cycle'].includes(id)) return sectorById('semiconductors');
+  if (['semiconductors', 'hbm', 'hbm-production', 'gpu', 'memory-cycle'].includes(id)) return sectorById('semiconductors');
   if (id.startsWith('sector:')) return SECTORS.find(item => item.id === id.split(':')[1]);
   return undefined;
 }
@@ -88,7 +89,16 @@ export const EXPLORATION_TOPICS: ExplorationTopic[] = [
       { title: '만드는 것과 매출로 이어지는 것은 달라요', body: '제품 개발 뒤에는 고객의 요구를 충족하는지 확인하고, 양산과 출하로 이어져야 해요. 회사마다 제품 세대와 진행 단계가 다를 수 있어요.' },
     ], watch: '고객 평가, 양산·출하 단계, HBM 판매가 회사 이익에 기여하는지 확인해요.',
     condition: 'HBM 수요가 늘어도 모든 회사가 같은 주문을 받는 것은 아니에요. 아래 기업 목록은 공급 점유율 순위가 아니에요.',
-    related: ['gpu', 'memory-cycle', 'ai', 'leaders'], companies: ['000660.KS', 'MU', '005930.KS'], sources: [hynixSource, micronSource, businessSources[1]] },
+    related: ['hbm-production', 'memory-cycle', 'gpu', 'ai', 'leaders'], companies: ['000660.KS', 'MU', '005930.KS'], sources: [hynixSource, micronSource, businessSources[1]] },
+  { id: 'hbm-production', title: 'HBM을 만들면 바로 매출과 이익이 생기나요?',
+    summary: '개발한 제품이 고객의 요구에 맞는지 확인한 뒤, 많이 만들어 실제로 판매하는 단계까지 이어져야 해요. 판매가 늘어도 비용에 따라 남는 이익은 달라져요.',
+    steps: [
+      { title: '개발·고객 평가와 양산을 나눠요', body: '새 제품을 개발했다는 발표와 고객 평가, 양산·출하 발표는 서로 다른 단계예요. 양산은 제품을 대량으로 만드는 것이며, 발표한 제품 세대와 대상 고객 범위를 확인해요.' },
+      { title: '출하량과 판매 가격을 함께 봐요', body: '많이 만들어도 실제 판매로 이어지는 시점은 다를 수 있어요. 판매한 수량과 가격, 어떤 제품을 팔았는지가 매출에 영향을 줘요. 생산 능력 증가를 같은 금액의 매출 증가로 읽지 않아요.' },
+      { title: '매출에서 비용을 빼야 이익이 남아요', body: '제품을 만드는 비용과 설비 투자에 따른 비용 등이 이익에 영향을 줘요. HBM 매출 확대와 회사 전체 이익 증가를 구분하고, 실적 발표에서 제품 구성과 비용 설명을 함께 읽어요.' },
+    ], watch: '같은 제품 세대의 고객 평가·양산·출하 설명을 확인한 뒤, 다음 실적의 판매와 이익 설명으로 이어가요.',
+    condition: '일반적인 확인 순서예요. 모든 회사의 현재 공급 단계나 계약 규모를 확인한 자료는 아니에요.',
+    related: ['memory-cycle', 'compare', 'earnings', 'hbm'], companies: ['000660.KS', 'MU', '005930.KS'], sources: [hynixSource, micronSource, businessSources[1]] },
   { id: 'gpu', title: '엔비디아와 메모리 회사는 경쟁 상대인가요?',
     summary: 'AI 서버에서 GPU와 메모리는 서로 다른 일을 해요. 서로 필요한 제품을 공급하면서도 회사별 경쟁은 각자의 제품 시장에서 봐야 해요.',
     steps: [
@@ -106,7 +116,7 @@ export const EXPLORATION_TOPICS: ExplorationTopic[] = [
       { title: '가격에서 이익까지 한 번 더 확인해요', body: '판매 가격과 수량이 매출을 만들고, 여기서 생산 비용 등을 빼면 이익이 남아요. 공장 투자와 제품 구성도 결과를 바꿀 수 있어요.' },
     ], watch: '다음 실적에서 판매 가격·출하량·제품 구성과 이익률 설명을 이어서 확인해요.',
     condition: '현재 가격 상승·하락을 알리는 내용이 아니라 메모리 업황을 읽는 방법이에요.',
-    related: ['hbm', 'earnings', 'compare'], companies: ['MU', '000660.KS', '005930.KS'], sources: [hynixSource, businessSources[1], micronSource] },
+    related: ['earnings', 'hbm-production', 'hbm', 'compare'], companies: ['MU', '000660.KS', '005930.KS'], sources: [hynixSource, businessSources[1], micronSource] },
   { id: 'compare', title: '관련 회사들은 어떤 기준으로 비교할까요?',
     summary: '이름이 같은 업종에 있어도 고객과 제품, 비용이 다르면 실적도 달라져요.',
     steps: [
@@ -137,6 +147,19 @@ export const EXPLORATION_TOPICS: ExplorationTopic[] = [
   }),
 ];
 export const explorationTopic = (id: ExplorationId) => EXPLORATION_TOPICS.find(topic => topic.id === id)!;
+/** Explain the unresolved point that connects this answer to its next question. */
+export function explorationFollowupReason(current:ExplorationId|undefined, next:ExplorationId) {
+  if(next==='hbm-production') return 'HBM의 쓰임을 알았다면, 만드는 일이 판매와 이익으로 이어지는 단계를 봐요.';
+  if(next==='memory-cycle') return '판매로 이어져도 가격·수량·비용에 따라 남는 이익은 달라져요.';
+  if(next==='hbm') return '서버에 필요한 메모리가 어떤 일을 하는지 이어서 알아봐요.';
+  if(next==='gpu') return '메모리와 함께 언급된 연산 장치의 역할을 나눠봐요.';
+  if(next==='earnings') return '이 변화가 실제 매출과 이익에 나타났는지 읽는 방법을 봐요.';
+  if(next==='compare') return '앞에서 본 역할과 수익 구조를 회사별로 비교하는 기준을 잡아요.';
+  if(next==='leaders') return '대표 기업을 알았다면, 크기·점유율·주가 흐름의 기준을 구분해요.';
+  if(next.endsWith(':check')) return '앞에서 설명한 변화가 실제로 나타났는지 확인할 항목을 봐요.';
+  if(next.endsWith(':driver')) return '기업의 제품과 고객을 알았다면, 수요와 비용이 실적에 닿는 과정을 봐요.';
+  return explorationTopic(next).summary.split(/(?<=요\.)\s/)[0];
+}
 export function stockExploration(symbol: string, profile?: SectorProfile): ExplorationId[] {
   const identity = getStockIdentityKey(symbol);
   if (['MU', 'NVDA', 'KR:005930', 'KR:000660'].includes(identity)) return ['semiconductors', 'ai', 'leaders'];
@@ -179,7 +202,7 @@ export function newsExploration(title: string): ExplorationId[] {
   if (/인공지능|오픈\s?AI|데이터센터|\b(?:AI|OpenAI)\b/i.test(title)) topics.push('ai');
   if (/물가|인플레이션|\b(?:CPI|PCE|inflation)\b/i.test(title)) topics.push('inflation');
   if (/금리|연준|\b(?:FOMC|Fed)\b/i.test(title)) topics.push('rates');
-  if (/환율|달러|\b(?:currency|dollar)\b/i.test(title)) topics.push('currency');
+  if (DISCOVERY_SIGNALS.fx.test(title)) topics.push('currency');
   if (/실적|매출|영업이익|\b(?:earnings|revenue)\b/i.test(title)) topics.push('earnings');
   return topics.slice(0, 3);
 }

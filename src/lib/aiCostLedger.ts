@@ -6,7 +6,9 @@ export interface AiTokenUsage {
   inputTokens: number;
   outputTokens: number;
   cachedInputTokens?: number;
+  cacheWriteInputTokens?: number;
   reasoningTokens?: number;
+  webSearchRequests?: number;
 }
 
 export interface AiCostEntry extends AiTokenUsage {
@@ -49,15 +51,31 @@ const safeTokenCount = (value: number | undefined): number =>
   Number.isFinite(value) && (value ?? 0) > 0 ? Math.floor(value!) : 0;
 
 export function estimateAiCostUsd(model: string, usage: AiTokenUsage): number {
+  const searchCost = safeTokenCount(usage.webSearchRequests) * 0.01;
+  if (model === 'claude-sonnet-5-5') {
+    // Standard API and default 5-minute cache, verified against official pricing 2026-11-07.
+    const total = safeTokenCount(usage.inputTokens), read = Math.min(total, safeTokenCount(usage.cachedInputTokens));
+    const write = Math.min(total - read, safeTokenCount(usage.cacheWriteInputTokens));
+    return searchCost + ((total - read - write) * 2 + read * .10 + write * 2.50
+      + (safeTokenCount(usage.outputTokens) + safeTokenCount(usage.reasoningTokens)) * 10) / 1_000_000;
+  }
+  if (model === 'claude-haiku-5-5') {
+    // Direct standard API tariff checked 2026-11-07. Explicit caches use the default 5-minute TTL.
+    const total = safeTokenCount(usage.inputTokens), read = Math.min(total, safeTokenCount(usage.cachedInputTokens));
+    const write = Math.min(total - read, safeTokenCount(usage.cacheWriteInputTokens));
+    const tier = total > 100_000 ? 5 : 1;
+    return searchCost + tier * ((total - read - write) * 0.10 + read * 0.01 + write * 0.125
+      + (safeTokenCount(usage.outputTokens) + safeTokenCount(usage.reasoningTokens)) * 0.50) / 1_000_000;
+  }
   const price = MODEL_PRICES[model];
-  if (!price) return 0;
+  if (!price) return searchCost;
 
   const cached = safeTokenCount(usage.cachedInputTokens);
   const input = Math.max(0, safeTokenCount(usage.inputTokens) - cached);
   const output = safeTokenCount(usage.outputTokens) + safeTokenCount(usage.reasoningTokens);
   const cachedRate = price.cachedInputPerMillionUsd ?? price.inputPerMillionUsd;
 
-  return (
+  return searchCost + (
     input * price.inputPerMillionUsd
     + cached * cachedRate
     + output * price.outputPerMillionUsd
@@ -74,7 +92,9 @@ export async function recordAiCost(entry: AiCostEntry): Promise<void> {
     inputTokens: safeTokenCount(entry.inputTokens),
     outputTokens: safeTokenCount(entry.outputTokens),
     cachedInputTokens: safeTokenCount(entry.cachedInputTokens),
+    cacheWriteInputTokens: safeTokenCount(entry.cacheWriteInputTokens),
     reasoningTokens: safeTokenCount(entry.reasoningTokens),
+    webSearchRequests: safeTokenCount(entry.webSearchRequests),
   };
 
   try {
@@ -93,7 +113,7 @@ export async function recordAiCost(entry: AiCostEntry): Promise<void> {
       cache_hit: entry.cacheHit ?? usage.cachedInputTokens > 0,
       success: entry.success ?? true,
       error_code: entry.errorCode || null,
-    });
+    }).abortSignal(AbortSignal.timeout(3000));
     if (error) console.error('[AI cost ledger] insert failed:', error.message);
   } catch (error) {
     console.error('[AI cost ledger] unexpected error:', error instanceof Error ? error.message : error);

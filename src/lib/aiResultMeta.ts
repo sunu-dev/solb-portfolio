@@ -8,6 +8,7 @@ export interface AiResultMeta {
     provider: string;
     retrievedAt: string;
     note?: string;
+    url?: string;
   }>;
   aiProvider?: string;
   aiModel?: string;
@@ -15,11 +16,11 @@ export interface AiResultMeta {
 
 export function createAiResultMeta(
   feature: 'ai-analysis' | 'ai-chok',
-  opts: { symbol?: string; aiProvider?: string; aiModel?: string } = {},
+  opts: { symbol?: string; aiProvider?: string; aiModel?: string; sourceDetails?: AiResultMeta['sourceDetails'] } = {},
 ): AiResultMeta {
   const generatedAt = new Date().toISOString();
   const isKr = !!opts.symbol && isKoreanStockSymbol(opts.symbol);
-  const sourceDetails = feature === 'ai-analysis'
+  const sourceDetails = opts.sourceDetails ?? (feature === 'ai-analysis'
     ? [
         { name: '현재 시세', provider: isKr ? '한국거래소 연계 시세' : 'Finnhub', retrievedAt: generatedAt, note: 'AI 요청 직전 조회' },
         { name: '차트·기술 지표', provider: '주비 계산 엔진', retrievedAt: generatedAt, note: '클라이언트 보유 캔들 기준' },
@@ -31,7 +32,7 @@ export function createAiResultMeta(
         { name: '기업 기본정보', provider: 'Finnhub·주비 종목 데이터', retrievedAt: generatedAt, note: '캐시 포함' },
         { name: '시장 지표', provider: '주비 시장 데이터', retrievedAt: generatedAt, note: '요청 시점 입력' },
         { name: '관찰 유니버스', provider: '주비 선정 기준', retrievedAt: generatedAt },
-      ];
+      ]);
   return {
     generatedAt,
     dataSources: sourceDetails.map(source => `${source.name}(${source.provider})`),
@@ -44,7 +45,7 @@ export function createAiResultMeta(
 export function attachAiResultMeta<T extends object>(
   value: T,
   feature: 'ai-analysis' | 'ai-chok',
-  opts: { symbol?: string; aiProvider?: string; aiModel?: string } = {},
+  opts: { symbol?: string; aiProvider?: string; aiModel?: string; sourceDetails?: AiResultMeta['sourceDetails'] } = {},
 ): T & { _meta: AiResultMeta } {
   return { ...value, _meta: createAiResultMeta(feature, opts) };
 }

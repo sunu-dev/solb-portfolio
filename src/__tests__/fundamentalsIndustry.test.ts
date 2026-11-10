@@ -1,42 +1,46 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET } from '@/app/api/fundamentals/route';
-vi.mock('@/lib/serverLogger', () => ({ logServerApi: vi.fn() }));
+// These cases cover legacy sourced profiles while the engine store is healthy and has no publication.
+vi.mock('@/lib/companyBusiness/store', () => ({ readPublishedBusiness: vi.fn(async () => ({ status: 'none' })) }));
+import { GET } from '@/app/api/company-profile/route';
+import { GET as retired } from '@/app/api/fundamentals/route';
 afterEach(() => vi.unstubAllGlobals());
-const request = (symbol: string) => new NextRequest('http://localhost/api/fundamentals?symbol=' + symbol);
+const request = (symbol: string) => new NextRequest('http://localhost/api/company-profile?symbol=' + symbol);
 
-describe('fundamentals retains stored classification during provider outages', () => {
-  it('returns industry evidence without inventing financial metrics', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('rate limited')));
+describe('company profile without financial data', () => {
+  it('returns business coverage with sources, without new upstream calls', async () => {
+    const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
+    const netflix = await (await GET(request('NFLX'))).json();
+    expect(netflix.data.business.level).toBe('detailed');
+    expect(netflix.data.business.summary).toContain('구독료');
+    expect(netflix.data.business.sources).toHaveLength(2);
+    const samsung = await (await GET(request('009150'))).json();
+    expect(samsung.data.classification.name).toBe('삼성전기');
+    expect(samsung.data.business.level).toBe('detailed');
+    const unknown = await (await GET(request('UNKNOWN'))).json();
+    expect(unknown.data.business).toEqual(expect.objectContaining({ symbol: 'UNKNOWN', level: 'missing', sources: [] }));
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('preserves sourced classification without calling an external financial provider', async () => {
+    const fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher);
     const { data } = await (await GET(request('PLTR'))).json();
     expect(data.classification.status).toBe('classified');
-    expect(data.industry).toBeTruthy();
     expect(data.sector).toBe('정보기술');
-    expect(data.per).toBeNull();
-    expect(data.marketCap).toBeNull();
+    expect(data).not.toHaveProperty('per');
+    expect(data).not.toHaveProperty('marketCap');
+    expect(fetcher).not.toHaveBeenCalled();
   });
-  it('resolves a known Korean exchange and keeps unknown Korean codes in KRW', async () => {
-    const fetcher = vi.fn().mockRejectedValue(new Error('unavailable'));
-    vi.stubGlobal('fetch', fetcher);
+  it('keeps exchange resolution, currency, unknown and conflicting classification', async () => {
     const { data } = await (await GET(request('005930'))).json();
-    expect(data.resolvedSymbol).toBe('005930.KS');
-    expect(data.currency).toBe('KRW');
-    expect(fetcher.mock.calls[0][0]).toContain('/005930.KS?');
+    expect(data.resolvedSymbol).toBe('005930.KS'); expect(data.currency).toBe('KRW');
     const unknown = await (await GET(request('999999'))).json();
-    expect(unknown.data.currency).toBe('KRW');
-    expect(unknown.data.classification.status).toBe('not-covered');
-  });
-  it('retains measured zeros and prefers sourced industry over conflicting Yahoo text', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) => new Response(JSON.stringify(
-      url.includes('/chart/') ? { chart: { result: [{ meta: { currency: 'USD', marketCap: 123 } }] } }
-        : { quoteSummary: { result: [{ summaryDetail: { trailingPE: { raw: 0 }, dividendYield: { raw: 0 } }, defaultKeyStatistics: { trailingEps: { raw: 0 } }, assetProfile: { industry: 'Wrong industry' } }] } }
-    ))));
-    const { data } = await (await GET(request('PLTR'))).json();
-    expect(data.per).toBe(0); expect(data.eps).toBe(0); expect(data.dividendYield).toBe(0);
-    expect(data.industry).not.toBe('Wrong industry');
-    expect(data.marketCap).toBe(123);
+    expect(unknown.data.currency).toBe('KRW'); expect(unknown.data.classification.status).toBe('not-covered');
     const conflict = await (await GET(request('MFIC'))).json();
-    expect(conflict.data.industry).toBeNull();
-    expect(conflict.data.classification.status).toBe('conflict');
+    expect(conflict.data.industry).toBeNull(); expect(conflict.data.classification.status).toBe('conflict');
+  });
+  it('rejects missing symbols and explicitly retires the old endpoint without caching', async () => {
+    expect((await GET(request(''))).status).toBe(400);
+    const result = await retired();
+    expect(result.status).toBe(410); expect(result.headers.get('cache-control')).toBe('no-store');
   });
 });

@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useEffectEvent, useState, useMemo, useCallback, useRef, useSyncExternalStore } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import dynamic from 'next/dynamic';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { lockBodyScroll } from '@/lib/bodyScrollLock';
-import { useCandleData, fetchKoreanNews } from '@/hooks/useStockData';
+import ShortPriceHistory from './ShortPriceHistory';
+import { useCandleData } from '@/hooks/useStockData';
+import { fetchCompanyNews } from '@/lib/newsFeed';
 import { useAnalysisQuota } from '@/hooks/useAnalysisQuota';
 import { useNow } from '@/hooks/useNow';
 import {
@@ -18,15 +20,23 @@ import { buildChartNarrative } from '@/utils/chartNarrative';
 import { STOCK_KR } from '@/config/constants';
 import { quoteDirection, quoteTimestamp } from '@/utils/quotePresentation';
 import type { AIReport, StockItem, QuoteData, NewsItem } from '@/config/constants';
-import { BarChart3, Check, ChevronLeft, ChevronRight, Maximize2, Minimize2, ShieldAlert, Sparkles, X } from 'lucide-react';
+import { BarChart3, ChevronLeft, ChevronRight, Maximize2, Minimize2, ShieldAlert, Sparkles, X } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { supabase } from '@/lib/supabase';
 import { MENTORS } from '@/config/mentors';
 import Disclaimer from '@/components/common/Disclaimer';
 import { STOCK_QUESTIONS, stockQuestion, discoveryTags, lessonForQuestion, type StockQuestion } from '@/config/stockQuestions';
-import { evidenceRevision, publicQuestionNews, recentDiscoveryNews, updateDiscovery } from '@/lib/stockDiscovery';
+import { evidenceRevision, publicQuestionNews, recentDiscoveryNews } from '@/lib/stockDiscovery';
+import { selectReadingAnchor, restoredAnchorTop, type ReadingAnchor } from '@/lib/readingPosition';
+import { newsKey } from '@/lib/stockDiscovery';
 import StockReturnBrief from './StockReturnBrief';
+import StockDailyBrief from './StockDailyBrief';
+import StockCompanyOverview from './StockCompanyOverview';
+import { companyDisplayName } from '@/lib/companyBusinessProfile';
+import StockDetailResources from './StockDetailResources';
+import StockVisitSummary from './StockVisitSummary';
+import CompanyMark from '../common/CompanyMark';
 import { usageEvent } from '@/lib/usageTelemetry';
 import { STOCK_LESSONS } from '@/config/stockLearning';
 import { buildStockCheckup, getStockVolumeRatio } from '@/utils/stockCheckup';
@@ -34,15 +44,17 @@ import { buildAnalysisLoadingFacts, type AnalysisLoadingFact } from '@/utils/ana
 import { ANALYSIS_DAILY_LIMIT_MESSAGE, getAnalysisRemaining } from '@/utils/analysisQuota';
 import StockCheckup from './StockCheckup';
 import StockAnalysisQuestions, { getStockAnalysisAnswerTitle } from './StockAnalysisQuestions';
+import JoobiAssistantLauncher from '@/components/learning/JoobiAssistantLauncher';
 import IntradayStockChart from './IntradayStockChart';
 import ContextExploration, { type ExplorationReadingState } from '@/components/explore/ContextExploration';
 import { explorationCompany, stockExploration } from '@/lib/contextExploration';
-import { sectorsForCompany } from '@/lib/sectorExploration';
 import StockAnswerLoading from './StockAnswerLoading';
 import assistantStyles from './StockAssistant.module.css';
 import panelStyles from './AnalysisPanel.module.css';
-import StockLearning from './StockLearning';
+import StockLearning, { type LearningReadingState } from './StockLearning';
+import FundExploration, { type FundReadingState } from '@/components/explore/FundExploration';
 import AnalysisNavigation from './AnalysisNavigation';
+import { fundProfile, fundQuestions, type FundQuestionId } from '@/lib/fundExploration';
 import { isSingleStockLeverage, LEVERAGE_ANALYSIS_REFUSAL } from '@/utils/leverageGuard';
 import AiResultMeta from '@/components/common/AiResultMeta';
 import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
@@ -53,84 +65,15 @@ import {
   isKoreanStockSymbol,
 } from '@/utils/stockCurrency';
 
-const AI_STEPS = [
-  { label: '최신 뉴스 수집 중', pct: 15 },
-  { label: '시세 데이터 갱신 중', pct: 35 },
-  { label: '기술 지표 분석 중', pct: 55 },
-  { label: 'AI 리포트 생성 중', pct: 75 },
-  { label: '결과 정리 중', pct: 92 },
-];
-
 function AIProgressIndicator() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const timers = AI_STEPS.map((_, i) =>
-      setTimeout(() => setStep(i), i === 0 ? 300 : i * 2200 + 300)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  const current = AI_STEPS[step] || AI_STEPS[AI_STEPS.length - 1];
-
-  return (
-    <div style={{ padding: '28px 0' }}>
-      {/* Progress bar */}
-      <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{
-          height: '100%',
-          borderRadius: 3,
-          background: 'var(--text-primary)',
-          width: `${current.pct}%`,
-          transition: 'width 1.8s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} />
-      </div>
-
-      {/* Percentage + step label */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)' }}>
-          {current.label}...
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-          {current.pct}%
-        </span>
-      </div>
-
-      {/* Step checklist */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {AI_STEPS.map((s, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-            <span style={{
-              width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600,
-              background: i === step ? 'var(--pill-active-bg)' : 'var(--bg-subtle, #F2F4F6)',
-              color: i < step ? 'var(--text-primary)' : i === step ? 'var(--pill-active-fg)' : 'var(--text-tertiary, #B0B8C1)',
-              transition: 'all 0.3s ease',
-            }}>
-              {i < step ? <Check size={12} aria-label="완료" /> : i + 1}
-            </span>
-            <span style={{
-              color: i <= step ? 'var(--text-primary, #191F28)' : 'var(--text-tertiary, #B0B8C1)',
-              fontWeight: i === step ? 600 : 400,
-              transition: 'all 0.3s ease',
-            }}>
-              {s.label}
-            </span>
-            {i === step && (
-              <span style={{ marginLeft: 'auto' }}>
-                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--text-primary)', animation: 'aiPulse 1.2s ease-in-out infinite' }} />
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-      <style>{`
-        @keyframes aiPulse {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
+  return <div role="status" aria-live="polite" style={{ padding: '28px 0' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-primary)', fontSize: 15, fontWeight: 600 }}>
+      <Sparkles size={18} aria-hidden="true" /> 주비가 분석을 정리하고 있어요
     </div>
-  );
+    <p style={{ marginTop: 8, fontSize: 13, lineHeight: 1.7, color: 'var(--text-body)' }}>
+      확인한 시세와 뉴스를 바탕으로 설명을 준비하고 있어요. 잠시만 기다려주세요.
+    </p>
+  </div>;
 }
 
 const StockChart = dynamic(() => import('./StockChart'), { ssr: false });
@@ -152,16 +95,11 @@ interface MentorReport extends AnalysisReport {
   quote?: string;
 }
 
-interface Fundamentals {
+interface CompanyProfile {
+  business?: import('@/lib/companyBusinessProfile').CompanyBusinessProfile;
   classification?: import('@/lib/industryRegistry').StoredIndustryProfile;
-  per?: number;
-  eps?: number;
-  marketCap?: number;
-  dividendYield?: number;
-  week52High?: number;
-  week52Low?: number;
-  sector?: string;
-  industry?: string;
+  sector?: string | null;
+  industry?: string | null;
   currency?: 'KRW' | 'USD';
   resolvedSymbol?: string;
 }
@@ -176,6 +114,22 @@ export function clearAnalysisCache() {
   Object.keys(mentorReportCache).forEach(k => delete mentorReportCache[k]);
 }
 
+const WIDE_MODE_KEY = 'solb_analysis_wide';
+const WIDE_MODE_EVENT = 'joobi-analysis-width';
+let unavailableStorageWideMode = false;
+function subscribeWideMode(listener: () => void) {
+  window.addEventListener('storage', listener);
+  window.addEventListener(WIDE_MODE_EVENT, listener);
+  return () => {
+    window.removeEventListener('storage', listener);
+    window.removeEventListener(WIDE_MODE_EVENT, listener);
+  };
+}
+function readWideMode() {
+  try { return localStorage.getItem(WIDE_MODE_KEY) === '1'; } catch { return unavailableStorageWideMode; }
+}
+const serverWideMode = () => false;
+
 type ChartLevel = 'basic' | 'detail';
 
 import { formatKrw, formatUsd, resolveUsdKrwState } from '@/utils/koreanNumber';
@@ -184,16 +138,6 @@ function fmtNativePrice(val: number, nativeCurrency: 'KRW' | 'USD'): string {
   return nativeCurrency === 'KRW'
     ? formatKrw(val)
     : formatUsd(val);
-}
-function fmtMarketCap(val: number, nativeCurrency: 'KRW' | 'USD'): string {
-  if (nativeCurrency === 'KRW') {
-    if (val >= 1e12) return `${(val / 1e12).toFixed(1)}조원`;
-    if (val >= 1e8) return `${(val / 1e8).toFixed(1)}억원`;
-    return formatKrw(val, { prefix: false, suffix: '원', short: false });
-  }
-  if (val >= 1e12) return `$${(val / 1e12).toFixed(1)}T`;
-  if (val >= 1e9) return `$${(val / 1e9).toFixed(1)}B`;
-  return `$${(val / 1e6).toFixed(0)}M`;
 }
 
 
@@ -206,16 +150,29 @@ function fmtMarketCap(val: number, nativeCurrency: 'KRW' | 'USD'): string {
  */
 async function fetchQuoteViaServer(symbol: string): Promise<QuoteData | null> {
   if (isKoreanStockSymbol(symbol)) {
-    const r = await fetch(`/api/kr-quote?symbol=${symbol}`);
+    const r = await fetch(`/api/kr-quote?symbol=${encodeURIComponent(symbol)}`, {signal:AbortSignal.timeout(12000)});
     return await r.json();
   }
   const r = await fetch('/api/quotes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ symbols: [symbol] }),
+    signal: AbortSignal.timeout(12000),
   });
   const json = await r.json();
   return json?.quotes?.[symbol] ?? null;
+}
+
+interface InlineReadingEntry {
+  symbol: string;
+  id: string;
+  originId: string;
+  returnLabel: string;
+  returnTop: number;
+  sequence: number;
+  reading?: LearningReadingState;
+  fundReading?: FundReadingState;
+  answerSnapshot?: { question: StockQuestion; report: MentorReport; cachedAt: number | null };
 }
 
 export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
@@ -231,10 +188,12 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
     currency: state.currency, getAllSymbols: state.getAllSymbols,
   })));
 
-  const { fetchCandle } = useCandleData(analysisSymbol);
-  const [learningEntry,setLearningEntry]=useState<{symbol:string;id:string;sequence:number}|null>(null);
+  const { fetchCandle, candleStatus } = useCandleData(analysisSymbol);
+  const [learningEntries, setLearningEntries] = useState<Record<string, InlineReadingEntry>>({});
+  const [libraryReadings, setLibraryReadings] = useState<Record<string, LearningReadingState>>({});
   const [tickerNews, setTickerNews] = useState<NewsItem[]>([]);
   const [newsState,setNewsState]=useState<{symbol:string;status:'ok'|'empty'|'error'}|null>(null);
+  const [newsRequest,setNewsRequest]=useState(0);
   const [loading, setLoading] = useState(true);
   const [chartLevel, setChartLevel] = useState<ChartLevel>('basic');
   const [chartRange, setChartRange] = useState<number>(1); // 1 = latest intraday session; other values = daily bars
@@ -255,22 +214,33 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const mentorRequestRef = useRef<AbortController | null>(null);
   const { quota: aiQuota, remaining: aiRemaining, status: quotaStatus, acceptResponse: acceptQuotaResponse } = useAnalysisQuota(!!analysisSymbol);
   const now = useNow();
-  const [fundamentals, setFundamentals] = useState<Fundamentals | null>(null);
-  const hasFundamentalValues = !!fundamentals && (
-    [fundamentals.per, fundamentals.eps, fundamentals.marketCap,
-      fundamentals.week52High, fundamentals.week52Low].some(value => typeof value === 'number' && Number.isFinite(value))
-    || (fundamentals.dividendYield ?? 0) > 0 || !!fundamentals.sector
-  );
-  const [wideMode, setWideMode] = useState(false); // lg+ 넓게 보기(opt-in, localStorage)
+  const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
+  const [companyProfileRequest, setCompanyProfileRequest] = useState(0);
+  const wideMode = useSyncExternalStore(subscribeWideMode, readWideMode, serverWideMode);
 
   const symbol = analysisSymbol;
+  const readingKey = `${owner}:${symbol}`;
+  const learningEntry = learningEntries[readingKey];
   const kr = symbol ? (STOCK_KR[symbol] || symbol) : '';
+  const [activeReadingKey, setActiveReadingKey] = useState(readingKey);
+  // Reset before a changed company/account is painted, keeping each company's saved reader.
+  if (activeReadingKey !== readingKey) {
+    setActiveReadingKey(readingKey);
+    setLoading(true);
+    setShowAIReport(false); setAiReport(null); setAiLoading(false); setAiError('');
+    const saved = learningEntries[readingKey]?.answerSnapshot;
+    setSelectedMentor(saved?.question ?? null);
+    setMentorReport(saved?.report ?? null);
+    setMentorCachedAt(saved?.cachedAt ?? null);
+    setMentorLoading(false); setMentorError('');
+    setChartLevel('basic'); setChartRange(1); setCompanyProfile(null); setTickerNews([]); setNewsState(null);
+  }
+  const fetchCurrentCandles = useEffectEvent(() => fetchCandle());
 
   // 패널 열릴 때 해당 종목 최신 시세 즉시 fetch
   useEffect(() => {
     if (!symbol) return;
     let active = true;
-    setLoading(true);
 
     const fetchFreshQuote = async () => {
       try {
@@ -281,28 +251,37 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
       } catch { /* fallback to cached */ }
     };
 
-    const fetchFundamentals = async () => {
-      try {
-        const r = await fetch(`/api/fundamentals?symbol=${symbol}`);
-        const d = await r.json();
-        if (active && d?.data) setFundamentals(d.data);
-      } catch { /* silent */ }
-    };
-
-    Promise.all([fetchCandle(), fetchFreshQuote(), fetchFundamentals()]).finally(() => { if (active) setLoading(false); });
+    Promise.allSettled([fetchCurrentCandles(), fetchFreshQuote()]).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [symbol]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [symbol, owner]);
 
   useEffect(() => {
     if (!symbol) return;
     let active = true;
-    const krName = STOCK_KR[symbol] || symbol;
-    const q = (krName !== symbol ? krName + ' ' : '') + symbol + ' 주가';
-    fetchKoreanNews(q).then(result => {
+    const controller = new AbortController();
+    const fetchCompanyProfile = async () => {
+      try {
+        const r = await fetch(`/api/company-profile?symbol=${encodeURIComponent(symbol)}`, {signal:AbortSignal.any([controller.signal, AbortSignal.timeout(5000)])});
+        const d = await r.json();
+        if (!r.ok || !d?.data?.business) throw new Error('profile_unavailable');
+        if (active) setCompanyProfile(d.data);
+      } catch {
+        if (active) setCompanyProfile({ business: { symbol, level: 'missing', sources: [], origin: 'engine', availability: 'unavailable' } });
+      }
+    };
+
+    void fetchCompanyProfile();
+    return () => { active = false; controller.abort(); };
+  }, [symbol, owner, companyProfileRequest]);
+
+  useEffect(() => {
+    if (!symbol) return;
+    let active = true;
+    fetchCompanyNews(symbol, undefined, newsRequest > 0).then(result => {
       if (active) { setTickerNews(result.items.slice(0, 5)); setNewsState({symbol,status:result.status}); }
     });
     return () => { active = false; };
-  }, [symbol]);
+  }, [symbol, owner, newsRequest]);
 
   const stockData = useMemo((): StockItem | null => {
     if (!symbol) return null;
@@ -315,9 +294,9 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
   // 단일종목 레버리지·인버스: 매수 매력도·매매 방향(차트 신호·기술 지표 '매수' 배지)을 가리고
   // 위험 해설만 — §6 자문업 차단. 영속 종목명(stockData.name) 우선 → 한국 ETF 16종 키워드 탐지.
-  const businessSectors = symbol ? sectorsForCompany(symbol).filter(sector => sector.parent) : [];
-  const displayName = stockData?.name || (symbol ? explorationCompany(symbol)?.name : undefined) || kr;
+  const displayName = symbol ? companyDisplayName(symbol, [stockData?.name, explorationCompany(symbol)?.name, kr, companyProfile?.classification?.name]) : '';
   const isLev = isSingleStockLeverage(symbol || '', displayName);
+  const isFund = isLev || !!fundProfile(symbol || '') || companyProfile?.classification?.status === 'etp';
 
   const analysis = useMemo(() => {
     const raw = symbol ? rawCandles[symbol] : null;
@@ -369,24 +348,49 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const analysisBodyRef = useRef<HTMLDivElement>(null);
+  const readingPositions = useRef(new Map<string, { top: number; range: number; kind: "company" | "position"; anchor?: ReadingAnchor }>());
   const [readingVisits, setReadingVisits] = useState(() => new Map<string, { reading: ExplorationReadingState; companyOffset: number }>());
+  const [companyExplorations, setCompanyExplorations] = useState<Record<string, { open?: boolean; reading?: ExplorationReadingState }>>({});
 
+  const restoredReadingKey = useRef<string | null>(null);
+  useEffect(() => { restoredReadingKey.current = null; }, [symbol, owner]);
   useEffect(() => {
-    if (!symbol || loading) return;
-    const visit = readingVisits.get(symbol);
-    const frame = requestAnimationFrame(() => {
-      const body = analysisBodyRef.current;
-      const companyIntro = body?.querySelector<HTMLElement>('#anchor-company');
-      if (body) body.scrollTop = visit && companyIntro
-        ? body.scrollTop + companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top - visit.companyOffset
-        : 0;
-      const target = visit
-        ? dialogRef.current?.querySelector<HTMLElement>('#anchor-company h3')
-        : dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
-      target?.focus({ preventScroll: true });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [symbol, loading, readingVisits]);
+    if (!symbol || loading || restoredReadingKey.current === readingKey) return;
+    // News and its inline reader mount independently of the chart request.
+    if (newsState?.symbol !== symbol) return;
+    const body = analysisBodyRef.current;
+    if (!body) return;
+    const position = readingPositions.current.get(readingKey);
+    const visit = position?.kind === 'company' ? readingVisits.get(readingKey) : undefined;
+    if (position) setChartRange(position.range);
+    let frame = 0;
+    const restore = () => {
+      if (restoredReadingKey.current === readingKey) return;
+      const reader = learningEntry ? body.querySelector<HTMLElement>(`[data-inline-origin="${CSS.escape(learningEntry.originId)}"]`) : null;
+      const originMissing = learningEntry?.originId.startsWith('news-') && !tickerNews.some(item => `news-${newsKey(item)}` === learningEntry.originId);
+      if (learningEntry && !reader && !originMissing) return;
+      cancelAnimationFrame(frame);
+      // Let the restored chart period commit before measuring the reading anchor.
+      frame = requestAnimationFrame(() => { frame = requestAnimationFrame(() => {
+        const companyIntro = body.querySelector<HTMLElement>('[data-company-exploration-anchor]');
+        const anchor = position?.anchor ? body.querySelector<HTMLElement>(position.anchor.selector) : null;
+        body.scrollTop = visit && companyIntro
+          ? body.scrollTop + companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top - visit.companyOffset
+          : anchor && position?.anchor
+            ? restoredAnchorTop(body.scrollTop, anchor.getBoundingClientRect().top - body.getBoundingClientRect().top, position.anchor.offset)
+            : position?.top ?? 0;
+        const anchorHeading = anchor?.matches('h2,h3') ? anchor : anchor?.querySelector<HTMLElement>('h2,h3');
+        const target = anchorHeading ?? reader?.querySelector<HTMLElement>('h3') ?? (visit ? body.querySelector<HTMLElement>('[data-company-exploration-anchor] h3') : dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]'));
+        if (target && !target.hasAttribute('tabindex')) target.tabIndex = -1;
+        target?.focus({ preventScroll: true });
+        restoredReadingKey.current = readingKey;
+      }); });
+    };
+    const observer = new MutationObserver(restore);
+    observer.observe(body, { childList: true, subtree: true });
+    restore();
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [symbol, loading, readingVisits, owner, readingKey, newsState, learningEntry, tickerNews]);
 
   const close = useCallback(() => {
     setAnalysisSymbol(null);
@@ -400,23 +404,13 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   // 모달 접근성 — ESC 닫기 + 포커스 트랩 + 복원 (거짓 aria-modal 해소)
   useFocusTrap(!!symbol, dialogRef, close);
 
-  // 종목 스위처로 symbol이 바뀌면 모달이 재마운트되지 않으므로, 이전 종목의 AI/멘토/차트 상태를
-  // 명시적으로 reset(스테일 데이터 노출 방지). fundamentals·tickerNews는 각 per-symbol effect가 재취득.
-  useEffect(() => {
-    setShowAIReport(false); setAiReport(null); setAiLoading(false); setAiError('');
-    setSelectedMentor(null); setMentorReport(null); setMentorLoading(false); setMentorError('');
-    setChartLevel('basic'); setChartRange(1); setFundamentals(null); setTickerNews([]);
-    return () => {
-      mentorRequestRef.current?.abort();
-      mentorRequestRef.current = null;
-      aiRequestRef.current?.abort();
-      aiRequestRef.current = null;
-    };
-  }, [symbol]);
-
-  useEffect(() => {
-    try { setWideMode(localStorage.getItem('solb_analysis_wide') === '1'); } catch { /* SSR/비가용 */ }
-  }, []);
+  // Cancel the previous company/account's requests without resetting unrelated reader state.
+  useEffect(() => () => {
+    mentorRequestRef.current?.abort();
+    mentorRequestRef.current = null;
+    aiRequestRef.current?.abort();
+    aiRequestRef.current = null;
+  }, [symbol, owner]);
 
   if (!symbol) return null;
 
@@ -427,7 +421,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
   const cp = quote?.dp || 0;
   const nativeCurrency = getStockCurrency(symbol, stockData?.currency);
   const isKoreanStock = nativeCurrency === 'KRW';
-  const fundamentalsCurrency = fundamentals?.currency || nativeCurrency;
+  const profileCurrency = companyProfile?.currency || nativeCurrency;
   const priceAmounts = convertStockAmount(
     symbol,
     price,
@@ -519,7 +513,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
       const [{ data: { session } }, { buildTimeSeriesContext }, refreshedQuote, requestedNews] = await Promise.all([
         supabase.auth.getSession(), import('@/utils/timeSeries'),
         Number.isFinite(price) && price > 0 ? Promise.resolve(null) : fetchQuoteViaServer(symbol),
-        newsState?.symbol===symbol && newsState.status!=='error' ? Promise.resolve(null) : fetchKoreanNews(`${STOCK_KR[symbol]||symbol} ${symbol} 주가`),
+        newsState?.symbol===symbol && newsState.status!=='error' ? Promise.resolve(null) : fetchCompanyNews(symbol, displayName),
       ]);
       if (!isCurrent()) return;
       const requestPrice = Number.isFinite(price) && price > 0 ? price : refreshedQuote?.c;
@@ -529,20 +523,19 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
       }
       const requestNews = requestedNews?.status==='ok' ? requestedNews.items.slice(0,5) : tickerNews;
       if(requestedNews){setTickerNews(requestNews);setNewsState({symbol,status:requestedNews.status});}
-      const requestRevision=evidenceRevision(requestNews,(quote?.t??refreshedQuote?.t)?(quote?.t??refreshedQuote!.t!)*1000:undefined,requestPrice,fundamentals?.per,fundamentals?.eps);
+      const requestRevision=evidenceRevision(requestNews,(quote?.t??refreshedQuote?.t)?(quote?.t??refreshedQuote!.t!)*1000:undefined,requestPrice);
       const responseCacheKey=`${owner}-${symbol}-${id}-${requestRevision}`;
       if (refreshedQuote?.c) usePortfolioStore.getState().updateMacroEntry(symbol, refreshedQuote);
       const requestVolumeRatio = getStockVolumeRatio(rawCandles[symbol]);
       setMentorLoadingFacts(buildAnalysisLoadingFacts({
-        price: requestPrice, currency: fundamentalsCurrency, volRatio: requestVolumeRatio,
-        per: fundamentals?.per, eps: fundamentals?.eps,
+        price: requestPrice, currency: profileCurrency, volRatio: requestVolumeRatio,
       }));
       setMentorLoadingPhase('waiting');
       const response = await fetch('/api/ai-analysis', {
         method: 'POST', signal: controller.signal,
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({
-          symbol, koreanName: displayName, currency: fundamentalsCurrency,
+          symbol, koreanName: displayName, currency: profileCurrency,
           price: requestPrice, change: quote?.c ? quote.d : refreshedQuote?.d,
           changePercent: quote?.c ? quote.dp : refreshedQuote?.dp,
           rsi: analysis?.rsiVal?.toFixed(0), trend: analysis?.trend,
@@ -550,9 +543,8 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
           bollingerStatus: analysis?.bollingerStatus?.status,
           macdStatus: analysis?.macdStatus?.status,
           volRatio: requestVolumeRatio,
-          mentorId: mentor.id, questionId: question.id, recentNews: publicQuestionNews(requestNews), per: fundamentals?.per, eps: fundamentals?.eps,
-          week52High: fundamentals?.week52High, week52Low: fundamentals?.week52Low,
-          sector: fundamentals?.sector,
+          mentorId: mentor.id, questionId: question.id, recentNews: publicQuestionNews(requestNews),
+          sector: companyProfile?.sector,
           timeSeriesContext: buildTimeSeriesContext(rawCandles[symbol], nativeCurrency),
         }),
       });
@@ -613,9 +605,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
     setAiLoading(true);
     try {
       // AI 분석 시 뉴스를 새로 가져옴 (최신 반영)
-      const freshKr = STOCK_KR[symbol] || symbol;
-      const freshQuery = (freshKr !== symbol ? freshKr + ' ' : '') + symbol + ' 주가';
-      const freshNewsResult = await fetchKoreanNews(freshQuery);
+      const freshNewsResult = await fetchCompanyNews(symbol, displayName, true);
       if (!isCurrent()) return;
       const freshNewsItems = freshNewsResult.items;
       if (freshNewsItems.length) setTickerNews(freshNewsItems.slice(0, 6));
@@ -657,7 +647,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
         body: JSON.stringify({
           symbol,
           koreanName: displayName,
-          currency: fundamentalsCurrency,
+          currency: profileCurrency,
           price: latestPrice,
           change: latestChange,
           changePercent: latestCp,
@@ -669,11 +659,7 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
           macdStatus: analysis?.macdStatus?.status,
           volRatio: analysis?.volRatio,
           recentNews: newsText,
-          per: fundamentals?.per,
-          eps: fundamentals?.eps,
-          week52High: fundamentals?.week52High,
-          week52Low: fundamentals?.week52Low,
-          sector: fundamentals?.sector,
+          sector: companyProfile?.sector,
           timeSeriesContext: symbol
             ? (await import('@/utils/timeSeries')).buildTimeSeriesContext(
                 rawCandles[symbol],
@@ -712,587 +698,93 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
 
   const cacheReadable = (entry: { timestamp: number } | undefined) => !!entry
     && (now - entry.timestamp < CACHE_TTL || aiRemaining === 0 || quotaStatus === 'checking');
-  const questionRevision = evidenceRevision(tickerNews,quote?.t ? quote.t*1000 : undefined,price,fundamentals?.per,fundamentals?.eps);
+  const questionRevision = evidenceRevision(tickerNews,quote?.t ? quote.t*1000 : undefined,price);
   const newsStatus=newsState?.symbol===symbol?newsState.status:'loading';
-  const questionTags = discoveryTags(recentDiscoveryNews(tickerNews).map(item=>item.title).join(' '));
+  const questionTags = [...new Set(recentDiscoveryNews(tickerNews).flatMap(item => discoveryTags(item.title)))];
   const cachedQuestionIds = STOCK_QUESTIONS.filter(question => cacheReadable(mentorReportCache[`${owner}-${symbol}-${question.id}-${questionRevision}`])).map(question => question.id);
   const hasCachedAnalysis = cacheReadable(aiReportCache[symbol]);
-  const openLearning=(topic='evidence')=>{
-    const id=STOCK_LESSONS.some(item=>item.id===topic)?topic:'evidence';
-    updateDiscovery(owner,h=>{h.resume=id;});usageEvent('learning_open');
-    setLearningEntry(previous=>({symbol,id,sequence:(previous?.sequence??0)+1}));
-    requestAnimationFrame(()=>document.querySelector('[data-stock-learning]')?.scrollIntoView({block:'start'}));
+  const goTo = (id: string) => analysisBodyRef.current?.querySelector<HTMLElement>(`#${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const fundTopic = (topic: string): FundQuestionId => {
+    if (['target', 'returns', 'pitfall', 'compare', 'distribution', 'currency', 'watch'].includes(topic)) return topic as FundQuestionId;
+    return ({ 'fund-target': 'target', 'fund-returns': 'returns', 'fund-risk': 'pitfall', 'fund-compare': 'compare', index: 'target', price: 'returns', dividends: 'distribution', fx: 'currency' } as Record<string, FundQuestionId>)[topic] ?? 'watch';
   };
+  const openLearning = (topic = 'evidence', originId = 'assistant', returnLabel = '질문으로 돌아가기') => {
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    trigger?.setAttribute('data-reading-return', originId);
+    const id = isFund ? fundTopic(topic) : STOCK_LESSONS.some(item => item.id === topic) ? topic : 'evidence';
+    setLearningEntries(previous => ({ ...previous, [readingKey]: {
+      symbol, id, originId, returnLabel,
+      returnTop: analysisBodyRef.current?.scrollTop ?? 0,
+      sequence: (previous[readingKey]?.sequence ?? 0) + 1,
+      ...(originId.startsWith("answer-") && selectedMentor && mentorReport ? { answerSnapshot: { question: selectedMentor, report: mentorReport, cachedAt: mentorCachedAt } } : {}),
+    } }));
+    usageEvent('learning_open');
+    requestAnimationFrame(() => {
+      const reader = analysisBodyRef.current?.querySelector<HTMLElement>(`[data-inline-origin="${CSS.escape(originId)}"]`);
+      reader?.scrollIntoView({ block: 'start' });
+      reader?.querySelector<HTMLElement>('h3')?.focus({ preventScroll: true });
+    });
+  };
+  const returnToOrigin = () => {
+    if (!learningEntry) return;
+    const entry = learningEntry;
+    setLearningEntries(previous => {
+      const next = { ...previous }; delete next[readingKey]; return next;
+    });
+    requestAnimationFrame(() => {
+      analysisBodyRef.current?.scrollTo({ top: entry.returnTop, behavior: 'auto' });
+      analysisBodyRef.current?.querySelector<HTMLElement>(`[data-reading-return="${CSS.escape(entry.originId)}"]`)?.focus({ preventScroll: true });
+    });
+  };
+  const rememberPosition = (kind: 'company' | 'position' = 'position') => {
+    const body = analysisBodyRef.current;
+    const bodyTop = body?.getBoundingClientRect().top ?? 0;
+    const candidates: { selector: string; offset: number; height: number }[] = [];
+    const add = (element: HTMLElement, selector: string) => {
+      const rect = element.getBoundingClientRect();
+      if (element.getClientRects().length) candidates.push({ selector, offset: rect.top - bodyTop, height: rect.height });
+    };
+    body?.querySelectorAll<HTMLElement>('[id^="anchor-"]').forEach(element => add(element, `#${CSS.escape(element.id)}`));
+    body?.querySelectorAll<HTMLElement>('[data-inline-origin]').forEach(element => {
+      const heading = element.querySelector<HTMLElement>('h3');
+      if (heading) add(heading, `[data-inline-origin="${CSS.escape(element.dataset.inlineOrigin!)}"] h3`);
+    });
+    body?.querySelectorAll<HTMLElement>('#anchor-learning [data-open-lesson]').forEach(element => {
+      const heading = element.querySelector<HTMLElement>('h3');
+      if (heading) add(heading, `#anchor-learning [data-open-lesson="${CSS.escape(element.dataset.openLesson!)}"] h3`);
+    });
+    readingPositions.current.set(readingKey, { top: body?.scrollTop ?? 0, range: chartRange, kind,
+      anchor: selectReadingAnchor(candidates, body?.clientHeight ?? 0) });
+    if (readingPositions.current.size > 40) readingPositions.current.delete(readingPositions.current.keys().next().value!);
+  };
+  const renderInline = (originId: string) => learningEntry?.originId === originId ? (
+    <div className={panelStyles.inlineReading} data-inline-explanation data-inline-origin={originId}>
+      {isFund ? <FundExploration symbol={symbol} fund={fundProfile(symbol)} embedded
+        initialQuestion={learningEntry.id as FundQuestionId} initialReading={learningEntry.fundReading}
+        onReadingChange={fundReading => setLearningEntries(previous => {
+          const entry = previous[readingKey];
+          return entry ? { ...previous, [readingKey]: { ...entry, fundReading } } : previous;
+        })}
+        entrySequence={learningEntry.sequence} returnLabel={learningEntry.returnLabel} onReturn={returnToOrigin}
+        onNews={() => goTo('anchor-news')}
+        onOpenStock={(next, fundReading) => {
+          rememberPosition();
+          setLearningEntries(previous => ({ ...previous, [readingKey]: { ...previous[readingKey], fundReading } }));
+          setAnalysisSymbol(next);
+        }} /> : <StockLearning name={displayName} owner={owner} symbol={symbol} instrument="stock" tags={questionTags} embedded
+        initialLessonId={learningEntry.id} initialReading={learningEntry.reading} entrySequence={learningEntry.sequence}
+        onReadingChange={reading => setLearningEntries(previous => {
+          const entry = previous[readingKey];
+          return entry ? { ...previous, [readingKey]: { ...entry, reading } } : previous;
+        })}
+        returnLabel={learningEntry.returnLabel} onReturn={returnToOrigin}
+        onCompany={() => goTo('anchor-company')} onChart={() => goTo('anchor-chart')}
+        onNews={() => goTo('anchor-news')} onNotes={stockData ? () => goTo('anchor-notes') : undefined} />}
+    </div>
+  ) : null;
   const aiActionBlocked = !isLev && !showAIReport && !aiReport && !hasCachedAnalysis
     && (quotaStatus === 'checking' || aiRemaining === 0);
-
-  return (
-    <>
-      {/* Overlay */}
-      <div className="fixed inset-0 z-[60]" style={{ background: 'rgba(0,0,0,0.2)', backdropFilter: 'blur(1px)' }} onClick={close} />
-
-      {/* Panel */}
-      <div className="analysis-shell fixed inset-0 z-[70] flex items-center justify-center" style={{ padding: 16 }}>
-        <div
-          className={`flex flex-col analysis-modal ${panelStyles.panel}${wideMode ? ' wide' : ''}`}
-          ref={dialogRef}
-          tabIndex={-1}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${displayName} 살펴보기`}
-        >
-          <div className={panelStyles.header}>
-            <div className={panelStyles.identity}>
-              <div className={panelStyles.avatar} aria-hidden="true">{displayName.charAt(0)}</div>
-              <div>
-                <h2 className={panelStyles.name} tabIndex={-1} data-dialog-initial-focus>{displayName}</h2>
-                <div className={panelStyles.symbol}>{symbol} · {isKoreanStock ? '한국 주식' : '미국 주식'}</div>
-              </div>
-            </div>
-            <div className={panelStyles.controls}>
-              {/* 넓게 보기 — 읽는 순서를 유지하고 패널·차트 폭을 900 → 1160px로 확장. */}
-              <button
-                onClick={(event) => {
-                  if (event.detail > 0) event.currentTarget.blur();
-                  setWideMode((v) => { try { localStorage.setItem('solb_analysis_wide', v ? '0' : '1'); } catch { /* */ } return !v; });
-                }}
-                aria-pressed={wideMode}
-                aria-label={wideMode ? '기본 너비로' : '넓게 보기'}
-                title={wideMode ? '기본 너비로' : '화면 넓게 보기'}
-                className={`${panelStyles.control} ${panelStyles.wideControl}`}
-              >
-                {wideMode ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
-                {wideMode ? '기본 너비' : '화면 넓게'}
-              </button>
-              {showSwitcher && (
-                <>
-                  <button
-                    onClick={() => { if (symIdx > 0) setAnalysisSymbol(allSymbols[symIdx - 1]); }}
-                    disabled={symIdx <= 0}
-                    aria-label="이전 종목"
-                    className={panelStyles.control}
-                  >
-                    <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
-                  </button>
-                  <button
-                    onClick={() => { if (symIdx < allSymbols.length - 1) setAnalysisSymbol(allSymbols[symIdx + 1]); }}
-                    disabled={symIdx >= allSymbols.length - 1}
-                    aria-label="다음 종목"
-                    className={panelStyles.control}
-                  >
-                    <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
-                  </button>
-                </>
-              )}
-              <button
-                onClick={close}
-                aria-label="닫기"
-                className={panelStyles.control}
-              >
-                <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
-              </button>
-            </div>
-          </div>
-
-          {!loading && <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
-            hasChart={!isLev} hasFundamentals={!!fundamentals} hasAssistant={!isLev}
-            layoutKey={`${symbol}-${wideMode}`} />}
-
-          {/* Scrollable body */}
-          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}`}>
-            {loading ? (
-              <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
-                <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, background: 'var(--text-primary)', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>분석 데이터를 불러오는 중...</div>
-                <style>{`
-                  @keyframes loadingBar {
-                    0% { width: 0%; }
-                    50% { width: 70%; }
-                    100% { width: 100%; }
-                  }
-                `}</style>
-              </div>
-            ) : (
-              <>
-                {/* 사업과 산업을 먼저 이해하고 가격·뉴스로 이어진다. */}
-                <div id="anchor-company" style={{ scrollMarginTop: 56 }}>
-                  <ContextExploration key={`exploration:${symbol}`} symbol={symbol} profile={fundamentals ?? undefined} topics={stockExploration(symbol, fundamentals ?? undefined)} context={`${displayName} 살펴보기`}
-                    initialReadingState={readingVisits.get(symbol)?.reading}
-                    onOpenStock={(next, reading) => {
-                      if (next === symbol) {
-                        analysisBodyRef.current?.scrollTo({ top: 0 });
-                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
-                        return;
-                      }
-                      const body = analysisBodyRef.current;
-                      const companyIntro = body?.querySelector<HTMLElement>('#anchor-company');
-                      const companyOffset = body && companyIntro ? companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
-                      setReadingVisits(visits => new Map(visits).set(symbol, { reading, companyOffset }));
-                      setAnalysisSymbol(next);
-                    }} />
-                </div>
-
-                {/* Price hero */}
-                <div className={panelStyles.priceHero}>
-                  <div>
-                  <div className={panelStyles.priceLabel}>현재 가격</div>
-                  <div className={panelStyles.price}>
-                    {price
-                      ? nativeCurrency === 'KRW'
-                        ? formatKrw(priceAmounts.krw)
-                        : formatUsd(priceAmounts.usd)
-                      : '--'}
-                  </div>
-                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 8, color: direction === 'up' ? 'var(--color-gain)' : direction === 'down' ? 'var(--color-loss)' : 'var(--text-secondary)' }}>
-                    {direction === 'unknown' ? '등락 정보를 확인하고 있어요' : direction === 'flat' ? '전일 종가와 같아요 · 0.00%' : <>
-                      {direction === 'up' ? '+' : '−'}{nativeCurrency === 'KRW' ? formatKrw(Math.abs(change)) : formatUsd(Math.abs(change))}
-                      {' '}({cp > 0 ? '+' : ''}{cp.toFixed(2)}%) · 전일 종가 대비
-                    </>}
-                  </div>
-                  </div>
-                  <div className={panelStyles.priceMeta}>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                    {asOf ? `${asOf} 기준 · 한국시간` : '시세 기준 시각 미확인'} · 지연될 수 있어요
-                  </div>
-                  {price > 0 && <details style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}><summary style={{ cursor: 'pointer', padding: 8 }}>다른 통화로 보기</summary>{nativeCurrency === 'KRW' ? formatUsd(priceAmounts.usd) : formatKrw(priceAmounts.krw)} · {fx.stale ? '환율 미확인 · 임시 환율로 환산' : '환율에 따른 환산 금액'}</details>}
-                  </div>
-                </div>
-
-                {!isLev && (
-                  <div className="detail-chart-col">
-                    <div className={panelStyles.chartToolbar}>
-                    <div id="anchor-chart" className={panelStyles.chartHeading}>
-                      가격 차트
-                    </div>
-
-                    <div className={panelStyles.chartLevels} role="group" aria-label="차트 표현">
-                      {(['basic', 'detail'] as ChartLevel[]).map(lvl => <button key={lvl}
-                        type="button" className={panelStyles.chartLevel} aria-pressed={chartLevel === lvl}
-                        onClick={() => setChartLevel(lvl)}>{lvl === 'basic' ? '기본' : '상세'}</button>)}
-                    </div>
-
-                    </div>
-                    {/* Timeframe selector */}
-                    <div className={panelStyles.periods} role="group" aria-label="차트 기간">
-                      {([
-                        { label: '1일', days: 1 },
-                        { label: '1주일', days: 5 },
-                        { label: '1개월', days: 22 },
-                        { label: '3개월', days: 60 },
-                        { label: '6개월', days: 120 },
-                        { label: '1년', days: 0 },
-                      ]).map(tf => (
-                        <button
-                          key={tf.label}
-                          onClick={() => setChartRange(tf.days)}
-                          aria-pressed={chartRange === tf.days}
-                          type="button"
-                          className={panelStyles.period}
-                        >
-                          {tf.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {chartRange === 1 ? <IntradayStockChart key={symbol} symbol={symbol} currency={nativeCurrency} level={chartLevel} /> : !analysis ? (
-                      <p role="status" style={{ color: 'var(--text-body)', fontSize: 13 }}>이 기간의 일별 가격 자료가 충분하지 않아요. 1일 차트에서 장중 자료를 확인해보세요.</p>
-                    ) : <>
-                    {chartRange === 5 && <p style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)' }}>최근 5거래일 기준이에요. 주말·휴장일은 제외해요.</p>}
-                    {/* Daily chart and indicators stay on daily data. */}
-                    <StockChart
-                      raw={analysis.raw}
-                      sma5={analysis.sma5}
-                      sma20={analysis.sma20}
-                      sma60={analysis.sma60}
-                      level={chartLevel}
-                      bollingerBands={analysis.bollinger}
-                      macdData={analysis.macdResult}
-                      rsiData={analysis.rsi}
-                      visibleBars={chartRange}
-                      currency={nativeCurrency}
-                    />
-
-                    {(() => {
-                      const closes = chartRange === 0 ? analysis.closes : analysis.closes.slice(-chartRange);
-                      const format = nativeCurrency === 'KRW' ? formatKrw : formatUsd;
-                      return <p className="reading-copy" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7, color: 'var(--text-body)' }}>선택한 기간의 종가는 {format(Math.min(...closes))}부터 {format(Math.max(...closes))} 사이였어요. 가격이 움직인 이유는 실적과 소식을 함께 살펴보세요.</p>;
-                    })()}
-
-                    <details style={{ marginTop: 16 }}>
-                      <summary style={{ minHeight: 44, padding: '12px 0', cursor: 'pointer', fontSize: 14, color: 'var(--text-body)' }}>차트 해설과 기술 지표 펼쳐보기</summary>
-                    {/* 이 차트, 지금 이런 상태예요 — 초보 해설(chartNarrative SSOT, §6 안전). 차트 직하 약어 범례 대체.
-                        level 바인딩 — basic 차트엔 볼린저 띠 미렌더라 볼린저 설명 생략(화면-설명 일치). */}
-                    {(() => {
-                      const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
-                      const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
-                      const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
-                      // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
-                      const periodLabel = chartRange === 5 ? '최근 일주일(5거래일)'
-                        : chartRange === 22 ? '최근 한 달'
-                        : chartRange === 120 ? '최근 여섯 달'
-                        : chartRange === 0 ? '최근 1년'
-                        : '최근 석 달';
-                      const narrative = buildChartNarrative({
-                        rsiVal: analysis.rsiVal,
-                        bollingerPos: analysis.bollingerStatus
-                          ? (analysis.bollingerStatus.status.startsWith('상단') ? 'upper'
-                            : analysis.bollingerStatus.status.startsWith('하단') ? 'lower'
-                            : analysis.bollingerStatus.status.startsWith('중앙') ? 'middle' : null)
-                          : null,
-                        price: analysis.closes[analysis.closes.length - 1],
-                        recentHigh,
-                        recentLow,
-                        sma20: analysis.sma20.length ? analysis.sma20[analysis.sma20.length - 1] : null,
-                        sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
-                        volRatio: analysis.volRatio,
-                        level: chartLevel,
-                        periodLabel,
-                        hasNews: tickerNews.length > 0,
-                      });
-                      return (
-                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', marginTop: 10, marginBottom: 24 }}>
-                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
-                            이 차트, 지금 이런 상태예요
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.65 }}>
-                            {narrative.summary}
-                          </div>
-                          <details style={{ marginTop: 10 }}>
-                            <summary
-                              onClick={() => logApiCall('chart_guide_expand')}
-                              style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}
-                            >
-                              📖 차트 용어 쉽게 풀어보기
-                            </summary>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                              {narrative.cards.map((c) => (
-                                <div key={c.term} style={{ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.emoji} {c.term}</div>
-                                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.6, marginBottom: 4 }}>{c.whatIsIt}</div>
-                                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{c.nowMeans}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Technical indicators grid */}
-                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
-                      기술적 지표
-                    </div>
-
-                    <div className={panelStyles.technicalGrid} data-technical-indicators>
-                      {/* RSI */}
-                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>RSI (14)</div>
-                        <div style={{
-                          fontSize: 14,
-                          fontWeight: 700,
-                          color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
-                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : 'var(--text-primary)',
-                        }}>
-                          {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.rsiVal != null && analysis.rsiVal < 30 ? '30 아래\n과매도 구간' :
-                           analysis.rsiVal != null && analysis.rsiVal > 70 ? '70 위\n과열 구간' : '30~70\n중간 구간'}
-                        </div>
-                      </div>
-
-                      {/* MA 20 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 20일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {analysis.sma20.length ? fmtNativePrice(analysis.sma20[analysis.sma20.length - 1], nativeCurrency) : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
-                            ? '현재가가 20일\n평균보다 위'
-                            : '현재가가 20일\n평균보다 아래'}
-                        </div>
-                      </div>
-
-                      {/* MA 60 */}
-                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 60일</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          {analysis.sma60.length ? fmtNativePrice(analysis.sma60[analysis.sma60.length - 1], nativeCurrency) : '--'}
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
-                          {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
-                            ? '현재가가 60일\n평균보다 위'
-                            : '현재가가 60일\n평균보다 아래'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bollinger interpretation */}
-                    {analysis.bollingerStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
-                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>볼린저 밴드</span>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            background: 'var(--bg-subtle)',
-                            color: 'var(--text-secondary)',
-                          }}>
-                            {analysis.bollingerStatus.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                          {analysis.bollingerStatus.desc}
-                          {analysis.lastBollinger && (
-                            <>
-                              <br />
-                              상단: {fmtNativePrice(analysis.lastBollinger.upper, nativeCurrency)} · 중단: {fmtNativePrice(analysis.lastBollinger.middle, nativeCurrency)} · 하단: {fmtNativePrice(analysis.lastBollinger.lower, nativeCurrency)}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* MACD interpretation */}
-                    {analysis.macdStatus && (
-                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
-                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>MACD</span>
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            background: 'var(--bg-subtle)',
-                            color: 'var(--text-secondary)',
-                          }}>
-                            {analysis.macdStatus.status}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                          {analysis.macdStatus.desc}
-                          {analysis.macdResult.macd.length > 0 && (
-                            <>
-                              <br />
-                              MACD: {analysis.macdResult.macd[analysis.macdResult.macd.length - 1].toFixed(2)} · Signal: {analysis.macdResult.signal.length ? analysis.macdResult.signal[analysis.macdResult.signal.length - 1].toFixed(2) : '--'} · Histogram: {analysis.macdResult.histogram.length ? analysis.macdResult.histogram[analysis.macdResult.histogram.length - 1].toFixed(2) : '--'}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Volume interpretation */}
-                    <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 24 }}>
-                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>거래량</span>
-                        <span style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          background: 'var(--bg-subtle)',
-                          color: 'var(--text-secondary)',
-                        }}>
-                          {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
-                      </div>
-                    </div>
-                    </details>
-                    </>}
-                  </div>
-                )}
-
-                <div className={panelStyles.details}>
-                {!analysis && !loading && (
-                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
-                    {isThinData
-                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
-                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
-                  </div>
-                )}
-
-                {/* Investment P&L */}
-                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
-                  <div style={{ padding: 20, borderRadius: 14, background: '#F8F9FA', marginBottom: 20 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 12 }}>내 투자 현황</div>
-                    {/* $/₩ 2컬럼 정렬 — 라벨 | 메인값(우정렬) | 괄호값(우정렬), grid 트랙 공유로 행 간 세로 정렬. tabular-nums. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr max-content max-content', columnGap: 8, alignItems: 'baseline' }}>
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>보유 수량</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>{stockData.shares}주</span>
-                      <span style={{ padding: '6px 0' }} />
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(avgCostAmounts.krw)
-                          : formatUsd(avgCostAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(avgCostAmounts.usd)})`
-                          : `(${formatKrw(avgCostAmounts.krw)})`}
-                      </span>
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(costAmounts.krw)
-                          : formatUsd(costAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(costAmounts.usd)})`
-                          : `(${formatKrw(costAmounts.krw)})`}
-                      </span>
-
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? formatKrw(valueAmounts.krw)
-                          : formatUsd(valueAmounts.usd)}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
-                        {currency === 'KRW'
-                          ? `(${formatUsd(valueAmounts.usd)})`
-                          : `(${formatKrw(valueAmounts.krw)})`}
-                      </span>
-
-                      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                        {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
-                          ? formatKrw(Math.abs(displayPnl))
-                          : formatUsd(Math.abs(displayPnl))}`}
-                      </span>
-                      <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
-                        ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
-                      {isKoreanStock
-                        ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
-                        : currency === 'KRW'
-                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
-                          : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
-                    </div>
-                  </div>
-                )}
-
-                {/* Related news */}
-                <div id="anchor-news" style={{ fontSize: 20, fontWeight: 700, marginBottom: 16, marginTop: 24, scrollMarginTop: 44 }}>
-                  이 종목의 최근 소식
-                </div>
-                {tickerNews.length > 0 ? (
-                  <div>
-                    {tickerNews.map((item, idx) => {
-                      const date = item.pubDate ? new Date(item.pubDate).toLocaleDateString('ko-KR') : '';
-                      return (
-                        <a
-                          key={idx}
-                          href={item.link} target="_blank" rel="noopener noreferrer"
-                          className="cursor-pointer"
-                          style={{
-                            display: 'block', color: 'var(--text-primary)', textDecoration: 'none', padding: '16px 0',
-                            borderBottom: idx < tickerNews.length - 1 ? '1px solid #F7F8FA' : 'none',
-                          }}
-                        >
-                          <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.65, marginBottom: 6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            {item.title}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--text-body)' }}>
-                            {item.source}{item.source && date ? ' · ' : ''}{date}
-                          </div>
-                        </a>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '16px 0', fontSize: 13, color: '#8B95A1' }}>
-                    관련 뉴스가 없어요.
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('anchor-learning')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  style={{ minHeight: 44, width: '100%', padding: 12, marginTop: 16, borderRadius: 12, border: '1px solid var(--border-light)', background: 'var(--bg-subtle)', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}
-                >뉴스를 읽었다면, 다른 개념도 살펴보기</button>
-
-                {/* 재무 데이터 */}
-                {fundamentals && (
-                  <div id="anchor-fundamentals" className={panelStyles.fundamentals}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
-                      기업·가격 지표
-                    </div>
-                    {!hasFundamentalValues && <p style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-body)' }}>현재 제공된 기업 지표가 없어요. 관련 뉴스와 기업의 공시 자료를 함께 확인해 주세요.</p>}
-                    <div className="fundamentals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: 14 }}>
-                      <style>{`@media (max-width: 400px) { .fundamentals-grid { grid-template-columns: 1fr !important; } }`}</style>
-                      {fundamentals.per != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>PER (주가수익비율)</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.per.toFixed(1)}</span>
-                        </div>
-                      )}
-                      {fundamentals.eps != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>EPS (주당순이익)</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.eps, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.marketCap != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>시가총액</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtMarketCap(fundamentals.marketCap, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.dividendYield != null && fundamentals.dividendYield > 0 && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>배당수익률</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.dividendYield.toFixed(2)}%</span>
-                        </div>
-                      )}
-                      {fundamentals.week52High != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최고</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.week52High, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {fundamentals.week52Low != null && (
-                        <div className="flex justify-between">
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>52주 최저</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
-                            {fmtNativePrice(fundamentals.week52Low, fundamentalsCurrency)}
-                          </span>
-                        </div>
-                      )}
-                      {businessSectors.length > 0 && <div className="flex justify-between gap-4" style={{ gridColumn: 'span 2' }} data-business-sector-label>
-                        <span style={{ color: 'var(--text-secondary, #8B95A1)', flexShrink: 0 }}>사업 분야</span>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)', textAlign: 'right', wordBreak: 'keep-all' }}>{businessSectors.map(sector => sector.name).join(' · ')}</span>
-                      </div>}
-                      {fundamentals.sector && (
-                        <div className="flex justify-between" style={{ gridColumn: 'span 2' }}>
-                          <span style={{ color: 'var(--text-secondary, #8B95A1)' }}>제공처 대분류</span>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{fundamentals.sector}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
+  const analysisReportControls = (<>
                 {/* AI 분석 리포트 버튼 */}
                 <button
                   onClick={() => handleAIReportToggle()}
@@ -1475,16 +967,453 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                     <Disclaimer />
                   </div>
                 )}
+  </>);
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 z-[60]" style={{ background: 'rgba(0,0,0,0.2)' }} onClick={close} />
+
+      {/* Panel */}
+      <div className="analysis-shell fixed inset-0 z-[70] flex items-center justify-center" style={{ padding: 16 }}>
+        <div
+          className={`flex flex-col analysis-modal ${panelStyles.panel}${wideMode ? ' wide' : ''}`}
+          ref={dialogRef}
+          tabIndex={-1}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${displayName} 살펴보기`}
+        >
+          <div className={panelStyles.header}>
+            <div className={panelStyles.identity}>
+              <CompanyMark key={symbol} symbol={symbol} />
+              <div>
+                <h2 className={panelStyles.name} tabIndex={-1} data-dialog-initial-focus>{displayName}</h2>
+                <div className={panelStyles.symbol}>{symbol} · {isKoreanStock ? '한국' : '미국'} · {isLev ? '레버리지·인버스 ETF' : isFund ? 'ETF·펀드' : '주식'}</div>
+              </div>
+            </div>
+            <div className={panelStyles.controls}>
+              {/* 넓게 보기 — 읽는 순서를 유지하고 패널·차트 폭을 900 → 1160px로 확장. */}
+              <button
+                onClick={(event) => {
+                  if (event.detail > 0) event.currentTarget.blur();
+                  unavailableStorageWideMode = !wideMode;
+                  try { localStorage.setItem(WIDE_MODE_KEY, wideMode ? '0' : '1'); } catch { /* Keep this tab usable when storage is unavailable. */ }
+                  window.dispatchEvent(new Event(WIDE_MODE_EVENT));
+                }}
+                aria-pressed={wideMode}
+                aria-label={wideMode ? '기본 너비로' : '넓게 보기'}
+                title={wideMode ? '기본 너비로' : '화면 넓게 보기'}
+                className={`${panelStyles.control} ${panelStyles.wideControl}`}
+              >
+                {wideMode ? <Minimize2 size={14} aria-hidden="true" /> : <Maximize2 size={14} aria-hidden="true" />}
+                {wideMode ? '기본 너비' : '화면 넓게'}
+              </button>
+              {showSwitcher && (
+                <>
+                  <button
+                    onClick={() => { if (symIdx > 0) { rememberPosition(); setAnalysisSymbol(allSymbols[symIdx - 1]); } }}
+                    disabled={symIdx <= 0}
+                    aria-label="이전 종목"
+                    className={panelStyles.control}
+                  >
+                    <ChevronLeft style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                  </button>
+                  <button
+                    onClick={() => { if (symIdx < allSymbols.length - 1) { rememberPosition(); setAnalysisSymbol(allSymbols[symIdx + 1]); } }}
+                    disabled={symIdx >= allSymbols.length - 1}
+                    aria-label="다음 종목"
+                    className={panelStyles.control}
+                  >
+                    <ChevronRight style={{ width: 18, height: 18, color: '#8B95A1' }} />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={close}
+                aria-label="닫기"
+                className={panelStyles.control}
+              >
+                <X style={{ width: 20, height: 20, color: '#8B95A1' }} />
+              </button>
+            </div>
+          </div>
+
+          <JoobiAssistantLauncher key={symbol} symbol={symbol} name={displayName} inline />
+          {!loading && <AnalysisNavigation key={symbol} scrollRef={analysisBodyRef}
+            hasChart={true} hasCheckup={!isFund} hasResources={!isLev} hasAssistant={!isLev}
+            hasPersonal={!!symbol && (!!stockData || (!isLev && price > 0))}
+            layoutKey={`${symbol}-${wideMode}`} />}
+
+          {/* Scrollable body */}
+          <div ref={analysisBodyRef} className={`flex-1 analysis-body ${panelStyles.body}`}>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center" style={{ height: 160, gap: 12 }}>
+                <div style={{ width: 120, height: 4, borderRadius: 2, background: 'var(--bg-subtle, #F2F4F6)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 2, background: 'var(--text-primary)', animation: 'loadingBar 1.5s ease-in-out infinite' }} />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)' }}>분석 데이터를 불러오는 중...</div>
+                <style>{`
+                  @keyframes loadingBar {
+                    0% { width: 0%; }
+                    50% { width: 70%; }
+                    100% { width: 100%; }
+                  }
+                `}</style>
+              </div>
+            ) : (
+              <>
+                {/* Price hero */}
+                <div className={panelStyles.priceHero}>
+                  <div>
+                  <div className={panelStyles.priceLabel}>현재 가격</div>
+                  <div className={panelStyles.price}>
+                    {price
+                      ? nativeCurrency === 'KRW'
+                        ? formatKrw(priceAmounts.krw)
+                        : formatUsd(priceAmounts.usd)
+                      : '--'}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 500, marginTop: 8, color: direction === 'up' ? 'var(--color-gain)' : direction === 'down' ? 'var(--color-loss)' : 'var(--text-secondary)' }}>
+                    {direction === 'unknown' ? '등락 정보를 확인하고 있어요' : direction === 'flat' ? '전일 종가와 같아요 · 0.00%' : <>
+                      {direction === 'up' ? '+' : '−'}{nativeCurrency === 'KRW' ? formatKrw(Math.abs(change)) : formatUsd(Math.abs(change))}
+                      {' '}({cp > 0 ? '+' : ''}{cp.toFixed(2)}%) · 전일 종가 대비
+                    </>}
+                  </div>
+                  </div>
+                  <div className={panelStyles.priceMeta}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {asOf ? `${asOf} 기준 · 한국시간` : '시세 기준 시각 미확인'} · 지연될 수 있어요
+                  </div>
+                  {price > 0 && <details style={{ marginTop: 8, fontSize: 12, color: 'var(--text-secondary)' }}><summary className={panelStyles.referenceSummary}>다른 통화로 보기</summary>{nativeCurrency === 'KRW' ? formatUsd(priceAmounts.usd) : formatKrw(priceAmounts.krw)} · {fx.stale ? '환율 미확인 · 임시 환율로 환산' : '환율에 따른 환산 금액'}</details>}
+                  </div>
+                </div>
+
+                {
+                  <div className="detail-chart-col">
+                    <div className={panelStyles.chartToolbar}>
+                    <div id="anchor-chart" className={panelStyles.chartHeading}>
+                      가격 차트
+                    </div>
+
+                    {!isLev && <div className={panelStyles.chartLevels} role="group" aria-label="차트 표현">
+                      {(['basic', 'detail'] as ChartLevel[]).map(lvl => <button key={lvl}
+                        type="button" className={panelStyles.chartLevel} aria-pressed={chartLevel === lvl}
+                        onClick={() => setChartLevel(lvl)}>{lvl === 'basic' ? '기본' : '상세'}</button>)}
+                    </div>}
+
+                    </div>
+                    {/* Timeframe selector */}
+                    <div className={panelStyles.periods} role="group" aria-label="차트 기간">
+                      {([
+                        { label: '1일', days: 1 },
+                        { label: '1주일', days: 5 },
+                        { label: '1개월', days: 22 },
+                        { label: '3개월', days: 60 },
+                        { label: '6개월', days: 120 },
+                        { label: '1년', days: 0 },
+                      ]).map(tf => (
+                        <button
+                          key={tf.label}
+                          onClick={() => setChartRange(tf.days)}
+                          aria-pressed={chartRange === tf.days}
+                          type="button"
+                          className={panelStyles.period}
+                        >
+                          {tf.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {chartRange === 1 ? <IntradayStockChart key={`${owner}:${symbol}`} symbol={symbol} currency={nativeCurrency} level={isLev ? 'basic' : chartLevel}
+                      analysisQuota={{ status: quotaStatus, remaining: aiRemaining, acceptResponse: acceptQuotaResponse }} allowAnalysis={!isLev} onNews={() => goTo('anchor-news')} /> : !analysis ? (
+                      <ShortPriceHistory raw={rawCandles[symbol]} currency={nativeCurrency} status={candleStatus} onRetry={() => void fetchCandle()} />
+                    ) : <>
+                    {chartRange === 5 && <p style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)' }}>최근 5거래일 기준이에요. 주말·휴장일은 제외해요.</p>}
+                    {/* Daily chart and indicators stay on daily data. */}
+                    <StockChart
+                      raw={analysis.raw}
+                      sma5={analysis.sma5}
+                      sma20={analysis.sma20}
+                      sma60={analysis.sma60}
+                      level={isLev ? 'basic' : chartLevel}
+                      bollingerBands={analysis.bollinger}
+                      macdData={analysis.macdResult}
+                      rsiData={analysis.rsi}
+                      visibleBars={chartRange}
+                      currency={nativeCurrency}
+                    />
+
+                    {(() => {
+                      const closes = chartRange === 0 ? analysis.closes : analysis.closes.slice(-chartRange);
+                      const format = nativeCurrency === 'KRW' ? formatKrw : formatUsd;
+                      return <p className="reading-copy" style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7, color: 'var(--text-body)' }}>선택한 기간의 종가는 {format(Math.min(...closes))}부터 {format(Math.max(...closes))} 사이였어요. 가격이 움직인 이유는 실적과 소식을 함께 살펴보세요.</p>;
+                    })()}
+
+                    {!isLev && <details style={{ marginTop: 16 }}>
+                      <summary className={panelStyles.referenceSummary}>차트 해설과 기술 지표 펼쳐보기</summary>
+                    <div className={panelStyles.priceExplanation}>
+                      <h4>{analysis.chartShape.title}</h4>
+                      <p>{analysis.chartShape.desc}</p>
+                    </div>
+                    {/* 이 차트, 지금 이런 상태예요 — 초보 해설(chartNarrative SSOT, §6 안전). 차트 직하 약어 범례 대체.
+                        level 바인딩 — basic 차트엔 볼린저 띠 미렌더라 볼린저 설명 생략(화면-설명 일치). */}
+                    {(() => {
+                      const recentCloses = analysis.closes.slice(-Math.min(chartRange, analysis.closes.length));
+                      const recentHigh = recentCloses.length ? Math.max(...recentCloses) : 0;
+                      const recentLow = recentCloses.length ? Math.min(...recentCloses) : 0;
+                      // chartRange(거래일) → 여정 기간 라벨. 0=1Y(전체)
+                      const periodLabel = chartRange === 5 ? '최근 일주일(5거래일)'
+                        : chartRange === 22 ? '최근 한 달'
+                        : chartRange === 120 ? '최근 여섯 달'
+                        : chartRange === 0 ? '최근 1년'
+                        : '최근 석 달';
+                      const narrative = buildChartNarrative({
+                        rsiVal: analysis.rsiVal,
+                        bollingerPos: analysis.bollingerStatus
+                          ? (analysis.bollingerStatus.status.startsWith('상단') ? 'upper'
+                            : analysis.bollingerStatus.status.startsWith('하단') ? 'lower'
+                            : analysis.bollingerStatus.status.startsWith('중앙') ? 'middle' : null)
+                          : null,
+                        price: analysis.closes[analysis.closes.length - 1],
+                        recentHigh,
+                        recentLow,
+                        sma20: analysis.sma20.length ? analysis.sma20[analysis.sma20.length - 1] : null,
+                        sma60: analysis.sma60.length ? analysis.sma60[analysis.sma60.length - 1] : null,
+                        volRatio: analysis.volRatio,
+                        level: chartLevel,
+                        periodLabel,
+                        hasNews: tickerNews.length > 0,
+                      });
+                      return (
+                        <div style={{ padding: 16, borderRadius: 14, background: 'var(--bg-subtle)', border: '1px solid var(--border-light)', marginTop: 10, marginBottom: 24 }}>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
+                            이 차트, 지금 이런 상태예요
+                          </div>
+                          <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.65 }}>
+                            {narrative.summary}
+                          </div>
+                          <details style={{ marginTop: 10 }}>
+                            <summary
+                              onClick={() => logApiCall('chart_guide_expand')}
+                              className={panelStyles.referenceSummary}
+                            >
+                              📖 차트 용어 쉽게 풀어보기
+                            </summary>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                              {narrative.cards.map((c) => (
+                                <div key={c.term} style={{ padding: 12, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border-light)' }}>
+                                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>{c.emoji} {c.term}</div>
+                                  <div style={{ fontSize: 12.5, color: 'var(--text-body)', lineHeight: 1.6, marginBottom: 4 }}>{c.whatIsIt}</div>
+                                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{c.nowMeans}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Technical indicators grid */}
+                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6, marginTop: 24 }}>
+                      기술적 지표
+                    </div>
+
+                    <div className={panelStyles.technicalGrid} data-technical-indicators>
+                      {/* RSI */}
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>RSI (14)</div>
+                        <div style={{
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: analysis.rsiVal != null && analysis.rsiVal < 30 ? '#3182F6' :
+                                analysis.rsiVal != null && analysis.rsiVal > 70 ? '#EF4452' : 'var(--text-primary)',
+                        }}>
+                          {analysis.rsiVal != null ? analysis.rsiVal.toFixed(1) : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.rsiVal != null && analysis.rsiVal < 30 ? '30 아래\n과매도 구간' :
+                           analysis.rsiVal != null && analysis.rsiVal > 70 ? '70 위\n과열 구간' : '30~70\n중간 구간'}
+                        </div>
+                      </div>
+
+                      {/* MA 20 */}
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 20일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {analysis.sma20.length ? fmtNativePrice(analysis.sma20[analysis.sma20.length - 1], nativeCurrency) : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.sma20.length && price > analysis.sma20[analysis.sma20.length - 1]
+                            ? '현재가가 20일\n평균보다 위'
+                            : '현재가가 20일\n평균보다 아래'}
+                        </div>
+                      </div>
+
+                      {/* MA 60 */}
+                      <div style={{ padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>MA 60일</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {analysis.sma60.length ? fmtNativePrice(analysis.sma60[analysis.sma60.length - 1], nativeCurrency) : '--'}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.4 }}>
+                          {analysis.sma60.length && price > analysis.sma60[analysis.sma60.length - 1]
+                            ? '현재가가 60일\n평균보다 위'
+                            : '현재가가 60일\n평균보다 아래'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bollinger interpretation */}
+                    {analysis.bollingerStatus && (
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>볼린저 밴드</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}>
+                            {analysis.bollingerStatus.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                          {analysis.bollingerStatus.desc}
+                          {analysis.lastBollinger && (
+                            <>
+                              <br />
+                              상단: {fmtNativePrice(analysis.lastBollinger.upper, nativeCurrency)} · 중단: {fmtNativePrice(analysis.lastBollinger.middle, nativeCurrency)} · 하단: {fmtNativePrice(analysis.lastBollinger.lower, nativeCurrency)}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* MACD interpretation */}
+                    {analysis.macdStatus && (
+                      <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 12 }}>
+                        <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>MACD</span>
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            background: 'var(--bg-subtle)',
+                            color: 'var(--text-secondary)',
+                          }}>
+                            {analysis.macdStatus.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                          {analysis.macdStatus.desc}
+                          {analysis.macdResult.macd.length > 0 && (
+                            <>
+                              <br />
+                              MACD: {analysis.macdResult.macd[analysis.macdResult.macd.length - 1].toFixed(2)} · Signal: {analysis.macdResult.signal.length ? analysis.macdResult.signal[analysis.macdResult.signal.length - 1].toFixed(2) : '--'} · Histogram: {analysis.macdResult.histogram.length ? analysis.macdResult.histogram[analysis.macdResult.histogram.length - 1].toFixed(2) : '--'}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Volume interpretation */}
+                    <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 24 }}>
+                      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>거래량</span>
+                        <span style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: '2px 8px',
+                          borderRadius: 6,
+                          background: 'var(--bg-subtle)',
+                          color: 'var(--text-secondary)',
+                        }}>
+                          {analysis.volRatio > 1.5 ? '활발' : analysis.volRatio < 0.5 ? '한산' : '평균 수준'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                        최근 거래량은 20일 평균{analysis.volRatio > 1.5 ? '보다 많아요. 관심이 높은 상태예요.' : analysis.volRatio < 0.5 ? '보다 적어요. 관심이 낮은 상태예요.' : '과 비슷해요. 큰 매도 압력은 없는 상태예요.'}
+                      </div>
+                    </div>
+                    </details>}
+                    </>}
+                    {isLev && <p style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>이 상품 자체의 가격 흐름이에요. 레버리지·인버스 상품은 하루 수익률을 기준으로 움직이므로, 여러 날 보유한 수익률은 기초 종목 수익률의 단순 배수와 달라질 수 있어요.</p>}
+                  </div>
+                }
+
+
+                <div id="anchor-news" className={panelStyles.news}>
+                  <StockDailyBrief key={`daily:${symbol}`} symbol={symbol} />
+                  <StockReturnBrief key={`brief:${owner}:${symbol}`} owner={owner} symbol={symbol} items={tickerNews}
+                    onRetryNews={() => { setNewsState(null); setNewsRequest(value => value + 1); }}
+                    newsStatus={newsStatus} isFund={isFund} price={quote?.c ?? 0} quoteAt={quote?.t ? quote.t * 1000 : undefined}
+                    currency={nativeCurrency} onLearn={(topic, originId) => openLearning(isFund ? 'watch' : topic, originId, '이 기사로 돌아가기')}
+                    renderExplanation={renderInline} />
+                </div>
+
+                <StockVisitSummary owner={owner} symbol={symbol} items={tickerNews} status={newsStatus} isFund={isFund}
+                  onCompany={() => goTo('anchor-company')} onNews={() => goTo('anchor-news')} />
+
+                <div id="anchor-company" style={{ scrollMarginTop: 56 }}>
+                  {!isFund && <StockCompanyOverview symbol={symbol} name={displayName} profile={companyProfile ?? { business: { symbol, level: 'missing', sources: [], origin: 'engine', availability: 'loading' } }} onRetry={() => { setCompanyProfile(null); setCompanyProfileRequest(n => n + 1); }}
+                    exploration={companyExplorations[readingKey]}
+                    onExplorationChange={state => setCompanyExplorations(previous => ({ ...previous, [readingKey]: { ...previous[readingKey], ...state } }))}
+                    onOpenStock={(next, reading) => {
+                      rememberPosition();
+                      setCompanyExplorations(previous => ({ ...previous, [readingKey]: { open: true, reading } }));
+                      setAnalysisSymbol(next);
+                    }} />}
+                  {isFund && <div data-company-exploration-anchor>
+                  <ContextExploration key={`exploration:${symbol}`} symbol={symbol} profile={companyProfile ?? undefined} topics={stockExploration(symbol, companyProfile ?? undefined)} context={`${displayName} 살펴보기`}
+                    initialReadingState={readingVisits.get(`${owner}:${symbol}`)?.reading}
+                    onReadingChange={reading => setReadingVisits(visits => {
+                      const next = new Map(visits);
+                      next.set(readingKey, { reading, companyOffset: visits.get(readingKey)?.companyOffset ?? 0 });
+                      return next;
+                    })}
+                    onNews={() => analysisBodyRef.current?.querySelector('#anchor-news')?.scrollIntoView({block:'start'})}
+                    onOpenStock={(next, reading) => {
+                      if (next === symbol) {
+                        analysisBodyRef.current?.scrollTo({ top: 0 });
+                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
+                        return;
+                      }
+                      const body = analysisBodyRef.current;
+                      const companyIntro = body?.querySelector<HTMLElement>('[data-company-exploration-anchor]');
+                      const companyOffset = body && companyIntro ? companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
+                      rememberPosition('company');
+                      setReadingVisits(visits => new Map(visits).set(readingKey, { reading, companyOffset }));
+                      setAnalysisSymbol(next);
+                    }} />
+                  </div>}
+                </div>
+
+                <div className={panelStyles.details}>
+                {!analysis && !loading && (
+                  <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 13, color: '#FF9500', lineHeight: 1.6 }}>
+                    {isThinData
+                      ? '아직 상장 초기라 분석에 필요한 시세 데이터가 충분히 쌓이지 않았어요. 데이터가 더 쌓이면 분석이 정확해져요.'
+                      : '차트 데이터가 부족해요. 잠시 후 다시 시도해주세요.'}
+                  </div>
+                )}
+
+                {!isFund && <div id="anchor-checkup" style={{ scrollMarginTop: 56 }}>
+                  <StockCheckup checkup={buildStockCheckup({ price, candles: rawCandles[symbol], currency: nativeCurrency })} />
+                </div>}
 
                 {!isLev && (
                   <div id="anchor-assistant" className={assistantStyles.section}>
-                    <StockReturnBrief key={`brief:${owner}:${symbol}`} owner={owner} symbol={symbol} items={tickerNews} newsStatus={newsStatus} price={quote?.c??0} quoteAt={quote?.t?quote.t*1000:undefined} currency={nativeCurrency} onLearn={openLearning}/>
-                    <div className={assistantStyles.overview}>
-                      <StockCheckup checkup={buildStockCheckup({
-                        price, candles: rawCandles[symbol], fundamentals, currency: nativeCurrency,
-                      })} />
+                    <div className={panelStyles.assistantReading}>
                       <div className={assistantStyles.questions}>
-                        <StockAnalysisQuestions key={`${owner}:${symbol}`} owner={owner} tags={questionTags} onLearn={id=>openLearning(lessonForQuestion(id))} selectedId={selectedMentor?.id ?? null}
+                        <StockAnalysisQuestions key={`${owner}:${symbol}`} owner={owner} symbol={symbol} instrument={isFund ? 'fund' : 'stock'} tags={questionTags}
+                          backgroundQuestionId={learningEntry?.originId.startsWith("question-") ? learningEntry.originId.slice(9) : undefined}
+                          answeredId={mentorReport ? selectedMentor?.id : undefined}
+                          onLearn={id => openLearning(isFund ? id : lessonForQuestion(id), `question-${id}`, '이 질문으로 돌아가기')}
+                          renderBackground={id => renderInline(`question-${id}`)} selectedId={selectedMentor?.id ?? null}
                           loading={mentorLoading} onSelect={handleMentorSelect} remaining={aiRemaining}
                           quotaStatus={quotaStatus} cachedQuestionIds={cachedQuestionIds}
                           answer={selectedMentor ? (
@@ -1513,7 +1442,8 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                                   <p>{mentorReport.conclusion.desc}</p>
                                 </div>}
                                 <p className={assistantStyles.note}>공개정보를 바탕으로 AI가 작성한 설명이에요. 중요한 수치는 원문과 함께 확인해주세요.</p>
-                                <button type="button" className={assistantStyles.action} onClick={()=>openLearning(lessonForQuestion(selectedMentor.id))}>이 답변의 배경 개념 더 알아보기 →</button>
+                                <button type="button" data-reading-return={`answer-${selectedMentor.id}`} className={assistantStyles.action} onClick={() => openLearning(isFund ? selectedMentor.id : lessonForQuestion(selectedMentor.id), `answer-${selectedMentor.id}`, '이 답변으로 돌아가기')}>이 답변에서 나온 {isFund ? '상품 구조' : '개념'} 더 알아보기 →</button>
+                                {renderInline(`answer-${selectedMentor.id}`)}
                                 <AiResultMeta key={`${symbol}-${selectedMentor.id}`} meta={mentorReport._meta} source="ai-analysis" symbol={symbol} />
                               </>}
                               {!mentorLoading && mentorError && <>
@@ -1527,160 +1457,262 @@ export default function AnalysisPanel({ owner = 'guest' }: { owner?: string }) {
                             </section>
                           ) : null} />
                       </div>
+
                     </div>
                   </div>
                 )}
 
-                {/* 가격 확인 → 개념 학습 → 차트·뉴스·기록 탐색 */}
-                <div id="anchor-learning" style={{ scrollMarginTop: 56 }}>
-                  <StockLearning
-                    key={`learning:${owner}:${symbol}:${learningEntry?.symbol===symbol?learningEntry.sequence:0}`}
-                    initialLessonId={learningEntry?.symbol===symbol?learningEntry.id:undefined}
-                    onCompany={()=>document.querySelector('#anchor-company [data-context-exploration]')?.scrollIntoView({block:'start'})}
-                    name={displayName} owner={owner} tags={questionTags}
-                    onChart={analysis && !isLev ? (days) => {
-                      setChartRange(days);
-                      document.getElementById('anchor-chart')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } : undefined}
-                    onNews={() => document.getElementById('anchor-news')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                <StockDetailResources key={`resources:${owner}:${symbol}`}
+                  initialId={readingVisits.get(readingKey)?.reading.trail.length ? 'industry' : undefined}
+                  items={[
+                    ...(!isFund ? [{ id:'industry', title:'산업과 다른 기업', description:'같은 산업에서 맡는 역할 비교', content:(<div data-company-exploration-anchor>
+                  <ContextExploration industryOnly key={`exploration:${symbol}`} symbol={symbol} profile={companyProfile ?? undefined} topics={stockExploration(symbol, companyProfile ?? undefined)} context={`${displayName} 살펴보기`}
+                    initialReadingState={readingVisits.get(`${owner}:${symbol}`)?.reading}
+                    onReadingChange={reading => setReadingVisits(visits => {
+                      const next = new Map(visits);
+                      next.set(readingKey, { reading, companyOffset: visits.get(readingKey)?.companyOffset ?? 0 });
+                      return next;
+                    })}
+                    onNews={() => analysisBodyRef.current?.querySelector('#anchor-news')?.scrollIntoView({block:'start'})}
+                    onOpenStock={(next, reading) => {
+                      if (next === symbol) {
+                        analysisBodyRef.current?.scrollTo({ top: 0 });
+                        dialogRef.current?.querySelector<HTMLElement>('[data-dialog-initial-focus]')?.focus({ preventScroll: true });
+                        return;
+                      }
+                      const body = analysisBodyRef.current;
+                      const companyIntro = body?.querySelector<HTMLElement>('[data-company-exploration-anchor]');
+                      const companyOffset = body && companyIntro ? companyIntro.getBoundingClientRect().top - body.getBoundingClientRect().top : 0;
+                      rememberPosition('company');
+                      setReadingVisits(visits => new Map(visits).set(readingKey, { reading, companyOffset }));
+                      setAnalysisSymbol(next);
+                    }} />
+                </div>) }] : []),
+                    ...(!isLev ? [{ id:'report', title:'종합 분석', description:'여러 관점으로 정리한 AI 분석', content:analysisReportControls }] : []),
+                  ]} />
+
+                {isLev && analysisReportControls}
+
+                <div id="anchor-learning" className={panelStyles.library}>
+                  {isFund ? <section aria-labelledby="fund-library-title">
+                    <h2 id="fund-library-title">상품에서 이어지는 궁금증</h2>
+                    <p className={panelStyles.sectionIntro}>투자 대상부터 수익 구조와 비교 기준까지, 궁금한 질문을 골라 읽어보세요.</p>
+                    {fundProfile(symbol) ? <>
+                      <div className={panelStyles.fundLibrary}>
+                        {(['target', 'pitfall'] as FundQuestionId[]).map(id => <button type="button" key={id} data-reading-return={learningEntry?.id === id ? "library" : undefined} onClick={() => openLearning(id, 'library', '상품 질문 목록으로 돌아가기')}>{fundQuestions(fundProfile(symbol)!)[id].title} →</button>)}
+                      </div>
+                      <details><summary className={panelStyles.referenceSummary}>다른 구조 질문도 살펴보기</summary><div className={panelStyles.fundLibrary}>
+                        {(['returns', 'compare', 'distribution', 'currency', 'watch'] as FundQuestionId[]).map(id => <button type="button" key={id} data-reading-return={learningEntry?.id === id ? "library" : undefined} onClick={() => openLearning(id, 'library', '상품 질문 목록으로 돌아가기')}>{fundQuestions(fundProfile(symbol)!)[id].title} →</button>)}
+                      </div></details>
+                      {renderInline('library')}
+                    </> : <p>이 상품의 구조 자료는 아직 확인하지 못했어요. 상품 이해에서 확인된 상품과 자료 범위를 살펴볼 수 있어요.</p>}
+                  </section> : <StockLearning key={`learning:${owner}:${symbol}`}
+                    name={displayName} owner={owner} symbol={symbol} instrument="stock" tags={questionTags}
+                    initialReading={libraryReadings[readingKey]}
+                    onReadingChange={reading => setLibraryReadings(previous => ({ ...previous, [readingKey]: reading }))}
+                    onCompany={() => goTo('anchor-company')}
+                    onChart={() => goTo('anchor-chart')}
+                    onNews={() => goTo('anchor-news')}
                     onNotes={stockData ? () => {
-                      const notes = document.getElementById('anchor-notes');
-                      notes?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      notes?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
-                    } : undefined}
-                  />
+                      goTo('anchor-notes');
+                      analysisBodyRef.current?.querySelector<HTMLButtonElement>('#anchor-notes button')?.focus({ preventScroll: true });
+                    } : undefined} />}
                 </div>
 
-                {analysis && !isLev && (
-                  <details className={assistantStyles.technical}>
-                    <summary>가격 흐름을 더 자세히 보기</summary>
-                    <h4>{analysis.chartShape.title}</h4>
-                    <p>{analysis.chartShape.desc}</p>
-                    {analysis.rsiVal != null && <p>최근 상승·하락 폭을 비교하는 RSI는 {analysis.rsiVal.toFixed(0)}이에요. 회사의 가치나 앞으로의 수익을 나타내는 점수는 아니에요.</p>}
-                  </details>
-                )}
+                {symbol && (stockData || (!isLev && price > 0)) && (
+                  <section id="anchor-personal" className={panelStyles.personal} aria-labelledby="personal-title">
+                    <h2 id="personal-title">내 투자에 연결하기</h2>
+                    {stockData && <p className={panelStyles.sectionIntro}>살펴본 내용을 바탕으로 이 종목을 보는 이유와 앞으로 확인할 점을 남겨보세요.</p>}
 
-                {/* === Below here: always visible regardless of analysis data === */}
+                {/* Investment P&L */}
+                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && price > 0 && (
+                  <div style={{ padding: 20, borderRadius: 14, background: 'var(--bg-subtle)', marginBottom: 20 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 12 }}>내 투자 현황</div>
+                    {/* $/₩ 2컬럼 정렬 — 라벨 | 메인값(우정렬) | 괄호값(우정렬), grid 트랙 공유로 행 간 세로 정렬. tabular-nums. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr max-content max-content', columnGap: 8, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>보유 수량</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>{stockData.shares}주</span>
+                      <span style={{ padding: '6px 0' }} />
 
-                {/* Goal progress bar */}
-                {stockData && stockData.targetReturn > 0 && stockData.avgCost > 0 && price > 0 && (
-                  <div style={{ marginBottom: 24 }}>
-                    <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1' }}>목표 수익률 달성</span>
-                      {(() => {
-                        const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                        return (
-                          <span style={{ fontSize: 14, fontWeight: 700, color: pct >= 0 ? '#EF4452' : '#3182F6' }}>
-                            {pct.toFixed(1)}% / {stockData.targetReturn}%
-                          </span>
-                        );
-                      })()}
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평균 매수가</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(avgCostAmounts.krw)
+                          : formatUsd(avgCostAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(avgCostAmounts.usd)})`
+                          : `(${formatKrw(avgCostAmounts.krw)})`}
+                      </span>
+
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>투자 원금</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(costAmounts.krw)
+                          : formatUsd(costAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(costAmounts.usd)})`
+                          : `(${formatKrw(costAmounts.krw)})`}
+                      </span>
+
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)', padding: '6px 0' }}>평가 금액</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? formatKrw(valueAmounts.krw)
+                          : formatUsd(valueAmounts.usd)}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '6px 0' }}>
+                        {currency === 'KRW'
+                          ? `(${formatUsd(valueAmounts.usd)})`
+                          : `(${formatKrw(valueAmounts.krw)})`}
+                      </span>
+
+                      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-light)', marginTop: 6 }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', padding: '12px 0 6px' }}>수익</span>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        {`${pnlIsGain ? '+' : '-'}${currency === 'KRW'
+                          ? formatKrw(Math.abs(displayPnl))
+                          : formatUsd(Math.abs(displayPnl))}`}
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 400, color: pnlIsGain ? '#EF4452' : '#3182F6', textAlign: 'right', fontVariantNumeric: 'tabular-nums', padding: '12px 0 6px' }}>
+                        ({pnlIsGain ? '+' : ''}{displayPnlPct.toFixed(2)}%)
+                      </span>
                     </div>
-                    <div style={{ width: '100%', height: 10, borderRadius: 5, background: '#ECEEF0', overflow: 'hidden' }}>
-                      {(() => {
-                        const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
-                        const fill = Math.min(Math.max(pct / stockData.targetReturn * 100, 0), 100);
-                        return (
-                          <div
-                            style={{
-                              height: '100%',
-                              borderRadius: 5,
-                              background: pct >= 0 ? '#EF4452' : '#3182F6',
-                              width: `${fill}%`,
-                            }}
-                          />
-                        );
-                      })()}
-                    </div>
-                    <div className="flex justify-between" style={{ marginTop: 6, fontSize: 11, color: '#B0B8C1' }}>
-                      <span>0%</span>
-                      <span>목표 {stockData.targetReturn}%</span>
+                    <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>
+                      {isKoreanStock
+                        ? '💡 한국 종목의 원화 시세를 기준으로 계산했어요.'
+                        : currency === 'KRW'
+                          ? `💡 매입 원금은 ${stockData.purchaseRate ? '입력한 매수 환율' : '현재 환율'}, 평가액은 현재 환율 ${formatKrw(usdKrw, { short: false })}/$를 반영해요.`
+                          : '💡 미국 종목의 달러 시세를 기준으로 계산했어요.'}
                     </div>
                   </div>
                 )}
 
-                {/* Buy history */}
-                {stockData && stockData.avgCost > 0 && stockData.shares > 0 && (
-                  <div style={{ marginBottom: 24 }}>
-                    <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
-                      매수 이력
-                    </div>
-                    <div>
-                      <div className="flex items-center" style={{ gap: 12, padding: '10px 14px', borderRadius: 10, background: '#F8F9FA' }}>
-                        <span style={{ fontSize: 12, color: '#B0B8C1', minWidth: 80 }}>매수</span>
-                        <span style={{ fontSize: 13, color: '#191F28', flex: 1 }}>{stockData.shares}주</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
-                          {currency === 'KRW'
-                            ? formatKrw(avgCostAmounts.krw)
-                            : formatUsd(avgCostAmounts.usd)}
-                        </span>
+                    {/* Goal progress bar */}
+                    {stockData && stockData.targetReturn > 0 && stockData.avgCost > 0 && price > 0 && (
+                      <div style={{ marginBottom: 24 }}>
+                        <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#8B95A1' }}>목표 수익률 달성</span>
+                          {(() => {
+                            const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
+                            return (
+                              <span style={{ fontSize: 14, fontWeight: 700, color: pct >= 0 ? '#EF4452' : '#3182F6' }}>
+                                {pct.toFixed(1)}% / {stockData.targetReturn}%
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <div style={{ width: '100%', height: 10, borderRadius: 5, background: '#ECEEF0', overflow: 'hidden' }}>
+                          {(() => {
+                            const pct = ((price - stockData.avgCost) / stockData.avgCost) * 100;
+                            const fill = Math.min(Math.max(pct / stockData.targetReturn * 100, 0), 100);
+                            return (
+                              <div
+                                style={{
+                                  height: '100%',
+                                  borderRadius: 5,
+                                  background: pct >= 0 ? '#EF4452' : '#3182F6',
+                                  width: `${fill}%`,
+                                }}
+                              />
+                            );
+                          })()}
+                        </div>
+                        <div className="flex justify-between" style={{ marginTop: 6, fontSize: 11, color: '#B0B8C1' }}>
+                          <span>0%</span>
+                          <span>목표 {stockData.targetReturn}%</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* Buy Simulator — 9인 패널 결정 반영: market/priceCurrency 분리 */}
-                {symbol && price > 0 && (() => {
-                  const market: 'KR' | 'US' = isKoreanStock ? 'KR' : 'US';
-                  const priceCurrency: 'KRW' | 'USD' = nativeCurrency;
-                  // 포트폴리오 평가액을 priceCurrency 단위로 통일 (혼합 보유 종목 환산)
-                  const totalPortfolioValue = (() => {
-                    const state = usePortfolioStore.getState();
-                    let tv = 0;
-                    (state.stocks.investing || []).forEach(s => {
-                      const q = state.macroData[s.symbol] as QuoteData | undefined;
-                      if (!q?.c || !s.shares) return;
-                      const amounts = convertStockAmount(
-                        s.symbol,
-                        q.c * s.shares,
-                        usdKrw,
-                        s.currency,
-                      );
-                      tv += priceCurrency === 'KRW' ? amounts.krw : amounts.usd;
-                    });
-                    return tv;
-                  })();
-                  // 단일종목 레버리지: 추가매수 시뮬(물타기 평단)은 매수 방향 유인 → 미노출 (§6).
-                  if (isLev) return null;
-                  return (
-                    <div style={{ marginBottom: 24 }}>
-                      <BuySimulator
-                        symbol={symbol}
-                        market={market}
-                        currentPrice={price}
-                        priceCurrency={priceCurrency}
-                        avgCost={stockData?.avgCost || 0}
-                        shares={stockData?.shares || 0}
-                        totalPortfolioValue={totalPortfolioValue}
-                        usdKrw={usdKrw}
-                        currency={currency}
-                      />
-                    </div>
-                  );
-                })()}
+                    {/* Buy history */}
+                    {stockData && stockData.avgCost > 0 && stockData.shares > 0 && (
+                      <div style={{ marginBottom: 24 }}>
+                        <div className="flex items-center" style={{ fontSize: 15, fontWeight: 700, marginBottom: 12, gap: 6 }}>
+                          매수 이력
+                        </div>
+                        <div>
+                          <div className="flex items-center" style={{ gap: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--bg-subtle)' }}>
+                            <span style={{ fontSize: 12, color: 'var(--text-secondary)', minWidth: 80 }}>매수</span>
+                            <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1 }}>{stockData.shares}주</span>
+                            <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0 }}>
+                              {currency === 'KRW'
+                                ? formatKrw(avgCostAmounts.krw)
+                                : formatUsd(avgCostAmounts.usd)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                {/* Investment Notes */}
-                {symbol && stockData && (() => {
-                  // Find the stock's category and index for notes
-                  const state = usePortfolioStore.getState();
-                  for (const cat of ['investing', 'watching', 'sold'] as const) {
-                    const idx = (state.stocks[cat] || []).findIndex(s => s.symbol === symbol);
-                    if (idx >= 0) {
-                      const stock = state.stocks[cat][idx];
+                    {/* Buy Simulator — 9인 패널 결정 반영: market/priceCurrency 분리 */}
+                    {symbol && price > 0 && (() => {
+                      const market: 'KR' | 'US' = isKoreanStock ? 'KR' : 'US';
+                      const priceCurrency: 'KRW' | 'USD' = nativeCurrency;
+                      // 포트폴리오 평가액을 priceCurrency 단위로 통일 (혼합 보유 종목 환산)
+                      const totalPortfolioValue = (() => {
+                        const state = usePortfolioStore.getState();
+                        let tv = 0;
+                        (state.stocks.investing || []).forEach(s => {
+                          const q = state.macroData[s.symbol] as QuoteData | undefined;
+                          if (!q?.c || !s.shares) return;
+                          const amounts = convertStockAmount(
+                            s.symbol,
+                            q.c * s.shares,
+                            usdKrw,
+                            s.currency,
+                          );
+                          tv += priceCurrency === 'KRW' ? amounts.krw : amounts.usd;
+                        });
+                        return tv;
+                      })();
+                      // 단일종목 레버리지: 추가매수 시뮬(물타기 평단)은 매수 방향 유인 → 미노출 (§6).
+                      if (isLev) return null;
                       return (
-                        <div id="anchor-notes" style={{ scrollMarginTop: 56 }}>
-                          <InvestmentNotes
+                        <div style={{ marginBottom: 24 }}>
+                          <BuySimulator
                             symbol={symbol}
-                            category={cat}
-                            stockIdx={idx}
-                            notes={stock.notes || []}
+                            market={market}
+                            currentPrice={price}
+                            priceCurrency={priceCurrency}
+                            avgCost={stockData?.avgCost || 0}
+                            shares={stockData?.shares || 0}
+                            totalPortfolioValue={totalPortfolioValue}
+                            usdKrw={usdKrw}
+                            currency={currency}
                           />
                         </div>
                       );
-                    }
-                  }
-                  return null;
-                })()}
+                    })()}
+
+                    {/* Investment Notes */}
+                    {symbol && stockData && (() => {
+                      // Find the stock's category and index for notes
+                      const state = usePortfolioStore.getState();
+                      for (const cat of ['investing', 'watching', 'sold'] as const) {
+                        const idx = (state.stocks[cat] || []).findIndex(s => s.symbol === symbol);
+                        if (idx >= 0) {
+                          const stock = state.stocks[cat][idx];
+                          return (
+                            <div id="anchor-notes" style={{ scrollMarginTop: 56 }}>
+                              <InvestmentNotes
+                                symbol={symbol}
+                                category={cat}
+                                stockIdx={idx}
+                                notes={stock.notes || []}
+                              />
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+
+                  </section>
+                )}
 
                 {/* Disclaimer */}
                 <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', padding: '16px 0', borderTop: '1px solid var(--border-light, #F2F4F6)', marginTop: 16 }}>

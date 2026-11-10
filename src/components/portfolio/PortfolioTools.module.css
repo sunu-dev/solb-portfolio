@@ -1,0 +1,15 @@
+.tools { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.dictionary { display:flex; align-items:center; gap:10px; width:44px; height:44px; padding:10px; overflow:hidden; border:1px solid var(--border-light); border-radius:12px; color:var(--text-primary); background:var(--surface); font:inherit; cursor:pointer; transition:width 160ms ease,background-color 160ms ease; }
+.dictionary svg { flex-shrink:0; }
+.dictionary span { white-space:nowrap; opacity:0; font-size:13px; font-weight:600; transition:opacity 120ms ease; }
+.dictionary:hover { background:var(--bg-subtle); }
+.dictionary:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; }
+@media(min-width:900px) {
+ .dictionary:focus-visible { width:140px; }
+ .dictionary:focus-visible span { opacity:1; }
+}
+@media(min-width:900px) and (hover:hover) and (pointer:fine) {
+ .dictionary:hover { width:140px; }
+ .dictionary:hover span { opacity:1; }
+}
+@media(prefers-reduced-motion:reduce) { .dictionary,.dictionary span { transition:none; } }

@@ -1,0 +1,163 @@
+.desk { color:var(--text-primary); margin:0 0 8px; }
+.navigation { display:flex; align-items:center; gap:8px; min-height:44px; }
+.navigation button { display:flex; align-items:center; justify-content:flex-start; gap:0; flex:0 0 auto; width:44px; height:44px; padding:7px; overflow:hidden; border:1px solid var(--border-light); border-radius:12px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:width 160ms ease,background-color 160ms ease; }
+.navigation button > :first-child { flex-shrink:0; width:28px; }
+.navigationLabel { flex-shrink:0; white-space:nowrap; opacity:0; margin-left:8px; transition:opacity 120ms ease; }
+.navigation button[aria-expanded=true] { background:var(--bg-subtle); border-color:var(--text-secondary); }
+.navigation button:focus-visible { width:188px; }
+.navigation button:focus-visible .navigationLabel { opacity:1; }
+@media(hover:hover) and (pointer:fine) {
+ .navigation button:hover { width:188px; background:var(--bg-subtle); }
+ .navigation button:hover .navigationLabel { opacity:1; }
+}
+@media(prefers-reduced-motion:reduce) { .navigation button,.navigationLabel { transition:none; } }
+.panel { max-width:760px; padding:24px 0; border-bottom:1px solid var(--border-light); }
+.panelHeading,.submitRow { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.panelHeading h2 { font-size:23px; letter-spacing:-.035em; margin:0 0 16px; }
+.close { background:transparent; border:0; color:inherit; min-width:44px; min-height:44px; cursor:pointer; }
+.ask label,.dictionary label { display:block; font-size:14px; font-weight:600; margin:16px 0 8px; }
+.ask :is(textarea,select),.dictionary :is(input,textarea) { display:block; width:100%; box-sizing:border-box; min-height:48px; padding:12px 14px; border:1px solid var(--border-light); border-radius:10px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:16px; line-height:1.7; }
+.ask textarea,.dictionary textarea { resize:vertical; }
+.ask .consent { display:flex; align-items:flex-start; gap:10px; font-weight:400; color:var(--text-body); font-size:13px; line-height:1.7; }
+.consent input { width:18px; height:18px; flex-shrink:0; margin-top:3px; }
+.primary,.secondary,.textButton { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:10px 14px; border-radius:9px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+.primary { background:var(--brand-fill); color:var(--on-brand-fg); border:1px solid transparent; }
+.secondary { background:var(--surface); color:var(--text-primary); border:1px solid var(--border-light); }
+.secondary[aria-pressed=true] { border-color:var(--text-secondary); background:var(--bg-subtle); }
+.textButton { background:transparent; border:0; color:var(--text-body); text-decoration:underline; text-underline-offset:4px; }
+.desk button:disabled,.saveTerm button:disabled { opacity:.55; cursor:default; }
+.desk :is(button,a,textarea,input,select,summary):focus-visible,.saveTerm button:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; }
+.desk :is(h2,h3):focus { outline:none; }
+.muted,.saveTerm small { color:var(--text-secondary); font-size:13px; line-height:1.7; }
+.examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.examples button { border:0; background:var(--bg-subtle); color:var(--text-body); padding:9px 12px; min-height:44px; border-radius:8px; font:inherit; font-size:13px; cursor:pointer; text-align:left; }
+.answer { margin-top:28px; border-top:1px solid var(--border-light); padding-top:20px; }
+.answer h3,.review h3,.empty h3 { font-size:20px; letter-spacing:-.025em; }
+.answer p,.entry p,.review p,.empty p { line-height:1.85; word-break:keep-all; overflow-wrap:anywhere; }
+.answer details { margin:18px 0; }
+.answer summary,.entry summary { cursor:pointer; min-height:44px; padding:12px 0; }
+.answer li { margin:12px 0; font-size:14px; line-height:1.6; }
+.answer small { display:block; color:var(--text-secondary); }
+.answer a,.entry a,.review a { color:var(--text-body); text-underline-offset:4px; }
+.pending { font-size:14px; color:var(--text-body); }
+.pending span { display:inline-block; animation:waiting 1.4s ease-in-out infinite; }
+@keyframes waiting { 50% { opacity:.3; } }
+.saveTerm { display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:16px; }
+.inputRow { display:flex; gap:8px; }
+.inputRow input { min-width:0; }
+.inputRow button { flex-shrink:0; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.entry { border-bottom:1px solid var(--border-light); padding:6px 0; }
+.entry summary span { font-size:17px; font-weight:650; }
+.entry summary small { color:var(--text-secondary); font-size:12px; margin-left:12px; }
+.entry .example { background:var(--bg-subtle); padding:16px; border-radius:10px; font-size:14px; }
+.review { padding:20px; margin-top:20px; background:var(--bg-subtle); border-radius:12px; }
+.options { display:grid; gap:10px; margin:20px 0; }
+.options button { justify-content:flex-start; text-align:left; }
+.empty { padding:28px 0; }
+@media(max-width:600px) { .panel { padding:20px 0; } .navigation { gap:8px; }  .panelHeading h2 { font-size:20px; } .submitRow { align-items:flex-start; } .submitRow .primary { width:100%; } .review { padding:16px; } }
+@media(prefers-reduced-motion:reduce) { .pending span { animation:none; } }
+
+.conversation { margin:24px 0; padding:16px 0; border-block:1px solid var(--border-light); }
+.conversation details { margin:8px 0; line-height:1.8; }
+.conversation summary { cursor:pointer; min-height:44px; }
+.priceComparison { margin:24px 0; padding:20px; background:var(--bg-subtle); border-radius:12px; }
+.priceComparison h4,.insight h4,.followUps h4 { margin:0 0 8px; font-size:16px; }
+.priceComparison dl { margin:12px 0; }
+.priceComparison dl div { display:flex; justify-content:space-between; gap:20px; padding:12px 0; border-bottom:1px solid var(--border-light); }
+.priceComparison dt { font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+.priceComparison dd { margin:0; white-space:nowrap; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; }
+.insight { margin:24px 0; }
+.evidenceLinks { display:flex; flex-wrap:wrap; gap:8px 16px; font-size:13px; }
+.evidenceLinks a { display:inline-flex; align-items:center; min-height:44px; }
+.followUps { display:grid; gap:8px; margin:24px 0; }
+.followUps button { justify-content:flex-start; text-align:left; line-height:1.6; }
+.followUps svg { flex-shrink:0; }
+
+/* A personal vocabulary shelf: words first, editing tools revealed on demand. */
+.dictionary { padding-top:8px; }
+.dictionaryIntro { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 0 24px; }
+.dictionaryIntro h3 { margin:4px 0 10px; font-size:26px; letter-spacing:-.04em; }
+.dictionaryIntro h3 span { margin-left:6px; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.dictionaryIntro p { margin:0; font-size:14px; line-height:1.7; color:var(--text-secondary); }
+.dictionaryIntro .dictionaryEyebrow { font-size:12px; }
+.reviewInvite { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; background:var(--bg-subtle); border-radius:16px; }
+.reviewInvite strong,.reviewInvite span { display:block; }
+.reviewInvite strong { font-size:14px; margin-bottom:5px; }
+.reviewInvite span { font-size:12px; color:var(--text-secondary); }
+.reviewInvite button { flex-shrink:0; }
+.storageNote { margin:12px 0 22px; font-size:12px; color:var(--text-secondary); line-height:1.7; }
+.storageNote summary { cursor:pointer; padding:8px 0; }
+.storageNote p { margin:0 0 8px; }
+.addDisclosure { margin:0 0 16px; border-bottom:1px solid var(--border-light); }
+.addDisclosure > summary { display:flex; align-items:center; gap:8px; padding:12px 0; min-height:44px; box-sizing:border-box; cursor:pointer; font-size:14px; color:var(--text-body); list-style:none; }
+.addDisclosure > summary::-webkit-details-marker { display:none; }
+.addDisclosure[open] > summary svg { transform:rotate(45deg); }
+.addDisclosure form { padding:0 0 16px; }
+.dictionary .searchBox { display:flex; align-items:center; gap:10px; padding:0 14px; background:var(--bg-subtle); border:1px solid var(--border-light); border-radius:12px; margin:0 0 12px; }
+.dictionary .searchBox input { border:0; background:transparent; padding:12px 0; min-width:0; }
+.searchBox svg { flex-shrink:0; color:var(--text-secondary); }
+.dictionaryFilters { display:flex; gap:6px; overflow-x:auto; border-bottom:1px solid var(--border-light); margin-bottom:4px; }
+.dictionaryFilters button { display:inline-flex; align-items:center; gap:6px; flex-shrink:0; min-height:48px; padding:10px 12px; background:transparent; border:0; border-bottom:2px solid transparent; color:var(--text-secondary); font:inherit; font-size:13px; cursor:pointer; }
+.dictionaryFilters button[aria-pressed=true] { border-bottom-color:var(--text-primary); color:var(--text-primary); font-weight:700; }
+.dictionaryFilters span { font-size:11px; font-variant-numeric:tabular-nums; }
+.entryList .entry { padding:0; }
+.entry > summary { display:flex; align-items:center; gap:10px; padding:20px 2px; list-style:none; }
+.entry > summary::-webkit-details-marker { display:none; }
+.entry > summary .entryTitle { flex:1; min-width:0; }
+.entryTitle strong { display:block; font-size:17px; font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
+.entry > summary .entryTitle span { display:block; margin-top:4px; color:var(--text-secondary); font-size:12px; font-weight:400; line-height:1.6; overflow-wrap:anywhere; }
+.entry > summary .entryStatus { flex-shrink:0; font-size:11px; font-weight:500; padding:4px 7px; border-radius:6px; background:var(--bg-subtle); color:var(--text-secondary); }
+.entry > summary .entryStatus[data-state=confused] { color:var(--text-primary); border:1px solid var(--border-strong); }
+.entry > summary > svg { flex-shrink:0; color:var(--text-secondary); }
+.entry[open] > summary > svg { transform:rotate(180deg); }
+.entryBody { padding:0 2px 20px; }
+.entryBody .definition { margin:0 0 18px; font-size:16px; line-height:1.9; }
+.entryBody .example { padding:16px 18px; border-radius:12px; }
+.example strong { display:block; font-size:12px; color:var(--text-secondary); }
+.example p { margin:6px 0 0; }
+.sourceLink { display:inline-flex; align-items:center; min-height:44px; font-size:12px; }
+.familiarity { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 20px; }
+.familiarity button { flex:1; font-size:13px; }
+.noteEditor { border-top:1px solid var(--border-light); padding-top:8px; }
+.noteEditor summary { font-size:13px; padding:12px 0; box-sizing:border-box; }
+.noteEditor textarea { margin-bottom:10px; }
+.entryFooter { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; color:var(--text-secondary); font-size:12px; }
+.entryFooter .textButton { margin-left:auto; font-size:12px; font-weight:400; }
+.emptyDictionary { padding:30px 0; text-align:center; }
+.emptyDictionary > svg { color:var(--text-secondary); }
+.emptyDictionary h3 { font-size:20px; letter-spacing:-.025em; }
+.emptyDictionary > p { color:var(--text-secondary); font-size:14px; line-height:1.8; }
+.starterTerms { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:24px; text-align:left; }
+.starterTerms > div { padding:18px; border:1px solid var(--border-light); border-radius:14px; }
+.starterTerms > div > p { font-size:12px; color:var(--text-secondary); line-height:1.7; }
+.starterTerms .saveTerm button { font-size:12px; padding:8px; }
+.starterTerms .saveTerm small { font-size:11px; }
+@media(max-width:480px) {
+ .dictionaryIntro h3 { font-size:23px; }
+ .reviewInvite { padding:16px; gap:12px; align-items:flex-start; flex-direction:column; }
+ .reviewInvite button { width:100%; }
+ .entry > summary { gap:7px; }
+ .entry > summary .entryStatus { font-size:10px; padding:4px 5px; }
+ .starterTerms { grid-template-columns:1fr; }
+ .entryFooter { flex-wrap:wrap; }
+}
+
+/* Mobile review: keep saved words visible before optional tools. */
+.dictionaryIntro { padding:8px 0 16px; }
+.dictionaryIntro h3 { font-weight:650; }
+.emptyDictionary > svg { margin-inline:auto; }
+.dictionary .addDisclosure { margin:20px 0 0; border-top:1px solid var(--border-light); border-bottom:0; }
+@media(max-width:480px) {
+ .panelHeading h2 { margin:0; }
+ .dictionaryIntro { padding:8px 0 12px; gap:12px; }
+ .dictionaryIntro .dictionaryEyebrow { display:none; }
+ .dictionaryIntro h3 { margin:0 0 6px; font-size:21px; }
+ .dictionaryIntro p { font-size:12px; }
+ .reviewInvite { flex-direction:row; align-items:center; padding:12px; gap:8px; }
+ .reviewInvite strong { font-size:12px; }
+ .reviewInvite span { font-size:11px; }
+ .reviewInvite button { width:auto; font-size:12px; padding:8px 10px; }
+ .storageNote { margin:6px 0 10px; }
+ .emptyDictionary { padding:18px 0; }
+}

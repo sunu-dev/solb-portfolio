@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../../../components/ui/AppUI.module.css';
+import readingUI from '../../../components/ui/ReadingUI.module.css';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
@@ -66,17 +69,13 @@ export default function ChokDebugPage() {
   const fmt = (n: number | null, suffix = '') => n === null ? '—' : `${n.toFixed(suffix === '%' ? 1 : 2)}${suffix}`;
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 32, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 32, fontFamily: 'var(--font-ui)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>AI 촉 데이터 진단</h1>
-        <button
+        <h1 className={appUI.pageTitle} >AI 촉 데이터 진단</h1>
+        <button className={appUI.primaryButton}
           onClick={fetchDebug}
           disabled={busy}
-          style={{
-            padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-            background: busy ? '#F2F4F6' : '#191F28', color: busy ? '#B0B8C1' : '#fff',
-            border: 'none', cursor: busy ? 'wait' : 'pointer',
-          }}
+
         >
           {busy ? '갱신 중…' : '새로 받기'}
         </button>
@@ -92,7 +91,7 @@ export default function ChokDebugPage() {
         <>
           {/* 채움률 */}
           <section style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: '#4E5968' }}>필드 채움률 (universe {data.coverage.total}종)</h2>
+            <h2 className={readingUI.sectionTitle} style={{ marginBottom: 10, color: 'var(--text-body)' }}>필드 채움률 (universe {data.coverage.total}종)</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
               {[
                 { label: '현재가', n: data.coverage.currentPrice, pct: data.coveragePct.currentPrice },
@@ -104,9 +103,9 @@ export default function ChokDebugPage() {
                 const color = v >= 80 ? '#1B6B3A' : v >= 50 ? '#FF9500' : '#EF4452';
                 return (
                   <div key={c.label} style={{ padding: 14, border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
-                    <div style={{ fontSize: 11, color: '#8B95A1', marginBottom: 4 }}>{c.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>{c.label}</div>
                     <div style={{ fontSize: 20, fontWeight: 700, color }}>
-                      {c.pct} <span style={{ fontSize: 11, color: '#B0B8C1', fontWeight: 500 }}>({c.n}/{data.coverage.total})</span>
+                      {c.pct} <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>({c.n}/{data.coverage.total})</span>
                     </div>
                   </div>
                 );
@@ -115,30 +114,30 @@ export default function ChokDebugPage() {
           </section>
 
           {/* 부족 종목 */}
-          <section style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <section style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
             <div style={{ padding: 14, background: 'rgba(255,149,0,0.05)', border: '1px solid rgba(255,149,0,0.2)', borderRadius: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#FF9500', marginBottom: 6 }}>PER 미수집 ({data.missingPeSymbols.length})</div>
-              <div style={{ fontSize: 11, color: '#4E5968', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-body)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {data.missingPeSymbols.join(', ') || '없음'}
               </div>
             </div>
             <div style={{ padding: 14, background: 'rgba(255,149,0,0.05)', border: '1px solid rgba(255,149,0,0.2)', borderRadius: 8 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#FF9500', marginBottom: 6 }}>52주 위치 미수집 ({data.missing52wSymbols.length})</div>
-              <div style={{ fontSize: 11, color: '#4E5968', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-body)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {data.missing52wSymbols.join(', ') || '없음'}
               </div>
             </div>
           </section>
 
           {/* Today movers (오늘 universe 내 상위·하위) */}
-          <section style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <section style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16 }}>
             <div style={{ padding: 14, background: 'rgba(239,68,82,0.04)', border: '1px solid rgba(239,68,82,0.18)', borderRadius: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#C72C2C', marginBottom: 8 }}>오늘 universe TOP 5 상승</div>
               {data.todayGainers.length === 0 ? (
-                <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>데이터 없음</div>
               ) : data.todayGainers.map(g => (
                 <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted var(--border-light, #F2F4F6)' }}>
-                  <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
+                  <span><strong>{g.symbol}</strong> <span style={{ color: 'var(--text-secondary)' }}>{g.krName}</span></span>
                   <span style={{ color: '#C72C2C', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>+{g.todayChangePct?.toFixed(2)}%</span>
                 </div>
               ))}
@@ -146,10 +145,10 @@ export default function ChokDebugPage() {
             <div style={{ padding: 14, background: 'rgba(49,130,246,0.04)', border: '1px solid rgba(49,130,246,0.18)', borderRadius: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#1B5BC9', marginBottom: 8 }}>오늘 universe TOP 5 하락</div>
               {data.todayLosers.length === 0 ? (
-                <div style={{ fontSize: 11, color: '#B0B8C1' }}>데이터 없음</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>데이터 없음</div>
               ) : data.todayLosers.map(g => (
                 <div key={g.symbol} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '1px dotted var(--border-light, #F2F4F6)' }}>
-                  <span><strong>{g.symbol}</strong> <span style={{ color: '#8B95A1' }}>{g.krName}</span></span>
+                  <span><strong>{g.symbol}</strong> <span style={{ color: 'var(--text-secondary)' }}>{g.krName}</span></span>
                   <span style={{ color: '#1B5BC9', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{g.todayChangePct?.toFixed(2)}%</span>
                 </div>
               ))}
@@ -158,14 +157,14 @@ export default function ChokDebugPage() {
 
           {/* 섹터 분포 */}
           <section style={{ marginBottom: 24 }}>
-            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: '#4E5968' }}>섹터 분포</h2>
+            <h2 className={readingUI.sectionTitle} style={{ marginBottom: 10, color: 'var(--text-body)' }}>섹터 분포</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {Object.entries(data.sectorDistribution).sort((a, b) => b[1] - a[1]).map(([sec, n]) => (
                 <span key={sec} style={{
                   padding: '4px 10px', borderRadius: 12,
-                  background: '#F2F4F6', fontSize: 12, color: '#4E5968',
+                  background: 'var(--bg-subtle)', fontSize: 12, color: 'var(--text-body)',
                 }}>
-                  {sec} <strong style={{ color: '#191F28' }}>{n}</strong>
+                  {sec} <strong style={{ color: 'var(--text-primary)' }}>{n}</strong>
                 </span>
               ))}
             </div>
@@ -173,11 +172,11 @@ export default function ChokDebugPage() {
 
           {/* 종목별 상세 */}
           <section>
-            <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 10, color: '#4E5968' }}>종목별 상세 ({data.detail.length})</h2>
+            <h2 className={readingUI.sectionTitle} style={{ marginBottom: 10, color: 'var(--text-body)' }}>종목별 상세 ({data.detail.length})</h2>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
-                  <tr style={{ background: '#F8F9FA', textAlign: 'left' }}>
+                  <tr style={{ background: 'var(--bg-subtle)', textAlign: 'left' }}>
                     <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>심볼</th>
                     <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>이름</th>
                     <th style={{ padding: 8, borderBottom: '1px solid var(--border-light, #E5E8EB)' }}>섹터</th>
@@ -191,19 +190,19 @@ export default function ChokDebugPage() {
                   {data.detail.map(d => (
                     <tr key={d.symbol} style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
                       <td style={{ padding: 8, fontFamily: 'monospace', fontWeight: 600 }}>{d.symbol}</td>
-                      <td style={{ padding: 8, color: '#4E5968' }}>{d.krName}</td>
-                      <td style={{ padding: 8, color: '#8B95A1', fontSize: 11 }}>{d.sectorLabel}</td>
+                      <td style={{ padding: 8, color: 'var(--text-body)' }}>{d.krName}</td>
+                      <td style={{ padding: 8, color: 'var(--text-secondary)', fontSize: 11 }}>{d.sectorLabel}</td>
                       <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                        {d.currentPrice !== null ? `$${d.currentPrice.toFixed(2)}` : <span style={{ color: '#B0B8C1' }}>—</span>}
+                        {d.currentPrice !== null ? `$${d.currentPrice.toFixed(2)}` : <span style={{ color: 'var(--text-secondary)' }}>—</span>}
                       </td>
-                      <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: d.peRatio === null ? '#B0B8C1' : '#191F28' }}>
+                      <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: d.peRatio === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                         {fmt(d.peRatio)}
                       </td>
-                      <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: d.week52Position === null ? '#B0B8C1' : '#191F28' }}>
+                      <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: d.week52Position === null ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                         {fmt(d.week52Position, '%')}
                       </td>
                       <td style={{ padding: 8, textAlign: 'right', fontVariantNumeric: 'tabular-nums',
-                        color: d.yearReturn === null ? '#B0B8C1' : (d.yearReturn >= 0 ? '#EF4452' : '#3182F6') }}>
+                        color: d.yearReturn === null ? 'var(--text-secondary)' : (d.yearReturn >= 0 ? '#EF4452' : '#3182F6') }}>
                         {d.yearReturn !== null ? `${d.yearReturn >= 0 ? '+' : ''}${d.yearReturn.toFixed(1)}%` : '—'}
                       </td>
                     </tr>
@@ -213,7 +212,7 @@ export default function ChokDebugPage() {
             </div>
           </section>
 
-          <div style={{ marginTop: 24, fontSize: 11, color: '#B0B8C1', textAlign: 'right' }}>
+          <div style={{ marginTop: 24, fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>
             데이터 시각: {new Date(data.ranAt).toLocaleString('ko-KR')}
           </div>
         </>

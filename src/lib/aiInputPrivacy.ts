@@ -15,10 +15,6 @@ export interface PublicAiAnalysisInput {
   recentNews?: string;
   mentorId?: string;
   questionId?: string;
-  per?: number;
-  eps?: number;
-  week52High?: number;
-  week52Low?: number;
   sector?: string;
   description?: string;
   timeSeriesContext?: string;
@@ -43,10 +39,6 @@ const optionalNumberFields = [
   'change',
   'changePercent',
   'volRatio',
-  'per',
-  'eps',
-  'week52High',
-  'week52Low',
 ] as const;
 
 const optionalStringLimits = {
@@ -95,7 +87,6 @@ export function toPublicAiAnalysisInput(input: unknown): PublicAiAnalysisInput |
 
   for (const field of optionalNumberFields) {
     const value = raw[field];
-    // Fundamentals uses null for unavailable metrics (e.g. ETF PER/EPS).
     // Missing optional facts must not invalidate an otherwise valid quote.
     if (value === null || value === undefined) continue;
     if (value !== undefined && !finiteNumber(value)) return null;

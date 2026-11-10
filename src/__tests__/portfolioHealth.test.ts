@@ -208,3 +208,14 @@ describe('누출 불변식 — 모든 액션은 종목명/티커 0', () => {
     }
   });
 });
+
+it('does not infer diversification or a score from incomplete prices', () => {
+  const complete = mk('MSFT', 100);
+  expect(calcHealthScore([complete]).available).toBe(true);
+  for (const currentPrice of [0, NaN, Infinity]) {
+    const result = calcHealthScore([complete, mk('AAPL', 0, { currentPrice })]);
+    expect(result.available).toBe(false);
+    expect(result.concentration.detail).toBe('시세 확인 중');
+    expect(result.concentration.detail).not.toContain('분산');
+  }
+});

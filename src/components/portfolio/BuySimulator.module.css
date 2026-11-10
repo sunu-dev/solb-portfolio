@@ -1,0 +1,11 @@
+.entry { display:flex; align-items:center; gap:16px; width:100%; min-height:88px; margin-top:20px; padding:20px; border:0; border-radius:10px; background:var(--bg-subtle); color:var(--text-primary); font:inherit; text-align:left; cursor:pointer; }
+.entry > svg { flex-shrink:0; }
+.entry > span { flex:1; min-width:0; }
+.entry strong { display:block; font-size:15px; font-weight:600; line-height:1.7; }
+.entry small { display:block; margin-top:4px; color:var(--text-secondary); font-size:12px; line-height:1.7; }
+.entry:hover strong { text-decoration:underline; text-underline-offset:4px; }
+.entry:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; }
+@media(max-width:380px) { .entry {gap:12px;padding:18px 14px;} }
+
+.heading { display:inline-flex; align-items:center; gap:8px; color:var(--text-primary); font-size:14px; font-weight:650; }
+.close { composes:iconButton from '../ui/AppUI.module.css'; }

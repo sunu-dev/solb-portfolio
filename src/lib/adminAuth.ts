@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getServiceClient } from '@/lib/supabaseServer';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
 
 /**
  * 관리자 신원 SSOT — **서버 전용**.
@@ -69,14 +70,14 @@ export type ResolveOutcome =
   | { status: 'ok'; user: ResolvedUser }
   /** 토큰이 없거나 무효하다 — 정상적인 비로그인 */
   | { status: 'anonymous' }
-  /** Supabase 클라이언트를 만들 수 없다 — **설정 오류**이지 인증 오류가 아니다 */
+  /** 설정 누락·공급자 오류·시간 초과 — 로그아웃이나 잘못된 토큰과 구분한다. */
   | { status: 'unavailable' };
 
 /**
  * Bearer 토큰으로 요청자 신원을 확인한다.
  *
- * 토큰 검증에는 service-role 클라이언트를 쓴다(`auth.getUser(token)`은 키 종류와 무관하게
- * 토큰 자체를 검증하며, 여기서는 클라이언트 재사용으로 커넥션을 아낀다).
+ * 검증이 지연되면 5초 안에 요청을 취소한다. 인증 실패만 anonymous로 처리하고,
+ * 공급자 오류·네트워크 실패는 unavailable로 반환해 로그인 해제로 오인하지 않는다.
  */
 export async function resolveUserOutcome(req: NextRequest): Promise<ResolveOutcome> {
   const supabase = getServiceClient();
@@ -86,15 +87,30 @@ export async function resolveUserOutcome(req: NextRequest): Promise<ResolveOutco
   }
 
   const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return { status: 'anonymous' };
+  if (!authHeader?.startsWith('Bearer ') || !authHeader.slice(7).trim()) return { status: 'anonymous' };
 
   try {
-    const { data: { user }, error } = await supabase.auth.getUser(authHeader.slice(7));
-    if (error || !user) return { status: 'anonymous' };
-    return { status: 'ok', user: { id: user.id, email: user.email ?? null } };
-  } catch {
+    return await withAbortDeadline<ResolveOutcome>(async signal => {
+      const client = getServiceClient(signal);
+      if (!client) return { status: 'unavailable' };
+      const { data: { user }, error } = await client.auth.getUser(authHeader.slice(7));
+      if (error) return classifyAuthFailure(error);
+      return user ? { status: 'ok', user: { id: user.id, email: user.email ?? null } }
+        : { status: 'anonymous' };
+    }, 5000, req.signal);
+  } catch (error) {
+    return classifyAuthFailure(error);
+  }
+}
+
+function classifyAuthFailure(error: unknown): ResolveOutcome {
+  const value = error && typeof error === 'object'
+    ? error as { status?: number; code?: string; name?: string } : {};
+  if (value.status === 401 || value.status === 403 || value.name === 'AuthSessionMissingError'
+    || ['bad_jwt', 'session_not_found', 'session_expired', 'user_not_found'].includes(value.code ?? '')) {
     return { status: 'anonymous' };
   }
+  return { status: 'unavailable' };
 }
 
 /**

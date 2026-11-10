@@ -1,0 +1,22 @@
+.figure { margin:24px 0; padding:18px 16px 8px; border:0; border-radius:10px; background:var(--bg-subtle); }
+.caption { font-size:14px; font-weight:600; color:var(--text-primary); }
+.flow { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; list-style:none; margin:24px 0 18px; padding:0; }
+.step { position:relative; min-width:0; text-align:center; }
+.drawing { display:flex; height:56px; align-items:center; justify-content:center; color:var(--text-body); }
+.label { display:block; margin-top:8px; font-size:14px; line-height:1.6; color:var(--text-primary); }
+.connection { position:absolute; top:27px; left:calc(50% + 32px); width:calc(100% - 40px); height:1px; background:var(--border-strong); }
+.connection::after { content:''; position:absolute; right:0; top:-3px; width:7px; height:7px; border-top:1px solid var(--text-secondary); border-right:1px solid var(--text-secondary); transform:rotate(45deg); }
+.connection span { display:block; position:absolute; width:5px; height:5px; top:-2px; border-radius:50%; background:var(--text-primary); opacity:0; }
+.flow[data-playing='true'] .connection span { animation:travel 1s .25s ease-in-out both; }
+.flow[data-playing='true'] .step:nth-child(2) .connection span { animation-delay:1.4s; }
+.flow[data-playing='true'] .drawing { animation:emphasis 1s ease both; }
+.flow[data-playing='true'] .step:nth-child(2) .drawing { animation-delay:1s; }
+.flow[data-playing='true'] .step:nth-child(3) .drawing { animation-delay:2s; }
+.footer { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.footer small { color:var(--text-secondary); font-size:12px; line-height:1.65; max-width:42ch; }
+.replay { display:flex; align-items:center; gap:6px; flex-shrink:0; min-height:44px; padding:8px 0; border:0; background:transparent; color:var(--text-body); font:inherit; font-size:13px; cursor:pointer; }
+.replay:disabled { opacity:.5; cursor:default; }
+@keyframes travel { 0% { left:0;opacity:0; } 15% {opacity:1;} 85% {opacity:1;} 100% {left:100%;opacity:0;} }
+@keyframes emphasis { 0%,100% {color:var(--text-body);} 50% {color:var(--text-primary); transform:translateY(-2px);} }
+@media(max-width:480px) { .flow {gap:16px;} .label {font-size:13px;} .footer {align-items:flex-start;} }
+@media(prefers-reduced-motion:reduce) { .flow .drawing,.flow .connection span {animation:none !important;} .replay {display:none;} }

@@ -1,6 +1,11 @@
 .agents/
 .claude/
 .codex/
+.env*
+.next/
+.git/
+node_modules/
+artifacts/
 docs/
 sessionary/
 supabase/
@@ -9,3 +14,13 @@ src/app/brand-preview/type/
 src/app/brand-preview/twelve/
 public/fonts/brand-preview/korean/style-[1-8].ttf
 public/fonts/brand-preview/korean/style-1[0-2].ttf
+
+.env*
+src/app/qa-import/
+
+/*.md
+design-mockup.html
+*.tsbuildinfo
+src/app/qa-import
+
+src/app/qa-question-quality/

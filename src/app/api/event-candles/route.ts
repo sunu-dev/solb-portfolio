@@ -14,15 +14,16 @@ async function fetchYahooHistorical(symbol: string, from: number, to: number): P
       headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
       signal: AbortSignal.timeout(8000),
     });
+    if (!resp.ok) return { s: 'error' };
     const data = await resp.json();
     const result = data?.chart?.result?.[0];
-    if (!result?.timestamp || !result?.indicators?.quote?.[0]) return { s: 'no_data' };
+    if (data?.chart?.error || !result || !Array.isArray(result.timestamp) || !Array.isArray(result.indicators?.quote?.[0]?.close)) return { s: 'error' };
 
     const quote = result.indicators.quote[0];
     const t: number[] = [];
     const c: number[] = [];
     for (let i = 0; i < result.timestamp.length; i++) {
-      if (quote.close[i] != null) {
+      if (Number.isFinite(quote.close[i]) && quote.close[i] > 0 && Number.isFinite(result.timestamp[i]) && result.timestamp[i] >= from && result.timestamp[i] < to) {
         t.push(result.timestamp[i]);
         c.push(quote.close[i]);
       }
@@ -50,15 +51,18 @@ export const POST = defineRoute({
     return NextResponse.json({ error: 'symbols and from required' }, { status: 400 });
   }
 
-  const toTs = to || Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const toTs = Math.min(to || now, now);
+  if (from >= toTs) return NextResponse.json({ error: 'Historical dates must precede the present' }, { status: 400 });
+  const uniqueSymbols = [...new Set(symbols)];
   const BATCH = 5;
   const results: Record<string, CandleResult> = {};
 
-  for (let i = 0; i < symbols.length; i += BATCH) {
-    const batch = symbols.slice(i, i + BATCH);
+  for (let i = 0; i < uniqueSymbols.length; i += BATCH) {
+    const batch = uniqueSymbols.slice(i, i + BATCH);
     const batchResults = await Promise.all(batch.map(sym => fetchYahooHistorical(sym, from, toTs)));
     batch.forEach((sym, idx) => { results[sym] = batchResults[idx]; });
-    if (i + BATCH < symbols.length) {
+    if (i + BATCH < uniqueSymbols.length) {
       await new Promise(r => setTimeout(r, 50));
     }
   }
@@ -69,6 +73,7 @@ export const POST = defineRoute({
     ? 's-maxage=86400, stale-while-revalidate=604800'
     : 's-maxage=900, stale-while-revalidate=3600';
 
-  return NextResponse.json(results, { headers: { 'Cache-Control': cacheControl } });
+  const complete = Object.values(results).every(result => result.s === 'ok');
+  return NextResponse.json(results, { headers: { 'Cache-Control': complete ? cacheControl : 'no-store' } });
 },
 });

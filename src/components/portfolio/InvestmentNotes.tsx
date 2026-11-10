@@ -80,7 +80,7 @@ export default function InvestmentNotes({ symbol, category, stockIdx, notes }: P
         {!isAdding && (
           <button
             onClick={() => setIsAdding(true)}
-            style={{ fontSize: 12, fontWeight: 600, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ minHeight: 44, padding: '8px 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-loss)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             + 메모 추가
           </button>

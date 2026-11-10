@@ -1,0 +1,33 @@
+.root { padding:24px 0 28px; border-top:3px solid var(--text-primary); color:var(--text-primary); }
+.companyExplanation { padding:18px 0; border-bottom:1px solid var(--border); }
+.companyExplanation > summary { font-weight:650; line-height:1.7; }
+.companyExplanation p { margin:12px 0; }
+.comparison { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:18px 0; padding:16px; background:var(--surface-hover); border-radius:12px; }
+.comparison dt { color:var(--text-body); font-size:12px; line-height:1.8; }
+.comparison dt small { display:block; font-size:11px; }
+.comparison dd { margin-top:8px; font-size:15px; font-weight:650; overflow-wrap:anywhere; }
+.timing { border-left:3px solid var(--text-body); padding-left:12px; }
+@media(max-width:480px) { .comparison { grid-template-columns:1fr; } }
+.kicker { font-size:12px; color:var(--text-body); line-height:1.7; margin-bottom:12px; }
+.root h3 { font-size:clamp(22px,3vw,30px); line-height:1.45; letter-spacing:-.035em; font-weight:750; word-break:keep-all; }
+.summary { margin-top:16px; font-size:16px; line-height:1.9; color:var(--text-body); }
+.lead { margin-top:18px; font-size:16px; font-weight:650; line-height:1.7; }
+.detail { margin-top:12px; }
+.detail section { margin:24px 0; }
+.detail h4 { font-size:17px; line-height:1.7; margin-bottom:10px; font-weight:700; }
+.detail h5 { font-size:15px; line-height:1.7; margin:14px 0 8px; font-weight:650; }
+.detail p,.detail li { font-size:14px; line-height:1.9; color:var(--text-body); overflow-wrap:anywhere; }
+.detail ul { padding-left:20px; list-style:disc; }
+.detail li { margin:8px 0; }
+.detail a { text-decoration:underline; text-underline-offset:3px; overflow-wrap:anywhere; }
+.detail small { display:block; font-size:12px; }
+.explanation { border-left:2px solid var(--border-light); padding-left:16px; margin:18px 0; }
+.explanation p { margin:10px 0; }
+.sources { display:flex; flex-wrap:wrap; gap:8px 16px; font-size:12px; line-height:1.8; margin-top:12px; }
+.moves { padding:0!important; list-style:none!important; }
+.moves li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 16px; padding:10px 0; border-bottom:1px solid var(--border-light); }
+.moves strong { color:var(--text-primary); font-weight:650; }
+.moves span { font-size:12px; }
+.root .note { font-size:12px; color:var(--text-body); line-height:1.8; margin:12px 0; }
+.method { border-top:1px solid var(--border-light); margin-top:24px; }
+.root a:focus-visible,.root summary:focus-visible { outline:2px solid var(--text-primary); outline-offset:4px; }

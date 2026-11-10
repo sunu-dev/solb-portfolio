@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
+
 import { useEffect, useState } from 'react';
 import {
   CheckCircle2,
@@ -121,25 +124,25 @@ export default function ProReadinessPanel() {
   }, []);
 
   if (error) return <div role="alert" style={{ padding: 16, borderRadius: 12, background: '#FFF5F5', color: '#EF4452' }}>{error}</div>;
-  if (!data) return <div style={{ padding: 40, textAlign: 'center', color: '#8B95A1' }}>PRO 준비 상태를 확인하는 중...</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>PRO 준비 상태를 확인하는 중...</div>;
 
   const completed = data.readiness.items.filter((item) => item.ready).length;
 
   return (
     <div>
-      <section style={{ padding: 20, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 16, background: '#fff', marginBottom: 16 }}>
+      <section style={{ padding: 20, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 16, background: 'var(--surface)', marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 6 }}>내부 상품안 · 판매 비활성</div>
-            <h2 style={{ margin: 0, fontSize: 22, color: '#191F28' }}>{data.plan.name}</h2>
-            <p style={{ margin: '8px 0 0', maxWidth: 620, color: '#4E5968', fontSize: 13, lineHeight: 1.6 }}>{data.plan.positioning}</p>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 6 }}>내부 상품안 · 판매 비활성</div>
+            <h2 className={readingUI.sectionTitle} style={{ margin: 0, color: 'var(--text-primary)' }}>{data.plan.name}</h2>
+            <p style={{ margin: '8px 0 0', maxWidth: 620, color: 'var(--text-body)', fontSize: 13, lineHeight: 1.6 }}>{data.plan.positioning}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>월 {data.plan.monthlyPriceKrw.toLocaleString()}원</div>
-            <div style={{ marginTop: 4, fontSize: 12, color: '#8B95A1' }}>연 {data.plan.annualPriceKrw.toLocaleString()}원</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>월 {data.plan.monthlyPriceKrw.toLocaleString()}원</div>
+            <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-secondary)' }}>연 {data.plan.annualPriceKrw.toLocaleString()}원</div>
           </div>
         </div>
-        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: data.readiness.readyForSales ? '#F0FFF4' : '#F8F9FA', color: data.readiness.readyForSales ? '#16883E' : '#4E5968', fontSize: 12, fontWeight: 700 }}>
+        <div style={{ marginTop: 16, padding: 12, borderRadius: 10, background: data.readiness.readyForSales ? '#F0FFF4' : 'var(--bg-subtle)', color: data.readiness.readyForSales ? '#16883E' : 'var(--text-body)', fontSize: 12, fontWeight: 700 }}>
           {data.readiness.readyForSales
             ? '필수 게이트가 모두 충족됐어요. 파운더 승인 후 별도 결제 배치를 진행할 수 있어요.'
             : `판매 잠금 유지 · 준비 ${completed}/${data.readiness.items.length} · 환경변수 하나만으로 우회 활성화할 수 없어요.`}
@@ -147,16 +150,16 @@ export default function ProReadinessPanel() {
       </section>
 
       <section style={{ marginBottom: 16 }}>
-        <h3 style={{ fontSize: 15, color: '#191F28', margin: '0 0 10px' }}>도구형 PRO 기능</h3>
+        <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)', margin: '0 0 10px' }}>도구형 PRO 기능</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
           {data.plan.features.map((feature) => {
             const Icon = FEATURE_ICONS[feature.id];
             return (
-              <div key={feature.id} style={{ padding: 16, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 12, background: '#fff' }}>
+              <div key={feature.id} style={{ padding: 16, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 12, background: 'var(--surface)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Icon size={17} strokeWidth={1.8} color="#0F8B84" aria-hidden="true" />
-                  <strong style={{ color: '#191F28', fontSize: 13 }}>{feature.label}</strong>
-                  <span style={{ marginLeft: 'auto', fontSize: 10, color: '#8B95A1' }}>{READINESS_LABEL[feature.readiness]}</span>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{feature.label}</strong>
+                  <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-secondary)' }}>{READINESS_LABEL[feature.readiness]}</span>
                 </div>
                 <p style={{ margin: '9px 0 0', color: '#6B7684', fontSize: 12, lineHeight: 1.55 }}>{feature.description}</p>
               </div>
@@ -166,17 +169,17 @@ export default function ProReadinessPanel() {
       </section>
 
       <section style={{ marginBottom: 16 }}>
-        <h3 style={{ fontSize: 15, color: '#191F28', margin: '0 0 10px' }}>가격 가설 화면</h3>
+        <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)', margin: '0 0 10px' }}>가격 가설 화면</h3>
         <ProDemandOffer preview placement="backup" />
       </section>
 
-      <section style={{ marginBottom: 16, padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: '#fff' }}>
+      <section style={{ marginBottom: 16, padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: 'var(--surface)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
-            <h3 style={{ fontSize: 14, color: '#191F28', margin: 0 }}>가격 가설 지표</h3>
-            <div style={{ marginTop: 4, fontSize: 11, color: '#8B95A1' }}>코호트 {demand?.cohort || '확인 중'}</div>
+            <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)', margin: 0 }}>가격 가설 지표</h3>
+            <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary)' }}>코호트 {demand?.cohort || '확인 중'}</div>
           </div>
-          <span style={{ padding: '5px 9px', borderRadius: 999, background: demand?.enabled ? '#EAF7F6' : '#F2F4F6', color: demand?.enabled ? '#0F766E' : '#6B7684', fontSize: 10, fontWeight: 700 }}>
+          <span style={{ padding: '5px 9px', borderRadius: 999, background: demand?.enabled ? '#EAF7F6' : 'var(--bg-subtle)', color: demand?.enabled ? '#0F766E' : '#6B7684', fontSize: 10, fontWeight: 700 }}>
             {demand?.enabled ? '운영 노출 켜짐' : '운영 노출 꺼짐'}
           </span>
         </div>
@@ -186,7 +189,7 @@ export default function ProReadinessPanel() {
           </p>
         )}
         {!demand?.available ? (
-          <p style={{ margin: '14px 0 0', color: '#8B95A1', fontSize: 11, lineHeight: 1.6 }}>
+          <p style={{ margin: '14px 0 0', color: 'var(--text-secondary)', fontSize: 11, lineHeight: 1.6 }}>
             이벤트 DB가 아직 적용되지 않았어요. 운영 적용 전에는 미리보기만 확인할 수 있어요.
           </p>
         ) : (
@@ -198,9 +201,9 @@ export default function ProReadinessPanel() {
                 ['대기 신청', demand.counts?.waitlistSubmissions || 0],
                 ['숨김', demand.counts?.offerDismissed || 0],
               ].map(([label, value]) => (
-                <div key={String(label)} style={{ padding: 11, borderRadius: 10, background: '#F8F9FA' }}>
-                  <div style={{ color: '#8B95A1', fontSize: 10 }}>{label}</div>
-                  <div style={{ marginTop: 4, color: '#191F28', fontSize: 18, fontWeight: 800 }}>{value}</div>
+                <div key={String(label)} style={{ padding: 11, borderRadius: 10, background: 'var(--bg-subtle)' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 10 }}>{label}</div>
+                  <div style={{ marginTop: 4, color: 'var(--text-primary)', fontSize: 18, fontWeight: 800 }}>{value}</div>
                 </div>
               ))}
             </div>
@@ -212,29 +215,29 @@ export default function ProReadinessPanel() {
       </section>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
-        <div style={{ padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: '#fff' }}>
-          <h3 style={{ fontSize: 14, color: '#191F28', margin: '0 0 12px' }}>출시 게이트</h3>
+        <div style={{ padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: 'var(--surface)' }}>
+          <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)', margin: '0 0 12px' }}>출시 게이트</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {data.readiness.items.map((item) => (
               <div key={item.id} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
                 {item.ready
                   ? <CheckCircle2 size={16} color="#16A34A" aria-label="준비됨" />
-                  : <Circle size={16} color="#B0B8C1" aria-label="준비 필요" />}
+                  : <Circle size={16} color="var(--text-secondary)" aria-label="준비 필요" />}
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28' }}>{item.label}</div>
-                  <div style={{ marginTop: 3, fontSize: 11, color: '#8B95A1', lineHeight: 1.5 }}>{item.detail}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</div>
+                  <div style={{ marginTop: 3, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.detail}</div>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: '#fff' }}>
-          <h3 style={{ fontSize: 14, color: '#191F28', margin: '0 0 12px' }}>무료·PRO 동일 접근</h3>
+        <div style={{ padding: 18, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 14, background: 'var(--surface)' }}>
+          <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)', margin: '0 0 12px' }}>무료·PRO 동일 접근</h3>
           <div style={{ padding: 12, borderRadius: 10, background: '#F0FAF9', color: '#0F766E', fontSize: 12, lineHeight: 1.6 }}>
             AI 분석 {data.aiLimits.free.analysisDaily}회 · 오늘 시장 흐름 {data.aiLimits.free.chokDaily}회로 동일해요.
           </div>
-          <ul style={{ margin: '12px 0 0', paddingLeft: 18, color: '#4E5968', fontSize: 11, lineHeight: 1.8 }}>
+          <ul style={{ margin: '12px 0 0', paddingLeft: 18, color: 'var(--text-body)', fontSize: 11, lineHeight: 1.8 }}>
             {data.readiness.sharedInvestmentAccess.map((access) => <li key={access}>{access}</li>)}
           </ul>
         </div>

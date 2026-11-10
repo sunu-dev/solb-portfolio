@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { usePortfolioStore, fmtDate } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
-import type { PresetEvent, QuoteData, EventCacheEntry } from '@/config/constants';
+import type { PresetEvent, EventCacheEntry } from '@/config/constants';
 import { Plus, Info, X } from 'lucide-react';
 import UndoToast from '@/components/common/UndoToast';
 import EmptyState from '@/components/common/EmptyState';
@@ -13,8 +13,15 @@ import BottomSheet from '@/components/common/BottomSheet';
 import controlStyles from './EventControls.module.css';
 import { changeColor, signedChange } from '@/utils/stockTrendPresentation';
 import { eventPriceComparison } from '@/utils/eventPriceComparison';
-import { macroValue } from '@/utils/macroQuote';
 import { useShallow } from 'zustand/react/shallow';
+
+// Called only when starting an external history request, never while rendering.
+function currentRequestTimestamp() { return Math.floor(Date.now() / 1000); }
+
+const MACRO_COMPARISONS = [
+  { label: 'S&P 500', symbol: '^GSPC' }, { label: 'NASDAQ', symbol: '^IXIC' },
+  { label: 'KOSPI', symbol: '^KS11' }, { label: 'VIX', symbol: '^VIX' },
+];
 
 // ─── EventTimeline ───────────────────────────────────────────────────────────
 function EventTimeline({ event }: { event: PresetEvent }) {
@@ -135,7 +142,7 @@ function NoDataCard({ symbol, name }: { symbol: string; name?: string }) {
       <div>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{STOCK_KR[symbol] || name || symbol}</span>
 
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>이 이벤트 시기 데이터 없음</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>비교할 과거 가격을 확인하지 못했어요.</div>
       </div>
     </div>
   );
@@ -146,123 +153,62 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
   const {
     currentEventId, setCurrentEventId,
     getAllEvents, getAllSymbols, stocks,
-    macroData, eventCache,
+    eventCache,
     updateEventCache, updateEventCacheEntry,
     addCustomEvent, deleteCustomEvent, restoreCustomEvent,
   } = usePortfolioStore(useShallow(state => ({
     currentEventId: state.currentEventId, setCurrentEventId: state.setCurrentEventId,
     getAllEvents: state.getAllEvents, getAllSymbols: state.getAllSymbols, stocks: state.stocks,
-    macroData: state.macroData, eventCache: state.eventCache, updateEventCache: state.updateEventCache,
+    eventCache: state.eventCache, updateEventCache: state.updateEventCache,
     updateEventCacheEntry: state.updateEventCacheEntry, addCustomEvent: state.addCustomEvent,
     deleteCustomEvent: state.deleteCustomEvent, restoreCustomEvent: state.restoreCustomEvent,
   })));
 
-  const [loadingSyms, setLoadingSyms] = useState<Set<string>>(new Set());
+  const [finishedRequest, setFinishedRequest] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [undoToast, setUndoToast] = useState<{ event: PresetEvent } | null>(null);
 
   const events      = getAllEvents();
   const currentEvent = events.find(e => e.id === currentEventId) || events[0];
-
-  const fetchEventData = useCallback(async (ev: PresetEvent) => {
-    if (eventCache[ev.id] && Object.keys(eventCache[ev.id]).length) return;
-
-    const syms = getAllSymbols();
-    updateEventCache(ev.id, {});
-    setLoadingSyms(new Set(syms));
-
-    const markDone = (s: string) =>
-      setLoadingSyms(prev => { const n = new Set(prev); n.delete(s); return n; });
-
-    // ── Preset events with basePrices ──────────────────────────────────────
-    if (ev.basePrices && Object.keys(ev.basePrices).length) {
-      // 1. Stocks that exist in basePrices
-      const inBase    = syms.filter(s => ev.basePrices[s]);
-      const notInBase = syms.filter(s => !ev.basePrices[s]);
-
-      for (const s of inBase) {
-        const bp  = ev.basePrices[s];
-        const cp  = (macroData[s] as QuoteData)?.c;
-        const cc  = cp ? (cp - bp) / bp * 100 : null;
-        const pre = ev.precomputed?.[s];
-        if (pre) {
-          updateEventCacheEntry(ev.id, s, {
-            basePrice: bp,
-            maxDrop: pre.maxDrop,
-            currentChange: cc ?? pre.maxDrop,
-            recovered: pre.recovered,
-            recoveryDays: pre.recoveryDays,
-            dataSource: cc !== null ? 'actual' : 'precomputed',
-          });
-        } else {
-          updateEventCacheEntry(ev.id, s, {
-            basePrice: bp,
-            maxDrop: cc !== null ? Math.min(cc, 0) : 0,
-            currentChange: cc ?? 0,
-            recovered: cc !== null ? cc >= 0 : false,
-            recoveryDays: null,
-            dataSource: cc !== null ? 'actual' : 'precomputed',
-          });
-        }
-        markDone(s);
-      }
-
-      // 2. Fetch historical data for stocks NOT in basePrices
-      if (notInBase.length) {
-        const from = Math.floor(new Date(ev.baseDate).getTime() / 1000);
-        const to   = ev.endDate ? Math.floor(new Date(ev.endDate).getTime() / 1000) : Math.floor(Date.now() / 1000);
-        try {
-          const res = await fetch('/api/event-candles', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbols: notInBase, from, to }),
-          });
-          const map: Record<string, { s: string; t?: number[]; c?: number[] }> = await res.json();
-          for (const s of notInBase) {
-            const d = map[s];
-            if (d?.s === 'ok' && d.c && d.c.length > 1) {
-              const entry = eventPriceComparison(d, !ev.endDate, (macroData[s] as QuoteData)?.c);
-              if (entry) updateEventCacheEntry(ev.id, s, entry);
-            }
-            markDone(s);
-          }
-        } catch {
-          notInBase.forEach(markDone);
-        }
-      }
-      return;
-    }
-
-    // ── Custom events: batch fetch all symbols ──────────────────────────────
-    const from = Math.floor(new Date(ev.baseDate).getTime() / 1000);
-    const to   = ev.endDate ? Math.floor(new Date(ev.endDate).getTime() / 1000) : Math.floor(Date.now() / 1000);
-    try {
-      const res = await fetch('/api/event-candles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: syms, from, to }),
-      });
-      const map: Record<string, { s: string; t?: number[]; c?: number[] }> = await res.json();
-      for (const s of syms) {
-        const d = map[s];
-        if (d?.s === 'ok' && d.c && d.c.length > 1) {
-          const entry = eventPriceComparison(d, !ev.endDate, (macroData[s] as QuoteData)?.c);
-          if (entry) updateEventCacheEntry(ev.id, s, entry);
-        }
-        markDone(s);
-      }
-    } catch {
-      setLoadingSyms(new Set());
-    }
-  }, [eventCache, macroData, getAllSymbols, updateEventCache, updateEventCacheEntry]);
+  const symbolsKey = getAllSymbols().join(',');
+  const eventId = currentEvent?.id;
+  const baseDate = currentEvent?.baseDate;
+  const endDate = currentEvent?.endDate;
+  const requestKey = JSON.stringify([eventId, baseDate, endDate, symbolsKey]);
+  const loadingSyms = new Set(finishedRequest === requestKey ? [] : [...symbolsKey.split(',').filter(Boolean), ...MACRO_COMPARISONS.map(item => item.symbol)]);
 
   useEffect(() => {
-    if (!currentEvent) return;
-    const frame = requestAnimationFrame(() => {
-      void fetchEventData(currentEvent);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [currentEvent, fetchEventData]);
+    if (!eventId || !baseDate) return;
+    let active = true;
+    const controller = new AbortController();
+    const syms = [...new Set([...symbolsKey.split(',').filter(Boolean), ...MACRO_COMPARISONS.map(item => item.symbol)])];
+    // Include a holiday/weekend cushion, then select the final close on/before the basis date.
+    const from = Math.floor(Date.parse(baseDate) / 1000) - 7 * 86400;
+    // Provider's end bound is exclusive: include the requested final trading day.
+    const to = endDate ? Math.floor(Date.parse(endDate) / 1000) + 86400 : currentRequestTimestamp();
+    updateEventCache(eventId, {});
+    void (async () => {
+      try {
+        for (let offset = 0; offset < syms.length; offset += 50) {
+          const batch = syms.slice(offset, offset + 50);
+          const res = await fetch('/api/event-candles', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+            body: JSON.stringify({ symbols: batch, from, to }),
+          });
+          if (!res.ok) throw new Error('Historical prices unavailable');
+          const map: Record<string, { s: string; t?: number[]; c?: number[] }> = await res.json();
+          if (!active) return;
+          for (const symbol of batch) {
+            const candles = map[symbol];
+            const entry = candles?.s === 'ok' ? eventPriceComparison(candles, false, undefined, baseDate) : null;
+            if (entry) updateEventCacheEntry(eventId, symbol, entry);
+          }
+        }
+      } catch { /* Missing/failed source remains visibly unconfirmed. */ }
+      finally { if (active) setFinishedRequest(requestKey); }
+    })();
+    return () => { active = false; controller.abort(); };
+  }, [eventId, baseDate, endDate, symbolsKey, requestKey, updateEventCache, updateEventCacheEntry]);
 
   const handleSaveEvent = (data: { name: string; startDate: string; endDate: string; description: string }) => {
     if (!data.name || !data.startDate) { alert('이름과 시작일은 필수입니다.'); return; }
@@ -280,7 +226,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
   };
 
   const syms      = getAllSymbols();
-  const eventData = eventCache[currentEventId] || {};
+  const eventData = eventCache[currentEvent?.id] || {};
   const stockMap = new Map([...stocks.sold, ...stocks.watching, ...stocks.investing].map(stock => [stock.symbol, stock]));
   const avgCostMap: Record<string, number> = {};
   for (const st of stocks.investing || []) avgCostMap[st.symbol] = st.avgCost;
@@ -296,7 +242,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
       {/* Event pill tabs */}
       <div className="scrollbar-hide" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 20 }}>
         {events.map(ev => {
-          const isActive = currentEventId === ev.id;
+          const isActive = currentEvent?.id === ev.id;
           const isCustom = ev.id.startsWith('c-');
           return (
             <div
@@ -341,10 +287,10 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
                   title="삭제"
                   className="cursor-pointer"
                   style={{
-                    padding: '0 10px',
+                    padding: '0 10px', minWidth: 44,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: 'transparent', border: 'none',
-                    color: isActive ? 'rgba(255,255,255,0.6)' : 'var(--text-tertiary, #B0B8C1)',
+                    color: isActive ? 'var(--pill-active-fg)' : 'var(--text-body)',
                     borderLeft: isActive ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-light, #F2F4F6)',
                   }}
                 >
@@ -357,8 +303,8 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
         <button onClick={() => setShowAddModal(true)} style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
           padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 500,
-          background: 'var(--surface, #FFFFFF)', color: '#3182F6',
-          border: '1px solid rgba(49,130,246,0.2)', cursor: 'pointer', transition: 'all 0.15s',
+          background: 'var(--surface, #FFFFFF)', color: 'var(--text-body)', minHeight: 44,
+          border: '1px solid var(--border-strong)', cursor: 'pointer', transition: 'all 0.15s',
         }}>
           <Plus style={{ width: 14, height: 14 }} /> 추가
         </button>
@@ -375,8 +321,8 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
               </span>
               <span style={{
                 fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
-                background: currentEvent.endDate ? 'rgba(139,149,161,0.1)' : 'rgba(239,68,82,0.1)',
-                color: currentEvent.endDate ? '#8B95A1' : '#EF4452',
+                background: 'var(--bg-subtle)',
+                color: 'var(--text-body)',
               }}>
                 {currentEvent.endDate ? '비교 구간 종료' : '비교 진행 중'}
               </span>
@@ -427,13 +373,12 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
             ) : syms.map(s => {
               const ed        = eventData[s] as EventCacheEntry | undefined;
               const isLoading = loadingSyms.has(s) || (!ed && loadingSyms.size > 0);
-              const cp        = (macroData[s] as QuoteData)?.c;
               if (isLoading) return <StockCardSkeleton key={s} symbol={s} name={stockMap.get(s)?.name} />;
               if (!ed) return <NoDataCard key={s} symbol={s} name={stockMap.get(s)?.name} />;
               return (
                 <EventStockImpactCard key={s} symbol={s} entry={ed} event={currentEvent}
                   name={stockMap.get(s)?.name} currency={stockMap.get(s)?.currency}
-                  currentPrice={cp} quoteTime={(macroData[s] as QuoteData)?.t} avgCost={avgCostMap[s]} />
+                  avgCost={avgCostMap[s]} />
               );
             })}
           </div>
@@ -453,42 +398,26 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
         </div>
       )}
 
-      {/* Macro comparison — vertical row layout */}
-      {currentEvent?.baseMacro && Object.keys(currentEvent.baseMacro).length > 0 && (
-        <div style={{ marginTop: 16, background: 'var(--surface, #FFFFFF)', borderRadius: 16, border: '1px solid var(--border-strong, #E5E8EB)', padding: '20px' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 14 }}>매크로 지표 비교</div>
-          {/* Column header */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) repeat(2, minmax(0, .9fr)) minmax(0, .75fr)', gap: 6, marginBottom: 4 }}>
-            {['', '이벤트 당시', '현재', '변동'].map((h, i) => (
-              <span key={i} style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', textAlign: i === 0 ? 'left' : 'right' }}>{h}</span>
-            ))}
-          </div>
-          {Object.entries(currentEvent.baseMacro).map(([label, baseVal], idx, arr) => {
-            const curVal   = macroValue(macroData, label);
-            const chg      = curVal != null && baseVal ? (curVal - baseVal) / baseVal * 100 : null;
-
-            const isLast   = idx === arr.length - 1;
-            return (
-              <div key={label} style={{
-                display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) repeat(2, minmax(0, .9fr)) minmax(0, .75fr)',
-                alignItems: 'center', gap: 6, padding: '10px 0',
-                borderBottom: isLast ? 'none' : '1px solid var(--border-light, #F2F4F6)',
-              }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>{label}</span>
-                <span style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-tertiary, #B0B8C1)', fontVariantNumeric: 'tabular-nums' }}>
-                  {baseVal.toLocaleString(undefined, { maximumFractionDigits: 1 })}
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 600, textAlign: 'right', color: 'var(--text-primary, #191F28)', fontVariantNumeric: 'tabular-nums' }}>
-                  {curVal != null ? curVal.toLocaleString(undefined, { maximumFractionDigits: 1 }) : '--'}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: chg !== null ? changeColor(chg) : 'var(--text-secondary)' }}>
-                  {chg !== null ? `${signedChange(chg)}%` : '--'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {currentEvent && <section style={{ marginTop: 24, padding: '20px 0', borderTop: '1px solid var(--border-light)' }} aria-label="시장 지수 비교">
+        <h3 style={{ fontSize: 18, fontWeight: 700 }}>같은 기간의 시장 지수</h3>
+        <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '8px 0 16px' }}>Yahoo Finance의 일별 종가 기준이에요. 기준일 종가가 없으면 그 이전 마지막으로 확인된 종가를 사용하고 실제 날짜를 표시해요.</p>
+        {MACRO_COMPARISONS.map(({ label, symbol }) => {
+          const entry = loadingSyms.has(symbol) ? undefined : eventData[symbol];
+          const current = entry?.lastPrice;
+          const change = entry && current != null && current > 0 ? (current / entry.basePrice - 1) * 100 : null;
+          return <div key={symbol} style={{ padding: '14px 0', borderBottom: '1px solid var(--border-light)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <strong>{label}</strong><strong style={{ color: change !== null ? changeColor(change) : 'var(--text-secondary)' }}>{change !== null ? `${signedChange(change)}%` : loadingSyms.has(symbol) ? '확인 중' : '비교 자료 미확인'}</strong>
+            </div>
+            {entry && <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', marginTop: 6 }}>
+              {entry.baseDate} 종가 {entry.basePrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {' → '}{current != null ? current.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '미확인'}
+              {' · '}{entry.lastDate} 마지막 확인 종가
+            </p>}
+            <a style={{ fontSize: 12 }} href={`https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}/history/`} target="_blank" rel="noopener noreferrer">가격 자료 출처 ↗</a>
+          </div>;
+        })}
+      </section>}
 
       {showAddModal && <AddEventModal onClose={() => setShowAddModal(false)} onSave={handleSaveEvent} />}
 
@@ -511,7 +440,7 @@ export default function EventsSection({ embedded = false }: { embedded?: boolean
 // ─── Add Event Modal ─────────────────────────────────────────────────────────
 const QUICK_EVENTS = [
   { name: '미중 무역전쟁', emoji: '🇺🇸', startDate: '2018-03-22', endDate: '2019-01-15', description: '미중 관세 전쟁. 기술주 중심 급락.' },
-  { name: '금리인상 쇼크', emoji: '📈', startDate: '2022-01-01', endDate: '2023-06-30', description: '연준 급격한 금리인상. 나스닥 -35%.' },
+  { name: '금리인상 쇼크', emoji: '📈', startDate: '2022-01-01', endDate: '2023-06-30', description: '연준이 정책금리를 올리던 시기를 비교해요. 선택한 기간의 실제 가격 변화는 조회 후 확인해요.' },
   { name: 'SVB 파산', emoji: '🏦', startDate: '2023-03-08', endDate: '2023-05-01', description: '실리콘밸리뱅크 파산. 은행권 패닉.' },
   { name: '엔캐리 청산', emoji: '🇯🇵', startDate: '2024-07-31', endDate: '2024-09-01', description: '일본 금리인상발 엔캐리 청산 급락.' },
   { name: '트럼프 관세', emoji: '🔒', startDate: '2025-04-02', endDate: '2025-06-01', description: '트럼프 상호관세 발표. 글로벌 증시 급락.' },

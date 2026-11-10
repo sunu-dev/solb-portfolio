@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import styles from './SettingsPanel.module.css';
+
 import { useState, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -17,6 +20,8 @@ import InvestorTypePicker from '@/components/insights/InvestorTypePicker';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
 import PortfolioDataTools from './PortfolioDataTools';
+import JoobiCharacterSettings from './JoobiCharacterSettings';
+import ArrivalPreferences from '../portfolio/ArrivalPreferences';
 
 // ─── 이메일 구독 토글 (재사용) ─────────────────────────────────────────────
 interface EmailToggleProps {
@@ -24,10 +29,9 @@ interface EmailToggleProps {
   label: string;
   description: string;
   emoji: string;
-  accent: string; // 활성 색상
 }
 
-function EmailSubscriptionToggle({ endpoint, label, description, emoji, accent }: EmailToggleProps) {
+function EmailSubscriptionToggle({ endpoint, label, description, emoji }: EmailToggleProps) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -68,38 +72,22 @@ function EmailSubscriptionToggle({ endpoint, label, description, emoji, accent }
 
   return (
     <div style={{ marginBottom: 16 }}>
-      <button
+      <button className={appUI.switchRow}
         onClick={toggle}
         disabled={loading || enabled === null}
         aria-pressed={enabled === true}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '12px 14px', borderRadius: 10, width: '100%',
-          background: enabled ? `${accent}10` : 'var(--bg-subtle, #F2F4F6)',
-          border: enabled ? `1px solid ${accent}30` : '1px solid transparent',
-          cursor: loading ? 'default' : 'pointer', textAlign: 'left',
-        }}
+        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left' }}
       >
         <span style={{ fontSize: 16 }}>{emoji}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+          <div style={{ fontSize: 'var(--type-label-size)', fontWeight: 550, color: 'var(--text-primary)' }}>
             {label}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 'var(--type-caption-size)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             {description}
           </div>
         </div>
-        <span style={{
-          width: 36, height: 20, borderRadius: 12, position: 'relative',
-          background: enabled ? accent : '#D1D6DB',
-          transition: 'background 0.2s', flexShrink: 0,
-        }}>
-          <span style={{
-            position: 'absolute', top: 2, left: enabled ? 18 : 2,
-            width: 16, height: 16, borderRadius: '50%', background: 'white',
-            transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-          }} />
-        </span>
+        <span className={appUI.switchTrack} aria-hidden="true" />
       </button>
     </div>
   );
@@ -108,8 +96,8 @@ function EmailSubscriptionToggle({ endpoint, label, description, emoji, accent }
 function EmailMorningBriefToggle() {
   return (
     <div style={{ marginBottom: 28 }}>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-        ✉️ 이메일 알림
+      <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
+        이메일 알림
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
         아이폰 푸시가 안 와도 이메일로 안전하게 도달해요. 언제든 메일 본문 하단의 링크로 1-click 해제 가능.
@@ -119,20 +107,18 @@ function EmailMorningBriefToggle() {
         emoji="🌅"
         label="모닝 브리핑"
         description="매일 오전 7시 포트폴리오 요약"
-        accent="#00C6BE"
       />
       <EmailSubscriptionToggle
         endpoint="/api/email/monthly-d3"
         emoji="📖"
         label="월말 D-3 리마인더"
         description="월말 3일 전 챕터 회고 안내"
-        accent="#AF52DE"
       />
     </div>
   );
 }
 
-export default function SettingsPanel() {
+export default function SettingsPanel({ isLoggedIn }: { isLoggedIn: boolean }) {
   const {
     autoRefresh, setAutoRefresh,
     refreshInterval, setRefreshInterval,
@@ -155,6 +141,38 @@ export default function SettingsPanel() {
   const [alertPrefsState, setAlertPrefsState] = useState(() => getAlertPrefs());
   const [clearingAll, setClearingAll] = useState(false);
   const [clearAllError, setClearAllError] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (clearingAll || deletingAccount) return;
+    if (!confirm('정말 계정을 삭제하시겠어요?\n\n포트폴리오, 분석 기록 등 모든 데이터가 영구 삭제되며 복구할 수 없어요.')) return;
+    if (!confirm('마지막 확인: 계정 삭제 후에는 되돌릴 수 없어요. 계속하시겠어요?')) return;
+    setDeletingAccount(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('로그인 상태를 확인한 뒤 다시 시도해주세요.');
+
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        throw new Error(data.error || '삭제 실패');
+      }
+
+      const { clearUserStorage } = await import('@/lib/userStorage');
+      clearUserStorage();
+      usePortfolioStore.getState().resetPortfolio();
+      await supabase.auth.signOut();
+      window.location.reload();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '알 수 없는 오류';
+      alert(`계정 삭제에 실패했어요: ${message}`);
+      setDeletingAccount(false);
+    }
+  };
 
   // 모달 열릴 때마다 현재 suppress 상태 새로고침
   useEffect(() => {
@@ -226,13 +244,7 @@ export default function SettingsPanel() {
     <>
       {/* Overlay */}
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.1)',
-          backdropFilter: 'blur(2px)',
-          zIndex: 60,
-        }}
+        className={styles.overlay}
         onClick={() => setIsOpen(false)}
       />
 
@@ -244,60 +256,26 @@ export default function SettingsPanel() {
         aria-modal="true"
         aria-label="설정"
         tabIndex={-1}
-        style={{
-          position: 'fixed',
-          top: 'calc(100dvh - var(--modal-viewport-height) - var(--modal-viewport-bottom))',
-          right: 0,
-          bottom: 'var(--modal-viewport-bottom)',
-          width: 'min(360px, 100vw)',
-          background: 'var(--surface, white)',
-          zIndex: 70,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 0,
-        }}
+        className={styles.panel}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '20px 24px',
-            borderBottom: '1px solid var(--border-light, #F2F4F6)',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>설정</span>
-          <button
+        <div className={styles.header}>
+          <h2 className={styles.title}>설정</h2>
+          <button className={appUI.iconButton}
             onClick={() => setIsOpen(false)}
             aria-label="설정 닫기"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F2F4F6)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
             <X style={{ width: 20, height: 20, color: 'var(--text-secondary, #4E5968)' }} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', padding: 24, paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
+        <div className={styles.body}>
+          <JoobiCharacterSettings />
 
           {/* Auto Refresh Toggle Section */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 8 }}>
               자동 새로고침
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
@@ -307,92 +285,51 @@ export default function SettingsPanel() {
               <span style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>
                 {autoRefresh ? '활성' : '비활성'}
               </span>
-              <button
+              <button className={appUI.switchButton}
                 onClick={() => setAutoRefresh(!autoRefresh)}
                 aria-label="자동 새로고침"
                 aria-pressed={autoRefresh}
-                style={{
-                  position: 'relative',
-                  width: 44,
-                  height: 24,
-                  borderRadius: 9999,
-                  border: 'none',
-                  background: autoRefresh ? '#34C759' : 'var(--bg-subtle, #E5E8EB)',
-                  cursor: 'pointer',
-                  transition: 'background 0.2s',
-                  padding: 0,
-                  flexShrink: 0,
-                }}
+                style={{ position: 'relative', width: 44, flexShrink: 0 }}
               >
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 2,
-                    left: autoRefresh ? 22 : 2,
-                    width: 20,
-                    height: 20,
-                    borderRadius: '50%',
-                    background: 'white',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
-                    transition: 'left 0.2s',
-                  }}
-                />
+                <span className={appUI.switchTrack} aria-hidden="true" />
               </button>
             </div>
           </div>
 
           {/* Refresh Interval Section */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 8 }}>
               새로고침 간격
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               자동 새로고침 주기를 설정합니다 (최소 10초)
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
+              <input className={appUI.field}
                 type="number"
+                aria-label="새로고침 간격(초)"
                 value={intervalSec}
                 onChange={(e) => setIntervalSec(e.target.value)}
                 min="10"
-                style={{
-                  width: 80,
-                  padding: '8px 12px',
-                  borderRadius: 8,
-                  border: '1px solid var(--border-light, #E5E8EB)',
-                  fontSize: 16,
-                  textAlign: 'center',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
+                style={{ width: 80, textAlign: 'center', boxSizing: 'border-box' }}
               />
               <span style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)' }}>초</span>
-              <button
+              <button className={appUI.secondaryButton}
                 onClick={handleUpdateInterval}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 8,
-                  background: 'rgba(49,130,246,0.1)',
-                  color: '#3182F6',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  border: 'none',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s',
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(49,130,246,0.2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'rgba(49,130,246,0.1)')}
+                style={{ flexShrink: 0 }}
+
               >
                 적용
               </button>
             </div>
           </div>
 
+          <ArrivalPreferences />
+
           {/* 내 투자 유형 — AI 개인화 baseline */}
           <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-              🎯 내 투자 유형
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
+              내 투자 유형
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
               AI 분석이 이 유형에 맞춰 설명 방식과 용어 난이도를 조정해요. 종목 평가와 오늘 시장 흐름은 달라지지 않아요. 현재:{' '}
@@ -411,8 +348,8 @@ export default function SettingsPanel() {
 
           {/* 알림 설정 */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-              🔔 푸시 알림
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
+              푸시 알림
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
               목표가·수익률 도달 시 앱이 꺼져있어도 알림을 받아요. 로그인 후 이용 가능 · iOS는 홈화면 추가 필요
@@ -427,24 +364,20 @@ export default function SettingsPanel() {
                 }}>
                   ✓ 푸시 알림 켜짐
                 </div>
-                <button
+                <button className={appUI.secondaryButton}
                   onClick={async () => {
                     setPushLoading(true);
                     await unsubscribePush();
                     setPushLoading(false);
                   }}
                   disabled={pushLoading}
-                  style={{
-                    padding: '10px 16px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-                    color: '#8B95A1', background: 'var(--bg-subtle, #F2F4F6)',
-                    border: 'none', cursor: 'pointer',
-                  }}
+
                 >
                   끄기
                 </button>
               </div>
             ) : (
-              <button
+              <button className={appUI.primaryButton}
                 onClick={async () => {
                   setPushLoading(true);
                   const result = await requestPermission();
@@ -458,15 +391,9 @@ export default function SettingsPanel() {
                   }
                 }}
                 disabled={pushLoading}
-                style={{
-                  width: '100%', padding: 12,
-                  background: pushLoading ? '#8B95A1' : '#3182F6',
-                  color: '#fff', border: 'none', borderRadius: 10,
-                  fontSize: 14, fontWeight: 600, cursor: pushLoading ? 'default' : 'pointer',
-                  transition: 'background 0.15s',
-                }}
+                style={{ width: '100%' }}
               >
-                {pushLoading ? '처리 중...' : '📱 푸시 알림 켜기'}
+                {pushLoading ? '처리 중...' : '푸시 알림 켜기'}
               </button>
             )}
           </div>
@@ -476,7 +403,7 @@ export default function SettingsPanel() {
 
           {/* 알림 카테고리 ON/OFF — 정책 SSOT: docs/NOTIFICATION_POLICY.md §5 */}
           <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
               🎚️ 알림 종류
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
@@ -488,82 +415,50 @@ export default function SettingsPanel() {
                 const meta = CATEGORY_LABELS[cat];
                 const enabled = alertPrefsState.categories[cat];
                 return (
-                  <button
+                  <button className={appUI.switchRow}
                     key={cat}
                     onClick={() => toggleCategory(cat)}
                     aria-pressed={enabled}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', borderRadius: 10,
-                      background: enabled ? 'rgba(49,130,246,0.06)' : 'var(--bg-subtle, #F2F4F6)',
-                      border: enabled ? '1px solid rgba(49,130,246,0.18)' : '1px solid transparent',
-                      cursor: 'pointer', textAlign: 'left',
-                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left' }}
                   >
                     <span style={{ fontSize: 16 }}>{meta.emoji}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                      <div style={{ fontSize: 'var(--type-label-size)', fontWeight: 550, color: 'var(--text-primary)' }}>
                         {meta.label}
                       </div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 'var(--type-caption-size)', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                         {meta.desc}
                       </div>
                     </div>
-                    <span style={{
-                      width: 36, height: 20, borderRadius: 12, position: 'relative',
-                      background: enabled ? '#3182F6' : '#D1D6DB',
-                      transition: 'background 0.2s', flexShrink: 0,
-                    }}>
-                      <span style={{
-                        position: 'absolute', top: 2, left: enabled ? 18 : 2,
-                        width: 16, height: 16, borderRadius: '50%', background: 'white',
-                        transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-                      }} />
-                    </span>
+                    <span className={appUI.switchTrack} aria-hidden="true" />
                   </button>
                 );
               })}
             </div>
 
             {/* 무음 시간대 */}
-            <button
+            <button className={appUI.switchRow}
               onClick={toggleQuietHours}
               aria-pressed={alertPrefsState.quietHours}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 14px', borderRadius: 10, marginTop: 10,
-                background: alertPrefsState.quietHours ? 'rgba(175,82,222,0.06)' : 'var(--bg-subtle, #F2F4F6)',
-                border: alertPrefsState.quietHours ? '1px solid rgba(175,82,222,0.18)' : '1px solid transparent',
-                cursor: 'pointer', textAlign: 'left', width: '100%',
-              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, textAlign: 'left', width: '100%' }}
             >
               <span style={{ fontSize: 16 }}>🌙</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+                <div style={{ fontSize: 'var(--type-label-size)', fontWeight: 550, color: 'var(--text-primary)' }}>
                   무음 시간대
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
                   KST 22:00 ~ 07:00 토스트·푸시 끄기
                 </div>
               </div>
-              <span style={{
-                width: 36, height: 20, borderRadius: 12, position: 'relative',
-                background: alertPrefsState.quietHours ? '#AF52DE' : '#D1D6DB',
-                transition: 'background 0.2s', flexShrink: 0,
-              }}>
-                <span style={{
-                  position: 'absolute', top: 2, left: alertPrefsState.quietHours ? 18 : 2,
-                  width: 16, height: 16, borderRadius: '50%', background: 'white',
-                  transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-                }} />
-              </span>
+              <span className={appUI.switchTrack} aria-hidden="true" />
             </button>
           </div>
 
           {/* 알림 학습 */}
           <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
-              🧠 알림 학습
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
+              알림 학습
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12, lineHeight: 1.6 }}>
               자주 닫으신 알림 타입은 자동으로 덜 보여드려요. 최근 7일 내 3회 이상 해제된 타입이 숨김 대상이에요.
@@ -637,20 +532,13 @@ export default function SettingsPanel() {
                   </>
                 )}
 
-                <button
+                <button className={appUI.secondaryButton}
                   onClick={() => {
                     resetAlertLearning();
                     setSuppressedTypes([]);
                     setSuppressedCategories([]);
                   }}
-                  style={{
-                    width: '100%', padding: '10px 0', borderRadius: 10,
-                    fontSize: 13, fontWeight: 600,
-                    color: 'var(--text-secondary, #4E5968)',
-                    background: 'var(--surface, #FFFFFF)',
-                    border: '1px solid var(--border-strong, #E5E8EB)',
-                    cursor: 'pointer',
-                  }}
+                  style={{ width: '100%' }}
                 >
                   학습 기록 모두 초기화
                 </button>
@@ -662,7 +550,7 @@ export default function SettingsPanel() {
 
           {/* 친구 초대 */}
           <div style={{ marginBottom: 28, paddingBottom: 28, borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 4 }}>
               친구 초대
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
@@ -673,30 +561,17 @@ export default function SettingsPanel() {
 
           {/* Danger Zone */}
           <div style={{ paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
+            <div style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', marginBottom: 8 }}>
               위험 구역
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginBottom: 12 }}>
               이 작업은 되돌릴 수 없어요
             </div>
-            <button
+            <button className={appUI.dangerButton}
               onClick={handleClearAll}
-              disabled={clearingAll}
-              style={{
-                width: '100%',
-                padding: 12,
-                borderRadius: 10,
-                background: 'var(--surface, white)',
-                color: '#EF4452',
-                fontSize: 14,
-                fontWeight: 600,
-                border: '1px solid #EF4452',
-                cursor: clearingAll ? 'wait' : 'pointer',
-                opacity: clearingAll ? 0.6 : 1,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #FFF5F5)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--surface, white)')}
+              disabled={clearingAll || deletingAccount}
+              style={{ width: '100%', opacity: clearingAll ? 0.6 : 1 }}
+
             >
               {clearingAll ? '클라우드 삭제 확인 중...' : '전체 데이터 초기화'}
             </button>
@@ -705,10 +580,29 @@ export default function SettingsPanel() {
                 {clearAllError}
               </div>
             )}
-            <div style={{ fontSize: 11, color: '#B0B8C1', textAlign: 'center', marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 8 }}>
               모든 종목, 설정, 캐시 데이터가 삭제돼요
             </div>
           </div>
+
+          {isLoggedIn && (
+            <section aria-labelledby="settings-account-title" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--border-light, #F2F4F6)' }}>
+              <h2 id="settings-account-title" style={{ fontSize: 'var(--type-group-size)', fontWeight: 650, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+                계정
+              </h2>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 8px' }}>
+                계정을 삭제하면 포트폴리오와 분석 기록 등이 영구 삭제되며 복구할 수 없어요.
+              </p>
+              <button className={appUI.textButton}
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={clearingAll || deletingAccount}
+                style={{ color: 'var(--color-danger)', border: 0 }}
+              >
+                {deletingAccount ? '삭제 중...' : '계정 삭제'}
+              </button>
+            </section>
+          )}
 
         </div>
       </div>

@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
+
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -13,8 +16,10 @@ import {
   getAgeFromBirthDate,
   isAdultBirthDate,
 } from '@/lib/aiAgeGate';
+import AccountAccessStatus from './AccountAccessStatus';
 import JoobiLockup from '@/components/brand/JoobiLockup';
-import { resolveSignupEligibility } from '@/lib/signupEligibility';
+import { withDeadline } from '@/lib/withDeadline';
+import { resolveSignupRequirements, type SignupRequirements } from '@/lib/signupEligibility';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface AgeEligibilityGateProps {
@@ -25,12 +30,13 @@ interface AgeEligibilityGateProps {
 
 type GateStatus = 'checking' | 'required' | 'saving' | 'eligible' | 'error';
 
-async function readAdultConsent(userId: string): Promise<'required' | 'eligible' | 'error'> {
+async function readSignupRequirements(userId: string): Promise<SignupRequirements> {
+  const controller = new AbortController();
   try {
-    return await resolveSignupEligibility(supabase, userId, sessionStorage);
+    return await withDeadline(resolveSignupRequirements(supabase, userId, sessionStorage, controller.signal), 6000);
   } catch {
-    return 'error';
-  }
+    return { status: 'error', missing: [] };
+  } finally { controller.abort(); }
 }
 
 /**
@@ -42,46 +48,56 @@ export default function AgeEligibilityGate(props: AgeEligibilityGateProps) {
 }
 
 function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityGateProps) {
-  const [status, setStatus] = useState<GateStatus>('checking');
+  const [{ status, missing }, setGate] = useState<{ status: GateStatus; missing: SignupRequirements['missing'] }>({ status: 'checking', missing: [] });
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(status !== 'eligible', dialogRef);
+  useFocusTrap(status === 'required' || status === 'saving', dialogRef);
   const age = getAgeFromBirthDate(birthDate);
   const isAdult = isAdultBirthDate(birthDate);
   const ageInvalid = birthDate.length === 8 && !isAdult;
+  const needsAdult = missing.includes(AI_ADULT_CONSENT_TYPE);
+  const needsTerms = missing.includes('terms');
+  const needsPrivacy = missing.includes('privacy');
+  const canConfirm = (!needsAdult || isAdult) && (!needsTerms || agreeTerms)
+    && (!needsPrivacy || agreePrivacy) && status === 'required' && missing.length > 0;
 
   useEffect(() => {
     let active = true;
-    void readAdultConsent(userId).then((nextStatus) => {
-      if (active) setStatus(nextStatus);
+    void readSignupRequirements(userId).then((nextGate) => {
+      if (active) setGate(nextGate);
     });
     return () => { active = false; };
   }, [userId]);
 
   const confirm = async () => {
-    if (!isAdult || !agreeTerms || !agreePrivacy || status === 'saving') return;
-    setStatus('saving');
+    if (!canConfirm) return;
+    setGate(previous => ({ ...previous, status: 'saving' }));
     const agreedAt = new Date().toISOString();
     try {
-      const { error } = await supabase.from('user_consents').upsert(
-        [
-          { user_id: userId, consent_type: AI_ADULT_CONSENT_TYPE, version: AGE_GATE_VERSION, agreed_at: agreedAt },
-          { user_id: userId, consent_type: 'terms', version: TERMS_VERSION, agreed_at: agreedAt },
-          { user_id: userId, consent_type: 'privacy', version: PRIVACY_VERSION, agreed_at: agreedAt },
-        ],
+      const confirmations = [
+        { user_id: userId, consent_type: AI_ADULT_CONSENT_TYPE, version: AGE_GATE_VERSION, agreed_at: agreedAt },
+        { user_id: userId, consent_type: 'terms', version: TERMS_VERSION, agreed_at: agreedAt },
+        { user_id: userId, consent_type: 'privacy', version: PRIVACY_VERSION, agreed_at: agreedAt },
+      ].filter(row => missing.some(type => type === row.consent_type));
+      const { error } = await withDeadline(Promise.resolve(supabase.from('user_consents').upsert(
+        confirmations,
         { onConflict: 'user_id,consent_type,version', ignoreDuplicates: true },
-      );
-      setStatus(error ? 'error' : await readAdultConsent(userId));
+      ).abortSignal(AbortSignal.timeout(6000))), 6000);
+      setGate(error ? { status: 'error', missing: [] } : await readSignupRequirements(userId));
     } catch {
-      setStatus('error');
+      setGate({ status: 'error', missing: [] });
     }
   };
 
   if (status === 'eligible') return children ?? null;
 
-  const canConfirm = isAdult && agreeTerms && agreePrivacy && status !== 'saving';
+  if (status === 'checking' || status === 'error') return <AccountAccessStatus
+    phase="consent" error={status === 'error'} onSwitchAccount={onSignOut} onRetry={() => {
+      setGate({ status: 'checking', missing: [] });
+      void readSignupRequirements(userId).then(setGate);
+    }} />;
 
   return (
     <div
@@ -106,41 +122,19 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
           <JoobiLockup variant="modal" />
         </div>
 
-        {status === 'checking' ? (
-          <div id="adult-gate-title" role="status" style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-secondary, #4E5968)', fontSize: 14 }}>
-            가입 정보를 확인하고 있어요. 잠시만 기다려주세요.
-          </div>
-        ) : status === 'error' ? (
+        {
           <>
-            <h2 id="adult-gate-title" style={{ marginBottom: 8, textAlign: 'center', fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              가입 정보를 확인하지 못했어요
-            </h2>
-            <p style={{ marginBottom: 18, textAlign: 'center', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary, #4E5968)' }}>
-              개인정보 보호를 위해 확인이 끝날 때까지 서비스를 열지 않아요.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setStatus('checking');
-                void readAdultConsent(userId).then(setStatus);
-              }}
-              style={{ width: '100%', height: 46, border: 0, borderRadius: 12, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
-            >
-              다시 확인하기
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 id="adult-gate-title" style={{ marginBottom: 8, textAlign: 'center', fontSize: 19, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-              만 18세 이상인지 확인해주세요
+            <h2 className={readingUI.sectionTitle} id="adult-gate-title" style={{ marginBottom: 8, textAlign: 'center', color: 'var(--text-primary, #191F28)' }}>
+              {needsAdult ? '만 18세 이상인지 확인해주세요' : '이용 안내를 확인해주세요'}
             </h2>
             <p style={{ marginBottom: 20, textAlign: 'center', fontSize: 13, lineHeight: 1.65, color: 'var(--text-secondary, #4E5968)' }}>
-              AI 서비스 제공 조건에 따라 성인만 주비를 이용할 수 있어요.
+              {needsAdult ? 'AI 서비스 제공 조건에 따라 성인만 주비를 이용할 수 있어요.'
+                : '아직 확인되지 않은 항목에 동의하면 계속 이용할 수 있어요.'}
             </p>
 
-            <label style={{ display: 'block', marginBottom: 14, fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
+            {needsAdult && <><label style={{ display: 'block', marginBottom: 14, fontSize: 12, fontWeight: 600, color: 'var(--text-primary, #191F28)' }}>
               생년월일
-              <input
+              <input className={appUI.field}
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
@@ -150,7 +144,7 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
                 aria-describedby="adult-birth-hint"
                 value={birthDate}
                 onChange={(event) => setBirthDate(event.target.value.replace(/\D/g, '').slice(0, 8))}
-                style={{ display: 'block', width: '100%', height: 44, marginTop: 7, padding: '0 12px', border: `1px solid ${ageInvalid ? '#DC2626' : 'var(--border-light, #E5E8EB)'}`, borderRadius: 10, background: 'var(--bg, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontFamily: 'inherit', fontSize: 16 }}
+                style={{ display: 'block', width: '100%', height: 44, marginTop: 7 }}
               />
             </label>
             <div id="adult-birth-hint" aria-live="polite" style={{ minHeight: 34, marginBottom: 10, fontSize: 11.5, lineHeight: 1.5, color: ageInvalid ? '#DC2626' : 'var(--text-tertiary, #8B95A1)' }}>
@@ -159,27 +153,27 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
                 : ageInvalid
                   ? age === null ? '올바른 생년월일을 입력해주세요.' : '만 18세 미만은 서비스를 이용할 수 없어요.'
                   : '연·월·일 숫자 8자리를 입력해주세요. 생년월일은 저장하거나 전송하지 않아요.'}
-            </div>
+            </div></>}
 
-            <ConsentCheck checked={agreeTerms} onChange={setAgreeTerms}>
+            {needsTerms && <ConsentCheck checked={agreeTerms} onChange={setAgreeTerms}>
               <Link href="/terms" target="_blank">이용약관</Link>에 동의해요
-            </ConsentCheck>
-            <ConsentCheck checked={agreePrivacy} onChange={setAgreePrivacy}>
+            </ConsentCheck>}
+            {needsPrivacy && <ConsentCheck checked={agreePrivacy} onChange={setAgreePrivacy}>
               <Link href="/privacy" target="_blank">개인정보처리방침</Link>에 동의해요
-            </ConsentCheck>
+            </ConsentCheck>}
 
-            <button
+            <button className={appUI.primaryButton}
               type="button"
               onClick={() => void confirm()}
               disabled={!canConfirm}
-              style={{ width: '100%', height: 48, marginTop: 16, border: 0, borderRadius: 12, background: canConfirm ? 'var(--brand-fill)' : '#B0B8C1', color: 'var(--on-brand-fg)', fontSize: 15, fontWeight: 700, cursor: canConfirm ? 'pointer' : 'not-allowed' }}
+              style={{ width: '100%', marginTop: 16, border: 0, background: canConfirm ? 'var(--brand-fill)' : 'var(--text-secondary)', color: 'var(--on-brand-fg)' }}
             >
               {status === 'saving' ? '확인 중...' : '확인하고 계속하기'}
             </button>
           </>
-        )}
+        }
 
-        <button type="button" onClick={onSignOut} style={{ width: '100%', minHeight: 44, marginTop: 12, padding: 8, border: 0, background: 'transparent', color: 'var(--text-body)', fontSize: 13, cursor: 'pointer' }}>
+        <button className={appUI.textButton} type="button" onClick={onSignOut} style={{ width: '100%', marginTop: 12 }}>
           다른 계정으로 로그인
         </button>
       </div>

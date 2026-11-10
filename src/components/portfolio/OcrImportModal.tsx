@@ -1,5 +1,9 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
+import appUI from '../ui/AppUI.module.css';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 import {
@@ -17,7 +21,8 @@ import {
 } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import type { OcrStock } from '@/app/api/portfolio/ocr/route';
-import { isBlockedLeverage } from '@/utils/leverageGuard';
+import { actionableImportIndices } from '@/lib/portfolioReconciliation';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import { BROKER_LABELS, BROKER_ORDER, type Broker } from '@/config/constants';
 import {
   applyPortfolioReconciliation,
@@ -31,6 +36,7 @@ import { logApiCall } from '@/lib/apiLogger';
 import { supabase } from '@/lib/supabase';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { OCR_DISABLED_COPY, OCR_UI_ENABLED } from '@/config/ocrFeature';
+import { validateOcrUpload } from '@/lib/ocrUploadValidation';
 
 interface Props {
   onClose: () => void;
@@ -59,12 +65,6 @@ const STATUS_COPY: Record<ReconciliationRow['status'], { label: string; detail: 
   needs_review: { label: '확인 필요', detail: '값이나 계좌를 확인해야 반영할 수 있어요.' },
 };
 
-const ALLOWED_IMAGE_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-]);
 
 function toImportDrafts(stocks: EditableStock[]): ImportHoldingDraft[] {
   return stocks.map((stock) => {
@@ -80,15 +80,9 @@ function toImportDrafts(stocks: EditableStock[]): ImportHoldingDraft[] {
   });
 }
 
-function actionableIndices(rows: ReconciliationRow[]): Set<number> {
-  return new Set(rows
-    .filter((row) => (row.status === 'new' || row.status === 'changed')
-      && !isBlockedLeverage(row.draft.symbol, row.draft.name))
-    .map((row) => row.inputIndex));
-}
 
 function formatHoldingValue(field: 'avgCost' | 'shares', value: number, currency: 'KRW' | 'USD'): string {
-  if (field === 'shares') return `${value.toLocaleString()}주`;
+  if (field === 'shares') return `${value.toLocaleString('ko-KR', { maximumFractionDigits: 20 })}주`;
   return currency === 'KRW' ? formatKrw(value, { prefix: false, suffix: '원', short: false }) : formatUsd(value);
 }
 
@@ -96,6 +90,10 @@ export default function OcrImportModal({ onClose }: Props) {
   const stocks = usePortfolioStore(s => s.stocks);
   const commitPortfolioImport = usePortfolioStore(s => s.commitPortfolioImport);
   const restoreLastPortfolioImport = usePortfolioStore(s => s.restoreLastPortfolioImport);
+  const syncStatus = usePortfolioStore(s => s.portfolioSyncStatus);
+  const cloudLoadStatus = usePortfolioStore(s => s.portfolioCloudLoadStatus);
+  const mutationBlocked = cloudLoadStatus === 'loading' || cloudLoadStatus === 'error'
+    || syncStatus === 'conflict' || syncStatus === 'storage-error';
   const [step, setStep] = useState<Step>('upload');
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -107,7 +105,6 @@ export default function OcrImportModal({ onClose }: Props) {
   const [lastFile, setLastFile] = useState<File | null>(null);
   const [applied, setApplied] = useState(0);
   const [skippedUntouched, setSkippedUntouched] = useState(0);
-  const [skippedLeverage, setSkippedLeverage] = useState(0);
   const [targetCat, setTargetCat] = useState<TargetCat>('investing');
   const [updated, setUpdated] = useState(0);
   const [checkpointId, setCheckpointId] = useState<string | null>(null);
@@ -124,7 +121,7 @@ export default function OcrImportModal({ onClose }: Props) {
     () => reconcilePortfolioImport(importDrafts, stocks, selectedBroker, targetCat),
     [importDrafts, selectedBroker, stocks, targetCat],
   );
-  const allActionableIndices = useMemo(() => actionableIndices(reconciliationRows), [reconciliationRows]);
+  const allActionableIndices = useMemo(() => actionableImportIndices(reconciliationRows), [reconciliationRows]);
   const reconciliationCounts = useMemo(() => reconciliationRows.reduce((counts, row) => ({
     ...counts,
     [row.status]: counts[row.status] + 1,
@@ -220,7 +217,7 @@ export default function OcrImportModal({ onClose }: Props) {
       const brokerKey = VALID_KEYS.includes(responseBrokerKey) ? responseBrokerKey as Broker : '';
       setDetectedBroker(brokerKey);
       const rows = reconcilePortfolioImport(toImportDrafts(editable), stocks, brokerKey, targetCat);
-      setSelected(actionableIndices(rows));
+      setSelected(actionableImportIndices(rows));
       setStep('review');
       const counts = rows.reduce((summary, row) => ({
         ...summary,
@@ -252,7 +249,13 @@ export default function OcrImportModal({ onClose }: Props) {
   const handleFile = (file: File) => {
     startedAtRef.current = Date.now();
     // 사전 검증: 타입·크기 API 호출 전 차단
-    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    const uploadError = validateOcrUpload(file);
+    if (uploadError === 'empty') {
+      setErrorDetail({ title: '빈 이미지 파일이에요.', hint: '이미지를 다시 선택해주세요.', code: 'image_empty', canRetry: false });
+      setStep('error');
+      return;
+    }
+    if (uploadError === 'bad_type') {
       setErrorDetail({
         title: '이미지 파일만 올릴 수 있어요.',
         hint: 'JPG, PNG, WEBP 형식으로 저장한 후 다시 시도해주세요.',
@@ -262,10 +265,10 @@ export default function OcrImportModal({ onClose }: Props) {
       setStep('error');
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
+    if (uploadError === 'too_large') {
       setErrorDetail({
         title: '파일이 너무 커요.',
-        hint: `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`,
+        hint: `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 4MB 이하로 압축하거나 다시 캡처해주세요.`,
         code: 'too_large',
         canRetry: false,
       });
@@ -322,11 +325,9 @@ export default function OcrImportModal({ onClose }: Props) {
   };
 
   const applyToPortfolio = () => {
-    const leverageIndices = new Set(reconciliationRows
-      .filter((row) => selected.has(row.inputIndex)
-        && isBlockedLeverage(row.draft.symbol, row.draft.name))
-      .map((row) => row.inputIndex));
-    const safeSelection = new Set([...selected].filter((index) => !leverageIndices.has(index)));
+    if (!requirePortfolioWriteAccess()) return;
+    if (mutationBlocked) return;
+    const safeSelection = new Set([...selected].filter(index => allActionableIndices.has(index)));
     const result = applyPortfolioReconciliation(
       stocks,
       reconciliationRows,
@@ -345,14 +346,13 @@ export default function OcrImportModal({ onClose }: Props) {
       {
         summary: result.summary,
         changes,
-        excludedCount: leverageIndices.size,
+        excludedCount: 0,
       },
     );
 
     setApplied(result.summary.added);
     setUpdated(result.summary.updated);
     setSkippedUntouched(result.summary.needsReview + result.summary.unchanged + result.summary.skippedLimit);
-    setSkippedLeverage(leverageIndices.size);
     setCheckpointId(id);
     setRestored(false);
     setStep('done');
@@ -371,6 +371,8 @@ export default function OcrImportModal({ onClose }: Props) {
   };
 
   const restoreImport = () => {
+    if (!requirePortfolioWriteAccess()) return;
+    if (mutationBlocked) return;
     if (!checkpointId || !restoreLastPortfolioImport(checkpointId)) return;
     setRestored(true);
     logFeatureFirstUse('import-restore');
@@ -402,8 +404,7 @@ export default function OcrImportModal({ onClose }: Props) {
   };
 
   const selectableCount = reconciliationRows.filter((row) => selected.has(row.inputIndex)
-    && (row.status === 'new' || row.status === 'changed')
-    && !isBlockedLeverage(row.draft.symbol, row.draft.name)).length;
+    && (row.status === 'new' || row.status === 'changed')).length;
   const needsReviewCount = reconciliationRows.filter((row) => row.status === 'needs_review').length;
 
   return (
@@ -419,7 +420,7 @@ export default function OcrImportModal({ onClose }: Props) {
             <div id="ocr-import-title" style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>스크린샷으로 가져오기</div>
             <div style={{ fontSize: 12, color: 'var(--text-body)', marginTop: 3 }}>증권사 보유 종목 화면을 읽고 변경 내용을 확인해요</div>
           </div>
-          <button type="button" onClick={onClose} aria-label="닫기" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--text-body)', cursor: 'pointer', padding: 4 }}><X size={19} aria-hidden="true" /></button>
+          <button className={appUI.iconButton} type="button" onClick={onClose} aria-label="닫기" style={{ width: 44, display: 'grid', placeItems: 'center' }}><X size={19} aria-hidden="true" /></button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
@@ -451,7 +452,7 @@ export default function OcrImportModal({ onClose }: Props) {
                 <Upload size={34} color="var(--brand-primary)" aria-hidden="true" style={{ marginBottom: 12 }} />
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>보유종목 화면 스크린샷</div>
                 <div style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6 }}>
-                  보유 종목 화면을 첨부해주세요<br />JPG · PNG · WEBP · 최대 10MB
+                  보유 종목 화면을 첨부해주세요<br />JPG · PNG · WEBP · 최대 4MB
                 </div>
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
@@ -503,14 +504,14 @@ export default function OcrImportModal({ onClose }: Props) {
               {/* 카테고리 선택 */}
               <label style={{ display: 'block', marginBottom: 12, color: 'var(--text-secondary, #4E5968)', fontSize: 12, fontWeight: 700 }}>
                 이 화면의 증권사
-                <select
+                <select className={appUI.field}
                   value={detectedBroker}
                   onChange={(event) => {
                     const nextBroker = event.target.value as Broker | '';
                     setDetectedBroker(nextBroker);
-                    setSelected(actionableIndices(reconcilePortfolioImport(importDrafts, stocks, nextBroker, targetCat)));
+                    setSelected(actionableImportIndices(reconcilePortfolioImport(importDrafts, stocks, nextBroker, targetCat)));
                   }}
-                  style={{ width: '100%', minHeight: 42, marginTop: 6, padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 10, background: 'var(--card-bg, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontSize: 13 }}
+                  style={{ width: '100%', minHeight: 42, marginTop: 6 }}
                 >
                   <option value="">확인 필요</option>
                   {BROKER_ORDER.map((broker) => <option key={broker} value={broker}>{BROKER_LABELS[broker]}</option>)}
@@ -518,16 +519,11 @@ export default function OcrImportModal({ onClose }: Props) {
               </label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 {([['investing', '투자 중'], ['watching', '관심 종목']] as [TargetCat, string][]).map(([cat, label]) => (
-                  <button key={cat} onClick={() => {
+                  <button className={appUI.primaryButton} key={cat} onClick={() => {
                     setTargetCat(cat);
-                    setSelected(actionableIndices(reconcilePortfolioImport(importDrafts, stocks, selectedBroker, cat)));
+                    setSelected(actionableImportIndices(reconcilePortfolioImport(importDrafts, stocks, selectedBroker, cat)));
                   }}
-                    style={{
-                      flex: 1, minHeight: 44, padding: '8px 0', borderRadius: 10, fontSize: 13, fontWeight: 600,
-                      background: targetCat === cat ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
-                      color: targetCat === cat ? 'var(--pill-active-fg)' : 'var(--text-body)',
-                      border: 'none', cursor: 'pointer',
-                    }}>
+                    style={{ flex: 1, background: targetCat === cat ? 'var(--pill-active-bg)' : 'var(--bg-subtle)', color: targetCat === cat ? 'var(--pill-active-fg)' : 'var(--text-body)', border: 'none' }}>
                     {label}
                   </button>
                 ))}
@@ -540,11 +536,11 @@ export default function OcrImportModal({ onClose }: Props) {
                     <span style={{ fontSize: 12, color: 'var(--text-body)', marginLeft: 8 }}>{source}</span>
                   )}
                 </div>
-                <button
+                <button className={appUI.textButton}
                   onClick={() => {
                     setSelected(selectableCount === allActionableIndices.size ? new Set() : allActionableIndices);
                   }}
-                  style={{ minHeight: 44, fontSize: 12, color: 'var(--brand-primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+
                 >
                   {selectableCount === allActionableIndices.size ? '전체 해제' : '변경 전체 선택'}
                 </button>
@@ -571,7 +567,7 @@ export default function OcrImportModal({ onClose }: Props) {
                   const row = reconciliationRows[i];
                   const status = row?.status || 'needs_review';
                   const actionable = status === 'new' || status === 'changed';
-                  const blocked = isBlockedLeverage(s.symbol, s.name);
+                  const highRisk = isSingleStockLeverage(s.symbol, s.name);
                   const isSelected = selected.has(i);
                   const statusCopy = STATUS_COPY[status];
 
@@ -580,7 +576,7 @@ export default function OcrImportModal({ onClose }: Props) {
                       key={`${s.symbol}-${i}`}
                       style={{
                         padding: '12px 14px', borderRadius: 12,
-                        border: `1.5px solid ${status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
+                        border: `1.5px solid ${status === 'needs_review' ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
                         background: isSelected ? 'var(--brand-primary-bg)' : 'var(--card-bg, #FFFFFF)',
                         opacity: status === 'unchanged' ? 0.72 : 1,
                         transition: 'all 0.15s',
@@ -589,18 +585,18 @@ export default function OcrImportModal({ onClose }: Props) {
                       {/* 상단: 체크 + 종목명 */}
                       <div
                         role="checkbox"
-                        tabIndex={actionable && !blocked ? 0 : -1}
+                        tabIndex={actionable ? 0 : -1}
                         aria-checked={isSelected}
-                        aria-disabled={!actionable || blocked}
+                        aria-disabled={!actionable}
                         aria-label={`${s.name || s.symbol} 변경 선택`}
-                        onClick={() => actionable && !blocked && toggleSelect(i)}
+                        onClick={() => actionable && toggleSelect(i)}
                         onKeyDown={event => {
-                          if ((event.key === 'Enter' || event.key === ' ') && actionable && !blocked) {
+                          if ((event.key === 'Enter' || event.key === ' ') && actionable) {
                             event.preventDefault();
                             toggleSelect(i);
                           }
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: actionable && !blocked ? 'pointer' : 'default' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: actionable ? 'pointer' : 'default' }}
                       >
                         <div style={{
                           width: 20, height: 20, borderRadius: 6,
@@ -613,8 +609,8 @@ export default function OcrImportModal({ onClose }: Props) {
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             {s.name || s.symbol}
                             <span style={{ fontSize: 11, color: 'var(--text-tertiary, #8B95A1)', fontWeight: 400 }}>{s.symbol}</span>
-                            <span style={{ fontSize: 10, color: status === 'changed' ? 'var(--brand-primary)' : status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--text-secondary, #6B7684)', fontWeight: 700 }}>
-                              {blocked ? '반영 제한' : statusCopy.label}
+                            <span style={{ fontSize: 10, color: status === 'changed' ? 'var(--brand-primary)' : status === 'needs_review' ? 'var(--color-warning, #FF9500)' : 'var(--text-secondary, #6B7684)', fontWeight: 700 }}>
+                              {statusCopy.label}
                             </span>
                           </div>
                         </div>
@@ -636,36 +632,26 @@ export default function OcrImportModal({ onClose }: Props) {
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                               <div style={{ flex: 1 }}>
                                 <label style={{ fontSize: 10, color: 'var(--text-body)', display: 'block', marginBottom: 2 }}>평균매수가</label>
-                                <input
+                                <input className={appUI.field}
                                   type="number"
                                   aria-label={`${s.name || s.symbol} 평균 매수가`}
                                   placeholder={s.currency === 'KRW' ? '0' : '0.00'}
                                   value={s.editAvgCost}
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => updateField(i, 'editAvgCost', e.target.value)}
-                                  style={{
-                                    width: '100%', minHeight: 44, padding: '6px 8px', fontSize: 16, fontWeight: 600,
-                                    border: `1px solid ${s.editAvgCost ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
-                                    borderRadius: 8, boxSizing: 'border-box', color: 'var(--text-primary)',
-                                    background: 'var(--surface)',
-                                  }}
+                                  style={{ width: '100%', minHeight: 44, boxSizing: 'border-box' }}
                                 />
                               </div>
                               <div style={{ flex: 1 }}>
                                 <label style={{ fontSize: 10, color: 'var(--text-body)', display: 'block', marginBottom: 2 }}>보유수량</label>
-                                <input
+                                <input className={appUI.field}
                                   type="number"
                                   aria-label={`${s.name || s.symbol} 보유 수량`}
                                   placeholder="0"
                                   value={s.editShares}
                                   onClick={e => e.stopPropagation()}
                                   onChange={e => updateField(i, 'editShares', e.target.value)}
-                                  style={{
-                                    width: '100%', minHeight: 44, padding: '6px 8px', fontSize: 16, fontWeight: 600,
-                                    border: `1px solid ${s.editShares ? 'var(--border-light, #E5E8EB)' : '#FF9500'}`,
-                                    borderRadius: 8, boxSizing: 'border-box', color: 'var(--text-primary)',
-                                    background: 'var(--surface)',
-                                  }}
+                                  style={{ width: '100%', minHeight: 44, boxSizing: 'border-box' }}
                                 />
                               </div>
                             </div>
@@ -673,7 +659,8 @@ export default function OcrImportModal({ onClose }: Props) {
                           <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)' }}>
                             {Number(s.editAvgCost) > 0 ? `평단 ${formatHoldingValue('avgCost', Number(s.editAvgCost), s.currency)} · ` : ''}
                             {Number(s.editShares) > 0 ? `${formatHoldingValue('shares', Number(s.editShares), s.currency)} · ` : ''}
-                            {blocked ? '정책상 자동 반영하지 않아요.' : statusCopy.detail}
+                            {statusCopy.detail}
+                            {highRisk ? ' 고위험 상품: 보유 기록만 가져오며 신규 추천이 아니에요.' : ''}
                           </div>
                         )}
                       </div>
@@ -689,19 +676,21 @@ export default function OcrImportModal({ onClose }: Props) {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}>
+                <button className={appUI.secondaryButton} onClick={reset} style={{ flex: 1 }}>
                   다시 촬영
                 </button>
-                <button
+                <button className={appUI.primaryButton}
                   onClick={applyToPortfolio}
-                  disabled={selectableCount === 0}
-                  style={{ flex: 2, padding: '12px 0', background: selectableCount > 0 ? 'var(--brand-fill)' : 'var(--border-strong)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: selectableCount > 0 ? 'pointer' : 'not-allowed' }}
+                  disabled={selectableCount === 0 || mutationBlocked}
+                  style={{ flex: 2, background: selectableCount > 0 ? 'var(--brand-fill)' : 'var(--border-strong)', border: 'none', color: 'var(--on-brand-fg)' }}
                 >
                   {selectableCount}개 변경 승인
                 </button>
               </div>
             </div>
           )}
+
+          {mutationBlocked && <p role="alert" style={{ padding: 16, lineHeight: 1.6 }}>기록 동기화 상태를 확인해야 해요. 충돌이나 연결 문제를 해결한 뒤 변경을 승인해주세요.</p>}
 
           {/* STEP: error — 구조화된 에러 안내 */}
           {step === 'error' && errorDetail && (
@@ -749,31 +738,31 @@ export default function OcrImportModal({ onClose }: Props) {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                <button
+                <button className={appUI.primaryButton}
                   onClick={switchToCsv}
-                  style={{ flex: '1 1 140px', padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}
+                  style={{ flex: '1 1 140px' }}
                 >
                   CSV로 안전하게 전환
                 </button>
                 {errorDetail.code === 'unauthorized' ? (
-                  <button
+                  <button className={appUI.secondaryButton}
                     onClick={switchToLogin}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px' }}
                   >
                     로그인하기
                   </button>
                 ) : (
-                  <button
+                  <button className={appUI.secondaryButton}
                     onClick={reset}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px' }}
                   >
                     다른 이미지
                   </button>
                 )}
                 {errorDetail.canRetry && (
-                  <button
+                  <button className={appUI.primaryButton}
                     onClick={retryLast}
-                    style={{ flex: '1 1 120px', padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}
+                    style={{ flex: '1 1 120px' }}
                   >
                     다시 시도
                   </button>
@@ -797,24 +786,18 @@ export default function OcrImportModal({ onClose }: Props) {
                 {applied > 0 && <>새 항목 {applied}개<br /></>}
                 {updated > 0 && <>기존 항목 변경 {updated}개<br /></>}
                 {skippedUntouched > 0 && <>그대로 두거나 확인이 필요한 항목 {skippedUntouched}개<br /></>}
-                {skippedLeverage > 0 && (
-                  <>
-                    <span style={{ color: '#B45309' }}>단일종목 레버리지·인버스 {skippedLeverage}개는 반영하지 않았어요.</span>
-                    <br />
-                  </>
-                )}
                 {restored ? '이번 변경은 모두 취소됐어요.' : '변경 전 기록은 복구 지점으로 보관했어요.'}
               </div>
               {!restored && checkpointId && (
-                <button onClick={restoreImport} style={{ width: '100%', minHeight: 44, marginBottom: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, color: 'var(--text-secondary, #4E5968)', cursor: 'pointer' }}>
+                <button className={appUI.secondaryButton} onClick={restoreImport} disabled={mutationBlocked} style={{ width: '100%', marginBottom: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
                   <RotateCcw size={15} aria-hidden="true" /> 가져오기 전으로 되돌리기
                 </button>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={reset} style={{ flex: 1, padding: '12px 0', background: 'var(--bg-subtle)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}>
+                <button className={appUI.secondaryButton} onClick={reset} style={{ flex: 1 }}>
                   더 가져오기
                 </button>
-                <button onClick={onClose} style={{ flex: 2, padding: '12px 0', background: 'var(--brand-fill)', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, color: 'var(--on-brand-fg)', cursor: 'pointer' }}>
+                <button className={appUI.primaryButton} onClick={onClose} style={{ flex: 2 }}>
                   완료
                 </button>
               </div>

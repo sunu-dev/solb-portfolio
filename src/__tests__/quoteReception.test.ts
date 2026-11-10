@@ -60,7 +60,7 @@ it('초기 매크로 조회와 보유 종목 갱신 모두 국내 지수를 요�
   expect(m.entries['코스닥']).toHaveProperty('value', 100);
   await useStockData().fetchAllQuotes();
   for (const call of vi.mocked(fetch).mock.calls) {
-    if (call[0] !== '/api/quotes') continue;
+    if (call[0] !== '/api/quotes' || !JSON.parse(call[1]!.body as string).symbols.includes('^KS11')) continue;
     expect(JSON.parse(call[1]!.body as string).symbols).toEqual(expect.arrayContaining(['^KS11', '^KQ11']));
   }
 });
@@ -85,4 +85,20 @@ it('배치에서 환율만 누락되면 두 조회 경로 모두 개별 현재�
   await useMacroData().fetchMacro();
   expect(m.entries['USD/KRW']).toEqual({ value: 1335.03, change: null, changePercent: null });
   expect(vi.mocked(fetch).mock.calls.filter(([url]) => url === '/api/kr-quote?symbol=USDKRW=X')).toHaveLength(2);
+});
+
+it('지수가 멈춰 있어도 먼저 받은 보유 종목과 환율부터 표시한다', async () => {
+  m.symbols = ['AAPL'];
+  let finish!: (value: Response) => void;
+  vi.stubGlobal('fetch', vi.fn(async (_url: string, init: RequestInit) => {
+    const symbols = JSON.parse(init.body as string).symbols as string[];
+    if (symbols.includes('AAPL')) return Response.json({ quotes: { AAPL: q }, usdKrw: { c: 1350, d: 0, dp: 0 } });
+    return new Promise<Response>(resolve => { finish = resolve; });
+  }));
+  const pending = useStockData().fetchAllQuotes();
+  await vi.waitFor(() => expect(m.entries.AAPL).toEqual(q));
+  expect(m.entries['USD/KRW']).toHaveProperty('value', 1350);
+  expect(m.error).not.toHaveBeenCalled();
+  finish(Response.json({ quotes: Object.fromEntries(indices.map(symbol => [symbol, q])) }));
+  await pending; expect(m.error).toHaveBeenLastCalledWith(null);
 });

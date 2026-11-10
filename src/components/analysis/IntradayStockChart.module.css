@@ -1,0 +1,8 @@
+.studyControls { margin:0 0 14px; }
+.studyControls > summary { font-size:13px; }
+.studyButtons { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.studyButtons > button { font-size:13px; padding:8px 12px; min-height:44px; }
+.note, .guide { margin:8px 0 16px; color:var(--text-secondary); font-size:12px; line-height:1.8; word-break:keep-all; }
+.guide { max-width:66ch; }
+.guide p + p { margin-top:6px; }
+.studyLegend { margin:8px 0; color:var(--text-body); font-size:12px; line-height:1.8; }

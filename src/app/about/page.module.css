@@ -622,34 +622,6 @@
 .faqItem {
   border-bottom: 1px solid var(--border-strong);
 }
-
-.faqItem summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  min-height: 64px;
-  padding-block: 18px;
-  list-style: none;
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.65;
-  cursor: pointer;
-}
-
-.faqItem summary::-webkit-details-marker {
-  display: none;
-}
-
-.faqItem summary svg {
-  flex-shrink: 0;
-  color: var(--text-body);
-}
-
-.faqItem[open] summary svg {
-  transform: rotate(180deg);
-}
-
 .faqItem p {
   padding: 0 24px 22px 0;
   font-size: 14px;

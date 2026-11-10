@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+
 import { useState, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 import { usePortfolioStore } from '@/store/portfolioStore';
@@ -95,19 +97,15 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '24px',
+        justifyContent: 'flex-start',
+        padding: '72px 24px 24px',
         overflowY: 'auto',
       }}
     >
       {/* Skip 버튼 (우상단) */}
-      <button
+      <button className={appUI.textButton}
         onClick={handleSkip}
-        style={{
-          position: 'absolute', top: 20, right: 20,
-          fontSize: 13, color: 'var(--text-body)', background: 'none', border: 'none', cursor: 'pointer',
-          padding: '6px 10px',
-        }}
+        style={{ position: 'absolute', top: 20, right: 20 }}
       >
         건너뛰기
       </button>
@@ -129,7 +127,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
       </div>
 
       {/* Content */}
-      <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }}>
+      <div style={{ maxWidth: '440px', width: '100%', textAlign: 'center', marginBlock: 'auto' }}>
 
         {/* ── Step 0 — 가치 약속 ─────────────────────────── */}
         {step === 0 && (
@@ -140,7 +138,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 28 }}>
               {userName}님의 <strong style={{ color: 'var(--text-primary)' }}>주</strong>식 <strong style={{ color: 'var(--text-primary)' }}>비</strong>서
             </p>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 24, lineHeight: 1.4 }}>
+            <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary, #191F28)', marginBottom: 24 }}>
               주비가 내 주식을 챙기는 3가지
             </h1>
 
@@ -176,28 +174,22 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
             {showCsv && <CsvImportModal onClose={() => setShowCsv(false)} />}
             {OCR_UI_ENABLED && showOcr && <OcrImportModal onClose={() => setShowOcr(false)} />}
             <div style={{ width: 54, height: 54, margin: '0 auto 16px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)', fontSize: 13, fontWeight: 900 }}>CSV</div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8, lineHeight: 1.4 }}>
+            <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               내 종목을 알려주세요
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 24 }}>
               CSV는 브라우저에서 먼저 비교하고, 샘플 관심 종목으로 둘러볼 수도 있어요
             </p>
 
-            <button
+            <button className={appUI.primaryButton}
               onClick={() => setShowCsv(true)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                width: '100%', maxWidth: 320, margin: '0 auto 10px',
-                padding: '14px 20px',
-                borderRadius: 14, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)',
-                fontSize: 14, fontWeight: 750, border: 'none', cursor: 'pointer',
-              }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', maxWidth: 320, margin: '0 auto 10px' }}
             >
               CSV로 내 종목 가져오기
             </button>
 
             {/* 샘플 종목 — '관심' 목록에 sandbox로 추가 (보유 아님) */}
-            <button
+            <button className={appUI.secondaryButton}
               onClick={() => {
                 if (sampleLoaded) { onComplete(); return; }
                 // 시세 캐시 즉시 주입 — 본 화면 진입 시 빈 화면 없이 즉시 가격 표시
@@ -217,13 +209,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                 logApiCall('onboarding_sample_portfolio');
                 setStep(2); // 샘플 추가 후에도 미리보기 step 보여줌
               }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                width: '100%', maxWidth: 320, margin: '0 auto 10px',
-                padding: '14px 20px',
-                borderRadius: 14, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-primary, #191F28)',
-                fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
-              }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', maxWidth: 320, margin: '0 auto 10px' }}
             >
               샘플 종목 둘러보기 (관심 목록)
             </button>
@@ -233,15 +219,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
 
             {/* OCR 가져오기 — 무료 Gemini 환경에서는 개인정보 보호를 위해 비활성 */}
             {OCR_UI_ENABLED ? (
-              <button
+              <button className={appUI.primaryButton}
                 onClick={() => setShowOcr(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  width: '100%', maxWidth: 320, margin: '0 auto 18px',
-                  padding: '14px 20px',
-                  borderRadius: 14, background: 'var(--text-primary, #191F28)', color: 'var(--text-inverse, #fff)',
-                  fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
-                }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', maxWidth: 320, margin: '0 auto 18px' }}
               >
                 증권앱 스크린샷으로 한번에 가져오기
               </button>
@@ -259,8 +239,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
               {POPULAR_STOCKS.map((s) => {
                 const isAdded = added.has(s.symbol);
                 return (
-                  <button
+                  <button className={appUI.secondaryButton}
                     key={s.symbol}
+                    aria-pressed={isAdded}
                     onClick={() => {
                       if (isAdded) return;
                       const ns: StockItem = { symbol: s.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 };
@@ -268,13 +249,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                       logApiCall('onboarding_stock_add', s.symbol);
                       setAdded(prev => new Set(prev).add(s.symbol));
                     }}
-                    style={{
-                      display: 'inline-block', padding: '10px 18px', borderRadius: 20,
-                      background: isAdded ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)',
-                      fontSize: 13, fontWeight: 600,
-                      color: isAdded ? 'var(--on-brand-fg)' : 'var(--text-primary, #333D4B)',
-                      border: 'none', cursor: isAdded ? 'default' : 'pointer', transition: 'all 0.2s',
-                    }}
+                    style={{ display: 'inline-block', border: 'none' }}
                   >
                     {isAdded ? `✓ ${s.label}` : s.label}
                   </button>
@@ -288,7 +263,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         {step === 2 && (
           <>
             <div style={{ width: 54, height: 54, margin: '0 auto 14px', display: 'grid', placeItems: 'center', borderRadius: 18, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)', fontSize: 11, fontWeight: 900 }}>확인</div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 8, lineHeight: 1.4 }}>
+            <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary, #191F28)', marginBottom: 8 }}>
               가져올 때는 먼저 확인해요
             </h1>
             <p style={{ fontSize: 13, color: 'var(--text-body)', marginBottom: 22 }}>
@@ -317,7 +292,7 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <strong style={{ fontSize: 13, color: 'var(--text-primary, #191F28)' }}>{row.name}</strong>
-                      <span style={{ fontSize: 10, color: row.id === 'same' ? '#8B95A1' : 'var(--brand-primary)', fontWeight: 800 }}>{row.status}</span>
+                      <span style={{ fontSize: 10, color: row.id === 'same' ? 'var(--text-secondary)' : 'var(--brand-primary)', fontWeight: 800 }}>{row.status}</span>
                     </div>
                     <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>{row.detail}</div>
                   </div>
@@ -334,8 +309,8 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         {/* ── Step 3 — 시작 ──────────────────────────────── */}
         {step === 3 && (
           <>
-            <Image src="/mentors/safe.svg" alt="" width={88} height={88} style={{ width: 88, height: 88, margin: '0 auto 14px', display: 'block' }} />
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 10, lineHeight: 1.4 }}>
+            <Image src="/mentors/safe-v2.png" alt="" width={88} height={88} style={{ width: 88, height: 88, margin: '0 auto 14px', display: 'block' }} />
+            <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary, #191F28)', marginBottom: 10 }}>
               준비 완료!
             </h1>
             <p style={{ fontSize: 14, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.6, marginBottom: 18 }}>
@@ -350,13 +325,9 @@ export default function OnboardingFlow({ userName, onComplete }: OnboardingFlowP
         )}
 
         {/* Button */}
-        <button
+        <button className={appUI.primaryButton}
           onClick={handleNext}
-          style={{
-            width: '100%', height: 52, borderRadius: 12,
-            background: 'var(--brand-fill)', color: 'var(--on-brand-fg)',
-            fontSize: 16, fontWeight: 600, border: 'none', cursor: 'pointer',
-          }}
+          style={{ width: '100%' }}
         >
           {step < TOTAL_STEPS - 1 ? '다음' : '시작하기'}
         </button>

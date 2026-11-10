@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -97,35 +99,35 @@ export default function AiAuditPanel() {
     }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#8B95A1' }}>AI 감사 표본 로딩 중...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>AI 감사 표본 로딩 중...</div>;
   if (!data?.available) return <div style={{ padding: 16, background: '#FFF8E8', borderRadius: 12, color: '#8A5A00', fontSize: 13 }}>{data?.message}</div>;
 
   const summary = data.summary || { total: 0, high: 0, review: 0, unreviewed: 0 };
   return (
     <div>
-      <div style={{ padding: 14, marginBottom: 16, background: '#F8F9FA', borderRadius: 12, fontSize: 12, color: '#4E5968' }}>
+      <div style={{ padding: 14, marginBottom: 16, background: 'var(--bg-subtle)', borderRadius: 12, fontSize: 12, color: 'var(--text-body)' }}>
         출력 표본율 <strong>{((data.sampleRate || 0) * 100).toFixed(1)}%</strong> · 사용자 ID, 프롬프트, 보유수량, 평단, 메모는 저장하지 않아요.
         {(data.sampleRate || 0) === 0 ? <div style={{ marginTop: 6, color: '#8A5A00', fontWeight: 700 }}>현재 표본 수집이 중지되어 있어요. 로컬 또는 승인된 환경에서 표본율을 설정해주세요.</div> : null}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
-        {[['표본', summary.total, '#3182F6'], ['높은 위험', summary.high, '#EF4452'], ['수동 검토', summary.review, '#FF9500'], ['미검토', summary.unreviewed, '#191F28']].map(([label, value, color]) => (
-          <div key={String(label)} style={{ padding: 16, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
-            <div style={{ fontSize: 11, color: '#8B95A1' }}>{label}</div>
+        {[['표본', summary.total, '#3182F6'], ['높은 위험', summary.high, '#EF4452'], ['수동 검토', summary.review, '#FF9500'], ['미검토', summary.unreviewed, 'var(--text-primary)']].map(([label, value, color]) => (
+          <div key={String(label)} style={{ padding: 16, background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{label}</div>
             <div style={{ marginTop: 5, fontSize: 22, fontWeight: 700, color: String(color) }}>{String(value)}</div>
           </div>
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, marginBottom: 16 }}>
         {(data.coverage || []).map(item => (
-          <div key={item.feature} style={{ padding: 16, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
+          <div key={item.feature} style={{ padding: 16, background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
-              <strong style={{ color: '#191F28' }}>{item.label} 표본 준비도</strong>
+              <strong style={{ color: 'var(--text-primary)' }}>{item.label} 표본 준비도</strong>
               <span style={{ color: item.ready ? '#16A34A' : '#3182F6', fontWeight: 700 }}>{item.total} / {item.target}건</span>
             </div>
-            <div style={{ height: 6, marginTop: 10, background: '#E5E8EB', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ height: 6, marginTop: 10, background: 'var(--border-strong)', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ width: `${item.progressPercent}%`, height: '100%', background: item.ready ? '#16A34A' : '#3182F6' }} />
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: '#8B95A1' }}>
+            <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
               {item.ready ? `목표 수집 완료 · 수동 검토 ${item.reviewed}건` : `목표까지 ${item.remaining}건 · 수동 검토 ${item.reviewed}건`}
             </div>
           </div>
@@ -134,39 +136,39 @@ export default function AiAuditPanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', gap: 6 }}>
           {['all', 'high', 'review', 'none'].map(value => (
-            <button key={value} onClick={() => { setLoading(true); setSeverity(value); }} style={{ padding: '6px 12px', border: 0, borderRadius: 16, cursor: 'pointer', background: severity === value ? 'var(--pill-active-bg, #191F28)' : 'var(--bg-subtle, #F2F4F6)', color: severity === value ? 'var(--text-inverse, #fff)' : '#4E5968' }}>
+            <button className={appUI.primaryButton} key={value} onClick={() => { setLoading(true); setSeverity(value); }} style={{ border: 0, background: severity === value ? 'var(--pill-active-bg, #191F28)' : 'var(--bg-subtle, #F2F4F6)', color: severity === value ? 'var(--text-inverse, #fff)' : 'var(--text-body)' }}>
               {value === 'all' ? '전체' : severityLabel[value as keyof typeof severityLabel]}
             </button>
           ))}
         </div>
-        <button onClick={exportAuditPackage} disabled={exporting || summary.total === 0} style={{ padding: '7px 12px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, background: '#fff', color: '#4E5968', cursor: exporting || summary.total === 0 ? 'not-allowed' : 'pointer', opacity: exporting || summary.total === 0 ? 0.5 : 1, fontSize: 12, fontWeight: 700 }}>
+        <button className={appUI.secondaryButton} onClick={exportAuditPackage} disabled={exporting || summary.total === 0} style={{ opacity: exporting || summary.total === 0 ? 0.5 : 1 }}>
           {exporting ? '검토 자료 준비 중...' : '검토 자료 JSON 저장'}
         </button>
       </div>
       {exportError ? <div role="alert" style={{ marginBottom: 12, color: '#EF4452', fontSize: 12 }}>{exportError}</div> : null}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {data.rows.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: '#8B95A1' }}>표본이 없어요.</div> : data.rows.map(row => (
-          <div key={row.id} style={{ padding: 14, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
+        {data.rows.length === 0 ? <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)' }}>표본이 없어요.</div> : data.rows.map(row => (
+          <div key={row.id} style={{ padding: 14, background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{ color: severityColor[row.severity], fontWeight: 700, fontSize: 12 }}>{severityLabel[row.severity]}</span>
               <strong style={{ fontSize: 12 }}>{row.feature}</strong>
               {row.symbol ? <code style={{ fontSize: 11 }}>{row.symbol}</code> : null}
               {row.flags.map(flag => <span key={flag} style={{ padding: '2px 6px', background: '#FFF5F5', color: '#EF4452', borderRadius: 5, fontSize: 10 }}>{flag}</span>)}
-              <span style={{ marginLeft: 'auto', fontSize: 10, color: '#8B95A1' }}>{new Date(row.created_at).toLocaleString('ko-KR')}</span>
+              <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--text-secondary)' }}>{new Date(row.created_at).toLocaleString('ko-KR')}</span>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={() => setExpanded(expanded === row.id ? null : row.id)} style={{ border: 0, padding: '5px 9px', borderRadius: 7, cursor: 'pointer' }}>{expanded === row.id ? '접기' : '출력 보기'}</button>
-              {!row.reviewed_at ? <button onClick={() => markReviewed(row.id)} style={{ border: 0, padding: '5px 9px', borderRadius: 7, cursor: 'pointer', background: '#3182F6', color: '#fff' }}>검토 완료</button> : <span style={{ fontSize: 11, color: '#16A34A', alignSelf: 'center' }}>검토됨</span>}
+              <button className={appUI.secondaryButton} onClick={() => setExpanded(expanded === row.id ? null : row.id)} >{expanded === row.id ? '접기' : '출력 보기'}</button>
+              {!row.reviewed_at ? <button className={appUI.primaryButton} onClick={() => markReviewed(row.id)} >검토 완료</button> : <span style={{ fontSize: 11, color: '#16A34A', alignSelf: 'center' }}>검토됨</span>}
             </div>
             {expanded === row.id ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10, marginTop: 10 }}>
                 <div>
-                  <div style={{ marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#4E5968' }}>공개 데이터 기준값</div>
-                  <pre style={{ padding: 12, background: '#F8F9FA', borderRadius: 8, overflowX: 'auto', whiteSpace: 'pre-wrap', fontSize: 11 }}>{JSON.stringify(row.source_snapshot, null, 2)}</pre>
+                  <div style={{ marginBottom: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-body)' }}>공개 데이터 기준값</div>
+                  <pre style={{ padding: 12, background: 'var(--bg-subtle)', borderRadius: 8, overflowX: 'auto', whiteSpace: 'pre-wrap', fontSize: 11 }}>{JSON.stringify(row.source_snapshot, null, 2)}</pre>
                 </div>
                 <div>
-                  <div style={{ marginBottom: 5, fontSize: 11, fontWeight: 700, color: '#4E5968' }}>사용자 노출 AI 출력</div>
-                  <pre style={{ padding: 12, background: '#F8F9FA', borderRadius: 8, overflowX: 'auto', whiteSpace: 'pre-wrap', fontSize: 11 }}>{JSON.stringify(row.output, null, 2)}</pre>
+                  <div style={{ marginBottom: 5, fontSize: 11, fontWeight: 700, color: 'var(--text-body)' }}>사용자 노출 AI 출력</div>
+                  <pre style={{ padding: 12, background: 'var(--bg-subtle)', borderRadius: 8, overflowX: 'auto', whiteSpace: 'pre-wrap', fontSize: 11 }}>{JSON.stringify(row.output, null, 2)}</pre>
                 </div>
               </div>
             ) : null}

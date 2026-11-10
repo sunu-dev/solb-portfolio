@@ -1,39 +1,103 @@
-.dialog { width: min(460px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; border: 0; border-radius: 28px; background: var(--surface, #fff); color: var(--text-primary, #191f28); box-shadow: 0 24px 90px rgb(0 0 0 / 20%); overscroll-behavior: contain; }
-.dialog::backdrop { background: rgb(15 23 42 / 48%); backdrop-filter: blur(5px); }
-.card { padding: 26px 32px 22px; }
-.header { display: flex; align-items: center; justify-content: space-between; }
-.close { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--bg-subtle, #f2f4f6); color: var(--text-secondary, #4e5968); cursor: pointer; }
-.intro { margin: 30px 0 30px; }
-.intro h1 { margin: 9px 0 12px; font-size: 36px; line-height: 1.26; letter-spacing: -1.4px; font-weight: 750; }
-.intro h1:focus { outline: none; }
-.intro p { margin: 0; color: var(--text-secondary, #4e5968); font-size: 15px; line-height: 1.6; letter-spacing: -.3px; }
-.inviteNote { margin: 0 0 22px; padding: 16px; border-radius: 14px; background: var(--bg-subtle, #f2f4f6); word-break: keep-all; overflow-wrap: anywhere; }
-.inviteNote strong { font-size: 14px; line-height: 1.6; }
-.inviteNote p { margin: 6px 0 0; font-size: 13px; line-height: 1.7; color: var(--text-secondary, #4e5968); }
-.inviteNote button { display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin: 4px 0 -6px; padding: 0; border: 0; background: transparent; color: var(--text-primary, #191f28); font-size: 13px; font-weight: 600; cursor: pointer; }
-.labelRow { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
-.labelRow label { font-size: 14px; font-weight: 700; }
-.labelRow > span { color: var(--text-tertiary, #6b7684); font-size: 12px; }
-.birthInput { box-sizing: border-box; width: 100%; height: 54px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--border-light, #e5e8eb); background: var(--bg-subtle, #f2f4f6); color: var(--text-primary, #191f28); font: inherit; font-size: 18px; font-variant-numeric: tabular-nums; letter-spacing: 1px; }
-.birthInput::placeholder { color: var(--text-tertiary, #6b7684); font-size: 16px; letter-spacing: 0; }
-.birthInput[aria-invalid='true'] { border-color: #dc2626; }
-.status, .error { min-height: 24px; margin-top: 5px; font-size: 12px; color: var(--text-secondary, #4e5968); }
-.error { color: #dc2626; }
-.privacyNote { display: flex; align-items: center; gap: 5px; margin: 3px 0 0; color: var(--text-tertiary, #6b7684); font-size: 12px; line-height: 1.6; }
-.consents { min-width: 0; padding: 0; margin: 22px 0 18px; border: 0; }
-.consents input { width: 20px; height: 20px; flex-shrink: 0; margin: 0; accent-color: var(--text-primary, #191f28); cursor: pointer; }
-.allConsent { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; background: var(--bg-subtle, #f2f4f6); font-size: 14px; font-weight: 700; cursor: pointer; margin-bottom: 6px; }
-.consentRow { display: flex; align-items: center; padding-left: 14px; }
-.consentRow label { display: flex; align-items: center; gap: 10px; flex: 1; min-height: 44px; padding: 5px 0; cursor: pointer; font-size: 13px; line-height: 1.5; color: var(--text-secondary, #4e5968); }
-.consentRow small { font-size: 11px; color: var(--text-tertiary, #6b7684); }
-.required { color: var(--text-primary, #191f28); }
-.consentRow a { display: grid; place-items: center; width: 44px; height: 44px; color: var(--text-secondary, #4e5968); }
-.actionHint { margin: 0 0 10px; text-align: center; font-size: 11px; line-height: 1.6; color: var(--text-secondary, #4e5968); }
-.kakao { display: flex; justify-content: center; align-items: center; gap: 9px; width: 100%; height: 54px; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
-.actions .kakao { border: 0; background: #fee500; color: #191919; }
-.actions .kakao:disabled { background: #fff3a3; color: #61572c; cursor: not-allowed; }
-.guest { display: flex; align-items: center; justify-content: center; gap: 3px; min-height: 44px; margin: 8px auto 0; background: transparent; border: 0; color: var(--text-secondary, #4e5968); font-size: 13px; cursor: pointer; }
-.footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 8px; font-size: 10px; line-height: 1.6; color: var(--text-tertiary, #6b7684); }
-.card :is(button, a, input):focus-visible { outline: 1px solid var(--text-secondary, #4e5968); outline-offset: 3px; }
-.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 480px) { .dialog { width: 100%; max-height: calc(100dvh - 12px); margin: auto 0 0; border-radius: 24px 24px 0 0; } .card { padding: 18px 24px calc(16px + env(safe-area-inset-bottom)); } .intro { margin: 24px 0 26px; } .intro h1 { font-size: 34px; } }
+.dialog {
+  width: min(884px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border, #eceef0);
+  border-radius: 24px;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #191f28);
+  box-shadow: 0 28px 90px rgb(16 23 36 / 22%);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+.dialog::backdrop { background: rgb(15 23 42 / 55%); backdrop-filter: blur(5px); }
+.card { position: relative; display: grid; grid-template-columns: minmax(0, .91fr) minmax(0, 1.09fr); max-height: calc(100dvh - 34px); }
+.brandPane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 31px 34px 27px;
+  background: #fff8e8;
+  color: #222527;
+  overflow: hidden;
+}
+.brandPane :global(.joobi-lockup) { color: #222527; }
+.brandPane :global(.joobi-lockup__symbol) { color: #ef4658; }
+.intro { margin-top: 60px; }
+.eyebrow, .formEyebrow { display: block; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.eyebrow { color: #806328; }
+.intro h1 { margin: 14px 0 15px; font-size: clamp(32px, 3.1vw, 40px); line-height: 1.18; letter-spacing: -.055em; font-weight: 700; }
+.formHeading h2:focus { outline: none; }
+.intro p { margin: 0; color: #5c6268; font-size: 15px; line-height: 1.7; letter-spacing: -.02em; word-break: keep-all; }
+.illustration {
+  width: 100%;
+  min-height: 158px;
+  max-height: 228px;
+  flex: 1 1 190px;
+  margin-top: 10px;
+  background: url('/illustrations/home/portfolio-study-handdrawn-v1.png') center / contain no-repeat;
+}
+.brandCaption { margin: 6px 0 0; color: #6a6252; font-size: 12px; line-height: 1.5; }
+.formPane {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  min-width: 0;
+  padding: 32px 42px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.close { composes: iconButton from "../ui/AppUI.module.css"; position: absolute; top: 19px; right: 20px; }
+.formHeading { margin: 21px 38px 21px 0; }
+.formEyebrow { color: var(--text-tertiary, #7b8490); }
+.formHeading h2 { margin: 9px 0 5px; font-size: 25px; line-height: 1.3; letter-spacing: -.045em; font-weight: 700; word-break: keep-all; }
+.formHeading p { margin: 0; color: var(--text-secondary, #4e5968); font-size: 14px; line-height: 1.6; }
+.inviteNote { margin: 0 0 17px; padding: 11px 14px; border-left: 3px solid #e7c461; border-radius: 0 9px 9px 0; background: var(--bg-subtle, #f8f9fa); word-break: keep-all; overflow-wrap: anywhere; }
+.inviteNote strong { display: block; font-size: 13px; line-height: 1.45; }
+.inviteNote p { margin: 3px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary, #4e5968); }
+.actions { margin: 8px 0 20px; }
+.policyLinks { display: flex; justify-content: center; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
+.policyLinks a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }
+.actionHint { margin: 10px 0 0; text-align: center; font-size: 12px; line-height: 1.4; color: var(--text-secondary, #4e5968); }
+.modeSwitch { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.modeSwitch button { min-height: 44px; padding: 8px 4px; color: var(--text-primary); font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.modeSwitch button:disabled { opacity: .6; cursor: default; }
+.connectError { margin: 0 0 9px; color: var(--color-danger, #dc2626); font-size: 13px; line-height: 1.5; word-break: keep-all; }
+.kakao { composes: providerButton from "../ui/AppUI.module.css"; width: 100%; }
+.card .kakao:disabled { opacity: .66; }
+.guest { composes: textButton from "../ui/AppUI.module.css"; }
+.card .guest { display: flex; width: fit-content; min-height: 44px; margin: 6px auto 0; padding: 8px 12px; font-size: 13px; font-weight: 400; color: var(--text-secondary); }
+.footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin-top: 9px; font-size: 11px; line-height: 1.5; color: var(--text-tertiary, #6b7684); text-align: center; }
+.card :is(button, a, input):focus-visible { outline: 2px solid var(--text-secondary, #4e5968); outline-offset: 3px; }
+
+@media (max-width: 700px) {
+  .dialog { width: min(460px, calc(100% - 20px)); border-radius: 18px; }
+  .card { display: block; overflow-y: auto; }
+  .brandPane { min-height: 0; padding: 21px 25px 19px; }
+  .intro { margin-top: 19px; }
+  .intro h1 { margin: 7px 0 5px; font-size: 29px; }
+  .intro h1 br { display: none; }
+  .intro p { font-size: 12px; line-height: 1.5; }
+  .intro p br { display: none; }
+  .illustration, .brandCaption { display: none; }
+  .formPane { position: static; padding: 21px 25px 20px; overflow: visible; }
+  .card .close { top: 13px; right: 13px; color: #222527; background: #fff8e8; }
+  .card .close:hover { background: #f5eddb; }
+  .formHeading { margin: 0 40px 16px 0; }
+  .formHeading h2 { font-size: 21px; margin: 5px 0 2px; }
+  .formHeading h2 br { display: none; }
+}
+@media (max-width: 480px) {
+  .dialog { width: 100%; max-height: calc(100dvh - 8px); margin: auto 0 0; border-radius: 18px 18px 0 0; border-bottom: 0; }
+  .card { max-height: calc(100dvh - 8px); padding-bottom: env(safe-area-inset-bottom); }
+}
+@media (max-width: 360px) {
+  .brandPane { padding-inline: 20px; }
+  .formPane { padding-inline: 20px; }
+  .intro h1 { font-size: 26px; }
+  .formHeading h2 { font-size: 19px; }
+}

@@ -1,0 +1,48 @@
+.panel { margin-bottom:20px; padding:20px; border:1px solid var(--border-light); border-radius:16px; background:var(--surface); color:var(--text-primary); min-width:0; }
+.title { margin:0; font-size:16px; font-weight:700; letter-spacing:-.02em; }
+.intro { margin:7px 0 16px; font-size:13px; line-height:1.7; color:var(--text-secondary); word-break:keep-all; overflow-wrap:anywhere; }
+.total { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:0 0 16px; font-size:13px; border-bottom:1px solid var(--border-light); }
+.rows { display:flex; flex-direction:column; }
+.brokerRow { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; min-height:76px; padding:14px 8px; border:0; border-bottom:1px solid var(--border-light); background:transparent; font:inherit; color:inherit; text-align:left; border-radius:0; }
+button.brokerRow { cursor:pointer; }
+.brokerRow[aria-pressed='true'] { background:var(--bg-subtle); box-shadow:inset 3px 0 var(--text-primary); }
+.brokerRow:focus-visible, .textButton:focus-visible, .panel summary:focus-visible { outline:2px solid var(--text-primary); outline-offset:3px; border-radius:4px; }
+.identity, .quantity, .amount { display:flex; flex-direction:column; gap:5px; min-width:0; }
+.identity strong { font-size:14px; font-weight:650; overflow-wrap:anywhere; }
+.identity > span, .quantity > span, .amount > span { font-size:12px; line-height:1.6; color:var(--text-secondary); }
+.amount, .quantity { text-align:right; font-variant-numeric:tabular-nums; }
+.amount strong { font-size:15px; line-height:1.5; font-weight:650; overflow-wrap:anywhere; }
+.amount > .gain, .gain { color:var(--color-gain); }
+.amount > .loss, .loss { color:var(--color-loss); }
+.neutral { color:var(--text-secondary); }
+.textButton { display:block; min-height:44px; padding:10px 0; margin:4px 0 0 auto; background:none; border:0; font:inherit; font-size:13px; color:var(--text-primary); cursor:pointer; }
+.explanation { margin-top:12px; color:var(--text-secondary); font-size:13px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+.explanation p { margin:0 0 10px; }
+.holding { border-bottom:1px solid var(--border-light); }
+.holdingSummary { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:80px; padding:16px 0; cursor:pointer; list-style:none; }
+.holdingSummary::-webkit-details-marker { display:none; }
+.quantity { flex-shrink:0; }
+.quantity strong { font-size:18px; font-weight:700; }
+.chevron { display:inline-block; margin-left:4px; }
+.holding[open] .chevron { transform:rotate(180deg); }
+.holdingBody { padding-bottom:20px; }
+.brokers { margin:0 0 16px; font-size:13px; color:var(--text-secondary); line-height:1.7; }
+.metrics { display:grid; gap:12px; margin:0; font-size:13px; }
+.metrics > div { display:flex; justify-content:space-between; align-items:baseline; gap:16px; }
+.metrics dt { color:var(--text-secondary); }
+.metrics dd { margin:0; text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
+.note { margin:12px 0 16px; font-size:12px; line-height:1.8; color:var(--text-secondary); word-break:keep-all; }
+.lots { list-style:none; margin:0 0 16px; padding:0; border-top:1px solid var(--border-light); }
+.lots li { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 0; border-bottom:1px solid var(--border-light); }
+.lotCost { text-align:right; font-size:12px; line-height:1.8; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
+.lotCost strong { color:var(--text-primary); font-size:13px; font-weight:600; }
+@media (max-width:480px) {
+  .panel { padding:16px; }
+  .brokerRow { padding-left:6px; padding-right:6px; gap:12px; }
+  .identity strong { font-size:13px; }
+  .amount strong { font-size:14px; }
+  .total { gap:12px; }
+  .quantity strong { font-size:17px; }
+  .metrics > div { flex-wrap:wrap; gap:4px 12px; }
+  .metrics dd { margin-left:auto; }
+}

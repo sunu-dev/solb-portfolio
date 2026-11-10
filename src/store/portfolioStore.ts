@@ -161,7 +161,7 @@ interface PortfolioState {
   // Portfolio CRUD
   addStock: (category: StockCategoryKey, stock: StockItem) => void;
   deleteStock: (category: StockCategoryKey, idx: number) => void;
-  updateStock: (category: StockCategoryKey, idx: number, data: Partial<StockItem>) => void;
+  updateStock: (category: StockCategoryKey, idx: number, data: Partial<StockItem>, destination?: StockCategoryKey) => void;
   moveStock: (fromCat: StockCategoryKey, idx: number, toCat: StockCategoryKey) => void;
   loadPortfolio: () => void;
   savePortfolio: () => void;
@@ -293,10 +293,11 @@ export const usePortfolioStore = create<PortfolioState>()(
       setHomeEditMode: (open) => set({ editMode: open }),
       setAnalysisSymbol: (symbol) => set((state) => {
         if (!symbol) return { analysisSymbol: null };
-        const sym = symbol.toUpperCase();
+        const sym = symbol.trim().toUpperCase();
+        if (!sym) return { analysisSymbol: null };
         // 최근 본 종목 ring-buffer(중복 제거, 최신 앞, 최대 8) — descriptive 재진입용
         const recentSymbols = [sym, ...state.recentSymbols.filter((s) => s !== sym)].slice(0, 8);
-        return { analysisSymbol: symbol, recentSymbols };
+        return { analysisSymbol: sym, recentSymbols };
       }),
       setApiKey: (key) => set({ apiKey: key }),
       setAutoRefresh: (val) => set({ autoRefresh: val }),
@@ -407,7 +408,7 @@ export const usePortfolioStore = create<PortfolioState>()(
           return { stocks: updated };
         }),
 
-      updateStock: (category, idx, data) =>
+      updateStock: (category, idx, data, destination) =>
         set((state) => {
           const existing = state.stocks[category]?.[idx];
           if (!existing) return state;
@@ -418,19 +419,17 @@ export const usePortfolioStore = create<PortfolioState>()(
             i === idx ? newStock : s
           );
 
-          // 자동 분류: avgCost > 0 && shares > 0이면 investing으로, 둘 다 0이면 watching으로
           const hasPosition = (newStock.avgCost || 0) > 0 && (newStock.shares || 0) > 0;
-          if (hasPosition && category !== 'investing') {
-            // watching/sold → investing로 이동
+          const positionChanged = Object.hasOwn(data, 'avgCost') || Object.hasOwn(data, 'shares');
+          const target = destination ?? (positionChanged && hasPosition && category !== 'investing' ? 'investing'
+            : positionChanged && !hasPosition && category === 'investing' ? 'watching' : category);
+          if (target !== category) {
             updated[category] = updated[category].filter((_, i) => i !== idx);
-            updated.investing = [...updated.investing, newStock];
-          } else if (!hasPosition && category === 'investing') {
-            // investing에서 수량/단가 0으로 변경 → watching으로 이동
-            updated[category] = updated[category].filter((_, i) => i !== idx);
-            updated.watching = [...updated.watching, { ...newStock, buyBelow: newStock.buyBelow || 0 }];
+            updated[target] = [...updated[target], newStock];
           }
-
-          return { stocks: updated };
+          // A moved row must never leave the editor pointing at its former neighbour.
+          const movedEditor = target !== category && state.editingCat === category && state.editingIdx === idx;
+          return { stocks: updated, ...(movedEditor ? {editingCat: '' as const, editingIdx: -1} : {}) };
         }),
 
       moveStock: (fromCat, idx, toCat) =>

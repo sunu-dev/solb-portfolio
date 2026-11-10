@@ -1,0 +1,9 @@
+.section { margin:24px 0; border-top:1px solid var(--border-light); }
+.section > summary { min-height:48px; font-size:14px; color:var(--text-body); }
+.help { font-size:13px; line-height:1.8; color:var(--text-secondary); margin:4px 0 20px; }
+.criteria { margin:0; }
+.criteria > div { margin:0 0 20px; }
+.criteria dt { font-size:15px; line-height:1.6; font-weight:650; color:var(--text-primary); }
+.criteria dd { margin:7px 0 0; max-width:64ch; font-size:14px; line-height:1.85; color:var(--text-body); }
+.source { display:inline-block; padding:10px 0; font-size:12px; color:var(--text-secondary); text-decoration:underline; text-underline-offset:3px; }
+.source:focus-visible,.section > summary:focus-visible { outline:2px solid var(--text-secondary); outline-offset:3px; }

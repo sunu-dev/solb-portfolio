@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+
 import { useEffect, useState } from 'react';
 import { Share, Plus, X } from 'lucide-react';
 import { isStandalone, isIOSSafari, type BeforeInstallPromptEvent } from '@/utils/pwa';
@@ -78,15 +80,10 @@ export default function PwaInstallCard() {
         marginBottom: 16,
       }}
     >
-      <button
+      <button className={appUI.iconButton}
         onClick={handleDismiss}
         aria-label="안내 닫기"
-        style={{
-          position: 'absolute', top: 6, right: 6,
-          background: 'none', border: 'none', cursor: 'pointer',
-          padding: 6, color: 'var(--text-tertiary, #B0B8C1)',
-          minWidth: 28, minHeight: 28,
-        }}
+        style={{ position: 'absolute', top: 6, right: 6, minWidth: 28 }}
       >
         <X size={14} />
       </button>
@@ -137,13 +134,9 @@ export default function PwaInstallCard() {
       )}
 
       {installPrompt && !iosSafari && (
-        <button
+        <button className={appUI.primaryButton}
           onClick={handleAndroidInstall}
-          style={{
-            width: '100%', padding: '10px', borderRadius: 10,
-            background: '#3182F6', color: 'white', border: 'none',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}
+          style={{ width: '100%' }}
         >
           📥 앱으로 설치하기
         </button>

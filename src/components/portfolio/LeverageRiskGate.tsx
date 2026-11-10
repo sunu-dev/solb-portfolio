@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -70,7 +73,7 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
           <div style={{ display: 'inline-block', padding: '4px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.14)', color: '#B45309', fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
             ⚠ 고위험 상품 — 보유 등록 확인
           </div>
-          <h2 id="leverage-risk-title" style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
+          <h2 className={readingUI.sectionTitle} id="leverage-risk-title" style={{ color: 'var(--text-primary, #191F28)' }}>
             {name || symbol}
           </h2>
           <div style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginTop: 2, fontFamily: '"SF Mono", Menlo, monospace' }}>
@@ -109,26 +112,16 @@ export default function LeverageRiskGate({ isOpen, symbol, name, onConfirm, onCa
 
         {/* 버튼 */}
         <div style={{ padding: 20, display: 'flex', gap: 8 }}>
-          <button
+          <button className={appUI.secondaryButton}
             onClick={onCancel}
-            style={{
-              flex: 1, padding: '12px 0', fontSize: 14, fontWeight: 600,
-              border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 10,
-              background: 'var(--surface, #fff)', color: 'var(--text-secondary, #4E5968)', cursor: 'pointer',
-            }}
+            style={{ flex: 1 }}
           >
             취소
           </button>
-          <button
+          <button className={appUI.primaryButton}
             onClick={handleConfirm}
             disabled={!ready}
-            style={{
-              flex: 1.4, padding: '12px 0', fontSize: 14, fontWeight: 700,
-              border: 'none', borderRadius: 10,
-              background: ready ? 'var(--brand-fill)' : 'var(--bg-subtle, #E5E8EB)',
-              color: ready ? 'var(--on-brand-fg)' : 'var(--text-tertiary, #B0B8C1)',
-              cursor: ready ? 'pointer' : 'not-allowed',
-            }}
+            style={{ flex: 1.4, border: 'none', background: ready ? 'var(--brand-fill)' : 'var(--bg-subtle, #E5E8EB)', color: ready ? 'var(--on-brand-fg)' : 'var(--text-tertiary, #B0B8C1)' }}
           >
             보유 등록
           </button>

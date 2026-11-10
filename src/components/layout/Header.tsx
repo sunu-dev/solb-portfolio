@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import styles from './Navigation.module.css';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useState, useEffect, useRef } from 'react';
@@ -48,6 +50,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
   const closeSearch = () => {
     if (searchRef.current?.contains(document.activeElement)) searchTriggerRef.current?.focus({ preventScroll: true });
     setShowSearch(false);
+    setSearchOpened(false);
   };
 
   // Keyboard shortcut for search + open-search 이벤트 (온보딩에서 사용)
@@ -67,265 +70,52 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
     return () => { window.removeEventListener('keydown', handler); window.removeEventListener('open-search', openSearch); };
   }, []);
 
-  return (
-    <header
-      className="main-header sticky top-0 z-40"
-      style={{ background: 'var(--surface, white)', height: '48px', borderBottom: '1px solid var(--border-light, #F2F4F6)' }}
-    >
-      <div className="header-inner flex items-center h-full mx-auto" style={{ maxWidth: '1200px' }}>
-        {/* Logo */}
-        <button type="button" className="flex items-center shrink-0 cursor-pointer" aria-label="주비 홈으로" onClick={() => setCurrentSection('portfolio')} style={{ minHeight: 44, background: 'transparent', border: 0 }}>
-          <JoobiLockup variant="header" />
+  return <header className={`main-header ${styles.header}`}>
+    <div className={styles.inner}>
+      <button type="button" className={styles.home} aria-label="주비 홈으로" onClick={() => setCurrentSection('portfolio')}><JoobiLockup variant="header" /></button>
+      <nav className={styles.desktop} aria-label="주요 메뉴">
+        {NAV_ITEMS.map(item => <button type="button" key={item.section} className={styles.item}
+          aria-current={currentSection === item.section ? 'page' : undefined}
+          onClick={() => setCurrentSection(item.section)}>{item.label}</button>)}
+        <button type="button" className={styles.item} onClick={() => window.dispatchEvent(new CustomEvent('open-feature-directory'))} aria-label="전체 메뉴 열기"><LayoutGrid size={15} aria-hidden="true" />전체</button>
+      </nav>
+      <div className={styles.actions}>
+        <button type="button" onClick={toggleDarkMode} className={styles.action}
+          aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'} title={darkMode ? '라이트 모드' : '다크 모드'}>
+          {darkMode ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
         </button>
-
-        {/* Main navigation tabs — hidden on mobile, replaced by MobileNav */}
-        <nav className="hidden md:flex items-center overflow-x-auto scrollbar-hide" style={{ marginLeft: '24px', height: '100%' }}>
-          {NAV_ITEMS.map((item) => {
-            const isActive = currentSection === item.section;
-            return (
-              <button
-                key={item.section}
-                onClick={() => setCurrentSection(item.section)}
-                className="relative cursor-pointer flex items-center"
-                style={{
-                  height: '100%',
-                  padding: '0 24px',
-                  fontSize: '14px',
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? 'var(--text-primary, #191F28)' : 'var(--text-secondary, #8B95A1)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.label}
-                {isActive && (
-                  <span
-                    className="absolute"
-                    style={{
-                      bottom: 0,
-                      left: '24px',
-                      right: '24px',
-                      height: '2px',
-                      background: 'var(--text-primary)',
-                      borderRadius: '1px',
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
-          {/* 전체 메뉴 진입점 — lg+ 에서만(하단 네비 '더보기'가 lg:hidden으로 사라지는 구간과 일치).
-              md(768–1023)에서는 하단 '더보기'가 단일 진입점이라 이중 노출 방지. */}
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-feature-directory'))}
-            className="cursor-pointer hidden lg:flex items-center"
-            style={{
-              height: '100%',
-              padding: '0 24px',
-              fontSize: '14px',
-              fontWeight: 400,
-              color: 'var(--text-secondary, #8B95A1)',
-              whiteSpace: 'nowrap',
-              gap: 6,
-            }}
-            aria-label="전체 메뉴 열기"
-          >
-            <LayoutGrid className="w-[15px] h-[15px]" />
-            전체
-          </button>
-        </nav>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Right actions — gap 통일 */}
-        <div className="header-actions flex items-center">
-
-        {/* Dark mode toggle */}
-        <button
-          onClick={toggleDarkMode}
-          className="flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '8px',
-            fontSize: '16px',
-            background: 'transparent',
-            border: 'none',
-            WebkitTapHighlightColor: 'transparent',
-            outline: 'none',
-          }}
-          aria-label={darkMode ? '라이트 모드로 전환' : '다크 모드로 전환'}
-          title={darkMode ? '라이트 모드' : '다크 모드'}
-        >
-          {darkMode
-            ? <Sun className="w-[17px] h-[17px]" style={{ color: 'var(--text-secondary, #8B95A1)' }} />
-            : <Moon className="w-[17px] h-[17px]" style={{ color: 'var(--text-secondary, #8B95A1)' }} />}
-        </button>
-
-        {/* Help button — 투어 재시작 + /help 페이지 진입 */}
-        <button
-          data-tour="help-button"
+        <button type="button" data-tour="help-button" onClick={() => { window.location.href = '/help'; }}
+          className={`${styles.action} ${styles.help}`} aria-label="도움말" title="도움말"><HelpCircle size={18} aria-hidden="true" /></button>
+        <button type="button" className={`${styles.action} ${styles.notification}`} title="알림"
+          aria-label={unreadCount > 0 ? `알림, 읽지 않은 알림 ${unreadCount}개` : '알림'}
           onClick={() => {
-            window.location.href = '/help';
-          }}
-          className="header-help flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '8px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary, #8B95A1)',
-            WebkitTapHighlightColor: 'transparent',
-            outline: 'none',
-          }}
-          aria-label="도움말"
-          title="도움말"
-        >
-          <HelpCircle className="w-[16px] h-[16px]" />
-        </button>
-
-        {/* Alert bell */}
-        <button
-          onClick={() => {
-            // Desktop (lg+): scroll to sidebar alert center
             const el = document.getElementById('solb-alert-center');
             if (el && window.innerWidth >= 1024) {
-              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
               return;
             }
-            // Mobile: open dedicated alert bottom sheet
             window.dispatchEvent(new CustomEvent('open-mobile-alerts'));
-          }}
-          className="relative flex items-center justify-center cursor-pointer shrink-0 hover:bg-[#F8F9FA] dark:hover:bg-[var(--surface-hover)] active:bg-transparent"
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '8px',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-secondary, #8B95A1)',
-            WebkitTapHighlightColor: 'transparent',
-            outline: 'none',
-          }}
-          title="알림"
-          aria-label={unreadCount > 0 ? `알림, 읽지 않은 알림 ${unreadCount}개` : '알림'}
-        >
-          <Bell className="w-[16px] h-[16px]" />
-          {unreadCount > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: 2,
-                right: 2,
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#fff',
-                background: '#EF4452',
-                borderRadius: 8,
-                padding: '1px 4px',
-                minWidth: 14,
-                textAlign: 'center',
-                lineHeight: '14px',
-              }}
-            >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
+          }}>
+          <Bell size={18} aria-hidden="true" />
+          {unreadCount > 0 && <span className={styles.count}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
         </button>
-
-        {/* Search toggle */}
-        <div className="relative">
-          <button
-            ref={searchTriggerRef}
-            data-slot="search-trigger"
-            aria-label="종목 검색"
-            aria-expanded={searchVisible}
-            aria-controls="stock-search-dialog"
-            onClick={() => searchVisible ? setShowSearch(false) : openSearch()}
-            className="flex items-center cursor-pointer hover:bg-[#F2F4F6] dark:hover:bg-[var(--surface-hover)] transition-colors"
-            style={{
-              gap: '6px',
-              padding: '10px 14px',
-              minHeight: '44px',
-              borderRadius: '8px',
-              background: 'var(--bg-subtle, #F8F9FA)',
-              fontSize: '13px',
-              color: 'var(--text-tertiary, #B0B8C1)',
-            }}
-          >
-            {/* 모바일: 돋보기 아이콘만, 데스크톱: 텍스트 + kbd */}
-            <Search className="w-[14px] h-[14px] md:hidden" />
-            <span className="hidden md:inline">종목 검색</span>
-            <kbd
-              className="font-sans hidden md:inline"
-              style={{
-                fontSize: '11px',
-                color: '#B0B8C1',
-                background: 'var(--surface, #fff)',
-                border: '1px solid var(--border-light, #F2F4F6)',
-                borderRadius: '4px',
-                padding: '1px 5px',
-                marginLeft: '4px',
-              }}
-            >
-              /
-            </kbd>
+        <div className={styles.searchWrap}>
+          <button type="button" ref={searchTriggerRef} data-slot="search-trigger" className={styles.search}
+            aria-label="종목 검색" aria-expanded={searchVisible} aria-controls="stock-search-dialog"
+            onClick={() => searchVisible ? closeSearch() : openSearch()}>
+            <Search size={18} aria-hidden="true" /><span>종목 검색</span><kbd>/</kbd>
           </button>
-          {searchOpened && (
-            <div id="stock-search-dialog" hidden={!searchVisible} ref={searchRef} role="dialog" aria-label="종목 검색" tabIndex={-1} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); closeSearch(); } }} className="stock-search-popover fixed left-4 right-4 top-[50px] z-50 md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-[360px]">
-              <SearchBar active={searchVisible} onExplore={() => { /* Keep this search session while the detail is open. */ }} onClose={closeSearch} />
-            </div>
-          )}
+          {searchOpened && <div id="stock-search-dialog" hidden={!searchVisible} ref={searchRef} role="dialog" aria-label="종목 검색" tabIndex={-1}
+            onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); closeSearch(); } }}
+            className={`stock-search-popover ${styles.popover}`}>
+            <SearchBar active={searchVisible} onExplore={() => { /* Keep the search session while detail is open. */ }} onClose={closeSearch} />
+          </div>}
         </div>
-
-        {/* Auth area: Login button or UserMenu */}
-        {user ? (
-          <UserMenu user={user} onSignOut={onSignOut || (() => {})} />
-        ) : (
-          <>
-            {/* Settings — 모바일에서 숨김 (공간 확보) */}
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))}
-              aria-label="설정 열기"
-              className="hidden md:flex items-center justify-center cursor-pointer transition-colors"
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '8px',
-                color: '#8B95A1',
-                marginLeft: '4px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F8F9FA)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              <Settings className="w-[18px] h-[18px]" />
-            </button>
-
-            {/* Login button */}
-            <button
-              onClick={onLoginClick}
-              className="shrink-0 cursor-pointer"
-              style={{
-                marginLeft: '4px',
-                fontSize: '13px',
-                fontWeight: 600,
-                color: 'var(--text-primary)',
-                background: 'none',
-                border: 'none',
-                padding: '6px 12px',
-                minHeight: 44,
-                borderRadius: '8px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-hover, #F0F6FF)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-            >
-              로그인
-            </button>
-          </>
-        )}
-        </div>{/* end right actions */}
+        {user ? <UserMenu user={user} onSignOut={onSignOut || (() => {})} /> : <>
+          <button type="button" className={`${styles.action} ${styles.guestSettings}`} onClick={() => window.dispatchEvent(new CustomEvent('toggle-settings'))} aria-label="설정 열기"><Settings size={18} aria-hidden="true" /></button>
+          <button type="button" onClick={onLoginClick} className={`${appUI.textButton} ${styles.login}`}>로그인</button>
+        </>}
       </div>
-    </header>
-  );
+    </div>
+  </header>;
 }

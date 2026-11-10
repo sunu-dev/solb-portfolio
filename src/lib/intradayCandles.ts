@@ -6,6 +6,8 @@ export interface IntradayCandles extends CandleRaw {
   timeZone: string;
   interval: '5m';
   asOf: number;
+  snapshotId?: string;
+  receivedAt?: number;
 }
 interface YahooIntradayResult {
   meta?: { exchangeTimezoneName?: string };

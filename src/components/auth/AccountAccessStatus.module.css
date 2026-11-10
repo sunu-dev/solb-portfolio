@@ -1,10 +1,33 @@
-.page { min-height:100dvh; display:grid; place-items:center; padding:32px 24px; background:var(--bg, #fff); color:var(--text-primary, #191f28); }
-.content { width:min(100%, 360px); text-align:center; }
-.brand { display:flex; justify-content:center; margin-bottom:32px; }
-.content h1 { margin:0 0 12px; font-size:23px; font-weight:700; line-height:1.5; letter-spacing:-.6px; word-break:keep-all; }
-.content p { margin:0; color:var(--text-secondary, #4e5968); font-size:14px; line-height:1.8; word-break:keep-all; }
-.actions { display:grid; gap:8px; margin-top:28px; }
-.actions button { width:100%; min-height:48px; padding:12px 16px; border:0; border-radius:12px; font-size:14px; font-weight:600; cursor:pointer; }
-.actions .retry { background:var(--text-primary, #191f28); color:var(--bg, #fff); }
-.secondary { background:var(--bg-subtle, #f2f4f6); color:var(--text-secondary, #4e5968); }
-.actions button:focus-visible { outline:1px solid var(--text-secondary, #4e5968); outline-offset:3px; }
+.page { min-height:100svh; box-sizing:border-box; display:grid; place-items:center; padding:32px 24px; background:var(--bg,#fff); color:var(--text-primary,#191f28); font-family:var(--font-ui); }
+.content { width:min(100%,340px); display:flex; flex-direction:column; align-items:center; text-align:center; }
+.brand { margin:0 0 28px; font-size:18px; line-height:1.5; font-weight:700; letter-spacing:-.025em; }
+.brand span { margin-left:8px; color:var(--text-secondary); font-size:13px; font-weight:400; }
+.portrait { position:relative; display:grid; place-items:center; width:144px; height:144px; margin-bottom:24px; border-radius:50%; background:var(--bg-subtle,#f7f8fa); }
+.title { margin:0; font-size:22px; line-height:1.5; font-weight:700; letter-spacing:-.035em; word-break:keep-all; }
+.message { margin:12px 0 0; max-width:290px; min-height:48px; font-size:14px; line-height:1.75; color:var(--text-secondary); word-break:keep-all; }
+.status { display:grid; place-items:center; height:44px; margin:16px 0 0; }
+.dots { display:flex; gap:6px; }
+.dots i { width:6px; height:6px; background:var(--text-tertiary,#8b95a1); border-radius:50%; }
+.srOnly { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+.actions { display:grid; gap:8px; width:100%; margin:24px 0 0; }
+.retry { composes:primaryButton from "../ui/AppUI.module.css"; width:100%; min-height:48px; font-size:15px; }
+.secondary { composes:textButton from "../ui/AppUI.module.css"; width:100%; min-height:44px; font-size:13px; }
+.help { width:100%; margin-top:16px; visibility:hidden; animation:reveal 1ms step-end 6s forwards; }
+.help .helpSummary { display:flex; justify-content:center; gap:10px; min-height:44px; padding:10px 0; color:var(--text-secondary); font-size:13px; font-weight:400; }
+.hint { margin:8px 0 0; color:var(--text-secondary); font-size:13px; line-height:1.7; }
+.help .actions { margin-top:16px; }
+@keyframes reveal { to { visibility:visible; } }
+@media (prefers-reduced-motion:no-preference) {
+ .page[data-state='pending'] .mascot { animation:joobiFloat 2.8s ease-in-out infinite; transform-origin:50% 80%; }
+ .page[data-state='pending'] .portrait::after { content:''; position:absolute; bottom:19px; width:46px; height:6px; border-radius:50%; background:var(--text-tertiary,#8b95a1); opacity:.1; animation:joobiShadow 2.8s ease-in-out infinite; pointer-events:none; }
+ .page[data-state='pending'] .dots i { animation:waiting 1.4s ease-in-out infinite; }
+ .page[data-state='pending'] .dots i:nth-child(2) { animation-delay:.15s; }
+ .page[data-state='pending'] .dots i:nth-child(3) { animation-delay:.3s; }
+}
+@keyframes waiting { 0%,70%,100% { opacity:.35; } 35% { opacity:1; } }
+@media (max-height:600px) { .brand { margin-bottom:12px; } .portrait { width:104px; height:104px; margin-bottom:12px; } .portrait > span { transform:scale(.8); } .page { padding-block:20px; } }
+
+.characterFrame,.mascot { display:inline-flex; align-items:center; justify-content:center; }
+.characterFrame { position:relative; z-index:1; }
+@keyframes joobiFloat { 0%,100% { transform:translateY(0) rotate(-2deg); } 50% { transform:translateY(-7px) rotate(2deg); } }
+@keyframes joobiShadow { 0%,100% { transform:scaleX(1); opacity:.12; } 50% { transform:scaleX(.72); opacity:.06; } }

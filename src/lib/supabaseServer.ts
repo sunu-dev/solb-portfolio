@@ -30,14 +30,21 @@ function assertServer(fn: string) {
  * service-role 클라이언트 — RLS 우회. 쓰기·집계·관리자 조회용.
  * 키가 없으면 null (호출부가 503으로 처리).
  */
-export function getServiceClient(): SupabaseClient | null {
+export function getServiceClient(signal?: AbortSignal): SupabaseClient | null {
   assertServer('getServiceClient');
-  if (serviceClient) return serviceClient;
+  if (!signal && serviceClient) return serviceClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
   if (!url || !key) return null;
 
+  // A request's cancellation must not abort another caller of the singleton.
+  if (signal) return createClient(url, key, {
+    auth: { persistSession: false },
+    global: { fetch: (input, init) => fetch(input, {
+      ...init, signal: init?.signal ? AbortSignal.any([signal, init.signal]) : signal,
+    }) },
+  });
   serviceClient = createClient(url, key, { auth: { persistSession: false } });
   return serviceClient;
 }
@@ -46,14 +53,22 @@ export function getServiceClient(): SupabaseClient | null {
  * anon 클라이언트 — **토큰 검증 전용**.
  * `auth.getUser(token)`으로 요청자 신원을 확인할 때만 쓰고, 데이터 접근에는 쓰지 않는다.
  */
-export function getAuthClient(): SupabaseClient | null {
+export function getAuthClient(signal?: AbortSignal): SupabaseClient | null {
   assertServer('getAuthClient');
-  if (authClient) return authClient;
+  if (!signal && authClient) return authClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   if (!url || !key) return null;
 
+  // Request cancellation must never be installed on the shared singleton.
+  // auth.getUser has no signal parameter, so its fetch gets a scoped signal.
+  if (signal) return createClient(url, key, {
+    auth: { persistSession: false },
+    global: { fetch: (input, init) => fetch(input, {
+      ...init, signal: init?.signal ? AbortSignal.any([signal, init.signal]) : signal,
+    }) },
+  });
   authClient = createClient(url, key, { auth: { persistSession: false } });
   return authClient;
 }

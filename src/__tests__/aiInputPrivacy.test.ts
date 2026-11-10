@@ -57,20 +57,22 @@ describe('toPublicAiAnalysisInput', () => {
     })).toBeNull();
   });
 
-  it('accepts mentor requests with unavailable fundamentals without inventing values', () => {
+  it('drops withdrawn financial metrics even when old clients send valid values', () => {
     const safe = toPublicAiAnalysisInput({
       symbol: 'TSLL', currency: 'USD', price: 9.71, changePercent: 4.3,
       mentorId: 'value', per: null, eps: null, week52High: 38.5, week52Low: null,
     });
-    expect(safe).toMatchObject({ symbol: 'TSLL', price: 9.71, mentorId: 'value', week52High: 38.5 });
-    for (const field of ['per', 'eps', 'week52Low']) expect(safe).not.toHaveProperty(field);
+    expect(safe).toMatchObject({ symbol: 'TSLL', price: 9.71, mentorId: 'value' });
+    for (const field of ['per', 'eps', 'week52High', 'week52Low']) expect(safe).not.toHaveProperty(field);
+    const legacy = toPublicAiAnalysisInput({ symbol: 'AAPL', price: 220, per: 15, eps: 10, marketCap: 1e12, dividendYield: 2 });
+    expect(legacy).toEqual({ symbol: 'AAPL', price: 220 });
   });
 
   it('still rejects missing required quotes and malformed optional numbers', () => {
     const quote = { symbol: 'TSLL', price: 9.71, changePercent: 4.3 };
     expect(toPublicAiAnalysisInput({ ...quote, price: null })).toBeNull();
-    for (const per of ['12', {}, Infinity, NaN]) {
-      expect(toPublicAiAnalysisInput({ ...quote, per })).toBeNull();
+    for (const volRatio of ['12', {}, Infinity, NaN]) {
+      expect(toPublicAiAnalysisInput({ ...quote, volRatio })).toBeNull();
     }
   });
 

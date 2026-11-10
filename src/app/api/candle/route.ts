@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { latestIntradaySession } from '@/lib/intradayCandles';
+import { readLatestIntraday } from '@/lib/intradaySource';
 import { logServerApi } from '@/lib/serverLogger';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
 
@@ -10,13 +10,21 @@ export async function GET(req: NextRequest) {
   }
 
   const intraday = req.nextUrl.searchParams.get('range') === '1d';
+  if (intraday) {
+    const result = await readLatestIntraday(symbol);
+    if (result.status === 'ok') {
+      logServerApi('api_candle', { symbol, resolved_symbol: result.resolvedSymbol, points: result.data.t.length, interval: '5m' });
+      return NextResponse.json(result.data, { headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30' } });
+    }
+    return result.status === 'none' ? NextResponse.json({ s: 'no_data' }) : NextResponse.json({ s: 'error' }, { status: 500 });
+  }
   let fetchFailed = false;
 
   for (const yahooSymbol of getYahooSymbolCandidates(symbol)) {
     try {
       // Yahoo Finance chart API — works for US and KR stocks.
       // 접미사 없는 6자리 한국 코드는 .KS → .KQ 순으로 조회한다.
-      const period = intraday ? 'range=5d&interval=5m&includePrePost=false' : 'range=1y&interval=1d';
+      const period = 'range=1y&interval=1d';
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?${period}`;
       const resp = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
@@ -27,13 +35,6 @@ export async function GET(req: NextRequest) {
       const result = data?.chart?.result?.[0];
 
       if (!result?.timestamp || !result?.indicators?.quote?.[0]) continue;
-
-      if (intraday) {
-        const session = latestIntradaySession(result);
-        if (!session) continue;
-        logServerApi('api_candle', { symbol, resolved_symbol: yahooSymbol, points: session.t.length, interval: '5m' });
-        return NextResponse.json(session, { headers: { 'Cache-Control': 'public, max-age=30, s-maxage=30' } });
-      }
 
       const quote = result.indicators.quote[0];
       const timestamps = result.timestamp;
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
       const v: number[] = [];
 
       for (let i = 0; i < timestamps.length; i++) {
-        if (quote.close[i] != null && quote.open[i] != null) {
+        if ([timestamps[i], quote.close[i], quote.open[i], quote.high[i], quote.low[i]].every(Number.isFinite)) {
           t.push(timestamps[i]);
           o.push(quote.open[i]);
           h.push(quote.high[i]);
@@ -62,7 +63,7 @@ export async function GET(req: NextRequest) {
         resolved_symbol: yahooSymbol,
         points: t.length,
       });
-      return NextResponse.json({ s: 'ok', t, o, h, l, c, v });
+      return NextResponse.json(t.length ? { s: 'ok', t, o, h, l, c, v } : { s: 'no_data' });
     } catch (e) {
       fetchFailed = true;
       console.error('Candle fetch error:', e);

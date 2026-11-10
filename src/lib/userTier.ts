@@ -1,4 +1,5 @@
 import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
 
 export type UserTier = 'free' | 'pro';
 
@@ -12,19 +13,22 @@ export async function getUserTier(userId: string | undefined): Promise<UserTier>
   const supabase = getServiceClient() ?? getAuthClient();
   if (!userId || !supabase) return 'free';
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('tier, pro_until')
-      .eq('id', userId)
-      .maybeSingle();
-    if (!error) return isProMembershipValid(data as MembershipRow | null) ? 'pro' : 'free';
+    return await withAbortDeadline(async signal => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('tier, pro_until')
+        .eq('id', userId)
+        .abortSignal(signal)
+        .maybeSingle();
+      if (!error) return isProMembershipValid(data as MembershipRow | null) ? 'pro' : 'free';
 
-    // 마이그레이션 적용 전 호환: pro_until 컬럼이 없으면 기존 tier만 조회한다.
-    if (/pro_until/i.test(error.message)) {
-      const fallback = await supabase.from('profiles').select('tier').eq('id', userId).maybeSingle();
-      return (fallback.data as MembershipRow | null)?.tier === 'pro' ? 'pro' : 'free';
-    }
-    return 'free';
+      // 마이그레이션 적용 전 호환: pro_until 컬럼이 없으면 기존 tier만 조회한다.
+      if (/pro_until/i.test(error.message)) {
+        const fallback = await supabase.from('profiles').select('tier').eq('id', userId).abortSignal(signal).maybeSingle();
+        return (fallback.data as MembershipRow | null)?.tier === 'pro' ? 'pro' : 'free';
+      }
+      return 'free';
+    });
   } catch {
     return 'free';
   }

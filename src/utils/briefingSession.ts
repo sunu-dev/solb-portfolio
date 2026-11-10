@@ -1,4 +1,4 @@
-import { MARKET_HOLIDAYS_2026 } from '@/config/marketHolidays';
+import { usCalendarDay } from '@/config/usTradingCalendar';
 
 const ny = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -6,8 +6,8 @@ const ny = new Intl.DateTimeFormat('en-CA', {
 });
 const previousDay = (date: string) => new Date(Date.parse(`${date}T12:00:00Z`) - 86400000).toISOString().slice(0, 10);
 function closedReason(date: string): string | null {
-  const holiday = MARKET_HOLIDAYS_2026.find(h => h.date === date && h.market !== 'KR');
-  if (holiday) return holiday.label === 'Labor Day' ? '노동절' : holiday.label;
+  const holiday = usCalendarDay(date).holiday;
+  if (holiday) return holiday === 'Labor Day' ? '노동절' : holiday;
   return [0, 6].includes(new Date(`${date}T12:00:00Z`).getUTCDay()) ? '주말' : null;
 }
 
@@ -17,9 +17,12 @@ export function getBriefingSession(now: number) {
   let date = `${parts.year}-${parts.month}-${parts.day}`;
   if (Number(parts.hour) * 60 + Number(parts.minute) < 570) date = previousDay(date);
   // 달력 범위 밖은 거래일로 추정하지 않는다.
-  if (!date.startsWith('2026-')) return { date, reason: null, lastTradingDate: null, known: false };
+  if (!usCalendarDay(date).known) return { date, reason: null, lastTradingDate: null, known: false };
   const reason = closedReason(date);
   let lastTradingDate = date;
-  for (let i = 0; i < 10 && closedReason(lastTradingDate); i++) lastTradingDate = previousDay(lastTradingDate);
+  for (let i = 0; i < 10 && closedReason(lastTradingDate); i++) {
+    lastTradingDate = previousDay(lastTradingDate);
+    if (!usCalendarDay(lastTradingDate).known) return { date, reason, lastTradingDate: null, known: false };
+  }
   return { date, reason, lastTradingDate, known: true };
 }

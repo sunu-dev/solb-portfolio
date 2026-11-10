@@ -1,0 +1,301 @@
+# symbol|mechanism|investment target / selection in Korean
+SPY|equity|S&P 500에 편입된 미국 대표 기업의 주식
+VOO|equity|S&P 500에 편입된 미국 대표 기업의 주식
+IVV|equity|S&P 500에 편입된 미국 대표 기업의 주식
+QQQ|equity|나스닥100에 속한 나스닥 상장 대형 비금융 기업의 주식
+QQQM|equity|나스닥100에 속한 나스닥 상장 대형 비금융 기업의 주식
+VTI|equity|대형주부터 작은 기업까지 포함하는 미국 주식시장
+ITOT|equity|S&P Total Market Index를 통해 넓게 담는 미국 주식시장
+SCHB|equity|미국 대형·중형·소형 기업을 함께 담는 광범위한 주식시장
+SPYM|equity|S&P 500에 편입된 미국 대표 기업의 주식
+SCHX|equity|미국 주식시장의 대형 기업 주식
+DIA|equity|다우존스 산업평균지수에 속한 30개 기업의 주식. 기업 규모보다 한 주의 가격을 기준으로 비중을 정해요
+IWM|equity|러셀2000 지수에 속한 미국 소형 기업의 주식
+VT|international|선진국과 신흥국의 대형·중형·소형 기업을 함께 담는 전 세계 주식시장
+ACWI|international|MSCI ACWI 지수에 속한 선진국·신흥국 대형·중형 기업의 주식
+RSP|equal-weight|S&P 500 기업을 정기적으로 같은 비중에 맞춰 담는 주식 묶음
+VUG|growth|성장 특성을 기준으로 고르는 미국 대형 기업의 주식
+SCHG|growth|다우존스의 성장주 기준으로 고르는 미국 대형 기업의 주식
+IWF|growth|러셀1000 기업 중 성장 특성이 높은 기업의 주식
+IWD|value|러셀1000 기업 중 가치주 기준에 맞는 기업의 주식
+VTV|value|가치 평가 기준으로 고르는 미국 대형 기업의 주식
+IVE|value|S&P 500 기업 중 가치주 특성이 있는 기업의 주식
+IVW|growth|S&P 500 기업 중 성장주 특성이 있는 기업의 주식
+VO|equity|미국 중형 기업의 주식
+SCHD|dividend|다우존스 미국 배당100 지수의 배당 지급 기업 주식
+VYM|dividend|상대적으로 배당수익률이 높은 미국 기업의 주식
+VIG|dividend|배당을 꾸준히 늘려 온 미국 기업의 주식
+DGRO|dividend|배당 성장과 지급 여력 등을 기준으로 고르는 미국 기업의 주식
+HDV|dividend|배당 지속 가능성 등을 점검해 고르는 미국 고배당 기업의 주식
+SPYD|dividend|S&P 500 기업 중 배당수익률이 높은 기업을 같은 비중으로 담는 주식 묶음
+SDY|dividend|오랜 기간 배당을 늘려 온 S&P 1500 기업의 주식
+DGRW|dividend|배당을 지급하면서 성장성과 재무 건전성 기준을 충족하는 미국 기업의 주식
+JEPI|option-income|운용사가 고른 미국 대형주와 옵션 수입을 연결하는 주가연계채권(ELN)
+JEPQ|option-income|나스닥 대형 성장주 중심의 주식과 옵션 수입을 연결하는 주가연계채권(ELN)
+QYLD|option-income|나스닥100 주식을 담고 해당 지수의 콜옵션을 매도하는 전략
+XYLD|option-income|S&P 500 주식에 투자하면서 해당 지수의 콜옵션을 매도하는 전략
+DIVO|option-income|운용사가 고른 배당주에 투자하고 일부 종목의 콜옵션을 선택적으로 매도하는 전략
+SOXX|sector|NYSE 반도체지수에 속한 미국 상장 반도체 기업의 주식
+SMH|sector|MVIS 미국 상장 반도체25 지수에 속한 반도체 기업의 주식
+VGT|sector|미국 정보기술 산업의 대형·중형·소형 기업 주식
+XLK|sector|S&P 500 기업 중 정보기술 업종의 주식
+XLF|sector|S&P 500 기업 중 금융 업종의 주식
+XLE|sector|S&P 500 기업 중 에너지 업종의 주식
+XLV|sector|S&P 500 기업 중 건강관리·의료 업종의 주식
+XLI|sector|S&P 500 기업 중 산업재 업종의 주식
+XLY|sector|S&P 500 기업 중 경기소비재 업종의 주식
+XLP|sector|S&P 500 기업 중 필수소비재 업종의 주식
+XLU|sector|S&P 500 기업 중 전기·가스 등 공익사업 업종의 주식
+XLB|sector|S&P 500 기업 중 소재 업종의 주식
+XLRE|real-estate|S&P 500의 부동산 기업·리츠 주식. 주택담보대출 리츠는 제외해요
+XLC|sector|S&P 500 기업 중 통신·미디어·엔터테인먼트 업종의 주식
+IYR|real-estate|미국 부동산 기업과 리츠의 주식
+ARKK|active-equity|운용사가 혁신 기술의 수혜를 기대하며 직접 고르는 글로벌 기업의 주식
+ARKW|active-equity|클라우드·모바일 등 차세대 기술 변화를 바탕으로 운용사가 고르는 기업의 주식
+BOTZ|theme|로봇·인공지능 개발과 생산에 관련된 기업의 주식
+ROBO|theme|전 세계 로봇·자동화 관련 기업의 주식
+CIBR|theme|나스닥 CTA 사이버보안 지수에 속한 보안 기업의 주식
+HACK|theme|사이버보안 기술과 서비스를 제공하는 글로벌 기업의 주식
+TAN|theme|태양광 사업과 관련된 매출을 내는 글로벌 기업의 주식
+ICLN|theme|청정에너지 전환 사업에 관련된 글로벌 기업의 주식
+EWY|international|MSCI Korea 25/50 지수에 속한 한국 대형·중형 기업의 주식
+EEM|international|MSCI 신흥국 지수에 속한 기업의 주식
+VWO|international|FTSE 기준으로 분류한 신흥국 주식시장
+EFA|international|MSCI EAFE 지수의 유럽·호주·극동 등 선진국 기업 주식
+VEA|international|미국을 제외한 FTSE 선진국 주식시장
+EWJ|international|MSCI 일본 지수에 속한 기업의 주식
+FXI|international|홍콩에 상장한 중국 대형 기업 50개의 주식
+KWEB|theme|해외에 상장한 중국 인터넷 기업의 주식
+TLT|treasury|남은 만기가 20년 이상인 미국 국채
+IEF|treasury|남은 만기가 7~10년인 미국 국채
+SHY|treasury|남은 만기가 1~3년인 미국 국채
+SGOV|cash-bond|만기가 3개월 이하인 미국 단기 국채
+BIL|cash-bond|만기가 1~3개월인 미국 단기 국채
+GOVT|treasury|여러 만기의 미국 국채
+AGG|aggregate-bond|미국 국채·회사채·주택담보대출 관련 채권 등을 포함한 투자등급 채권
+BND|aggregate-bond|달러로 발행된 투자등급 과세 채권을 넓게 담는 채권시장
+LQD|corporate-bond|달러로 발행된 투자등급 회사채
+HYG|high-yield|신용등급이 낮은 대신 높은 이자를 약속하는 회사채
+TIP|inflation-bond|미국 소비자물가에 따라 원금이 조정되는 물가연동국채(TIPS)
+VCIT|corporate-bond|남은 만기가 5~10년인 투자등급 회사채
+GLD|metal|실물 금을 보관하고 금 현물 가격을 따라가는 신탁
+IAU|metal|실물 금을 보관하고 금 현물 가격을 따라가는 신탁
+SLV|metal|실물 은을 보관하고 은 현물 가격을 따라가는 신탁
+USO|commodity-futures|WTI 원유 가격에 연결되는 선물 계약 중심의 상품
+UNG|commodity-futures|천연가스 가격에 연결되는 선물·스왑 계약 중심의 상품
+IBIT|bitcoin-spot|비트코인 현물을 보유해 달러 기준 가격을 따라가는 신탁
+FBTC|bitcoin-spot|비트코인 현물을 보유해 달러 기준 가격을 따라가는 상품
+BITO|bitcoin-futures|비트코인 현물을 직접 담는 대신 비트코인 선물에 투자하는 전략
+TQQQ|leverage|나스닥100 지수
+SQQQ|leverage|나스닥100 지수
+SOXL|leverage|NYSE 반도체지수
+SOXS|leverage|NYSE 반도체지수
+UPRO|leverage|S&P 500 지수
+SPXU|leverage|S&P 500 지수
+QLD|leverage|나스닥100 지수
+QID|leverage|나스닥100 지수
+TNA|leverage|러셀2000 미국 소형주 지수
+TZA|leverage|러셀2000 미국 소형주 지수
+TMF|leverage|만기 20년 이상 미국 국채 지수
+TMV|leverage|만기 20년 이상 미국 국채 지수
+KORU|leverage|MSCI Korea 25/50 한국 주식 지수
+IEFA|international|북미를 제외한 선진국의 대형·중형·소형 기업 주식
+VXUS|international|미국을 제외한 전 세계 대형·중형·소형 기업 주식
+IEMG|international|MSCI 신흥국 기준의 대형·중형·소형 기업 주식
+IJH|equity|S&P 중형주400 지수에 속한 미국 기업의 주식
+IJR|equity|S&P 소형주600 지수에 속한 미국 기업의 주식
+BNDX|aggregate-bond|미국 밖의 투자등급 채권. 외화 변동을 달러 기준으로 줄이는 환헤지를 사용해요
+VB|equity|미국 소형 기업의 주식
+VEU|international|미국을 제외한 전 세계 대형·중형 기업의 주식
+SCHF|international|미국을 제외한 선진국 대형·중형 기업의 주식
+IXUS|international|미국 밖 선진국·신흥국의 대형·중형·소형 기업 주식
+SPYG|growth|S&P 500 기업 중 성장주 특성이 있는 기업의 주식
+IWR|equity|러셀 중형주 지수에 속한 미국 기업의 주식
+VV|equity|미국 대형 기업의 주식
+VTEB|muni-bond|미국 주정부·지방정부 등이 발행한 투자등급 지방채
+MUB|muni-bond|미국 주정부·지방정부 등이 발행한 투자등급 지방채
+IWB|equity|러셀1000 지수에 속한 미국 대형·중형 기업의 주식
+QUAL|quality|이익의 질과 안정성·부채 수준 등을 기준으로 고르는 미국 기업의 주식
+IUSB|aggregate-bond|달러 표시 과세 채권을 넓게 담는 미국 종합 채권시장
+DFAC|active-equity|미국 주식 전반에서 소형주 등 특성을 고려해 운용사가 직접 고르는 주식
+VONG|growth|러셀1000 기업 중 성장주 특성이 있는 기업의 주식
+BSV|aggregate-bond|만기 1~5년의 국채·투자등급 회사채 등 달러 표시 채권
+VCSH|corporate-bond|만기 1~5년의 투자등급 고정금리 회사채
+DYNF|active-equity|여러 투자 특성의 비중을 운용사가 바꾸며 고르는 미국 대형·중형 주식
+JPST|cash-bond|금리 민감도를 짧게 관리하는 달러 표시 우량 단기 채권. 국채만 담는 상품은 아니에요
+SPDW|international|미국을 제외한 선진국 주식시장
+VGIT|treasury|만기 3~10년의 미국 국채
+CGDV|active-equity|배당을 지급하는 미국 대형·중형 기업 중심으로 운용사가 고르는 주식
+VNQ|real-estate|미국 부동산을 소유·운영하는 기업과 리츠의 주식
+SPYV|value|S&P 500 기업 중 가치주 특성이 있는 기업의 주식
+VBR|value|가치 평가 기준으로 고르는 미국 소형 기업의 주식
+MGK|growth|성장 특성을 기준으로 고르는 미국 초대형 기업의 주식
+MBB|mortgage-bond|미국 주택담보대출의 원리금 흐름에 연결된 주택저당증권(MBS)
+VGSH|treasury|만기 1~3년의 미국 국채
+IUSG|growth|S&P 900 기업 중 성장 특성이 있는 미국 대형·중형 기업의 주식
+IDEV|international|미국을 제외한 MSCI 선진국 대형·중형·소형 기업 주식
+JAAA|clo|기업 대출을 묶은 상품인 CLO 중 AAA 등급 채권 중심의 변동금리 투자
+GLDM|metal|실물 금을 보관하고 금 현물 가격을 따라가는 신탁
+AVUV|active-equity|가치·수익성 등을 살펴 운용사가 고르는 미국 소형 기업의 주식
+VXF|equity|S&P 500에 포함되지 않은 미국 중소형 기업 중심의 주식
+EFV|value|유럽·호주·극동 등 선진국 기업 중 가치주 기준에 맞는 주식
+VGK|international|유럽 선진국의 대형·중형·소형 기업 주식
+VOOG|growth|S&P 500 기업 중 성장주 특성이 있는 기업의 주식
+BIV|aggregate-bond|만기 5~10년의 투자등급 채권
+AVEM|active-equity|신흥국 기업 중 가치·수익성 등 여러 기준으로 운용사가 고르는 주식
+FBND|aggregate-bond|운용사가 종류와 만기를 조절하며 직접 고르는 종합 채권 포트폴리오
+FNDX|quality|매출·현금흐름·배당 및 자사주 매입 등 실적 지표로 비중을 정하는 미국 대형 기업의 주식
+IUSV|value|S&P 900 기업 중 가치주 특성이 있는 미국 대형·중형 기업의 주식
+GDX|sector|금·은을 채굴하는 글로벌 광산 기업의 주식. 금 현물을 직접 담는 상품과는 달라요
+CGGR|active-equity|자본 성장을 목표로 운용사가 직접 고르는 미국 기업 중심의 주식
+MDY|equity|S&P 중형주400 지수에 속한 미국 기업의 주식
+IYW|sector|미국 기술 기업의 주식
+EMXC|international|중국을 제외한 MSCI 신흥국 기업의 주식
+RDVY|dividend|배당 증가와 재무 지표를 기준으로 고르는 미국 대형 기업의 주식
+FNDF|quality|실적 관련 지표를 기준으로 비중을 정하는 미국 밖 선진국 기업의 주식
+USHY|high-yield|달러 표시 고수익·저신용 회사채
+USMV|quality|주가 변동을 줄이는 조합을 목표로 선정·배분한 미국 기업의 주식
+SHV|cash-bond|남은 만기가 1년 이하인 미국 국채
+VOE|value|가치 특성을 기준으로 고르는 미국 중형 기업의 주식
+IGSB|corporate-bond|만기 1~5년의 달러 표시 투자등급 회사채
+VBK|growth|성장 특성을 기준으로 고르는 미국 소형 기업의 주식
+SPMO|momentum|S&P 500 기업 중 위험을 고려한 최근 주가 흐름이 강한 기업의 주식
+DRAM|active-equity|메모리 산업과 관련된 글로벌 기업에 주식·파생상품으로 투자하는 전략
+DVY|dividend|배당수익률 등을 기준으로 고르는 미국 배당 기업의 주식
+FTEC|sector|미국 정보기술 산업 기업의 주식
+VONV|value|러셀1000 기업 중 가치주 특성이 있는 기업의 주식
+AVLV|active-equity|가치·수익성 등을 살펴 운용사가 고르는 미국 대형 기업의 주식
+SCHA|equity|미국 소형 기업의 주식
+DFUS|active-equity|미국 기업 전반에서 운용사가 직접 선정·배분하는 주식
+DFIV|active-equity|미국 밖 선진국의 가치 특성을 가진 기업 중심으로 운용사가 고르는 주식
+VYMI|dividend|미국 밖 선진국·신흥국의 고배당 기업 주식
+USFR|floating-treasury|시장 단기금리에 맞춰 이자가 바뀌는 미국 변동금리 국채
+OEF|equity|S&P 100에 속한 미국 대표 대형 기업의 주식
+VTIP|inflation-bond|남은 만기가 5년 미만인 미국 물가연동국채
+IWV|equity|러셀3000 지수를 통해 넓게 담는 미국 주식시장
+AVDV|active-equity|미국 밖 선진국의 소형 가치주 중심으로 운용사가 고르는 주식
+MTUM|momentum|최근 주가 흐름과 변동성을 함께 고려해 고르는 미국 대형·중형 기업의 주식
+IWP|growth|러셀 중형주 지수에서 성장 특성이 있는 기업의 주식
+PULS|cash-bond|운용사가 고르는 달러 표시 우량 초단기 채권. 국채만 담는 상품은 아니에요
+VOT|growth|성장 특성을 기준으로 고르는 미국 중형 기업의 주식
+BBJP|international|일본 대형·중형 기업의 주식
+VHT|sector|미국 건강관리·의료 산업 기업의 주식
+AVDE|active-equity|미국 밖 선진국 주식에서 가치·규모 등을 고려해 운용사가 고르는 주식
+SPHQ|quality|이익의 질과 재무 지표를 기준으로 고르는 S&P 500 기업의 주식
+IQMM|cash-bond|만기가 93일 이하인 미국 국채 중심으로 운용하는 단기 금융상품
+COWZ|quality|사업에 쓰고 남은 현금인 잉여현금흐름을 기준으로 고르고 비중을 정하는 미국 기업의 주식
+IGIB|corporate-bond|만기 5~10년의 달러 표시 투자등급 회사채
+MINT|cash-bond|운용사가 고르는 단기 채권. 은행 예금이나 원금 보장 상품은 아니에요
+SPMD|equity|S&P 중형주400 지수에 속한 미국 기업의 주식
+ESGU|quality|환경·사회·지배구조 기준을 반영해 선정·배분하는 미국 기업의 주식
+DFAI|active-equity|미국 밖 선진국에서 가격과 수익성 등을 고려해 운용사가 고르는 주식
+USIG|corporate-bond|달러 표시 투자등급 회사채를 넓게 담는 채권 묶음
+ACWX|international|미국 밖 선진국·신흥국의 대형·중형 기업 주식
+SPEM|international|S&P 기준으로 분류한 신흥국 기업의 주식
+IWY|growth|미국 초대형 기업 중 성장주 특성이 있는 기업의 주식
+IEI|treasury|남은 만기가 3~7년인 미국 국채
+VTWO|equity|러셀2000 지수에 속한 미국 소형 기업의 주식
+BINC|aggregate-bond|전 세계 여러 종류·신용등급·만기의 채권을 운용사가 직접 고르는 전략
+STIP|inflation-bond|남은 만기가 5년 미만인 미국 물가연동국채
+PYLD|aggregate-bond|지역·신용등급·만기를 폭넓게 활용해 운용사가 직접 고르는 채권
+SCHP|inflation-bond|남은 만기가 1년 이상인 미국 물가연동국채
+SPSM|equity|S&P 소형주600 지수에 속한 미국 기업의 주식
+VMBS|mortgage-bond|미국 주택담보대출의 원리금 흐름에 연결된 주택저당증권
+SCHO|treasury|남은 만기가 1~3년인 미국 국채
+SCHV|value|가치 평가 기준으로 고르는 미국 대형 기업의 주식
+DFUV|active-equity|가치 특성이 있는 미국 기업을 운용사가 직접 고르는 주식
+QQQI|option-income|나스닥100 주식과 해당 지수의 콜옵션 전략을 활용하는 수입 중심 상품
+GSLC|quality|가치·주가 흐름·재무 건전성·낮은 변동성 등 여러 기준으로 배분하는 미국 대형주
+IWS|value|러셀 중형주 지수에서 가치 특성이 있는 기업의 주식
+DFIC|active-equity|미국 밖 선진국에서 가치·수익성·규모 등을 고려해 운용사가 고르는 주식
+EFG|growth|유럽·호주·극동 등 선진국 기업 중 성장 특성이 있는 주식
+IGV|sector|미국·캐나다 소프트웨어 기업 중심의 주식
+PVAL|active-equity|운용사가 직접 고르는 미국 대형 가치주. 매일 전체 보유 종목을 공개하는 방식과는 공개 범위가 달라요
+AVUS|active-equity|가치·수익성·기업 규모 등을 고려해 운용사가 고르는 미국 주식
+DFAS|active-equity|여러 재무 특성을 고려해 운용사가 고르는 미국 소형주
+JCPB|aggregate-bond|여러 종류의 채권을 운용사가 직접 고르는 종합 채권 포트폴리오
+SCHM|equity|미국 중형 기업의 주식
+PAAA|clo|달러 표시 CLO 중 AAA 등급 채권을 운용사가 직접 고르는 전략
+BOXX|box-spread|박스 스프레드라는 옵션 조합을 이용해 1~3개월 미국 단기 국채와 비슷한 수익을 목표로 하는 전략
+BAI|active-equity|인공지능·기술 분야의 글로벌 기업을 운용사가 직접 고르는 주식
+SPTM|equity|S&P 1500 지수에 속한 미국 대형·중형·소형 기업의 주식
+IWO|growth|러셀2000 기업 중 성장 특성이 있는 미국 소형주
+MGV|value|가치 평가 기준으로 고르는 미국 초대형 기업의 주식
+IWN|value|러셀2000 기업 중 가치 특성이 있는 미국 소형주
+DFAT|active-equity|운용사가 직접 고르는 미국 중소형 가치주
+PAVE|theme|미국 인프라 개발과 관련된 사업을 하는 기업의 주식
+IQLT|quality|미국 밖 선진국에서 재무 건전성 등을 기준으로 고르는 대형·중형 주식
+VBIL|cash-bond|만기가 3개월 이하인 미국 단기 국채
+ESGV|quality|환경·사회·지배구조 기준을 반영해 고르는 미국 주식
+SCHR|treasury|남은 만기가 3~10년인 미국 국채
+CORO|active-equity|국가별 경제 전망을 바탕으로 운용사가 미국 밖 국가의 투자 비중을 바꾸는 재간접 전략
+EWZ|international|MSCI Brazil 25/50 지수에 속한 브라질 기업의 주식
+DFAU|active-equity|기업 규모와 재무 특성을 고려해 운용사가 고르는 미국 주식
+VFH|sector|미국 금융 업종 기업의 주식
+EMB|aggregate-bond|신흥국 정부 등이 달러로 발행한 채권
+SCHE|international|FTSE 신흥국 기준의 대형·중형 기업 주식
+SCZ|international|유럽·아시아·극동 등 선진국의 소형 기업 주식
+DUHP|active-equity|상대적으로 높은 수익성을 기준으로 운용사가 고르는 미국 대형주
+AMLP|energy-partnership|미국 에너지 운송·저장 등 인프라 사업을 하는 상장 합자회사(MLP)의 지분
+SPYI|option-income|S&P 500 주식과 해당 지수의 옵션 전략을 활용하는 수입 중심 상품
+IAGG|aggregate-bond|미국 밖 통화로 발행된 투자등급 채권. 외화 변동을 달러 기준으로 줄이는 환헤지를 사용해요
+EWT|international|MSCI Taiwan 25/50 지수에 속한 대만 기업의 주식
+SUB|muni-bond|미국 주정부·지방정부 등이 발행한 단기 투자등급 지방채
+DFAX|active-equity|미국 밖 선진국·신흥국 기업을 운용사가 직접 고르는 주식
+CGUS|active-equity|가격 상승과 배당 가능성을 살펴 운용사가 고르는 주식
+GRID|theme|스마트 전력망과 전력 인프라에 관련된 글로벌 기업의 주식
+PFF|preferred|미국 시장에서 거래되는 우선주와 수입형 증권
+XLG|equity|S&P 500 기업 중 시가총액이 큰 50개 기업의 주식
+CGGO|active-equity|성장 잠재력을 기준으로 운용사가 고르는 미국·해외 기업의 주식
+ITA|sector|미국 항공우주·방위산업 관련 기업의 주식
+SPHY|high-yield|달러 표시 고수익·저신용 회사채
+ESGD|quality|미국·캐나다 밖 선진국에서 환경·사회·지배구조 기준을 반영해 고르는 주식
+MOAT|quality|지속적인 경쟁 우위와 적정 가치 평가를 함께 고려해 고르는 미국 기업의 주식
+IGM|sector|미국·캐나다 기술 기업 중심의 주식
+VFLO|quality|잉여현금흐름과 성장 지표를 기준으로 고르는 미국 대형 기업의 주식
+DFCF|aggregate-bond|운용사가 직접 고르는 글로벌 투자등급 채권
+FENI|active-equity|미국·캐나다 밖 선진국 주식을 정량 분석 등을 활용해 운용사가 고르는 전략
+VSS|international|미국 밖 선진국·신흥국 소형 기업의 주식
+TLH|treasury|남은 만기가 10~20년인 미국 국채
+FLOT|floating-bond|달러 표시 투자등급 변동금리 채권
+SPIB|corporate-bond|남은 만기가 1~10년인 투자등급 고정금리 회사채
+SPTL|treasury|남은 만기가 10년 이상인 미국 국채
+NOBL|dividend|오랜 기간 매년 배당을 늘린 S&P 500 기업을 같은 비중으로 담는 주식 묶음
+VDE|sector|미국 에너지 업종 기업의 주식
+SPSB|corporate-bond|남은 만기가 1~3년인 투자등급 고정금리 회사채
+ONEQ|equity|나스닥 종합지수를 따라 넓게 담는 나스닥 상장 기업의 주식
+JPIE|aggregate-bond|수입을 목표로 운용사가 여러 종류·시장의 채권 비중을 조절하는 전략
+BBCA|international|캐나다 대형·중형 기업의 주식
+BUFR|buffer|만기가 분산된 여러 미국 주식 버퍼 ETF를 묶어 투자하는 재간접 상품
+JIRE|active-equity|북미 밖 선진국 기업을 운용사가 직접 고르는 주식
+SDVY|dividend|배당 증가와 재무 지표를 기준으로 고르는 미국 중소형 기업의 주식
+SCHI|corporate-bond|남은 만기가 5~10년인 달러 표시 투자등급 회사채
+SCHH|real-estate|미국 주식형 리츠. 주택담보대출 리츠와 혼합형 리츠는 제외해요
+PBUS|equity|MSCI USA 지수에 속한 미국 대형·중형 기업의 주식
+IBB|sector|미국에 상장된 바이오테크 기업의 주식
+IJK|growth|S&P 중형주400 기업 중 성장 특성이 있는 주식
+SPTI|treasury|남은 만기가 3~10년인 미국 국채
+VGLT|treasury|남은 만기가 10년 이상인 미국 국채
+AIQ|theme|인공지능·빅데이터에 관련된 선진국 기업의 주식
+SCHZ|aggregate-bond|미국 국채·회사채·주택저당증권 등을 넓게 담는 투자등급 채권시장
+FNDE|quality|매출·현금흐름·배당 및 자사주 매입 등 실적 지표로 선정·배분하는 신흥국 주식
+MGC|equity|미국 초대형 기업의 주식
+IGF|theme|전 세계 인프라 관련 기업의 주식
+GBTC|bitcoin-spot|비트코인 현물을 보유해 달러 기준 가격을 따라가는 신탁
+FDVV|dividend|배당 관련 지표가 양호한 대형·중형 기업의 주식
+XBI|sector|미국 바이오테크 기업을 동일 비중 중심으로 담는 주식 묶음
+SPAB|aggregate-bond|달러 표시 투자등급 채권을 넓게 담는 미국 종합 채권시장
+JGRO|active-equity|이익 성장 가능성을 기준으로 운용사가 고르는 미국 대형주
+RWL|quality|S&P 500 기업을 매출 규모에 따라 비중을 정해 담는 주식 묶음
+DFAE|active-equity|기업 규모와 재무 특성을 고려해 운용사가 고르는 신흥국 주식
+PRF|quality|재무 지표를 기준으로 기업을 선정하고 비중을 정하는 미국 주식 묶음
+VUSB|cash-bond|운용사가 만기를 짧게 관리하며 직접 고르는 투자등급 채권
+BLCR|active-equity|재무·정량 분석을 활용해 운용사가 고르는 대형주 중심의 주식
+ETHA|ether-spot|이더리움의 가상자산인 이더 현물 가격을 따라가는 상품
+IXN|sector|전 세계 기술 기업의 주식
+BBUS|equity|미국 기업을 시가총액 기준으로 담는 주식시장
+DFEM|active-equity|기업 규모와 재무 특성을 고려해 운용사가 고르는 신흥국 주식
+IOO|international|전 세계 대표 다국적 기업 100개의 주식
+JQUA|quality|수익성·이익·상환 능력 등 재무 기준으로 고르는 미국 기업의 주식
+VLUE|value|업종별 재무 지표와 가격을 비교해 고르는 미국 대형·중형 가치주
+DBEF|international|북미 밖 선진국 주식. 현지 통화 변동을 달러 기준으로 줄이는 환헤지를 사용해요

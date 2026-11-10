@@ -1,4 +1,5 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, ChevronDown, Share2, X } from 'lucide-react';
@@ -183,12 +184,12 @@ export default function PortfolioTreemap({ stocks, macroData, usdKrw, currency, 
           </dl>
         <dl className={styles.valueMetric}><dt>현재 평가금액</dt><dd>{formatter.format(selected.value)}</dd></dl>
         <div className={styles.detailActions}>
-          {selectedHistory && <details className={styles.history}><summary>가격 흐름 <ChevronDown size={13} aria-hidden="true" /></summary><div data-direction={direction(selectedHistory.change)}><div className={styles.historyCaption}><span>{selectedHistory.start}–{selectedHistory.end} 종가</span><b>기간 {percent(selectedHistory.change)}</b></div><PriceTrace history={selectedHistory} /><p>표시된 기간의 가격 변화로, 매입 이후 수익률과 다를 수 있어요.</p></div></details>}
+          {selectedHistory && <details className={styles.history}><summary className={readingUI.disclosure}>가격 흐름 </summary><div data-direction={direction(selectedHistory.change)}><div className={styles.historyCaption}><span>{selectedHistory.start}–{selectedHistory.end} 종가</span><b>기간 {percent(selectedHistory.change)}</b></div><PriceTrace history={selectedHistory} /><p>표시된 기간의 가격 변화로, 매입 이후 수익률과 다를 수 있어요.</p></div></details>}
           {onCellClick && <button className={styles.analysisLink} onClick={() => onCellClick(selected.symbol)}>{selected.label} 분석 보기 <ArrowUpRight size={14} /></button>}
         </div>
       </div>}
       <details className={styles.help} data-map-key>
-        <summary aria-label="포트폴리오 맵 읽는 법">
+        <summary data-ui-disclosure="composite" aria-label="포트폴리오 맵 읽는 법">
           <span className={styles.guideMark} aria-hidden="true"><i /><i /><i /></span>
           <span className={styles.guideHeading}><strong>포트폴리오 맵 읽는 법</strong><small>크기와 색으로 내 투자 한눈에 보기</small></span>
           <ChevronDown className={styles.guideChevron} size={18} aria-hidden="true" />

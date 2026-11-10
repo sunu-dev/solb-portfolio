@@ -1,0 +1,13 @@
+{
+  "collection": "Simple Icons",
+  "version": "11.0.0",
+  "license": "https://github.com/simple-icons/simple-icons/blob/11.0.0/LICENSE.md",
+  "usage": "Company identification in stock lists; monochrome original SVG paths are preserved.",
+  "assets": {
+    "apple.svg": "https://cdn.jsdelivr.net/npm/simple-icons@11.0.0/icons/apple.svg",
+    "microsoft.svg": "https://cdn.jsdelivr.net/npm/simple-icons@11.0.0/icons/microsoft.svg",
+    "nvidia.svg": "https://cdn.jsdelivr.net/npm/simple-icons@11.0.0/icons/nvidia.svg",
+    "samsung.svg": "https://cdn.jsdelivr.net/npm/simple-icons@11.0.0/icons/samsung.svg",
+    "tesla.svg": "https://cdn.jsdelivr.net/npm/simple-icons@11.0.0/icons/tesla.svg"
+  }
+}

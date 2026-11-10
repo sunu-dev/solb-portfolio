@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { resolveSignupEligibility } from '@/lib/signupEligibility';
+import { resolveSignupEligibility, resolveSignupRequirements } from '@/lib/signupEligibility';
 import { AGE_GATE_VERSION, TERMS_VERSION, PRIVACY_VERSION } from '@/config/legalVersions';
 import { AI_ADULT_CONSENT_TYPE } from '@/lib/aiAgeGate';
 
@@ -14,7 +14,7 @@ function setup(pending = true) {
     terms: TERMS_VERSION, privacy: PRIVACY_VERSION, ts: new Date().toISOString() }) : null;
   const storage = { getItem: vi.fn(() => value), removeItem: vi.fn(() => { value = null; }) };
   const read = vi.fn().mockResolvedValue({ data: rows, error: null });
-  const eq = vi.fn(() => ({ in: read }));
+  const eq = vi.fn(() => ({ in: () => ({ abortSignal: () => read() }) }));
   const select = vi.fn(() => ({ eq }));
   const upsert = vi.fn().mockResolvedValue({ error: null });
   const client = { from: vi.fn(() => ({ select, upsert })) } as unknown as SupabaseClient;
@@ -57,5 +57,22 @@ describe('로그인 동의 저장 → 조회 순서', () => {
     const s = setup(false);
     s.read.mockRejectedValue(new Error('offline'));
     await expect(resolveSignupEligibility(s.client, 'a', s.storage)).resolves.toBe('error');
+  });
+  it('약관만 구버전이면 이미 확인한 생년월일과 개인정보 동의를 다시 요청하지 않는다', async () => {
+    const s = setup(false);
+    s.read.mockResolvedValue({ data: rows.map(row => row.consent_type === 'terms' ? { ...row, version: 'old' } : row), error: null });
+    await expect(resolveSignupRequirements(s.client, 'a', s.storage)).resolves.toEqual({ status: 'required', missing: ['terms'] });
+    expect(s.upsert).not.toHaveBeenCalled();
+  });
+  it('새 계정은 성인 확인과 필수 동의가 모두 필요하고 자동 동의하지 않는다', async () => {
+    const s = setup(false);
+    s.read.mockResolvedValue({ data: [], error: null });
+    await expect(resolveSignupRequirements(s.client, 'a', s.storage)).resolves.toEqual({ status: 'required', missing: [AI_ADULT_CONSENT_TYPE, 'terms', 'privacy'] });
+    expect(s.upsert).not.toHaveBeenCalled();
+  });
+  it('서버 조회 실패를 누락 항목 없음으로 통과시키지 않는다', async () => {
+    const s = setup(false);
+    s.read.mockResolvedValue({ data: null, error: { message: 'unavailable' } });
+    await expect(resolveSignupRequirements(s.client, 'a', s.storage)).resolves.toEqual({ status: 'error', missing: [] });
   });
 });

@@ -1,5 +1,6 @@
+import { hasSalesBacklogContext } from '@/lib/contractContext';
 /** Question IDs are shared by the UI and the server. No free-form instructions cross this boundary. */
-export const STOCK_QUESTIONS = [
+const COMPANY_QUESTIONS = [
   {
     id: "safe",
     mentor: "safe",
@@ -11,9 +12,9 @@ export const STOCK_QUESTIONS = [
   {
     id: "value",
     mentor: "value",
-    question: "가격은 실적에 비해 어떤가요?",
+    question: "주가와 실적은 어떻게 연결되나요?",
     description: "회사가 버는 돈과 주가를 함께 읽기",
-    focus: "PER의 비교 기간과 적자일 때의 한계를 설명하세요.",
+    focus: "최신 기업 재무 수치를 제공하지 않는 서비스임을 전제로, 실적을 읽는 기준을 설명하고 이 기업의 PER이나 저평가 여부를 추정하지 마세요.",
     tags: ["valuation"],
   },
   {
@@ -174,6 +175,17 @@ export const STOCK_QUESTIONS = [
     tags: ["cycle"],
   },
 ] as const;
+export const FUND_QUESTIONS = [
+  { id: "fund-target", mentor: "simple", question: "이 상품은 무엇에 투자하나요?", description: "실제로 담는 자산과 따라가는 기준", focus: "투자대상과 기초지수의 쉬운 뜻부터 설명하세요. 기초지수와 하루 목표 배수는 구분하고 공식 투자설명서를 확인자료로 안내하세요. 없는 최신 구성 비중은 만들지 마세요.", tags: ["index"] },
+  { id: "fund-returns", mentor: "value", question: "이 상품의 수익은 어디서 생기나요?", description: "자산 가격·분배금·비용을 함께 읽기", focus: "수익 구조를 쉬운 뜻으로 설명하고 가격 변화와 분배금을 합친 총수익을 구분하세요. 운용사 자료를 확인자료로 안내하고 없는 최신 수익률·보수·분배율은 만들지 마세요. 펀드를 일반 회사로 보고 PER·영업현금흐름을 평가하지 마세요.", tags: ["dividends"] },
+  { id: "fund-risk", mentor: "safe", question: "오래 보유할 때 어떤 위험이 있나요?", description: "상품 구조와 보유 기간에 따른 차이", focus: "보유 위험의 쉬운 뜻과 전달 과정을 설명하세요. 일일 배수 상품이면 하루 목표와 여러 날 누적수익의 차이·경로 의존성을 설명하고, 일반 상품에 배수를 만들어내지 마세요. 투자설명서를 확인자료로 안내하고 없는 최신 수치는 만들지 마세요.", tags: ["risk"] },
+  { id: "fund-compare", mentor: "balance", question: "비슷한 상품은 무엇으로 비교하나요?", description: "투자대상·방식·비용·위험의 차이", focus: "비교 기준의 쉬운 뜻을 설명하고 투자대상·기초지수·운용방식·환헤지·일일 목표를 구분하세요. 공식 운용사 자료를 확인자료로 안내하고 없는 최신 보수·유동성·순위는 만들지 마세요. 매매 추천이나 우열 점수는 금지합니다.", tags: ["index", "risk"] },
+] as const;
+export const STOCK_QUESTIONS = [...COMPANY_QUESTIONS, ...FUND_QUESTIONS] as const;
+export type QuestionInstrument = "stock" | "fund";
+export function questionsForInstrument(instrument: QuestionInstrument) {
+  return instrument === "fund" ? FUND_QUESTIONS : COMPANY_QUESTIONS;
+}
 export type StockQuestion = (typeof STOCK_QUESTIONS)[number];
 export function stockQuestion(id: unknown): StockQuestion | undefined {
   return typeof id === "string"
@@ -181,16 +193,17 @@ export function stockQuestion(id: unknown): StockQuestion | undefined {
     : undefined;
 }
 export const DISCOVERY_SIGNALS: Record<string, RegExp> = {
-  earnings: /실적|매출|순이익|분기|earnings|revenue|profit/i,
+  // A period alone (e.g. quarterly dividend) does not identify an earnings topic.
+  earnings: /실적|매출|영업이익|순이익|earnings|revenue|profit/i,
   cash: /현금|cash.?flow/i,
   debt: /부채|차입|이자|debt|bond/i,
   dilution: /증자|희석|주식.?보상|dilut|offering/i,
   guidance: /전망|가이던스|guidance|outlook/i,
-  backlog: /수주|계약|backlog|contract/i,
+  backlog: /수주|납품|공급.{0,8}계약|판매.{0,8}계약|backlog|supply.{0,12}(?:agreement|contract)|sales.{0,12}contract/i,
   margins: /이익률|마진|margin/i,
   capex: /설비|공장|투자.?지출|capex|capacity/i,
   rates: /금리|연준|fomc|interest.?rate/i,
-  fx: /환율|달러|원화|currency|exchange.?rate/i,
+  fx: /환율|환차|환헤지|달러[·\s-]*(?:강세|약세|가치|인덱스)|원화[·\s-]*(?:강세|약세|가치)|강달러|약달러|exchange.?rate|currency.{0,12}(?:rise|fall|hedg)|(?:strong|weak).{0,5}dollar/i,
   inputs: /원자재|유가|원가|oil|commodity/i,
   customers: /고객|customer/i,
   dividends: /배당|dividend/i,
@@ -199,14 +212,15 @@ export const DISCOVERY_SIGNALS: Record<string, RegExp> = {
 };
 export function discoveryTags(text: string): string[] {
   return Object.entries(DISCOVERY_SIGNALS)
-    .filter(([, pattern]) => pattern.test(text))
+    .filter(([tag, pattern]) => pattern.test(text) && (tag !== 'backlog' || hasSalesBacklogContext(text)))
     .map(([tag]) => tag);
 }
 export function rankQuestions(
   tags: readonly string[],
   read: readonly string[] = [],
+  instrument: QuestionInstrument = "stock",
 ) {
-  return STOCK_QUESTIONS.map((item, index) => ({
+  return questionsForInstrument(instrument).map((item, index) => ({
     item,
     index,
     score:
@@ -221,6 +235,10 @@ export function lessonForQuestion(id: string): string {
   return (
     (
       {
+        "fund-target": "index",
+        "fund-returns": "dividends",
+        "fund-risk": "index",
+        "fund-compare": "index",
         safe: "debt",
         value: "valuation",
         growth: "guidance",

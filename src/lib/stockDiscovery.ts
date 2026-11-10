@@ -35,7 +35,7 @@ export function parseDiscovery(
     for (const kind of ["lessons", "questions"] as const) {
       if (value[kind] && typeof value[kind] === "object")
         for (const [key, time] of Object.entries(value[kind]).slice(-100))
-          if (/^[a-z-]{1,40}$/.test(key) && safeTime(time, now))
+          if ((/^[a-z-]{1,40}$/.test(key) || (kind === "questions" && /^[A-Z0-9.^=-]{1,32}:[a-z-]{1,40}$/.test(key))) && safeTime(time, now))
             result[kind][key] = time;
     }
     if (typeof value.resume === "string" && /^[a-z-]{1,40}$/.test(value.resume))
@@ -172,10 +172,27 @@ export function updateDiscovery(
         .sort((a, b) => b[1].viewedAt - a[1].viewedAt)
         .slice(0, 40),
     );
+    history.questions = Object.fromEntries(Object.entries(history.questions).sort((a, b) => b[1] - a[1]).slice(0, 100));
     localStorage.setItem(key, JSON.stringify(history));
     window.dispatchEvent(new Event("joobi-discovery-updated"));
     return true;
   } catch {
     return false;
   }
+}
+
+/** A question is read for one symbol only. Legacy unscoped entries remain parseable. */
+export function scopedQuestionKey(symbol: string | undefined, questionId: string): string | undefined {
+  const normalized = symbol?.trim().toUpperCase();
+  return normalized && /^[A-Z0-9.^=-]{1,32}$/.test(normalized) && /^[a-z-]{1,40}$/.test(questionId)
+    ? `${normalized}:${questionId}` : undefined;
+}
+export function readQuestionsForSymbol(history: DiscoveryHistory, symbol?: string): string[] {
+  const prefix = scopedQuestionKey(symbol, "question")?.replace(/question$/, "");
+  return prefix ? Object.keys(history.questions).filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length)) : [];
+}
+export function recordAnsweredQuestion(owner: string, symbol: string | undefined, answeredId: string | undefined): boolean {
+  const key = answeredId && scopedQuestionKey(symbol, answeredId);
+  if (!key) return false;
+  return updateDiscovery(owner, history => { history.questions[key] = Date.now(); });
 }

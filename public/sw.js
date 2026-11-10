@@ -1,6 +1,6 @@
-const CACHE_NAME = 'joobi-v2';
+const CACHE_NAME = 'joobi-static-v3';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
@@ -8,61 +8,50 @@ self.addEventListener('activate', (event) => {
   // 구버전 캐시 정리
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k.startsWith('joobi-') && k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => clients.claim())
   );
 });
 
-// Network-first + 정적 자산 캐시
+// Store public artwork/fonts only. Documents and RSC may contain account data or OAuth codes.
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  // API 호출과 외부 리소스는 캐싱 제외
-  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) return;
-  // Next.js 빌드 청크는 파일명/모듈 그래프가 개발·배포마다 달라진다.
-  // SW cache-first로 잡으면 이전 청크가 새 HTML과 섞여 module factory 오류가 발생한다.
-  // 브라우저/Next의 HTTP 캐시에 맡기고 서비스 워커는 절대 가로채지 않는다.
-  if (url.pathname.startsWith('/_next/')) return;
-  // Sector drawings keep stable URLs; let HTTP revalidation pick up revised artwork.
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')
+    || url.pathname.startsWith('/_next/') || url.pathname.startsWith('/auth/')
+    || event.request.headers.has('authorization') || event.request.headers.has('rsc')) return;
+  // Revised sector artwork uses stable names and must always revalidate over HTTP.
   if (url.pathname.startsWith('/illustrations/sectors/')) return;
-  // 버전과 무관한 앱 정적 자산만 cache-first
-  if (url.pathname.match(/\.(png|svg|ico|woff2?)$/)) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(cache =>
-        cache.match(event.request).then(cached => {
-          if (cached) return cached;
-          return fetch(event.request).then(resp => {
-            if (resp.ok) cache.put(event.request, resp.clone());
-            return resp;
-          });
-        })
-      )
-    );
+  const asset = !url.search && /\.(png|svg|ico|woff2?|ttf)$/.test(url.pathname)
+    && (/^\/[^/]+$/.test(url.pathname) || /^\/(?:illustrations|logos|mentors|fonts)\//.test(url.pathname));
+  if (asset) {
+    event.respondWith((async () => {
+      let cache;
+      try {
+        cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+      } catch { /* Cache storage can be unavailable in private browsing. */ }
+      const response = await fetch(event.request);
+      const policy = response.headers.get('cache-control') || '';
+      const type = response.headers.get('content-type') || '';
+      if (cache && response.ok && !response.redirected && !/private|no-store/i.test(policy)
+        && /^(?:image\/|font\/|application\/(?:font|x-font|octet-stream))/.test(type)) {
+        const copy = response.clone();
+        event.waitUntil(cache.put(event.request, copy).catch(() => {}));
+      }
+      return response;
+    })());
     return;
   }
-  // 페이지 요청 → network-first, 오프라인 시 캐시 fallback
-  event.respondWith(
-    fetch(event.request)
-      .then(resp => {
-        if (resp.ok) {
-          // clone은 응답을 브라우저에 넘기기 전에 동기적으로 만들어야 한다.
-          // caches.open() 뒤에서 clone하면 원본 body가 이미 소비되어 InvalidStateError가 난다.
-          const cacheCopy = resp.clone();
-          event.waitUntil(
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, cacheCopy))
-              .catch(() => {})
-          );
-        }
-        return resp;
-      })
-      .catch(() => caches.match(event.request).then(cached =>
-        cached || new Response('오프라인 상태예요. 네트워크 연결을 확인해주세요.', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-        })
-      ))
-  );
+  // Do not cache account HTML, query strings, JSON, or Next.js navigation payloads.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(fetch(event.request).catch(() => new Response(
+      '오프라인 상태예요. 네트워크에 다시 연결한 뒤 주비를 열어주세요.', {
+        status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      },
+    )));
+  }
 });
 
 // Handle push notification display

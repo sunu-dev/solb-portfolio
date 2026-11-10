@@ -76,8 +76,15 @@ const LEVERAGED_SINGLE_US = new Set(['TSLL', 'NVDU', 'NVDX', 'AAPU', 'MSFU', 'AM
 const INVERSE_SINGLE_US = new Set(['TSLQ', 'NVDD', 'NVDQ', 'AAPD', 'MSFD', 'AMZD', 'GGLS', 'METD', 'NFLD']);
 
 // 미국 지수 레버리지/인버스 화이트리스트
-const LEVERAGED_INDEX_US = new Set(['TQQQ', 'SOXL', 'UPRO', 'FNGU', 'TNA', 'TMF', 'TECL', 'CURE', 'FAS', 'YINN', 'LABU', 'JNUG']);
+const LEVERAGED_INDEX_US = new Set(['TQQQ', 'SOXL', 'UPRO', 'FNGU', 'TNA', 'TMF', 'TECL', 'CURE', 'FAS', 'YINN', 'LABU', 'JNUG', 'KORU', 'QLD']);
 const INVERSE_INDEX_US = new Set(['SQQQ', 'SOXS', 'SPXS', 'SH', 'FNGD', 'TZA', 'TMV', 'TECS', 'FAZ', 'YANG', 'LABD', 'JDST']);
+
+// Reviewed daily targets for the ETF explanation catalogue (2026-10-15).
+// Keep this small: importing the full editorial catalogue into server guards is unnecessary.
+const REVIEWED_INDEX_TARGETS: Record<string, number> = {
+  TQQQ:3, SQQQ:-3, SOXL:3, SOXS:-3, UPRO:3, SPXU:-3, QLD:2, QID:-2,
+  TNA:3, TZA:-3, TMF:3, TMV:-3, KORU:3,
+};
 
 /** bare 6자리 한국코드 → .KS 정규화 (OCR·접미사 없는 입력 대응) */
 function krNormalize(sym: string): string {
@@ -164,6 +171,11 @@ export function detectLeverageProfile(symbol: string, description?: string): Lev
   const sym = symbol.toUpperCase().trim();
   const norm = krNormalize(sym);
   const text = (description || '').toString();
+
+  // Official prospectuses: TSLL daily 2x TSLA (2026-10-18), MUU daily 2x MU (2026-11-06).
+  if (sym === 'TSLL' || sym === 'MUU') return { isLeverage: true, isSingle: true, isInverse: false, multiple: 2 };
+  const reviewedTarget=REVIEWED_INDEX_TARGETS[sym];
+  if (reviewedTarget !== undefined) return { isLeverage:true, isSingle:false, isInverse:reviewedTarget<0, multiple:reviewedTarget };
 
   // 1) 심볼 기반 확정 (최고 신뢰 — description 불필요)
   if (LEVERAGE_DENY_SYMBOLS.has(sym) || LEVERAGE_DENY_SYMBOLS.has(norm)) {

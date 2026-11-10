@@ -1,8 +1,9 @@
 'use client';
+import FinancialText from '@/components/common/FinancialText';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { usageEvent } from '@/lib/usageTelemetry';
-import { companyExploration, explorationCompany, explorationTopic, sectorForTopic, sectorQuestions, explorationRole, type ExplorationId } from '@/lib/contextExploration';
+import { companyExploration, explorationFollowupReason, explorationCompany, explorationTopic, sectorForTopic, sectorQuestions, explorationRole, type ExplorationId } from '@/lib/contextExploration';
 import { classifiedSectors, SECTORS, sectorById, sectorsForCompany, type SectorId, type SectorProfile } from '@/lib/sectorExploration';
 import { getStockIdentityKey } from '@/utils/stockCurrency';
 import { industryGroup } from '@/lib/industryRegistry';
@@ -11,19 +12,25 @@ import IndustryDirectory from './IndustryDirectory';
 import CompanyBusinessExplanation from './CompanyBusinessExplanation';
 import StockExplorationLink from './StockExplorationLink';
 import { companyBusinessSummary } from '@/lib/companyStories';
+import readingUI from '../ui/ReadingUI.module.css';
 import styles from './ContextExploration.module.css';
 import SectorIllustration, { hasSectorIllustration } from './SectorIllustration';
+import FundExploration, { type FundReadingState } from './FundExploration';
+import { fundProfile } from '@/lib/fundExploration';
 
 type Step = { topic: ExplorationId } | { company: string } | { sector: SectorId } | { industry: string; industryCompany?: string };
-export interface ExplorationReadingState { trail: Step[]; expanded: boolean; catalogDismissed: boolean }
+export interface ExplorationReadingState { trail: Step[]; expanded: boolean; catalogDismissed: boolean; fund?:FundReadingState }
 interface Props {
-  topics: ExplorationId[]; context: string; compact?: boolean; symbol?: string; profile?: SectorProfile;
+  topics: ExplorationId[]; context: string; industryOnly?:boolean; compact?: boolean; symbol?: string; profile?: SectorProfile;
   initialReadingState?: ExplorationReadingState;
+  onReadingChange?: (reading: ExplorationReadingState) => void;
   onOpenStock?: (symbol: string, reading: ExplorationReadingState) => void;
+  onNews?: () => void;
+  onClose?: () => void;
 }
 
 /** Local, session-only reading trail. No AI call, portfolio write, or tracking of reading content. */
-export default function ContextExploration({ topics, context, compact = false, symbol, profile, initialReadingState, onOpenStock }: Props) {
+export default function ContextExploration({ topics, context, industryOnly = false, compact = false, symbol, profile, initialReadingState, onReadingChange, onOpenStock, onNews, onClose }: Props) {
   const [trail, setTrail] = useState<Step[]>(initialReadingState?.trail ?? []);
   const [expanded, setExpanded] = useState(initialReadingState?.expanded ?? !compact);
   const [catalogDismissed, setCatalogDismissed] = useState(initialReadingState?.catalogDismissed ?? false);
@@ -42,7 +49,7 @@ export default function ContextExploration({ topics, context, compact = false, s
   const choices = topic?.related ?? (step && 'company' in step ? sector && sector.id !== 'semiconductors' ? sectorQuestions(sector.id) : companyExploration(step.company) : sector ? sectorQuestions(sector.id) : topics);
   const companies = company ? [] : sector ? topic && sectorForTopic(topic.id) && topic.companies.length ? topic.companies : sector.companies : topic?.companies ?? [];
   const sectorIntro = !!sector && !topic && !company;
-  const title = topic?.title ?? (company ? `${company.name}는 어떤 역할을 하나요?` : sectorIntro && !compact ? !step && originCompany ? `${originCompany.name} · ${sector.name}` : `${sector.name}, 어떤 회사부터 볼까요?` : '다음으로 무엇이 궁금하세요?');
+  const title = topic?.title ?? (company ? `${company.name}는 어떤 역할을 하나요?` : sectorIntro && !compact ? !step && originCompany && !industryOnly ? `${originCompany.name} · ${sector.name}` : `${sector.name}, 어떤 회사부터 볼까요?` : '투자를 이해하는 기본 개념');
   const navigate = (next: Step[]) => {
     if (next.length > trail.length) usageEvent('explore_step');
     setTrail(next);
@@ -52,6 +59,15 @@ export default function ContextExploration({ topics, context, compact = false, s
       heading.current?.scrollIntoView({ block: 'nearest' });
     });
   };
+  const fund=symbol?fundProfile(symbol):undefined;
+  const isFundReader=!compact && !!symbol && (!!fund || profile?.classification?.status==='etp');
+  const emitReading=useEffectEvent((reading:ExplorationReadingState)=>onReadingChange?.(reading));
+  useEffect(()=>{
+    if(!isFundReader) emitReading({trail,expanded,catalogDismissed});
+  },[trail,expanded,catalogDismissed,isFundReader]);
+  if (!compact && symbol && (fund || profile?.classification?.status==='etp')) return <FundExploration key={symbol} symbol={symbol} fund={fund} initialReading={initialReadingState?.fund} onNews={onNews}
+    onReadingChange={fund=>onReadingChange?.({trail,expanded,catalogDismissed,fund})}
+    onOpenStock={onOpenStock?(next,fund)=>onOpenStock(next,{trail,expanded,catalogDismissed,fund}):undefined}/>;
   if (!topics.length) return null;
   const openStock = onOpenStock ? (next: string) => onOpenStock(next, { trail, expanded, catalogDismissed }) : undefined;
   const catalog = industryGroup(step && 'industry' in step ? step.industry : !step && !catalogDismissed && classification.basis === 'catalog' ? profile?.classification?.industryId : undefined);
@@ -60,7 +76,7 @@ export default function ContextExploration({ topics, context, compact = false, s
     onCompany={company => navigate([...trail, { industry: catalog.id, industryCompany: company }])}
     onIndustry={industry => navigate([...trail, { industry }])}
     onTopic={topic => navigate([...trail, { topic }])} onSector={sector => navigate([...trail, { sector }])}
-    onExit={() => { if (!step) setCatalogDismissed(true); navigate(trail.slice(0, -1)); }} />;
+    onExit={() => { if (!step && onClose) { onClose(); return; } if (!step) setCatalogDismissed(true); navigate(trail.slice(0, -1)); }} />;
   return <section className={styles.explore} aria-label={`${context} 이어서 알아보기`} data-context-exploration data-sector-id={sector?.id ?? 'unclassified'}>
     {compact && <button type="button" className={styles.toggle} aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(value => !value)}>이 소식의 배경 알아보기 <span aria-hidden="true">{expanded ? '−' : '+'}</span></button>}
     {expanded && <div id={id}>
@@ -77,7 +93,7 @@ export default function ContextExploration({ topics, context, compact = false, s
       <div className={`${styles.hero} ${sectorIntro && !compact && sector && hasSectorIllustration(sector.id) ? styles.sectorHero : ''}`}>
         <div>
           <h3 ref={heading} tabIndex={-1}>{title}</h3>
-          {!topic && !company && <p className={styles.summary}>{!step && originCompany ? companyBusinessSummary(symbol!) : sector?.intro ?? '궁금한 주제부터 이어서 읽어보세요.'}</p>}
+          {!topic && !company && <p className={styles.summary}>{!step && originCompany && !industryOnly ? companyBusinessSummary(symbol!) : sector?.intro ?? '궁금한 주제부터 이어서 읽어보세요.'}</p>}
         </div>
         {sectorIntro && !compact && hasSectorIllustration(sector.id) && <div className={styles.diagram}>
           <SectorIllustration sector={sector.id} />
@@ -85,15 +101,27 @@ export default function ContextExploration({ topics, context, compact = false, s
 
       </div>
       {topic && <>
-        <p className={styles.summary}>{topic.summary}</p>
-        <ol className={styles.steps}>{topic.steps.map(item => <li key={item.title}><strong>{item.title}</strong><p>{item.body}</p></li>)}</ol>
-        <div className={styles.watch}><strong>다음에 확인할 것</strong><p>{topic.watch}</p></div>
-        <p className={styles.note}>{topic.condition}</p>
-        <details className={styles.sources}><summary>설명의 근거 보기</summary>{topic.sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.label} ↗<span className="sr-only"> (새 창)</span></a>)}</details>
+        <p className={styles.summary}><FinancialText>{topic.summary}</FinancialText></p>
+        <ol className={styles.steps}>{topic.steps.map(item => <li key={item.title}><strong>{item.title}</strong><p><FinancialText>{item.body}</FinancialText></p></li>)}</ol>
+        <div className={styles.watch}><strong>다음에 확인할 것</strong><p><FinancialText>{topic.watch}</FinancialText></p></div>
+        <p className={styles.note}><FinancialText>{topic.condition}</FinancialText></p>
+        <details className={styles.sources}><summary className={readingUI.disclosure}>설명의 근거 보기</summary>{topic.sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">{source.label} ↗<span className="sr-only"> (새 창)</span></a>)}</details>
       </>}
+      {company && step && 'company' in step && <>
+        <p className={styles.summary}>{companyBusinessSummary(step.company)}</p>
+        <CompanyBusinessExplanation key={step.company} symbol={step.company} />
+        <StockExplorationLink symbol={step.company} onNavigate={openStock}>{company.name} 시세·뉴스·분석 열기</StockExplorationLink>
+        <p className={styles.note}>같은 창에서 종목을 살펴볼 수 있어요. 뒤로 가면 읽던 설명으로 돌아와요.</p>
+      </>}
+      <div className={styles.sectionHeading}><h4>{step ? '이 설명에서 한 걸음 더' : '먼저 이 질문부터'}</h4></div>
+      <div className={styles.questions} aria-label="연결된 질문">{choices.slice(0, 2).map((next, index) => <button type="button" key={next} className={index===0?styles.primaryQuestion:undefined} aria-label={explorationTopic(next).title} onClick={() => navigate([...trail, { topic: next }])}>
+        <span className={styles.questionNumber} aria-hidden="true">{index===0?'다음':'함께'}</span>
+        <span className={styles.questionCopy}><strong>{explorationTopic(next).title}</strong><small>{explorationFollowupReason(topic?.id,next)}</small></span><span aria-hidden="true"> →</span>
+      </button>)}</div>
+      {choices.length > 2 && <details key={topic?.id ?? title} className={styles.selection}><summary className={readingUI.disclosure}>연결된 질문 더 보기</summary><div className={styles.sectorLinks}>{choices.slice(2).map(next => <button type="button" key={next} onClick={() => navigate([...trail, { topic: next }])}>{explorationTopic(next).title} →</button>)}</div></details>}
       {companies.length > 0 && <div className={styles.companies}>
         <div className={styles.sectionHeading}><h4>{sector ? `${sector.name}에서 먼저 알아둘 기업` : '역할을 함께 살펴볼 기업'}</h4></div>
-        <div className={styles.companyGrid}>{companies.map(companySymbol => {
+        <div className={styles.companyGrid}>{companies.filter(companySymbol => !symbol || getStockIdentityKey(companySymbol) !== getStockIdentityKey(symbol)).map(companySymbol => {
           const info = explorationCompany(companySymbol)!;
           const role = explorationRole(companySymbol);
           return <button type="button" key={companySymbol} aria-label={info.name} onClick={() => navigate([...trail, { company: companySymbol }])}>
@@ -104,24 +132,15 @@ export default function ContextExploration({ topics, context, compact = false, s
             {symbol && getStockIdentityKey(symbol) === getStockIdentityKey(companySymbol) && <span className={styles.current}>지금 보고 있는 기업</span>}
           </button>;
         })}</div>
-        <details className={styles.selection}><summary>어떤 기준으로 골랐나요?</summary><p className={styles.note}>공식 사업 자료에서 제품과 고객을 확인해 고른 기업이에요. 대표 기업은 산업을 이해하는 출발점이며 시가총액·점유율 1위라는 뜻은 아니에요. 표시 순서는 순위가 아니에요. 기업을 누르면 사업 설명과 출처를 볼 수 있어요.</p></details>
+        <details className={styles.selection}><summary className={readingUI.disclosure}>어떤 기준으로 골랐나요?</summary><p className={styles.note}>공식 사업 자료에서 제품과 고객을 확인해 고른 기업이에요. 대표 기업은 산업을 이해하는 출발점이며 시가총액·점유율 1위라는 뜻은 아니에요. 표시 순서는 순위가 아니에요. 기업을 누르면 사업 설명과 출처를 볼 수 있어요.</p></details>
       </div>}
-      {company && step && 'company' in step && <>
-        <p className={styles.summary}>{companyBusinessSummary(step.company)}</p>
-        <CompanyBusinessExplanation key={step.company} symbol={step.company} />
-        <StockExplorationLink symbol={step.company} onNavigate={openStock}>{company.name} 시세·뉴스·분석 열기</StockExplorationLink>
-        <p className={styles.note}>같은 창에서 종목을 살펴볼 수 있어요. 뒤로 가면 읽던 설명으로 돌아와요.</p>
-      </>}
-      <div className={styles.sectionHeading}><h4>{step ? '이것도 궁금하지 않으세요?' : '이런 것도 궁금하다면'}</h4></div>
-      <div className={styles.questions} aria-label="연결된 질문">{choices.slice(0, 3).map((next, index) => <button type="button" key={next} aria-label={explorationTopic(next).title} onClick={() => navigate([...trail, { topic: next }])}>
-        <span className={styles.questionNumber} aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-        <span className={styles.questionCopy}><strong>{explorationTopic(next).title}</strong><small>{explorationTopic(next).summary.split(/(?<=요\.)\s/)[0]}</small></span><span aria-hidden="true"> →</span>
-      </button>)}</div>
-      {choices.length > 3 && <details className={styles.selection}><summary>연결된 질문 더 보기</summary><div className={styles.sectorLinks}>{choices.slice(3).map(next => <button type="button" key={next} onClick={() => navigate([...trail, { topic: next }])}>{explorationTopic(next).title} →</button>)}</div></details>}
+      <details className={styles.furtherReading}>
+        <summary className={readingUI.disclosure}>다른 산업과 분류 살펴보기</summary>
       {sector && <nav className={styles.sectorLinks} aria-label="이어지는 산업"><span>이 산업은 어디로 이어질까요?</span>{sector.connections.map(next => <button type="button" key={next} onClick={() => navigate([...trail, { sector: next }])}>{sectorById(next).name} →</button>)}</nav>}
-      <details className={styles.directory} data-sector-directory><summary>주요 산업 이야기 <span>{SECTORS.filter(item => !item.parent).length}개 산업 · {SECTORS.filter(item => item.parent).length}개 세부 분야</span></summary><div className={styles.directoryGrid}>{SECTORS.filter(item => !item.parent).map(group => <div key={group.id}><button type="button" onClick={() => navigate([...trail, { sector: group.id }])}>{group.name} →</button>{SECTORS.filter(item => item.parent === group.id).map(child => <button type="button" key={child.id} className={styles.subsector} onClick={() => navigate([...trail, { sector: child.id }])}>{child.name} →</button>)}</div>)}</div></details>
-      {!compact && (!step || ('company' in step && getStockIdentityKey(step.company) === getStockIdentityKey(symbol ?? ''))) && profile?.classification?.industryId && <details className={styles.selection}><summary>원본 업종 분류와 사업 분야의 차이</summary><p className={styles.note}>자료 제공처의 업종은 ‘{industryGroup(profile.classification.industryId)?.name}’예요. 주비의 사업 분야는 확인된 제품·서비스를 기준으로 나눴으며, 회사의 모든 사업이나 매출 비중을 뜻하지 않아요.</p><button type="button" onClick={() => navigate([...trail, { industry: profile.classification!.industryId! }])}>원본 업종의 기업 보기 →</button></details>}
+      <details className={styles.directory} data-sector-directory><summary className={readingUI.disclosure}>주요 산업 이야기 <span>{SECTORS.filter(item => !item.parent).length}개 산업 · {SECTORS.filter(item => item.parent).length}개 세부 분야</span></summary><div className={styles.directoryGrid}>{SECTORS.filter(item => !item.parent).map(group => <div key={group.id}><button type="button" onClick={() => navigate([...trail, { sector: group.id }])}>{group.name} →</button>{SECTORS.filter(item => item.parent === group.id).map(child => <button type="button" key={child.id} className={styles.subsector} onClick={() => navigate([...trail, { sector: child.id }])}>{child.name} →</button>)}</div>)}</div></details>
+      {!compact && (!step || ('company' in step && getStockIdentityKey(step.company) === getStockIdentityKey(symbol ?? ''))) && profile?.classification?.industryId && <details className={styles.selection}><summary className={readingUI.disclosure}>원본 업종 분류와 사업 분야의 차이</summary><p className={styles.note}>자료 제공처의 업종은 ‘{industryGroup(profile.classification.industryId)?.name}’예요. 주비의 사업 분야는 확인된 제품·서비스를 기준으로 나눴으며, 회사의 모든 사업이나 매출 비중을 뜻하지 않아요.</p><button type="button" onClick={() => navigate([...trail, { industry: profile.classification!.industryId! }])}>원본 업종의 기업 보기 →</button></details>}
       {!compact && <IndustryDirectory onSelect={industry => navigate([...trail, { industry }])} onSector={sector => navigate([...trail, { sector }])} />}
+      </details>
     </div>}
   </section>;
 }

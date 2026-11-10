@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../../components/ui/AppUI.module.css';
+
 import UsagePanel from '@/components/admin/UsagePanel';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -23,6 +25,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ApiStatsPanel from '@/components/admin/ApiStatsPanel';
 import ListingsPanel from '@/components/admin/ListingsPanel';
 import AiAuditPanel from '@/components/admin/AiAuditPanel';
+import AssistantQualityPanel from '@/components/admin/AssistantQualityPanel';
 import ProReadinessPanel from '@/components/admin/ProReadinessPanel';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import styles from './page.module.css';
@@ -53,11 +56,11 @@ function getTodayKST() {
 
 function StatCard({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-      <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{label}</div>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 28, fontWeight: 700, color }}>
         {value.toLocaleString()}
-        <span style={{ fontSize: 14, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{unit}</span>
+        <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>{unit}</span>
       </div>
     </div>
   );
@@ -69,12 +72,12 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#191F28' }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
         <span style={{ fontSize: 13, color: barColor, fontWeight: 700 }}>
           {used.toLocaleString()} / {total.toLocaleString()} RPD ({pct}%)
         </span>
       </div>
-      <div style={{ height: 8, background: '#F2F4F6', borderRadius: 4, overflow: 'hidden' }}>
+      <div style={{ height: 8, background: 'var(--bg-subtle)', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 4, transition: 'width 0.4s' }} />
       </div>
     </div>
@@ -83,13 +86,14 @@ function QuotaBar({ label, used, total, color }: { label: string; used: number; 
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────────────────────
 
-type AdminTab = 'usage' | 'stats' | 'growth' | 'api' | 'audit' | 'listings' | 'codes' | 'config' | 'pro';
+type AdminTab = 'quality' | 'usage' | 'stats' | 'growth' | 'api' | 'audit' | 'listings' | 'codes' | 'config' | 'pro';
 
 const ADMIN_TABS = [
   { id: 'stats', label: '통계', Icon: BarChart3 },
   { id: 'usage', label: '이용 현황', Icon: Activity },
   { id: 'growth', label: '성장', Icon: ChartNoAxesCombined },
   { id: 'api', label: 'API 관측', Icon: Activity },
+  { id: 'quality', label: '답변 개선', Icon: SearchCheck },
   { id: 'audit', label: 'AI 감사', Icon: SearchCheck },
   { id: 'listings', label: '신규 상장', Icon: LibraryBig },
   { id: 'codes', label: '코드 관리', Icon: Ticket },
@@ -193,38 +197,38 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>로딩 중...</div>;
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)' }}>로딩 중...</div>;
   if (!user && !loading) return (
-    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: '#F7F8FA' }}>
-      <div style={{ width: 'min(400px, 100%)', padding: '34px 28px', textAlign: 'center', background: '#fff', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 20, boxShadow: '0 12px 36px rgba(0,0,0,0.06)' }}>
+    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, background: 'var(--bg-subtle)' }}>
+      <div style={{ width: 'min(400px, 100%)', padding: '34px 28px', textAlign: 'center', background: 'var(--surface)', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 20, boxShadow: '0 12px 36px rgba(0,0,0,0.06)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 26 }}>
           <JoobiLockup variant="modal" />
         </div>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 750, color: '#191F28' }}>관리자 로그인</h1>
-        <p style={{ margin: '10px 0 24px', fontSize: 13, lineHeight: 1.6, color: '#8B95A1' }}>
+        <h1 className={appUI.pageTitle} style={{ margin: 0, color: 'var(--text-primary)' }}>관리자 로그인</h1>
+        <p style={{ margin: '10px 0 24px', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
           관리자 계정으로 로그인하면 원래 보던 관리자 화면으로 돌아와요.
         </p>
-        <button
+        <button className={appUI.providerButton}
           type="button"
           onClick={() => void signInWithKakao('/admin')}
-          style={{ width: '100%', height: 52, border: 0, borderRadius: 13, background: '#FEE500', color: '#191919', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+          style={{ width: '100%' }}
         >
           카카오로 관리자 로그인
         </button>
-        <Link href="/" style={{ display: 'inline-block', marginTop: 18, padding: 8, fontSize: 12, color: '#8B95A1', textDecoration: 'none' }}>
+        <Link href="/" style={{ display: 'inline-block', marginTop: 18, padding: 8, fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'none' }}>
           주비 홈으로 돌아가기
         </Link>
       </div>
     </div>
   );
   if (!adminLoading && !isAdmin) return (
-    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', background: '#F7F8FA' }}>
+    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center', background: 'var(--bg-subtle)' }}>
       <div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 8 }}>관리자 권한이 없어요.</div>
-        <div style={{ fontSize: 13, color: '#8B95A1', marginBottom: 4 }}>현재 로그인: {accountName}</div>
-        <div style={{ fontSize: 12, color: '#B0B8C1', marginBottom: 16 }}>{accountIdentity}</div>
-        <button type="button" onClick={() => void signOut()}
-          style={{ padding: '8px 14px', marginRight: 8, border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, background: '#fff', color: '#4E5968', fontSize: 12, cursor: 'pointer' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>관리자 권한이 없어요.</div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>현재 로그인: {accountName}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>{accountIdentity}</div>
+        <button className={appUI.secondaryButton} type="button" onClick={() => void signOut()}
+          style={{ marginRight: 8 }}>
           다른 계정으로 로그인
         </button>
         <Link href="/" style={{ fontSize: 13, color: '#3182F6', textDecoration: 'none' }}>주비 홈으로 돌아가기</Link>
@@ -232,34 +236,34 @@ export default function AdminPage() {
     </div>
   );
   if (error) return <div style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error}</div>;
-  if (!stats) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>통계를 불러오는 중...</div>;
+  if (!stats) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)' }}>통계를 불러오는 중...</div>;
 
   const totalGeminiUsed = stats.geminiUsage.reduce((s, k) => s + k.count, 0);
   const totalGeminiMax = GEMINI_RPD_PER_KEY * 2;
   const quotaWarnPct = Math.round((totalGeminiUsed / totalGeminiMax) * 100);
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', fontFamily: 'Pretendard Variable, sans-serif' }}>
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '40px 24px', fontFamily: 'var(--font-ui)' }}>
 
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#191F28', marginBottom: 4 }}>주비 관리자</h1>
-          <p style={{ fontSize: 13, color: '#8B95A1' }}>{getTodayKST()} 기준 · KST</p>
+          <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary)', marginBottom: 4 }}>주비 관리자</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{getTodayKST()} 기준 · KST</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28' }}>{accountName}</div>
-            <div style={{ marginTop: 2, fontSize: 11, color: '#8B95A1' }}>{accountIdentity}</div>
+        <div className={styles.accountActions}>
+          <div className={styles.accountIdentity}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{accountName}</div>
+            <div style={{ marginTop: 2, fontSize: 11, color: 'var(--text-secondary)' }}>{accountIdentity}</div>
           </div>
-          <button type="button" onClick={() => void signOut()}
-            style={{ padding: '8px 12px', background: '#fff', color: '#4E5968', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 10, fontSize: 12, cursor: 'pointer' }}>
+          <button className={appUI.secondaryButton} type="button" onClick={() => void signOut()}
+            >
             로그아웃
           </button>
-          <button
+          <button className={appUI.primaryButton}
             onClick={fetchStats}
             disabled={refreshing}
-            style={{ padding: '8px 20px', background: refreshing ? 'var(--bg-subtle, #F2F4F6)' : '#3182F6', color: refreshing ? '#8B95A1' : '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+
           >
             {refreshing ? '로딩 중...' : '새로고침'}
           </button>
@@ -280,6 +284,7 @@ export default function AdminPage() {
       {activeTab === 'usage' && <UsagePanel />}
       {activeTab === 'growth' && <GrowthPanel />}
       {activeTab === 'api' && <ApiStatsPanel />}
+      {activeTab === 'quality' && <AssistantQualityPanel />}
       {activeTab === 'audit' && <AiAuditPanel />}
       {activeTab === 'listings' && <ListingsPanel />}
       {activeTab === 'codes' && <CodesPanel />}
@@ -303,22 +308,22 @@ export default function AdminPage() {
       )}
 
       {/* 요약 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16, marginBottom: 16 }}>
         <StatCard label="총 가입자" value={stats.totalUsers} unit="명" color="#3182F6" />
         <StatCard label="총 AI 분석 누적" value={stats.totalAiCalls} unit="회" color="#AF52DE" />
         <StatCard label="오늘 AI 사용 회원" value={stats.todayActiveUsers} unit="명" color="#00C6BE" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 16, marginBottom: 32 }}>
         <StatCard label="오늘 AI 분석 (클릭)" value={stats.todayAiCalls} unit="회" color="#FF9500" />
         <StatCard label="오늘 시장 관찰판 갱신" value={stats.todayChokCalls} unit="회" color="#34C759" />
       </div>
 
       {/* Gemini 쿼터 + 한도 설정 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, marginBottom: 24 }}>
 
         {/* Gemini 쿼터 게이지 */}
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, color: '#191F28' }}>Gemini 쿼터 (오늘)</h3>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 20, color: 'var(--text-primary)' }}>Gemini 쿼터 (오늘)</h3>
           {stats.geminiUsage.map(k => (
             <QuotaBar
               key={k.key_index}
@@ -329,27 +334,27 @@ export default function AdminPage() {
             />
           ))}
           <div style={{ borderTop: '1px solid var(--border-light, #F2F4F6)', paddingTop: 16, marginTop: 4 }}>
-            <QuotaBar label="전체 합산" used={totalGeminiUsed} total={totalGeminiMax} color="#191F28" />
+            <QuotaBar label="전체 합산" used={totalGeminiUsed} total={totalGeminiMax} color="var(--text-primary)" />
           </div>
-          <p style={{ fontSize: 11, color: '#B0B8C1', marginTop: 8 }}>* 다른 Google 계정 키 × 500 RPD</p>
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 8 }}>* 다른 Google 계정 키 × 500 RPD</p>
         </div>
 
         {/* AI 한도 현황 */}
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20, color: '#191F28' }}>AI 분석 한도 설정</h3>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 20, color: 'var(--text-primary)' }}>AI 분석 한도 설정</h3>
           {[
             { label: '비로그인 유저', key: 'guest', value: stats.limits.guest, unit: '회/일' },
             { label: '로그인 유저', key: 'user', value: stats.limits.user, unit: '회/일' },
             { label: '전체 일일 한도', key: 'total', value: stats.limits.total, unit: '회/일' },
           ].map(item => (
             <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #F7F8FA' }}>
-              <span style={{ fontSize: 13, color: '#4E5968' }}>{item.label}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>
-                {item.value}<span style={{ fontSize: 12, color: '#8B95A1', marginLeft: 2 }}>{item.unit}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-body)' }}>{item.label}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                {item.value}<span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 2 }}>{item.unit}</span>
               </span>
             </div>
           ))}
-          <p style={{ fontSize: 11, color: '#B0B8C1', marginTop: 16 }}>
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 16 }}>
             Vercel 환경변수에서 변경<br />
             AI_DAILY_LIMIT_GUEST / AI_DAILY_LIMIT_USER / AI_DAILY_LIMIT_TOTAL
           </p>
@@ -357,14 +362,14 @@ export default function AdminPage() {
       </div>
 
       {/* 유저별 AI 사용량 + 인기 종목 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, marginBottom: 24 }}>
 
         {/* 유저별 오늘 AI 사용량 */}
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>유저별 AI 사용량 (오늘)</h3>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>유저별 AI 사용량 (오늘)</h3>
           {stats.userAiUsage.length > 0 ? stats.userAiUsage.map((u, i) => (
             <div key={u.user_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
-              <span style={{ fontSize: 13, color: '#4E5968', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 13, color: 'var(--text-body)', fontFamily: 'monospace' }}>
                 {u.user_id.slice(0, 8)}…
               </span>
               <span style={{ fontSize: 14, fontWeight: 700, color: u.count >= stats.limits.user ? '#EF4452' : '#3182F6' }}>
@@ -372,39 +377,39 @@ export default function AdminPage() {
               </span>
             </div>
           )) : (
-            <div style={{ fontSize: 13, color: '#B0B8C1', padding: '20px 0', textAlign: 'center' }}>오늘 AI 사용 없음</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '20px 0', textAlign: 'center' }}>오늘 AI 사용 없음</div>
           )}
         </div>
 
         {/* 인기 분석 종목 */}
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>인기 분석 종목 TOP 10</h3>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>인기 분석 종목 TOP 10</h3>
           {stats.topStocks.length > 0 ? stats.topStocks.map((s, i) => (
             <div key={s.symbol} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
               <span style={{ fontSize: 13, fontWeight: 600 }}>{i + 1}. {s.symbol}</span>
               <span style={{ fontSize: 13, color: '#3182F6', fontWeight: 600 }}>{s.count}회</span>
             </div>
           )) : (
-            <div style={{ fontSize: 13, color: '#B0B8C1', padding: '20px 0', textAlign: 'center' }}>아직 데이터가 없어요</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '20px 0', textAlign: 'center' }}>아직 데이터가 없어요</div>
           )}
         </div>
       </div>
 
       {/* 최근 활동 */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>최근 활동</h3>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+        <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>최근 활동</h3>
         {stats.recentLogs.length > 0 ? stats.recentLogs.map((log, i) => (
           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: i > 0 ? '1px solid #F7F8FA' : 'none' }}>
             <div>
               <span style={{ fontSize: 13, fontWeight: 500 }}>{log.action}</span>
-              {log.symbol && <span style={{ fontSize: 12, color: '#8B95A1', marginLeft: 8 }}>{log.symbol}</span>}
+              {log.symbol && <span style={{ fontSize: 12, color: 'var(--text-secondary)', marginLeft: 8 }}>{log.symbol}</span>}
             </div>
-            <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
               {new Date(log.created_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
         )) : (
-          <div style={{ fontSize: 13, color: '#B0B8C1', padding: '20px 0', textAlign: 'center' }}>아직 활동 내역이 없어요</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '20px 0', textAlign: 'center' }}>아직 활동 내역이 없어요</div>
         )}
       </div>
 
@@ -562,14 +567,14 @@ function CodesPanel() {
   return (
     <div>
       {/* 코드 생성 */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>코드 생성</h3>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+        <h3 className={appUI.groupTitle} style={{ marginBottom: 20 }}>코드 생성</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 12 }}>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>타입</label>
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>타입</label>
             <div style={{ position: 'relative' }}>
-              <select value={type} onChange={e => setType(e.target.value)}
-                style={{ width: '100%', height: 38, padding: '0 34px 0 10px', appearance: 'none', WebkitAppearance: 'none', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, background: 'var(--surface, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontSize: 13, boxSizing: 'border-box', cursor: 'pointer' }}>
+              <select className={appUI.field} value={type} onChange={e => setType(e.target.value)}
+                style={{ width: '100%', height: 38, appearance: 'none', WebkitAppearance: 'none', boxSizing: 'border-box' }}>
                 <option value="invite">invite — 베타 초대</option>
                 <option value="referral">referral — 리퍼럴</option>
                 <option value="discount">discount — 할인</option>
@@ -578,82 +583,78 @@ function CodesPanel() {
               <ChevronDown
                 size={15}
                 aria-hidden="true"
-                style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', color: '#8B95A1', pointerEvents: 'none' }}
+                style={{ position: 'absolute', right: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }}
               />
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>생성 수량</label>
-            <input type="number" value={count} min={1} max={100} onChange={e => setCount(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>생성 수량</label>
+            <input className={appUI.field} type="number" value={count} min={1} max={100} onChange={e => setCount(Number(e.target.value))}
+              style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>1코드 최대 사용</label>
-            <input type="number" value={maxUses} min={1} onChange={e => setMaxUses(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>1코드 최대 사용</label>
+            <input className={appUI.field} type="number" value={maxUses} min={1} onChange={e => setMaxUses(Number(e.target.value))}
+              style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>만료일 (선택)</label>
-            <input type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>만료일 (선택)</label>
+            <input className={appUI.field} type="date" value={expiresAt} onChange={e => setExpiresAt(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
-        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="메모 (선택)"
-          style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
+        <input className={appUI.field} value={description} onChange={e => setDescription(e.target.value)} placeholder="메모 (선택)"
+          style={{ width: '100%', marginBottom: 12, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <button onClick={handleGenerate} disabled={generating}
-            style={{ padding: '10px 24px', background: generating ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer' }}>
+          <button className={appUI.primaryButton} onClick={handleGenerate} disabled={generating}
+            style={{ background: generating ? 'var(--text-secondary)' : '#3182F6', color: 'var(--text-inverse)', border: 'none' }}>
             {generating ? '생성 중...' : `코드 ${count}개 생성`}
           </button>
-          <button onClick={handleGenerateInviteBatches} disabled={generating}
-            style={{ padding: '10px 24px', background: '#fff', color: '#3182F6', border: '1px solid #3182F6', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: generating ? 'not-allowed' : 'pointer', opacity: generating ? 0.5 : 1 }}>
+          <button className={appUI.secondaryButton} onClick={handleGenerateInviteBatches} disabled={generating}
+            style={{ opacity: generating ? 0.5 : 1 }}>
             JOOBI 초대코드 100개 · 10묶음 생성
           </button>
         </div>
-        <p style={{ marginTop: 8, fontSize: 11, color: '#8B95A1' }}>
+        <p style={{ marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
           대량 생성은 1회용 코드 10개를 한 묶음으로 만들어 묶음별 복사를 지원해요.
         </p>
       </div>
 
       {/* 코드 목록 */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             {['invite', 'referral', 'discount', 'promo'].map(t => (
-              <button key={t} onClick={() => { setFilterType(t); loadCodes(t); }}
-                style={{ padding: '6px 14px', background: filterType === t ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: filterType === t ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <button className={appUI.primaryButton} key={t} onClick={() => { setFilterType(t); loadCodes(t); }}
+                style={{ background: filterType === t ? 'var(--text-primary)' : 'var(--bg-subtle, #F2F4F6)', color: filterType === t ? 'var(--surface)' : 'var(--text-body)', border: 'none' }}>
                 {t}
               </button>
             ))}
           </div>
-          <button onClick={copyAll}
-            style={{ padding: '6px 14px', background: copied === 'all' ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === 'all' ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button className={appUI.secondaryButton} onClick={copyAll}
+            style={{ background: copied === 'all' ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === 'all' ? 'var(--surface)' : 'var(--text-body)', border: 'none' }}>
             {copied === 'all' ? '복사됨' : '미사용 전체 복사'}
           </button>
         </div>
 
         {loadingCodes ? (
-          <div style={{ textAlign: 'center', padding: 24, color: '#8B95A1', fontSize: 13 }}>불러오는 중...</div>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)', fontSize: 13 }}>불러오는 중...</div>
         ) : codes.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 24, color: '#B0B8C1', fontSize: 13 }}>코드를 먼저 생성하거나 타입을 선택해주세요</div>
+          <div style={{ textAlign: 'center', padding: 24, color: 'var(--text-secondary)', fontSize: 13 }}>코드를 먼저 생성하거나 타입을 선택해주세요</div>
         ) : (
           <>
           {batchGroups.length > 0 && (
-            <div style={{ marginBottom: 20, padding: 14, borderRadius: 12, background: '#F8FAFF', border: '1px solid rgba(49,130,246,0.12)' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#191F28', marginBottom: 10 }}>묶음별 복사</div>
+            <div style={{ marginBottom: 20, padding: 14, borderRadius: 12, background: 'var(--bg-subtle)', border: '1px solid rgba(49,130,246,0.12)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>묶음별 복사</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
                 {batchGroups.map(group => {
                   const availableCount = group.codes.filter(code => code.is_active && (code.max_uses === null || code.use_count < code.max_uses)).length;
                   return (
-                    <button
+                    <button className={appUI.secondaryButton}
                       key={group.groupKey}
                       onClick={() => copyBatch(group.groupKey, group.codes)}
                       disabled={availableCount === 0}
-                      style={{
-                        padding: '9px 12px', borderRadius: 8, textAlign: 'left', cursor: availableCount > 0 ? 'pointer' : 'not-allowed',
-                        border: '1px solid var(--border-light, #E5E8EB)', background: copied === group.groupKey ? '#20C997' : '#fff',
-                        color: copied === group.groupKey ? '#fff' : '#4E5968', opacity: availableCount > 0 ? 1 : 0.5,
-                      }}
+                      style={{ textAlign: 'left', border: '1px solid var(--border-light, #E5E8EB)', background: copied === group.groupKey ? '#20C997' : 'var(--surface)', color: copied === group.groupKey ? 'var(--surface)' : 'var(--text-body)', opacity: availableCount > 0 ? 1 : 0.5 }}
                     >
                       <span style={{ display: 'block', fontSize: 12, fontWeight: 700 }}>
                         {copied === group.groupKey ? '복사됨' : `묶음 ${group.batchIndex}/${group.batchTotal}`}
@@ -671,35 +672,35 @@ function CodesPanel() {
             {codes.map(c => (
               <div key={c.code} style={{
                 display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap',
-                padding: '10px 14px', background: '#F8F9FA', borderRadius: 10,
+                padding: '10px 14px', background: 'var(--bg-subtle)', borderRadius: 10,
                 border: '1px solid var(--border-light, #F2F4F6)', opacity: c.is_active ? 1 : 0.4,
               }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: 'monospace', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>{c.code}</span>
-                    <span style={{ fontSize: 11, color: '#8B95A1' }}>{c.use_count}/{c.max_uses === null ? '∞' : c.max_uses}회</span>
-                    {c.max_uses !== null && c.use_count >= c.max_uses && <span style={{ fontSize: 11, color: '#B0B8C1', background: '#F2F4F6', padding: '2px 6px', borderRadius: 4 }}>소진</span>}
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{c.use_count}/{c.max_uses === null ? '∞' : c.max_uses}회</span>
+                    {c.max_uses !== null && c.use_count >= c.max_uses && <span style={{ fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', padding: '2px 6px', borderRadius: 4 }}>소진</span>}
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 10, color: '#8B95A1' }}>
+                  <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
                     발급: {c.created_by ? `개인 계정 ${c.created_by.slice(0, 8)}` : '관리자'}
                     {c.description ? ` · ${c.description}` : ''}
                   </div>
                   {(c.code_uses || []).map(use => (
-                    <div key={`${use.used_by}-${use.used_at}`} style={{ marginTop: 3, fontSize: 10, color: '#4E5968' }}>
+                    <div key={`${use.used_by}-${use.used_at}`} style={{ marginTop: 3, fontSize: 10, color: 'var(--text-body)' }}>
                       사용: {use.used_by ? `계정 ${use.used_by.slice(0, 8)}` : '확인 불가'} · {new Date(use.used_at).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: '#B0B8C1' }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                     {new Date(c.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                   </span>
-                  <button onClick={() => { navigator.clipboard.writeText(c.code); setCopied(c.code); setTimeout(() => setCopied(''), 1500); }}
-                    style={{ padding: '4px 10px', background: copied === c.code ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === c.code ? '#fff' : '#4E5968', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                  <button className={appUI.secondaryButton} onClick={() => { navigator.clipboard.writeText(c.code); setCopied(c.code); setTimeout(() => setCopied(''), 1500); }}
+                    style={{ background: copied === c.code ? '#20C997' : 'var(--bg-subtle, #F2F4F6)', color: copied === c.code ? 'var(--surface)' : 'var(--text-body)', border: 'none' }}>
                     {copied === c.code ? '복사됨' : '복사'}
                   </button>
-                  <button onClick={() => toggleCode(c.code, c.is_active)}
-                    style={{ padding: '4px 10px', background: c.is_active ? 'rgba(239,68,82,0.08)' : 'rgba(32,201,151,0.08)', color: c.is_active ? '#EF4452' : '#20C997', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                  <button className={appUI.dangerButton} onClick={() => toggleCode(c.code, c.is_active)}
+                    style={{ background: c.is_active ? 'rgba(239,68,82,0.08)' : 'rgba(32,201,151,0.08)', color: c.is_active ? '#EF4452' : '#20C997', border: 'none' }}>
                     {c.is_active ? '비활성화' : '활성화'}
                   </button>
                 </div>
@@ -761,66 +762,66 @@ function ConfigPanel() {
   };
 
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 28 }}>
-      <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 24 }}>서비스 설정</h3>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 28 }}>
+      <h3 className={appUI.groupTitle} style={{ marginBottom: 24 }}>서비스 설정</h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#191F28', display: 'block', marginBottom: 8 }}>서비스 모드</label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>서비스 모드</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.entries(modeLabels).map(([val, label]) => (
-              <button key={val} onClick={() => update('service_mode', val)}
-                style={{ padding: '8px 20px', background: config.service_mode === val ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: config.service_mode === val ? '#fff' : '#4E5968', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <button className={appUI.primaryButton} key={val} onClick={() => update('service_mode', val)}
+                style={{ background: config.service_mode === val ? 'var(--text-primary)' : 'var(--bg-subtle, #F2F4F6)', color: config.service_mode === val ? 'var(--surface)' : 'var(--text-body)', border: 'none' }}>
                 {label}
               </button>
             ))}
           </div>
-          <p style={{ fontSize: 12, color: '#8B95A1', marginTop: 6 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
             현재: <strong>{config.service_mode || '불러오는 중'}</strong>
             {config.service_mode === 'beta' && ' — 초대 코드 있는 사용자만 접근 가능'}
             {config.service_mode === 'open' && ' — 누구나 즉시 가입 가능'}
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: '#F8F9FA', borderRadius: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--bg-subtle)', borderRadius: 12 }}>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 600 }}>초대 코드 필수</div>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 2 }}>OFF 시 코드 없이 바로 가입 가능</div>
+            <div style={{ fontSize: 'var(--type-label-size)', fontWeight: 550 }}>초대 코드 필수</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>OFF 시 코드 없이 바로 가입 가능</div>
           </div>
-          <button onClick={() => update('invite_required', config.invite_required === 'true' ? 'false' : 'true')}
-            style={{ width: 48, height: 26, background: config.invite_required === 'true' ? '#3182F6' : 'var(--bg-subtle, #E5E8EB)', border: 'none', borderRadius: 13, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-            <span style={{ position: 'absolute', top: 3, left: config.invite_required === 'true' ? 24 : 3, width: 20, height: 20, background: '#fff', borderRadius: '50%', transition: 'left 0.2s' }} />
+          <button className={appUI.switchButton} type="button" aria-label="초대 코드 필수" aria-pressed={config.invite_required === 'true'}
+            onClick={() => update('invite_required', config.invite_required === 'true' ? 'false' : 'true')}>
+            <span className={appUI.switchTrack} aria-hidden="true" />
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 최대 인원 (0=무제한)</label>
-            <input type="number" value={config.beta_max_users || ''} onChange={e => update('beta_max_users', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>베타 최대 인원 (0=무제한)</label>
+            <input className={appUI.field} type="number" value={config.beta_max_users || ''} onChange={e => update('beta_max_users', e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
           <div>
-            <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>베타 자동 종료 날짜</label>
-            <input type="date" value={config.beta_end_date || ''} onChange={e => update('beta_end_date', e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+            <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>베타 자동 종료 날짜</label>
+            <input className={appUI.field} type="date" value={config.beta_end_date || ''} onChange={e => update('beta_end_date', e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box' }} />
           </div>
         </div>
 
         <div>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#191F28', display: 'block', marginBottom: 8 }}>AI 분석 일일 한도</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'block', marginBottom: 8 }}>AI 분석 일일 한도</label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 12 }}>
             {([['ai_beta_limit', '베타 유저'], ['ai_daily_limit', '일반 유저'], ['ai_admin_limit', '관리자 (0=무제한)']] as [string, string][]).map(([key, label]) => (
               <div key={key}>
-                <label style={{ fontSize: 12, color: '#8B95A1', display: 'block', marginBottom: 4 }}>{label}</label>
-                <input type="number" value={config[key] || ''} onChange={e => update(key, e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border-light, #E5E8EB)', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
+                <input className={appUI.field} type="number" value={config[key] || ''} onChange={e => update(key, e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
             ))}
           </div>
         </div>
 
-        <button onClick={save} disabled={saving}
-          style={{ padding: '12px 32px', background: saved ? '#20C997' : saving ? '#B0B8C1' : '#3182F6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start', transition: 'background 0.2s' }}>
+        <button className={appUI.primaryButton} onClick={save} disabled={saving}
+          style={{ alignSelf: 'flex-start' }}>
           {saved ? '저장됨' : saving ? '저장 중...' : '설정 저장'}
         </button>
       </div>
@@ -868,7 +869,7 @@ function MiniBarChart({ data, color }: { data: { date: string; count: number }[]
         return (
           <div key={d.date} title={`${d.date}: ${d.count}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
             <div style={{ width: '100%', height: barH, background: color, borderRadius: '3px 3px 0 0' }} />
-            <span style={{ fontSize: 9, color: '#B0B8C1', whiteSpace: 'nowrap' }}>{d.date.slice(5)}</span>
+            <span style={{ fontSize: 9, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{d.date.slice(5)}</span>
           </div>
         );
       })}
@@ -905,7 +906,7 @@ function GrowthPanel() {
     return () => { cancelled = true; };
   }, [days]);
 
-  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: '#8B95A1' }}>성장 데이터 불러오는 중...</div>;
+  if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)' }}>성장 데이터 불러오는 중...</div>;
   if (!data) return <div role="alert" style={{ padding: 48, textAlign: 'center', color: '#EF4452' }}>{error || '불러오기 실패'}</div>;
 
   const aiRate = data.aiUsageRate;
@@ -915,32 +916,32 @@ function GrowthPanel() {
       {/* 기간 선택 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         {[7, 14, 30].map(d => (
-          <button key={d} onClick={() => setDays(d)}
-            style={{ padding: '6px 16px', background: days === d ? '#191F28' : 'var(--bg-subtle, #F2F4F6)', color: days === d ? '#fff' : '#4E5968', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          <button className={appUI.primaryButton} key={d} onClick={() => setDays(d)}
+            style={{ background: days === d ? 'var(--text-primary)' : 'var(--bg-subtle, #F2F4F6)', color: days === d ? 'var(--surface)' : 'var(--text-body)', border: 'none' }}>
             최근 {d}일
           </button>
         ))}
       </div>
 
       {/* 앱스토어 준비도 */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24, marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#191F28' }}>앱스토어 출시 준비도</h3>
+          <h3 className={appUI.groupTitle} style={{ color: 'var(--text-primary)' }}>앱스토어 출시 준비도</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 80, height: 8, background: '#F2F4F6', borderRadius: 4, overflow: 'hidden' }}>
+            <div style={{ width: 80, height: 8, background: 'var(--bg-subtle)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ width: `${data.readinessPct}%`, height: '100%', background: data.readinessPct >= 80 ? '#20C997' : data.readinessPct >= 60 ? '#FF9500' : '#3182F6', borderRadius: 4 }} />
             </div>
-            <span style={{ fontSize: 16, fontWeight: 700, color: data.readinessPct >= 80 ? '#20C997' : '#191F28' }}>{data.readinessPct}%</span>
+            <span style={{ fontSize: 16, fontWeight: 700, color: data.readinessPct >= 80 ? '#20C997' : 'var(--text-primary)' }}>{data.readinessPct}%</span>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {data.checks.map(c => (
-            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : '#F8F9FA', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : 'var(--border-light, #F2F4F6)'}` }}>
+            <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: c.done ? 'rgba(32,201,151,0.06)' : 'var(--bg-subtle)', borderRadius: 10, border: `1px solid ${c.done ? 'rgba(32,201,151,0.2)' : 'var(--border-light, #F2F4F6)'}` }}>
               {c.done
                 ? <CheckCircle2 size={16} color="#20C997" aria-label="완료" />
-                : <Circle size={16} color="#B0B8C1" aria-label="미완료" />}
-              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.done ? '#20C997' : '#191F28' }}>{c.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: c.done ? '#20C997' : '#8B95A1' }}>
+                : <Circle size={16} color="var(--text-secondary)" aria-label="미완료" />}
+              <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: c.done ? '#20C997' : 'var(--text-primary)' }}>{c.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: c.done ? '#20C997' : 'var(--text-secondary)' }}>
                 {c.current}{c.unit} / {c.target}{c.unit}
               </span>
             </div>
@@ -949,34 +950,34 @@ function GrowthPanel() {
       </div>
 
       {/* 핵심 지표 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16, marginBottom: 16 }}>
         {[
           { label: '총 가입자', value: data.totalUsers, unit: '명', color: '#3182F6' },
           { label: '오늘 DAU', value: data.todayDau, unit: '명', color: '#00C6BE' },
           { label: '최고 DAU', value: data.peakDau, unit: '명', color: '#FF9500' },
         ].map(c => (
-          <div key={c.label} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
+          <div key={c.label} style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{c.label}</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: c.color }}>
               {c.value.toLocaleString()}
-              <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{c.unit}</span>
+              <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>{c.unit}</span>
             </div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 16, marginBottom: 24 }}>
         {[
           { label: 'D1 리텐션', value: data.d1Retention, unit: '%', color: '#AF52DE' },
           { label: 'D7 리텐션', value: data.d7Retention, unit: '%', color: '#AF52DE' },
           { label: 'AI 사용률', value: aiRate, unit: '%', color: '#34C759' },
         ].map(c => (
-          <div key={c.label} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{c.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: c.value === null ? '#B0B8C1' : c.color }}>
+          <div key={c.label} style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{c.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: c.value === null ? 'var(--text-secondary)' : c.color }}>
               {c.value === null ? '—' : c.value}
-              {c.value !== null && <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{c.unit}</span>}
+              {c.value !== null && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>{c.unit}</span>}
             </div>
-            {c.value === null && <div style={{ fontSize: 11, color: '#B0B8C1' }}>코호트 데이터 부족</div>}
+            {c.value === null && <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>코호트 데이터 부족</div>}
           </div>
         ))}
       </div>
@@ -989,10 +990,10 @@ function GrowthPanel() {
           { title: '일별 DAU', data: data.dauByDate, color: '#00C6BE' },
           { title: '일별 AI 사용', data: data.aiByDate, color: '#AF52DE' },
         ].map(chart => (
-          <div key={chart.title} style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#191F28', marginBottom: 12 }}>{chart.title}</div>
+          <div key={chart.title} style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 12 }}>{chart.title}</div>
             <MiniBarChart data={chart.data} color={chart.color} />
-            <div style={{ fontSize: 12, color: '#8B95A1', marginTop: 8, textAlign: 'right' }}>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, textAlign: 'right' }}>
               합계 {chart.data.reduce((s, d) => s + d.count, 0).toLocaleString()}
             </div>
           </div>
@@ -1000,10 +1001,10 @@ function GrowthPanel() {
       </div>
 
       {/* 기능별 사용량 */}
-      <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-        <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>기능별 사용량 (최근 {days}일)</h3>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+        <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>기능별 사용량 (최근 {days}일)</h3>
         {Object.keys(data.actionCount).length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 10 }}>
             {Object.entries(data.actionCount)
               .sort((a, b) => b[1] - a[1])
               .slice(0, 12)
@@ -1012,30 +1013,30 @@ function GrowthPanel() {
                 const pct = Math.round((count / maxCount) * 100);
                 return (
                   <div key={action} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 12, color: '#4E5968', width: 120, flexShrink: 0, fontFamily: 'monospace' }}>{action}</span>
-                    <div style={{ flex: 1, height: 6, background: '#F2F4F6', borderRadius: 3, overflow: 'hidden' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-body)', width: 120, flexShrink: 0, fontFamily: 'monospace' }}>{action}</span>
+                    <div style={{ flex: 1, height: 6, background: 'var(--bg-subtle)', borderRadius: 3, overflow: 'hidden' }}>
                       <div style={{ width: `${pct}%`, height: '100%', background: '#3182F6', borderRadius: 3 }} />
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#191F28', width: 36, textAlign: 'right' }}>{count}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', width: 36, textAlign: 'right' }}>{count}</span>
                   </div>
                 );
               })}
           </div>
         ) : (
-          <div style={{ fontSize: 13, color: '#B0B8C1', textAlign: 'center', padding: '20px 0' }}>데이터 없음</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>데이터 없음</div>
         )}
       </div>
 
       {/* P0-6 — 온보딩·투어·도움말 Funnel */}
       {data.onboardingFunnel && (
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>
             온보딩·투어 Funnel (최근 {days}일)
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
             {/* 온보딩 */}
-            <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>온보딩</div>
+            <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>온보딩</div>
               <FunnelRow label="가입 (총)" value={data.totalUsers} max={data.totalUsers || 1} />
               <FunnelRow label="step view (모든 단계 합산)" value={data.onboardingFunnel.view} max={Math.max(data.onboardingFunnel.view, data.totalUsers, 1)} />
               <FunnelRow label="샘플 사용" value={data.onboardingFunnel.samplePortfolio} max={data.totalUsers || 1} />
@@ -1046,8 +1047,8 @@ function GrowthPanel() {
 
             {/* 본 화면 투어 */}
             {data.tourFunnel && (
-              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>본 화면 투어</div>
+              <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>본 화면 투어</div>
                 <FunnelRow label="시작" value={data.tourFunnel.started} max={data.totalUsers || 1} />
                 <FunnelRow label="단계 진입" value={data.tourFunnel.step} max={Math.max(data.tourFunnel.started, 1)} />
                 <FunnelRow label="완료" value={data.tourFunnel.completed} max={Math.max(data.tourFunnel.started, 1)} highlight />
@@ -1057,8 +1058,8 @@ function GrowthPanel() {
             )}
 
             {/* 도움말 */}
-            <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-              <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>도움말</div>
+            <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>도움말</div>
               <FunnelRow label="/help 진입" value={data.helpOpened ?? 0} max={data.totalUsers || 1} />
             </div>
           </div>
@@ -1067,16 +1068,16 @@ function GrowthPanel() {
 
       {/* Phase 2 — 기능 채택 · 게스트 funnel */}
       {(data.featureAdoption || data.adoptionCohort || data.guestFunnel) && (
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>
             기능 채택 · 게스트 funnel (최근 {days}일)
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
 
             {/* 기능별 첫 사용(채택) */}
             {data.featureAdoption && Object.keys(data.featureAdoption).length > 0 && (
-              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>기능 첫 사용 (유저 수)</div>
+              <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>기능 첫 사용 (유저 수)</div>
                 {Object.entries(data.featureAdoption).sort((a, b) => b[1] - a[1]).map(([fid, n]) => (
                   <FunnelRow key={fid} label={fid} value={n} max={data.totalUsers || 1} />
                 ))}
@@ -1085,26 +1086,26 @@ function GrowthPanel() {
 
             {/* 코호트 비교 — 투어 본 vs 안 본 */}
             {data.adoptionCohort && (
-              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>평균 채택 기능수 — 투어 본 vs 안 본</div>
+              <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>평균 채택 기능수 — 투어 본 vs 안 본</div>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#fff', borderRadius: 8 }}>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: 'var(--surface)', borderRadius: 8 }}>
                     <div style={{ fontSize: 22, fontWeight: 800, color: '#0E7C7B' }}>{data.adoptionCohort.tourWatched.avgFeatures}</div>
-                    <div style={{ fontSize: 11, color: '#8B95A1' }}>투어 봄 ({data.adoptionCohort.tourWatched.users}명)</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>투어 봄 ({data.adoptionCohort.tourWatched.users}명)</div>
                   </div>
-                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: '#fff', borderRadius: 8 }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#8B95A1' }}>{data.adoptionCohort.notWatched.avgFeatures}</div>
-                    <div style={{ fontSize: 11, color: '#8B95A1' }}>안 봄 ({data.adoptionCohort.notWatched.users}명)</div>
+                  <div style={{ flex: 1, textAlign: 'center', padding: '10px 0', background: 'var(--surface)', borderRadius: 8 }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{data.adoptionCohort.notWatched.avgFeatures}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>안 봄 ({data.adoptionCohort.notWatched.users}명)</div>
                   </div>
                 </div>
-                <div style={{ marginTop: 8, fontSize: 11, color: '#B0B8C1' }}>※ 로그인 세션 투어 기준 (게스트 선시청 보정은 Phase 3)</div>
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>※ 로그인 세션 투어 기준 (게스트 선시청 보정은 Phase 3)</div>
               </div>
             )}
 
             {/* 게스트 funnel */}
             {data.guestFunnel && (
-              <div style={{ padding: 14, background: '#F8F9FA', borderRadius: 12 }}>
-                <div style={{ fontSize: 12, color: '#8B95A1', fontWeight: 700, marginBottom: 10 }}>게스트(비로그인) funnel</div>
+              <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, marginBottom: 10 }}>게스트(비로그인) funnel</div>
                 {data.guestFunnel.available ? (
                   <>
                     <FunnelRow label="고유 게스트" value={data.guestFunnel.distinctGuests} max={Math.max(data.guestFunnel.distinctGuests, 1)} />
@@ -1117,7 +1118,7 @@ function GrowthPanel() {
                     게스트 측정 대기 — tour_events 미적용. Supabase에 2026-06-21_tour_events.sql 적용 필요.
                   </div>
                 )}
-                <div style={{ marginTop: 8, fontSize: 11, color: '#B0B8C1' }}>※ distinctGuests는 클라 anonId 기반 — best-effort(위조 가능, 단독 판단 금지)</div>
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-secondary)' }}>※ distinctGuests는 클라 anonId 기반 — best-effort(위조 가능, 단독 판단 금지)</div>
               </div>
             )}
           </div>
@@ -1126,29 +1127,29 @@ function GrowthPanel() {
 
       {/* P0-6 — AI 피드백 */}
       {data.feedbackBySource && Object.keys(data.feedbackBySource).length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: '#191F28' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 24 }}>
+          <h3 className={appUI.groupTitle} style={{ marginBottom: 16, color: 'var(--text-primary)' }}>
             AI 추천 만족도 (최근 {days}일)
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {Object.entries(data.feedbackBySource).map(([source, f]) => (
-              <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#F8F9FA', borderRadius: 10 }}>
-                <code style={{ fontSize: 12, color: '#4E5968', fontWeight: 700, minWidth: 110 }}>{source}</code>
+              <div key={source} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 10 }}>
+                <code style={{ fontSize: 12, color: 'var(--text-body)', fontWeight: 700, minWidth: 110 }}>{source}</code>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ flex: 1, height: 8, background: '#F2F4F6', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ flex: 1, height: 8, background: 'var(--bg-subtle)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
                     <div style={{ width: `${f.satisfaction}%`, height: '100%', background: f.satisfaction >= 70 ? '#16A34A' : f.satisfaction >= 50 ? '#FF9500' : '#EF4452' }} />
                   </div>
                   <span style={{ fontSize: 13, fontWeight: 700, color: f.satisfaction >= 70 ? '#16A34A' : f.satisfaction >= 50 ? '#FF9500' : '#EF4452', minWidth: 36, textAlign: 'right' }}>
                     {f.satisfaction}%
                   </span>
                 </div>
-                <span style={{ fontSize: 11, color: '#8B95A1' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   긍정 {f.positive} · 부정 {f.negative} (총 {f.total})
                 </span>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 12, fontSize: 11, color: '#B0B8C1' }}>
+          <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-secondary)' }}>
             ※ 70%+ 만족도 = 알고리즘 정당성 확인 / 50% 미만 = 가중치 재검토 필요
           </div>
         </div>
@@ -1159,17 +1160,17 @@ function GrowthPanel() {
 
 function FunnelRow({ label, value, max, highlight, muted }: { label: string; value: number; max: number; highlight?: boolean; muted?: boolean }) {
   const pct = max > 0 ? Math.round((value / max) * 100) : 0;
-  const barColor = muted ? '#B0B8C1' : highlight ? '#16A34A' : '#3182F6';
+  const barColor = muted ? 'var(--text-secondary)' : highlight ? '#16A34A' : '#3182F6';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, fontSize: 11 }}>
-      <span style={{ width: 130, color: muted ? '#8B95A1' : '#4E5968', flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: 4, background: '#E5E8EB', borderRadius: 2, overflow: 'hidden' }}>
+      <span style={{ width: 130, color: muted ? 'var(--text-secondary)' : 'var(--text-body)', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 4, background: 'var(--border-strong)', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: barColor, borderRadius: 2 }} />
       </div>
-      <span style={{ fontWeight: 700, color: muted ? '#8B95A1' : '#191F28', minWidth: 36, textAlign: 'right' }}>
+      <span style={{ fontWeight: 700, color: muted ? 'var(--text-secondary)' : 'var(--text-primary)', minWidth: 36, textAlign: 'right' }}>
         {value}
       </span>
-      <span style={{ fontSize: 9, color: '#B0B8C1', minWidth: 32, textAlign: 'right' }}>
+      <span style={{ fontSize: 9, color: 'var(--text-secondary)', minWidth: 32, textAlign: 'right' }}>
         {pct}%
       </span>
     </div>

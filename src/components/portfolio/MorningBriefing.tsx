@@ -1,4 +1,5 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { useState, useEffect, useMemo } from 'react';
 import { BarChart3, Activity, Bell, MessageSquare, X } from 'lucide-react';
@@ -17,6 +18,7 @@ import {
 import { useNow } from '@/hooks/useNow';
 import { summarizePortfolioCurrency } from '@/utils/stockCurrency';
 import EconomicHighlights from '@/components/economy/EconomicHighlights';
+import MarketWatch from '@/components/market/MarketWatch';
 import { getBriefingSession } from '@/utils/briefingSession';
 import styles from './MorningBriefing.module.css';
 
@@ -186,6 +188,7 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
         <button type="button" onClick={onClose} className={styles.close} aria-label="브리핑 닫기"><X size={20} aria-hidden="true" /></button>
       </div>
       <EconomicHighlights compact />
+      <MarketWatch compact onNavigate={onClose} />
       <p>보유 종목과 시세가 준비되면 시장 흐름과 내 종목의 변화를 함께 보여드려요.</p>
       <button onClick={onClose} style={{ minHeight: 44, marginTop: 16 }}>확인했어요</button>
     </div>
@@ -264,6 +267,7 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
       </button>
 
       <EconomicHighlights compact />
+      <MarketWatch compact onNavigate={onClose} />
 
       {/* 시장 심리 한 줄 */}
       <div style={{
@@ -307,7 +311,7 @@ export default function MorningBriefing({ onClose }: { onClose?: () => void } = 
       {/* 2. 오늘 가장 큰 움직임 */}
       {(data.biggestMove && data.biggestMove.absDp >= 1 || data.topAlerts.length > 0 || data.latestNote) && (
       <details className="briefing-details">
-        <summary style={{ cursor: 'pointer', minHeight: 48, padding: '14px 0', fontSize: 15, fontWeight: 650, color: 'var(--text-primary)' }}>
+        <summary className={readingUI.disclosure} >
           종목과 기록 자세히 보기
         </summary>
       {data.biggestMove && data.biggestMove.absDp >= 1 && (

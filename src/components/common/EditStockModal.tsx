@@ -1,5 +1,9 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
+import appUI from '../ui/AppUI.module.css';
+
 import { useShallow } from 'zustand/react/shallow';
 
 import { useState, useRef } from 'react';
@@ -10,6 +14,7 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, BROKER_LABELS, BROKER_ORDER } from '@/config/constants';
 import type { StockNote, Broker, StockItem } from '@/config/constants';
 import { createNoteDate } from '@/utils/noteId';
+import { stockEditError } from '@/utils/stockEditValidation';
 import { getStockCurrency } from '@/utils/stockCurrency';
 
 // 메모 감정 태그 (InvestmentNotes와 동일 세트 사용)
@@ -41,7 +46,7 @@ export default function EditStockModal() {
 function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   const {
     stocks, editingCat, editingIdx,
-    setEditingCat, setEditingIdx, updateStock, moveStock,
+    setEditingCat, setEditingIdx, updateStock,
     macroData,
   } = usePortfolioStore(useShallow(state => ({
     stocks: state.stocks,
@@ -50,7 +55,6 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
     setEditingCat: state.setEditingCat,
     setEditingIdx: state.setEditingIdx,
     updateStock: state.updateStock,
-    moveStock: state.moveStock,
     macroData: state.macroData,
   })));
 
@@ -59,6 +63,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
   const currentUsdKrw = Math.round(fxState.rate);
 
   // 편집 대상을 key로 remount해 파생 상태를 effect 없이 한 번만 초기화한다.
+  const [draftCategory,setDraftCategory] = useState(editingCat);
+  const [validationError,setValidationError] = useState('');
   const [avgCost, setAvgCost] = useState(() => initialStock.avgCost ? String(initialStock.avgCost) : '');
   const [shares, setShares] = useState(() => initialStock.shares ? String(initialStock.shares) : '');
   const [targetReturn, setTargetReturn] = useState(() => initialStock.targetReturn ? String(initialStock.targetReturn) : '');
@@ -124,7 +130,11 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
 
   const save = () => {
     if (!editingCat || editingIdx < 0 || !stock) return;
+    if (!stock.demo && !requirePortfolioWriteAccess()) return;
 
+    const error = stockEditError({avgCost,shares,purchaseRate,targetReturn,targetProfitUSD,targetProfitKRW,targetSell,stopLoss,stopLossPct,weight,buyBelow,addBuyPrice,addBuyShares,addBuyRate,buyZones});
+    if (error) { setValidationError(error); return; }
+    setValidationError('');
     let finalAvgCost = parseFloat(avgCost) || 0;
     let finalShares = parseFloat(shares) || 0;
     let finalPurchaseRate = parseFloat(purchaseRate) || currentUsdKrw;
@@ -137,6 +147,9 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
       finalPurchaseRate = newWeightedRate;
     }
 
+    if (![finalAvgCost,finalShares,finalPurchaseRate,finalAvgCost*finalShares].every(Number.isFinite)) {
+      setValidationError('입력한 금액과 수량이 너무 커요. 값을 확인해주세요.'); return;
+    }
     const data: Record<string, unknown> = {
       avgCost: finalAvgCost,
       shares: finalShares,
@@ -147,18 +160,19 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
       broker: broker || undefined,  // 미지정은 undefined로 저장 (스토어 정리)
     };
 
-    if (editingCat === 'investing') {
+    if (draftCategory === 'investing') {
       data.targetSell = parseFloat(targetSell) || 0;
       data.stopLoss = parseFloat(stopLoss) || 0;
       data.stopLossPct = parseFloat(stopLossPct) || 0;
       data.buyZones = buyZones.split(',').map(Number).filter(n => n > 0);
       data.weight = parseInt(weight) || 0;
-    } else if (editingCat === 'watching') {
+    } else if (draftCategory === 'watching') {
       data.buyBelow = parseFloat(buyBelow) || 0;
     }
 
     const catKey = editingCat as 'investing' | 'watching' | 'sold';
-    updateStock(catKey, editingIdx, data);
+    updateStock(catKey, editingIdx, data, draftCategory !== catKey ? draftCategory as typeof catKey : undefined);
+    if (usePortfolioStore.getState().editingCat === '' || draftCategory !== catKey) { close(); return; }
     setSaved(true);
 
     // 변경 감지: 메모 프롬프트 트리거
@@ -274,22 +288,17 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
             {kr} 설정
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', marginTop: 2 }}>
-            {editingCat === 'watching' ? '목표 매수가를 설정하세요' : '매수 정보와 목표가를 설정하세요'}
+            {draftCategory === 'watching' ? '목표 매수가를 설정하세요' : '매수 정보와 목표가를 설정하세요'}
           </div>
           {/* 기본/상세 탭 — 관심종목에서는 숨김 */}
-          {editingCat !== 'watching' && (
+          {draftCategory !== 'watching' && (
             <div className="flex" style={{ gap: 4, marginTop: 12 }}>
               {(['basic', 'detail'] as const).map(m => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className="cursor-pointer"
-                  style={{
-                    padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: mode === m ? 600 : 400,
-                    background: mode === m ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                    color: mode === m ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
-                    border: 'none',
-                  }}
+                  className={appUI.secondaryButton}
+                  aria-pressed={mode === m}
                 >
                   {m === 'basic' ? '기본' : '상세'}
                 </button>
@@ -308,29 +317,10 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 { id: 'watching', label: '관심 종목' },
                 { id: 'sold', label: '매도 완료' },
               ] as const).map(cat => (
-                <button
+                <button className={appUI.primaryButton}
                   key={cat.id}
-                  onClick={() => {
-                    if (editingCat === cat.id) return;
-                    const fromCat = editingCat as 'investing' | 'watching' | 'sold';
-                    const idx = editingIdx;
-                    // moveStock 후 새 카테고리의 마지막 인덱스를 사용
-                    const newIdx = (stocks[cat.id] || []).length; // 이동 전 길이 = 이동 후 마지막 인덱스
-                    moveStock(fromCat, idx, cat.id);
-                    setEditingCat(cat.id);
-                    setEditingIdx(newIdx);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '8px 0',
-                    borderRadius: 10,
-                    fontSize: 13,
-                    fontWeight: editingCat === cat.id ? 700 : 500,
-                    color: editingCat === cat.id ? 'var(--pill-active-fg)' : 'var(--text-secondary)',
-                    background: editingCat === cat.id ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
-                    border: '1px solid transparent',
-                    cursor: 'pointer',
-                  }}
+                  onClick={() => setDraftCategory(cat.id)}
+                  style={{ flex: 1, color: draftCategory === cat.id ? 'var(--pill-active-fg)' : 'var(--text-secondary)', background: draftCategory === cat.id ? 'var(--pill-active-bg)' : 'var(--bg-subtle)', border: '1px solid transparent' }}
                 >
                   {cat.label}
                 </button>
@@ -339,14 +329,14 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           </div>
 
           {/* 관심종목: buyBelow만 노출 */}
-          {editingCat === 'watching' && (
+          {draftCategory === 'watching' && (
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>
                 목표 매수가 ({unit})
                 <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}> — 이 가격 이하면 알림</span>
               </label>
-              <input type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '12px 16px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 18, outline: 'none', boxSizing: 'border-box' }} />
+              <input className={appUI.field} type="number" step="0.01" value={buyBelow} onChange={(e) => setBuyBelow(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', boxSizing: 'border-box' }} />
               <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 8, lineHeight: 1.6 }}>
                 💡 관심만 등록할 경우 비워두세요. 실제 매수 후엔 &quot;투자 중&quot;으로 이동하세요.
               </div>
@@ -354,17 +344,17 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           )}
 
           {/* 투자 중 / 매도 완료: 평균 매수 단가 + 수량 + 환율 */}
-          {editingCat !== 'watching' && (<>
+          {draftCategory !== 'watching' && (<>
           <div className="edit-purchase-fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>평균 매수 단가 ({unit}) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 종목을 산 가격</span></label>
-              <input aria-label={`평균 매수 단가 (${unit})`} type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
-                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+              <input className={appUI.field} aria-label={`평균 매수 단가 (${unit})`} type="number" step="0.01" value={avgCost} onChange={(e) => setAvgCost(e.target.value)} placeholder="0.00"
+                style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>보유 수량 (주) <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 갖고 있는 주식 수 (분수주 지원)</span></label>
-              <input aria-label="보유 수량 (주)" type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
-                style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+              <input className={appUI.field} aria-label="보유 수량 (주)" type="number" step="0.0001" value={shares} onChange={(e) => setShares(e.target.value)} placeholder="0"
+                style={{ width: '100%', boxSizing: 'border-box' }} />
             </div>
           </div>
 
@@ -373,11 +363,11 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>
               🏦 증권사 <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}>— 선택사항. 비워두면 미지정</span>
             </label>
-            <select
+            <select className={appUI.field}
               aria-label="증권사"
               value={broker}
               onChange={(e) => setBroker(e.target.value as Broker | '')}
-              style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 14, outline: 'none', boxSizing: 'border-box', cursor: 'pointer' }}
+              style={{ width: '100%', boxSizing: 'border-box' }}
             >
               <option value="">미지정</option>
               {BROKER_ORDER.map(b => (
@@ -394,18 +384,18 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 <span style={{ fontWeight: 400, color: 'var(--text-tertiary, #B0B8C1)' }}> — 살 때 달러 환율 (환차익 계산용)</span>
               </label>
               <div style={{ position: 'relative' }}>
-                <input
+                <input className={appUI.field}
                   aria-label="매수 시 환율 (USD/KRW)"
                   type="number"
                   value={purchaseRate}
                   onChange={(e) => setPurchaseRate(e.target.value)}
                   placeholder={String(currentUsdKrw)}
-                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
                 {purchaseRate !== String(currentUsdKrw) && (
-                  <button
+                  <button className={appUI.textButton}
                     onClick={() => setPurchaseRate(String(currentUsdKrw))}
-                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#3182F6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                    style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}
                   >{fxState.stale ? '임시 기준으로' : '현재 환율로'}</button>
                 )}
               </div>
@@ -416,7 +406,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           )}
           </>)}
 
-          {mode === 'detail' && editingCat !== 'watching' && (<>
+          {mode === 'detail' && draftCategory !== 'watching' && (<>
 
           {/* ── 목표 수익 알림 ── */}
           <div style={{ marginBottom: 16 }}>
@@ -432,8 +422,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                   수익률 달성 <span style={{ fontWeight: 400 }}>(%)</span>
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <input type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="10"
-                    style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                  <input className={appUI.field} type="number" value={targetReturn} onChange={(e) => setTargetReturn(e.target.value)} placeholder="10"
+                    style={{ width: '100%', boxSizing: 'border-box' }} />
                   <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>%</span>
                 </div>
               </div>
@@ -441,8 +431,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
                   목표가 달성 <span style={{ fontWeight: 400 }}>({unit})</span>
                 </label>
-                <input type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
-                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                <input className={appUI.field} type="number" step="0.01" value={targetSell} onChange={(e) => setTargetSell(e.target.value)} placeholder="0.00"
+                  style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               {!isKR && (
                 <div>
@@ -450,8 +440,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                     수익금 달성 <span style={{ fontWeight: 400 }}>($)</span>
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <input type="number" step="0.01" value={targetProfitUSD} onChange={(e) => setTargetProfitUSD(e.target.value)} placeholder="500"
-                      style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                    <input className={appUI.field} type="number" step="0.01" value={targetProfitUSD} onChange={(e) => setTargetProfitUSD(e.target.value)} placeholder="500"
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                     <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>$</span>
                   </div>
                 </div>
@@ -461,8 +451,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                   수익금 달성 <span style={{ fontWeight: 400 }}>(₩)</span>
                 </label>
                 <div style={{ position: 'relative' }}>
-                  <input type="number" value={targetProfitKRW} onChange={(e) => setTargetProfitKRW(e.target.value)} placeholder="1000000"
-                    style={{ width: '100%', padding: '10px 30px 10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                  <input className={appUI.field} type="number" value={targetProfitKRW} onChange={(e) => setTargetProfitKRW(e.target.value)} placeholder="1000000"
+                    style={{ width: '100%', boxSizing: 'border-box' }} />
                   <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>₩</span>
                 </div>
               </div>
@@ -470,7 +460,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           </div>
 
           {/* Category-specific fields */}
-          {editingCat === 'investing' && (
+          {draftCategory === 'investing' && (
             <>
               {/* ── 손절 기준 ── */}
               <div style={{ marginBottom: 16 }}>
@@ -482,8 +472,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
                       손절가 <span style={{ fontWeight: 400 }}>({unit})</span>
                     </label>
-                    <input type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
-                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                    <input className={appUI.field} type="number" step="0.01" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} placeholder="0.00"
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 5 }}>
@@ -491,8 +481,8 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                     </label>
                     <div style={{ position: 'relative' }}>
                       <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: '#EF4452', fontWeight: 700, pointerEvents: 'none' }}>-</span>
-                      <input type="number" value={stopLossPct} onChange={(e) => setStopLossPct(e.target.value)} placeholder="10"
-                        style={{ width: '100%', padding: '10px 30px 10px 26px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 15, outline: 'none', boxSizing: 'border-box' }} />
+                      <input className={appUI.field} type="number" value={stopLossPct} onChange={(e) => setStopLossPct(e.target.value)} placeholder="10"
+                        style={{ width: '100%', boxSizing: 'border-box' }} />
                       <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', pointerEvents: 'none' }}>%</span>
                     </div>
                   </div>
@@ -500,13 +490,13 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>매수 구간 (쉼표 구분)</label>
-                <input type="text" value={buyZones} onChange={(e) => setBuyZones(e.target.value)} placeholder="430, 404, 380"
-                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                <input className={appUI.field} type="text" value={buyZones} onChange={(e) => setBuyZones(e.target.value)} placeholder="430, 404, 380"
+                  style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
               <div style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', display: 'block', marginBottom: 6 }}>비중 (%)</label>
-                <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0"
-                  style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                <input className={appUI.field} type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="0"
+                  style={{ width: '100%', boxSizing: 'border-box' }} />
               </div>
 
               {/* 추가 매수 */}
@@ -515,20 +505,20 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
                   <div>
                     <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>매수가 ({unit})</label>
-                    <input type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
-                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                    <input className={appUI.field} type="number" step="0.01" value={addBuyPrice} onChange={e => setAddBuyPrice(e.target.value)} placeholder="0.00"
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>수량</label>
-                    <input type="number" step="0.0001" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
-                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                    <input className={appUI.field} type="number" step="0.0001" value={addBuyShares} onChange={e => setAddBuyShares(e.target.value)} placeholder="0"
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
                 </div>
                 {!isKR && (
                   <div style={{ marginBottom: 8 }}>
                     <label style={{ fontSize: 12, color: 'var(--text-secondary, #8B95A1)', display: 'block', marginBottom: 4 }}>추가 매수 시 환율 (USD/KRW)</label>
-                    <input type="number" value={addBuyRate} onChange={e => setAddBuyRate(e.target.value)} placeholder={String(currentUsdKrw)}
-                      style={{ width: '100%', padding: '10px 14px', background: 'var(--bg-subtle, #F2F4F6)', border: 'none', borderRadius: 12, fontSize: 16, outline: 'none', boxSizing: 'border-box' }} />
+                    <input className={appUI.field} type="number" value={addBuyRate} onChange={e => setAddBuyRate(e.target.value)} placeholder={String(currentUsdKrw)}
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </div>
                 )}
                 {addBuyPrice && addBuyShares && addPriceNum > 0 && addSharesNum > 0 && (
@@ -542,7 +532,7 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
           )}
 
           </>)}
-          {mode === 'basic' && editingCat !== 'watching' && (
+          {mode === 'basic' && draftCategory !== 'watching' && (
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', textAlign: 'center', padding: '8px 0', lineHeight: 1.6 }}>
               <span aria-hidden="true">💡 </span>&quot;상세&quot; 탭에서 목표 수익률, 손절가 등을 <span className="reading-phrase">설정할 수 있어요</span>
             </div>
@@ -586,18 +576,10 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
               {MEMO_TAGS.map(tag => {
                 const active = memoEmoji === tag.emoji;
                 return (
-                  <button
+                  <button className={appUI.secondaryButton}
+                    aria-pressed={active}
                     key={tag.emoji}
                     onClick={() => setMemoEmoji(tag.emoji)}
-                    style={{
-                      padding: '4px 9px', borderRadius: 14,
-                      fontSize: 11,
-                      background: active ? 'var(--color-info, #3182F6)' : 'var(--surface, #FFFFFF)',
-                      color: active ? '#fff' : 'var(--text-secondary, #4E5968)',
-                      border: `1px solid ${active ? 'var(--color-info, #3182F6)' : 'var(--border-light, #F2F4F6)'}`,
-                      cursor: 'pointer',
-                      fontWeight: active ? 700 : 400,
-                    }}
                   >
                     {tag.emoji} {tag.label}
                   </button>
@@ -606,33 +588,27 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
             </div>
 
             {/* 메모 입력 */}
-            <textarea
+            <textarea className={appUI.field}
               value={memoText}
               onChange={e => setMemoText(e.target.value)}
               placeholder={memoContext === '첫 매수'
                 ? '예: AI 가속화 트렌드 베팅 · 실적 가속화 + 가이던스 상향 · 장기 보유 의도'
                 : '예: 실적 발표 전 분할 매수 · 목표가 도달해서 일부 익절 · 뉴스 보고 추가매수'}
               autoFocus
-              style={{
-                width: '100%', minHeight: 60, padding: '10px 12px',
-                borderRadius: 10, border: '1px solid var(--border-light, #F2F4F6)',
-                background: 'var(--surface, #FFFFFF)', fontSize: 13,
-                color: 'var(--text-primary, #191F28)', outline: 'none',
-                resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.5,
-              }}
+              style={{ width: '100%', minHeight: 60, resize: 'vertical', boxSizing: 'border-box' }}
             />
 
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button
+              <button className={appUI.secondaryButton}
                 onClick={() => saveMemoAndClose()}
-                style={{ flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #8B95A1)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)', cursor: 'pointer' }}
+                style={{ flex: 1 }}
               >
                 다음에
               </button>
-              <button
+              <button className={appUI.primaryButton}
                 onClick={() => saveMemoAndClose(memoText)}
                 disabled={!memoText.trim()}
-                style={{ flex: 2, padding: '10px 0', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#fff', background: memoText.trim() ? 'var(--color-info, #3182F6)' : 'var(--text-tertiary, #B0B8C1)', border: 'none', cursor: memoText.trim() ? 'pointer' : 'default' }}
+                style={{ flex: 2, color: 'var(--text-inverse)', background: memoText.trim() ? 'var(--color-info, #3182F6)' : 'var(--text-tertiary, #B0B8C1)', border: 'none' }}
               >
                 메모 남기기
               </button>
@@ -642,15 +618,16 @@ function EditStockModalContent({ initialStock }: { initialStock: StockItem }) {
 
         </div>
 
+        {validationError && <p role="alert" style={{padding:'12px 20px',fontSize:13,color:'var(--color-loss)'}}>{validationError}</p>}
         {/* Footer */}
         <div style={{ padding: '16px 24px', flexShrink: 0, paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))', borderTop: '1px solid var(--border-light, #F2F4F6)', background: 'var(--bg-subtle, #F9FAFB)', display: 'flex', gap: 12 }}>
-          <button onClick={close}
-            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary, #4E5968)', background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-strong, #E5E8EB)', cursor: 'pointer' }}>
+          <button className={appUI.secondaryButton} onClick={close}
+            style={{ flex: 1 }}>
             취소
           </button>
-          <button onClick={save}
+          <button className={appUI.primaryButton} onClick={save}
             disabled={saved}
-            style={{ flex: 1, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, color: 'var(--pill-active-fg)', background: 'var(--pill-active-bg)', border: 'none', cursor: saved ? 'default' : 'pointer' }}>
+            style={{ flex: 1 }}>
             {saved ? '저장됨 ✓' : '저장'}
           </button>
         </div>

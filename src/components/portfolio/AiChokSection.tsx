@@ -1,5 +1,7 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
 import { useState, useEffect, useRef } from 'react';
 import { Check, CircleAlert, RefreshCw, Target, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
@@ -359,6 +361,7 @@ export default function AiChokSection() {
   const handleAddWatch = (pick: ChokPick) => {
     if (watchingSet.has(pick.symbol)) return;
     trackChokInteraction('watch', pick.symbol);
+    if (!requirePortfolioWriteAccess()) return;
     addStock('watching', {
       symbol: pick.symbol,
       avgCost: 0,

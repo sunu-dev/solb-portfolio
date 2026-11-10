@@ -3,6 +3,7 @@
 import { useId, useState } from 'react';
 import { INDUSTRY_GROUPS } from '@/lib/industryRegistry';
 import { SECTORS, sectorCompany, type SectorId } from '@/lib/sectorExploration';
+import readingUI from '../ui/ReadingUI.module.css';
 import styles from './ContextExploration.module.css';
 
 export default function IndustryDirectory({ onSelect, onSector }: { onSelect: (id: string) => void; onSector?: (id: SectorId) => void }) {
@@ -16,7 +17,7 @@ export default function IndustryDirectory({ onSelect, onSector }: { onSelect: (i
   const businessAreas = SECTORS.filter(area => area.parent && area.companies.some(symbol => market === 'all' || (market === 'kr') === /\.(KS|KQ)$/.test(symbol))
     && (!search || `${area.name} ${area.companies.map(symbol => `${symbol} ${sectorCompany(symbol)?.name ?? ''}`).join(' ')}`.toLocaleLowerCase().includes(search)));
   return <details className={styles.directory} data-industry-directory>
-    <summary>사업 분야·세부 업종 전체 보기 <span>미국·한국 원본 업종 {INDUSTRY_GROUPS.length}개</span></summary>
+    <summary className={readingUI.disclosure}>사업 분야·세부 업종 전체 보기 <span>미국·한국 원본 업종 {INDUSTRY_GROUPS.length}개</span></summary>
     <div className={styles.industryFilters}>
       <div className={styles.industryField}><label htmlFor={`${id}-query`}>업종 찾기</label><input id={`${id}-query`} type="search" value={query} placeholder="예: 양자, 서버, 저장장치, 의약" onChange={e => { setQuery(e.target.value); setLimit(24); }} /></div>
       <div className={styles.industryField}><label htmlFor={`${id}-market`}>분류 자료</label><select id={`${id}-market`} value={market} onChange={e => { setMarket(e.target.value); setLimit(24); }}><option value="all">미국·한국</option><option value="us">미국</option><option value="kr">한국</option></select></div>

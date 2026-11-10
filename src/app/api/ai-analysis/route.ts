@@ -1,10 +1,22 @@
-import { stockQuestion } from '@/config/stockQuestions';
-import { NextRequest, NextResponse } from 'next/server';
+import { joobiProgressResponse, type JoobiProgress } from '@/lib/joobiProgress';
+import { randomUUID } from 'node:crypto';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
+import { resolveAssistantSubject } from '@/lib/assistantSubject';
+import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
+import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
+import { collectAssistantArticles } from '@/lib/assistantArticleSources';
+import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles } from '@/lib/assistantQuestion';
+import { fundAnalysisContext, fundAnalysisSources, isFundAnalysis } from '@/lib/fundQuestionContext';
+import { fundProfile } from '@/lib/fundExploration';
+import { questionsForInstrument, stockQuestion } from '@/config/stockQuestions';
+import { after, NextRequest, NextResponse } from 'next/server';
+import { QUALITY_VERSION, qualityTopic, qualityOutcome, type QualityEvent } from '@/lib/assistantQuality';
+import { persistQualityEvent, signQualityReceipt } from '@/lib/assistantQualityServer';
 import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
 import { GoogleGenAI } from '@google/genai';
 import { MENTOR_MAP } from '@/config/mentors';
-import { SYSTEM_LAYER1, getMentorLayer2Rules } from '@/config/analysisPrompt';
-import { enforceRateLimit, POLICIES } from '@/lib/rateLimiter';
+import { SYSTEM_LAYER1, QUESTION_EXPLANATION_RULES, getMentorLayer2Rules } from '@/config/analysisPrompt';
+import { enforceRateLimit, getAuthOutcome, POLICIES } from '@/lib/rateLimiter';
 import { checkCircuit, CIRCUIT_POLICIES, circuitOpenResponse } from '@/lib/circuitBreaker';
 import { callAiJson, AiProviderError } from '@/lib/aiProvider';
 import { getUserTier, getTierLimits } from '@/lib/userTier';
@@ -15,11 +27,20 @@ import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
 import { sampleAiOutput } from '@/lib/aiOutputAudit';
 import { attachAiResultMeta } from '@/lib/aiResultMeta';
 import { governAiAnalysisReport } from '@/lib/aiAnalysisGuard';
+import { assistantRepairPrompt } from '@/lib/assistantRepair';
 import { analysisResponseSchema, InvalidAnalysisResponse, parseAnalysisResponse } from '@/lib/aiAnalysisResponse';
 import { toPublicAiAnalysisInput } from '@/lib/aiInputPrivacy';
-import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
+import { checkCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 import { getStockCurrency } from '@/utils/stockCurrency';
 import { formatKrw } from '@/utils/koreanNumber';
+import { companyAnalysisContext } from '@/lib/companyAnalysisContext';
+import { callClaudeAnalysis } from '@/lib/claudeAnalysis';
+import { CHART_QUESTION, chartSessionFacts, chartExplanationPrompt } from '@/lib/chartAnalysis';
+import { readLatestIntraday } from '@/lib/intradaySource';
+import type { IntradayCandles } from '@/lib/intradayCandles';
+import { CHART_VIEWS, chartObservationText, type ChartView } from '@/lib/chartTechnicalContext';
+
+export const maxDuration = 120;
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -44,14 +65,16 @@ async function resolveIsSingleLeverage(symbol: string, clientDesc: string): Prom
   if (!symbol) return false;
   // 클라이언트 신호 (행이 없을 때의 fallback) — 항상 먼저 계산해 보호 공백 방지
   let result = isSingleStockLeverage(symbol, clientDesc);
+  if (result) return true; // The database can only add this protection, never remove it.
   const supabaseAdmin = getServiceClient();
   if (!supabaseAdmin) return result;
   try {
-    const { data } = await supabaseAdmin
+    const { data } = await withAbortDeadline(signal => supabaseAdmin
       .from('stock_listings')
       .select('description, asset_class')
       .eq('symbol', symbol)
-      .maybeSingle();
+      .abortSignal(signal)
+      .maybeSingle());
     if (data) {
       const cls = (data as { asset_class?: string }).asset_class;
       if (cls === 'leveraged_single' || cls === 'inverse_single') result = true;
@@ -70,22 +93,31 @@ function getTodayKST(): string {
 }
 
 async function recordUsage(ip: string, symbol: string, mentorId: string | undefined, userId: string, day: string) {
-  const client = getServiceClient() ?? getAuthClient();
+  const client = getServiceClient();
   if (!client) return false;
+  // A timed-out HTTP response does not prove the database rejected the write.
+  // Use one server-generated receipt to confirm that exact write, never resend it.
+  const requestId = randomUUID();
   try {
-    const { error } = await client.from('ai_usage').insert({
+    const { error } = await withAbortDeadline(signal => client.from('ai_usage').insert({
+      request_id: requestId,
       ip,
       user_id: userId,
       // Keep a request that crosses midnight on the day its limit was checked.
       date: day,
       symbol: symbol || null,
       mentor_id: mentorId || null,
-    });
-    if (error) console.error('[AI analysis] usage record failed:', error.message);
-    return !error;
-  } catch {
-    return false;
-  }
+    }).abortSignal(signal));
+    if (!error) return true;
+  } catch { /* Reconcile a possibly committed write below. */ }
+  try {
+    const { data, error } = await withAbortDeadline(signal => client.from('ai_usage')
+      .select('request_id').eq('request_id', requestId).eq('user_id', userId).eq('date', day)
+      .abortSignal(signal).maybeSingle(), 1500);
+    if (!error && data?.request_id === requestId) return true;
+  } catch { /* Keep the answer closed when persistence is still unknown. */ }
+  console.error('[AI analysis] usage persistence unconfirmed');
+  return false;
 }
 
 async function recordGeminiKeyUsage(keyIndex: number) {
@@ -165,29 +197,26 @@ function enforceLeverageReport(report: unknown): unknown {
   return r;
 }
 
-async function getAuthenticatedUserId(req: NextRequest): Promise<string | undefined> {
-  const authHeader = req.headers.get('authorization');
-  const supabase = getAuthClient();
-  if (authHeader?.startsWith('Bearer ') && supabase) {
-    try {
-      const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-      return user?.id;
-    } catch { /* not logged in */ }
-  }
-  return undefined;
+function authUnavailableResponse() {
+  return NextResponse.json({
+    error: '로그인 상태를 확인하는 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    code: 'auth_unavailable',
+  }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 /** Read-only preflight: no model, usage insert, cost ledger, or rate-limit record. */
 export async function GET(req: NextRequest) {
   const headers = { 'Cache-Control': 'private, no-store' };
-  const userId = await getAuthenticatedUserId(req);
-  if (!userId) {
+  const auth = await getAuthOutcome(req);
+  if (auth.status === 'unavailable') return authUnavailableResponse();
+  if (auth.status === 'unauthorized') {
     return NextResponse.json({
       error: 'AI 분석은 로그인 후 이용할 수 있어요.',
       code: 'unauthorized',
       loginForMore: true,
     }, { status: 401, headers });
   }
+  const userId = auth.userId;
 
   const [usage, tier] = await Promise.all([getAnalysisUsage(userId), getUserTier(userId)]);
   if (!usage.available) {
@@ -207,33 +236,79 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (req.headers.get('accept') === 'application/x-ndjson') return joobiProgressResponse(progress => handlePost(req, progress));
+  return handlePost(req);
+}
+async function handlePost(req: NextRequest, progress: JoobiProgress = () => {}) {
+  const stepsMs: Record<string, number> = {};
+  const startedAt = performance.now();
+  let seed: { userId: string; topic: QualityEvent['topic']; asset: QualityEvent['asset'] } | undefined;
+  let event: QualityEvent | undefined;
+  if (process.env.JOOBI_QUESTION_QUALITY_ENABLED === 'true') after(async () => { if (event) await persistQualityEvent(event); });
+  const measure: Measure = async (step, work) => {
+    const started = performance.now();
+    try { return await work(); }
+    finally { stepsMs[step] = Math.round(performance.now() - started); }
+  };
+  try {
+    const response = await respond(req, progress, measure, value => { seed = value; });
+    if (!seed || process.env.JOOBI_QUESTION_QUALITY_ENABLED !== 'true') return response;
+    try {
+      const data = await response.clone().json();
+      const model = data.report?._meta?.aiModel;
+      event = { id: randomUUID(), created_at: new Date().toISOString(), topic: seed.topic, asset: seed.asset,
+        model: typeof model !== 'string' ? 'none' : model.includes('sonnet') ? 'sonnet' : model.includes('haiku') ? 'haiku' : 'other',
+        version: QUALITY_VERSION, ...qualityOutcome(response.status, data.code),
+        duration_ms: Math.round(performance.now() - startedAt), sources_ms: (stepsMs.evidence || 0) + (stepsMs.articles || 0), generation_ms: (stepsMs.generation || 0) + (stepsMs.repair || 0) };
+      // Only success receives a feedback capability. No content is captured by after().
+      if (data.success && data.report) data.report.qualityReceipt = signQualityReceipt(event, seed.userId);
+      return NextResponse.json(data, { status: response.status, headers: response.headers });
+    } catch { console.warn('[assistant-quality] receipt_failed'); return response; }
+  }
+  finally { console.info('[joobi-step-timing]', JSON.stringify({ stepsMs })); }
+}
+type RequestStep = 'auth' | 'consent' | 'rate_and_circuit' | 'admission' | 'business' | 'evidence' | 'articles' | 'generation' | 'repair' | 'usage' | 'finalize' | 'pending_costs';
+type Measure = <T>(step: RequestStep, work: () => Promise<T>) => Promise<T>;
+async function respond(req: NextRequest, progress: JoobiProgress, measure: Measure, track: (value: { userId: string; topic: QualityEvent['topic']; asset: QualityEvent['asset'] }) => void) {
+  const startedAt = performance.now();
+  progress('checking');
   // 인증을 설정·레이트리밋·본문 파싱보다 먼저 확인한다.
   // 비로그인 요청이 AI 상태를 추측하거나 잘못된 본문으로 500을 만들지 않게 한다.
-  const userId = await getAuthenticatedUserId(req);
-  if (!userId) {
+  const auth = await measure('auth', () => getAuthOutcome(req));
+  if (auth.status === 'unavailable') return authUnavailableResponse();
+  if (auth.status === 'unauthorized') {
     return NextResponse.json({
-      error: 'AI 분석은 로그인 후 이용할 수 있어요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요!',
+      error: 'AI 분석은 로그인 후 이용할 수 있어요.',
+      code: 'unauthorized',
       limitReached: true,
       loginForMore: true,
     }, { status: 401 });
   }
-  if (!await hasCurrentAdultAiConsent(getServiceClient(), userId)) {
+  const userId = auth.userId;
+  const consent = await measure('consent', () => checkCurrentAdultAiConsent(getServiceClient(), userId));
+  if (consent.status === 'unavailable') {
+    return NextResponse.json({
+      error: 'AI 이용 동의 기록을 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      code: 'adult_consent_unavailable',
+    }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+  }
+  if (consent.status === 'required') {
     return NextResponse.json({
       error: '만 18세 이상 확인 후 AI 분석을 이용할 수 있어요.',
       code: 'adult_consent_required',
     }, { status: 403 });
   }
 
-  if (!GEMINI_KEYS.length) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
-  }
+  let provider = process.env.AI_ANALYSIS_PROVIDER || 'gemini';
 
   // Sliding-window rate limit (시간당 버스트 차단) — 기존 일일 limit과 별개
-  const gate = await enforceRateLimit(req, '/api/ai-analysis', POLICIES.aiAnalysis);
+  const [gate, circuit] = await measure('rate_and_circuit', () => Promise.all([
+    enforceRateLimit(req, '/api/ai-analysis', POLICIES.aiAnalysis),
+    checkCircuit('/api/ai-analysis', CIRCUIT_POLICIES.aiStrict),
+  ]));
   if (!gate.ok) return gate.response;
 
   // Circuit breaker — Gemini 장애 감지 시 503
-  const circuit = await checkCircuit('/api/ai-analysis', CIRCUIT_POLICIES.aiStrict);
   if (circuit.open) {
     console.warn('[CIRCUIT OPEN] /api/ai-analysis:', circuit.reason);
     await gate.finalize(503, 'circuit_open');
@@ -253,7 +328,30 @@ export async function POST(req: NextRequest) {
 
   // 무료 Gemini에는 공개 시장 데이터만 보낸다. 클라이언트가 개인 보유정보를
   // 실수로 포함해도 서버 allowlist 경계에서 제거한 뒤 프롬프트를 만든다.
-  const publicInput = toPublicAiAnalysisInput(body);
+  const assistantRequest = body && typeof body === 'object' && !Array.isArray(body) && body.questionId === ASSISTANT_QUESTION.id;
+  if (assistantRequest) provider = 'anthropic'; // Free questions use Haiku only, with no cross-model fallback.
+  if (!['gemini', 'anthropic'].includes(provider) || (provider === 'anthropic' ? !process.env.ANTHROPIC_API_KEY : !GEMINI_KEYS.length)) {
+    await gate.finalize(503, 'analysis_provider_not_configured');
+    return NextResponse.json({ error: 'AI 설명 연결을 확인하고 있어요. 잠시 후 다시 시도해 주세요.', code: 'analysis_provider_not_configured' }, { status: 503 });
+  }
+  let userQuestion = assistantRequest ? parseAssistantQuestion(body) : null;
+  if (assistantRequest && !userQuestion) {
+    await gate.finalize(400, 'invalid_user_question');
+    return NextResponse.json({ error: '질문을 2~600자로 적고 질문 전송 안내를 확인해 주세요.', code: 'invalid_user_question' }, { status: 400 });
+  }
+  if (userQuestion) {
+    const resolved = resolveAssistantSubject(userQuestion);
+    if (resolved.candidates.length > 1) {
+      await gate.finalize(422, 'ambiguous_question_subject');
+      return NextResponse.json({ success: false, code: 'ambiguous_question_subject', candidates: resolved.candidates.slice(0, 4),
+        error: `어느 종목부터 살펴볼까요? ${resolved.candidates.slice(0, 4).map(item => `${item.label} (${item.symbol})`).join(', ')} 중 하나의 종목 코드를 적어주세요. 이 질문은 이용 횟수에 포함하지 않았어요.` }, { status: 422 });
+    }
+    userQuestion = resolved.question;
+    const profile = userQuestion.symbol ? fundProfile(userQuestion.symbol) : undefined;
+    track({ userId, topic: qualityTopic(userQuestion), asset: !userQuestion.symbol || userQuestion.symbol === GENERAL_SUBJECT ? 'market' : profile?.kind === 'leverage' ? 'leveraged' : profile ? 'fund' : 'stock' });
+  }
+  // The free-text mode never trusts browser-supplied quotes, news, descriptions or portfolio fields.
+  const publicInput = toPublicAiAnalysisInput(assistantRequest ? { symbol: userQuestion!.symbol ?? GENERAL_SUBJECT, price: 0, mentorId: ASSISTANT_QUESTION.mentor, questionId: ASSISTANT_QUESTION.id } : body);
   if (!publicInput) {
     await gate.finalize(400, 'invalid_body');
     return NextResponse.json({ error: '분석할 종목과 시세 정보를 확인해주세요.' }, { status: 400 });
@@ -268,18 +366,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '질문 유형을 다시 선택해주세요.', code: 'invalid_mentor' }, { status: 400 });
   }
 
+  const isFund = isFundAnalysis(publicInput.symbol, `${publicInput.koreanName || ""} ${publicInput.description || ""}`);
   const requestedQuestion = (body as Record<string, unknown>).questionId;
-  const question = stockQuestion(requestedQuestion);
-  if (requestedQuestion !== undefined && (!question || publicInput.mentorId !== question.mentor)) {
+  const chartRequest = requestedQuestion === CHART_QUESTION.id;
+  const chartSessionDate = (body as Record<string, unknown>).chartSessionDate;
+  const requestedChartViews = (body as Record<string, unknown>).chartViews;
+  if (chartRequest && requestedChartViews !== undefined && (!Array.isArray(requestedChartViews) || requestedChartViews.length > CHART_VIEWS.length || !requestedChartViews.every(view => CHART_VIEWS.includes(view as ChartView)))) {
+    await gate.finalize(400, 'invalid_chart_views');
+    return NextResponse.json({ error: '설명할 차트 관점을 다시 골라주세요.', code: 'invalid_chart_views' }, { status: 400 });
+  }
+  if (chartRequest && (typeof chartSessionDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(chartSessionDate) || !/^[A-Z0-9^.=-]{1,32}$/i.test(publicInput.symbol))) {
+    await gate.finalize(400, 'invalid_chart_session');
+    return NextResponse.json({ error: '설명할 차트의 거래일을 확인해 주세요.', code: 'invalid_chart_session' }, { status: 400 });
+  }
+  const question = assistantRequest ? ASSISTANT_QUESTION : chartRequest ? CHART_QUESTION : stockQuestion(requestedQuestion);
+  if (requestedQuestion !== undefined && (!question || publicInput.mentorId !== question.mentor || (!chartRequest && !assistantRequest && !questionsForInstrument(isFund ? "fund" : "stock").some(item => item.id === question.id)))) {
     await gate.finalize(400, 'invalid_question');
     return NextResponse.json({error:'질문 유형을 다시 선택해주세요.',code:'invalid_question'},{status:400});
   }
 
   // ── 멤버십 티어 + 일일 한도 ─────────────────────────────────────
-  const tier = await getUserTier(userId);
+  const [tier, usage, budget, isLev] = await measure('admission', () => Promise.all([
+    getUserTier(userId), getAnalysisUsage(userId), getAiMonthlyBudgetStatus(),
+    publicInput.symbol === GENERAL_SUBJECT ? Promise.resolve(false)
+      : resolveIsSingleLeverage(publicInput.symbol, publicInput.description || publicInput.koreanName || publicInput.symbol),
+  ]));
   const perUserLimit = getTierLimits(tier).analysisDaily;
 
-  const { available: usageAvailable, userCount, totalCount, day } = await getAnalysisUsage(userId!);
+  const { available: usageAvailable, userCount, totalCount, day } = usage;
 
   if (!usageAvailable) {
     await gate.finalize(503, 'daily_usage_unavailable');
@@ -314,7 +428,6 @@ export async function POST(req: NextRequest) {
     }, { status: 429 });
   }
 
-  const budget = await getAiMonthlyBudgetStatus();
   if (!budget.allowed) {
     await gate.finalize(503, budget.reason || 'monthly_budget_limit');
     return NextResponse.json({
@@ -326,14 +439,14 @@ export async function POST(req: NextRequest) {
     }, { status: 503 });
   }
 
+  const pendingCosts: Promise<unknown>[] = [];
   try {
     const { symbol, koreanName, currency: inputCurrency, price, change, changePercent,
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
             recentNews, mentorId,
-            per, eps, week52High, week52Low, sector,
-            description = '',
+            sector,
             timeSeriesContext = '' } = publicInput;
-    const nativeCurrency = getStockCurrency(symbol, inputCurrency);
+    const nativeCurrency = chartRequest ? getStockCurrency(symbol) : getStockCurrency(symbol, inputCurrency);
     const formatNativeAmount = (value: number) => nativeCurrency === 'KRW'
       ? formatKrw(value)
       : `$${value.toLocaleString('en-US', {
@@ -355,10 +468,6 @@ export async function POST(req: NextRequest) {
       bollingerStatus,
       macdStatus,
       volRatio,
-      per,
-      eps,
-      week52High,
-      week52Low,
       sector,
       capturedAt: new Date().toISOString(),
     };
@@ -366,14 +475,41 @@ export async function POST(req: NextRequest) {
     // 단일종목 레버리지·인버스 판정 — 서버 권위(stock_listings.asset_class + 서버 description)
     // 우선, 행 없으면 클라이언트 body(description||koreanName) fallback. 클라이언트 위변조·누락에
     // 의존하지 않는다 (TSLL·NVDU·520100.KS 등은 symbol만으로도 true).
-    const isLev = await resolveIsSingleLeverage(symbol, description || koreanName || symbol);
+
+    let chart: IntradayCandles | undefined;
+    let chartRetrievedAt: string | undefined;
+    let chartFacts: ReturnType<typeof chartSessionFacts> | undefined;
+    if (chartRequest) {
+      if (isLev) {
+        await gate.finalize(400, 'chart_analysis_unsupported');
+        return NextResponse.json({ error: '이 상품은 상품 구조와 보유 위험 설명에서 확인해 주세요.', code: 'chart_analysis_unsupported' }, { status: 400 });
+      }
+      const source = await readLatestIntraday(symbol);
+      if (source.status !== 'ok') {
+        await gate.finalize(503, 'chart_source_unavailable');
+        return NextResponse.json({ error: '차트의 가격 자료를 다시 확인하지 못했어요. 이용 횟수는 차감하지 않았어요.', code: 'chart_source_unavailable' }, { status: 503 });
+      }
+      if (source.data.sessionDate !== chartSessionDate) {
+        await gate.finalize(409, 'chart_session_changed');
+        return NextResponse.json({ error: '새 거래일 자료를 받았어요. 바뀐 차트를 확인한 뒤 해설을 요청해 주세요.', code: 'chart_session_changed', chart: source.data }, { status: 409 });
+      }
+      try {
+        chartFacts = chartSessionFacts(source.data);
+        if (!chartFacts.technical || chartFacts.availableViews.length < 2) throw new Error('insufficient_chart_observations');
+      }
+      catch {
+        await gate.finalize(503, 'chart_source_incomplete');
+        return NextResponse.json({ error: '차트의 모양을 비교할 5분 가격 자료가 아직 충분하지 않아요. 이용 횟수는 차감하지 않았어요.', code: 'chart_source_incomplete' }, { status: 503 });
+      }
+      chart = source.data; chartRetrievedAt = new Date().toISOString();
+    }
 
     // Mentor mode
     const mentor = mentorId ? MENTOR_MAP[mentorId] : null;
 
     const publicOnlyContext = `설명 스타일: 모든 사용자에게 동일한 초보자용 공개정보 해설
 - 개인의 보유 여부, 평단, 수량, 수익률, 목표, 투자성향, 메모를 알지 못하며 추정하지 않는다.
-- 공개 시세·기술 지표·기업 지표·뉴스에서 직접 확인되는 사실만 설명한다.`;
+- 공개 시세·기술 지표·기업 설명·뉴스에서 직접 확인되는 사실만 설명한다.`;
     const layer1WithType = SYSTEM_LAYER1.replace('{USER_TYPE_CONTEXT}', publicOnlyContext);
 
     const privacyRules = `## [개인정보 보호 모드 — 최우선]
@@ -383,7 +519,7 @@ export async function POST(req: NextRequest) {
 - 현재 공개정보와 데이터의 한계, 추가로 확인할 공개 출처만 설명하세요.`;
 
     // Layer 1 (공통) + Layer 2 (멘토/일반) 조합
-    const baseRulesCore = mentor
+    const baseRulesCore = question ? QUESTION_EXPLANATION_RULES : mentor
       ? `${layer1WithType}
 
 당신은 초보자가 종목을 이해하도록 돕는 주식비서 '주비'입니다.
@@ -417,7 +553,11 @@ ${baseRulesCore}`
 
 ${baseRulesCore}`;
 
-    const responseFormat = mentor
+    const responseFormat = question ? `## 응답 형식 (JSON만)
+currentStatus: 질문의 답 2~3문장, keyAdvice: 본문을 되풀이하지 않는 쉬운 추가 설명 2개,
+conclusion: {label:"함께 볼 자료",signal:"neutral",desc:"다음에 확인할 자료와 구체적인 항목 1문장"}.
+newsAnalysis는 질문과 관련된 제공 뉴스가 있을 때만 headline(원래 제목)과 impact(뜻과 미확인 조건)를 최대 3개 넣고, 없으면 []로 작성하세요.
+quote·격언·비유·지표 목록은 넣지 마세요. 뉴스가 없는 질문에 newsContext를 덧붙이지 마세요.` : mentor
       ? `## 응답 형식 (반드시 JSON으로)
 newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건의 뜻·전달 경로·미확인 내용) 문자열을 가진 객체를 최대 3개 넣고, 없으면 빈 배열로 작성하세요. 기사 본문을 읽은 듯이 말하거나 원인을 확정하지 마세요.
 {
@@ -447,7 +587,7 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     { "name": "MACD", "value": "현재 상태", "signal": "neutral" },
     { "name": "거래량", "value": "과거 평균 대비 수준", "signal": "neutral" }
   ],
-  "historicalNote": "제공된 52주 고가·저가 범위에서 현재 가격의 산술적 위치를 1~2문장으로",
+  "historicalNote": "제공된 시계열의 실제 기간과 확인되는 가격 변화만 설명. 시계열이 없으면 과거 비교 자료 미확인을 명시. 제공되지 않은 52주 고가·저가는 만들지 않기",
   "newsAnalysis": [],
   "newsContext": "뉴스 없을 때만: '전달받은 최근 뉴스 자료가 없어 이번 변동의 이유는 확인하지 못했어요'",
   "conclusion": {
@@ -457,9 +597,58 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
   }
 }`;
 
+    const productContext = !chartRequest && (isFund || isLev) ? fundAnalysisContext(symbol) : "";
+    const underlyingSymbol = userQuestion ? fundProfile(symbol)?.underlyingSymbol : undefined;
+    progress('sources');
+    const [businessContext, collectedEvidence] = await Promise.all([
+      measure('business', async () => underlyingSymbol ? companyAnalysisContext(underlyingSymbol) : isFund || isLev || chartRequest || symbol === GENERAL_SUBJECT ? null : companyAnalysisContext(symbol)),
+      userQuestion && assistantNeedsMarketEvidence(userQuestion)
+        ? measure('evidence', () => collectAssistantEvidence(userQuestion!.symbol ?? (userQuestion!.market === 'us' ? '^GSPC' : '^KS11'), userQuestion!.period ?? '1d', isFund || isLev, userQuestion!.sessionReference, userQuestion!.industryFocus)) : undefined,
+    ]);
+    let assistantEvidence: AssistantEvidencePacket | undefined = collectedEvidence ? { ...collectedEvidence, evidence: [...collectedEvidence.evidence] } : undefined;
+    if (assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)) {
+      progress('articles');
+      const articlePacket = assistantEvidence;
+      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => { pendingCosts.push(write); }));
+      assistantEvidence.evidence.push(...articles);
+      if (!articles.length) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
+    }
+    if (assistantEvidence && assistantEvidence.evidence.length === 0) {
+      await gate.finalize(503, 'assistant_sources_unavailable');
+      return NextResponse.json({ success: false, code: 'assistant_sources_unavailable', error: '지금 비교할 가격과 소식을 가져오지 못했어요. 이용 횟수는 사용하지 않았어요.',
+        remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+    }
+    if (assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)
+      && !assistantEvidence.evidence.some(e => e.kind === 'article' || e.kind === 'publication')) {
+      await gate.finalize(503, 'assistant_articles_unavailable');
+      return NextResponse.json({ success: false, code: 'assistant_articles_unavailable', retryable: true,
+        error: '지금 이 질문에 답할 기사 본문이나 발표 자료를 가져오지 못했어요. 제목만으로 이유를 짐작해 답하지 않을게요. 이용 횟수는 사용하지 않았어요.',
+        remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+    }
+    if (!assistantEvidence && userQuestion && (productContext || businessContext?.sources.length)) {
+      assistantEvidence = { version: 1, symbol, period: userQuestion.period ?? '1d', checkedAt: new Date().toISOString(), comparisons: [], evidence: [], gaps: [] };
+    }
+    if (assistantEvidence) {
+      const references = isFund || isLev ? fundAnalysisSources(symbol) : businessContext?.sources.map(source => ({ name: '회사 사업 설명', url: source.url, provider: source.label, retrievedAt: source.reviewedAt })) ?? [];
+      const reference = references.find(source => source.url && /^https:\/\//.test(source.url));
+      if (reference && (productContext || businessContext?.prompt)) assistantEvidence.evidence.push({ id: 'R1', kind: 'reference', scope: 'company', title: isFund || isLev ? `${symbol} 상품 구조` : `${symbol} 회사 사업`,
+        text: (productContext || businessContext!.prompt).slice(0, 5000), url: reference.url!, publisher: reference.provider, publishedAt: reference.retrievedAt || '', checkedAt: reference.retrievedAt || '',
+      });
+      const companySource = underlyingSymbol && businessContext?.sources.find(source => /^https:\/\//.test(source.url));
+      if (companySource && businessContext) assistantEvidence.evidence.push({ id: 'R2', kind: 'reference', scope: 'company', title: `${underlyingSymbol} 회사 사업`,
+        text: businessContext.prompt.slice(0, 5000), url: companySource.url, publisher: companySource.label, publishedAt: companySource.reviewedAt || '', checkedAt: companySource.reviewedAt || '',
+      });
+    }
+    const assistantSources = userQuestion ? assistantQuestionSources(userQuestion) : [];
+    assistantSources.push(...(assistantEvidence?.evidence.map(e => ({ name: e.title, provider: e.publisher, retrievedAt: e.checkedAt, url: e.url,
+      note: `${e.publishedAt} · ${e.kind === 'headline' ? '기사 제목만 확인' : e.kind === 'article' ? '기사 본문 참고 · 보도의 해석과 확정 사실은 다름' : e.kind === 'price' ? '정규장 가격 비교' : e.kind === 'reference' ? '회사·상품 참고 자료, 이번 등락 원인 아님' : '공개 공시 설명'}` })) ?? []));
     const rsiNumber = Number(rsi);
     const hasRsi = Number.isFinite(rsiNumber);
-    const prompt = `${baseRules}
+    const prompt = userQuestion ? assistantQuestionPrompt(userQuestion, { business: businessContext?.prompt, product: productContext, evidence: assistantEvidence }) : chartFacts ? chartExplanationPrompt(symbol, nativeCurrency, chartFacts, Array.isArray(requestedChartViews) ? requestedChartViews.filter((view: ChartView) => chartFacts!.availableViews.includes(view)) : []) : `${baseRules}
+
+${productContext}
+
+${businessContext?.prompt || ''}
 
 ${question ? `## 사용자가 고른 질문\n${question.question}\n${question.focus}\n이 질문을 중심으로 쉬운 뜻 → 공개 자료에서 확인된 사실 → 영향 경로 → 추가 확인할 자료 순서로 답하세요. 자료가 없는 항목은 실제 수치나 사건으로 만들지 마세요.` : ''}
 
@@ -479,9 +668,7 @@ ${question ? `## 사용자가 고른 질문\n${question.question}\n${question.fo
 - 거래량: 평균 대비 ${volRatio ? (volRatio * 100).toFixed(0) + '%' : '데이터 없음'}
 
 ## 기본 지표 (Fundamentals)
-${per != null ? `- PER(주가수익비율): ${per.toFixed(1)}` : '- PER: 데이터 없음'}
-${eps != null ? `- EPS(주당순이익): ${formatNativeAmount(eps)}` : '- EPS: 데이터 없음'}
-${week52High != null && week52Low != null ? `- 52주 고가/저가: ${formatNativeAmount(week52High)} / ${formatNativeAmount(week52Low)}` : ''}
+- 기업 재무 수치(PER·EPS·배당 등)는 제공하지 않음. 최신 수치나 저평가 여부를 추정하지 말고 확인할 공시 자료와 해석 기준만 설명하세요.
 ${sector ? `- 섹터: ${sector}` : ''}
 
 ${timeSeriesContext ? timeSeriesContext + '\n\n' : ''}## 최근 뉴스
@@ -495,7 +682,30 @@ ${responseFormat}`;
     let lastError: unknown;
     let invalidResponse = false;
     let answer: { report: Record<string, unknown>; provider: string; model: string } | undefined;
-    attempts: for (const model of MODELS) {
+    if (provider === 'anthropic') {
+      progress('writing');
+      try {
+        const result = await measure('generation', () => callClaudeAnalysis(prompt, Boolean(mentor), Boolean(question), chartRequest, assistantRequest, userQuestion ? assistantReasoningEffort(userQuestion) : 'medium', userQuestion ? assistantGenerationModel(userQuestion) : 'claude-haiku-5-5'));
+        let parsed: Record<string, unknown> | undefined;
+        let parsedIssue: string | undefined;
+        try {
+          parsed = parseAnalysisResponse(result.text, Boolean(mentor), result.finishReason, chartFacts?.availableViews, assistantRequest);
+          if (userQuestion) {
+            parsed = cleanAssistantAnswer(parsed, assistantEvidence);
+            parsedIssue = assistantReportIssue(parsed, assistantEvidence, true);
+            // Preserve only this known factual failure for the bounded recovery
+            // below. It cannot be delivered without passing all validators again.
+            if (parsedIssue && parsedIssue !== 'event_identity') throw new InvalidAnalysisResponse();
+          }
+        }
+        catch (error) { if (!(error instanceof InvalidAnalysisResponse)) throw error; if (assistantRequest) console.warn('[joobi-validation]', JSON.stringify({ reason: result.finishReason !== 'STOP' ? 'incomplete_generation' : parsed ? assistantReportIssue(parsed, assistantEvidence, true) : 'response_format', priceIssue: parsed ? assistantPriceClaimIssue(parsed, assistantEvidence) : undefined, finishReason: result.finishReason, outputTokens: result.usage?.outputTokens })); parsed = undefined; invalidResponse = true; lastError = error; }
+        const costWrite = recordAiCost({ ...result.usage, feature: 'ai-analysis', provider: 'claude', model: result.model, userId: userId!,
+          latencyMs: result.latencyMs, success: Boolean(parsed) && !parsedIssue, ...(!parsed || parsedIssue ? { errorCode: 'invalid_ai_response' } : {}) });
+        if (assistantRequest) pendingCosts.push(costWrite); else await costWrite;
+        if (parsed) answer = { report: parsed, provider: result.provider, model: result.model };
+      } catch (error) { lastError = error; }
+    }
+    attempts: for (const model of provider === 'gemini' ? MODELS : []) {
       for (const apiKey of shuffledKeys) {
         const keyIndex = GEMINI_KEYS.indexOf(apiKey);
         try {
@@ -504,14 +714,15 @@ ${responseFormat}`;
           const response = await ai.models.generateContent({
             model, contents: prompt,
             config: {
-              responseMimeType: 'application/json', responseJsonSchema: analysisResponseSchema(Boolean(mentor)),
+              responseMimeType: 'application/json', responseJsonSchema: analysisResponseSchema(Boolean(mentor), Boolean(question), chartRequest, assistantRequest),
               maxOutputTokens: 4096, temperature: 0.3, thinkingConfig: { thinkingBudget: 0 },
             },
           });
           const metadata = response.usageMetadata;
           let parsed: Record<string, unknown> | undefined;
           try {
-            parsed = parseAnalysisResponse(response.text || '', Boolean(mentor), response.candidates?.[0]?.finishReason);
+            parsed = parseAnalysisResponse(response.text || '', Boolean(mentor), response.candidates?.[0]?.finishReason, chartFacts?.availableViews, assistantRequest);
+            if (userQuestion) parsed = cleanAssistantAnswer(parsed, assistantEvidence); if (userQuestion && !validAssistantReport(parsed, assistantEvidence, true)) { parsed = undefined; throw new InvalidAnalysisResponse(); }
           } catch (error) {
             if (!(error instanceof InvalidAnalysisResponse)) throw error;
             invalidResponse = true;
@@ -534,10 +745,10 @@ ${responseFormat}`;
       }
     }
 
-    if (!answer) {
+    if (!answer && provider === 'gemini') {
       try {
         const result = await callAiJson({ prompt, temperature: 0.3, maxTokens: 4096, feature: 'ai-analysis', userId: userId! });
-        answer = { report: parseAnalysisResponse(result.text, Boolean(mentor)), provider: result.provider, model: result.model };
+        answer = { report: parseAnalysisResponse(result.text, Boolean(mentor), undefined, chartFacts?.availableViews, assistantRequest), provider: result.provider, model: result.model };
       } catch (error) {
         if (error instanceof InvalidAnalysisResponse) invalidResponse = true;
         // Never log provider payloads, which can contain request text or credentials.
@@ -546,16 +757,93 @@ ${responseFormat}`;
     }
 
     if (answer) {
-      const structurallySafe = isLev ? enforceLeverageReport(answer.report) : answer.report;
-      const { report: governedReport, blockedCount } = governAiAnalysisReport(structurallySafe);
-      if (blockedCount > 0) console.warn(`[AI analysis] ${blockedCount} directional text field(s) blocked`);
-      const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: answer.provider, aiModel: answer.model });
-      await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: auditSnapshot });
-      const usageRecorded = await recordUsage(ip, symbol, mentorId, userId!, day);
+      progress('validating');
+      if (userQuestion) answer.report = cleanAssistantAnswer(answer.report, assistantEvidence);
+      const factualIssue = userQuestion ? assistantReportIssue(answer.report, assistantEvidence, true) : undefined;
+      if (factualIssue && factualIssue !== 'event_identity') {
+        await gate.finalize(502, 'invalid_user_answer');
+        return NextResponse.json({ error: '답변을 확인하지 못했어요. 이용 횟수는 차감하지 않았어요.', code: 'invalid_user_answer' }, { status: 502 });
+      }
+      if (userQuestion) answer.report.followUps = assistantFollowUps(answer.report.followUps as string[]);
+      if (question) delete answer.report.quote;
+      if (chartFacts?.technical && Array.isArray(answer.report.chartViews)) {
+        const observations = chartObservationText(chartFacts.technical, nativeCurrency);
+        answer.report.chartViews = answer.report.chartViews.map(item => ({ ...item, observed: observations[item.view as ChartView] }));
+      }
+      // Direct questions already pass the neutral answer contract and the same
+      // directional-text guard below. The legacy mentor replacement would erase
+      // their answer and then reject its own "추천하지 않고, 매수" warning.
+      const structurallySafe = isLev && !assistantRequest ? enforceLeverageReport(answer.report) : answer.report;
+      const initialGuard = governAiAnalysisReport(structurallySafe, { educationalQuestion: assistantRequest });
+      let { report: governedReport, blockedCount } = initialGuard;
+      const { blockedFields } = initialGuard;
+      let contextIssue = factualIssue === 'event_identity' ? 'event_identity' : userQuestion ? assistantContextIssue(answer.report, userQuestion) : undefined;
+      if (contextIssue) console.warn('[AI analysis] context validation', JSON.stringify({ reason: contextIssue }));
+      if (blockedCount > 0) console.warn('[AI analysis] answer validation', JSON.stringify({ blockedCount, blockedFields }));
+      // Only a rejected direct answer gets one bounded regeneration. Reuse sources,
+      // recheck budget, validate again, and charge user usage only after acceptance.
+      // Leave enough room for the provider's 45s limit and final database writes.
+      if ((blockedCount > 0 || contextIssue) && userQuestion && provider === 'anthropic' && performance.now() - startedAt < 35_000) {
+        await Promise.allSettled(pendingCosts);
+        const repairBudget = await getAiMonthlyBudgetStatus();
+        if (repairBudget.allowed) {
+          try {
+            progress('writing');
+            const repaired = await measure('repair', () => callClaudeAnalysis(assistantRepairPrompt(prompt, contextIssue), Boolean(mentor), Boolean(question), false, true, 'medium', assistantGenerationModel(userQuestion)));
+            let accepted = false;
+            try {
+              const parsed = cleanAssistantAnswer(parseAnalysisResponse(repaired.text, Boolean(mentor), repaired.finishReason, undefined, true), assistantEvidence);
+              if (validAssistantReport(parsed, assistantEvidence, true)) {
+                parsed.followUps = assistantFollowUps(parsed.followUps as string[]);
+                const checked = governAiAnalysisReport(parsed, { educationalQuestion: true });
+                const repairedContextIssue = assistantContextIssue(parsed, userQuestion);
+                if (checked.blockedCount === 0 && !repairedContextIssue) {
+                  governedReport = checked.report;
+                  blockedCount = 0;
+                  contextIssue = undefined;
+                  accepted = true;
+                } else console.warn('[AI analysis] repair validation', JSON.stringify({ blockedCount: checked.blockedCount, blockedFields: checked.blockedFields, contextIssue: repairedContextIssue }));
+              }
+            } catch (error) { if (!(error instanceof InvalidAnalysisResponse)) throw error; }
+            finally {
+              pendingCosts.push(recordAiCost({ ...repaired.usage, feature: 'ai-analysis', provider: 'claude', model: repaired.model, userId: userId!, latencyMs: repaired.latencyMs, success: accepted, ...(!accepted ? { errorCode: 'invalid_user_answer' } : {}) }));
+            }
+            progress('validating');
+          } catch { /* No loop or provider switch; the original rejection remains. */ }
+        }
+      }
+      if ((chartRequest || assistantRequest) && (blockedCount > 0 || contextIssue)) {
+        const code = assistantRequest ? 'invalid_user_answer' : 'invalid_chart_explanation';
+        await gate.finalize(502, code);
+        return NextResponse.json({ success: false, code, error: assistantRequest ? '답변에 확인되지 않은 해석이 있어 표시하지 않았어요. 이용 횟수는 차감하지 않았어요.' : '차트 설명에 확인되지 않은 해석이 있어 표시하지 않았어요. 이용 횟수는 차감하지 않았어요.', remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 502 });
+      }
+      // Article passages are model inputs, not a republication of the publisher's body to the browser.
+      if (userQuestion && assistantEvidence) governedReport.assistantEvidence = { ...assistantEvidence,
+        evidence: assistantEvidence.evidence.map(e => e.kind === 'article' ? { ...e, text: '답변 작성에 기사 본문을 참고했어요. 전체 내용은 원문에서 읽을 수 있어요.' } : e) };
+      const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: answer.provider, aiModel: answer.model,
+        sourceDetails: chart ? [{ name: '5분 가격 자료', provider: 'Yahoo Finance', retrievedAt: chartRetrievedAt ?? auditSnapshot.capturedAt, note: chart.sessionDate + ' 정규장 · 자료를 받은 구간만 포함' }] : [
+          ...(assistantRequest ? assistantSources : [{ name: '시세', provider: '요청에 포함된 가격', retrievedAt: auditSnapshot.capturedAt, note: '응답 생성 시점의 실시간 가격을 뜻하지 않아요' }]),
+          ...(timeSeriesContext || [rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio].some(value => value != null && value !== '')
+            ? [{ name: '가격·거래량 자료', provider: '요청에 포함된 차트·지표', retrievedAt: auditSnapshot.capturedAt }] : []),
+          ...(recentNews ? [{ name: '뉴스 제목', provider: '요청에 포함된 뉴스', retrievedAt: auditSnapshot.capturedAt, note: '기사 본문 확인과 구분해요' }] : []),
+          ...(businessContext?.sources.map(source => ({ name: '회사 사업 설명', provider: source.label,
+            retrievedAt: source.reviewedAt || auditSnapshot.capturedAt, note: '사업 설명 자료 확인일', url: source.url })) || []),
+          ...(isFund || isLev ? fundAnalysisSources(symbol) : []),
+        ] });
+      if (!assistantRequest) await sampleAiOutput({ feature: 'ai-analysis', symbol, output: finalReport, sourceSnapshot: chartFacts ? { symbol, currency: nativeCurrency, chartFacts, snapshotId: chart?.snapshotId, capturedAt: auditSnapshot.capturedAt } : auditSnapshot });
+      const usageRecorded = await measure('usage', () => recordUsage(ip, symbol, mentorId, userId!, day));
+      if (!usageRecorded) {
+        // The insert and its bounded receipt check did not confirm persistence.
+        // Never resend the write or invent a remaining count.
+        await measure('finalize', () => gate.finalize(503, 'usage_record_failed'));
+        return NextResponse.json({ success: false, code: 'usage_record_failed',
+          error: '이용 횟수 기록을 확인하지 못해 답변을 전달하지 못했어요. 잠시 후 남은 횟수를 다시 확인해 주세요.',
+        }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+      }
       const newTotal = totalCount + 1;
       if (newTotal === Math.floor(DAILY_LIMIT_TOTAL * 0.8) || newTotal >= DAILY_LIMIT_TOTAL) void sendSlackAlert(newTotal);
-      await gate.finalize(200, usageRecorded ? undefined : 'usage_record_failed');
-      return NextResponse.json({ success: true, report: finalReport, remaining: perUserLimit - userCount - 1, dailyLimit: perUserLimit, tier, day });
+      await measure('finalize', () => gate.finalize(200));
+      return NextResponse.json({ success: true, report: finalReport, ...(userQuestion ? { subject: { symbol: userQuestion.symbol ?? GENERAL_SUBJECT, market: userQuestion.market, period: userQuestion.period, sessionReference: userQuestion.sessionReference, industryFocus: userQuestion.industryFocus } } : {}), remaining: perUserLimit - userCount - 1, dailyLimit: perUserLimit, tier, day, ...(chart ? { chart } : {}) }, { headers: { 'Cache-Control': 'private, no-store' } });
     }
     if (invalidResponse) {
       await gate.finalize(502, 'invalid_ai_response');
@@ -589,8 +877,11 @@ ${responseFormat}`;
     await gate.finalize(500, finalCode);
     return NextResponse.json({ error: userMsg }, { status: 500 });
   } catch (e: unknown) {
-    console.error('[주비 AI] unexpected error:', e);
+    console.error('[주비 AI] unexpected error:', assistantRequest ? 'assistant_request_failed' : e);
     await gate.finalize(500, 'unexpected');
     return NextResponse.json({ error: 'AI 분석에 실패했어요. 잠시 후 다시 시도해주세요.' }, { status: 500 });
+  } finally {
+    // Overlap accounting with useful work, but do not drop it on success or error.
+    await measure('pending_costs', () => Promise.allSettled(pendingCosts));
   }
 }

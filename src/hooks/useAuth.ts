@@ -4,35 +4,77 @@ import { supabase } from '@/lib/supabase';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { clearUserStorage } from '@/lib/userStorage';
 import { resolveOAuthRedirect } from '@/lib/oauthRedirect';
+import { preserveUnsyncedPortfolio, type LocalPortfolio } from '@/lib/portfolioIdentity';
 import type { User, Session } from '@supabase/supabase-js';
+
+function preserveOutgoingEdits(ownerId: string | null) {
+  const state = usePortfolioStore.getState();
+  const persisted = usePortfolioStore.persist.getOptions().partialize!(state) as LocalPortfolio;
+  preserveUnsyncedPortfolio(ownerId, persisted, state.portfolioSyncStatus, localStorage);
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   // 정합성 결함 C2-data 수정 — 직전 user.id 추적해 계정 전환 감지
   const prevUserIdRef = useRef<string | null>(null);
+  const retry = useCallback(() => {
+    // A failed SDK initialization can outlive this hook. Re-running getSession
+    // on the same client repeats that failure; a reload creates a fresh client.
+    // Keep persisted sessions and edits, and never turn a retry into sign-out.
+    try { preserveOutgoingEdits(prevUserIdRef.current); }
+    catch { setError(true); setLoading(false); return; }
+    window.location.reload();
+  }, []);
 
   useEffect(() => {
     let active = true;
     let receivedAuthEvent = false;
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // 늦은 초기 응답이 더 최신 로그인/로그아웃 이벤트를 덮어쓰지 않는다.
+    const fail = () => {
       if (!active || receivedAuthEvent) return;
+      // Keep the identity boundary closed; never treat a failed lookup as logout.
+      // A timeout only changes the waiting screen. The same lookup may still
+      // recover; only a newer auth event may supersede its eventual result.
+      setError(true);
+      setLoading(false);
+    };
+    const timer = setTimeout(fail, 6000);
+    supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+      if (sessionError) { fail(); return; }
+      if (!active || receivedAuthEvent) return;
+      clearTimeout(timer);
       const uid = session?.user?.id ?? null;
       setSession(session);
       setUser(session?.user ?? null);
       prevUserIdRef.current = uid;
+      setError(false);
       setLoading(false);
-    });
+    }).catch(fail);
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!active) return;
+      // The SDK also emits INITIAL_SESSION(null) when its initial read fails.
+      // getSession carries the error, so let that result distinguish a guest
+      // from an unavailable account. A real SIGNED_OUT still closes access.
+      if (_event === 'INITIAL_SESSION' && !newSession) return;
       receivedAuthEvent = true;
+      clearTimeout(timer);
+      setError(false);
       const prevId = prevUserIdRef.current;
       const newId = newSession?.user?.id ?? null;
+
+      if (prevId && prevId !== newId) {
+        try { preserveOutgoingEdits(prevId); }
+        catch {
+          // Close the reader boundary before exposing the new identity. Keep the original edits intact.
+          setError(true);
+          setLoading(false);
+          return;
+        }
+      }
 
       // 계정 전환(A → B) 감지 시 이전 사용자 데이터 즉시 정리.
       // 직접 OAuth 전환·다른 탭 로그인 등 signOut 미경유 케이스 대응.
@@ -67,6 +109,7 @@ export function useAuth() {
 
     return () => {
       active = false;
+      clearTimeout(timer);
       subscription.unsubscribe();
     };
   }, []);
@@ -80,17 +123,32 @@ export function useAuth() {
   }, []);
 
   const signInWithKakao = useCallback(async (redirectPath = '/') => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'kakao',
-      options: {
-        redirectTo: resolveOAuthRedirect(window.location.origin, redirectPath),
-        scopes: 'profile_nickname profile_image',
-      },
-    });
-    if (error) console.error('Kakao login error:', error);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'kakao',
+        options: {
+          redirectTo: resolveOAuthRedirect(window.location.origin, redirectPath),
+          scopes: 'profile_nickname profile_image',
+        },
+      });
+      if (error) {
+        console.error('Kakao login error:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Kakao login error:', error);
+      return false;
+    }
   }, []);
 
   const clearSession = useCallback(async (redirect: '/' | '/?login=1') => {
+    try { preserveOutgoingEdits(prevUserIdRef.current); }
+    catch {
+      setError(true);
+      setLoading(false);
+      return;
+    }
     // 원격 로그아웃 응답을 기다리는 동안에도 이전 계정의 조회/저장을 중단한다.
     clearUserStorage();
     usePortfolioStore.getState().resetPortfolio();
@@ -117,5 +175,5 @@ export function useAuth() {
   const signOut = useCallback(() => clearSession('/'), [clearSession]);
   const switchAccount = useCallback(() => clearSession('/?login=1'), [clearSession]);
 
-  return { user, session, loading, signInWithGoogle, signInWithKakao, signOut, switchAccount };
+  return { user, session, loading, error, retry, signInWithGoogle, signInWithKakao, signOut, switchAccount };
 }

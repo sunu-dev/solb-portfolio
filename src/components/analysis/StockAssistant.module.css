@@ -29,3 +29,7 @@
 }
 
 .close:hover { background: var(--bg-subtle); color: var(--text-primary); }
+
+.section { margin:0; }
+.section .questions { margin:0; padding:0; border:0; }
+.answer { padding:20px 0; font-size:16px; }

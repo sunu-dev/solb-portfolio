@@ -27,6 +27,22 @@ describe('complete sector artwork coverage', () => {
       expect(industryArtwork(group.id)?.id, raw).toBe(scene);
     }
   });
+  it('ships every selected original image and animation with meaningful alternative text', () => {
+    for (const [id, art] of Object.entries(SECTOR_ARTWORK)) {
+      expect(art.alt.trim().length, id).toBeGreaterThan(10);
+      for (const asset of [art.image, art.imageDark, art.motionScene, art.motionSceneDark].filter(Boolean) as string[]) {
+        const file = `${process.cwd()}/public${asset}`;
+        expect(existsSync(file), file).toBe(true);
+        const contents = readFileSync(file);
+        if (asset.endsWith('.png')) {
+          expect(contents.subarray(0, 8).toString('hex'), file).toBe('89504e470d0a1a0a');
+        } else {
+          expect(contents.toString(), file).toContain('<svg');
+          expect(contents.toString(), file).not.toMatch(/<script|<foreignObject|(?:href|src)=["']https?:/i);
+        }
+      }
+    }
+  });
   it('ships accessible self contained SVGs in both themes with no runtime scripts or remote resources', () => {
     for (const [id, scene] of Object.entries(SECTOR_ARTWORK)) {
       expect(scene.partCount, id).toBeGreaterThanOrEqual(40);

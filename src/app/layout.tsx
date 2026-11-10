@@ -3,11 +3,9 @@ import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
-import { Geist } from "next/font/google";
 import localFont from 'next/font/local';
 import { cn } from "@/lib/utils";
 
-const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 const joobiWordmark = localFont({
   src: '../../public/fonts/brand/joobi-single-day-regular.ttf',
   weight: '400',
@@ -42,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={cn("h-full antialiased", "font-sans", geist.variable, joobiWordmark.variable)} style={{ colorScheme: 'light' }}>
+    <html lang="ko" className={cn("h-full antialiased", "font-sans", joobiWordmark.variable)} style={{ colorScheme: 'light' }}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="manifest" href="/manifest.json" />

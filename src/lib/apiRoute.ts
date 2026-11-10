@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { isAdminIdentity, resolveUserOutcome, type ResolvedUser } from '@/lib/adminAuth';
 import {
   POLICIES,
@@ -68,13 +68,18 @@ export interface RouteConfig {
    * `false`면 비활성 — cron처럼 호출자가 신뢰 가능한 경우만.
    */
   rateLimit?: RateLimitPolicy | false;
+  /** Public reads can finish before bounded telemetry writes. Admission stays synchronous. */
+  deferLog?: boolean;
   handler: (ctx: RouteContext) => Promise<Response> | Response;
 }
 
-type NextRouteHandler = (
-  req: NextRequest,
-  ctx?: { params?: Promise<Record<string, string | string[]>> },
-) => Promise<Response>;
+type NextHandlerContext = { params: Promise<Record<string, string | string[]>> };
+type NextRouteHandler = {
+  (req: NextRequest): Promise<Response>;
+  // Next's generated route validator reads the last overload. Context, when
+  // supplied by Next, always carries the params promise; direct calls may omit it.
+  (req: NextRequest, ctx: NextHandlerContext): Promise<Response>;
+};
 
 function jsonError(status: number, code: string, message: string) {
   return NextResponse.json({ error: message, code }, { status });
@@ -97,7 +102,7 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
     ? null
     : (config.rateLimit ?? POLICIES.general);
 
-  return async function routeHandler(req, nextCtx) {
+  return async function routeHandler(req: NextRequest, nextCtx?: NextHandlerContext) {
     const started = Date.now();
     const ip = getClientIp(req);
 
@@ -127,6 +132,7 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
 
     const userId = user?.id ?? null;
     const userKey = userId || `ip:${ip}`;
+    const meteringStarted = Date.now();
 
     // ── 2. 레이트리밋 ──────────────────────────────────────────────────────
     // 신원을 이미 확인했으므로 enforceRateLimit()을 쓰지 않는다
@@ -134,20 +140,23 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
     if (policy) {
       const check = await checkRateLimit(config.name, userKey, !!userId, policy);
       if (!check.allowed) {
-        await recordApiCall({
+        const record = () => recordApiCall({
           endpoint: config.name, userKey, userId, ip,
           status: 429, latencyMs: Date.now() - started, errorCode: 'rate_limit',
         });
+        if (config.deferLog) after(record); else await record();
         return rateLimitResponse(check);
       }
     }
 
     // ── 3. 핸들러 ──────────────────────────────────────────────────────────
     let status = 500;
+    const handlerStarted = Date.now();
     let errorCode: string | undefined;
     try {
       const params = nextCtx?.params ? await nextCtx.params : undefined;
       const res = await config.handler({ req, user, userId, isAdmin, params });
+      if (config.deferLog) res.headers.append('Server-Timing', `admission;dur=${handlerStarted - meteringStarted}, handler;dur=${Date.now() - handlerStarted}`);
       status = res.status;
       if (status >= 400) errorCode = `http_${status}`;
       return res;
@@ -158,10 +167,11 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
       return jsonError(500, 'internal_error', '일시적인 오류가 났어요. 잠시 후 다시 시도해주세요.');
     } finally {
       // 관측은 성공·실패 모두 남긴다 — 레이트리밋 집계의 근거이기도 하다.
-      await recordApiCall({
+      const record = () => recordApiCall({
         endpoint: config.name, userKey, userId, ip,
         status, latencyMs: Date.now() - started, errorCode,
       });
+      if (config.deferLog) after(record); else await record();
     }
   };
 }

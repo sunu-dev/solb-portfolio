@@ -1,20 +1,33 @@
 import { unstable_cache } from 'next/cache';
 import snapshot from '@/data/economic-schedule.json';
 import { MARKET_HOLIDAYS_2026 } from '@/config/marketHolidays';
-import { SOURCES, parseBokCalendar, parseCalendarIcs, parseFedCalendar, parseFredHistory } from './economicSources';
+import { BLS_RELEASE_SCHEDULES, SOURCES, parseBlsReleaseSchedule, parseBokCalendar, parseCalendarIcs, parseFedCalendar, parseFredHistory } from './economicSources';
 import type { EconomicEvent, EconomicFeed, EconomicResult } from './economicEvents';
+import { boundedFetch } from './boundedFetch';
+import { withDeadline } from './withDeadline';
 
 async function text(url: string) {
-  const r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10000) });
-  if (!r.ok) throw new Error(`source unavailable (${r.status})`);
-  return r.text();
+  return boundedFetch(url, 4500, response => response.text(), { cache: 'no-store', headers: {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36',
+    Accept: 'text/html, text/calendar, text/csv, */*;q=0.8', 'Accept-Language': 'en-US,en;q=0.9',
+  } });
 }
-const schedules = unstable_cache(async (source: keyof typeof SOURCES) => {
+export async function readEconomicSchedule(source: keyof typeof SOURCES): Promise<EconomicEvent[]> {
+  if (source === 'bls') {
+    const parts = await Promise.all((Object.keys(BLS_RELEASE_SCHEDULES) as (keyof typeof BLS_RELEASE_SCHEDULES)[])
+      .map(async kind => {
+        const events = parseBlsReleaseSchedule(await text(BLS_RELEASE_SCHEDULES[kind]), kind);
+        if (!events.length) throw new Error(`empty BLS ${kind} release table`);
+        return events;
+      }));
+    return parts.flat();
+  }
   const raw = await text(SOURCES[source]);
   const events = source === 'fed' ? parseFedCalendar(raw) : source === 'bok' ? parseBokCalendar(raw) : parseCalendarIcs(raw, source);
   if (!events.length) throw new Error('empty calendar');
   return events;
-}, ['economic-schedules-v1'], { revalidate: 3600 });
+}
+const schedules = unstable_cache(readEconomicSchedule, ['economic-schedules-v2'], { revalidate: 3600 });
 const history = unstable_cache(async (series: string) => {
   const start = new Date(); start.setUTCFullYear(start.getUTCFullYear() - 2);
   const rows = parseFredHistory(await text(`https://fred.stlouisfed.org/graph/fredgraph.csv?id=${series}&cosd=${start.toISOString().slice(0,10)}`), series);
@@ -61,12 +74,16 @@ export async function getEconomicFeed(): Promise<EconomicFeed> {
   const items = new Map((snapshot.events as EconomicEvent[]).map(e => [e.key, e]));
   const ids = ['DFEDTARL','DFEDTARU','CPIAUCNS','PCEPI','UNRATE','PAYEMS'];
   const [calendars, rows] = await Promise.all([
-    Promise.allSettled((Object.keys(SOURCES) as (keyof typeof SOURCES)[]).map(key => schedules(key))),
-    Promise.allSettled(ids.map(id => history(id))),
+    Promise.allSettled((Object.keys(SOURCES) as (keyof typeof SOURCES)[]).map(key => withDeadline(schedules(key), 5500))),
+    Promise.allSettled(ids.map(id => withDeadline(history(id), 5500))),
   ]);
   calendars.forEach((res, i) => {
     if (res.status === 'fulfilled') res.value.forEach(e => items.set(e.key,e));
-    else warnings.push(`${['연준','미국 노동통계국','미국 경제분석국','한국은행'][i]} 일정: 마지막 확인 목록을 사용 중이에요.`);
+    else {
+      console.warn('Economic schedule source unavailable:', { source: Object.keys(SOURCES)[i],
+        reason: res.reason instanceof Error ? res.reason.message : 'unknown' });
+      warnings.push(`${['연준','미국 노동통계국','미국 경제분석국','한국은행'][i]} 일정: ${snapshot.checkedAt.slice(0,10)}에 확인한 목록이에요. 변경 여부는 공식 일정을 확인해주세요.`);
+    }
   });
   const data: Record<string, Map<string, number>> = {};
   rows.forEach((res,i) => { if (res.status === 'fulfilled') data[ids[i]] = new Map(res.value); });

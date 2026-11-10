@@ -10,8 +10,8 @@
 //
 // 버전 개정 시 이 파일 한 곳만 수정하면 다음이 모두 동기화된다:
 //   - /terms, /privacy 페이지 시행일·버전 표기
-//   - LoginModal 동의 sessionStorage 기록값 (terms/privacy)
-//   - useAuth user_consents DB INSERT 값 (terms/privacy/age_18_plus)
+//   - 로그인 후 AgeEligibilityGate의 동의 표시·저장값
+//   - signupEligibility의 현행 버전 확인 및 이전 pendingConsent 호환 저장
 //
 // 드리프트 사고 이력 (2026-05-29 수정): 약관 페이지는 v3로 개정됐으나
 // LoginModal 동의 상수는 v2로 남아, 신규 가입자가 화면에서 v3에 동의해도

@@ -214,34 +214,6 @@
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
 }
-
-.badges summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 48px;
-  padding: 10px;
-  border-radius: 12px;
-  color: var(--text-body);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  list-style: none;
-}
-
-.badges summary::-webkit-details-marker {
-  display: none;
-}
-
-.badges summary svg {
-  flex-shrink: 0;
-}
-
-.badges[open] summary svg {
-  transform: rotate(90deg);
-}
-
 .badgeContent {
   padding: 0 10px;
 }

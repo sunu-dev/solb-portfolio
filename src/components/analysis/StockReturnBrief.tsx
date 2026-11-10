@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { ArrowRight, Check, Newspaper } from "lucide-react";
 import { useNow } from "@/hooks/useNow";
 import type { NewsItem } from "@/config/constants";
 import { useDiscoveryHistory } from "@/hooks/useDiscoveryHistory";
@@ -10,7 +11,9 @@ import {
   type DiscoverySnapshot,
 } from "@/lib/stockDiscovery";
 import { discoveryTags } from "@/config/stockQuestions";
+import { lessonById } from "@/lib/learningNavigation";
 import { usageEvent } from "@/lib/usageTelemetry";
+import readingUI from '../ui/ReadingUI.module.css';
 import styles from "./StockReturnBrief.module.css";
 interface Props {
   owner: string;
@@ -20,7 +23,10 @@ interface Props {
   price: number;
   quoteAt?: number;
   currency: string;
-  onLearn: (topic?: string) => void;
+  onLearn: (topic: string, originId: string) => void;
+  onRetryNews?: () => void;
+  renderExplanation?: (originId: string) => ReactNode;
+  isFund?: boolean;
 }
 const date = (time: number) =>
   new Date(time).toLocaleString("ko-KR", {
@@ -48,7 +54,10 @@ function ReturnVisit({
   quoteAt,
   currency,
   onLearn,
+  onRetryNews,
+  renderExplanation,
   previous,
+  isFund,
 }: Props & { previous?: DiscoverySnapshot }) {
   // Acknowledge updates storage for the NEXT visit; it never erases the comparison being read now.
   const [baseline] = useState(previous);
@@ -67,16 +76,20 @@ function ReturnVisit({
     current,
     items,
   );
-  const shown = (baseline ? newItems : news).slice(0, 5);
+  const freshKeys = new Set(newItems.map(newsKey));
+  const shown = [...newItems, ...news.filter(item => !freshKeys.has(newsKey(item)))].slice(0, 5);
   current.news = shown.map(newsKey);
-  const topics = discoveryTags(news.map((item) => item.title).join(" "));
-  const watch = topics.includes("backlog")
+  const topics = [...new Set(news.flatMap(item => discoveryTags(item.title)))];
+  const backgroundTopics = shown.map(item => isFund ? 'watch' : discoveryTags(item.title)[0] ?? 'evidence');
+  const watch = isFund
+    ? "운용사 공지에서 투자 대상·배수·분배금·분할 및 병합 여부가 바뀌었는지 확인해요. 상품 구조와 실제 가격 변동 원인은 나눠 봐요."
+    : topics.includes("backlog")
     ? "계약 규모뿐 아니라 납품 시기·취소 조건·매출 반영을 회사 원문에서 확인해요."
     : topics.includes("earnings") || topics.includes("guidance")
       ? "다음 실적 자료에서는 같은 기간의 매출·이익과 회사 전망이 어떻게 달라지는지 확인해요."
       : topics.includes("rates")
         ? "금리 발표 뒤에는 이 회사의 차입 조건과 고객 수요가 실제로 바뀌었는지 확인해요."
-        : "다음 공시나 실적 자료가 나오면 매출·이익·현금흐름의 변화와 회사가 밝힌 이유를 함께 확인해요.";
+        : undefined;
   const staleQuote = !current.quoteAt || now - current.quoteAt > 36 * 3600000;
   return (
     <section
@@ -84,18 +97,19 @@ function ReturnVisit({
       data-return-brief
       aria-label="지난 확인 이후의 자료"
     >
-      <p className={styles.eyebrow}>
-        {baseline
-          ? `${date(baseline.viewedAt)}에 확인한 뒤`
-          : "처음 살펴보는 종목이에요"}
-      </p>
-      <h3>
+      <header className={styles.header}>
+      <div>
+      <p className={styles.eyebrow}>{baseline ? `${date(baseline.viewedAt)}에 확인한 뒤` : "뉴스와 공시 · 최근 7일"}</p>
+      <h3 className={styles.title}>
         {baseline
           ? "지난번 이후 무엇이 달라졌나요?"
-          : "지금 확인할 소식부터 볼까요?"}
+          : "이 종목의 최근 소식"}
       </h3>
+      </div>
+      {shown.length > 0 && <span className={styles.period}>{shown.length}건</span>}
+      </header>
       {priceChange !== null && (
-        <p data-return-price>
+        <p className={styles.priceChange} data-return-price>
           지난 확인 시세 대비{" "}
           <strong>
             {priceChange > 0 ? "+" : ""}
@@ -115,22 +129,23 @@ function ReturnVisit({
       {newsStatus === "loading" ? (
         <p role="status">최근 소식을 확인하고 있어요…</p>
       ) : newsStatus === "error" ? (
-        <p role="status">
+        <div><p role="status">
           뉴스를 가져오지 못했어요. 새 소식이 없는 것으로 판단하지 않아요.
-        </p>
+        </p>{onRetryNews && <button type="button" onClick={onRetryNews}>뉴스 다시 불러오기</button>}</div>
       ) : (
         <>
           {shown.length ? (
             <>
-              <p>
+              <p className={styles.newsCount}>
                 {baseline
                   ? `지난 확인 뒤 발행된 새 기사 ${newItems.length}건`
                   : "최근 7일 안에 발행된 기사"}{" "}
                 · 제목에서 찾은 소식이에요.
               </p>
               <ul>
-                {shown.map((item) => (
+                {shown.map((item, index) => (
                   <li key={newsKey(item)}>
+                    {baseline && freshKeys.has(newsKey(item)) && <span className={styles.fresh}>지난 확인 뒤 발행</span>}
                     <a
                       href={item.link}
                       target="_blank"
@@ -143,39 +158,40 @@ function ReturnVisit({
                         {date(Date.parse(item.pubDate))} · 원문 새 창
                       </span>
                     </a>
-                    <button
+                    {(backgroundTopics.indexOf(backgroundTopics[index]) === index || !!renderExplanation?.(`news-${newsKey(item)}`)) && <button
                       type="button"
                       className={styles.backgroundLink}
                       data-news-background
-                      onClick={() =>
-                        onLearn(discoveryTags(item.title)[0] ?? "evidence")
-                      }
+                      data-reading-return={`news-${newsKey(item)}`}
+                      id={`news-background-${newsKey(item)}`}
+                      aria-expanded={!!renderExplanation?.(`news-${newsKey(item)}`)}
+                      onClick={() => onLearn(discoveryTags(item.title)[0] ?? "evidence", `news-${newsKey(item)}`)}
                     >
-                      이 소식의 배경은 무엇일까요? →
-                    </button>
+                      {isFund ? "상품 구조 알아보기" : `관련 개념 · ${lessonById(discoveryTags(item.title)[0] ?? "evidence")?.title ?? "자료 확인하기"}`} →
+                    </button>}
+                    {renderExplanation?.(`news-${newsKey(item)}`)}
                   </li>
                 ))}
               </ul>
             </>
           ) : (
-            <p data-return-unchanged>
+            <div className={styles.empty} data-return-unchanged>
+              <Newspaper size={22} strokeWidth={1.5} aria-hidden="true" />
+              <div><p className={styles.emptyTitle}>확인된 새 기사가 아직 없어요</p><p>
               {baseline
                 ? "현재 제공된 자료에서 지난 확인 이후 발행된 새 기사는 찾지 못했어요."
                 : "최근 7일 안의 날짜를 확인할 수 있는 기사가 없어요."}{" "}
               모든 소식을 확인했다는 뜻은 아니에요.
-            </p>
+              </p>{onRetryNews && <button type="button" onClick={onRetryNews}>뉴스 다시 불러오기</button>}</div>
+            </div>
           )}
-          <small>
-            기사 제목은 본문 요약이나 주가 변동의 원인 확인이 아니에요. 뉴스는
-            제공 범위에서, 시세는 위 기준 시각으로 비교해요.
-          </small>
         </>
       )}
-      <p>
-        <strong>다음에 확인할 것</strong>
-        <br />
-        {watch}
-      </p>
+      {watch && newsStatus === 'ok' && shown.length > 0 && <aside className={styles.watch}>
+        <span className={styles.watchIcon} aria-hidden="true"><ArrowRight size={18} /></span>
+        <div><h4>다음에 확인할 것</h4><p>{watch}</p></div>
+      </aside>}
+      <footer className={styles.footer}>
       <div className={styles.actions}>
         <button
           type="button"
@@ -200,17 +216,16 @@ function ReturnVisit({
             usageEvent("brief_read");
           }}
         >
-          {acknowledged ? "이번 자료를 확인했어요" : "여기까지 확인했어요"}
-        </button>
-        <button type="button" onClick={() => onLearn(topics[0] ?? "evidence")}>
-          관련 개념 더 알아보기 →
+          {acknowledged && <Check size={15} aria-hidden="true" />}{acknowledged ? "이번 자료를 확인했어요" : "여기까지 확인했어요"}
         </button>
       </div>
-      <small>
-        {storageError
-          ? "브라우저 저장이 제한돼 다음 방문의 비교 기록을 저장하지 못했어요."
-          : "확인 버튼을 누른 시점부터 다음 방문에 비교해요. 이 브라우저에만 저장하며 로그아웃·계정 전환 때 지워져요."}
-      </small>
+      <details className={styles.notice}><summary className={readingUI.disclosure}>자료·비교 기록 안내</summary><div className={styles.noticeContent}>
+        <p>기사 제목과 연결한 배경 설명은 본문 요약이나 이번 주가 변동의 원인 분석이 아니에요. 뉴스는 제공 범위에서, 시세는 위 기준 시각으로 비교해요.</p>
+        <p>확인 버튼을 누른 시점부터 다음 방문에 비교해요. 이 브라우저에만 저장하며 로그아웃·계정 전환 때 지워져요.</p>
+      </div></details>
+      </footer>
+      {storageError && <p role="status">브라우저 저장이 제한돼 다음 방문의 비교 기록을 저장하지 못했어요.</p>}
+
     </section>
   );
 }

@@ -3,9 +3,36 @@ import {
   createAiAnalysisParseFallback,
   governAiAnalysisReport,
   NEUTRALIZED_ANALYSIS_TEXT,
+  REVENUE_CASH_EXPLANATION,
 } from '@/lib/aiAnalysisGuard';
 
 describe('governAiAnalysisReport', () => {
+  it('diagnostics contain only known fields and rule IDs, never arbitrary keys or rejected text', () => {
+    const result = governAiAnalysisReport({ 'private@example.test': '지금 매수하세요.', keyAdvice: ['목표가: $100'] });
+    expect(result.blockedFields).toEqual([{ field: 'other', rule: 'phrase_1' }, { field: 'keyAdvice', rule: 'pattern_4' }]);
+    expect(JSON.stringify(result.blockedFields)).not.toContain('private');
+    expect(JSON.stringify(result.blockedFields)).not.toContain('$100');
+  });
+  it('permits explaining averaging down only in a direct educational question, while retaining recommendation guards', () => {
+    const explanation = { currentStatus: '물타기는 낮은 가격에 더 사서 평균 매수가를 낮추는 행동이에요. 손실이 사라지는 것은 아니에요.' };
+    expect(governAiAnalysisReport(explanation).blockedCount).toBe(1);
+    expect(governAiAnalysisReport(explanation, { educationalQuestion: true }).blockedCount).toBe(0);
+    for (const currentStatus of ['물타기하세요.', '물타기가 좋아요.', '물타기를 추천해요.', '지금 매수하세요.']) {
+      expect(governAiAnalysisReport({ currentStatus }, { educationalQuestion: true }).blockedCount).toBeGreaterThan(0);
+    }
+  });
+  it('preserves a narrow valuation negation without allowing an actual valuation or trading directive', () => {
+    expect(governAiAnalysisReport({ currentStatus: '낮아진 가격이 곧 저평가라는 뜻은 아니에요.' }, { educationalQuestion: true }).blockedCount).toBe(0);
+    for (const currentStatus of ['이 종목은 저평가예요.', '저평가라는 뜻은 아니지만 지금 매수하세요.']) {
+      expect(governAiAnalysisReport({ currentStatus }, { educationalQuestion: true }).blockedCount).toBeGreaterThan(0);
+    }
+  });
+  it('corrects the observed revenue-as-cash error without changing a valid distinction', () => {
+    const wrong = governAiAnalysisReport({ keyAdvice: ['계약은 약속이고, 매출은 실제로 받은 돈이에요.'] });
+    expect(wrong.report.keyAdvice).toEqual([REVENUE_CASH_EXPLANATION]);
+    const valid = '매출은 실제로 받은 돈이 아니라 상품·서비스를 제공해 기록한 금액이에요.';
+    expect(governAiAnalysisReport({ currentStatus: valid }).report.currentStatus).toBe(valid);
+  });
   it('사용자가 입력한 산술 기록은 보존하고 방향 신호만 중립화한다', () => {
     const { report, blockedCount } = governAiAnalysisReport({
       currentStatus: '현재 수익률은 12%이고 사용자 설정 목표 수익률 20%의 60% 지점이에요.',

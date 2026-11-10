@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { preparePortfolioIdentity, PORTFOLIO_RECOVERY_PREFIX } from '@/lib/portfolioIdentity';
+import { preparePortfolioIdentity, preserveUnsyncedPortfolio, PORTFOLIO_RECOVERY_PREFIX } from '@/lib/portfolioIdentity';
 import { clearUserStorage } from '@/lib/userStorage';
 
 function memoryStorage(): Storage {
@@ -81,4 +81,32 @@ it('초기 경계 정리는 OAuth 약관 동의와 복구본을 보존한다', (
     expect(storage.getItem(`${PORTFOLIO_RECOVERY_PREFIX}test`)).toBe('backup');
     expect(storage.getItem('solb-portfolio-storage')).toBeNull();
   } finally { vi.unstubAllGlobals(); }
+});
+
+it('로그아웃 전 미전송 기록은 원래 소유자의 복구본으로 남고 다른 계정 outbox는 섞이지 않는다', () => {
+  storage.setItem('solb_portfolio_sync_outbox_v1:A', 'pending-A');
+  storage.setItem('solb_portfolio_sync_outbox_v1:B', 'pending-B');
+  const state = { portfolioOwnerId: 'A', stocks: { investing: [{ symbol: 'AAPL', shares: 7 }] } };
+  preserveUnsyncedPortfolio('A', state, 'error', storage);
+  const key = Array.from({ length: storage.length }, (_, index) => storage.key(index)!).find(key => key.startsWith(PORTFOLIO_RECOVERY_PREFIX))!;
+  const backup = JSON.parse(storage.getItem(key)!);
+  expect(backup.ownerId).toBe('A'); expect(backup.state).toEqual(state);
+  expect(backup.records).toEqual({ 'solb_portfolio_sync_outbox_v1:A': 'pending-A' });
+  vi.stubGlobal('localStorage', storage);
+  try { clearUserStorage(); } finally { vi.unstubAllGlobals(); }
+  expect(storage.getItem(key)).not.toBeNull();
+  expect(storage.getItem('solb_portfolio_sync_outbox_v1:A')).toBeNull();
+});
+
+it('복구본을 남길 공간이 없으면 원본 outbox를 삭제하지 않는다', () => {
+  storage.setItem('solb_portfolio_sync_outbox_v1:A', 'pending-A');
+  storage.setItem = () => { throw Error('quota'); };
+  expect(() => preserveUnsyncedPortfolio('A', { portfolioOwnerId: 'A' }, 'error', storage)).toThrow('quota');
+  expect(storage.getItem('solb_portfolio_sync_outbox_v1:A')).toBe('pending-A');
+});
+
+it('저장이 끝난 포트폴리오나 다른 소유자 데이터는 새 복구본으로 복제하지 않는다', () => {
+  preserveUnsyncedPortfolio('A', { portfolioOwnerId: 'A' }, 'synced', storage);
+  preserveUnsyncedPortfolio('B', { portfolioOwnerId: 'A' }, 'error', storage);
+  expect(storage.length).toBe(0);
 });

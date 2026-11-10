@@ -1,0 +1,29 @@
+/* A ring notebook and J mini notebook share one palette, type and action system. */
+.theme {
+  --dict-paper:#fffef7; --dict-cover:#d6dfc4; --dict-cover-edge:#a9b995;
+  --dict-ink:#43483b; --dict-muted:#69715d; --dict-line:#d8decb;
+  --dict-accent:#58743d; --dict-on-accent:#fffef7; --dict-note:#fbf1cc;
+  --dict-tape:#c1cda5; --dict-dots:#c4cdb2; --dict-shadow:rgb(63 77 40 / 15%);
+  color:var(--dict-ink); font-size:15px; line-height:1.7;
+}
+:global(.dark) .theme {
+  --dict-paper:#252b22; --dict-cover:#394530; --dict-cover-edge:#667b54;
+  --dict-ink:#f0f2e6; --dict-muted:#bbc5ac; --dict-line:#4f5d43;
+  --dict-accent:#c0d6a3; --dict-on-accent:#20291b; --dict-note:#363626;
+  --dict-tape:#64794e; --dict-dots:#4b5841; --dict-shadow:rgb(0 0 0 / 30%);
+}
+.theme :is(button,a,input,textarea,summary):focus-visible { outline:2px solid var(--dict-accent); outline-offset:3px; }
+.theme :is(h2,h3):focus { outline:none; }
+.theme :is(h2,h3,p) { overflow-wrap:anywhere; word-break:keep-all; }
+.hand { font-family:var(--font-wordmark),sans-serif; font-weight:400; letter-spacing:0; }
+.button,.primary,.linkButton { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:9px 13px; border:1px solid var(--dict-line); border-radius:9px; background:var(--dict-paper); color:var(--dict-ink); font:inherit; font-size:14px; cursor:pointer; }
+.button[aria-pressed=true] { background:var(--dict-note); border-color:var(--dict-accent); box-shadow:inset 0 0 0 1px var(--dict-accent); }
+.primary { background:var(--dict-accent); color:var(--dict-on-accent); border-color:var(--dict-accent); }
+.linkButton { border:0; background:transparent; color:var(--dict-accent); text-decoration:underline; text-underline-offset:4px; }
+.theme button:disabled { opacity:.6; cursor:default; }
+.save { display:flex; align-items:flex-start; flex-direction:column; gap:7px; }
+.save small,.muted { font-size:12px; line-height:1.7; color:var(--dict-muted); }
+.message { font-size:13px; padding:10px 12px; border-left:3px solid var(--dict-accent); background:var(--dict-paper); margin:12px 0; }
+
+/* Isolate the notebook inputs from the legacy global dark input override. */
+:global(.dark) .theme input { background:var(--dict-paper)!important; color:var(--dict-ink)!important; border-color:var(--dict-line)!important; }

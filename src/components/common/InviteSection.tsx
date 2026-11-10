@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Copy, Check, Users } from 'lucide-react';
@@ -115,7 +117,7 @@ export default function InviteSection() {
   if (!loggedIn && !data) {
     if (loading) return <div className="skeleton-shimmer" style={{ height: 140, borderRadius: 12 }} />;
     return (
-      <div style={{ padding: '14px 16px', background: '#F2F4F6', borderRadius: 12, fontSize: 13, color: '#8B95A1', textAlign: 'center' }}>
+      <div style={{ padding: '14px 16px', background: 'var(--bg-subtle)', borderRadius: 12, fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center' }}>
         로그인 후 초대 코드를 발급받을 수 있어요
       </div>
     );
@@ -134,13 +136,13 @@ export default function InviteSection() {
     <div>
       {/* 코드 카드 */}
       <div style={{
-        background: 'linear-gradient(135deg, #3182F6 0%, #1A56DB 100%)',
-        borderRadius: 16, padding: '20px 20px 16px', marginBottom: 12, color: '#fff',
+        background: 'var(--bg-subtle)', border: '1px solid var(--border-light)',
+        borderRadius: 16, padding: '20px 20px 16px', marginBottom: 12, color: 'var(--text-primary)',
       }}>
         <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.75, marginBottom: 6, letterSpacing: 0.5 }}>
           {data.is_founder ? '🌊 파운더 초대 코드' : '내 초대 코드'}
         </div>
-        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 3, marginBottom: 14, fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 3, overflowWrap: 'anywhere', marginBottom: 14, fontVariantNumeric: 'tabular-nums' }}>
           {data.code}
         </div>
 
@@ -153,8 +155,8 @@ export default function InviteSection() {
         </div>
 
         {data.max_uses !== null && (
-          <div style={{ height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${pct}%`, background: '#fff', borderRadius: 2, transition: 'width 0.4s' }} />
+          <div style={{ height: 4, background: 'var(--border-strong)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${pct}%`, background: 'var(--brand-fill)', borderRadius: 2, transition: 'width 0.4s' }} />
           </div>
         )}
       </div>
@@ -162,35 +164,24 @@ export default function InviteSection() {
       {/* 버튼 */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         {/* 코드 복사 */}
-        <button
+        <button className={appUI.secondaryButton}
           onClick={handleCopy}
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '11px 0', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
-            background: copied ? 'rgba(32,201,151,0.08)' : 'var(--surface, #fff)',
-            color: copied ? '#20C997' : 'var(--text-primary, #191F28)',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
-          }}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, border: '1px solid var(--border-light, #E5E8EB)', background: copied ? 'rgba(32,201,151,0.08)' : 'var(--surface, #fff)', color: copied ? '#20C997' : 'var(--text-primary, #191F28)' }}
         >
           {copied ? <Check style={{ width: 14, height: 14 }} /> : <Copy style={{ width: 14, height: 14 }} />}
           {copied ? '복사됨!' : '코드 복사'}
         </button>
 
         {/* 카카오톡 공유 */}
-        <button
+        <button className={appUI.providerButton}
           onClick={handleKakaoShare}
-          style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '11px 0', borderRadius: 10, border: 'none',
-            background: '#FEE500', color: '#191F28',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
         >
           {/* Kakao icon */}
           <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
             <path fillRule="evenodd" clipRule="evenodd"
               d="M9 0.6C4.029 0.6 0 3.726 0 7.554c0 2.467 1.639 4.632 4.104 5.862l-1.04 3.822c-.092.337.293.605.584.407l4.574-3.03c.257.02.517.03.778.03 4.971 0 9-3.126 9-6.954C18 3.726 13.971 0.6 9 0.6z"
-              fill="#191F28"
+              fill="currentColor"
             />
           </svg>
           카카오톡 공유
@@ -198,14 +189,9 @@ export default function InviteSection() {
       </div>
 
       {/* 다른 방법으로 공유 */}
-      <button
+      <button className={appUI.textButton}
         onClick={handleOtherShare}
-        style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '9px 0', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
-          background: 'transparent', color: 'var(--text-secondary, #8B95A1)',
-          fontSize: 12, fontWeight: 500, cursor: 'pointer',
-        }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
       >
         링크로 공유하기
       </button>
@@ -213,20 +199,20 @@ export default function InviteSection() {
       {/* 사용 이력 */}
       {data.uses.length > 0 && (
         <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#8B95A1', marginBottom: 8 }}>초대한 친구</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>초대한 친구</div>
           {data.uses.slice(0, 5).map((u, i) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 0', borderBottom: i < data.uses.length - 1 ? '1px solid var(--border-light, #F2F4F6)' : 'none',
             }}>
               <div style={{
-                width: 28, height: 28, borderRadius: '50%', background: '#F2F4F6',
+                width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-subtle)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 700, color: '#4E5968',
+                fontSize: 12, fontWeight: 700, color: 'var(--text-body)',
               }}>
                 {i + 1}
               </div>
-              <div style={{ fontSize: 12, color: '#8B95A1' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                 {new Date(u.used_at).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} 가입
               </div>
             </div>

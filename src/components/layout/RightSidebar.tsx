@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatKrw, formatUsd, resolveUsdKrw } from '@/utils/koreanNumber';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import { CHOK_KR_MAP } from '@/config/chokUniverse';
 import type { QuoteData } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Plus } from 'lucide-react';
@@ -12,13 +11,7 @@ import UndoToast from '@/components/common/UndoToast';
 import { isAlertSuppressed } from '@/utils/alertLearning';
 import AlertGroup from '@/components/common/AlertGroup';
 import { convertStockAmount } from '@/utils/stockCurrency';
-
-interface ChokPick {
-  symbol: string;
-  krName: string;
-  reason: string;
-  keyMetric: string;
-}
+import { changeColor, roundedChange, signedChange } from '@/utils/stockTrendPresentation';
 
 type AlertFilter = 'all' | 'risk' | 'opportunity' | 'insight';
 
@@ -38,18 +31,16 @@ function filterAlerts(alerts: Alert[], filter: AlertFilter): Alert[] {
 }
 
 export default function RightSidebar() {
-  const { stocks, macroData, setAnalysisSymbol, recentSymbols, currency, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick, getAllSymbols, addStock } = usePortfolioStore();
+  const { stocks, macroData, setAnalysisSymbol, recentSymbols, currency, alerts, dismissedAlerts, dismissAlert, dismissAllAlerts, undoDismissAll, bumpSnoozeTick } = usePortfolioStore();
   // 글로벌 통화 토글 연동 — 미국 종목만 환산(한국 종목은 이미 KRW라 이중환산 방지)
   const usdKrw = resolveUsdKrw(macroData);
   const [undoToast, setUndoToast] = useState<{ count: number } | null>(null);
   const [alertFilter, setAlertFilter] = useState<AlertFilter>('all');
   const [watchSort, setWatchSort] = useState<'added' | 'movement'>('added'); // 관심 점검 순서
-  // ai-chok은 AiChokSection에서만 fetch — 중복 Gemini 호출 방지
-  const [chokPick] = useState<ChokPick | null>(null);
 
   const watchingSet = new Set(stocks.watching.map(s => s.symbol));
 
-  const watchingStocks = stocks.watching || [];
+  const watchingStocks = stocks.watching;
 
   // 점검 순서 정렬 — '많이 움직인 순'(절대 등락률 = abs(dp), 미로딩은 바닥). 추천·서열 아님(방향0).
   const moveAbs = (sym: string) => {
@@ -69,23 +60,24 @@ export default function RightSidebar() {
     let best: string | null = null;
     let bestAbs = 0;
     for (const s of watchingStocks) {
-      const a = moveAbs(s.symbol);
+      const quote = macroData[s.symbol] as QuoteData | undefined;
+      const a = quote?.c ? Math.abs(quote.dp ?? 0) : -1;
       if (a > bestAbs) { bestAbs = a; best = s.symbol; }
     }
     return best;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchingStocks, macroData]);
   const [moverNote, setMoverNote] = useState<{ symbol: string; note: string } | null>(null);
   useEffect(() => {
-    if (!topMoverSymbol) { setMoverNote(null); return; }
+    if (!topMoverSymbol) return;
     const kr = STOCK_KR[topMoverSymbol];
-    if (!kr) { setMoverNote(null); return; } // 한글명 없으면 질의 안 함(동일명 환각 방어)
+    if (!kr) return; // 한글명 없으면 질의 안 함(동일명 환각 방어)
     let alive = true;
-    fetch(`/api/mover-note?name=${encodeURIComponent(kr)}`)
+    const controller = new AbortController();
+    fetch(`/api/mover-note?name=${encodeURIComponent(kr)}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => { if (alive) setMoverNote(d?.note ? { symbol: topMoverSymbol, note: d.note } : null); })
       .catch(() => { if (alive) setMoverNote(null); });
-    return () => { alive = false; };
+    return () => { alive = false; controller.abort(); };
   }, [topMoverSymbol]);
 
   const visibleAlerts = alerts
@@ -101,13 +93,13 @@ export default function RightSidebar() {
       {/* 관심 종목 header */}
       <div className="flex items-center gap-1.5">
         <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>관심 종목</h3>
-        <span className="text-[13px] text-[#B0B8C1] font-normal">{watchingStocks.length}</span>
+        <span className="text-[13px] text-[var(--text-secondary)] font-normal">{watchingStocks.length}</span>
         {watchingStocks.length > 1 && (
           <button
             onClick={() => setWatchSort((s) => (s === 'added' ? 'movement' : 'added'))}
             aria-label="관심 종목 점검 순서 정렬"
-            className="ml-auto text-[11px] font-medium cursor-pointer hover:text-[var(--text-secondary)]"
-            style={{ background: 'none', border: 'none', color: 'var(--text-tertiary, #B0B8C1)', padding: '2px 4px' }}
+            className="ml-auto text-[12px] font-medium cursor-pointer hover:text-[var(--text-primary)]"
+            style={{ background: 'none', border: 'none', color: 'var(--text-body)', padding: '8px', minHeight: 44 }}
           >
             {watchSort === 'added' ? '추가순' : '많이 움직인 순'}
           </button>
@@ -115,19 +107,19 @@ export default function RightSidebar() {
       </div>
 
       {/* 오늘 한 줄 — top mover RAG 해설(방향0, §6 게이트 통과분만). 플래그 off면 렌더 안 됨 */}
-      {moverNote && (
+      {moverNote && moverNote.symbol === topMoverSymbol && (
         <div className="mt-2" style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--text-secondary, #8B95A1)', background: 'var(--bg-subtle, #F2F4F6)', borderRadius: 8, padding: '8px 10px' }}>
           <span style={{ fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{STOCK_KR[moverNote.symbol] || moverNote.symbol}</span> · {moverNote.note}
         </div>
       )}
 
       {/* Watching stock list */}
-      <div className="mt-6">
+      <div style={{ marginTop: sortedWatching.length ? 12 : 0 }}>
         {sortedWatching.map((stock, idx) => {
           const q = macroData[stock.symbol] as QuoteData | undefined;
           const price = q?.c ?? 0;
-          const dp = q?.dp ?? 0;
-          const isGain = dp >= 0;
+          const dp = typeof q?.dp === 'number' && Number.isFinite(q.dp) ? q.dp : null;
+          const movement = dp !== null ? roundedChange(dp, 2) : null;
           const kr = STOCK_KR[stock.symbol] || stock.symbol;
           const avatarColor = getAvatarColor(stock.symbol);
           const hasData = price > 0;
@@ -163,7 +155,7 @@ export default function RightSidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] font-semibold text-[#191F28] dark:text-[var(--text-primary)] truncate">{kr}</div>
-                <div className="text-[11px] text-[#B0B8C1]">
+                <div className="text-[12px] text-[var(--text-secondary)]">
                   {stock.symbol}
                   {stock.buyBelow
                     ? ` · 목표 ${currency === 'KRW'
@@ -180,8 +172,8 @@ export default function RightSidebar() {
                         ? formatKrw(priceAmounts.krw, { prefix: false, suffix: '원', short: false })
                         : formatUsd(priceAmounts.usd)}
                     </div>
-                    <div className={`text-[11px] font-medium tabular-nums ${isGain ? 'text-[#EF4452]' : 'text-[#3182F6]'}`}>
-                      {isGain ? '▲' : '▼'} {isGain ? '+' : ''}{dp.toFixed(2)}%
+                    <div className="text-[12px] font-medium tabular-nums" style={{ color: movement !== null ? changeColor(movement, 2) : 'var(--text-secondary)' }}>
+                      {movement !== null && dp !== null ? `${movement > 0 ? '▲ ' : movement < 0 ? '▼ ' : ''}${signedChange(dp, 2)}%` : '등락 미확인'}
                     </div>
                   </>
                 ) : (
@@ -202,24 +194,24 @@ export default function RightSidebar() {
           const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
           if (searchBtn) searchBtn.click();
         }}
-        className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] dark:border-[var(--border-light)] rounded-[12px] text-[13px] text-[#8B95A1] cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors"
-        style={{ marginTop: '20px', padding: '14px 0', minHeight: '44px' }}
+        className="w-full flex items-center justify-center gap-1.5 border-[1.5px] border-dashed border-[#D5DAE0] dark:border-[var(--border-light)] rounded-[12px] text-[13px] text-[var(--text-body)] cursor-pointer hover:bg-[#F9FAFB] dark:hover:bg-[var(--surface-hover)] transition-colors"
+        style={{ marginTop: sortedWatching.length ? 16 : 12, padding: '12px 0', minHeight: '44px' }}
       >
         <Plus className="w-3.5 h-3.5" />
-        관심 종목 추가
+        관심 회사 찾기
       </button>
 
       {/* 최근 본 종목 — descriptive 재진입 칩 (점수·배지·추천 색채 없음) */}
       {recentChips.length > 0 && (
         <div style={{ marginTop: 20 }}>
-          <div className="text-[11px] font-semibold text-[#B0B8C1]" style={{ marginBottom: 8 }}>최근 본</div>
+          <div className="text-[12px] font-semibold text-[var(--text-secondary)]" style={{ marginBottom: 8 }}>최근 본</div>
           <div className="flex flex-wrap" style={{ gap: 6 }}>
             {recentChips.map((sym) => (
               <button
                 key={sym}
                 onClick={() => setAnalysisSymbol(sym)}
                 className="text-[12px] cursor-pointer hover:bg-[#EDEFF2] dark:hover:bg-[var(--surface-hover)]"
-                style={{ padding: '4px 10px', borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 12px', minHeight: 44, borderRadius: 999, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', border: 'none', whiteSpace: 'nowrap' }}
               >
                 {STOCK_KR[sym] || sym}
               </button>
@@ -236,13 +228,13 @@ export default function RightSidebar() {
         tabIndex={-1}
         role="region"
         aria-live="polite"
-        aria-label={`주비 AI 알림 ${visibleAlerts.length}개`}
+        aria-label={`내 종목 알림 ${visibleAlerts.length}개`}
         style={{ marginTop: '40px' }}
       >
         {/* Header + badge */}
         <div className="flex items-center justify-between" style={{ marginBottom: '12px' }}>
           <div className="flex items-center" style={{ gap: 8 }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>주비 AI</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>내 종목 알림</h3>
             {visibleAlerts.length > 0 && (
               <button
                 onClick={() => {
@@ -252,7 +244,7 @@ export default function RightSidebar() {
                 }}
                 className="cursor-pointer"
                 aria-label={`${visibleAlerts.length}개 알림 모두 읽음 처리`}
-                style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)', background: 'none', border: 'none', padding: '2px 6px' }}
+                style={{ fontSize: 12, color: 'var(--text-body)', background: 'none', border: 'none', padding: '8px', minHeight: 44 }}
               >
                 전체 읽음
               </button>
@@ -263,8 +255,8 @@ export default function RightSidebar() {
               style={{
                 fontSize: '11px',
                 fontWeight: 600,
-                color: '#fff',
-                background: '#EF4452',
+                color: 'var(--pill-active-fg)',
+                background: 'var(--pill-active-bg)',
                 borderRadius: '10px',
                 padding: '2px 8px',
                 minWidth: '20px',
@@ -278,20 +270,19 @@ export default function RightSidebar() {
 
         {/* Filter tabs */}
         {visibleAlerts.length > 0 && (
-          <div role="tablist" aria-label="알림 카테고리 필터" className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 12, overflowX: 'auto' }}>
+          <div role="group" aria-label="알림 카테고리 필터" className="flex scrollbar-hide" style={{ gap: 4, marginBottom: 12, overflowX: 'auto' }}>
             {ALERT_TABS.map(tab => {
               const isActive = alertFilter === tab.id;
               const count = filterAlerts(visibleAlerts, tab.id).length;
               return (
                 <button
                   key={tab.id}
-                  role="tab"
-                  aria-selected={isActive}
+                  aria-pressed={isActive}
                   aria-label={`${tab.label} 필터${count > 0 ? ` (${count}개)` : ''}`}
                   onClick={() => setAlertFilter(tab.id)}
                   className="cursor-pointer transition-colors"
                   style={{
-                    padding: '8px 14px',
+                    padding: '8px 14px', minHeight: 44,
                     borderRadius: 20,
                     fontSize: 12,
                     fontWeight: isActive ? 600 : 400,
@@ -317,134 +308,11 @@ export default function RightSidebar() {
             onAnalyze={setAnalysisSymbol}
           />
         ) : (
-          <div
-            style={{
-              padding: '24px 16px',
-              borderRadius: 12,
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border-strong)',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-              알림이 없어요
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.5 }}>
-              현재 표시할 새 알림이 없어요.{'\n'}알림이 없다는 것이 투자 위험이 없다는 뜻은 아니에요.
-            </div>
-          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.7, margin: 0 }}>
+            {visibleAlerts.length ? '이 분류의 새 알림은 없어요.' : '표시할 새 알림이 없어요.'}
+          </p>
         )}
       </section>
-
-      {/* ============================================
-          AI 촉 티저 (사이드바 1개 미리보기)
-          ============================================ */}
-      {chokPick && (
-        <div style={{ marginTop: 40 }}>
-          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-            <div className="flex items-center" style={{ gap: 6 }}>
-              <span style={{ fontSize: 14 }}>🎯</span>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>오늘 시장 흐름</h3>
-            </div>
-          </div>
-
-          <div
-            style={{
-              borderRadius: 14,
-              border: '1px solid var(--border-light, #F2F4F6)',
-              padding: '14px 16px',
-              background: 'var(--surface, #fff)',
-            }}
-          >
-            {/* Pick header */}
-            <div className="flex items-center" style={{ gap: 10, marginBottom: 8 }}>
-              <div
-                className="rounded-full shrink-0 flex items-center justify-center"
-                style={{ width: 34, height: 34, background: getAvatarColor(chokPick.symbol) }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  {chokPick.symbol.charAt(0)}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                  {chokPick.symbol}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                  {STOCK_KR[chokPick.symbol] || CHOK_KR_MAP[chokPick.symbol] || chokPick.krName}
-                </div>
-              </div>
-            </div>
-
-            {/* Reason */}
-            <div style={{ fontSize: 12, color: 'var(--text-secondary, #4E5968)', lineHeight: 1.55, marginBottom: 8 }}>
-              {chokPick.reason}
-            </div>
-
-            {/* Key metric */}
-            <div
-              className="inline-block"
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--text-body)',
-                background: 'var(--bg-subtle)',
-                padding: '3px 8px',
-                borderRadius: 6,
-                marginBottom: 12,
-              }}
-            >
-              {chokPick.keyMetric}
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAnalysisSymbol(chokPick.symbol)}
-                className="cursor-pointer transition-opacity hover:opacity-80"
-                style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  borderRadius: 8,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: 'var(--pill-active-bg)',
-                  color: 'var(--pill-active-fg)',
-                  border: 'none',
-                }}
-              >
-                분석 보기
-              </button>
-              <button
-                onClick={() => {
-                  if (!watchingSet.has(chokPick.symbol)) {
-                    addStock('watching', { symbol: chokPick.symbol, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
-                  }
-                }}
-                disabled={watchingSet.has(chokPick.symbol)}
-                className="cursor-pointer transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-60"
-                style={{
-                  flex: 1,
-                  padding: '8px 0',
-                  borderRadius: 8,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: 'var(--bg-subtle)',
-                  color: watchingSet.has(chokPick.symbol) ? 'var(--text-body)' : 'var(--text-primary)',
-                  border: 'none',
-                }}
-              >
-                {watchingSet.has(chokPick.symbol) ? '✓ 관심' : '+ 관심'}
-              </button>
-            </div>
-          </div>
-
-          <p style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginTop: 6, lineHeight: 1.5 }}>
-            AI의 발견이에요 · 투자 판단은 본인이
-          </p>
-        </div>
-      )}
 
       {/* 전체 읽음 Undo 토스트 */}
       {undoToast && (

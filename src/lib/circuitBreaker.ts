@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthClient } from '@/lib/supabaseServer';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
 
 
 // ─── Circuit Breaker 정책 ───────────────────────────────────────────────────
@@ -52,13 +53,14 @@ export async function checkCircuit(
   const sinceIso = new Date(now - policy.windowSec * 1000).toISOString();
 
   try {
-    const { data } = await supabase
+    const { data } = await withAbortDeadline(signal => supabase
       .from('api_calls')
       .select('status, error_code, created_at')
       .eq('endpoint', endpoint)
       .gte('created_at', sinceIso)
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(500)
+      .abortSignal(signal), 1000);
 
     const rows = data || [];
     const total = rows.length;

@@ -11,6 +11,7 @@ import {
   type ReconciliationRow,
   type ReconciliationSummary,
 } from '@/lib/portfolioReconciliation';
+import { getStockIdentityKey } from '@/utils/stockCurrency';
 
 export type CsvTargetCategory = 'investing' | 'watching';
 
@@ -136,6 +137,7 @@ function parseNonNegativeNumber(value: string): number | null | 'invalid' {
     .replace(/^[₩$]/, '')
     .replace(/[원주]$/, '');
   if (!normalized) return null;
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(normalized)) return 'invalid';
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed) || parsed < 0) return 'invalid';
   return parsed;
@@ -209,8 +211,8 @@ export function parsePortfolioImportCsv(source: string): PortfolioCsvParseResult
     const category = parseCategory(readCell(row, indexes.category));
     const broker = parseBroker(readCell(row, indexes.broker));
 
-    if (!symbol) {
-      issues.push({ rowNumber, message: '종목코드가 없어 제외했어요.' });
+    if (!/^[A-Z0-9][A-Z0-9.^-]{0,19}$/.test(symbol)) {
+      issues.push({ rowNumber, message: '종목코드 형식을 확인할 수 없어 제외했어요.' });
       return;
     }
     if (shares === 'invalid' || avgCost === 'invalid') {
@@ -288,7 +290,7 @@ export function reconcilePortfolioCsvImport(
     const group = groups.get(key) || [];
     group.push({ csvRow, inputIndex, context });
     groups.set(key, group);
-    const identity = `${csvRow.draft.symbol.trim().toUpperCase()}::${context.broker || 'unknown'}`;
+    const identity = `${getStockIdentityKey(csvRow.draft.symbol)}::${context.broker || 'unknown'}`;
     identityCounts.set(identity, (identityCounts.get(identity) || 0) + 1);
   });
 
@@ -315,7 +317,7 @@ export function reconcilePortfolioCsvImport(
 
   return reconciled
     .map((row) => {
-      const identity = `${row.draft.symbol.trim().toUpperCase()}::${row.broker || 'unknown'}`;
+      const identity = `${getStockIdentityKey(row.draft.symbol)}::${row.broker || 'unknown'}`;
       if ((identityCounts.get(identity) || 0) <= 1) return row;
       return {
         ...row,

@@ -13,32 +13,16 @@
   display: none;
 }
 
-.tab {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 10px 14px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: var(--text-tertiary, #8b95a1);
-  font-size: 14px;
-  font-weight: 400;
-  white-space: nowrap;
-  cursor: pointer;
-}
+.tab { composes:tab from "../../components/ui/AppUI.module.css"; flex-shrink:0; }
 
 .tab[aria-pressed='true'] {
   border-bottom-color: var(--text-primary, #191f28);
   color: var(--text-primary, #191f28);
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .tab:focus-visible {
-  outline: 1px solid var(--text-secondary, #4e5968);
+  outline: 2px solid var(--text-primary);
   outline-offset: -3px;
   border-radius: 4px;
 }
@@ -53,3 +37,8 @@
     padding-inline: 4px;
   }
 }
+
+.accountActions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; max-width:100%; }
+.accountActions > button { flex-shrink:0; }
+.accountIdentity { text-align:right; min-width:0; overflow-wrap:anywhere; }
+@media(max-width:480px) { .accountActions { width:100%; } .accountIdentity { width:100%; text-align:left; } }

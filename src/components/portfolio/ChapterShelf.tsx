@@ -1,7 +1,8 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { BookOpen, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { loadChapters, subscribeChapters, type ArchivedChapter } from '@/utils/chapterArchive';
 import { STOCK_KR } from '@/config/constants';
 import { getYahooSymbolCandidates } from '@/utils/stockCurrency';
@@ -87,7 +88,7 @@ export default function ChapterShelf({ chapters: supplied, onSelect }: { chapter
         </div>
       </div>}
       <details className={styles.details} key={selected.chapterId}>
-        <summary>이 달의 기록 자세히 보기 <ChevronDown size={16} aria-hidden="true" /></summary>
+        <summary className={readingUI.disclosure}>이 달의 기록 자세히 보기 </summary>
         <dl className={styles.highlights}>
           <div><dt>{(selected.championPctReturn ?? 0) < 0 ? '하락 폭이 가장 작았던 종목' : '가격 상승률이 가장 높았던 종목'}</dt><dd>{championName ?? '기록 없음'}{championName && <span data-tone={tone(selected.championPctReturn)}>{pct(selected.championPctReturn)}</span>}</dd></div>
           <div><dt>{(selected.bestDayPctChange ?? 0) < 0 ? '평가금액이 가장 적게 줄어든 날' : '평가금액 증가율이 가장 높았던 날'}</dt><dd>{selected.bestDayDate ?? '기록 없음'}{selected.bestDayDate && <span data-tone={tone(selected.bestDayPctChange)}>{pct(selected.bestDayPctChange)}</span>}</dd></div>

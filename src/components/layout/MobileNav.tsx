@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore, type MainSection } from '@/store/portfolioStore';
 import { BarChart3, Menu } from 'lucide-react';
 import { PRIMARY_SECTIONS } from '@/lib/menuRegistry';
+import styles from './Navigation.module.css';
 
 // 하단 탭 — menuRegistry SSOT 4섹션(navLabel 우선=좁은 폭 대응) + '더보기'.
 const TABS: { id: MainSection | 'more'; label: string; Icon: typeof BarChart3 }[] = [
@@ -26,57 +27,14 @@ export default function MobileNav({ onMoreClick }: MobileNavProps) {
     setCurrentSection: state.setCurrentSection,
   })));
 
-  return (
-    <nav
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'var(--surface, white)',
-        borderTop: '1px solid var(--border-light, #F2F4F6)',
-        zIndex: 50,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-      className="mobile-bottom-nav"
-      aria-label="하단 내비게이션"
-    >
-      {TABS.map((tab) => {
-        const isActive = tab.id !== 'more' && currentSection === tab.id;
-        return (
-          <button
-            key={tab.id}
-            aria-current={isActive ? 'page' : undefined}
-            onClick={() => {
-              if (tab.id === 'more') onMoreClick();
-              else setCurrentSection(tab.id as MainSection);
-            }}
-            style={{
-              flex: 1,
-              minWidth: 44,
-              minHeight: 56,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 3,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: isActive ? 'var(--text-primary)' : 'var(--text-body)',
-              fontSize: 12,
-              fontWeight: isActive ? 700 : 400,
-              letterSpacing: '-0.3px',
-              position: 'relative',
-              paddingTop: 10,
-              paddingBottom: 6,
-            }}
-          >
-            <tab.Icon size={24} strokeWidth={isActive ? 2.5 : 1.7} aria-hidden="true" />
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{tab.label}</span>
-          </button>
-        );
-      })}
-    </nav>
-  );
+  return <nav className={`mobile-bottom-nav ${styles.bottom}`} aria-label="하단 내비게이션">
+    {TABS.map(tab => {
+      const isActive = tab.id !== 'more' && currentSection === tab.id;
+      return <button type="button" key={tab.id} className={styles.bottomItem} aria-current={isActive ? 'page' : undefined}
+        onClick={() => { if (tab.id === 'more') onMoreClick(); else setCurrentSection(tab.id as MainSection); }}>
+        <span className={styles.bottomIcon}><tab.Icon size={22} strokeWidth={isActive ? 2.1 : 1.7} aria-hidden="true" /></span>
+        <span>{tab.label}</span>
+      </button>;
+    })}
+  </nav>;
 }

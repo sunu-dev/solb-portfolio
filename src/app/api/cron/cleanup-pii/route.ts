@@ -6,8 +6,8 @@ import { defineRoute } from '@/lib/apiRoute';
  * PII 보존 정책 cleanup cron — L1 정합성 결함 대응.
  *
  * 정책:
- * - ai_usage.ip   → 90일 후 NULL로 익명화 (분석 데이터는 유지)
- * - api_calls.ip  → 30일 후 NULL로 익명화 (관측성 위주, IP 가치 낮음)
+ * - ai_usage.ip   → 90일 후 NULL로 제거 (계정 연결까지 익명화되는 것은 아님)
+ * - api_calls.ip 및 user_key의 ip:주소 → 30일 후 제거 (최근 rate-limit 집계는 유지)
  * - 365일+ 이전 행 hard DELETE (저장 비용 + GDPR/개보법)
  * - alert_log    → 365일+ 행 hard DELETE (정책 SSOT: docs/NOTIFICATION_POLICY.md §4.4)
  * - tour_events  → 30일+ 행 hard DELETE (게스트 텔레메트리 보존 — 2026-06-21_tour_events.sql)
@@ -44,6 +44,7 @@ export const GET = defineRoute({
   const stats = {
     ai_usage_anonymized: 0,
     api_calls_anonymized: 0,
+    api_calls_keys_redacted: 0,
     ai_usage_deleted: 0,
     api_calls_deleted: 0,
     alert_log_deleted: 0,
@@ -72,6 +73,18 @@ export const GET = defineRoute({
       .not('ip', 'is', null);
     if (apiAnonErr) stats.errors.push(`api_calls anon: ${apiAnonErr.message}`);
     else stats.api_calls_anonymized = apiAnon || 0;
+
+    // IP 컬럼을 지워도 익명 요청의 user_key="ip:주소"에 같은 IP가 남는다.
+    // 30일 이전 식별자만 공통 표기로 치환하고, 이미 처리한 행은 다시 쓰지 않는다.
+    // 로그인 회원의 user_key와 현재 rate-limit 윈도우는 변경하지 않는다.
+    const { count: keyCount, error: keyError } = await supabase
+      .from('api_calls')
+      .update({ user_key: 'ip:removed', ip: null }, { count: 'exact' })
+      .lt('created_at', daysAgoIso(30))
+      .like('user_key', 'ip:%')
+      .neq('user_key', 'ip:removed');
+    if (keyError) stats.errors.push(`api_calls key redaction: ${keyError.message}`);
+    else stats.api_calls_keys_redacted = keyCount || 0;
 
     // 3. 365일+ hard DELETE — ai_usage
     const { count: aiDel, error: aiDelErr } = await supabase

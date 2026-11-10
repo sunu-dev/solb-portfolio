@@ -1,0 +1,24 @@
+.section { margin-top:20px; padding-top:16px; border-top:1px solid var(--border-light); color:var(--text-body); }
+.title { margin:0 0 8px; font-size:16px; line-height:1.6; font-weight:650; color:var(--text-primary); }
+.action.action { min-height:52px; max-width:100%; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:8px; font-size:15px; text-align:left; }
+.action > svg { flex-shrink:0; }
+.action > span { flex:1; min-width:0; word-break:keep-all; }
+.link { display:inline-flex; min-height:44px; align-items:center; padding:10px 0; border:0; background:transparent; color:var(--text-primary); font:inherit; font-size:14px; font-weight:600; text-align:left; cursor:pointer; }
+.action.action:focus-visible, .link:focus-visible { outline:1px solid var(--text-secondary); outline-offset:3px; }
+.action + .note { margin-top:10px; }
+.note { margin:4px 0 12px; max-width:64ch; color:var(--text-secondary); font-size:12px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+.answer { max-width:66ch; font-size:15px; line-height:1.9; word-break:keep-all; overflow-wrap:anywhere; }
+.answer p { margin:0 0 12px; }
+.answer ul { margin:0 0 12px; padding-left:20px; }
+.answer li + li { margin-top:10px; }
+.answer .note { font-size:13px; }
+.previous > summary { font-size:13px; }
+.error { margin:8px 0; color:var(--text-secondary); font-size:13px; line-height:1.8; }
+.observation { margin-top:22px; }
+.observation h5 { margin:0 0 8px; font-size:15px; color:var(--text-primary); font-weight:650; }
+.observation .watch { color:var(--text-secondary); font-size:14px; }
+.watchLabel { font-weight:600; }
+.evidence { margin:8px 0 18px; color:var(--text-secondary); font-size:12px; }
+.evidence > summary { font-size:12px; }
+.evidence > p { padding-top:8px; }
+@media (max-width:480px) { .action.action { width:100%; } }

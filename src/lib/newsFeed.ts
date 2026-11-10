@@ -5,12 +5,26 @@ export type NewsFetchResult =
   | { status: 'empty'; items: NewsItem[] }
   | { status: 'error'; items: NewsItem[]; reason: 'network' | 'server' | 'timeout' };
 
-export type NewsQuery = { q?: string; topic?: string; locale?: string; maxHours?: number };
+export type NewsQuery = { q?: string; topic?: string; locale?: string; maxHours?: number; symbol?: string };
 export type NewsResponse = { result: NewsFetchResult; fetchedAt: number };
 export type NewsTarget = { symbol: string; name: string; query: string };
 export type RelatedNewsItem = NewsItem & { relatedNames: string[] };
 export const NEWS_STALE_MS = 30 * 60 * 1000;
+export const NEWS_EMPTY_STALE_MS = 60 * 1000;
 export const NEWS_BATCH_SIZE = 3;
+export const COMPANY_NEWS_HOURS = 7 * 24;
+
+export function companyNewsQuery(symbol: string, name?: string): NewsQuery {
+  const normalized = symbol.trim().toUpperCase();
+  // The server resolves catalog names. Do not search for a Korean numeric ticker
+  // as if it were a company name or split its cache by caller display labels.
+  const hint = name?.trim();
+  return { symbol: normalized, ...(hint && hint !== normalized ? { q: `${hint} 주가` } : {}), locale: 'ko', maxHours: COMPANY_NEWS_HOURS };
+}
+
+export async function fetchCompanyNews(symbol: string, name?: string, force = false): Promise<NewsFetchResult> {
+  return (await newsClient.load(companyNewsQuery(symbol, name), force)).result;
+}
 
 /** A company may be held in several accounts, but only needs one news request. */
 export function getNewsTargets(stocks: Pick<StockItem, 'symbol' | 'name'>[]): NewsTarget[] {
@@ -25,7 +39,7 @@ export function getNewsTargets(stocks: Pick<StockItem, 'symbol' | 'name'>[]): Ne
 }
 
 export function newsQueryKey(query: NewsQuery): string {
-  return JSON.stringify([query.q || '', query.topic || '', query.locale || 'ko', query.maxHours || 0]);
+  return JSON.stringify([query.q || '', query.topic || '', query.locale || 'ko', query.maxHours || 0, query.symbol || '']);
 }
 
 /** Shared by the news screen and background refresh. Errors are never cached. */
@@ -38,7 +52,8 @@ export function createNewsClient(request: typeof fetch = fetch, now: () => numbe
     const ongoing = pending.get(key);
     if (ongoing) return ongoing;
     const cached = cache.get(key);
-    if (!force && cached && now() - cached.fetchedAt < NEWS_STALE_MS) return Promise.resolve(cached);
+    const lifetime = cached?.result.status === 'empty' ? NEWS_EMPTY_STALE_MS : NEWS_STALE_MS;
+    if (!force && cached && now() - cached.fetchedAt < lifetime) return Promise.resolve(cached);
     const task = (async (): Promise<NewsResponse> => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 9500);
@@ -46,6 +61,7 @@ export function createNewsClient(request: typeof fetch = fetch, now: () => numbe
       try {
         const params = new URLSearchParams();
         if (query.q) params.set('q', query.q);
+        if (query.symbol) params.set('symbol', query.symbol);
         if (query.topic) params.set('topic', query.topic);
         params.set('locale', query.locale || 'ko');
         if (query.maxHours) params.set('maxHours', String(query.maxHours));

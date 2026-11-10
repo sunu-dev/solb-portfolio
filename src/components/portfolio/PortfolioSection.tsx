@@ -8,25 +8,30 @@ import { usePortfolioStore } from '@/store/portfolioStore';
 import { useHasHydrated } from '@/hooks/useHasHydrated';
 import { resolveHidden, resolveWidgetOrder } from '@/lib/homeWidgetRegistry';
 // 내 종목 뉴스는 뉴스 탭으로 이동 — import 제거
-import { STOCK_KR, getAvatarColor } from '@/config/constants';
-import type { StockCategory, QuoteData, StockItem, CandleRaw } from '@/config/constants';
+import { STOCK_KR, BROKER_LABELS } from '@/config/constants';
+import type { StockCategory, QuoteData, StockItem, CandleRaw, Broker } from '@/config/constants';
 import type { Alert } from '@/utils/alertsEngine';
 import { Edit3, Trash2 } from 'lucide-react';
 import ProDemandOffer from '@/components/pro/ProDemandOffer';
 import { logApiCall } from '@/lib/apiLogger';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import PortfolioTreemap from './PortfolioTreemap';
-import ContextExploration from '@/components/explore/ContextExploration';
+import PortfolioEmptyState from './PortfolioEmptyState';
+import HomeLearningEntry from './HomeLearningEntry';
+import CompanyMark from '../common/CompanyMark';
+import appUI from '../ui/AppUI.module.css';
 import BenchmarkCompare from './BenchmarkCompare';
 import GoalProgress from './GoalProgress';
 import PortfolioHealth from './PortfolioHealth';
 import Dashboard from './Dashboard';
 import GettingStartedChecklist from '@/components/onboarding/GettingStartedChecklist';
 import BrokerSummaryCard from './BrokerSummaryCard';
+import BrokerHoldingsFilter from './BrokerHoldingsFilter';
 import MergedHoldingsCard from './MergedHoldingsCard';
 import { computeVolBaseline, computeZScore, adaptiveDailyMoveThreshold } from '@/utils/volatility';
 import PortfolioRecordCenter from './PortfolioRecordCenter';
 import PortfolioValueChart from './PortfolioValueChart';
+import MarketWatch from '@/components/market/MarketWatch';
 import MonthlyChapter from './MonthlyChapter';
 import ChapterShelf from './ChapterShelf';
 import ChapterKeywordPrompt from './ChapterKeywordPrompt';
@@ -46,11 +51,11 @@ const HomeEditSheet = dynamic(() => import('./HomeEditSheet'));
 // ConversationalTimeline은 AI 인사이트 탭에 유지 (내러티브 카테고리)
 
 const QUICK_ADD_STOCKS = [
-  { symbol: '005930.KS', label: '삼성전자' },
-  { symbol: 'NVDA', label: '엔비디아' },
-  { symbol: 'AAPL', label: '애플' },
-  { symbol: 'MSFT', label: '마이크로소프트' },
-  { symbol: 'TSLA', label: '테슬라' },
+  { symbol: '005930.KS', label: '삼성전자', description: '메모리 반도체 · 스마트폰 · 가전' },
+  { symbol: 'NVDA', label: '엔비디아', description: 'AI 계산에 쓰이는 GPU와 데이터센터' },
+  { symbol: 'AAPL', label: '애플', description: '아이폰 · 맥 · 앱과 구독 서비스' },
+  { symbol: 'MSFT', label: '마이크로소프트', description: '윈도·오피스와 클라우드 서비스' },
+  { symbol: 'TSLA', label: '테슬라', description: '전기차와 에너지 저장장치' },
 ];
 
 const TABS: { id: StockCategory; label: string }[] = [
@@ -416,11 +421,14 @@ export default function PortfolioSection() {
     displayList = (stocks[cat] || []).map((s, idx) => ({ ...s, category: cat, originalIdx: idx }));
   }
 
-  // Phase B-2 — broker 필터 적용 (활성 시만)
-  if (brokerFilter !== null) {
+  const brokerFilterItems = displayList;
+  const appliedBrokerFilter = brokerFilter !== null && brokerFilterItems.some(s => (s.broker || 'unspecified') === brokerFilter) ? brokerFilter : null;
+  const activeBrokerLabel = appliedBrokerFilter === 'unspecified' ? '증권사 미지정' : BROKER_LABELS[appliedBrokerFilter as Broker] || appliedBrokerFilter;
+  // A removed broker or a different category must not hide the entire list.
+  if (appliedBrokerFilter !== null) {
     displayList = displayList.filter(s => {
-      if (brokerFilter === 'unspecified') return !s.broker;
-      return s.broker === brokerFilter;
+      if (appliedBrokerFilter === 'unspecified') return !s.broker;
+      return s.broker === appliedBrokerFilter;
     });
   }
 
@@ -523,29 +531,9 @@ export default function PortfolioSection() {
 
       {/* 서브탭: 종목 / 분석 — 세그먼트 pill */}
       {allStocksList.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, padding: '4px', borderRadius: 12, background: 'var(--bg-subtle, #F2F4F6)', marginBottom: 16 }}>
-          {([['stocks', '종목'], ['analysis', '분석']] as const).map(([key, label]) => (
-            <button
-              key={key}
-              onClick={() => setSubTab(key)}
-              aria-pressed={subTab === key}
-              className="cursor-pointer"
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                minHeight: 44,
-                fontSize: 14,
-                fontWeight: subTab === key ? 600 : 400,
-                color: subTab === key ? 'var(--pill-active-fg, #fff)' : 'var(--text-secondary, #8B95A1)',
-                background: subTab === key ? 'var(--text-primary, #191F28)' : 'transparent',
-                border: 'none',
-                borderRadius: 10,
-                transition: 'all 0.2s',
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div className={appUI.segments} style={{ marginBottom: 24 }} role="group" aria-label="내 투자 보기">
+          {([['stocks', '종목'], ['analysis', '분석']] as const).map(([key, label]) => <button type="button" key={key}
+            onClick={() => setSubTab(key)} aria-pressed={subTab === key} className={appUI.segment}>{label}</button>)}
         </div>
       )}
 
@@ -597,7 +585,7 @@ export default function PortfolioSection() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setCurrentTab(tab.id)}
+                onClick={() => { setCurrentTab(tab.id); setBrokerFilter(null); }}
                 className="relative cursor-pointer"
                 style={{
                   padding: isFirst ? '0 24px 14px 0' : '0 24px 14px',
@@ -644,41 +632,14 @@ export default function PortfolioSection() {
                 const searchBtn = document.querySelector('[data-slot="search-trigger"]') as HTMLElement;
                 if (searchBtn) searchBtn.click();
               }}
-              className="cursor-pointer shrink-0"
-              style={{ padding: '8px 14px', minHeight: 36, fontSize: 12, fontWeight: 600, color: 'var(--pill-active-fg)', background: 'var(--pill-active-bg)', border: 'none', borderRadius: 8, whiteSpace: 'nowrap' }}
+              className={appUI.accentButton}
             >
               + 종목 추가
             </button>
           </div>
         </div>
 
-        {/* IA P0-2 보강 — 증권사 필터 활성 시 리스트 '상단'에 인-뷰 칩.
-            필터 컨트롤(BrokerSummaryCard)이 리스트 아래로 강등돼 클릭 효과를 화면에서 놓칠 수 있어
-            결과 위치에서 필터 상태를 인지·해제할 수 있게 보강. */}
-        {brokerFilter !== null && (
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-              marginBottom: 12, padding: '8px 12px', borderRadius: 10,
-              background: 'var(--bg-subtle)', border: '1px solid var(--border-light)',
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-body)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-              <span aria-hidden>🏦</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 종목만 보는 중
-              </span>
-            </span>
-            <button
-              onClick={() => setBrokerFilter(null)}
-              className="cursor-pointer shrink-0"
-              aria-label="증권사 필터 해제"
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', background: 'var(--surface, #fff)', border: '1px solid var(--border-light)', borderRadius: 8, padding: '4px 10px', minHeight: 32 }}
-            >
-              전체 보기
-            </button>
-          </div>
-        )}
+        <BrokerHoldingsFilter items={brokerFilterItems} active={appliedBrokerFilter} onSelect={setBrokerFilter} />
 
         {/* 기간 탭 + 지연 시세 — 종목 있을 때만 */}
         {displayList.length > 0 && (
@@ -721,7 +682,7 @@ export default function PortfolioSection() {
 
         {/* Stock table */}
         {displayList.length === 0 ? (
-          brokerFilter !== null ? (
+          appliedBrokerFilter !== null ? (
             /* 필터 결과 0 — '진짜 보유 0'과 구분(QUICK_ADD 유도 대신 필터 해제 안내) */
             <div style={{ textAlign: 'center', padding: '48px 20px' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
@@ -729,7 +690,7 @@ export default function PortfolioSection() {
                 이 증권사 종목이 없어요
               </div>
               <div style={{ fontSize: 13, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 20 }}>
-                {brokerFilter === 'unspecified' ? '증권사 미지정' : brokerFilter} 보유로 등록된 종목이 없어요.<br/>필터를 해제하면 전체 보유를 볼 수 있어요.
+                {activeBrokerLabel} 보유로 등록된 종목이 없어요.<br/>필터를 해제하면 전체 보유를 볼 수 있어요.
               </div>
               <button
                 onClick={() => setBrokerFilter(null)}
@@ -740,41 +701,14 @@ export default function PortfolioSection() {
               </button>
             </div>
           ) : (
-          <div className="portfolio-empty">
-            <h1 className="reading-title" style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>{allStocksList.length === 0 ? '내 주식부터 살펴볼까요?' : currentTab === 'watching' ? '관심 종목을 추가해볼까요?' : currentTab === 'sold' ? '매도한 종목이 아직 없어요' : '보유 종목을 추가해볼까요?'}</h1>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary, #8B95A1)', lineHeight: 1.6, marginBottom: 20 }}>
-              관심 있는 종목을 추가하면 시세와 소식을 <span className="reading-phrase">함께 볼 수 있어요.</span>
-            </div>
-            <button className="joobi-primary-button" onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}>종목 검색하기</button>
-            {allStocksList.length === 0 && <button className="joobi-secondary-button" onClick={() => usePortfolioStore.getState().setCurrentSection('insights')}>주비 리포트 보기</button>}
-            {OCR_UI_ENABLED && <button className="joobi-secondary-button" onClick={openOcr}>증권앱에서 가져오기</button>}
-            <p style={{ marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>자주 찾는 종목</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
-              {QUICK_ADD_STOCKS.map(s => {
-                return (
-                  <button
-                    key={s.symbol}
-                    aria-label={`${s.label} 살펴보기`}
-                    onClick={() => setAnalysisSymbol(s.symbol)}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: 20,
-                      background: 'var(--bg-subtle)',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-            {/* 샘플 포트폴리오 체험 */}
-            <button
-              onClick={() => {
+          <PortfolioEmptyState
+            title={allStocksList.length === 0 ? '내 주식부터 살펴볼까요?' : currentTab === 'watching' ? '관심 종목을 추가해볼까요?' : currentTab === 'sold' ? '매도한 종목이 아직 없어요' : '보유 종목을 추가해볼까요?'}
+            suggestions={QUICK_ADD_STOCKS}
+            onSearch={() => window.dispatchEvent(new CustomEvent('open-search'))}
+            onStock={setAnalysisSymbol}
+            onReport={allStocksList.length === 0 ? () => usePortfolioStore.getState().setCurrentSection('insights') : undefined}
+            onImport={OCR_UI_ENABLED ? openOcr : undefined}
+            onSample={() => {
                 // demo:true 필수 — 3중 격리(partialize strip / stripDemoStocks 서버 미동기화 /
                 // clearGuestDemo 제거)를 타야 체험용 샘플이 실계좌 기록을 오염시키지 않는다.
                 // 시세는 실제 /api/quotes 응답만 쓴다(과거 하드코딩 시세 주입은 '현재가' 오표시라 제거).
@@ -790,20 +724,7 @@ export default function PortfolioSection() {
                   }
                 });
               }}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 12,
-                background: 'transparent',
-                color: 'var(--text-primary)',
-                fontSize: 13,
-                fontWeight: 600,
-                border: '1px solid var(--border-strong)',
-                cursor: 'pointer',
-              }}
-            >
-              샘플 포트폴리오로 체험하기
-            </button>
-          </div>
+          />
           )
         ) : (
           <div>
@@ -870,7 +791,6 @@ export default function PortfolioSection() {
               const change = d?.d || 0;
               const dp = d?.dp || 0;
               const kr = STOCK_KR[stock.symbol] || stock.symbol;
-              const avatarColor = getAvatarColor(stock.symbol);
               const badge = CAT_BADGES[stock.category];
               const nativeCurrency = getStockCurrency(stock.symbol, stock.currency);
               const isKR = nativeCurrency === 'KRW';
@@ -979,20 +899,12 @@ export default function PortfolioSection() {
                 >
                   {/* Name cell */}
                   <div className="stock-identity flex items-center" style={{ gap: '12px', minWidth: 0 }}>
-                    <div
-                      className="flex items-center justify-center shrink-0"
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        backgroundColor: avatarColor,
-                      }}
-                    >
-                      <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{stock.symbol.charAt(0)}</span>
-                    </div>
+                    <span className="shrink-0"><CompanyMark symbol={stock.symbol} /></span>
                     <div className="min-w-0 flex-1" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       <div className="stock-title-line flex items-center flex-wrap" style={{ fontSize: '16px', fontWeight: 700, gap: '6px', lineHeight: 1.5 }}>
-                        <span className="stock-name" title={kr}>{kr}</span>
+                        <button type="button" className="stock-name" title={kr} aria-label={`${kr} 살펴보기`}
+                          onClick={event => { event.stopPropagation(); setAnalysisSymbol(stock.symbol); }}
+                          style={{ minHeight: 44, padding: 0, border: 0, background: 'transparent', color: 'inherit', font: 'inherit', textAlign: 'left', cursor: 'pointer' }}>{kr}</button>
                         {stockAlert && <span className="stock-alert-dot" role="img" aria-label={getAlertBadgeText(stockAlert)} title={getAlertBadgeText(stockAlert)} style={{ background: ALERT_BADGE_COLORS[stockAlert.type].color }} />}
                         {badge && (
                           <span
@@ -1141,7 +1053,7 @@ export default function PortfolioSection() {
                     ) : (
                       <>
                         <div className="text-[13px] font-semibold text-[#B0B8C1]">-</div>
-                        <div className="text-[11px] text-[#B0B8C1] mt-0.5">미보유</div>
+                        <div className="text-[11px] text-[#B0B8C1] mt-0.5">{stock.shares > 0 ? (stock.avgCost > 0 ? '시세 확인 중' : '매입가 미입력') : '미보유'}</div>
                       </>
                     )}
                   </div>
@@ -1236,12 +1148,14 @@ export default function PortfolioSection() {
           </div>
         )}
 
+        {allStocksList.length > 0 && <MarketWatch compact />}
+
         {/* 홈 스택(below-core) — widgetOrder 순서로 렌더(홈편집 재정렬). ⚠️ CSS order 아님(JSX 배열 재정렬)
             → DOM/탭/SR 순서 일치(WCAG 1.3.2/2.4.3). non-hideable(ai-hunch)은 resolveHidden이 drop해 항상 표시(§6).
             gate-false 위젯은 render fn이 null→flex 자식 부재→gap 없음. 세로 리듬은 부모 .home-stack gap. */}
-        <button
+        <button className={appUI.textButton}
           onClick={() => window.dispatchEvent(new CustomEvent('open-briefing'))}
-          style={{ marginTop: 20, padding: '12px 16px', minHeight: 44, borderRadius: 12, width: '100%', textAlign: 'left', background: 'var(--bg-subtle)', color: 'var(--text-primary)', cursor: 'pointer' }}
+          style={{ marginTop: 8, textAlign: 'left' }}
         >
           오늘의 브리핑 다시 보기 →
         </button>
@@ -1250,7 +1164,7 @@ export default function PortfolioSection() {
             const belowCore: Record<string, () => ReactNode> = {
               'broker-block': () => (
                 <div>
-                  <BrokerSummaryCard active={brokerFilter as never} onSelect={(b) => setBrokerFilter(b as string | null)} />
+                  <BrokerSummaryCard active={appliedBrokerFilter as never} onSelect={(b) => { setCurrentTab('investing'); setBrokerFilter(b); }} />
                   <MergedHoldingsCard />
                 </div>
               ),
@@ -1288,7 +1202,8 @@ export default function PortfolioSection() {
               .filter((id) => !isHidden(id))
               .map((id) => <Fragment key={id}>{belowCore[id]?.()}</Fragment>);
           })()}
-          <ContextExploration topics={['currency', 'rates', 'compare']} context="내 투자 이해하기" />
+          <HomeLearningEntry />
+          {allStocksList.length === 0 && <MarketWatch compact />}
         </div>{/* /.home-stack */}
 
         {/* 결제 없는 가격 가설 검증 — 로그인·적격 사용자·서버 플래그가 모두 맞을 때만 노출. */}

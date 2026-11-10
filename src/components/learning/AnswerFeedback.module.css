@@ -1,0 +1,20 @@
+.root { margin-top: 16px; font-family: var(--font-ui); color: var(--text-body); }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
+.root button { min-height: 44px; padding: 8px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 13px; border: 1px solid transparent; border-radius: 10px; color: var(--text-secondary); background: transparent; cursor: pointer; }
+.root button:hover, .root button[aria-pressed="true"] { color: var(--text-primary); background: var(--bg-subtle); }
+.root button:focus-visible, .root textarea:focus-visible, .root input:focus-visible, .root summary:focus-visible { outline: 2px solid var(--text-secondary); outline-offset: 2px; }
+.root button:disabled { opacity: .55; cursor: default; }
+.root p, .root summary { font-size: 12px; line-height: 1.7; color: var(--text-secondary); }
+.root summary { min-height: 44px; cursor: pointer; padding-block: 10px; }
+.root .primary { background: var(--brand-fill); color: var(--on-brand-fg); }
+.root .primary:hover { background: var(--brand-fill); color: var(--on-brand-fg); opacity: .9; }
+.review { padding: 16px; margin-top: 8px; border: 1px solid var(--border-light); border-radius: 12px; background: var(--surface); }
+.review h4 { font-size: 15px; margin: 0 0 8px; color: var(--text-primary); }
+.review label { display: block; font-size: 13px; line-height: 1.7; margin-block: 12px; }
+.review textarea { display: block; width: 100%; box-sizing: border-box; min-height: 88px; max-height: 240px; resize: vertical; margin-top: 6px; padding: 10px; font: inherit; font-size: 16px; line-height: 1.6; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border-light); border-radius: 8px; }
+.review .consent { display: flex; align-items: flex-start; gap: 8px; padding-block: 6px; }
+.consent input { margin-top: 5px; flex: 0 0 auto; width: 18px; height: 18px; accent-color: var(--brand-fill); }
+.root .error { color: var(--negative); }
+.case { padding-block: 12px; border-bottom: 1px solid var(--border-light); }
+.case strong { font-size: 13px; overflow-wrap: anywhere; }
+.case pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: 13px; line-height: 1.7; }

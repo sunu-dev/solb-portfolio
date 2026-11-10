@@ -15,7 +15,7 @@ const item = (id: StockCheckItem['id'], input: Partial<StockCheckupInput> = {}) 
 describe('buildStockCheckup', () => {
   it('keeps missing data unavailable instead of inventing scores or neutral observations', () => {
     const result = buildStockCheckup({ currency: 'USD' });
-    expect(result.items).toHaveLength(3);
+    expect(result.items).toHaveLength(2);
     expect(result.items.every(value => !value.available)).toBe(true);
     expect(result.summary).toBe('아직 자료가 충분하지 않아요.');
     expect(result.items.every(value => value.value === '자료 확인 전')).toBe(true);
@@ -105,62 +105,9 @@ describe('buildStockCheckup', () => {
     expect(item('volume', { candles: raw }).available).toBe(false);
   });
 
-  it('shows positive PER with an explanation, without inferring undervaluation', () => {
-    const result = item('earnings', { fundamentals: { per: 15, eps: 2, currency: 'USD' } });
-    expect(result.available).toBe(true);
-    expect(result.value).toBe('PER 15.0배');
-    expect(result.meaning).toContain('주당순이익은 $2.00');
-    expect(result.meaning).toContain('저평가라고 단정할 수는 없어요');
-  });
-
-  it('shows a reported loss instead of a contradictory positive PER', () => {
-    const result = item('earnings', { fundamentals: { per: 10, eps: -2 } });
-    expect(result.available).toBe(true);
-    expect(result.value).toBe('주당순이익 -$2.00');
-    expect(result.meaning).toContain('손실이 보고');
-    expect(result.nextCheck).toContain('기준이 다를 수');
-  });
-
-  it('preserves zero EPS as reported data', () => {
-    const result = item('earnings', { fundamentals: { eps: 0 } });
-    expect(result.available).toBe(true);
-    expect(result.value).toBe('주당순이익 $0.00');
-    expect(result.meaning).toContain('주당순이익은 0');
-  });
-
-  it('can explain actual EPS when PER is unavailable without calculating a replacement', () => {
-    const result = item('earnings', { price: 300, fundamentals: { eps: 2, per: null } });
-    expect(result.value).toBe('주당순이익 $2.00');
-    expect(result.meaning).toContain('이전 실적과 비교');
-  });
-
-  it.each([0, -10, NaN, Infinity, null])('does not present invalid PER %s as a company valuation', per => {
-    expect(item('earnings', { fundamentals: { per } }).available).toBe(false);
-  });
-
-  it('keeps missing EPS distinct from reported zero', () => {
-    expect(item('earnings', { fundamentals: { eps: null } }).available).toBe(false);
-    expect(item('earnings', { fundamentals: { eps: NaN } }).available).toBe(false);
-  });
-
-  it('does not mix fundamentals reported for a different currency with the selected stock', () => {
-    const result = buildStockCheckup({ currency: 'KRW', fundamentals: { currency: 'USD', eps: 2, per: 15, dividendYield: 3 } });
-    expect(result.items.find(value => value.id === 'earnings')?.available).toBe(false);
-    expect(result.items.find(value => value.id === 'dividend')).toBeUndefined();
-  });
-
-  it('adds dividend information only for an actual nonnegative finite value', () => {
-    expect(item('dividend', { fundamentals: { dividendYield: 2.5 } }).value).toBe('배당수익률 2.50%');
-    expect(item('dividend', { fundamentals: { dividendYield: 0 } }).value).toBe('배당수익률 0.00%');
-    for (const dividendYield of [null, undefined, -1, NaN, Infinity]) {
-      expect(item('dividend', { fundamentals: { dividendYield } })).toBeUndefined();
-    }
-  });
-
-  it('does not infer company quality or growth from price and volume alone', () => {
+  it('only explains price and volume, with no empty financial placeholders', () => {
     const result = buildStockCheckup({ currency: 'USD', price: 100, candles: candles() });
-    expect(result.items.filter(value => value.available).map(value => value.id)).toEqual(['price', 'volume']);
-    expect(result.items.find(value => value.id === 'earnings')?.available).toBe(false);
-    expect(result.summary).toBe('확인된 정보부터 차근차근 살펴봐요.');
+    expect(result.items.map(value => value.id)).toEqual(['price', 'volume']);
+    expect(result.summary).toBe('가격과 거래량의 변화를 함께 살펴봐요.');
   });
 });

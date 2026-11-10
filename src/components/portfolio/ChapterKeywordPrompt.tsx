@@ -5,6 +5,7 @@ import { computeChapterTime } from '@/utils/monthlyChapter';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useModalViewport } from '@/hooks/useModalViewport';
+import { canShowAutomaticPrompt } from '@/lib/automaticPrompt';
 
 /**
  * Chapter Keyword Prompt — 매월 1~3일 첫 진입 시 한 번 노출.
@@ -39,9 +40,7 @@ export default function ChapterKeywordPrompt() {
       // 진입 후 약간 딜레이 — 다른 모달과 충돌 방지
       const timer = setTimeout(() => {
         // Never interrupt an in-progress search, editor, tour or keyboard input.
-        if (document.visibilityState !== 'visible'
-          || document.querySelector('[aria-modal="true"], dialog[open]')
-          || document.activeElement?.matches('input, textarea, select, [contenteditable="true"]')) return;
+        if (!canShowAutomaticPrompt()) return;
         setChapterId(time.chapterId);
         setOpen(true);
       }, 1200);

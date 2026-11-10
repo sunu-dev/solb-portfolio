@@ -1,0 +1,12 @@
+.root { color:var(--text-primary); }
+.release { padding:24px 0; border-bottom:1px solid var(--border-light); }
+.meta { color:var(--text-body); font-size:12px; line-height:1.8; margin:8px 0; }
+.release h3 { font-size:20px; line-height:1.5; font-weight:700; letter-spacing:-.03em; word-break:keep-all; }
+.summary { color:var(--text-body); font-size:15px; line-height:1.9; margin:10px 0 16px; }
+.details section { margin:20px 0; max-width:680px; }
+.details h4 { font-size:15px; font-weight:650; line-height:1.7; margin-bottom:8px; }
+.details p,.details li { color:var(--text-body); font-size:14px; line-height:1.9; overflow-wrap:anywhere; }
+.details ol { padding-left:22px; list-style:decimal; margin:12px 0; }
+.details li { margin:8px 0; }
+.details a { display:inline-block; font-size:13px; line-height:1.8; text-decoration:underline; text-underline-offset:3px; padding:8px 0; }
+.details a:focus-visible,.details summary:focus-visible { outline:2px solid var(--text-primary); outline-offset:4px; }

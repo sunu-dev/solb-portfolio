@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo } from 'react';
+import readingUI from '../ui/ReadingUI.module.css';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { BADGE_TIERS, BADGES } from '@/config/badges';
+import { AVAILABLE_BADGE_TIERS, AVAILABLE_BADGES } from '@/config/badges';
 import { checkUnlockedBadges } from '@/utils/badgeChecker';
 import type { QuoteData } from '@/config/constants';
 
-export default function BadgeSection() {
+export default function BadgeSection({ compact = false }: { compact?: boolean }) {
   const { stocks, macroData } = usePortfolioStore();
 
   const unlocked = useMemo(() => {
@@ -49,23 +50,23 @@ export default function BadgeSection() {
       allProfit: allProfit && (stocks.investing || []).length > 0,
       targetHit,
       rainLight: false,
-    });
+    }).filter(badge => AVAILABLE_BADGES.some(available => available.id === badge.id));
   }, [stocks, macroData]);
 
   const unlockedIds = new Set(unlocked.map(b => b.id));
 
-  return (
-    <div style={{ marginTop: 24 }}>
+  const contents = (
+    <div style={{ marginTop: compact ? 8 : 24 }}>
       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #191F28)', marginBottom: 4 }}>
         내 뱃지
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 16 }}>
-        {unlocked.length}/{BADGES.length}개 달성
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 16 }}>
+        {unlocked.length}/{AVAILABLE_BADGES.length}개 달성
       </div>
 
-      {BADGE_TIERS.map(tier => (
+      {AVAILABLE_BADGE_TIERS.map(tier => (
         <div key={tier.tier} style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: tier.color, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-body)', marginBottom: 8 }}>
             {tier.tier} · {tier.label}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -74,6 +75,8 @@ export default function BadgeSection() {
               return (
                 <div
                   key={badge.id}
+                  aria-label={`${badge.name} · ${isUnlocked ? '달성' : '미달성'}`}
+                  title={badge.condition}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -81,12 +84,12 @@ export default function BadgeSection() {
                     padding: '6px 10px',
                     borderRadius: 8,
                     background: isUnlocked ? `${badge.color}12` : 'var(--bg-subtle, #F2F4F6)',
-                    opacity: isUnlocked ? 1 : 0.4,
+                    border: '1px solid var(--border-light)',
                     fontSize: 12,
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>{badge.icon}</span>
-                  <span style={{ fontWeight: isUnlocked ? 600 : 400, color: isUnlocked ? badge.color : 'var(--text-tertiary, #B0B8C1)' }}>
+                  <span aria-hidden="true" style={{ fontSize: 14 }}>{badge.icon}</span>
+                  <span style={{ fontWeight: isUnlocked ? 600 : 400, color: 'var(--text-body)' }}>
                     {badge.name}
                   </span>
                 </div>
@@ -97,4 +100,8 @@ export default function BadgeSection() {
       ))}
     </div>
   );
+  return compact ? <details style={{ marginTop: 24, paddingTop: 12, borderTop: '1px solid var(--border-light)' }}>
+    <summary className={readingUI.disclosure}>내 뱃지 보기 · {unlocked.length}개</summary>
+    {contents}
+  </details> : contents;
 }

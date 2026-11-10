@@ -49,3 +49,11 @@ export const BADGE_TIERS = [
   { tier: '광', label: '달성', color: '#D4A853', badges: BADGES.filter(b => b.hwatu === '광') },
   { tier: '비광', label: '전설', color: '#1B6B3A', badges: BADGES.filter(b => b.hwatu === '비광') },
 ];
+
+// These badges have no live tracking path yet. Keep their legacy IDs out of the
+// user-facing catalog and achievement denominator until tracking is implemented.
+const UNTRACKED_BADGE_IDS = new Set(['mentor-all', 'rain-light']);
+export const AVAILABLE_BADGES = BADGES.filter(badge => !UNTRACKED_BADGE_IDS.has(badge.id));
+export const AVAILABLE_BADGE_TIERS = BADGE_TIERS
+  .map(tier => ({ ...tier, badges: tier.badges.filter(badge => !UNTRACKED_BADGE_IDS.has(badge.id)) }))
+  .filter(tier => tier.badges.length > 0);

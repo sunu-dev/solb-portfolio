@@ -1,5 +1,7 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
 import { Plus, Check } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { STOCK_KR } from '@/config/constants';
@@ -20,7 +22,7 @@ export default function WatchToggle({ symbol, name, full = false }: { symbol: st
     <button
       onClick={(e) => {
         e.stopPropagation();
-        if (inWatching) return;
+        if (inWatching || !requirePortfolioWriteAccess()) return;
         addStock('watching', { symbol, name: companyName, avgCost: 0, shares: 0, targetReturn: 0, buyBelow: 0 });
       }}
       disabled={inWatching}

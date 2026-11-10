@@ -5,7 +5,7 @@ import { getStockIdentityKey } from '@/utils/stockCurrency';
 /** Major industry groups plus editorial sub-industries. Not a licensed classification or a live ranking. */
 export type SectorId = 'semiconductors' | 'technology' | 'communication' | 'consumer-discretionary' | 'consumer-staples' | 'energy' | 'financials' | 'healthcare' | 'industrials' | 'materials' | 'real-estate' | 'utilities' | 'photonics' | 'pharma' | 'equipment' | 'defense' | 'aerospace' | 'shipbuilding' | 'batteries' | 'automotive' | 'fuel-cells' | 'quantum' | 'servers' | 'nand-storage' | 'hdd-storage' | 'networking' | 'data-center-power' | 'cybersecurity' | 'cloud-data' | 'space-launch' | 'satellite-communications' | 'advanced-nuclear' | 'nuclear-fuel' | 'nuclear-generation' | 'surgical-robotics' | 'biomanufacturing' | 'payments' | 'brokerage' | 'digital-assets' | 'solar-equipment' | 'post-quantum-security' | 'industrial-gases';
 export type SectorTopicId = `sector:${SectorId}` | `sector:${SectorId}:driver` | `sector:${SectorId}:check`;
-export interface SectorProfile { sector?: string | null; industry?: string | null; classification?: StoredIndustryProfile }
+export interface SectorProfile { business?: import('./companyBusinessProfile').CompanyBusinessProfile; sector?: string | null; industry?: string | null; classification?: StoredIndustryProfile }
 export interface SectorCompany {
   symbol: string; name: string; role: string; business: string;
   source: { label: string; url: string; reviewedAt: string };

@@ -1,0 +1,49 @@
+/* Shared reading controls. Keep native details/summary keyboard semantics. */
+.disclosure {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--reading-control-height);
+  padding: 12px 0;
+  list-style: none;
+  cursor: pointer;
+  color: var(--text-body);
+  font-family: var(--font-ui);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  text-align: left;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.disclosure::-webkit-details-marker { display: none; }
+.disclosure::after {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  margin-right: 3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+details[open] > .disclosure::after { transform: rotate(225deg); }
+.disclosure:hover { color: var(--text-primary); }
+.disclosure:focus-visible, .secondaryAction:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+.sectionTitle {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--type-section-size);
+  font-weight: var(--type-section-weight);
+  line-height: 1.5;
+  letter-spacing: -0.03em;
+}
+.secondaryAction { composes:secondaryButton from "./AppUI.module.css"; }
+.secondaryAction:hover { background: var(--bg-subtle); color: var(--text-primary); }

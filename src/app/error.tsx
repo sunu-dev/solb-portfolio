@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../components/ui/AppUI.module.css';
+
 import { useEffect } from 'react';
 import { logError } from '@/lib/errorLogger';
 
@@ -23,7 +25,7 @@ export default function Error({
         justifyContent: 'center',
         padding: 24,
         background: 'var(--bg, #FFFFFF)',
-        fontFamily: "'Pretendard Variable', sans-serif",
+        fontFamily: 'var(--font-ui)',
       }}
     >
       <div style={{ fontSize: 48, marginBottom: 16 }}>🌧️</div>
@@ -35,18 +37,9 @@ export default function Error({
         <br />
         문제가 계속되면 새로고침 해주세요.
       </p>
-      <button
+      <button className={appUI.primaryButton}
         onClick={reset}
-        style={{
-          padding: '12px 24px',
-          borderRadius: 10,
-          background: '#0E7C7B',
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
-          border: 'none',
-          cursor: 'pointer',
-        }}
+
       >
         다시 시도
       </button>

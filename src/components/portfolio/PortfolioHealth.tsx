@@ -1,10 +1,12 @@
-"use client";
+'use client';
 
+import readingUI from '../ui/ReadingUI.module.css';
 import { calcHealthScore, type HealthStock } from '@/utils/portfolioHealth';
 
 export default function PortfolioHealth({ stocks }: { stocks: HealthStock[] }) {
   if (!stocks.length) return null;
   const health = calcHealthScore(stocks);
+  if (!health.available) return <p role="status" style={{fontSize:13,color:'var(--text-secondary)'}}>시세를 모두 확인한 뒤 내 투자 구성을 계산할게요.</p>;
   const targetCount = stocks.filter(stock => stock.targetReturn > 0).length;
   const facts = [
     { title: '종목별 비중', value: health.concentration.detail.replace(/ — .*/, ''), description: '비중이 큰 종목의 변화가 전체 평가금액에 더 크게 반영돼요.' },
@@ -19,7 +21,7 @@ export default function PortfolioHealth({ stocks }: { stocks: HealthStock[] }) {
       <dd style={{ margin: 0 }}><strong style={{ fontSize: 15 }}>{fact.value}</strong><p className="reading-copy" style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.7, marginTop: 6 }}>{fact.description}</p></dd>
     </div>)}</dl>
     <details style={{ borderTop: '1px solid var(--border-light)', fontSize: 13 }}>
-      <summary style={{ minHeight: 44, padding: '12px 0', cursor: 'pointer', color: 'var(--text-secondary)' }}>기존 점수와 계산 기준</summary>
+      <summary className={readingUI.disclosure} >기존 점수와 계산 기준</summary>
       <p className="reading-copy" style={{ color: 'var(--text-body)', lineHeight: 1.7 }}>참고 점수 {health.total}/100. 종목 집중도 30점, 사업 분야 분산 25점, 목표 설정·달성 25점, 현재 손익 구성 20점을 합친 값이에요. 투자 안전성이나 앞으로의 수익률을 평가한 점수는 아니에요.</p>
     </details>
   </section>;

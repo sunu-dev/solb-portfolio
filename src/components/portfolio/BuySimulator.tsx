@@ -1,7 +1,8 @@
 'use client';
 
+import styles from './BuySimulator.module.css';
+import { ArrowRight, Calculator, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
-import { STOCK_KR } from '@/config/constants';
 import { formatKrw, formatUsd } from '@/utils/koreanNumber';
 
 /**
@@ -60,13 +61,12 @@ function withCommas(s: string): string {
 }
 
 export default function BuySimulator({
-  symbol, market, currentPrice, priceCurrency,
+  market, currentPrice, priceCurrency,
   avgCost, shares, totalPortfolioValue, usdKrw, currency,
 }: SimulatorProps) {
   const [amountStr, setAmountStr] = useState(() => currency === 'KRW' ? '1,000,000' : '1,000');
   const [isOpen, setIsOpen] = useState(false);
 
-  const kr = STOCK_KR[symbol] || symbol;
   const amountNum = Math.max(0, parseFloat(digitsOnly(amountStr) || '0'));
 
   // 입력 단위 → 가격 단위로 환산 (필요할 때만)
@@ -134,13 +134,12 @@ export default function BuySimulator({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        style={{
-          width: '100%', padding: '12px 16px', borderRadius: 12,
-          background: 'rgba(49,130,246,0.06)', border: '1px dashed rgba(49,130,246,0.3)',
-          color: '#3182F6', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 8,
-        }}
+        className={styles.entry}
+        aria-expanded={false}
       >
-        📊 이 종목을 더 샀다면?
+        <Calculator size={22} strokeWidth={1.5} aria-hidden="true" />
+        <span><strong>금액으로 미리 계산하기</strong><small>매수 금액에 따른 주식 수와 투자 비중</small></span>
+        <ArrowRight size={19} aria-hidden="true" />
       </button>
     );
   }
@@ -158,10 +157,10 @@ export default function BuySimulator({
       background: 'var(--surface, #FFFFFF)', border: '1px solid var(--border-light, #F2F4F6)',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-          📊 추가매수 시뮬레이션
+        <span className={styles.heading}>
+          <Calculator size={18} aria-hidden="true" /> 가상 매수 계산
         </span>
-        <button onClick={() => setIsOpen(false)} aria-label="닫기" style={{ background: 'none', border: 'none', fontSize: 16, color: 'var(--text-tertiary, #B0B8C1)', cursor: 'pointer' }}>✕</button>
+        <button className={styles.close} onClick={() => setIsOpen(false)} aria-label="계산 닫기"><X size={18} aria-hidden="true" /></button>
       </div>
 
       {/* 금액 입력 — 천 단위 콤마 자동 */}

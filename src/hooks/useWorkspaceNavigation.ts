@@ -20,7 +20,7 @@ export function useWorkspaceNavigation() {
       const before = usePortfolioStore.getState();
       const params = new URLSearchParams(window.location.search);
       const section = workspaceSection(params);
-      const symbol = params.get('stock')?.toUpperCase() || null;
+      const symbol = params.get('stock')?.trim().toUpperCase() || null;
       if (section !== before.currentSection) positions.set(before.currentSection, window.scrollY);
       applyingLocation = true;
       usePortfolioStore.setState({ currentSection: section, analysisSymbol: symbol });

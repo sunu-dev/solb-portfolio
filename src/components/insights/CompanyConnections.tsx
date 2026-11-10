@@ -1,4 +1,5 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
 import { usePortfolioStore } from '@/store/portfolioStore';
@@ -26,7 +27,7 @@ export default function CompanyConnections({ connections, events, now }: {
     // A fund or a currency-only connection must not acquire a fictitious company earnings schedule.
     const next = connection.level === 'company' ? nextRelatedEvent({ kind: 'earnings', symbol: stock.symbol }, events ?? [], now ?? currentTime) : undefined;
     return <details key={stock.symbol} className={styles.company}>
-      <summary>
+      <summary data-ui-disclosure="composite">
         <span className={styles.companyTitle}><strong>{connection.name}</strong><small>{connection.level === 'company' ? '사업 자료로 확인' : '거래 통화 기준'}</small></span>
         <span className={`${styles.path} reading-copy`}><ReadingText>{connection.path}</ReadingText></span>
         <span className={styles.rowHint}>근거와 확인할 점</span>
@@ -53,13 +54,13 @@ export default function CompanyConnections({ connections, events, now }: {
     {supported.length > 0 && <>
       <div className={styles.connectionHeading}><strong>확인된 연결 <span>{supported.length}</span></strong><p>사업 근거가 있는 종목부터 보여드려요. 주가 영향 순위는 아니에요.</p></div>
       {supported.slice(0, 2).map(row)}
-      {supported.length > 2 && <details className={styles.moreCompanies}><summary>확인된 다른 연결 {supported.length - 2}개</summary>{supported.slice(2).map(row)}</details>}
+      {supported.length > 2 && <details className={styles.moreCompanies}><summary className={readingUI.disclosure}>확인된 다른 연결 {supported.length - 2}개</summary>{supported.slice(2).map(row)}</details>}
     </>}
     {unverified.length > 0 && <div className={styles.unverified}>
       <div className={styles.connectionHeading}><strong>연결을 더 확인할 종목 <span>{unverified.length}</span></strong></div>
       <p>이번 발표와의 구체적인 사업 연결 근거는 아직 확인하지 못했어요. 종목을 눌러 사업이나 상품 구조부터 살펴보세요.</p>
       <div className={styles.stockChips}>{unverified.slice(0, 6).map(stockLink)}</div>
-      {unverified.length > 6 && <details className={styles.moreCompanies}><summary>다른 종목 {unverified.length - 6}개 보기</summary><div className={styles.stockChips}>{unverified.slice(6).map(stockLink)}</div></details>}
+      {unverified.length > 6 && <details className={styles.moreCompanies}><summary className={readingUI.disclosure}>다른 종목 {unverified.length - 6}개 보기</summary><div className={styles.stockChips}>{unverified.slice(6).map(stockLink)}</div></details>}
     </div>}
   </div>;
 }

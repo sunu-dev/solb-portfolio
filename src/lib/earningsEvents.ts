@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import type { EconomicEvent } from './economicEvents';
 import { zonedIso } from './economicSources';
+import { boundedFetch } from './boundedFetch';
 interface EarningsRow { symbol: string; date: string; hour?: string; year?: number; quarter?: number; epsActual?: number | null; epsEstimate?: number | null; revenueActual?: number | null }
 export function toEarningsEvent(row: EarningsRow): EconomicEvent | null {
   if (!/^[A-Z][A-Z0-9.-]{0,14}$/.test(row.symbol) || !/^\d{4}-\d{2}-\d{2}$/.test(row.date)) return null;
@@ -16,9 +17,7 @@ export function toEarningsEvent(row: EarningsRow): EconomicEvent | null {
 export const getEarningsEvents = unstable_cache(async (symbol: string, from: string, to: string) => {
   const key = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
   if (!key) throw new Error('earnings unavailable');
-  const r = await fetch(`https://finnhub.io/api/v1/calendar/earnings?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&token=${encodeURIComponent(key)}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error('earnings unavailable');
-  const data = await r.json();
+  const data = await boundedFetch(`https://finnhub.io/api/v1/calendar/earnings?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&token=${encodeURIComponent(key)}`, 4500, response => response.json(), { cache: 'no-store' });
   if (!Array.isArray(data.earningsCalendar)) throw new Error('earnings unavailable');
   return (data.earningsCalendar as EarningsRow[]).filter(row => row.symbol === symbol).map(toEarningsEvent).filter((e): e is EconomicEvent => !!e);
 }, ['earnings-events-v1'], { revalidate: 900 });

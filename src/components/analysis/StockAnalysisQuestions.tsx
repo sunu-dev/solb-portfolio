@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useId, useState, type ReactNode } from "react";
+import LearningDesk from '@/components/learning/LearningDesk';
+import { Fragment, useEffect, useId, useState, type ReactNode } from "react";
 import {
   Activity,
   ChevronDown,
@@ -12,6 +13,7 @@ import {
   Search,
   Shield,
   Sprout,
+  ArrowRight,
 } from "lucide-react";
 import styles from "./StockAnalysisQuestions.module.css";
 
@@ -21,15 +23,20 @@ import {
   type StockQuestion,
 } from "@/config/stockQuestions";
 import { useDiscoveryHistory } from "@/hooks/useDiscoveryHistory";
-import { updateDiscovery } from "@/lib/stockDiscovery";
+import { readQuestionsForSymbol, recordAnsweredQuestion } from "@/lib/stockDiscovery";
 
 const QUESTIONS = STOCK_QUESTIONS;
 type Question = StockQuestion;
 type QuotaStatus = "checking" | "ready" | "unavailable" | "signed-out";
 const EMPTY_CACHED_IDS: readonly string[] = [];
+const INITIAL_QUESTIONS = 3;
 
 export function getStockAnalysisAnswerTitle(id: string, name: string): string {
   const subjects: Record<string, string> = {
+    "fund-target": "상품의 투자대상",
+    "fund-returns": "상품의 수익 구조",
+    "fund-risk": "보유 기간과 상품 위험",
+    "fund-compare": "비슷한 상품의 비교 기준",
     safe: "먼저 살펴볼 위험",
     value: "실적과 가격의 관계",
     growth: "성장 근거와 달라질 조건",
@@ -48,7 +55,12 @@ export function getStockAnalysisQuestion(id: string): string {
 }
 
 interface StockAnalysisQuestionsProps {
+  instrument?: "stock" | "fund";
+  symbol?: string;
+  answeredId?: string;
+  backgroundQuestionId?: string;
   onLearn: (id: string) => void;
+  renderBackground?: (id: string) => ReactNode;
   owner: string;
   tags: readonly string[];
   selectedId: string | null;
@@ -68,6 +80,7 @@ interface QuestionButtonProps extends StockAnalysisQuestionsProps {
 function QuestionButton({
   item,
   onLearn,
+  renderBackground,
   tags,
   selectedId,
   loading,
@@ -83,6 +96,7 @@ function QuestionButton({
   const quotaBlocked =
     !selected && !cached && (quotaStatus === "checking" || exhausted);
   const disabled = loading || quotaBlocked;
+  const backgroundContent = renderBackground?.(item.id);
   const Icon =
     (
       {
@@ -101,9 +115,10 @@ function QuestionButton({
         type="button"
         className={styles.question}
         data-question-id={item.id}
+        aria-label={`${item.question} · AI 답변`}
         aria-expanded={selected}
         aria-disabled={disabled}
-        aria-describedby={quotaBlocked ? quotaMessageId : undefined}
+        aria-describedby={quotaMessageId}
         aria-controls={selected ? "stock-assistant-answer" : undefined}
         onClick={() => {
           if (!disabled) onSelect(item.id);
@@ -159,16 +174,25 @@ function QuestionButton({
         type="button"
         className={styles.background}
         data-question-background={item.id}
+        aria-label={`${item.question} · 개념 먼저 읽기`}
+        data-reading-return={`question-${item.id}`}
+        aria-expanded={renderBackground ? Boolean(backgroundContent) : undefined}
         onClick={() => onLearn(item.id)}
       >
-        배경 개념부터 읽기 →
+        개념 먼저 읽기 <ArrowRight size={13} aria-hidden="true" />
       </button>
+      {backgroundContent}
     </div>
   );
 }
 
 export default function StockAnalysisQuestions({
+  instrument = "stock",
+  symbol,
+  answeredId,
+  backgroundQuestionId,
   onLearn,
+  renderBackground,
   owner,
   tags,
   selectedId,
@@ -179,32 +203,34 @@ export default function StockAnalysisQuestions({
   quotaStatus = "ready",
   cachedQuestionIds = EMPTY_CACHED_IDS,
 }: StockAnalysisQuestionsProps) {
+  const hasAnswer = Boolean(answer);
   const { history } = useDiscoveryHistory(owner);
-  const questions = rankQuestions(tags, Object.keys(history.questions));
-  const select = (id: string) => {
-    updateDiscovery(owner, (h) => {
-      h.questions[id] = Date.now();
-    });
-    onSelect(id);
-  };
+  const questions = rankQuestions(tags, readQuestionsForSymbol(history, symbol), instrument);
+  useEffect(() => {
+    if (answeredId && answeredId === selectedId && !loading && hasAnswer) {
+      recordAnsweredQuestion(owner, symbol, answeredId);
+    }
+  }, [owner, symbol, answeredId, selectedId, loading, hasAnswer]);
   const headingId = useId();
   const moreId = useId();
   const quotaMessageId = useId();
   const [showMore, setShowMore] = useState(false);
   const selectedAdditionalQuestion = questions
-    .slice(3)
+    .slice(INITIAL_QUESTIONS)
     .find((question) => question.id === selectedId);
+  const backgroundAdditionalQuestion = questions.slice(INITIAL_QUESTIONS).find(question => question.id === backgroundQuestionId && question.id !== selectedAdditionalQuestion?.id);
   const exhausted = quotaStatus === "ready" && remaining === 0;
   const hasCachedAnswer = QUESTIONS.some((question) =>
     cachedQuestionIds.includes(question.id),
   );
   const questionProps = {
     onLearn,
+    renderBackground,
     owner,
     tags,
     selectedId,
     loading,
-    onSelect: select,
+    onSelect,
     remaining,
     quotaStatus,
     cachedQuestionIds,
@@ -214,13 +240,52 @@ export default function StockAnalysisQuestions({
   return (
     <section className={styles.section} aria-labelledby={headingId}>
       <div className={styles.heading}>
+        <p className={styles.kicker}>주비와 함께 짚어보기</p>
         <h3 id={headingId} className={styles.title}>
-          주비에게 더 물어보기
+          {instrument === 'fund' ? '이 상품, 더 알아볼까요?' : '이 회사, 더 알아볼까요?'}
         </h3>
-        <p className={styles.intro}>
-          뉴스 제목과 연결되는 주제를 먼저 보여드려요. 열어본 질문은 다음 방문에
-          다른 질문 뒤로 이어져요.
-        </p>
+        <p className={styles.intro}>궁금한 질문을 골라보세요. 개념 설명은 바로 읽을 수 있어요.</p>
+      </div>
+
+      <LearningDesk key={`${owner}:${symbol}`} symbol={symbol} />
+      <div className={styles.list}>
+        {questions.slice(0, INITIAL_QUESTIONS).map((item) => (
+          <Fragment key={item.id}>
+            <QuestionButton item={item} {...questionProps} />
+            {item.id === selectedId ? answer : null}
+          </Fragment>
+        ))}
+        {!showMore && backgroundAdditionalQuestion ? <QuestionButton item={backgroundAdditionalQuestion} {...questionProps} /> : null}
+        {!showMore && selectedAdditionalQuestion ? (
+          <>
+            <QuestionButton item={selectedAdditionalQuestion} {...questionProps} />
+            {answer}
+          </>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        className={styles.more}
+        data-question-more
+        aria-expanded={showMore}
+        aria-controls={moreId}
+        onClick={() => setShowMore((previous) => !previous)}
+      >
+        <span>{showMore ? "다른 질문 접기" : `다른 질문 ${Math.max(0, questions.length - INITIAL_QUESTIONS)}개 보기`}</span>
+        <ChevronDown className={styles.expandIcon} size={14} strokeWidth={1.8} aria-hidden="true" />
+      </button>
+
+      <div id={moreId} className={styles.additional} hidden={!showMore}>
+        {showMore ? questions.slice(INITIAL_QUESTIONS).map((item) => (
+          <Fragment key={item.id}>
+            <QuestionButton item={item} {...questionProps} />
+            {item.id === selectedId ? answer : null}
+          </Fragment>
+        )) : null}
+      </div>
+      <footer className={styles.footer}>
+        <span className={styles.aiLabel}>AI 답변</span>
         <div
           id={quotaMessageId}
           className={`${styles.usage}${exhausted ? ` ${styles.exhausted}` : ""}`}
@@ -233,7 +298,7 @@ export default function StockAnalysisQuestions({
           ) : quotaStatus === "unavailable" ? (
             "남은 횟수를 확인하지 못했어요. 질문할 때 다시 확인할게요."
           ) : quotaStatus === "signed-out" ? (
-            "AI 분석은 로그인 후 이용할 수 있어요."
+            "로그인 후 질문할 수 있어요. 개념 읽기는 로그인 없이 이용해요."
           ) : exhausted ? (
             <>
               <strong className={styles.usageTitle}>오늘 0회 남음</strong>
@@ -248,53 +313,7 @@ export default function StockAnalysisQuestions({
             "새 답변은 AI 분석 1회를 사용해요."
           )}
         </div>
-      </div>
-
-      <div className={styles.list}>
-        {questions.slice(0, 3).map((item) => (
-          <Fragment key={item.id}>
-            <QuestionButton item={item} {...questionProps} />
-            {item.id === selectedId ? answer : null}
-          </Fragment>
-        ))}
-        {!showMore && selectedAdditionalQuestion ? (
-          <>
-            <QuestionButton
-              item={selectedAdditionalQuestion}
-              {...questionProps}
-            />
-            {answer}
-          </>
-        ) : null}
-      </div>
-
-      <button
-        type="button"
-        className={styles.more}
-        data-question-more
-        aria-expanded={showMore}
-        aria-controls={moreId}
-        onClick={() => setShowMore((previous) => !previous)}
-      >
-        <span>{showMore ? "다른 관점 접기" : "다른 관점도 보기"}</span>
-        <ChevronDown
-          className={styles.expandIcon}
-          size={16}
-          strokeWidth={1.8}
-          aria-hidden="true"
-        />
-      </button>
-
-      <div id={moreId} className={styles.additional} hidden={!showMore}>
-        {showMore
-          ? questions.slice(3).map((item) => (
-              <Fragment key={item.id}>
-                <QuestionButton item={item} {...questionProps} />
-                {item.id === selectedId ? answer : null}
-              </Fragment>
-            ))
-          : null}
-      </div>
+      </footer>
     </section>
   );
 }

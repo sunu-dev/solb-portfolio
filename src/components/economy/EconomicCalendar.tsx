@@ -1,4 +1,6 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
+
 import { useEffect, useRef, useState } from 'react';
 import { useEconomicEvents } from '@/hooks/useEconomicEvents';
 import { eventState, eventTime, kstDay } from '@/lib/economicEvents';
@@ -35,8 +37,8 @@ export function EconomicCalendarContent({ focusKey }: { focusKey?: string }) {
     {!data&&!error&&<p role="status" className={styles.muted}>발표 자료를 확인하고 있어요…</p>}
     {error&&<p role="alert">{error}<button className={styles.button} onClick={retry}>다시 시도</button></p>}
     {data&&!visible.length&&<p className={styles.muted}>이 기간에 확인된 일정이 없어요. {filter==='earnings'?'실적 일정은 제공처에서 확인된 미국 보유·관심 종목을 표시해요.':'기간이나 필터를 바꿔보세요.'}</p>}
-    {groups.map(date=><section key={date}><h3 className={styles.dayHeading}>{date.slice(5).replace('-','/')} · {new Intl.DateTimeFormat('ko-KR',{weekday:'long',timeZone:'Asia/Seoul'}).format(new Date(`${date}T12:00:00+09:00`))}</h3>{visible.filter(e=>kstDay(e.at)===date).map(event=><details className={styles.row} key={event.key} open={focusKey===event.key||undefined}><summary><div className={styles.meta}><span>{eventTime(event)}</span><span className={styles.badge}>{stateText[eventState(event)]}</span>{event.symbol&&<span>내 종목</span>}</div><div className={styles.title}>{event.title} <span aria-hidden="true">⌄</span></div>{event.period&&<p className={styles.muted}>{event.period.replace('-','년 ')}월 지표</p>}</summary><EventExplanation event={event} symbols={symbols}/></details>)}</section>)}
-    {data&&<details className={styles.row}><summary className={styles.muted}>자료 확인 상태 · {kstDay(data.checkedAt)}</summary><p className={styles.muted}>일정은 변경될 수 있어요. 발표 수치를 확인한 뒤에만 결과로 표시해요. 시장 반응을 발표의 영향으로 단정하지 않아요.</p>{data.warnings.map(w=><p key={w} className={styles.muted}>{w}</p>)}<p className={styles.muted}>실적 일정은 최대 30개 보유·관심 종목을 조회해요. {symbols.length>30?'30개를 넘어 일부 종목은 제외됐어요.':''}</p></details>}
+    {groups.map(date=><section key={date}><h3 className={styles.dayHeading}>{date.slice(5).replace('-','/')} · {new Intl.DateTimeFormat('ko-KR',{weekday:'long',timeZone:'Asia/Seoul'}).format(new Date(`${date}T12:00:00+09:00`))}</h3>{visible.filter(e=>kstDay(e.at)===date).map(event=><details className={styles.row} key={event.key} open={focusKey===event.key||undefined}><summary data-ui-disclosure="composite"><div className={styles.meta}><span>{eventTime(event)}</span><span className={styles.badge}>{stateText[eventState(event)]}</span>{event.symbol&&<span>내 종목</span>}</div><div className={styles.title}>{event.title} <span aria-hidden="true">⌄</span></div>{event.period&&<p className={styles.muted}>{event.period.replace('-','년 ')}월 지표</p>}</summary><EventExplanation event={event} symbols={symbols}/></details>)}</section>)}
+    {data&&<details className={styles.row}><summary className={readingUI.disclosure}>자료 확인 상태 · {kstDay(data.checkedAt)}</summary><p className={styles.muted}>일정은 변경될 수 있어요. 발표 수치를 확인한 뒤에만 결과로 표시해요. 시장 반응을 발표의 영향으로 단정하지 않아요.</p>{data.warnings.map(w=><p key={w} className={styles.muted}>{w}</p>)}<p className={styles.muted}>실적 일정은 최대 30개 보유·관심 종목을 조회해요. {symbols.length>30?'30개를 넘어 일부 종목은 제외됐어요.':''}</p></details>}
   </>;
 }
 export default function EconomicCalendar() {

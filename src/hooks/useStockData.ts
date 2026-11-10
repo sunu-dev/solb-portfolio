@@ -6,13 +6,15 @@
 
 import { useShallow } from 'zustand/react/shallow';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { usePortfolioStore, delay } from '@/store/portfolioStore';
 import type { QuoteData, CandleRaw } from '@/config/constants';
 import { PERIODS, MACRO_IND, NEWS_QUERIES } from '@/config/constants';
 import { macroEntryFromQuote } from '@/utils/macroQuote';
 import { checkAllAlerts } from '@/utils/alertsEngine';
+import { readDailyCandles } from '@/lib/dailyCandles';
 import { newsClient, type NewsFetchResult } from '@/lib/newsFeed';
+import { loadQuoteBatch } from '@/lib/quoteClient';
 export type { NewsFetchResult } from '@/lib/newsFeed';
 
 
@@ -21,15 +23,7 @@ export type { NewsFetchResult } from '@/lib/newsFeed';
 // 해당 엔드포인트는 유료 티어 전용이라 무료 키로는 항상 실패했고, 실제로 값을 주는 것은
 // 아래 `/api/candle`(서버에서 Yahoo 조회)뿐이었다. 키 노출 경로를 없애면서 함께 정리.
 async function fetchCandleDataRaw(symbol: string): Promise<CandleRaw | null> {
-  try {
-    const r = await fetch(`/api/candle?symbol=${symbol}`);
-    const d: CandleRaw = await r.json();
-    if (d.s === 'ok' && d.c?.length > 20) return d;
-  } catch (e) {
-    console.error('fetchCandleDataRaw error:', e);
-  }
-
-  return null;
+  return (await readDailyCandles(symbol)).data;
 }
 
 // --- Fetch Korean news ---
@@ -84,7 +78,7 @@ export function useStockData() {
       const cached = localStorage.getItem(QUOTE_CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
-        // Always restore from cache if less than 30 minutes old
+        // Restore the last response only within its five-minute freshness window.
         if (Date.now() - ts < 5 * 60 * 1000) {
           for (const [sym, quote] of Object.entries(data)) {
             if (quote && (quote as QuoteData).c) updateMacroEntry(sym, quote as QuoteData);
@@ -106,7 +100,7 @@ export function useStockData() {
       }
     } catch { /* ignore */ }
 
-    // Fetch fresh quotes via server batch API (1 request instead of N)
+    // Prices and market indices arrive independently; one slow index cannot hold all stocks.
     const freshData: Record<string, QuoteData> = {};
 
     // Include macro symbols in batch
@@ -115,42 +109,44 @@ export function useStockData() {
 
     const receivedSymbols = new Set<string>();
     let fxOk = false;
-    try {
-      const r = await fetch('/api/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: allSyms, macro: true }),
-      });
-      if (!r.ok) throw new Error(`batch API ${r.status}`);
-      const json = await r.json();
-      const quotes = json?.quotes;
-      const usdKrw = json?.usdKrw;
+    const stockSymbols = [...new Set(syms.filter(symbol => !macroSymbols.includes(symbol)))];
+    const batches: { symbols: string[]; macro: boolean }[] = [];
+    for (let start = 0; start < stockSymbols.length; start += 50) {
+      batches.push({ symbols: stockSymbols.slice(start, start + 50), macro: start === 0 });
+    }
+    batches.push({ symbols: macroSymbols, macro: stockSymbols.length === 0 });
+    await Promise.all(batches.map(async batch => {
+      try {
+        const json = await loadQuoteBatch(batch.symbols, batch.macro);
+        const quotes = json?.quotes;
+        const usdKrw = json?.usdKrw;
 
-      // Check we actually got data
-      if (quotes && Object.keys(quotes).some(k => quotes[k]?.c)) {
-        for (const [sym, d] of Object.entries(quotes)) {
-          if (d && Number.isFinite((d as QuoteData).c) && (d as QuoteData).c > 0) {
-            receivedSymbols.add(sym);
-            const macroInd = MACRO_IND.find(i => i.symbol === sym);
-            if (macroInd) {
-              const q = d as QuoteData;
-              const entry = macroEntryFromQuote(q);
-              if (entry) updateMacroEntry(macroInd.label, entry);
-            }
-            if (syms.includes(sym)) {
-              updateMacroEntry(sym, d as QuoteData);
-              freshData[sym] = d as QuoteData;
+        // Check we actually got data
+        if (quotes && Object.keys(quotes).some(k => quotes[k]?.c)) {
+          for (const [sym, d] of Object.entries(quotes)) {
+            if (d && Number.isFinite((d as QuoteData).c) && (d as QuoteData).c > 0) {
+              receivedSymbols.add(sym);
+              const macroInd = MACRO_IND.find(i => i.symbol === sym);
+              if (macroInd) {
+                const q = d as QuoteData;
+                const entry = macroEntryFromQuote(q);
+                if (entry) updateMacroEntry(macroInd.label, entry);
+              }
+              if (syms.includes(sym)) {
+                updateMacroEntry(sym, d as QuoteData);
+                freshData[sym] = d as QuoteData;
+              }
             }
           }
         }
-      }
 
-      const fx = macroEntryFromQuote(usdKrw);
-      if (fx) {
-        updateMacroEntry('USD/KRW', fx);
-        fxOk = true;
-      }
-    } catch { /* batch failed, will fallback below */ }
+        const fx = macroEntryFromQuote(usdKrw);
+        if (fx) {
+          updateMacroEntry('USD/KRW', fx);
+          fxOk = true;
+        }
+      } catch { /* Preserve successful batches; missing data is reported below. */ }
+    }));
 
     // 배치 실패 시의 개별 Finnhub 직접 호출 폴백은 제거했다.
     // /api/quotes가 서버에서 이미 Finnhub(미국)·Yahoo(한국·지수) 폴백을 수행하므로
@@ -160,7 +156,7 @@ export function useStockData() {
     // 과거에는 미국/한국 주가만 성공해도 batchOk=true가 되어 환율 fallback이 영구 스킵됐다.
     if (!fxOk) {
       try {
-        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X', {signal:AbortSignal.timeout(10000)});
         const d = await r.json();
         const fx = macroEntryFromQuote(d);
         if (fx) {
@@ -208,7 +204,8 @@ export function useStockData() {
     const processCandle = async (s: string) => {
       // Check localStorage cache first (candles change daily only)
       const cacheKey = `candle_${s}`;
-      const cached = localStorage.getItem(cacheKey);
+      let cached: string | null = null;
+      try { cached = localStorage.getItem(cacheKey); } catch { /* Storage may be blocked; fetch prices normally. */ }
       if (cached) {
         try {
           const { data, date } = JSON.parse(cached);
@@ -264,12 +261,12 @@ export function useStockData() {
     setAlerts(alerts1);
 
     // 3. Candles in background (slow, but prices already visible)
-    fetchAllCandles().then(() => {
+    void fetchAllCandles().then(() => {
       // Re-run alerts with full candle data
       const state2 = usePortfolioStore.getState();
       const alerts2 = checkAllAlerts(state2.stocks, state2.macroData, state2.rawCandles, state2.candleCache);
       setAlerts(alerts2);
-    });
+    }).catch(() => { /* A failed background refresh must not break the workspace. */ });
   }, [fetchAllQuotes, fetchAllCandles, setAlerts]);
 
   return { fetchAllQuotes, fetchAllCandles, refreshAll };
@@ -288,13 +285,7 @@ export function useMacroData() {
     let fxOk = false;
 
     try {
-      const r = await fetch('/api/quotes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ symbols: macroSymbols, macro: true }),
-      });
-      if (r.ok) {
-        const json = await r.json();
+      const json = await loadQuoteBatch(macroSymbols, true);
         if (json.quotes) {
           for (const ind of MACRO_IND.filter(i => i.symbol)) {
             const d = json.quotes[ind.symbol!];
@@ -310,7 +301,6 @@ export function useMacroData() {
           updateMacroEntry('USD/KRW', fx);
           fxOk = true;
         }
-      }
     } catch { /* batch failed */ }
 
     // 개별 Finnhub 직접 호출 폴백 제거 — 위와 같은 이유(서버 라우트가 폴백을 담당).
@@ -318,7 +308,7 @@ export function useMacroData() {
 
     if (!fxOk) {
       try {
-        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X', {signal:AbortSignal.timeout(10000)});
         const d = await r.json();
         const fx = macroEntryFromQuote(d);
         if (fx) {
@@ -350,10 +340,14 @@ export function useCandleData(symbol: string | null) {
     updateCandleCache: state.updateCandleCache,
   })));
 
+  const [states,setStates] = useState<Record<string,'loading'|'ready'|'empty'|'error'>>({});
   const fetchCandle = useCallback(async () => {
     if (!symbol) return;
     if (rawCandles[symbol]) return; // already cached
-    const raw = await fetchCandleDataRaw(symbol);
+    setStates(previous=>({...previous,[symbol]:'loading'}));
+    const result = await readDailyCandles(symbol);
+    const raw = result.data;
+    setStates(previous=>({...previous,[symbol]:result.status}));
     if (raw) {
       updateRawCandles(symbol, raw);
       const closes = raw.c;
@@ -368,7 +362,7 @@ export function useCandleData(symbol: string | null) {
     }
   }, [symbol, rawCandles, updateRawCandles, updateCandleCache]);
 
-  return { fetchCandle, rawCandle: symbol ? rawCandles[symbol] : null };
+  return { fetchCandle, candleStatus: symbol && rawCandles[symbol] ? 'ready' as const : (symbol ? states[symbol] : undefined) ?? 'loading', rawCandle: symbol ? rawCandles[symbol] : null };
 }
 
 // --- useNewsData ---
@@ -465,7 +459,7 @@ export function useAutoRefresh() {
     fxTimerRef.current = setInterval(async () => {
       if (document.visibilityState !== 'visible') return;
       try {
-        const r = await fetch('/api/kr-quote?symbol=USDKRW=X');
+        const r = await fetch('/api/kr-quote?symbol=USDKRW=X', {signal:AbortSignal.timeout(10000)});
         const d = await r.json();
         const fx = macroEntryFromQuote(d);
         if (fx) {

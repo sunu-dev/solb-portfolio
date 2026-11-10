@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { tsToDate, usePortfolioStore } from '@/store/portfolioStore';
-import type { Time, UTCTimestamp } from 'lightweight-charts';
+import type { Time, UTCTimestamp, ISeriesApi } from 'lightweight-charts';
 import type { CandleRaw } from '@/config/constants';
+import type { ChartView } from '@/lib/chartTechnicalContext';
 
 // 차트 캔버스 테마 — lightweight-charts는 CSS 변수를 못 받으므로 모드별 concrete hex.
 // 보더는 실행 시 CSS 토큰의 실제 색을 읽는다. CSS 변수 문자열을 캔버스에 넘기지 않는다.
@@ -34,6 +35,8 @@ interface StockChartProps {
   visibleBars?: number; // 0 = fit all
   currency?: 'KRW' | 'USD';
   intradayTimeZone?: string;
+  analysisViews?: readonly ChartView[];
+  referencePrices?: { price: number; title: string }[];
 }
 
 export default function StockChart({
@@ -45,7 +48,15 @@ export default function StockChart({
   visibleBars = 60,
   currency = 'USD',
   intradayTimeZone,
+  analysisViews,
+  referencePrices,
 }: StockChartProps) {
+  const showCandles = level === 'detail' || !!analysisViews?.includes('candles');
+  const showVolume = level === 'detail' || !!analysisViews?.includes('volume');
+  const showAverages = level === 'detail' || !!analysisViews?.includes('trend');
+  const showBollinger = level === 'detail' || !!analysisViews?.includes('bollinger');
+  const showMacd = level === 'detail' || !!analysisViews?.includes('macd');
+  const showRsi = level === 'detail' || !!analysisViews?.includes('rsi');
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ReturnType<typeof import('lightweight-charts').createChart> | null>(null);
   const macdContainerRef = useRef<HTMLDivElement>(null);
@@ -109,11 +120,14 @@ export default function StockChart({
         time: toTime(t),
         open: raw.o[i], high: raw.h[i], low: raw.l[i], close: raw.c[i],
       }));
-      if (level === 'basic') {
+      const markReferences = (series: Pick<ISeriesApi<'Line'>, 'createPriceLine'>) => referencePrices?.forEach(point => series.createPriceLine({ price: point.price,
+        color: theme.text, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: point.title }));
+      if (!showCandles) {
         const closingSeries = chart.addSeries(LightweightCharts.LineSeries, {
           color: theme.line, lineWidth: 2, pointMarkersVisible: raw.t.length === 1, priceLineVisible: false, lastValueVisible: false, priceFormat,
         });
         closingSeries.setData(candleData.map(day => ({ time: day.time, value: day.close })));
+        markReferences(closingSeries);
       } else {
       const candleSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#EF4452',
@@ -125,8 +139,11 @@ export default function StockChart({
         priceFormat,
       });
       candleSeries.setData(candleData);
+      markReferences(candleSeries);
+      }
 
       // Volume
+      if (showVolume) {
       const volSeries = chart.addSeries(LightweightCharts.HistogramSeries, {
         priceFormat: { type: 'volume' },
         priceScaleId: '',
@@ -167,6 +184,7 @@ export default function StockChart({
           priceLineVisible: false,
           lastValueVisible: false,
           crosshairMarkerVisible: false,
+          pointMarkersVisible: arr.length === 1,
         });
         const data = arr.map((v, i) => ({
           time: toTime(raw.t[startIdx + i]),
@@ -175,16 +193,16 @@ export default function StockChart({
         line.setData(data);
       };
 
-      if (level === 'detail' && sma20.length) addLine(sma20, raw.t.length - sma20.length, '#ffa726', 1);
-      if (level === 'detail' && sma60.length) addLine(sma60, raw.t.length - sma60.length, '#a29bfe', 1);
+      if (showAverages && sma20.length && !(intradayTimeZone && showBollinger && bollingerBands?.length)) addLine(sma20, raw.t.length - sma20.length, '#ffa726', 1);
+      if (showAverages && sma60.length) addLine(sma60, raw.t.length - sma60.length, '#a29bfe', 1);
 
       // Detail: also show MA 5
-      if (level === 'detail' && sma5.length) {
+      if (showAverages && sma5.length) {
         addLine(sma5, raw.t.length - sma5.length, '#4fc3f7', 1);
       }
 
       // Detail: Bollinger Bands
-      if (level === 'detail' && bollingerBands && bollingerBands.length) {
+      if (showBollinger && bollingerBands && bollingerBands.length) {
         const startIdx = raw.t.length - bollingerBands.length;
         const upperLine = chart.addSeries(LightweightCharts.LineSeries, {
           color: 'rgba(139, 149, 161, 0.4)',
@@ -212,7 +230,7 @@ export default function StockChart({
         })));
         // 볼린저 중심선(20일 이동평균 기준) — 학습 스캐폴딩, 중립 회색 점선
         const midLine = chart.addSeries(LightweightCharts.LineSeries, {
-          color: GUIDE_COLOR, lineWidth: 1, lineStyle: 2,
+          color: intradayTimeZone && showAverages ? '#ffa726' : GUIDE_COLOR, lineWidth: 1, lineStyle: 2,
           priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false,
         });
         midLine.setData(bollingerBands.map((b, i) => ({
@@ -242,7 +260,7 @@ export default function StockChart({
       observersRef.current.push(ro);
 
       // MACD sub-chart (detail only)
-      if (level === 'detail' && macdData && macdContainerRef.current) {
+      if (showMacd && macdData && macdContainerRef.current) {
         const macdChart = LightweightCharts.createChart(macdContainerRef.current, {
           width: macdContainerRef.current.clientWidth,
           height: 100,
@@ -303,7 +321,7 @@ export default function StockChart({
       }
 
       // RSI sub-chart (detail only)
-      if (level === 'detail' && rsiData && rsiData.length && rsiContainerRef.current) {
+      if (showRsi && rsiData && rsiData.length && rsiContainerRef.current) {
         const rsiChart = LightweightCharts.createChart(rsiContainerRef.current, {
           width: rsiContainerRef.current.clientWidth,
           height: 80,
@@ -355,12 +373,12 @@ export default function StockChart({
       observersRef.current.forEach(ro => ro.disconnect());
       observersRef.current = [];
     };
-  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode, currency, intradayTimeZone]);
+  }, [raw, sma5, sma20, sma60, level, bollingerBands, macdData, rsiData, visibleBars, darkMode, currency, intradayTimeZone, showCandles, showVolume, showAverages, showBollinger, showMacd, showRsi, referencePrices]);
 
   return (
     <div>
       <div className="relative">
-        <div ref={containerRef} role="img" aria-label={intradayTimeZone ? `거래소 현지 시각 기준 5분 간격 ${level === 'basic' ? '가격 흐름' : '캔들·거래량'} 차트` : level === 'basic' ? '날짜별 종가 추이. 아래에서 기간과 가격 범위를 확인할 수 있어요.' : '일별 캔들 및 거래량 차트'} className="w-full rounded-lg overflow-hidden" />
+        <div ref={containerRef} role="img" aria-label={intradayTimeZone ? `거래소 현지 시각 기준 5분 간격 ${showCandles ? '캔들' : '가격 흐름'}${showVolume ? '·거래량' : ''} 차트` : level === 'basic' ? '날짜별 종가 추이. 아래에서 기간과 가격 범위를 확인할 수 있어요.' : '일별 캔들 및 거래량 차트'} className="w-full rounded-lg overflow-hidden" />
         {legend && (
           <div
             className="absolute pointer-events-none"
@@ -377,7 +395,7 @@ export default function StockChart({
           >
             <div style={{ color: 'var(--text-tertiary, #B0B8C1)', marginBottom: 2 }}>{legend.date}</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {level === 'detail' && <><span>시가 {fmtPrice(legend.o)}</span><span>고가 {fmtPrice(legend.h)}</span><span>저가 {fmtPrice(legend.l)}</span></>}
+              {showCandles && <><span>시가 {fmtPrice(legend.o)}</span><span>고가 {fmtPrice(legend.h)}</span><span>저가 {fmtPrice(legend.l)}</span></>}
               <span style={{ color: 'var(--text-primary, #191F28)', fontWeight: 700 }}>{intradayTimeZone ? '가격' : '종가'} {fmtPrice(legend.c)}</span>
               {legend.chgPct != null && (
                 <span style={{ color: legend.chgPct === 0 ? 'var(--text-secondary)' : legend.chgPct > 0 ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', fontWeight: 700 }}>
@@ -385,26 +403,26 @@ export default function StockChart({
                 </span>
               )}
             </div>
-            {level === 'detail' && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>거래량 {fmtVol(legend.v)}</div>}
+            {showVolume && <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>거래량 {fmtVol(legend.v)}</div>}
           </div>
         )}
       </div>
 
-      {level === 'detail' && macdData && (
+      {showMacd && macdData && (
         <>
           <div className="text-[11px] text-[#B0B8C1] mt-3 mb-1 font-medium">MACD</div>
           <div ref={macdContainerRef} className="w-full rounded-lg overflow-hidden" />
         </>
       )}
 
-      {level === 'detail' && rsiData && rsiData.length > 0 && (
+      {showRsi && rsiData && rsiData.length > 0 && (
         <>
           <div className="text-[11px] text-[#B0B8C1] mt-3 mb-1 font-medium">RSI</div>
           <div ref={rsiContainerRef} className="w-full rounded-lg overflow-hidden" />
         </>
       )}
 
-      {intradayTimeZone ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>거래소 현지 시각 · 5분 간격{level === 'basic' ? ' 가격을 연결했어요.' : ' 캔들과 거래량이에요.'}</p> : level === 'basic' ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>하루 거래를 마친 가격을 연결한 선이에요.</p> : <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
+      {intradayTimeZone ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>거래소 현지 시각 기준 · {showCandles ? '봉 하나는 5분 동안의 시가·고가·저가·마지막 가격을 보여줘요.' : '5분마다 마지막으로 거래된 가격을 이었어요.'}</p> : level === 'basic' ? <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, textAlign: 'center' }}>하루 거래를 마친 가격을 연결한 선이에요.</p> : <div className="flex gap-4 mt-2 text-[11px] text-[#8B95A1] justify-center flex-wrap">
         <span><span className="text-[#ffa726]">━</span> 20일</span>
         <span><span className="text-[#a29bfe]">━</span> 60일</span>
         {level === 'detail' && <span><span className="text-[#4fc3f7]">━</span> 5일</span>}

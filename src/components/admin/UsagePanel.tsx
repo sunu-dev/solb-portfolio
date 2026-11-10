@@ -1,4 +1,6 @@
 'use client';
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -35,7 +37,7 @@ export default function UsagePanel() {
   const { data, error, loading } = state;
   return <section className={styles.panel} aria-label="서비스 이용 현황">
     <div className={styles.toolbar}><div><h2>얼마나 자주, 얼마나 오래 사용하나요?</h2><p>가입자 수와 구분해 실제 이용을 확인합니다.</p></div>
-      <div className={styles.controls}>{[7,14,30].map(d => <button key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)}>{d}일</button>)}<button type="button" onClick={() => setRefresh(n => n+1)}>새로고침</button></div>
+      <div className={styles.controls}>{[7,14,30].map(d => <button className={appUI.secondaryButton} key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)}>{d}일</button>)}<button className={appUI.secondaryButton} type="button" onClick={() => setRefresh(n => n+1)}>새로고침</button></div>
     </div>
     {loading && <p role="status">이용 현황을 불러오고 있어요…</p>}
     {error && <p role="alert" className={styles.error}>{error}</p>}
@@ -57,9 +59,9 @@ export default function UsagePanel() {
       </div><p>설명 방문 중 이어서 탐색한 비율: <strong>{data.exploration.rate === null ? '—' : `${data.exploration.rate}%`}</strong>. 같은 방문 안에서 순서대로 발생한 기록을 셉니다.</p></div>
       <div className={styles.block}><h3>새 자료와 배움을 이용하나요?</h3><div className={styles.funnel}>
         {([['brief_read','변화 확인'],['fresh_news_open','기사 원문 열기'],['learning_open','설명 열기'],['learning_read','읽었어요 선택'],['learning_continue','이어서 읽기']] as const).map(([event,label])=><span key={event}>{label} <strong>{data.discovery?.[event]??0}방문</strong></span>)}
-      </div><p>選んだ期間の방문数です。同じ방문の同じ操作は1回にまとめ、順番を持つファネルではありません。継続・再訪の効果は成長タブのD1・D7と合わせて確認します。追加計測の開始前は未収集です。</p></div>
+      </div><p>선택한 기간의 방문 수예요. 같은 방문에서 같은 동작은 한 번만 세며, 순서대로 이어지는 단계별 비율은 아니에요. 지속 이용과 재방문 효과는 성장 탭의 D1·D7과 함께 확인해요. 추가 측정이 시작되기 전의 기록은 없어요.</p></div>
       <div className={styles.block}><h3>날짜별 이용</h3><div className={styles.tableWrap}><table><thead><tr><th>날짜</th><th>활성 회원</th><th>비로그인 브라우저</th><th>방문</th><th>사용시간 합계</th></tr></thead><tbody>{data.daily.map(d => <tr key={d.date}><th scope="row">{d.date}</th>{data.firstSampleAt && d.date >= kstDay(data.firstSampleAt) ? <><td>{d.members}</td><td>{d.guests}</td><td>{d.sessions}</td><td>{duration(d.activeMs)}</td></> : <td colSpan={4}>미수집</td>}</tr>)}</tbody></table></div></div>
-      <details className={styles.block}><summary>측정 기준과 한계</summary><p>활성 회원은 측정된 사용시간이 있는 계정입니다. 숨겨진 탭·포커스가 없는 창·마지막 조작 이후 1분을 넘긴 시간은 제외합니다. 페이지를 새로 열거나 새로고침하면 새 방문으로 셉니다. 같은 페이지에서도 30분간 조작이 없으면 다음 조작부터 새 방문으로 셉니다. 여러 탭은 별도 방문이며 로그인 전후 방문도 분리합니다. 평균·중앙값·기능·탐색은 선택한 기간, 7일·30일 활성 수는 오늘까지 고정 기간입니다.</p><p>관리자 계정과 자동화 브라우저는 수집에서 제외합니다. 네트워크 차단·종료 시 전송 실패·브라우저 저장소 삭제로 일부 이용이 빠질 수 있어요. 측정 전 사용시간은 복원하지 않습니다. 읽는 중 조작이 없다면 1분 이후의 독서는 포함되지 않습니다. 보유종목·메모·검색어·URL은 이 기록에 넣지 않습니다.</p></details>
+      <details className={styles.block}><summary className={readingUI.disclosure}>측정 기준과 한계</summary><p>활성 회원은 측정된 사용시간이 있는 계정입니다. 숨겨진 탭·포커스가 없는 창·마지막 조작 이후 1분을 넘긴 시간은 제외합니다. 페이지를 새로 열거나 새로고침하면 새 방문으로 셉니다. 같은 페이지에서도 30분간 조작이 없으면 다음 조작부터 새 방문으로 셉니다. 여러 탭은 별도 방문이며 로그인 전후 방문도 분리합니다. 평균·중앙값·기능·탐색은 선택한 기간, 7일·30일 활성 수는 오늘까지 고정 기간입니다.</p><p>관리자 계정과 자동화 브라우저는 수집에서 제외합니다. 네트워크 차단·종료 시 전송 실패·브라우저 저장소 삭제로 일부 이용이 빠질 수 있어요. 측정 전 사용시간은 복원하지 않습니다. 읽는 중 조작이 없다면 1분 이후의 독서는 포함되지 않습니다. 보유종목·메모·검색어·URL은 이 기록에 넣지 않습니다.</p></details>
     </>}
   </section>;
 }

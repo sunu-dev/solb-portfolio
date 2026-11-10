@@ -53,6 +53,12 @@ export interface ReconciliationRow {
   changes: HoldingFieldChange[];
 }
 
+/** 사용자가 선택한 보유 기록의 반영 가능 행. 신규 추천 정책을 적용하지 않는다. */
+export function actionableImportIndices(rows: readonly ReconciliationRow[]): Set<number> {
+  return new Set(rows.filter(row => row.status === 'new' || row.status === 'changed')
+    .map(row => row.inputIndex));
+}
+
 export interface ReconciliationSummary {
   added: number;
   updated: number;
@@ -395,6 +401,13 @@ export function applyPortfolioReconciliation(
     if (!selectedInputIndices.has(row.inputIndex)) return;
 
     if (row.status === 'new') {
+      // A background restore/sync can change the portfolio after the preview was built.
+      const current = reconcilePortfolioImport([row.draft], next, broker, targetCategory)[0];
+      if (current.status !== 'new') {
+        if (current.status === 'unchanged') summary.unchanged += 1;
+        else summary.needsReview += 1;
+        return;
+      }
       const total = next.investing.length + next.watching.length + next.sold.length;
       if (total >= maxHoldings) {
         summary.skippedLimit += 1;
@@ -419,8 +432,17 @@ export function applyPortfolioReconciliation(
     }
 
     if (row.status === 'changed' && row.match) {
-      const existing = next[row.match.category][row.match.index];
-      if (!existing) return;
+      // clonePortfolioStocks strips demo rows; original array indices no longer identify a holding.
+      const category = row.match.category;
+      const matches = next[category].flatMap((stock, index) =>
+        getStockIdentityKey(stock.symbol) === getStockIdentityKey(row.match!.stock.symbol)
+          && stock.broker === row.match!.stock.broker ? [{ stock, index }] : []);
+      if (matches.length !== 1 || !nearlyEqual(matches[0].stock.avgCost, row.match.stock.avgCost)
+        || !nearlyEqual(matches[0].stock.shares, row.match.stock.shares)) {
+        summary.needsReview += 1;
+        return;
+      }
+      const { stock: existing, index } = matches[0];
       const update: StockItem = {
         ...existing,
         currency: getStockCurrency(row.draft.symbol, row.draft.currency),
@@ -428,7 +450,7 @@ export function applyPortfolioReconciliation(
       row.changes.forEach((change) => {
         update[change.field] = change.after;
       });
-      next[row.match.category][row.match.index] = update;
+      next[category][index] = update;
       summary.updated += 1;
     }
   });

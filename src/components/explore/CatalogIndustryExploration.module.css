@@ -1,0 +1,17 @@
+.catalog[data-context-exploration] { margin:0; padding:0; border-top:0; }
+.history { display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; margin:0 0 20px; }
+.catalog .history button { min-height:44px; padding:8px 0; font-size:13px; color:var(--text-secondary); border:0; background:none; }
+.catalog .history button:hover { color:var(--text-primary); }
+.header { margin-bottom:16px; }
+.catalog .heading { margin:0 0 10px; font-size:22px; font-weight:650; line-height:1.5; letter-spacing:-.03em; }
+.catalog .intro { max-width:62ch; margin:0; font-size:15px; line-height:1.85; color:var(--text-body); word-break:keep-all; }
+.companies { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; }
+.catalog .companies button { display:flex; flex-direction:column; gap:8px; min-width:0; padding:20px 0; border-top:1px solid var(--border-light); }
+.companyName { display:flex; justify-content:space-between; width:100%; gap:12px; font-size:17px; font-weight:650; }
+.companyName > span { color:var(--text-secondary); }
+.products { max-width:54ch; font-size:14px; line-height:1.8; color:var(--text-body); }
+.symbol { color:var(--text-secondary); font-size:12px; font-variant-numeric:tabular-nums; }
+.further { display:grid; border-top:1px solid var(--border-light); margin-top:16px; }
+.catalog .further button { display:flex; justify-content:space-between; align-items:center; gap:12px; min-height:48px; padding:12px 0; font-size:14px; border-bottom:1px solid var(--border-light); }
+.directory { margin-top:12px; }
+@container sector-exploration (max-width:600px) { .companies { grid-template-columns:minmax(0,1fr); } .catalog .heading { font-size:20px; } }

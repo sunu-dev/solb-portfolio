@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
+
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { AiResultMeta as AiResultMetaValue } from '@/lib/aiResultMeta';
@@ -44,17 +47,21 @@ export default function AiResultMeta({ meta, source, symbol }: {
       {meta.aiModel ? <div>AI {meta.aiProvider || 'provider'} · {meta.aiModel}</div> : null}
       {meta.sourceDetails?.length ? (
         <details style={{ marginTop: 3 }}>
-          <summary style={{ cursor: 'pointer', color: 'var(--text-secondary, #4E5968)' }}>데이터 출처·조회시각 보기</summary>
+          <summary className={readingUI.disclosure} >데이터 출처·조회시각 보기</summary>
           <div style={{ marginTop: 4, paddingLeft: 8 }}>
             {meta.sourceDetails.map(sourceItem => (
               <div key={`${sourceItem.name}:${sourceItem.provider}`}>
-                {sourceItem.name} · {sourceItem.provider} · {new Date(sourceItem.retrievedAt).toLocaleString('ko-KR')}{sourceItem.note ? ` · ${sourceItem.note}` : ''}
+                {sourceItem.name} · {sourceItem.url && /^https:\/\//.test(sourceItem.url)
+                  ? <a href={sourceItem.url} target="_blank" rel="noopener noreferrer">{sourceItem.provider} ↗<span className="sr-only"> (새 창)</span></a>
+                  : sourceItem.provider} · {/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(sourceItem.retrievedAt)
+                  ? sourceItem.retrievedAt.replaceAll('-', '. ')
+                  : new Date(sourceItem.retrievedAt).toLocaleString('ko-KR')}{sourceItem.note ? ` · ${sourceItem.note}` : ''}
               </div>
             ))}
           </div>
         </details>
       ) : <div>출처 {meta.dataSources.join(' · ')}</div>}
-      <button onClick={reportError} disabled={reported} style={{ marginTop: 4, padding: 0, border: 0, background: 'none', color: reported ? '#16A34A' : 'var(--text-secondary, #4E5968)', fontSize: 10.5, cursor: reported ? 'default' : 'pointer', textDecoration: reported ? 'none' : 'underline' }}>
+      <button className={appUI.textButton} onClick={reportError} disabled={reported} style={{ marginTop: 4 }}>
         {reported ? '오류 신고가 접수됐어요' : '내용 오류 신고'}
       </button>
     </div>

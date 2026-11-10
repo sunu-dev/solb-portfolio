@@ -1,5 +1,8 @@
 'use client';
 
+import appUI from '../../components/ui/AppUI.module.css';
+import readingUI from '../../components/ui/ReadingUI.module.css';
+
 import Link from 'next/link';
 import { ArrowLeft, HelpCircle } from 'lucide-react';
 import { logApiCall } from '@/lib/apiLogger';
@@ -7,140 +10,35 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Section {
-  emoji: string;
   title: string;
   items: { q: string; a: string }[];
 }
 
 const SECTIONS: Section[] = [
-  {
-    emoji: '🎯',
-    title: '오늘의 시장 관찰판',
-    items: [
-      {
-        q: '시장 관찰판이 뭐예요?',
-        a: '시장 상황과 공개 수치를 바탕으로 서로 다른 섹터의 관찰 항목을 보여드려요. 같은 시장 세션에는 모든 사용자가 같은 목록과 기준을 확인해요.',
-      },
-      {
-        q: '하루 몇 번 받을 수 있어요?',
-        a: '멤버십과 관계없이 하루 1번 갱신할 수 있어요. 페이지를 새로고침하거나 저장된 목록을 보는 것은 한도를 차감하지 않아요.',
-      },
-      {
-        q: '비로그인으로도 사용 가능한가요?',
-        a: '비로그인 사용자는 AI 호출이 차단돼요. 카카오로 3초 만에 로그인하면 즉시 무료로 받을 수 있어요. (서비스 비용을 통제하기 위함이에요)',
-      },
-    ],
-  },
-  {
-    emoji: '🧑‍🏫',
-    title: '멘토 분석 — 6명의 관점',
-    items: [
-      {
-        q: '멘토가 누구누구 있어요?',
-        a: '워런 버핏(가치투자), 피터 린치(성장+생활관찰), 레이 달리오(거시·올웨더), 캐시 우드(혁신), 리처드 데니스(추세), 윌리엄 오닐(CANSLIM). 같은 종목도 멘토에 따라 평가가 다를 수 있어요.',
-      },
-      {
-        q: '어떻게 사용해요?',
-        a: '분석 화면에서 멘토 카드를 클릭하면 그 멘토의 철학으로 분석한 보고서를 받아볼 수 있어요. 하루 3번까지 가능합니다.',
-      },
-    ],
-  },
-  {
-    emoji: '📊',
-    title: '건강 점수 — 내 포트폴리오 상태',
-    items: [
-      {
-        q: '점수가 어떻게 계산되나요?',
-        a: '4가지 축으로 100점 만점: 분산도(섹터 다양성) / 수익률 균형 / 손절 설정 유무 / 매수 평균가 vs 현재가 거리. 80점 이상이면 양호, 60점 미만이면 점검 권장.',
-      },
-      {
-        q: '점수가 낮으면 뭘 해야 하나요?',
-        a: '분석 탭의 건강 점수 카드에서 "개선 제안"을 확인해주세요. 누락 섹터나 집중도 같은 점검 포인트를 알려드려요. 현재 상태를 비추는 거울이지, 특정 종목 매수 권유는 아니에요.',
-      },
-    ],
-  },
-  {
-    emoji: '🔔',
-    title: '알림 — 종목 상태 변화 감지',
-    items: [
-      {
-        q: '어떤 알림이 와요?',
-        a: '52주 신고가/신저가 근접, RSI 과매수/과매도, 평균 단가 대비 ±10% 등락, 거래량 평소의 N배 이상, 손절가 근접 등. 사용자가 설정한 손절가·목표가 근접 시에도 알림.',
-      },
-      {
-        q: '푸시 알림을 받으려면?',
-        a: '헤더의 🔔 알림 벨 → 설정 → 푸시 활성화. 브라우저 권한 허용 필요. 카카오톡/SMS는 현재 미지원 (베타 이후 검토).',
-      },
-    ],
-  },
-  {
-    emoji: '🛒',
-    title: '매수 시뮬레이션 — 매수 전 시뮬',
-    items: [
-      {
-        q: '어떻게 사용해요?',
-        a: '종목 분석 화면에서 "매수 시뮬" 탭. 매수가·수량·환율 입력하면 비중 변화, 평단가 변화, 환산 손익을 미리 볼 수 있어요. 실제 매수는 본인 증권 앱에서.',
-      },
-    ],
-  },
-  {
-    emoji: '🏦',
-    title: '증권사 통합 — 여러 증권사를 한 화면에',
-    items: [
-      {
-        q: '증권사가 여러 곳인데 통합해서 볼 수 있나요?',
-        a: '네. 종목 추가/편집 화면의 "🏦 증권사" 드롭다운에서 토스·키움·미래에셋 등 한국 증권사 15곳 중 선택할 수 있어요. 2개 이상 등록하면 메인 화면에 "증권사별 보유 현황" 카드가 자동으로 나타나요. (원하면 홈 화면 편집에서 이 카드를 숨길 수도 있어요.)',
-      },
-      {
-        q: '꼭 입력해야 하나요?',
-        a: '아니요. 선택 사항이에요. 한 증권사만 쓰시면 그냥 비워두시면 돼요. 비워두면 화면 변화가 전혀 없어요.',
-      },
-      {
-        q: '증권사별로 어떤 분석을 받을 수 있어요?',
-        a: '월말 챕터 회고에 "토스 챔피언 vs 키움 챔피언" 처럼 증권사별 우수 종목이 표시돼요. 어느 계좌의 운용이 더 잘 굴러가는지 한눈에 보여드려요.',
-      },
-      {
-        q: '실시간으로 증권사와 연동되나요?',
-        a: '아니요. 사용자가 직접 입력한 정보예요. 현재는 종목 추가/편집 화면에서 증권사를 직접 선택해주세요. 스크린샷 가져오기는 개인정보 보호 기준을 충족한 AI 처리 환경이 준비될 때까지 비활성화되어 있어요.',
-      },
-      {
-        q: 'ISA·IRP·연금 계좌도 분리할 수 있나요?',
-        a: '현재는 증권사만 구분돼요. ISA·IRP 등 계좌 종류별 세무 안내(비과세 한도, 세액공제 시뮬)는 베타 후반에 추가될 예정이에요. 이건 토스도 제공하지 않는 주비만의 차별 기능이 될 거예요.',
-      },
-    ],
-  },
-  {
-    emoji: '🎛️',
-    title: '홈 화면 편집 — 내 방식대로',
-    items: [
-      {
-        q: '홈 화면을 내 마음대로 바꿀 수 있어요?',
-        a: '네. 자산 요약 카드의 "편집" 버튼을 누르면, 보조 위젯(아침 브리핑·증권사 요약·월간 챕터·분석 위젯)을 켜고 끄거나 순서를 바꿀 수 있어요. 자산 요약과 보유 종목은 관리의 핵심이라 항상 보여요.',
-      },
-      {
-        q: '위젯을 숨기면 어떻게 되나요?',
-        a: '숨긴 위젯은 홈에서 사라지고, 편집 시트에서 다시 켜면 돌아와요. 설정은 이 기기에 저장돼요. 맨 아래 "기본값으로 되돌리기"로 한 번에 원래대로 돌릴 수 있어요.',
-      },
-      {
-        q: '시장 관찰판은 왜 못 숨겨요?',
-        a: '시장 관찰판 바로가기는 모든 로그인 사용자에게 같은 기준으로 제공돼 항상 표시돼요. 그 외 보조 위젯은 자유롭게 켜고 끌 수 있어요.',
-      },
-    ],
-  },
-  {
-    emoji: '📌',
-    title: '바로가기 — 자주 쓰는 기능 고정',
-    items: [
-      {
-        q: '바로가기가 뭐예요?',
-        a: '자주 쓰는 기능(관심 종목·알림 센터·둘러보기·도움말)을 핀으로 꽂아두면, "전체" 메뉴 상단 "바로가기"에서 바로 열 수 있어요. PC는 헤더 "전체", 모바일은 하단 "더보기"로 들어가요.',
-      },
-      {
-        q: '어떻게 고정해요?',
-        a: '"전체/더보기" 메뉴에서 각 기능 우측의 핀(📌) 버튼을 누르면 바로가기에 추가돼요. 다시 누르면 빠져요. 4개 탭(포트폴리오·AI 인사이트·뉴스·이벤트)은 항상 보여서 핀 대상이 아니에요.',
-      },
-    ],
-  },
+  { title: '처음 시작할 때', items: [
+    { q: '주식을 모두 등록해야 하나요?', a: '관심 있는 회사 하나만 검색해도 시작할 수 있어요. 회사가 하는 일과 최근 소식, 가격 흐름을 먼저 살펴보세요. 보유 수량과 평균 매수가는 내 투자 기록이 필요할 때 추가하면 돼요.' },
+    { q: '로그인 없이 무엇을 볼 수 있나요?', a: '회사 설명, 시세, 시장 소식과 무료 배경 개념을 읽을 수 있어요. AI 분석과 계정에 연결되는 기능은 로그인 후 이용해요. 가입에는 성인 확인·필수 동의와 현재 베타의 초대 조건이 적용돼요.' },
+    { q: '샘플 포트폴리오는 실제 투자 기록인가요?', a: '샘플은 화면을 살펴보는 예시예요. 실제 보유 종목과 구분해 표시하며, 체험을 마치면 해제할 수 있어요.' },
+  ] },
+  { title: '회사와 소식 이해하기', items: [
+    { q: '주비에게 어떻게 질문하나요?', a: '종목 상세의 ‘주비에게 더 물어보기’에서 궁금한 질문을 골라보세요. 로그인하면 AI 답변을 요청할 수 있어요. 이용 가능한 횟수는 질문 영역에 표시돼요. ‘먼저 알아둘 개념’은 AI 횟수를 쓰지 않고 읽을 수 있어요.' },
+    { q: '기사 아래 설명이 주가가 움직인 이유인가요?', a: '기사 제목과 연결한 배경 개념은 일반적인 설명이에요. 기사 본문 요약이나 이번 주가 변동의 원인 분석으로 단정하지 않아요. 사실의 출처와 날짜를 함께 확인해 주세요.' },
+    { q: 'PER이나 배당수익률은 어디 있나요?', a: '현재 주비는 기업 재무 수치를 제공하지 않아요. 회사가 하는 일, 시세와 소식, 투자 개념을 중심으로 살펴볼 수 있어요. 실제 실적과 배당 계획은 회사의 공시 자료에서 확인해 주세요.' },
+  ] },
+  { title: '내 투자 기록과 계산', items: [
+    { q: '추가 매수 금액은 어떻게 계산하나요?', a: '종목 상세 아래 ‘내 투자에 연결하기’에서 ‘금액으로 미리 계산하기’를 열어보세요. 가정한 금액으로 살 수 있는 주식 수와 비중 변화를 살펴볼 수 있어요. 실제 주문은 증권사에서 진행해야 해요.' },
+    { q: '증권사 계좌와 자동으로 연결되나요?', a: '현재는 직접 입력하거나 파일로 가져온 기록을 사용해요. 종목 추가·편집에서 증권사를 구분할 수 있지만 실제 계좌와 자동으로 동기화되지는 않아요. 스크린샷 가져오기는 현재 비활성 상태예요.' },
+    { q: '기록을 옮기거나 복구하려면 어떻게 하나요?', a: '설정의 기록·가져오기·복구에서 사용할 도구를 골라보세요. 파일에 담긴 종목·수량·평균 매수가를 확인하고, 안내에 따라 기존 기록에 반영할 수 있어요.' },
+  ] },
+  { title: '시장 변화와 과거 비교', items: [
+    { q: '시장 전체를 실시간으로 확인하나요?', a: '리포트에서 정해진 지수·업종·공시·기사 범위를 주기적으로 확인해요. ‘무엇을 얼마나 확인했나요?’에서 확인 범위와 누락·지연을 볼 수 있어요. 소식이 없다는 것이 시장에 아무 일도 없다는 뜻은 아니에요.' },
+    { q: '과거 시장과 비교한 수익률은 내 수익률인가요?', a: '선택한 기간의 종가를 비교한 가격 변화예요. 내 매수일·매수가·배당·비용을 반영한 실제 투자 수익률과 달라요. 기준일과 출처를 함께 확인해 주세요.' },
+  ] },
+  { title: '알림과 화면 설정', items: [
+    { q: '알림을 받으려면 무엇이 필요한가요?', a: '알림 설정에서 원하는 채널을 켜고, 푸시를 사용할 때는 브라우저 권한도 허용해 주세요. 기기·브라우저 환경에 따라 수신이 제한될 수 있어요. 이메일과 푸시는 각각 설정할 수 있어요.' },
+    { q: '자주 쓰는 도구는 어디서 찾나요?', a: 'PC의 ‘전체’, 모바일의 ‘더보기’에서 도구를 찾을 수 있어요. 기능 옆 고정 버튼을 누르면 바로가기에 추가돼요.' },
+    { q: '계정을 삭제하려면 어떻게 하나요?', a: '설정의 계정 영역에서 삭제를 시작할 수 있어요. 삭제 전 확인 안내가 나오며, 완료하면 계정에 연결된 데이터를 복구할 수 없어요.' },
+  ] },
 ];
 
 export default function HelpPage() {
@@ -157,7 +55,7 @@ export default function HelpPage() {
         padding: '12px 16px',
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#191F28', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-primary)', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
           <ArrowLeft size={18} />
           돌아가기
         </Link>
@@ -167,54 +65,46 @@ export default function HelpPage() {
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 20px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <HelpCircle size={28} color="var(--brand-primary)" />
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#191F28', margin: 0 }}>
+          <h1 className={appUI.pageTitle} style={{ color: 'var(--text-primary)', margin: 0 }}>
             주비 도움말
           </h1>
         </div>
-        <p style={{ fontSize: 14, color: '#8B95A1', marginBottom: 28 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 28 }}>
           처음 사용하시나요? 핵심 기능을 한눈에 살펴보세요.
         </p>
 
         {/* 투어 다시 보기 CTA */}
-        <button
+        <button className={appUI.primaryButton}
           onClick={() => {
             // 풀 페이지 이동 후 setTimeout으로 open-tour를 쏘면 콜백이 파기돼 투어가 안 떴음.
             // CoachMark가 마운트 시 읽는 solb_tour_pending 플래그를 세팅해 본 화면 도착 직후 시작.
             try { localStorage.setItem('solb_tour_pending', '1'); } catch { /* storage full */ }
             window.location.href = '/';
           }}
-          style={{
-            width: '100%', padding: '14px 18px', marginBottom: 24,
-            borderRadius: 12, background: 'var(--brand-primary-bg)', color: 'var(--brand-primary)',
-            border: '1px dashed rgba(14,124,123,0.3)',
-            fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}
+          style={{ width: '100%', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          🎬 본 화면 투어 다시 보기
+          화면 둘러보기 다시 시작
         </button>
 
         {SECTIONS.map((sec) => (
           <section key={sec.title} style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 24 }}>{sec.emoji}</span>
+            <h2 className={readingUI.sectionTitle} style={{ color: 'var(--text-primary)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
               {sec.title}
             </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ borderTop: '1px solid var(--border-light)' }}>
               {sec.items.map((it, i) => (
                 <details
                   key={i}
                   style={{
-                    padding: '14px 16px',
-                    background: 'var(--bg-subtle, #F8F9FA)',
-                    borderRadius: 10,
+                    padding: '8px 0',
+                    borderBottom: '1px solid var(--border-light)',
                     cursor: 'pointer',
                   }}
                 >
-                  <summary style={{ fontSize: 14, fontWeight: 600, color: '#191F28', cursor: 'pointer', listStyle: 'none' }}>
-                    Q. {it.q}
+                  <summary className={readingUI.disclosure} >
+                    {it.q}
                   </summary>
-                  <p style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.7, marginTop: 10, marginBottom: 0 }}>
+                  <p style={{ fontSize: 15, color: 'var(--text-body)', lineHeight: 1.8, marginTop: 10, marginBottom: 0 }}>
                     {it.a}
                   </p>
                 </details>
@@ -225,7 +115,7 @@ export default function HelpPage() {
 
         <BugReportSection />
 
-        <div style={{ padding: '16px 18px', borderRadius: 12, background: 'rgba(255,149,0,0.06)', fontSize: 12, color: '#FF9500', lineHeight: 1.6 }}>
+        <div style={{ padding: '20px 0', borderTop: '1px solid var(--border-light)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
           <strong>참고</strong> · 주비는 정보 제공 도구이며 투자 자문이 아니에요. 모든 투자 판단의 책임은 이용자에게 있어요.
         </div>
       </div>
@@ -289,12 +179,12 @@ function BugReportSection() {
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand-primary, #0E7C7B)', marginBottom: 6 }}>
           ✅ 잘 받았어요
         </div>
-        <p style={{ fontSize: 13, color: '#4E5968', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 13, color: 'var(--text-body)', lineHeight: 1.6, margin: 0 }}>
           소중한 의견 고마워요. 검토 후 필요하면 입력해주신 이메일로 연락드릴게요.
         </p>
-        <button
+        <button className={appUI.textButton}
           onClick={() => setStatus('idle')}
-          style={{ marginTop: 10, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--brand-primary, #0E7C7B)', background: 'transparent', color: 'var(--brand-primary, #0E7C7B)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          style={{ marginTop: 10 }}
         >
           또 보내기
         </button>
@@ -304,15 +194,15 @@ function BugReportSection() {
 
   return (
     <section style={{ marginBottom: 32 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#191F28', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <h2 className={readingUI.sectionTitle} style={{ color: 'var(--text-primary)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 24 }}>💬</span>
         버그·의견 신고
       </h2>
-      <p style={{ fontSize: 13, color: '#8B95A1', marginBottom: 14, lineHeight: 1.6 }}>
+      <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.6 }}>
         뭔가 이상하거나 더 있으면 좋겠다 싶은 게 있으면 알려주세요. 베타 기간엔 모든 신고를 직접 읽어요.
       </p>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <form onSubmit={handleSubmit} style={{ borderTop: '1px solid var(--border-light)' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {([
             { v: 'bug', label: '🐛 버그' },
@@ -320,24 +210,18 @@ function BugReportSection() {
             { v: 'praise', label: '✨ 칭찬' },
             { v: 'payment', label: '💳 결제' },
           ] as const).map(opt => (
-            <button
+            <button className={appUI.secondaryButton}
               type="button"
               key={opt.v}
               onClick={() => setCategory(opt.v)}
-              style={{
-                padding: '6px 14px', borderRadius: 999,
-                border: category === opt.v ? '1px solid var(--brand-primary, #0E7C7B)' : '1px solid var(--border-light, #E5E8EB)',
-                background: category === opt.v ? 'rgba(14,124,123,0.08)' : '#FFFFFF',
-                color: category === opt.v ? 'var(--brand-primary, #0E7C7B)' : '#4E5968',
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              }}
+              style={{ border: category === opt.v ? '1px solid var(--brand-primary, #0E7C7B)' : '1px solid var(--border-light, #E5E8EB)', background: category === opt.v ? 'rgba(14,124,123,0.08)' : 'var(--surface)', color: category === opt.v ? 'var(--brand-primary, #0E7C7B)' : 'var(--text-body)' }}
             >
               {opt.label}
             </button>
           ))}
         </div>
 
-        <textarea
+        <textarea className={appUI.field}
           value={message}
           onChange={e => setMessage(e.target.value)}
           placeholder={category === 'bug'
@@ -345,39 +229,26 @@ function BugReportSection() {
             : '편하게 적어주세요'}
           maxLength={2000}
           rows={5}
-          style={{
-            padding: 12, borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
-            fontSize: 13, lineHeight: 1.6, color: '#191F28', resize: 'vertical',
-            fontFamily: 'inherit', outline: 'none',
-          }}
+          style={{ resize: 'vertical' }}
         />
 
-        <input
+        <input className={appUI.field}
           type="email"
           value={email}
           onChange={e => setEmail(e.target.value)}
           placeholder="응답 받을 이메일 (선택, 비로그인일 때 권장)"
           maxLength={200}
-          style={{
-            padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border-light, #E5E8EB)',
-            fontSize: 13, color: '#191F28', outline: 'none',
-            fontFamily: 'inherit',
-          }}
+
         />
 
         {errorMsg && (
           <div style={{ fontSize: 12, color: '#EF4452' }}>{errorMsg}</div>
         )}
 
-        <button
+        <button className={appUI.primaryButton}
           type="submit"
           disabled={status === 'sending'}
-          style={{
-            padding: '12px 20px', borderRadius: 10,
-            background: status === 'sending' ? 'var(--border-strong)' : 'var(--brand-fill)',
-            color: status === 'sending' ? 'var(--text-body)' : 'var(--on-brand-fg)', border: 'none',
-            fontSize: 14, fontWeight: 700, cursor: status === 'sending' ? 'not-allowed' : 'pointer',
-          }}
+          style={{ background: status === 'sending' ? 'var(--border-strong)' : 'var(--brand-fill)', color: status === 'sending' ? 'var(--text-body)' : 'var(--on-brand-fg)', border: 'none' }}
         >
           {status === 'sending' ? '보내는 중...' : '보내기'}
         </button>

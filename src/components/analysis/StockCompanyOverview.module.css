@@ -1,0 +1,41 @@
+.overview { composes: section from './DetailReading.module.css'; container-type:inline-size; }
+.title { composes: title from './DetailReading.module.css'; }
+.eyebrow { composes: kicker from './DetailReading.module.css'; }
+.hero { display:grid; gap:24px; align-items:start; }
+.introduction { min-width:0; }
+.lead { margin:0; max-width:52ch; font-size:17px; line-height:1.85; color:var(--text-body); }
+.businessLabel { display:block; margin-top:16px; color:var(--text-secondary); font-size:12px; }
+.retry { margin-top:12px; min-height:44px; padding:8px 0; color:var(--text-primary); font-size:14px; text-decoration:underline; text-underline-offset:4px; }
+.retry:focus-visible { outline:1px solid var(--text-secondary); outline-offset:4px; }
+.artwork { min-width:0; }
+.artwork figure > div { border-radius:12px; }
+.artwork figcaption > p { font-size:13px; margin-top:10px; }
+.artNote { margin:6px 0 0; color:var(--text-secondary); font-size:11px; line-height:1.7; }
+.chapters { margin-top:32px; }
+.chapter { display:grid; grid-template-columns:24px minmax(0,1fr); gap:12px; border-top:1px solid var(--border-light); padding:24px 0; }
+.number { padding-top:4px; font-size:11px; font-variant-numeric:tabular-nums; color:var(--text-secondary); }
+.chapter h4 { margin:0 0 8px; font-size:17px; font-weight:650; line-height:1.6; letter-spacing:-.025em; }
+.chapter p { margin:0; max-width:64ch; color:var(--text-body); font-size:16px; line-height:1.85; }
+.chapter figure { margin:20px 0 0; }
+.editorialNote { display:block; margin-top:8px; font-size:12px; color:var(--text-secondary); }
+.references { display:flex; flex-wrap:wrap; gap:0 24px; border-top:1px solid var(--border-light); }
+.references details { flex:1 1 220px; min-width:0; }
+.references summary { font-size:13px; min-height:44px; padding-block:10px; color:var(--text-secondary); }
+.references p { margin:0 0 8px; font-size:15px; line-height:1.8; color:var(--text-body); }
+.references small, .note { font-size:13px; line-height:1.75; color:var(--text-secondary); }
+.references a { display:block; min-height:44px; padding:10px 0; font-size:13px; color:var(--text-body); text-underline-offset:3px; }
+@container (min-width:680px) { .chapters { max-width:680px; } }
+@media(max-width:480px) { .lead {font-size:16px;} .hero {gap:20px;} .chapters {margin-top:24px;} .chapter {padding-block:22px;} }
+
+.businessQuestion { margin:0 0 24px; padding:8px 18px; background:var(--bg-subtle); border-radius:10px; }
+.businessQuestion summary { min-height:48px; padding:10px 0; font-size:15px; line-height:1.7; font-weight:600; color:var(--text-primary); }
+.businessQuestion p { margin:4px 0 12px; color:var(--text-body); font-size:15px; line-height:1.85; }
+
+.sourceList { width:100%; padding-top:16px; }
+.sourceList h4 { font-size:12px; font-weight:600; color:var(--text-secondary); margin:0 0 4px; }
+
+.references .industryVisual { flex-basis:100%; }
+.companyQuestions { margin:20px 0; }
+.companyQuestions > .businessQuestion { margin:0; padding:0; border-top:1px solid var(--border-light); border-radius:0; background:none; }
+.companyQuestions > .businessQuestion:last-child { border-bottom:1px solid var(--border-light); }
+.industryVisual .artwork { max-width:420px; padding-bottom:16px; }

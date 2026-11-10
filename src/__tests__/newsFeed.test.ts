@@ -1,10 +1,23 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createNewsClient, getNewsTargets, mergeRelatedNews, NEWS_STALE_MS, type NewsResponse } from '@/lib/newsFeed';
+import { createNewsClient, getNewsTargets, mergeRelatedNews, NEWS_STALE_MS, NEWS_EMPTY_STALE_MS, type NewsResponse } from '@/lib/newsFeed';
 
 const article = { title: '새로운 기업 소식', link: 'https://example.com/article', source: '출처', pubDate: '2026-10-04T00:00:00Z', description: '' };
 const success = (): Response => Response.json({ items: [article] });
 
 describe('news requests', () => {
+  it('rechecks an empty search after one minute instead of hiding a recovered feed for thirty minutes', async () => {
+    let now = 0;
+    const request = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({items:[]})).mockResolvedValueOnce(success());
+    const client = createNewsClient(request, () => now);
+    const query = {symbol:'166480.KQ',maxHours:168};
+    expect((await client.load(query)).result.status).toBe('empty');
+    now = NEWS_EMPTY_STALE_MS - 1;
+    expect((await client.load(query)).result.status).toBe('empty');
+    expect(request).toHaveBeenCalledOnce();
+    now += 2;
+    expect((await client.load(query)).result.items).toEqual([article]);
+    expect(request).toHaveBeenCalledTimes(2);
+  });
   it('shares one pending request across concurrent callers and revisits, preserving the fetch time', async () => {
     let finish!: (response: Response) => void;
     const request = vi.fn(() => new Promise<Response>(resolve => { finish = resolve; }));

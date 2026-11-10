@@ -1,6 +1,7 @@
+import readingUI from '../../components/ui/ReadingUI.module.css';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowDown, ArrowRight, BookOpen, CalendarDays, Check, ChevronDown, Layers3 } from 'lucide-react';
+import { ArrowDown, ArrowRight, BookOpen, CalendarDays, Check, Layers3 } from 'lucide-react';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import styles from './page.module.css';
 
@@ -198,7 +199,7 @@ export default function AboutPage() {
               <h3>시작 전에 궁금한 점</h3>
               {questions.map(({ question, answer }) => (
                 <details key={question} className={styles.faqItem}>
-                  <summary>{question}<ChevronDown size={19} aria-hidden="true" /></summary>
+                  <summary className={readingUI.disclosure}>{question}</summary>
                   <p>{answer}</p>
                 </details>
               ))}

@@ -1,0 +1,20 @@
+.range { max-width:760px; margin-top:20px; padding:18px 20px; border:1px solid var(--border-light); border-radius:12px; background:var(--bg-subtle); color:var(--text-primary); }
+.label { margin:0 0 14px; color:var(--text-secondary); font-size:13px; line-height:1.6; }
+.lastPrice { display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px 20px; margin-bottom:20px; }
+.lastLabel { display:flex; align-items:center; gap:7px; margin:0 0 3px; color:var(--text-secondary); font-size:12px; line-height:1.7; }
+.lastLabel > span { width:7px; height:7px; border-radius:50%; background:var(--text-primary); }
+.lastPrice strong { font-size:28px; line-height:1.4; font-weight:650; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.positionNote { margin:0 0 4px; color:var(--text-secondary); font-size:12px; line-height:1.7; word-break:keep-all; }
+.positionNote > span { color:var(--text-primary); font-weight:600; }
+.values { display:flex; justify-content:space-between; gap:24px; margin:0; }
+.values > div { min-width:0; }
+.values > div:last-child { text-align:right; }
+.values dt { color:var(--text-secondary); font-size:12px; margin-bottom:4px; }
+.values dd { margin:0; font-size:18px; font-weight:600; letter-spacing:-.025em; font-variant-numeric:tabular-nums; line-height:1.5; overflow-wrap:anywhere; }
+.track { position:relative; height:8px; margin:0 6px 12px; border-radius:4px; background:var(--border-strong); }
+.fill { position:absolute; inset:0 auto 0 0; border-radius:4px; background:var(--brand-highlight); }
+.marker { position:absolute; top:50%; width:16px; height:16px; border:3px solid var(--surface); border-radius:50%; background:var(--text-primary); transform:translate(-50%,-50%); box-shadow:0 0 0 1px var(--border-strong); }
+.explanation { margin-top:14px; padding-top:10px; border-top:1px solid var(--border-strong); color:var(--text-secondary); font-size:13px; line-height:1.8; }
+.explanation p { margin:0 0 10px; max-width:60ch; word-break:keep-all; }
+.explanation > summary { font-size:12px; color:var(--text-secondary); }
+@media(max-width:480px) { .range { padding:16px; } .values dd { font-size:17px; } .lastPrice strong { font-size:26px; } }

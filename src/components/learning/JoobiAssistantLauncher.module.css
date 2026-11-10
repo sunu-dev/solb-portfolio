@@ -1,0 +1,56 @@
+.launcher { display:flex; align-items:center; gap:10px; min-height:64px; padding:10px 16px 10px 10px; color:var(--text-primary); background:var(--surface); border:1px solid var(--border-light); font:inherit; text-align:left; cursor:pointer; }
+.launcher:hover { background:var(--bg-subtle); }
+.launcher:focus-visible,.dialog :is(button,a,input,textarea,select,summary):focus-visible { outline:2px solid var(--text-primary); outline-offset:3px; }
+.dialog textarea:focus-visible { outline:none; }
+.label { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.label strong { font-size:15px; font-weight:650; line-height:1.5; }
+.label > span { color:var(--text-secondary); font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.floating { position:fixed; right:24px; bottom:24px; z-index:45; max-width:calc(100vw - 32px); border-radius:20px; box-shadow:var(--shadow-lg); }
+.inline { width:100%; flex-shrink:0; padding:8px 24px; border-width:0 0 1px; }
+.iconOnly { flex-shrink:0; width:44px; height:44px; min-height:44px; padding:7px; gap:8px; overflow:hidden; border-radius:12px; transition:width 160ms ease,background-color 160ms ease; }
+.iconOnly > :first-child { flex-shrink:0; }
+.iconOnly .label { flex-shrink:0; opacity:0; white-space:nowrap; transition:opacity 120ms ease; }
+.iconOnly .label strong { font-size:13px; font-weight:600; }
+.iconOnly .label > span { display:none; }
+@media(min-width:900px) {
+ .iconOnly:focus-visible { width:176px; }
+ .iconOnly:focus-visible .label { opacity:1; }
+}
+@media(min-width:900px) and (hover:hover) and (pointer:fine) {
+ .iconOnly:hover { width:176px; }
+ .iconOnly:hover .label { opacity:1; }
+}
+@media(prefers-reduced-motion:reduce) { .iconOnly,.iconOnly .label { transition:none; } }
+.overlay { position:fixed; inset-inline:0; top:var(--modal-viewport-top,0px); height:var(--modal-viewport-height,100dvh); box-sizing:border-box; overflow:hidden; overscroll-behavior:none; z-index:90; display:flex; justify-content:flex-end; align-items:flex-end; padding:24px; background:rgb(0 0 0 / 22%); }
+.dialog { display:flex; flex-direction:column; width:min(560px,100%); height:min(820px,100%); min-height:0; container:joobi-chat / size; background:var(--surface); color:var(--text-primary); border:1px solid var(--border-light); border-radius:24px; overflow:hidden; box-shadow:var(--shadow-lg); }
+.header { display:flex; flex-shrink:0; align-items:center; gap:10px; padding:10px 20px; border-bottom:1px solid var(--border-light); }
+.header > div { min-width:0; }
+.header h2 { margin:0; font-size:18px; font-weight:650; letter-spacing:-.03em; }
+.header h2:focus { outline:none; }
+.header p { margin:5px 0 0; font-size:13px; line-height:1.6; color:var(--text-secondary); word-break:keep-all; overflow-wrap:anywhere; }
+.close { display:flex; align-items:center; justify-content:center; align-self:flex-start; flex-shrink:0; margin-left:auto; width:44px; height:44px; border:0; border-radius:12px; background:transparent; color:var(--text-primary); cursor:pointer; }
+.close:hover { background:var(--bg-subtle); }
+.body { display:flex; flex:1; min-height:0; overflow:hidden; }
+.clockNotice { border-bottom:1px solid var(--border-light); font-size:12px; }
+.clockNotice > summary { font-size:12px; color:var(--text-secondary); }
+@media(max-width:767px) {
+  .floating { right:16px; bottom:calc(80px + env(safe-area-inset-bottom,0px)); width:60px; height:60px; min-height:60px; padding:5px; justify-content:center; border-radius:50%; }
+  .floating .label { display:none; }
+  .inline { padding-inline:16px; }
+  .overlay { padding:0; }
+  .dialog { width:100%; height:100%; border-radius:0; border:0; }
+  .header { padding:8px 16px; }
+  .header p { display:none; }
+  .header h2 { font-size:18px; }
+  :global(body:has(input:focus,textarea:focus,select:focus)) .floating { display:none; }
+}
+
+/* The actual dialog height follows the keyboard, unlike viewport media queries on iOS. */
+@container joobi-chat (max-height:480px) {
+  .header { padding:8px 12px; gap:8px; }
+  .header h2 { font-size:16px; }
+  .header p { display:none; }
+  .close { align-self:center; }
+}
+
+

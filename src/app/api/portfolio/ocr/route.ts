@@ -8,6 +8,7 @@ import { getAiMonthlyBudgetStatus } from '@/lib/aiBudgetGuard';
 import { isOcrProviderEnabled } from '@/lib/ocrAvailability';
 import { hasCurrentAdultAiConsent } from '@/lib/aiAgeGate';
 import { getStockCurrency } from '@/utils/stockCurrency';
+import { validateOcrUpload } from '@/lib/ocrUploadValidation';
 
 const GEMINI_KEYS = [
   process.env.GEMINI_API_KEY,
@@ -132,7 +133,7 @@ const PROMPT = `이 이미지는 증권사 앱(MTS/HTS)의 보유종목 화면 �
 버크셔해서웨이→BRK.B, 비자→V, 마스터카드→MA, JP모건→JPM, 뱅크오브아메리카→BAC,
 코카콜라→KO, 펩시→PEP, 존슨앤존슨→JNJ, 화이자→PFE, 일라이릴리→LLY,
 월마트→WMT, 홈디포→HD, 나이키→NKE, 맥도날드→MCD, 스타벅스→SBUX,
-스포티파이→SPOT, 스냅→SNAP, 트위터→X, 로빈후드→HOOD, 코인베이스→COIN,
+스포티파이→SPOT, 스냅→SNAP, 로빈후드→HOOD, 코인베이스→COIN,
 마이크론→MU, 퀄컴→QCOM, 텍사스인스트루먼트→TXN, 어플라이드머티리얼즈→AMAT,
 유나이티드헬스→UNH, CVS→CVS, 모더나→MRNA, 길리어드→GILD,
 엑슨모빌→XOM, 셰브론→CVX, 코노코필립스→COP,
@@ -293,18 +294,21 @@ export async function POST(req: NextRequest) {
     } catch {
       return await fail('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 다시 선택해서 올려주세요.', 400);
     }
-    const file = formData.get('image') as File | null;
+    const file = formData.get('image');
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return await fail('no_file', '이미지가 첨부되지 않았어요.', '스크린샷 이미지를 선택하거나 드래그해서 올려주세요.', 400);
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return await fail('too_large', '파일이 너무 커요.', `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 10MB 이하로 압축하거나 다시 캡처해주세요.`, 400);
+    const uploadError = validateOcrUpload(file);
+    if (uploadError === 'empty') {
+      return await fail('image_empty', '빈 이미지 파일이에요.', '이미지를 다시 선택해주세요.', 400);
+    }
+    if (uploadError === 'too_large') {
+      return await fail('too_large', '파일이 너무 커요.', `현재 ${(file.size / 1024 / 1024).toFixed(1)}MB · 4MB 이하로 압축하거나 다시 캡처해주세요.`, 400);
     }
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
+    if (uploadError === 'bad_type') {
       return await fail('bad_type', '지원하지 않는 이미지 형식이에요.', 'JPG, PNG, WEBP로 변환 후 다시 시도해주세요.', 400);
     }
 

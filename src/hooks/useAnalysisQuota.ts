@@ -133,5 +133,6 @@ export function useAnalysisQuota(enabled: boolean) {
     };
   }, [enabled]);
 
-  return { quota: state.quota, status: state.status, remaining: getAnalysisRemaining(state.quota), acceptResponse };
+  const refresh = useCallback(() => refreshRef.current?.(), []);
+  return { quota: state.quota, status: state.status, remaining: getAnalysisRemaining(state.quota), acceptResponse, refresh };
 }

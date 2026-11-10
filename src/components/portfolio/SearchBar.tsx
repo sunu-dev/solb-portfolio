@@ -1,5 +1,7 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
 import { useShallow } from 'zustand/react/shallow';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
@@ -17,6 +19,7 @@ import { eunNeun } from '@/utils/koreanJosa';
 import { isSingleStockLeverage, LEVERAGE_SEARCH_LABEL, LEVERAGE_BLOCK_SHORT } from '@/utils/leverageGuard';
 import { getSearchTag } from '@/utils/searchAssetClass';
 import LeverageRiskGate from '@/components/portfolio/LeverageRiskGate';
+import { getRecent, saveRecent, removeRecent } from '@/lib/recentStockSearch';
 import { isKoreanStockSymbol } from '@/utils/stockCurrency';
 
 // 검색어가 단일종목 레버리지 의도인지 휴리스틱 판정 — EmptyState 분기에만 사용
@@ -40,26 +43,6 @@ function getInitial(item: { symbol: string; description?: string }): string {
   const name = getDisplayName(item);
   const first = name.charAt(0);
   return first ? first.toUpperCase() : item.symbol.charAt(0);
-}
-
-const RECENT_KEY = 'solb_recent_searches';
-const MAX_RECENT = 5;
-
-function getRecent(): { symbol: string; description: string }[] {
-  try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
-  } catch { return []; }
-}
-
-function saveRecent(item: { symbol: string; description: string }) {
-  const list = getRecent().filter(r => r.symbol !== item.symbol);
-  list.unshift(item);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, MAX_RECENT)));
-}
-
-function removeRecent(symbol: string) {
-  const list = getRecent().filter(r => r.symbol !== symbol);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(list));
 }
 
 interface SearchBarProps {
@@ -110,6 +93,7 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
     if (!active) return;
     const frame = requestAnimationFrame(() => {
       setRecent(getRecent());
+      setShowRecent(true);
       const result = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('[data-search-symbol]') ?? [])
         .find(element => element.dataset.searchSymbol === exploredSymbol.current);
       (result ?? inputRef.current)?.focus({ preventScroll: true });
@@ -180,6 +164,7 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
       if (onClose) onClose();
       return;
     }
+    if (!requirePortfolioWriteAccess()) return;
     const sym = symbol.toUpperCase();
     // Phase M-1.3 — (symbol, broker) 페어 단위 중복 제어
     // SearchBar는 broker 미지정으로 추가하므로, 미지정 broker로 같은 종목이
@@ -260,6 +245,7 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
       if (onClose) onClose();
       return;
     }
+    if (!requirePortfolioWriteAccess()) return;
     const sym = symbol.toUpperCase();
     // 서버 권위 플래그 OR 로컬 재계산 — 둘 중 하나라도 단일종목 레버리지면 위험 게이트.
     if (serverLeverage || isSingleStockLeverage(sym, name)) {
@@ -276,7 +262,8 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
     abortSearchRef.current?.abort();
     exploredSymbol.current = symbol;
     const item = results.find(result => result.symbol === symbol) ?? recent.find(result => result.symbol === symbol);
-    if (item) saveRecent({ symbol, description: item.description });
+    saveRecent({ symbol, description: item?.description || STOCK_KR[symbol] || symbol });
+    setRecent(getRecent());
     setAnalysisSymbol(symbol.toUpperCase());
     setSearching(false);
     if (onExplore) onExplore();
@@ -289,7 +276,7 @@ export default function SearchBar({ onClose, onExplore, active = true }: SearchB
     setRecent(getRecent());
   };
 
-  const showRecentList = showRecent && query.length === 0 && recent.length > 0;
+  const showRecentList = showRecent && query.trim().length === 0 && recent.length > 0;
 
   return (
     <div

@@ -20,6 +20,6 @@ describe('미국 브리핑 거래일 기준', () => {
     expect(getBriefingSession(Date.parse('2026-12-26T08:00:00+09:00'))).toMatchObject({ reason: '크리스마스', date: '2026-12-25' });
   });
   it('달력 범위 밖을 정상 거래일로 추정하지 않는다', () => {
-    expect(getBriefingSession(Date.parse('2027-07-06T08:00:00+09:00')).known).toBe(false);
+    expect(getBriefingSession(Date.parse('2029-07-06T08:00:00+09:00')).known).toBe(false);
   });
 });

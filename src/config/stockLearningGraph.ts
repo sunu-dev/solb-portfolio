@@ -1,8 +1,8 @@
 /** Editorial links explain the conceptual connection, not a claim about a company's actual exposure. */
 export const LEARNING_LINKS: Record<string, readonly [string, string][]> = {
   earnings: [
-    ["cash", "장부의 이익이 실제 돈으로 들어오는 과정"],
-    ["margins", "많이 팔아도 남는 돈이 달라지는 이유"],
+    ["margins", "매출이 늘어도 이익이 줄었다면, 비용과 남는 비율을 함께 봐요"],
+    ["cash", "이익을 확인했다면, 그 돈을 실제로 받았는지도 궁금해져요"],
     ["guidance", "확정 실적 다음에 시장이 보는 전망"],
   ],
   cash: [

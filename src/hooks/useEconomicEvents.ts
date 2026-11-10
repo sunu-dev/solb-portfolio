@@ -5,9 +5,9 @@ import type { EconomicFeed } from '@/lib/economicEvents';
 const cache = new Map<string, { data?: EconomicFeed; at: number; pending?: Promise<EconomicFeed> }>();
 function load(key: string) {
   const entry = cache.get(key);
-  if (entry?.data && Date.now()-entry.at < 300000) return Promise.resolve(entry.data);
+  if (entry?.data && Date.now()-entry.at < (entry.data.warnings.length ? 30000 : 300000)) return Promise.resolve(entry.data);
   if (entry?.pending) return entry.pending;
-  const pending = fetch(`/api/economic-events${key ? `?symbols=${encodeURIComponent(key)}` : ''}`, { signal: AbortSignal.timeout(25000) }).then(async r => {
+  const pending = fetch(`/api/economic-events${key ? `?symbols=${encodeURIComponent(key)}` : ''}`, { signal: AbortSignal.timeout(10000) }).then(async r => {
     if (!r.ok) throw new Error('일정을 불러오지 못했어요.');
     const data = await r.json() as EconomicFeed;
     if (!Array.isArray(data.events)) throw new Error('일정 응답을 확인할 수 없어요.');
@@ -27,5 +27,5 @@ export function useEconomicEvents() {
     update(); const timer = setInterval(update,300000);
     return ()=>{active=false;clearInterval(timer);};
   },[key,retry]);
-  return { data: state.key === key ? state.data : undefined, error: state.key === key ? state.error : undefined, symbols, retry: ()=>setRetry(n=>n+1) };
+  return { data: state.key === key ? state.data : undefined, error: state.key === key ? state.error : undefined, symbols, retry: ()=>{cache.delete(key);setRetry(n=>n+1);} };
 }

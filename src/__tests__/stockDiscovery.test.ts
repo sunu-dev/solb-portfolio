@@ -206,9 +206,10 @@ it("every explanation has meaningful valid onward links and the graph is connect
   expect(visited.size).toBe(ids.size);
 });
 
-it("keeps only guest reading history on anonymous startup and clears it on account changes", () => {
+it("keeps guest reading and search history on anonymous startup and clears it on account changes", () => {
   const entries = new Map([
     ["joobi_discovery_v1:guest", "guest history"],
+    ["solb_recent_searches", "recent stocks"],
     ["joobi_discovery_v1:alice", "private account history"],
     ["solb-portfolio-storage", "portfolio"],
   ]);
@@ -227,7 +228,7 @@ it("keeps only guest reading history on anonymous startup and clears it on accou
     removeItem: vi.fn(),
   });
   clearUserStorage({ preserveGuestDiscovery: true });
-  expect([...entries]).toEqual([["joobi_discovery_v1:guest", "guest history"]]);
+  expect([...entries]).toEqual([["joobi_discovery_v1:guest", "guest history"], ["solb_recent_searches", "recent stocks"]]);
   clearUserStorage();
   expect(entries.size).toBe(0);
 });

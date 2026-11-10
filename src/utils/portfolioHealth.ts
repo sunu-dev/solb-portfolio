@@ -101,6 +101,7 @@ export interface SectorBreakdown {
 }
 
 export interface HealthResult {
+  available: boolean;
   total: number;
   concentration: MetricResult;
   diversification: MetricResult;
@@ -125,13 +126,14 @@ export interface HealthResult {
  */
 export function calcHealthScore(stocks: HealthStock[]): HealthResult {
   const idleColor = 'var(--text-tertiary, #B0B8C1)';
-  if (stocks.length === 0) {
+  if (stocks.length === 0 || stocks.some(stock => stock.shares > 0 && (!Number.isFinite(stock.currentPrice) || stock.currentPrice <= 0 || !Number.isFinite(stock.value) || stock.value <= 0))) {
     return {
+      available: false,
       total: 0,
-      concentration:  { score: 0, detail: '종목 없음', color: idleColor },
-      diversification:{ score: 0, detail: '종목 없음', color: idleColor },
-      goalSetting:    { score: 0, detail: '종목 없음', color: idleColor },
-      profitBalance:  { score: 0, detail: '종목 없음', color: idleColor },
+      concentration:  { score: 0, detail: stocks.length ? '시세 확인 중' : '종목 없음', color: idleColor },
+      diversification:{ score: 0, detail: stocks.length ? '시세 확인 중' : '종목 없음', color: idleColor },
+      goalSetting:    { score: 0, detail: stocks.length ? '시세 확인 중' : '종목 없음', color: idleColor },
+      profitBalance:  { score: 0, detail: stocks.length ? '시세 확인 중' : '종목 없음', color: idleColor },
       sectorBreakdown: { present: [], topSector: '', topSectorPct: 0, absent: [], classifiable: false },
     };
   }
@@ -286,6 +288,7 @@ export function calcHealthScore(stocks: HealthStock[]): HealthResult {
   };
 
   return {
+    available: true,
     total: finalTotal,
     concentration:  { score: concScore, detail: concDetail, color: scoreColor(concScore, 30) },
     diversification:{ score: divScore,  detail: divDetail,  color: scoreColor(divScore, 25) },

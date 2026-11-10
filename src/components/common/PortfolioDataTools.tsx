@@ -1,5 +1,10 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
+import appUI from '../ui/AppUI.module.css';
+import PortfolioPrivacyNotice from './PortfolioPrivacyNotice';
+
 import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { Download, FileJson, RotateCcw, Upload } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -48,6 +53,7 @@ export default function PortfolioDataTools() {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    if (!requirePortfolioWriteAccess()) return;
     if (mutationBlocked) {
       setMessage('클라우드 기록 상태를 먼저 확인한 뒤 복원해주세요.');
       return;
@@ -61,6 +67,7 @@ export default function PortfolioDataTools() {
         + '현재 종목은 복구 지점으로 남기고, 과거 기록은 삭제하지 않고 합쳐요. 계속할까요?',
       );
       if (!confirmed) return;
+      if (!requirePortfolioWriteAccess()) return;
       restorePortfolioBackup(parsed.payload);
       setMessage(
         parsed.sourceSchema === 'joobi-portfolio-export-v1'
@@ -81,52 +88,26 @@ export default function PortfolioDataTools() {
         <div style={{ marginTop: 4, marginBottom: 12, color: 'var(--text-secondary, #8B95A1)', fontSize: 12, lineHeight: 1.6 }}>
           종목은 CSV로 옮기고, 종목·일일 스냅샷·복구 지점은 JSON으로 함께 보관하거나 복원할 수 있어요. 파일은 이 기기에서 만들고 읽어요.
         </div>
+        <PortfolioPrivacyNotice />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <button
+          <button className={appUI.secondaryButton}
             type="button"
             onClick={() => downloadText(
               buildPortfolioCsv(stocks),
               `joobi-portfolio-${todayStamp()}.csv`,
               'text/csv;charset=utf-8',
             )}
-            style={{
-              minHeight: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              borderRadius: 10,
-              border: '1px solid var(--border-strong, #E5E8EB)',
-              background: 'var(--surface, #FFFFFF)',
-              color: 'var(--text-secondary, #4E5968)',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
             <Download size={15} aria-hidden="true" />
             CSV 저장
           </button>
-          <button
+          <button className={appUI.secondaryButton}
             type="button"
             disabled={mutationBlocked}
-            onClick={() => setShowImport(true)}
-            style={{
-              minHeight: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              borderRadius: 10,
-              border: '1px solid var(--border-strong)',
-              background: 'var(--bg-subtle)',
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: mutationBlocked ? 'not-allowed' : 'pointer',
-              opacity: mutationBlocked ? 0.5 : 1,
-            }}
+            onClick={() => { if (requirePortfolioWriteAccess()) setShowImport(true); }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: mutationBlocked ? 0.5 : 1 }}
           >
             <Upload size={15} aria-hidden="true" />
             CSV 가져오기
@@ -134,50 +115,23 @@ export default function PortfolioDataTools() {
         </div>
 
         <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <button
+          <button className={appUI.secondaryButton}
             type="button"
             onClick={() => downloadText(
               buildPortfolioJson(stocks, dailySnapshots, portfolioImportHistory),
               `joobi-records-${todayStamp()}.json`,
               'application/json;charset=utf-8',
             )}
-            style={{
-              minHeight: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              borderRadius: 10,
-              border: 0,
-              background: 'var(--bg-subtle, #F2F4F6)',
-              color: 'var(--text-secondary, #4E5968)',
-              fontSize: 12,
-              fontWeight: 650,
-              cursor: 'pointer',
-            }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
             <FileJson size={14} aria-hidden="true" />
             기록 JSON 저장
           </button>
-          <button
+          <button className={appUI.secondaryButton}
             type="button"
             disabled={mutationBlocked}
-            onClick={() => jsonInputRef.current?.click()}
-            style={{
-              minHeight: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              borderRadius: 10,
-              border: '1px solid var(--border-strong, #E5E8EB)',
-              background: 'var(--surface, #FFFFFF)',
-              color: 'var(--text-secondary, #4E5968)',
-              fontSize: 12,
-              fontWeight: 650,
-              cursor: mutationBlocked ? 'not-allowed' : 'pointer',
-              opacity: mutationBlocked ? 0.5 : 1,
-            }}
+            onClick={() => { if (requirePortfolioWriteAccess()) jsonInputRef.current?.click(); }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: mutationBlocked ? 0.5 : 1 }}
           >
             <RotateCcw size={14} aria-hidden="true" />
             기록 JSON 복원

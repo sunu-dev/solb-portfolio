@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { monthStartKstIso } from '@/lib/aiCostProjection';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
 
 export interface AiBudgetStatus {
   enabled: boolean;
@@ -70,11 +71,12 @@ export async function getAiMonthlyBudgetStatus(): Promise<AiBudgetStatus> {
 
   try {
     const supabase = createClient(url, key, { auth: { persistSession: false } });
-    const { data, error } = await supabase
+    const { data, error } = await withAbortDeadline(signal => supabase
       .from('ai_cost_ledger')
       .select('estimated_cost_usd')
       .gte('created_at', monthStartKstIso())
-      .limit(50000);
+      .limit(50000)
+      .abortSignal(signal));
 
     if (error) {
       console.error('[AI budget] ledger query failed:', error.message);

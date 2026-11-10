@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { BarChart3, Sparkles, Newspaper, CalendarDays, Star, Bell, Compass, HelpCircle, ScanSearch, Info } from 'lucide-react';
+import { BarChart3, Sparkles, Newspaper, CalendarDays, Star, Bell, Compass, HelpCircle, ScanSearch, Info, BookOpen } from 'lucide-react';
 import type { MainSection } from '@/store/portfolioStore';
 import type { StockCategory } from '@/config/constants';
 
@@ -38,6 +38,7 @@ export const MENU_ITEMS: MenuItem[] = [
   { id: 'events', label: '분석', sub: '종목 찾기·내 투자 점검·기록 돌아보기', Icon: ScanSearch, action: { kind: 'section', section: 'events' }, primaryNav: true, pinnable: false },
   { id: 'news', label: '내 종목 소식', navLabel: '소식', sub: '보유·관심 종목 뉴스', Icon: Newspaper, action: { kind: 'section', section: 'news' }, primaryNav: true, pinnable: false },
   // ── 화면 비종속 도착지/도구 — '바로가기' 핀 후보 ──
+  { id: 'stock-dictionary', label: '내 주식사전', sub: '저장한 단어 뜻·내 메모·퀴즈', Icon: BookOpen, action: { kind: 'event', event: 'open-stock-dictionary' }, primaryNav: false, pinnable: true },
   { id: 'economic-calendar', label: '경제 일정', sub: '발표 일정·결과와 내 주식에 미치는 영향', Icon: CalendarDays, action: { kind: 'event', event: 'open-economic-calendar' }, primaryNav: false, pinnable: true },
   { id: 'briefing', label: '오늘의 브리핑', sub: '시장 흐름과 내 종목 변화 다시 보기', Icon: Newspaper, action: { kind: 'event', event: 'open-briefing' }, primaryNav: false, pinnable: true },
   { id: 'watchlist', label: '관심 종목', sub: '찜한 종목 모아보기', Icon: Star, action: { kind: 'section', section: 'portfolio', tab: 'watching' }, primaryNav: false, pinnable: true },

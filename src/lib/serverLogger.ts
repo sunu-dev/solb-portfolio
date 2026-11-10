@@ -1,4 +1,5 @@
-import { getAuthClient } from '@/lib/supabaseServer';
+import { getServiceClient } from '@/lib/supabaseServer';
+import { withDeadline } from '@/lib/withDeadline';
 
 
 /**
@@ -9,14 +10,14 @@ export async function logServerApi(
   action: string,
   metadata?: Record<string, unknown>,
 ) {
-  const supabase = getAuthClient();
+  const supabase = getServiceClient();
   if (!supabase) return;
   try {
-    await supabase.from('api_logs').insert({
+    await withDeadline(Promise.resolve(supabase.from('api_logs').insert({
       user_id: null,
       action,
       symbol: null,
       metadata: metadata || {},
-    });
+    }).abortSignal(AbortSignal.timeout(1000))), 1000);
   } catch { /* silent */ }
 }

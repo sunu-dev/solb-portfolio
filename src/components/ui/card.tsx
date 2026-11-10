@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import appUI from "./AppUI.module.css";
 import { cn } from "@/lib/utils"
 
 function Card({
@@ -38,7 +39,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm",
+        appUI.groupTitle,
         className
       )}
       {...props}

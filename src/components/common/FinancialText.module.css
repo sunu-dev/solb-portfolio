@@ -1,0 +1,24 @@
+.term { display:inline; padding:0 1px; margin:0; border:0; border-bottom:1px dotted currentColor; background:transparent; color:inherit; font:inherit; line-height:inherit; cursor:help; text-align:inherit; }
+.term:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; border-radius:2px; }
+.dialog { position:fixed; inset:auto 24px calc(var(--modal-viewport-bottom,0px) + 24px) auto; width:min(400px,calc(100vw - 32px)); max-width:none; max-height:none; margin:0; padding:0; border:0; background:transparent; overflow:visible; }
+.dialog::backdrop { background:rgb(0 0 0 / 20%); }
+.miniNotebook { position:relative; background:var(--dict-paper); border:1px solid var(--dict-cover-edge); border-radius:12px; box-shadow:4px 6px 0 var(--dict-cover),5px 9px 18px var(--dict-shadow); }
+.peek { position:absolute; left:calc(50% - 36px); top:-57px; z-index:-1; pointer-events:none; }
+.sheet { padding:22px; max-height:min(650px,calc(var(--modal-viewport-height,100dvh) - 100px)); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--dict-cover-edge) var(--dict-paper); border-radius:12px; }
+.header { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; padding-bottom:14px; border-bottom:1px dashed var(--dict-line); }
+.header h2 { margin:0; font-size:30px; line-height:1.4; }
+.header > button,.back,.related button { min-height:44px; padding:8px 10px; border:1px solid var(--dict-line); border-radius:8px; background:var(--dict-paper); color:var(--dict-ink); font:inherit; font-size:13px; cursor:pointer; }
+.header > button { flex-shrink:0; display:grid; place-items:center; width:44px; padding:0; border:0; background:transparent; }
+.header > div { min-width:0; }
+.header h2:focus { outline:none; }
+.sheet .subtitle { margin:4px 0 0; color:var(--dict-muted); font-size:13px; line-height:1.6; }
+.sheet p { font-size:16px; line-height:1.85; word-break:keep-all; }
+.back { margin-top:12px; }
+.example { padding:14px; margin:18px 0; background:var(--dict-note); border-radius:5px 10px 6px 9px; }
+.example h3 { margin:0; font-size:13px; font-weight:650; color:var(--dict-muted); }
+.example p { margin-bottom:0; font-size:14px; }
+.related { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0; padding-top:12px; border-top:1px dashed var(--dict-line); }
+.related button { text-align:left; }
+.source { display:inline-flex; align-items:center; min-height:44px; color:var(--dict-muted); font-size:12px; text-underline-offset:3px; }
+.openDictionary { margin-top:14px; padding-inline:0!important; width:100%; justify-content:flex-start!important; }
+@media(max-width:600px) { .dialog { width:calc(100vw - 24px); inset:auto 12px calc(var(--modal-viewport-bottom,0px) + 12px) auto; } .sheet { padding:18px; } }

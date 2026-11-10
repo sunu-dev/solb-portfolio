@@ -63,14 +63,14 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
     id: 'growth',
     emoji: '🚀',
     nameKr: '성장 투자자',
-    tagline: '내일의 대장주를 미리 봐요',
+    tagline: '앞으로 더 성장할 회사를 살펴봐요',
     description: '매출과 수익이 빠르게 성장하는 기업에 투자하는 스타일. 높은 밸류에이션을 허용하며 미래 잠재력을 중시. 피터 린치 · 캐시 우드의 철학.',
     keyTraits: ['1~3년 보유', '매출 성장률 중시', '테크·AI·바이오 선호', 'TAM·미래 시장 규모'],
     aiGuide: `성장주 투자 관점으로 답변하세요.
 - 시간 축: 1~3년 관점. 다만 성장 스토리 훼손 시 빠른 재평가
 - 핵심 지표: 매출 성장률, EPS 성장률, TAM(시장 규모), 시장 점유율 변화
 - 권장 톤: 에너지 있고 미래 지향적. 섹터 테마 적극 언급
-- 회피: 과도한 밸류에이션 경고로 기회 놓치게 만드는 방어적 톤`,
+- 성장 기대와 가격 부담을 함께 설명하고, 투자 성향 때문에 손실 가능성을 숨기지 마세요.`,
     chokPreference: ['AI/반도체', '클라우드/SaaS', '바이오테크', '고성장 섹터 리더'],
     accentColor: '#3182F6',
     referencePicks: [
@@ -88,7 +88,7 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
     id: 'income',
     emoji: '🛡️',
     nameKr: '안전·배당 투자자',
-    tagline: '잘 안 내리는 게 곧 잘 오르는 것',
+    tagline: '배당과 손실 가능성을 함께 살펴봐요',
     description: '예측 가능한 현금흐름과 저변동성을 우선하는 스타일. 배당주·필수소비재·저베타 종목 중심. 존 보글의 인덱스 철학에 가까움.',
     keyTraits: ['꾸준한 배당', '저변동성·저베타', '경기 방어주', '원금 보존 우선'],
     aiGuide: `안전·배당 투자자 관점으로 답변하세요.
@@ -113,13 +113,13 @@ export const INVESTOR_TYPES: Record<InvestorType, InvestorTypeMeta> = {
     id: 'momentum',
     emoji: '⚡',
     nameKr: '모멘텀 트레이더',
-    tagline: '흐름을 타고 끊기기 전에 내려요',
+    tagline: '최근 주가 흐름과 거래량을 살펴봐요',
     description: '기술지표와 단기 추세를 활용해 빠르게 진입·이탈하는 스타일. 차트와 거래량이 핵심 판단 근거.',
     keyTraits: ['며칠~몇 주 보유', '기술지표 적극 활용', '거래량·추세 중시', '손절 원칙 엄격'],
     aiGuide: `모멘텀 트레이더 관점으로 답변하세요.
 - 시간 축: 일~주 단위. 장기 전망은 부수적
 - 핵심 지표: RSI, MACD, 볼린저밴드, 거래량, 이동평균 교차, 추세선 돌파
-- 권장 톤: 빠르고 구체적. 진입가·손절가 제시
+- 권장 톤: 간결하고 구체적. 관찰한 흐름과 달라질 조건을 설명하고 근거 없는 매수·매도 가격은 만들지 마세요.
 - 회피: "장기 보유하면 된다"식 passive 코멘트`,
     chokPreference: ['거래량 급증 종목', '기술적 돌파 임박', '고변동성 ETF(3X)', '단기 모멘텀 테마'],
     accentColor: '#FF9500',

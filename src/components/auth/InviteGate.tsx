@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import JoobiLockup from '@/components/brand/JoobiLockup';
 import type { User } from '@supabase/supabase-js';
+import appUI from '../ui/AppUI.module.css';
 import styles from './InviteGate.module.css';
 
 interface Props {
@@ -91,8 +92,8 @@ export default function InviteGate({ user, onVerified }: Props) {
         </form>
         <div className={styles.other}>
           <p>아직 코드가 없다면 로그인 없이 먼저 둘러볼 수 있어요.</p>
-          <button type="button" onClick={() => leave()}>로그아웃하고 둘러보기</button>
-          <button type="button" className={styles.secondary} onClick={() => leave(true)}>다른 계정으로 로그인</button>
+          <button className={appUI.secondaryButton} type="button" onClick={() => leave()}>로그아웃하고 둘러보기</button>
+          <button type="button" className={`${appUI.textButton} ${styles.secondary}`} onClick={() => leave(true)}>다른 계정으로 로그인</button>
         </div>
       </section>
     </main>

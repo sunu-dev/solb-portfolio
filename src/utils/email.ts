@@ -15,7 +15,9 @@
 import { DISCLAIMER } from '@/utils/alertCompliance';
 import { buildUnsubUrl, type UnsubKind } from '@/utils/unsubscribeToken';
 
-interface SendEmailOpts {
+export interface SendEmailOpts {
+  /** Stable key per logical message; the caller persists the body unchanged across retries. */
+  idempotencyKey?: string;
   to: string;
   subject: string;
   /** plain text body — html은 자동 생성 */
@@ -35,6 +37,7 @@ interface SendResult {
   ok: boolean;
   id?: string;
   error?: string;
+  retryable?: boolean;
 }
 
 /**
@@ -56,7 +59,7 @@ export async function sendEmail(opts: SendEmailOpts): Promise<SendResult> {
     return { ok: false, error: 'no_from_address' };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://solb-portfolio.vercel.app';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://joobi.kr';
   const unsubUrl = opts.unsubscribe
     ? buildUnsubUrl({ appUrl, userId: opts.unsubscribe.userId, kind: opts.unsubscribe.kind })
     : null;
@@ -95,7 +98,9 @@ export async function sendEmail(opts: SendEmailOpts): Promise<SendResult> {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        ...(opts.idempotencyKey ? { 'Idempotency-Key': opts.idempotencyKey } : {}),
       },
+      signal: AbortSignal.timeout(10000),
       body: JSON.stringify({
         from,
         to: opts.to,
@@ -105,12 +110,17 @@ export async function sendEmail(opts: SendEmailOpts): Promise<SendResult> {
         ...(Object.keys(headers).length > 0 ? { headers } : {}),
       }),
     });
-    const json = await res.json() as { id?: string; message?: string };
+    // Proxies may return HTML on 4xx/5xx. Preserve the HTTP classification even then.
+    const json = await res.json().catch(() => null) as { id?: string; name?: string } | null;
     if (!res.ok) {
-      return { ok: false, error: json.message || `http_${res.status}` };
+      const concurrentRequest = res.status === 409 && !!opts.idempotencyKey
+        && json?.name === 'concurrent_idempotent_requests';
+      return { ok: false, error: `http_${res.status}`, retryable: concurrentRequest || res.status === 429 || res.status >= 500 };
     }
+    // A 2xx with no receipt is ambiguous, not proof of acceptance. Only a keyed retry is safe.
+    if (!json?.id) return { ok: false, error: 'missing_provider_receipt', retryable: !!opts.idempotencyKey };
     return { ok: true, id: json.id };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    return { ok: false, error: e instanceof Error ? e.name : 'network_error', retryable: !!opts.idempotencyKey };
   }
 }

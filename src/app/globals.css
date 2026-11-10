@@ -9,6 +9,24 @@
    Joobi design tokens
    ========================================== */
 :root {
+  --app-header-height:64px;
+  /* Shared UI typography: CSS modules, Tailwind and native controls use one family. */
+  --font-ui: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --font-sans: var(--font-ui);
+  --type-section-size: 20px;
+  --type-section-weight: 650;
+  --type-label-size: 14px;
+  --type-label-weight: 550;
+  --type-body-size: 15px;
+  --type-caption-size: 12px;
+  --control-height: 48px;
+  --control-radius: 8px;
+  --type-display-size: clamp(32px, 4vw, 36px);
+  --type-page-size: 24px;
+  --type-group-size: 16px;
+  --switch-off-bg: var(--border-strong);
+  --reading-control-height: var(--control-height);
+
   /* Dialog viewport fallback; keyboard resize values are scoped to each open panel. */
   --modal-viewport-height: 100dvh;
   --modal-viewport-bottom: 0px;
@@ -17,6 +35,15 @@
   --bg-subtle: #F8F9FA;
   --surface: #FFFFFF;
   --surface-hover: #F9FAFB;
+  --surface-warm: #FFF8E7;
+  --surface-feature: #252A32;
+  --text-on-feature: #FFFFFF;
+  --brand-highlight: #F4CD58;
+  --brand-highlight-hover: #EBC044;
+  --text-on-highlight: #30260A;
+  --company-logo-surface: #FFFFFF;
+  --illustration-surface-warm:#FFF8E7;
+  --illustration-surface-neutral:#F8F9FA;
 
   /* The red symbol identifies Joobi. Reading and controls use neutral tones. */
   --brand-primary: #333D4B;
@@ -60,8 +87,8 @@
   --border-strong: #E5E8EB;
 
   /* Korean convention: RED = gain/up, BLUE = loss/down */
-  --color-gain: #EF4452;
-  --color-loss: #3182F6;
+  --color-gain: #C52B40;
+  --color-loss: #2266C5;
   --color-gain-bg: rgba(239, 68, 82, 0.06);
   --color-loss-bg: rgba(49, 130, 246, 0.06);
 
@@ -159,7 +186,7 @@
   --color-brand-accent-hover: var(--brand-accent-hover);
   --color-brand-slate: var(--brand-slate);
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-ui);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -209,19 +236,19 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
-  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  font-family: var(--font-ui);
   background: var(--bg);
   color: var(--text-primary);
-  font-size: 15px;
+  font-size: var(--type-body-size);
   line-height: 1.6;
   letter-spacing: -0.005em;
   min-height: 100vh;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
+  overflow-x: clip;
   /* 한국어 어절 단위 줄바꿈 SSOT — 2026-05-29 5인 디자인 패널 합의.
      keep-all: 한글 어절 보존 (있/습니다 깨짐 차단, 토스·카카오뱅크 표준).
      overflow-wrap: break-word: 긴 영문 단어·URL·이메일은 안전하게 깨뜨림. */
@@ -447,6 +474,15 @@ code, pre, kbd, samp, .font-mono {
   --bg-hover: #1E2030;
   --surface: #1A1D2E;
   --surface-hover: #22253A;
+  --surface-warm: #302A20;
+  --surface-feature: #272C3D;
+  --text-on-feature: #FFFFFF;
+  --brand-highlight: #F4CD58;
+  --brand-highlight-hover: #FFDB75;
+  --text-on-highlight: #30260A;
+  --company-logo-surface: #F5F6F8;
+  --illustration-surface-warm:#F1E8CF;
+  --illustration-surface-neutral:#E5E7EB;
   --text-primary: #E8E8ED;
   --text-secondary: #ADB3BF;
   --text-body: #C2C6CE;        /* 다크 본문 — surface 위 충분한 대비(라이트 #4E5968 대응) */
@@ -473,8 +509,8 @@ code, pre, kbd, samp, .font-mono {
   --brand-slate-strong: #CBD5E1;
   --brand-gradient: linear-gradient(135deg, #333D4B, #4E5968);
   --border-row: #1E2030;
-  --color-gain: #EF4452;
-  --color-loss: #3182F6;
+  --color-gain: #FF7785;
+  --color-loss: #7CB1FF;
   --color-gain-bg: rgba(239, 68, 82, 0.15);
   --color-loss-bg: rgba(49, 130, 246, 0.15);
   --color-danger: #EF4452;
@@ -915,8 +951,9 @@ code, pre, kbd, samp, .font-mono {
 .mobile-bottom-nav {
   display: flex;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  height: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+  height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
 }
+@media(max-width:767px) { :root { --app-header-height:56px; } }
 
 @media (min-width: 1024px) {
   .mobile-bottom-nav { display: none; }

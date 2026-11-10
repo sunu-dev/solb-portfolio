@@ -3,8 +3,8 @@ export const STOCK_LESSONS = [
   {
     id: "earnings",
     label: "이익 읽기",
-    title: "매출이 늘면 이익도 늘었을까요?",
-    titlePhrases: ["매출이 늘면", "이익도 늘었을까요?"],
+    title: "매출과 이익의 차이",
+    titlePhrases: ["매출과 이익의 차이"],
     explanation:
       "매출은 제품과 서비스를 판매한 금액이고, 순이익은 비용과 세금 등을 반영한 결과예요. 매출이 늘어도 비용이 더 많이 늘면 순이익은 줄 수 있어요.",
     example:
@@ -18,8 +18,8 @@ export const STOCK_LESSONS = [
   {
     id: "cash",
     label: "현금 흐름",
-    title: "이익과 통장에 들어온 돈은 같을까요?",
-    titlePhrases: ["이익과", "통장에 들어온 돈은", "같을까요?"],
+    title: "이익과 현금흐름의 차이",
+    titlePhrases: ["이익과 현금흐름의 차이"],
     explanation:
       "순이익과 현금 흐름은 서로 다른 숫자예요. 외상 판매처럼 매출을 기록한 시점과 현금을 받는 시점이 다를 수 있어요.",
     example:
@@ -33,8 +33,8 @@ export const STOCK_LESSONS = [
   {
     id: "evidence",
     label: "뉴스 읽기",
-    title: "기사 속 숫자는 어디서 왔을까요?",
-    titlePhrases: ["기사 속 숫자는", "어디서 왔을까요?"],
+    title: "기사 속 숫자의 출처 확인하기",
+    titlePhrases: ["기사 속 숫자의 출처 확인하기"],
     explanation:
       "회사가 발표한 실적, 회사의 목표, 기사 작성자의 해석은 구분해서 읽어요. 미국 기업의 연차보고서인 10-K에는 사업 설명, 위험 요인, 재무제표 등이 담겨 있어요.",
     example:
@@ -47,8 +47,8 @@ export const STOCK_LESSONS = [
   {
     id: "valuation",
     label: "가격과 가치",
-    title: "PER이 낮으면 무조건 싼가요?",
-    titlePhrases: ["PER이 낮으면 무조건 싼가요?"],
+    title: "PER을 비교할 때 확인할 것",
+    titlePhrases: ["PER을 비교할 때 확인할 것"],
     explanation:
       "PER은 주가를 한 주당 이익으로 나눈 값이에요. 이익이 일시적으로 크거나 앞으로 줄 것으로 예상돼도 낮아질 수 있어요.",
     example:
@@ -63,8 +63,8 @@ export const STOCK_LESSONS = [
   {
     id: "debt",
     label: "빚과 현금",
-    title: "부채가 많으면 모두 위험할까요?",
-    titlePhrases: ["부채가 많으면 모두 위험할까요?"],
+    title: "빚을 갚을 여력이 있는지 보는 법",
+    titlePhrases: ["빚을 갚을 여력이 있는지 보는 법"],
     explanation:
       "부채에는 외상 매입금도 포함돼요. 이자를 내는 차입금은 만기와 금리를 따로 봐야 해요. 갚을 돈과 쓸 수 있는 현금의 시점이 중요해요.",
     example:
@@ -79,8 +79,8 @@ export const STOCK_LESSONS = [
   {
     id: "dilution",
     label: "한 주의 몫",
-    title: "주식 수가 늘면 내 한 주는 어떻게 되나요?",
-    titlePhrases: ["주식 수가 늘면 내 한 주는 어떻게 되나요?"],
+    title: "신주 발행이 기존 주주에게 미치는 영향",
+    titlePhrases: ["신주 발행이 기존 주주에게 미치는 영향"],
     explanation:
       "회사가 새 주식을 발행하면 기존 한 주가 차지하는 지분 비율이 줄 수 있어요. 이를 희석이라고 해요. 조달한 돈을 어디에 쓰는지도 중요해요.",
     example:
@@ -95,8 +95,8 @@ export const STOCK_LESSONS = [
   {
     id: "guidance",
     label: "회사 전망",
-    title: "가이던스는 약속한 실적인가요?",
-    titlePhrases: ["가이던스는 약속한 실적인가요?"],
+    title: "회사 전망과 실제 실적 구분하기",
+    titlePhrases: ["회사 전망과 실제 실적 구분하기"],
     explanation:
       "가이던스는 회사가 제시한 향후 매출·이익 등의 전망이에요. 확정 결과가 아니라 수요·비용·환율 같은 가정 위에 놓여 있어요.",
     example:
@@ -110,8 +110,8 @@ export const STOCK_LESSONS = [
   {
     id: "backlog",
     label: "수주와 매출",
-    title: "큰 계약을 따면 당장 돈이 들어오나요?",
-    titlePhrases: ["큰 계약을 따면 당장 돈이 들어오나요?"],
+    title: "수주·매출·대금 수령의 차이",
+    titlePhrases: ["수주·매출·대금 수령의 차이"],
     explanation:
       "수주는 주문이나 계약을 확보하는 일이에요. 수주잔고는 아직 매출로 반영되지 않은 주문의 규모를 나타낼 수 있지만 회사마다 정의가 달라요.",
     example:
@@ -125,8 +125,8 @@ export const STOCK_LESSONS = [
   {
     id: "margins",
     label: "남는 돈",
-    title: "많이 팔았는데 이익률은 왜 줄까요?",
-    titlePhrases: ["많이 팔았는데 이익률은 왜 줄까요?"],
+    title: "매출에서 이익으로 남는 비율",
+    titlePhrases: ["매출에서 이익으로 남는 비율"],
     explanation:
       "이익률은 매출 중 이익으로 남는 비율이에요. 원가 상승이나 할인 판매, 제품 구성 변화로 매출이 늘어도 이익률은 낮아질 수 있어요.",
     example:
@@ -141,8 +141,8 @@ export const STOCK_LESSONS = [
   {
     id: "capex",
     label: "설비 투자",
-    title: "공장을 지으면 바로 이익이 늘까요?",
-    titlePhrases: ["공장을 지으면 바로 이익이 늘까요?"],
+    title: "설비 투자 후 매출이 생기기까지",
+    titlePhrases: ["설비 투자 후 매출이 생기기까지"],
     explanation:
       "설비 투자는 생산이나 서비스에 오래 쓸 자산에 돈을 쓰는 일이에요. 현금은 먼저 나가지만 가동과 매출은 뒤에 생길 수 있어요.",
     example:
@@ -157,8 +157,8 @@ export const STOCK_LESSONS = [
   {
     id: "rates",
     label: "금리의 연결",
-    title: "금리가 내리면 모든 회사에 좋을까요?",
-    titlePhrases: ["금리가 내리면 모든 회사에 좋을까요?"],
+    title: "금리가 기업의 비용과 수요에 미치는 영향",
+    titlePhrases: ["금리가 기업의 비용과 수요에 미치는 영향"],
     explanation:
       "금리는 돈을 빌리는 가격이에요. 이자 부담과 고객의 소비·투자, 미래 이익에 대한 평가에 서로 다른 경로로 닿아요.",
     example:
@@ -173,8 +173,8 @@ export const STOCK_LESSONS = [
   {
     id: "fx",
     label: "환율의 연결",
-    title: "달러가 오르면 수출 회사는 늘 유리할까요?",
-    titlePhrases: ["달러가 오르면 수출 회사는 늘 유리할까요?"],
+    title: "환율이 매출과 비용에 미치는 영향",
+    titlePhrases: ["환율이 매출과 비용에 미치는 영향"],
     explanation:
       "환율은 서로 다른 돈을 바꾸는 비율이에요. 매출과 비용, 빚의 통화가 다르면 같은 환율 변화도 서로 다른 영향을 줘요.",
     example:
@@ -188,8 +188,8 @@ export const STOCK_LESSONS = [
   {
     id: "inputs",
     label: "원자재와 비용",
-    title: "유가가 오르면 어떤 과정을 거칠까요?",
-    titlePhrases: ["유가가 오르면 어떤 과정을 거칠까요?"],
+    title: "원자재 가격이 기업 비용에 미치는 영향",
+    titlePhrases: ["원자재 가격이 기업 비용에 미치는 영향"],
     explanation:
       "원자재 가격은 기업의 생산·운송 비용으로 전달될 수 있어요. 판매 가격에 얼마나 빨리 반영할 수 있는지가 이익에 영향을 줘요.",
     example:
@@ -203,8 +203,8 @@ export const STOCK_LESSONS = [
   {
     id: "customers",
     label: "고객 집중",
-    title: "고객이 크면 사업도 더 안전할까요?",
-    titlePhrases: ["고객이 크면 사업도 더 안전할까요?"],
+    title: "매출이 특정 고객에게 쏠릴 때의 위험",
+    titlePhrases: ["매출이 특정 고객에게 쏠릴 때의 위험"],
     explanation:
       "큰 고객은 안정적인 주문을 줄 수도 있지만 한 고객의 구매 축소가 회사 전체에 크게 영향을 줄 수도 있어요. 이를 고객 집중 위험이라고 해요.",
     example:
@@ -218,8 +218,8 @@ export const STOCK_LESSONS = [
   {
     id: "dividends",
     label: "배당 읽기",
-    title: "배당수익률이 높으면 이익도 큰가요?",
-    titlePhrases: ["배당수익률이 높으면 이익도 큰가요?"],
+    title: "배당수익률을 볼 때 확인할 것",
+    titlePhrases: ["배당수익률을 볼 때 확인할 것"],
     explanation:
       "배당수익률은 주가 대비 연간 배당의 비율이에요. 주가가 떨어져 높아질 수도 있고 배당은 줄거나 중단될 수 있어요.",
     example:
@@ -234,8 +234,8 @@ export const STOCK_LESSONS = [
   {
     id: "regulation",
     label: "정책과 규제",
-    title: "정책 발표가 바로 회사 이익이 되나요?",
-    titlePhrases: ["정책 발표가 바로 회사 이익이 되나요?"],
+    title: "정책 발표와 실제 적용 구분하기",
+    titlePhrases: ["정책 발표와 실제 적용 구분하기"],
     explanation:
       "정책은 제안, 의결, 시행을 거쳐 실제 사업에 적용돼요. 적용 대상과 예외, 시행 시점에 따라 영향이 달라져요.",
     example:
@@ -249,8 +249,8 @@ export const STOCK_LESSONS = [
   {
     id: "cycle",
     label: "산업의 순환",
-    title: "호황인데 왜 재고를 살펴보나요?",
-    titlePhrases: ["호황인데 왜 재고를 살펴보나요?"],
+    title: "재고로 살펴보는 수요와 공급",
+    titlePhrases: ["재고로 살펴보는 수요와 공급"],
     explanation:
       "수요가 늘면 기업들이 생산을 확대하지만 공급이 수요를 앞지르면 재고가 쌓이고 가격이 내려갈 수 있어요. 산업마다 이 과정의 속도가 달라요.",
     example:
@@ -264,8 +264,8 @@ export const STOCK_LESSONS = [
   {
     id: "inflation",
     label: "물가와 소비",
-    title: "물가 상승이 왜 내 주식과 연결되나요?",
-    titlePhrases: ["물가 상승이 왜 내 주식과 연결되나요?"],
+    title: "물가가 기업 원가와 소비에 미치는 영향",
+    titlePhrases: ["물가가 기업 원가와 소비에 미치는 영향"],
     explanation:
       "물가는 여러 상품과 서비스의 가격 수준이에요. 상승률이 낮아지는 것과 가격 자체가 내려가는 것은 달라요. 기업의 원가와 소비자의 구매력에 닿을 수 있어요.",
     example:
@@ -279,8 +279,8 @@ export const STOCK_LESSONS = [
   {
     id: "index",
     label: "지수와 분산",
-    title: "여러 종목을 사면 위험이 사라지나요?",
-    titlePhrases: ["여러 종목을 사면 위험이 사라지나요?"],
+    title: "분산투자로 줄일 수 있는 위험",
+    titlePhrases: ["분산투자로 줄일 수 있는 위험"],
     explanation:
       "분산은 한 기업에 문제가 생겼을 때의 영향을 줄이는 방법이에요. 같은 산업·국가에 쏠려 있으면 종목 수가 많아도 공통 위험은 남아요.",
     example:
@@ -295,8 +295,8 @@ export const STOCK_LESSONS = [
   {
     id: "price",
     label: "가격과 거래량",
-    title: "주가가 떨어진 이유를 차트만으로 알 수 있나요?",
-    titlePhrases: ["주가가 떨어진 이유를 차트만으로 알 수 있나요?"],
+    title: "차트에서 알 수 있는 것과 없는 것",
+    titlePhrases: ["차트에서 알 수 있는 것과 없는 것"],
     explanation:
       "차트는 거래된 가격과 거래량을 보여줘요. 시장 참여자의 모든 이유나 다음 가격은 보여주지 않아요.",
     example:

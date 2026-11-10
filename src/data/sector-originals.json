@@ -1,0 +1,52 @@
+{
+  "automotive": {
+    "parts": [
+      "조립 중인 차체",
+      "도어를 장착하는 로봇 팔",
+      "자동차 생산 라인"
+    ],
+    "caption": "차체와 구동 장치 등을 조립해 사람이 타고 이동하는 자동차를 만들어요.",
+    "version": "v4",
+    "motion": "assembly"
+  },
+  "food": {
+    "parts": [
+      "반죽 투입 장치",
+      "식품 가공 오븐",
+      "포장 라인"
+    ],
+    "caption": "곡물 등 원료를 가공해 사람들이 먹는 식품을 만들어요.",
+    "version": "v3",
+    "motion": "process"
+  },
+  "materials": {
+    "parts": [
+      "강판 코일",
+      "압연 롤러",
+      "판재 이송 라인"
+    ],
+    "caption": "철강 같은 소재를 생산해 건물과 다양한 제품을 만드는 데 공급해요.",
+    "version": "v3",
+    "motion": "process"
+  },
+  "cables": {
+    "parts": [
+      "도체 공급 릴",
+      "피복 장치",
+      "케이블 권취 릴"
+    ],
+    "caption": "전기를 전달하는 전선과 케이블을 만들어요.",
+    "version": "v3",
+    "motion": "process"
+  },
+  "tobacco": {
+    "parts": [
+      "담뱃잎 원료",
+      "가공 설비",
+      "제품 포장 라인"
+    ],
+    "caption": "담뱃잎 등을 가공해 담배 제품을 생산해요.",
+    "version": "v3",
+    "motion": "process"
+  }
+}

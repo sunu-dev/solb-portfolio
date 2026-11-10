@@ -53,8 +53,6 @@
 .next strong,.resultLink strong { display:block; margin-top:4px; font-size:15px; line-height:1.75; font-weight:650; word-break:keep-all; overflow-wrap:anywhere; }
 .next > span > span { display:block; margin-top:4px; font-size:13px; color:var(--text-body); line-height:1.8; }
 .next svg,.resultLink svg { flex-shrink:0; }
-.moreResults { margin-top:14px; }
-.moreResults summary,.moreCompanies > summary { min-height:48px; padding:12px 0; font-size:13px; color:var(--text-body); line-height:1.8; cursor:pointer; }
-.resultLink { border-bottom:1px solid var(--border-light); }
+.moreResults { margin-top:14px; }.resultLink { border-bottom:1px solid var(--border-light); }
 .report button:focus-visible,.report a:focus-visible,.report summary:focus-visible,.companies button:focus-visible,.companies a:focus-visible,.companies summary:focus-visible { outline:2px solid var(--text-primary); outline-offset:4px; }
 @media (max-width:359px) { .heading h2 { font-size:17px; } .figures { padding:14px; gap:12px 18px; } .figures dd { font-size:17px; } .next { padding:16px; } }

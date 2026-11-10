@@ -7,7 +7,7 @@ import { formatRelativeKo } from '@/utils/koreanDate';
 import { useNow } from '@/hooks/useNow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { NEWS_QUERIES } from '@/config/constants';
-import { decodeNewsTitle, getNewsTargets, mergeRelatedNews, newsClient, NEWS_BATCH_SIZE, NEWS_STALE_MS,
+import { companyNewsQuery, decodeNewsTitle, getNewsTargets, mergeRelatedNews, newsClient, NEWS_BATCH_SIZE, NEWS_STALE_MS,
   type NewsQuery, type NewsResponse, type NewsTarget, type RelatedNewsItem } from '@/lib/newsFeed';
 import styles from './NewsSection.module.css';
 import ContextExploration from '@/components/explore/ContextExploration';
@@ -40,7 +40,7 @@ export default function NewsSection() {
   const selectedTargets = useMemo(() => targets.slice(activeBatch * NEWS_BATCH_SIZE, (activeBatch + 1) * NEWS_BATCH_SIZE),
     [targets, activeBatch]);
   const queries = useMemo<{ query: NewsQuery; target?: NewsTarget }[]>(() => personal
-    ? selectedTargets.map(target => ({ target, query: { q: target.query, locale: 'ko', maxHours: 48 } }))
+    ? selectedTargets.map(target => ({ target, query: companyNewsQuery(target.symbol, target.name) }))
     : [{ query: NEWS_QUERIES[currentNewsMarket] || NEWS_QUERIES.us }], [personal, selectedTargets, currentNewsMarket]);
   const requestKey = JSON.stringify([currentNewsMarket, queries]);
   const visible = feed.key === requestKey ? feed : { ...INITIAL_FEED, total: queries.length };
@@ -120,7 +120,7 @@ export default function NewsSection() {
 
       {personal && targets.length > 0 && <div className={styles.coverage}>
         <p className={styles.companyNames}>{selectedTargets.map(target => target.name).join(' · ')}</p>
-        <p>회사명으로 찾은 최근 48시간의 기사예요. 검색 결과에는 다른 회사 이야기가 섞일 수 있어요.</p>
+        <p>회사명으로 찾은 최근 7일의 기사예요. 검색 결과에는 다른 회사 이야기가 섞일 수 있어요.</p>
         {batchCount > 1 && <div className={styles.pagination}>
           <span>전체 {targets.length}개 중 {activeBatch * NEWS_BATCH_SIZE + 1}–{Math.min((activeBatch + 1) * NEWS_BATCH_SIZE, targets.length)}번째 종목</span>
           <div><button type="button" aria-label="이전 종목 뉴스" disabled={activeBatch === 0} onClick={() => setBatch(activeBatch - 1)}><ChevronLeft size={18} aria-hidden="true" /></button>
@@ -158,7 +158,7 @@ export default function NewsSection() {
         <h2>{isEmptyPortfolio ? currentNewsMarket === 'my' ? '관심 종목을 추가해보세요' : '보유 종목을 추가해보세요'
           : visible.failures ? '소식을 확인하지 못했어요' : '지금 검색된 기사가 없어요'}</h2>
         <p>{isEmptyPortfolio ? '등록한 회사와 관련된 기사를 모아서 보여드려요.'
-          : visible.failures ? errorMessage : personal ? '최근 48시간 동안 이 회사명으로 찾은 기사가 없어요. 다른 종목이나 시장 소식도 살펴보세요.'
+          : visible.failures ? errorMessage : personal ? '최근 7일 동안 이 회사명으로 찾은 기사가 없어요. 다른 종목이나 시장 소식도 살펴보세요.'
             : '현재 검색 범위에서 기사가 확인되지 않았어요. 다른 시장 소식도 살펴보세요.'}</p>
         <button type="button" onClick={isEmptyPortfolio ? openSearch : retry}>{isEmptyPortfolio ? '종목 찾기' : '다시 확인하기'}</button>
       </div>}

@@ -165,6 +165,9 @@ export interface PresetEvent {
 }
 
 export interface EventCacheEntry {
+  baseDate?: string;
+  lastDate?: string;
+  lastPrice?: number;
   basePrice: number;
   maxDrop: number;
   maxDropPrice?: number;
@@ -172,6 +175,7 @@ export interface EventCacheEntry {
   currentChange: number;
   recovered: boolean;
   recoveryDays: number | null;
+  recoveryDate?: string;
   dataSource?: 'actual' | 'precomputed' | 'fetched';
 }
 
@@ -304,94 +308,53 @@ export const MACRO_IND: MacroIndicator[] = [
   { label: 'VIX', symbol: '^VIX', type: 'stock' },
 ];
 
+// No manually entered price, drawdown or recovery figures: all comparisons use dated candles.
 export const PRESET_EVENTS: PresetEvent[] = [
   {
-    id: 'iran-war',
-    name: '이란 전쟁',
-    emoji: '⚔️',
-    startDate: '2026-02-28',
-    baseDate: '2026-02-27',
-    endDate: null,
-    description: '미국-이스라엘 연합 이란 공습. 유가 급등, 글로벌 증시 급락.',
-    insight: '미국·이스라엘 연합의 이란 공습으로 유가가 급등하고 글로벌 증시가 함께 급락한 시점이에요. 아래 표는 그때부터 지금까지 보유 종목이 실제로 얼마나 움직였는지만 보여줘요. 앞으로 어느 쪽으로 갈지는 아무도 알 수 없어요.',
-    keyFacts: ['WTI 유가 급등', '글로벌 증시 동반 급락', '방산주 급등'],
-    basePrices: { MU: 487, MSFT: 418, AVGO: 349, AMZN: 223, ASTX: 62.5, BEX: 31.2 },
-    baseMacro: { 'S&P 500': 6878.88, NASDAQ: 19850, KOSPI: 7050, 'USD/KRW': 1420, 'WTI Oil': 66.81, VIX: 14.2 },
+    id: 'iran-war', name: '이란 전쟁', emoji: '⚔️',
+    startDate: '2026-02-28', baseDate: '2026-02-27', endDate: null,
+    description: '2026년 2월 28일 미국·이스라엘의 이란 공격 이후 가격 변화를 살펴봐요.',
+    periodSource: 'https://www.pbs.org/newshour/world/live-updates-u-s-and-israel-attack-iran',
+    periodNote: '사건 전날까지 확인된 마지막 종가와 이후 가격을 비교해요. 비교 종료일을 정하지 않은 관찰 구간이에요.',
+    insight: '같은 기간에도 유가·환율·기업 실적 등 여러 요인이 함께 작용해요. 아래 변화를 전쟁 하나의 영향으로 해석하지 않아요.',
+    basePrices: {}, baseMacro: {},
   },
   {
-    id: 'trump-tariff-2026',
-    name: '2026 관세 충격',
-    emoji: '🦅',
-    startDate: '2026-01-20',
-    baseDate: '2026-01-19',
-    endDate: null,
-    description: '트럼프 2기 관세 확대. Q1 S&P 500 -5.1%, NASDAQ -7.1%. 역대 7번째 빠른 조정 국면.',
-    insight: '트럼프 2기 관세 확대로 1분기에 S&P 500이 -5.1%, 나스닥이 -7.1% 조정받은 국면이에요. 아래 표는 그 이후 보유 종목의 실제 변화예요. 앞으로 어느 쪽으로 갈지는 아무도 알 수 없어요.',
-    keyFacts: ['S&P 500 Q1 -5.1%', 'NASDAQ -7.1%', '역대 7번째 빠른 조정'],
-    basePrices: {},
-    baseMacro: { 'S&P 500': 5980, NASDAQ: 19600, 'USD/KRW': 1468, 'WTI Oil': 73, VIX: 18 },
+    id: 'trump-tariff-2025', name: '미국 상호관세 발표', emoji: '🦅',
+    startDate: '2025-04-02', baseDate: '2025-04-01', endDate: null,
+    description: '2025년 4월 2일 미국의 상호관세 발표 전후를 살펴봐요.',
+    periodSource: 'https://www.whitehouse.gov/presidential-actions/2025/04/regulating-imports-with-a-reciprocal-tariff-to-rectify-trade-practices-that-contribute-to-large-and-persistent-annual-united-states-goods-trade-deficits/',
+    periodNote: '발표 전날까지 확인된 마지막 종가를 기준으로 해요. 이후 관세 조정과 다른 시장 사건도 함께 포함돼요.',
+    insight: '관세는 수입 비용과 기업의 공급망에 영향을 줄 수 있어요. 실제 부담은 생산지와 계약, 가격 전가 여부에 따라 달라져요.',
+    basePrices: {}, baseMacro: {},
   },
   {
-    id: 'ukraine-war',
-    name: '우크라이나 전쟁',
-    emoji: '🇺🇦',
-    startDate: '2022-02-24',
-    baseDate: '2022-02-23',
-    endDate: null,
-    description: '러시아 우크라이나 침공. 에너지/곡물 급등.',
-    insight: 'S&P 500이 약 -13% 내린 뒤 6개월 안에 회복을 시작한 국면이에요. 반도체 업종은 공급망 우려로 변동 폭이 특히 컸어요. 과거에 그랬다는 기록일 뿐, 앞으로도 같으리란 보장은 없어요.',
-    keyFacts: ['S&P 500 -13%', 'VIX 39 돌파', 'WTI 유가 +28%', '3년째 진행중'],
-    // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
-    basePrices: { MU: 89.16, MSFT: 287.93, AVGO: 57.16, AMZN: 152.60 },
-    baseMacro: { 'S&P 500': 4348.87, NASDAQ: 13716.72, 'USD/KRW': 1199.50, 'WTI Oil': 92.10, VIX: 28.71 },
-    precomputed: {
-      MU: { maxDrop: -39.2, recovered: true, recoveryDays: 210 },
-      MSFT: { maxDrop: -28.5, recovered: true, recoveryDays: 350 },
-      AVGO: { maxDrop: -25.3, recovered: true, recoveryDays: 180 },
-      AMZN: { maxDrop: -50.2, recovered: false, recoveryDays: null },
-    },
+    id: 'ukraine-war', name: '우크라이나 전쟁', emoji: '🇺🇦',
+    startDate: '2022-02-24', baseDate: '2022-02-23', endDate: null,
+    description: '2022년 2월 러시아의 우크라이나 침공 이후 가격 변화를 살펴봐요.',
+    periodSource: 'https://www.un.org/en/ga/eleventh-emergency-special-session',
+    periodNote: '침공 전날까지 확인된 마지막 종가를 기준으로 해요. 긴 비교 기간에는 다른 시장 사건도 함께 포함돼요.',
+    insight: '에너지와 곡물 공급, 운송 비용 등 영향을 받는 경로를 살펴봐요. 개별 기업의 변화는 사업 구조와 당시 실적을 함께 확인해야 해요.',
+    basePrices: {}, baseMacro: {},
   },
   {
-    id: 'fed-hike-2022',
-    name: '금리인상 베어마켓',
-    emoji: '🏦',
-    startDate: '2022-01-04',
-    baseDate: '2022-01-03',
-    endDate: '2022-10-13',
-    description: '연준 급격한 금리 인상(0.25%→5.25%) 공포. NASDAQ -35%, S&P 500 -27% 하락.',
-    insight: '금리 인상 사이클의 정점 부근과 주가의 저점 부근이 겹쳤던 국면이에요. 이후 1년 안에 대부분 종목이 이전 고점을 다시 넘었어요. 과거에 그랬다는 기록일 뿐, 앞으로도 같으리란 보장은 없어요.',
-    keyFacts: ['NASDAQ -35%', 'S&P 500 -27%', '9개월 지속', '0.25% → 5.25%'],
-    // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
-    basePrices: { MU: 92.77, MSFT: 336.32, AVGO: 64.28, AMZN: 170.40 },
-    baseMacro: { 'S&P 500': 4796, NASDAQ: 15832, 'USD/KRW': 1190, 'WTI Oil': 76, VIX: 17.2 },
-    precomputed: {
-      MU: { maxDrop: -48.1, recovered: true, recoveryDays: 120 },
-      MSFT: { maxDrop: -36.5, recovered: true, recoveryDays: 170 },
-      AVGO: { maxDrop: -33.1, recovered: true, recoveryDays: 130 },
-      AMZN: { maxDrop: -51.8, recovered: true, recoveryDays: 350 },
-    },
+    id: 'fed-hike-2022', name: '2022년 금리 인상기', emoji: '🏦',
+    startDate: '2022-01-04', baseDate: '2022-01-03', endDate: '2022-10-13',
+    description: '2022년 초부터 10월까지, 금리 인상기의 가격 변화를 살펴봐요.',
+    periodSource: 'https://www.federalreserve.gov/newsevents/pressreleases/monetary20220921a.htm',
+    periodNote: '연초 종가를 기준으로 10월 13일까지 비교해요. 이 구간의 마지막 FOMC 결정인 9월 21일 목표금리는 3.00~3.25%였어요. 전체 금리 인상 사이클의 종료를 뜻하지 않아요.',
+    insight: '금리가 오르면 자금 조달 비용과 기업 가치를 평가하는 기준이 달라질 수 있어요. 주가가 회복했는지와 언제 회복했는지는 종목별 실제 종가로 확인해요.',
+    basePrices: {}, baseMacro: {},
   },
   {
-    id: 'covid',
-    name: '코로나 초기 충격·반등',
-    emoji: '🦠',
-    startDate: '2020-02-20',
-    baseDate: '2020-02-19',
-    endDate: '2020-06-08',
+    id: 'covid', name: '코로나 초기 충격·반등', emoji: '🦠',
+    keyFacts: ['초기 충격·반등 비교', '종료 기준: S&P 500의 2019년 말 수준'],
+    startDate: '2020-02-20', baseDate: '2020-02-19', endDate: '2020-06-08',
     description: '코로나 초기의 주가 급락과 반등을 살펴보는 비교 구간이에요. 감염병의 지속 기간이 아니에요.',
     periodNote: '비교 기준일은 2020.02.19, 관찰 구간은 02.20~06.08이에요. 종료 기준은 S&P 500이 2019년 말 수준을 되찾은 6월 8일로 정리했어요. 2월 고점 회복일이나 코로나 종료일은 아니며, 각 보유 종목의 회복 시점도 달라요.',
     periodSource: 'https://www.spglobal.com/en/research-insights/market-insights/daily-update-june-19-2020',
-    insight: '급락 이후 반등했더라도 어떤 가격을 기준으로 삼는지에 따라 회복 여부는 달라져요. 이 구간의 끝은 S&P 500의 2019년 말 수준 회복을 기준으로 삼으며, 개별 종목이 이전 가격을 되찾았다는 뜻은 아니에요.',
-    keyFacts: ['초기 충격·반등 비교', '기준 지수 S&P 500', '종료 기준: 2019년 말 수준'],
-    // 분할 조정: AMZN 20:1 (2022.6), AVGO 10:1 (2024.7)
-    basePrices: { MU: 57.64, MSFT: 187.28, AVGO: 30.90, AMZN: 108.51 },
-    baseMacro: { 'S&P 500': 3373.23, NASDAQ: 9817.18, 'USD/KRW': 1185.50, 'WTI Oil': 53.27, VIX: 14.38 },
-    precomputed: {
-      MU: { maxDrop: -34.1, recovered: true, recoveryDays: 95 },
-      MSFT: { maxDrop: -28.6, recovered: true, recoveryDays: 48 },
-      AVGO: { maxDrop: -31.4, recovered: true, recoveryDays: 63 },
-      AMZN: { maxDrop: -22.9, recovered: true, recoveryDays: 24 },
-    },
+    insight: '급락 이후 반등했더라도 어떤 가격을 기준으로 삼는지에 따라 회복 여부는 달라져요. 개별 종목의 결과를 시장 전체와 구분해서 살펴봐요.',
+    basePrices: {}, baseMacro: {},
   },
 ];
 

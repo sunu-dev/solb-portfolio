@@ -28,9 +28,9 @@ export const color = {
   borderRow: 'var(--border-row, #F7F8FA)',
 
   // Brand
-  brandPrimary: 'var(--brand-primary, #0E7C7B)',        // Mossy Teal — 토스블루 회피, AI·CTA 액센트
-  brandPrimaryLight: 'var(--brand-primary-light, rgba(14,124,123,0.08))',
-  brandPrimaryBg: 'var(--brand-primary-bg, rgba(14,124,123,0.06))',
+  brandPrimary: 'var(--brand-primary, #333D4B)',        // Neutral Joobi controls
+  brandPrimaryLight: 'var(--brand-primary-light, rgba(51,61,75,0.08))',
+  brandPrimaryBg: 'var(--brand-primary-bg, rgba(51,61,75,0.06))',
   brandSol: 'var(--brand-sol, #1B6B3A)',
   brandRain: 'var(--brand-rain, #3182F6)',
   brandGold: 'var(--brand-gold, #D4A853)',
@@ -107,6 +107,17 @@ export const breakpoint = { md: 768, lg: 1024, xl: 1280, '2xl': 1536 } as const;
 export const container = { base: 1200, xl: 1360, '2xl': 1520 } as const; // .app-shell 단계 폭
 export const gridGap = { base: 20, xl: 24 } as const;                    // .fill-grid / .cols-2-xl
 
+export const typography = {
+  family: 'var(--font-ui)',
+  page: 'var(--type-page-size)',
+  section: 'var(--type-section-size)',
+  group: 'var(--type-group-size)',
+  label: 'var(--type-label-size)',
+  body: 'var(--type-body-size)',
+  caption: 'var(--type-caption-size)',
+} as const;
+export const control = { height: 'var(--control-height)', radius: 'var(--control-radius)' } as const;
+
 // ─── 축약 export: 한 번에 import ─────────────────────────────────────────────
-export const T = { color, radius, fontSize, spacing, shadow, breakpoint, container, gridGap };
+export const T = { color, radius, fontSize, spacing, shadow, breakpoint, container, gridGap, typography, control };
 export default T;

@@ -14,7 +14,7 @@ import {
  * 2. 기존 stock_listings 와 diff
  *    - 신규 (Finnhub에 있고 DB에 없음) → insert status='watch'
  *    - 상폐 후보 (DB에 있고 Finnhub에 없음) → status='delisted' (universe인 종목은 알림만)
- *    - 기존 (둘 다 있음) → last_seen 갱신
+ *    - 기존 (둘 다 있음) → 쓰기 생략 (상폐 판정은 목록 차이로 수행)
  * 3. Slack 알림 (총 X개 신규, Y개 상폐 후보)
  *
  * 등록: vercel.json crons "schedule": "0 0 * * *" (UTC 00:00 = KST 09:00)
@@ -51,6 +51,7 @@ interface FinnhubSymbol {
 interface ExchangeSymbolResult {
   symbols: FinnhubSymbol[];
   excludedTypes: Record<string, number>;
+  complete: boolean;
 }
 
 async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string): Promise<ExchangeSymbolResult> {
@@ -61,17 +62,22 @@ async function fetchExchangeSymbols(exchange: 'US' | 'KS' | 'KQ', apiKey: string
     );
     if (!r.ok) {
       console.error(`[sync-listings] ${exchange} fetch failed:`, r.status);
-      return { symbols: [], excludedTypes: {} };
+      return { symbols: [], excludedTypes: {}, complete: false };
     }
     const data = (await r.json()) as FinnhubSymbol[];
-    const rows = data || [];
+    // Empty/malformed snapshots cannot establish that an entire market delisted.
+    if (!Array.isArray(data) || data.length === 0 || data.some(row =>
+      !row || typeof row.symbol !== 'string' || !row.symbol.trim()
+    )) return { symbols: [], excludedTypes: {}, complete: false };
+    const rows = data;
     return {
       symbols: rows.filter(s => isSupportedFinnhubSecurityType(s.type)),
       excludedTypes: countUnsupportedFinnhubSecurityTypes(rows),
+      complete: rows.some(s => isSupportedFinnhubSecurityType(s.type)),
     };
   } catch (e) {
     console.error(`[sync-listings] ${exchange} fetch error:`, e);
-    return { symbols: [], excludedTypes: {} };
+    return { symbols: [], excludedTypes: {}, complete: false };
   }
 }
 
@@ -91,6 +97,7 @@ export const GET = defineRoute({
   auth: 'cron',
   rateLimit: false,
   handler: async () => {
+  const startedAt = Date.now();
 
   const apiKey = process.env.FINNHUB_API_KEY || process.env.NEXT_PUBLIC_FINNHUB_API_KEY || '';
   if (!apiKey) {
@@ -108,6 +115,9 @@ export const GET = defineRoute({
   const us = usResult.symbols;
   const ks = ksResult.symbols;
   const kq = kqResult.symbols;
+  const exchangeResults: [string, ExchangeSymbolResult][] = [['US', usResult], ['KS', ksResult], ['KQ', kqResult]];
+  const completeExchanges = new Set(exchangeResults.filter(([, result]) => result.complete).map(([exchange]) => exchange));
+  const skippedExchanges = ['US', 'KS', 'KQ'].filter(exchange => !completeExchanges.has(exchange));
   const excludedTypes = {
     US: usResult.excludedTypes,
     KS: ksResult.excludedTypes,
@@ -132,19 +142,27 @@ export const GET = defineRoute({
   // Supabase JS 기본 limit이 1000건이라 페이지네이션 필수.
   // 24,400+ 종목을 한 번에 못 가져오면 매 cron마다 23,000건이 '신규'로 오탐 (2026-05-15 발견).
   const PAGE = 1000;
-  const allExisting: { symbol: string; status: string }[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data: page, error: selErr } = await supabase
+  const allExisting: { symbol: string; status: string; exchange: string }[] = [];
+  let cursor: string | undefined;
+  let readBatches = 0;
+  for (;;) {
+    // Primary-key cursor avoids repeatedly walking OFFSET rows as the catalog grows.
+    let query = supabase
       .from('stock_listings')
-      .select('symbol, status')
-      .range(from, from + PAGE - 1);
+      .select('symbol, status, exchange')
+      .order('symbol', { ascending: true })
+      .limit(PAGE);
+    if (cursor !== undefined) query = query.gt('symbol', cursor);
+    const { data: page, error: selErr } = await query;
+    readBatches++;
     if (selErr) {
       console.error('[sync-listings] select error:', selErr);
       return NextResponse.json({ error: 'db select failed' }, { status: 500 });
     }
     if (!page || page.length === 0) break;
-    allExisting.push(...(page as { symbol: string; status: string }[]));
+    allExisting.push(...page);
     if (page.length < PAGE) break; // 마지막 페이지
+    cursor = page[page.length - 1].symbol;
   }
   const existing = allExisting;
 
@@ -156,12 +174,12 @@ export const GET = defineRoute({
   // 3. Diff 계산
   const newRows = incoming.filter(s => !existingMap.has(s.symbol));
   const delistedSymbols = (existing || [])
+    .filter(r => completeExchanges.has(r.exchange))
     .filter(r => !incomingSet.has(r.symbol as string))
     .filter(r => r.status !== 'delisted')   // 이미 상폐는 스킵
     .map(r => r.symbol as string);
-  const stillActiveSymbols = (existing || [])
-    .filter(r => incomingSet.has(r.symbol as string))
-    .map(r => r.symbol as string);
+  const unchangedCount = existing.filter(r => incomingSet.has(r.symbol)).length;
+  let writeBatches = 0;
 
   // 4. DB 반영 — 배치 처리
   const now = new Date().toISOString();
@@ -179,38 +197,21 @@ export const GET = defineRoute({
         last_seen: now,
       }));
       const { error } = await supabase.from('stock_listings').insert(chunk);
-      if (error) console.error('[sync-listings] insert chunk error:', error);
+      if (error) return NextResponse.json({ error: 'db insert failed' }, { status: 500 });
+      writeBatches++;
     }
   }
 
-  // 4-2. 활성 종목 last_seen 갱신 (배치 update — 트리거가 자동으로 last_seen 처리)
-  //      대량이라 chunk 별로 처리. last_seen 갱신은 정확성보다 상폐 감지용이므로 1000개 청크 OK.
-  if (stillActiveSymbols.length > 0) {
-    const CHUNK = 500;
-    for (let i = 0; i < stillActiveSymbols.length; i += CHUNK) {
-      const chunk = stillActiveSymbols.slice(i, i + CHUNK);
-      // last_seen 트리거가 자동 → 빈 update만 호출
-      const { error } = await supabase
-        .from('stock_listings')
-        .update({ last_seen: now })
-        .in('symbol', chunk);
-      if (error) console.error('[sync-listings] update last_seen error:', error);
-    }
-  }
+  // last_seen is retained for legacy compatibility; it is not a scan heartbeat.
+  // Unchanged rows require no UPDATE, WAL, or later dead-tuple cleanup.
 
   // 4-3. 상폐 후보 마킹 (universe인 경우는 별도 알림만, 상태 변경 X)
   let universeDelisted: string[] = [];
   if (delistedSymbols.length > 0) {
-    // universe 상태 종목 찾기
-    const { data: universeRows } = await supabase
-      .from('stock_listings')
-      .select('symbol')
-      .in('symbol', delistedSymbols)
-      .eq('status', 'universe');
-    universeDelisted = (universeRows || []).map(r => r.symbol as string);
+    universeDelisted = delistedSymbols.filter(symbol => existingMap.get(symbol) === 'universe');
 
     // universe 외 종목만 'delisted' 로 마킹
-    const toMarkDelisted = delistedSymbols.filter(s => !universeDelisted.includes(s));
+    const toMarkDelisted = delistedSymbols.filter(s => existingMap.get(s) !== 'universe');
     if (toMarkDelisted.length > 0) {
       const CHUNK = 500;
       for (let i = 0; i < toMarkDelisted.length; i += CHUNK) {
@@ -218,8 +219,11 @@ export const GET = defineRoute({
         const { error } = await supabase
           .from('stock_listings')
           .update({ status: 'delisted' })
-          .in('symbol', chunk);
-        if (error) console.error('[sync-listings] mark delisted error:', error);
+          .in('symbol', chunk)
+          .neq('status', 'universe')
+          .neq('status', 'delisted');
+        if (error) return NextResponse.json({ error: 'db delist update failed' }, { status: 500 });
+        writeBatches++;
       }
     }
   }
@@ -242,10 +246,15 @@ export const GET = defineRoute({
     await sendSlackAlert('주비 종목 동기화', alertLines.join('\n'));
   }
 
+  const diagnostics = {
+    excludedTypes, skippedExchanges, readBatches, writeBatches, unchangedCount,
+    durationMs: Date.now() - startedAt,
+  };
+  console.info('[sync-listings] completed', { ...diagnostics, newCount, delistedCount });
   return NextResponse.json({
     ok: true,
     fetched: { us: us.length, ks: ks.length, kq: kq.length, total: incoming.length },
-    diagnostics: { excludedTypes },
+    diagnostics,
     diff: { newCount, delistedCount, universeDelisted },
   });
 },

@@ -15,8 +15,9 @@
 }
 .heading h2 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 750;
+  font-size: var(--type-section-size);
+  font-weight: var(--type-section-weight);
+  line-height: 1.5;
   letter-spacing: -0.03em;
 }
 .heading svg {
@@ -25,7 +26,7 @@
 }
 .progress {
   margin-left: auto;
-  font-size: 12px;
+  font-size:var(--type-caption-size);
   color: var(--text-secondary);
   white-space: nowrap;
 }
@@ -35,12 +36,6 @@
   line-height: 1.6;
   color: var(--text-body);
   overflow-wrap: anywhere;
-}
-.chartActions {
-  padding: 12px;
-  border-radius: 6px;
-  background: var(--bg-subtle);
-  font-size: 12px;
 }
 .actions,
 .topics {
@@ -105,17 +100,6 @@
 .explore {
   margin-top: 12px;
 }
-.explore summary {
-  padding: 12px 0;
-  min-height: 44px;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-body);
-}
-.explore summary:focus-visible {
-  outline: 2px solid var(--text-primary);
-  outline-offset: 3px;
-}
 .topics button {
   flex: 1;
 }
@@ -169,14 +153,14 @@
   gap: 4px;
   align-items: center;
   min-height: 44px;
-  font-size: 12px;
+  font-size:var(--type-caption-size);
   color: var(--text-body);
   text-decoration: underline;
 }
 .card small {
   display: block;
   color: var(--text-body);
-  font-size: 12px;
+  font-size:var(--type-caption-size);
   line-height: 1.6;
 }
 .intro,
@@ -190,9 +174,6 @@
 @media (max-width: 380px) {
   .card {
     padding: 20px 0;
-  }
-  .heading h2 {
-    font-size: 19px;
   }
   .card button {
     padding-inline: 12px;
@@ -208,7 +189,7 @@
   padding-inline: 0;
 }
 .card .entry > span:first-child {
-  font-size: 12px;
+  font-size:var(--type-caption-size);
   color: var(--text-secondary);
 }
 .card .entry > strong {
@@ -270,7 +251,7 @@
   line-height: 1.65;
 }
 .related button > span {
-  font-size: 12px;
+  font-size:var(--type-caption-size);
   color: var(--text-secondary);
 }
 .related strong {
@@ -289,3 +270,36 @@
 .lesson h3:focus {
   outline: none;
 }
+
+.storageInfo { margin-top: 12px; }
+.storageInfo small { padding-bottom: 8px; }
+
+.embedded { margin: 16px 0; padding: 16px 0; }
+.embedded .lesson { padding-top: 0; }
+.lesson .scope { margin: -4px 0 16px; color: var(--text-secondary); font-size:var(--type-caption-size); line-height: 1.6; }
+.readingPath { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.readingPath .back { text-align: left; justify-content: flex-start; font-size: 13px; }
+.related button[data-learning-primary] strong { font-weight: 700; }
+
+.card:not(.embedded) {margin:0;padding:0;border:0;}
+.kicker {composes:kicker from './DetailReading.module.css';}
+.headingTitle {composes:title from './DetailReading.module.css';}
+.intro {font-size:15px;line-height:1.8;margin:0 0 20px;}
+.card .entry > strong {font-size:17px;font-weight:600;}
+
+.heading .headingTitle {line-height:1.45;letter-spacing:-.035em;font-size:var(--type-section-size);font-weight:650;}
+
+/* One inviting question; the full library stays optional. */
+.heading .headingTitle { font-size:24px; }
+.card .intro { margin:8px 0 22px; font-size:14px; color:var(--text-secondary); }
+.recommendations { gap:10px; }
+.recommendations .entry { position:relative; padding:22px 56px 22px 22px; gap:6px; border:0; border-radius:10px; background:var(--surface-warm); }
+.recommendations .entry:hover { background:var(--surface-warm); }
+.recommendations .entry:hover strong { text-decoration:underline; text-underline-offset:4px; }
+.card .entry > strong { font-size:18px; line-height:1.65; }
+.card .entry > span:first-child { font-size:12px; }
+.entryArrow { position:absolute; right:22px; top:50%; transform:translateY(-50%); color:var(--text-primary); }
+.explore { margin-top:12px; }
+.explore > summary { font-size:13px; color:var(--text-secondary); }
+.card .storageInfo { margin-top:18px; padding-top:12px; border-top:1px solid var(--border-light); font-size:12px; color:var(--text-secondary); }
+@media(max-width:480px) { .heading .headingTitle {font-size:22px;} .recommendations .entry {padding:18px 48px 18px 18px;} .card .entry > strong {font-size:17px;} .entryArrow {right:16px;} }

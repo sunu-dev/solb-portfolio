@@ -26,7 +26,7 @@ describe('market session boundaries', () => {
     });
   });
   it('does not guess holidays outside the published calendar', () => {
-    expect(getMarketStatus(new Date('2027-01-01T15:00:00Z')).phase).toBe('unknown');
+    expect(getMarketStatus(new Date('2029-01-01T15:00:00Z')).phase).toBe('unknown');
   });
   it('keeps KRX closing auction within the regular session', () => {
     expect(dual(new Date('2026-09-10T15:25:00+09:00')).kr.status).toBe('open');

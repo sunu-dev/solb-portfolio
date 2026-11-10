@@ -47,6 +47,7 @@ export const USER_STORAGE_KEYS = [
 export const USER_STORAGE_KEY_PREFIXES = [
   'solb_chapter_keyword_',
   'joobi_discovery_v1:',
+  'joobi_dictionary_v1:',
   'solb_portfolio_sync_outbox_v1:',
 ] as const;
 
@@ -57,6 +58,7 @@ export function clearUserStorage(options: { preservePendingConsent?: boolean; pr
   }
   // 1. 고정 키 정리
   for (const key of USER_STORAGE_KEYS) {
+    if (options.preserveGuestDiscovery && key === 'solb_recent_searches') continue;
     try { localStorage.removeItem(key); } catch { /* quota / privacy mode 등 */ }
   }
   // 2. prefix 매칭 동적 키 정리
@@ -65,9 +67,9 @@ export function clearUserStorage(options: { preservePendingConsent?: boolean; pr
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!key) continue;
-      // A routine anonymous startup may retain only its public reading history.
+      // A routine anonymous startup retains guest reading history and the guest dictionary.
       // Sign-out/account switching never passes this option and still clears every identity.
-      if (options.preserveGuestDiscovery && key === 'joobi_discovery_v1:guest') continue;
+      if (options.preserveGuestDiscovery && (key === 'joobi_discovery_v1:guest' || key === 'joobi_dictionary_v1:guest')) continue;
       if (USER_STORAGE_KEY_PREFIXES.some(p => key.startsWith(p))) {
         toRemove.push(key);
       }

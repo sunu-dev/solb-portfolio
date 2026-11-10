@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
+import { boundedFetch } from '@/lib/boundedFetch';
 import { buildYahooQuote, isMacroQuoteSymbol, type YahooQuote } from '@/utils/yahooQuote';
 import { defineRoute, POLICIES } from '@/lib/apiRoute';
 import { logServerApi } from '@/lib/serverLogger';
@@ -33,11 +34,10 @@ interface QuoteResult {
 async function fetchFromYahoo(symbol: string): Promise<YahooQuote | null> {
   const yahooSymbol = YAHOO_INDEX_MAP[symbol] || symbol;
   try {
-    const r = await fetch(
+    const data = await boundedFetch(
       `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=5d&interval=1d`,
-      { headers: { 'User-Agent': YAHOO_UA }, signal: AbortSignal.timeout(5000) }
+      2500, response => response.json(), { headers: { 'User-Agent': YAHOO_UA } }
     );
-    const data = await r.json();
     const result = data?.chart?.result?.[0];
     if (!result) return null;
 
@@ -46,22 +46,19 @@ async function fetchFromYahoo(symbol: string): Promise<YahooQuote | null> {
 }
 
 async function fetchFromFinnhub(symbol: string, apiKey: string): Promise<QuoteResult | null> {
+  if (!apiKey) return null;
   try {
-    const r = await fetch(
+    const d: QuoteResult = await boundedFetch(
       `${FINNHUB_BASE}/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`,
-      { signal: AbortSignal.timeout(5000) }
+      1500, response => response.json()
     );
-    const d: QuoteResult = await r.json();
-    return d?.c ? d : null;
+    return Number.isFinite(d?.c) && d.c > 0 ? d : null;
   } catch { return null; }
 }
 
 async function fetchBareKoreanCode(symbol: string): Promise<YahooQuote | null> {
-  for (const candidate of getYahooSymbolCandidates(symbol)) {
-    const quote = await fetchFromYahoo(candidate);
-    if (quote) return quote;
-  }
-  return null;
+  const quotes = await Promise.all(getYahooSymbolCandidates(symbol).map(fetchFromYahoo));
+  return quotes.find(Boolean) ?? null;
 }
 
 // 미인증 공개 라우트 — 요청당 최대 50종목 Finnhub 호출.
@@ -69,6 +66,7 @@ export const POST = defineRoute({
   name: '/api/quotes',
   auth: 'public',
   rateLimit: POLICIES.general,
+  deferLog: true,
   handler: async ({ req }) => {
   try {
     let body;
@@ -87,9 +85,8 @@ export const POST = defineRoute({
       || symbols.some(s => typeof s !== 'string' || !/^[A-Za-z0-9^=.\-]{1,32}$/.test(s))) {
       return NextResponse.json({ error: 'symbols required' }, { status: 400 });
     }
-    if (!apiKey) return NextResponse.json({ error: 'Quote provider unavailable' }, { status: 503 });
 
-    const syms = symbols.slice(0, 50);
+    const syms = [...new Set(symbols)];
     const results: Record<string, QuoteResult | YahooQuote | null> = {};
 
     // Split: index/한국(.KS/.KQ) → Yahoo Finance, 미국 stocks → Finnhub.
@@ -112,7 +109,7 @@ export const POST = defineRoute({
       }),
       // Stock quotes via Finnhub
       ...stockSymbols.map(async (symbol) => {
-        results[symbol] = await fetchFromFinnhub(symbol, apiKey);
+        results[symbol] = await fetchFromFinnhub(symbol, apiKey) ?? await fetchFromYahoo(symbol);
       }),
       // USD/KRW 병렬 처리 (기존 순차 제거)
       ...(macro ? [fetchFromYahoo('USDKRW=X').then(q => {
@@ -121,17 +118,18 @@ export const POST = defineRoute({
     ]);
 
     // API 호출 로깅 (비동기, 응답 차단하지 않음)
-    logServerApi('api_quotes', {
+    after(() => logServerApi('api_quotes', {
       finnhub_count: stockSymbols.length,
       yahoo_count: indexSymbols.length + (macro ? 1 : 0),
       total: syms.length,
-    });
+    }));
 
     return NextResponse.json(
       { quotes: results, usdKrw },
       {
         headers: {
-          'Cache-Control': 's-maxage=15, stale-while-revalidate=30',
+          // POST responses are not CDN-cached. Do not imply that errors are reusable.
+          'Cache-Control': 'no-store',
         },
       }
     );

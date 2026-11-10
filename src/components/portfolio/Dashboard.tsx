@@ -2,13 +2,14 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import FxStaleNotice from '@/components/common/FxStaleNotice';
+import styles from './Dashboard.module.css';
+import appUI from '../ui/AppUI.module.css';
+import readingUI from '../ui/ReadingUI.module.css';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { SlidersHorizontal } from 'lucide-react';
 import { STOCK_KR } from '@/config/constants';
 import { formatKrw, formatUsd, resolveUsdKrwState } from '@/utils/koreanNumber';
 import type { QuoteData, MacroEntry } from '@/config/constants';
-import { getGreeting } from '@/config/greetings';
 import { getDailyTerm } from '@/config/dailyTerms';
 import { quoteDirection } from '@/utils/quotePresentation';
 import { calcHealthScore } from '@/utils/portfolioHealth';
@@ -16,12 +17,13 @@ import { getMarketStatus, getMarketLabel } from '@/utils/marketHours';
 import { getKrMarketLabel } from '@/utils/krMarketLabel';
 import { INVESTOR_TYPES } from '@/config/investorTypes';
 import { useActiveAlerts } from '@/hooks/useActiveAlerts';
-import { useHasHydrated } from '@/hooks/useHasHydrated';
 import { useNow } from '@/hooks/useNow';
-import InvestorTypeIcon from '@/components/insights/InvestorTypeIcon';
+import UsMarketClockNotice from './UsMarketClockNotice';
+import PortfolioTools from './PortfolioTools';
+import { holdingPrice, holdingTotals, isRegisteredHolding } from '@/utils/mergedHoldings';
 import {
   convertStockAmount,
-  summarizePortfolioCurrency,
+  getStockCurrency,
 } from '@/utils/stockCurrency';
 
 export default function Dashboard() {
@@ -35,34 +37,23 @@ export default function Dashboard() {
     setAnalysisSymbol: state.setAnalysisSymbol, currency: state.currency,
     setCurrency: state.setCurrency, networkError: state.networkError,
     setNetworkError: state.setNetworkError, rawCandles: state.rawCandles,
-    recordDailySnapshot: state.recordDailySnapshot, investorType: state.investorType,
-    investorTypeSetAt: state.investorTypeSetAt, setCurrentSection: state.setCurrentSection,
+    recordDailySnapshot: state.recordDailySnapshot,
+    investorType: state.investorType, investorTypeSetAt: state.investorTypeSetAt, setCurrentSection: state.setCurrentSection,
   })));
   const [detailsOpen, setDetailsOpen] = useState(false);
   const typeMeta = INVESTOR_TYPES[investorType];
-  const hasTypeSet = !!investorTypeSetAt;
   const currentTime = useNow();
-  const hasHydrated = useHasHydrated();
 
   // 최근 알림 미리보기용 — top severity 1~2 (정책 §8)
   const topAlerts = useActiveAlerts({ maxSeverity: 2 });
 
-  // 일일 스냅샷 자동 기록 — 시세 로드 후 1회 (하루 1번 내부 체크)
+  // Keep incomplete holdings out of the permanent daily total as well as the visible total.
   useEffect(() => {
-    if (Object.keys(macroData).length > 3) {
+    const totals = holdingTotals(stocks.investing || [], macroData);
+    if (totals.value !== null && totals.cost !== null) {
       recordDailySnapshot();
     }
-  }, [macroData, recordDailySnapshot]);
-
-  // 출석 데이터
-  const streak = useMemo(() => {
-    if (!hasHydrated) return 0;
-    try {
-      const raw = localStorage.getItem('solb_streak');
-      return raw ? JSON.parse(raw).count || 0 : 0;
-    } catch { /* ignore */ }
-    return 0;
-  }, [hasHydrated]);
+  }, [stocks.investing, macroData, recordDailySnapshot]);
 
   // 공유 시계로 두 시장을 같은 시점에 갱신. SSR에서는 시각을 추측하지 않는다.
   const marketCountdowns = currentTime ? [
@@ -71,73 +62,61 @@ export default function Dashboard() {
   ] : [];
 
   const data = useMemo(() => {
-    const investing = stocks.investing || [];
-    // 환율 미확인 고지는 <FxStaleNotice />가 스스로 판정한다(조건 3개를 한 곳에 두기 위해).
-    const usdKrw = resolveUsdKrwState(macroData).rate;
-
+    const registered = (stocks.investing || []).filter(isRegisteredHolding);
+    const isSample = registered.length === 0 && (stocks.investing || []).some(stock => stock.demo && stock.shares > 0);
+    const investing = isSample ? stocks.investing.filter(stock => stock.demo).map(stock => ({ ...stock, demo: false })).filter(isRegisteredHolding) : registered;
+    const fx = resolveUsdKrwState(macroData);
+    const usdKrw = fx.rate;
     let bestSymbol = '', bestDp = -Infinity;
     let worstSymbol = '', worstDp = Infinity;
-    let hasPortfolioStocks = false;
-
-    investing.forEach(s => {
-      if (s.avgCost > 0 && s.shares > 0) hasPortfolioStocks = true;
-      const q = macroData[s.symbol] as QuoteData | undefined;
-      if (!q?.c) return;
-      const dp = q.dp;
-      if (quoteDirection(dp) === 'up' && dp > bestDp) { bestDp = dp; bestSymbol = s.symbol; }
-      if (quoteDirection(dp) === 'down' && dp < worstDp) { worstDp = dp; worstSymbol = s.symbol; }
+    investing.forEach(stock => {
+      const quote = macroData[stock.symbol] as QuoteData | undefined;
+      if (!quote?.c) return;
+      if (quoteDirection(quote.dp) === 'up' && quote.dp > bestDp) { bestDp = quote.dp; bestSymbol = stock.symbol; }
+      if (quoteDirection(quote.dp) === 'down' && quote.dp < worstDp) { worstDp = quote.dp; worstSymbol = stock.symbol; }
     });
-
-    const summary = summarizePortfolioCurrency(
-      investing.map((stock) => {
-        const quote = macroData[stock.symbol] as QuoteData | undefined;
-        return {
-          symbol: stock.symbol,
-          currency: stock.currency,
-          avgCost: stock.avgCost,
-          shares: stock.shares,
-          currentPrice: quote?.c || 0,
-          dayChange: quote?.d || 0,
-          purchaseRate: stock.purchaseRate,
-        };
-      }),
-      usdKrw,
-    );
+    const krw = holdingTotals(investing, macroData, 'KRW');
+    const usd = holdingTotals(investing, macroData, 'USD');
 
     return {
-      totalPL: summary.totalPnlUsd,
-      totalPLWon: summary.totalPnlKrw,
-      totalPLPctUsd: summary.totalPnlPctUsd,
-      totalPLPctKrw: summary.totalPnlPctKrw,
-      totalValue: summary.totalValueUsd,
-      totalCost: summary.totalCostUsd,
-      totalValueWon: summary.totalValueKrw,
-      totalCostWon: summary.totalCostKrw,
-      todayChange: summary.todayChangeUsd,
-      todayChangeWon: summary.todayChangeKrw,
-      todayPctUsd: Math.max(-999, Math.min(999, summary.todayChangePctUsd)),
-      todayPctKrw: Math.max(-999, Math.min(999, summary.todayChangePctKrw)),
-      holdingCount: summary.holdingCount,
-      usdKrw,
+      totalPL: usd.pnl ?? 0,
+      totalPLWon: krw.pnl ?? 0,
+      totalPLPctUsd: usd.pnlPct ?? 0,
+      totalPLPctKrw: krw.pnlPct ?? 0,
+      totalValue: usd.value ?? 0,
+      totalCost: usd.cost ?? 0,
+      totalValueWon: krw.value ?? 0,
+      totalCostWon: krw.cost ?? 0,
+      holdingCount: krw.count,
+      krw, usd, usdKrw, isSample,
       bestSymbol, bestDp, worstSymbol, worstDp,
-      hasInvestment: hasPortfolioStocks,
-      quotesLoaded: summary.holdingCount > 0,
+      hasInvestment: investing.length > 0,
       sp: macroData['S&P 500'] as MacroEntry | undefined,
       nasdaq: macroData['NASDAQ'] as MacroEntry | undefined,
     };
   }, [stocks, macroData]);
 
+  const displayTotals = currency === 'KRW' ? data.krw : data.usd;
+  const valueAvailable = displayTotals.value !== null;
+  const pnlAvailable = displayTotals.pnl !== null;
+  const missingMessage = displayTotals.missingPrices ? '시세를 확인하지 못한 종목이 있어 전체 금액과 손익을 아직 계산할 수 없어요.'
+    : displayTotals.missingFx ? '현재 환율을 확인하지 못해 이 통화로 전체 금액을 합칠 수 없어요.'
+    : displayTotals.missingCosts ? '매수가가 비어 있어요. 입력하면 전체 손익을 계산할 수 있어요.'
+    : displayTotals.missingPurchaseRates ? '미국 주식을 살 때의 환율이 비어 있어 원화 손익을 계산할 수 없어요. 달러로 바꾸면 주가로만 본 손익을 볼 수 있어요.'
+    : '계산에 필요한 정보를 확인해 주세요.';
   const displayTotalPL = currency === 'KRW' ? data.totalPLWon : data.totalPL;
   const displayTotalPLPct = currency === 'KRW' ? data.totalPLPctKrw : data.totalPLPctUsd;
   const isGain = displayTotalPL >= 0;
-  const significantLoss = displayTotalPLPct < -5;
 
-  const greetData = useMemo(
-    () => hasHydrated
-      ? (data.hasInvestment ? getGreeting(!isGain) : { text: '내 종목을 등록하고 변화를 확인해보세요', emoji: '📋' })
-      : { text: '오늘도 주비와 함께해요', emoji: '✨' },
-    [data.hasInvestment, hasHydrated, isGain],
-  );
+  const investingStocks = stocks.investing ?? [];
+  const registeredStocks = [...investingStocks, ...(stocks.watching ?? [])];
+  const overviewNote = registeredStocks.length === 0
+    ? '종목을 추가하면 시세와 소식을 함께 볼 수 있어요.'
+    : registeredStocks.every(stock => stock.demo)
+      ? '샘플 종목으로 시세와 손익을 살펴보세요.'
+      : investingStocks.some(isRegisteredHolding)
+        ? '보유 종목의 시세와 손익을 함께 볼 수 있어요.'
+        : '관심 종목의 시세와 소식을 함께 볼 수 있어요.';
 
   const [dailyTerm] = useState(() => getDailyTerm());
 
@@ -148,7 +127,8 @@ export default function Dashboard() {
   // 주의: 과거 매매 이력 반영 안 함 (근사치), 실제 스냅샷 저장 전까지는 참고용
   const periodCompare = useMemo(() => {
     if (!data.hasInvestment || currentTime === 0) return null;
-    const investing = stocks.investing || [];
+    if (displayTotals.missingFx) return null;
+    const investing = (stocks.investing || []).filter(stock => data.isSample ? stock.demo : !stock.demo);
 
     const priceAtDaysAgo = (symbol: string, days: number): number | null => {
       const c = rawCandles[symbol];
@@ -169,7 +149,7 @@ export default function Dashboard() {
      * (예: 5종목 중 3종목만 캔들 보유 → '이번주 +66.7%').
      */
     const computePair = (days: number): { pastKrw: number; nowKrw: number; partial: boolean } | null => {
-      const eligible = investing.filter(s => s.avgCost > 0 && s.shares > 0);
+      const eligible = investing.filter(s => Number.isFinite(s.shares) && s.shares > 0);
       if (eligible.length === 0) return null;
 
       let pastKrw = 0;
@@ -178,11 +158,12 @@ export default function Dashboard() {
 
       for (const s of eligible) {
         const pastPrice = priceAtDaysAgo(s.symbol, days);
-        const nowPrice = (macroData[s.symbol] as QuoteData | undefined)?.c;
+        const nowPrice = holdingPrice(s.symbol, macroData);
         // 과거·현재 둘 다 있어야 한 종목으로 센다 — 한쪽만 있으면 비교 자체가 성립하지 않는다.
-        if (pastPrice == null || !nowPrice) continue;
-        pastKrw += convertStockAmount(s.symbol, pastPrice, data.usdKrw, s.currency).krw * s.shares;
-        nowKrw += convertStockAmount(s.symbol, nowPrice, data.usdKrw, s.currency).krw * s.shares;
+        if (pastPrice == null || !Number.isFinite(pastPrice) || pastPrice <= 0 || nowPrice === null) continue;
+        const unit = currency === 'KRW' ? 'krw' : 'usd';
+        pastKrw += convertStockAmount(s.symbol, pastPrice, data.usdKrw, s.currency)[unit] * s.shares;
+        nowKrw += convertStockAmount(s.symbol, nowPrice, data.usdKrw, s.currency)[unit] * s.shares;
         covered++;
       }
 
@@ -195,19 +176,21 @@ export default function Dashboard() {
       if (pair == null || pair.pastKrw === 0) return null;
       const deltaKrw = pair.nowKrw - pair.pastKrw;
       const pct = (deltaKrw / pair.pastKrw) * 100;
-      return { deltaKrw, pct, partial: pair.partial };
+      return { delta: deltaKrw, pct, partial: pair.partial };
     };
 
     return {
-      today: { deltaKrw: data.todayChangeWon, pct: data.todayPctKrw, partial: false },
+      today: displayTotals.dayChange !== null && displayTotals.dayPct !== null ? { delta: displayTotals.dayChange, pct: displayTotals.dayPct, partial: false } : null,
       week: fmt(computePair(7)),
       month: fmt(computePair(31)),
     };
   }, [
     data.hasInvestment,
-    data.todayChangeWon,
-    data.todayPctKrw,
-    data.totalValueWon,
+    data.isSample,
+    displayTotals.dayChange,
+    displayTotals.dayPct,
+    displayTotals.missingFx,
+    currency,
     data.usdKrw,
     currentTime,
     stocks.investing,
@@ -217,28 +200,28 @@ export default function Dashboard() {
 
   // 포트폴리오 건강 점수
   const health = useMemo(() => {
-    if (!data.hasInvestment) return null;
-    const investingStocks = (stocks.investing || []).map(s => {
-      const q = macroData[s.symbol] as QuoteData | undefined;
+    if (!data.hasInvestment || data.krw.value === null) return null;
+    const investingStocks = (stocks.investing || []).filter(stock => data.isSample ? stock.demo && stock.shares > 0 : isRegisteredHolding(stock)).map(s => {
       return {
         symbol: s.symbol,
         avgCost: s.avgCost,
         shares: s.shares,
         targetReturn: s.targetReturn,
-        currentPrice: q?.c || 0,
+        currentPrice: holdingPrice(s.symbol, macroData) ?? 0,
         value: convertStockAmount(
           s.symbol,
-          q?.c || 0,
+          holdingPrice(s.symbol, macroData) ?? 0,
           data.usdKrw,
           s.currency,
         ).krw * s.shares,
       };
     });
-    return calcHealthScore(investingStocks);
-  }, [data.hasInvestment, data.usdKrw, stocks.investing, macroData]);
+    const result = calcHealthScore(investingStocks);
+    return result.available ? result : null;
+  }, [data.hasInvestment, data.isSample, data.usdKrw, data.krw.value, stocks.investing, macroData]);
 
   return (
-    <div className={`dashboard-summary card-enter overflow-hidden${detailsOpen ? ' dashboard-details-open' : ''}`} style={{ borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border-light)', marginBottom: 20 }}>
+    <div className={`dashboard-summary ${styles.summary}${detailsOpen ? ' dashboard-details-open' : ''}`}>
       <h1 className="sr-only">내 투자 현황</h1>
       {/* 네트워크 에러 배너 */}
       {networkError && (
@@ -257,131 +240,35 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Hero Visual Section */}
-      <div className="dashboard-summary-header" style={{
-        position: 'relative',
-        padding: '32px 24px 24px',
-        background: 'var(--dashboard-hero-bg)',
-        overflow: 'hidden'
-      }}>
-
-        {/* Hero Content */}
-        <div className="flex items-start justify-between">
-          <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
-            <div className="dashboard-hero-toolbar">
-              <div className="dashboard-hero-badges">
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', padding: '4px 0' }}>
-                  {!data.hasInvestment ? '내 주식 비서' : !data.quotesLoaded ? '시세 확인 중' : displayTotalPL === 0 ? '평가손익 보합' : isGain ? '평가손익 플러스' : '평가손익 마이너스'}
-                </span>
-                {streak > 0 && !significantLoss && (
-                  <span aria-label={`연속 출석 ${streak}일차`} style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-warning, #FF9500)', background: 'var(--color-warning-bg, rgba(255,149,0,0.1))', padding: '4px 10px', borderRadius: 20 }}>
-                    🔥 {streak}일째
-                  </span>
-                )}
-                {hasTypeSet && (
-                  <button
-                    onClick={() => setCurrentSection('insights')}
-                    aria-label={`내 투자 유형: ${typeMeta.nameKr} · AI 인사이트로 이동`}
-                    className="cursor-pointer"
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 4,
-                      fontSize: 11, fontWeight: 700,
-                      color: typeMeta.accentColor,
-                      background: 'var(--surface, rgba(255,255,255,0.85))',
-                      padding: '3px 10px', borderRadius: 20,
-                      border: `1px solid ${typeMeta.accentColor}33`,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                    }}
-                  >
-                    <InvestorTypeIcon type={typeMeta.id} size={14} color={typeMeta.accentColor} />
-                    <span>{typeMeta.nameKr}</span>
-                  </button>
-                )}
-              </div>
-              {/* Currency Switch — 배지와 같은 행 오른쪽 */}
-              <div role="group" aria-label="통화 단위 전환" style={{ display: 'flex', background: 'var(--surface, white)', borderRadius: 8, padding: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', flexShrink: 0 }}>
-                <button
-                  onClick={() => setCurrency('KRW')}
-                  aria-label="원화로 보기"
-                  aria-pressed={currency === 'KRW'}
-                  style={{ padding: '6px 12px', minHeight: 32, fontSize: 11, fontWeight: currency === 'KRW' ? 700 : 400, color: currency === 'KRW' ? 'var(--text-inverse, white)' : 'var(--text-secondary, #8B95A1)', background: currency === 'KRW' ? 'var(--text-primary, #191F28)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                >₩</button>
-                <button
-                  onClick={() => setCurrency('USD')}
-                  aria-label="달러로 보기"
-                  aria-pressed={currency === 'USD'}
-                  style={{ padding: '6px 12px', minHeight: 32, fontSize: 11, fontWeight: currency === 'USD' ? 700 : 400, color: currency === 'USD' ? 'var(--text-inverse, white)' : 'var(--text-secondary, #8B95A1)', background: currency === 'USD' ? 'var(--text-primary, #191F28)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-                >$</button>
-              </div>
-            </div>
-            <h2 className="dashboard-greeting reading-title" style={{ fontSize: 'clamp(16px, 4.5vw, 22px)', fontWeight: 800, color: 'var(--text-primary, #191F28)', lineHeight: 1.4, margin: 0, wordBreak: 'keep-all' }}>
-              {greetData.text}
-            </h2>
-            <p className="dashboard-greeting" style={{ fontSize: 13, color: 'var(--text-secondary, #4E5968)', marginTop: 8, wordBreak: 'keep-all' }}>
-              주비도 함께 지켜보고 있어요 🐘
-            </p>
-
-            {/* 국장과 미장 상태를 함께 표시. 모바일에서는 배지 단위로 줄바꿈. */}
-            <div className="dashboard-market-status" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {marketCountdowns.map((marketCountdown, index) => (
-            <div
-              key={index}
-              aria-label={marketCountdown.text}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                marginTop: 10,
-                padding: '5px 12px', borderRadius: 20,
-                fontSize: 11, fontWeight: 600,
-                background: marketCountdown.accent === 'live'
-                  ? 'var(--color-success-bg, rgba(0,198,190,0.10))'
-                  : marketCountdown.accent === 'soon'
-                    ? 'var(--color-warning-bg, rgba(255,149,0,0.08))'
-                    : 'var(--surface, rgba(255,255,255,0.6))',
-                color: marketCountdown.accent === 'live'
-                  ? 'var(--color-success, #00C6BE)'
-                  : marketCountdown.accent === 'soon'
-                    ? 'var(--color-warning, #FF9500)'
-                    : 'var(--text-secondary, #4E5968)',
-                border: marketCountdown.accent === 'live'
-                  ? '1px solid rgba(0,198,190,0.25)'
-                  : marketCountdown.accent === 'soon'
-                    ? '1px solid rgba(255,149,0,0.2)'
-                    : '1px solid var(--border-light, #F2F4F6)',
-              }}
-            >
-              <span>{marketCountdown.emoji}</span>
-              <span>{marketCountdown.text}</span>
-              {marketCountdown.accent === 'live' && (
-                <span
-                  style={{
-                    display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-                    background: 'var(--color-success, #00C6BE)',
-                    animation: 'pulse-dot 1.5s ease-in-out infinite',
-                    marginLeft: 2,
-                  }}
-                />
-              )}
-            </div>
-            ))}
-            </div>
-            <style>{`
-              @keyframes pulse-dot {
-                0%, 100% { opacity: 1; transform: scale(1); }
-                50%      { opacity: 0.4; transform: scale(1.3); }
-              }
-            `}</style>
-          </div>
+      <div className={`dashboard-summary-header ${styles.hero}`}>
+        <div className={styles.toolbar}>
+          <h2 className={styles.title}>내 투자</h2>
+          <PortfolioTools />
         </div>
+        {!data.hasInvestment && <p className={styles.greeting}>{overviewNote}</p>}
+        {data.hasInvestment && <div className={styles.valuation}>
+          <div className={styles.asset}>
+            <span className={styles.assetLabel}>{data.isSample ? '샘플 주식 평가금액' : '내 주식 평가금액'}</span>
+            {valueAvailable ? <strong className={styles.assetValue}>{currency === 'KRW'
+              ? formatKrw(Math.round(data.totalValueWon), { suffix: '원', prefix: false })
+              : formatUsd(data.totalValue, 0)}</strong>
+              : <p role="status" style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{missingMessage}</p>}
+          </div>
+          <div className={`${appUI.segments} ${styles.currency}`} role="group" aria-label="통화 단위 전환">
+            <button type="button" className={appUI.segment} onClick={() => setCurrency('KRW')} aria-label="원화로 보기" aria-pressed={currency === 'KRW'}>₩</button>
+            <button type="button" className={appUI.segment} onClick={() => setCurrency('USD')} aria-label="달러로 보기" aria-pressed={currency === 'USD'}>$</button>
+          </div>
+        </div>}
       </div>
 
       {/* Main Stats Section — [S2] 수치 가독성 및 정돈 */}
-      <div className="dashboard-summary-body" style={{ padding: '24px' }}>
+      <div className={`dashboard-summary-body ${styles.body}`}>
         {data.hasInvestment ? (
           <div className="dashboard-stats grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(200px,auto)] gap-8">
             {/* P&L Display */}
             <div className="profit-block" style={{ paddingRight: 24, borderRight: '1px solid var(--border-light, #F2F4F6)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>전체 수익 현황</span>
+                <span style={{ fontSize: 13, color: 'var(--text-tertiary, #B0B8C1)', fontWeight: 500 }}>평가손익</span>
                 <button
                   data-tour="customize-home-edit"
                   onClick={() => window.dispatchEvent(new CustomEvent('solb-open-home-edit'))}
@@ -392,11 +279,8 @@ export default function Dashboard() {
                   <span className="hidden md:inline">편집</span>
                 </button>
               </div>
-              {!data.quotesLoaded ? (
-                <div>
-                  <div className="skeleton-shimmer" style={{ width: 180, height: 36, borderRadius: 8, marginBottom: 8 }} />
-                  <div className="skeleton-shimmer" style={{ width: 100, height: 20, borderRadius: 6 }} />
-                </div>
+              {!pnlAvailable ? (
+                <p style={{ fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)', margin: '8px 0' }}>{valueAvailable ? missingMessage : '전체 손익도 필요한 정보를 확인한 뒤 표시해요.'}</p>
               ) : (
               <div className="profit-total">
                 <span className="tabular-nums" style={{ fontSize: 'clamp(18px, 6cqi, 30px)', fontWeight: 800, color: isGain ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
@@ -410,7 +294,7 @@ export default function Dashboard() {
                 </span>
               </div>
               )}
-              {data.quotesLoaded && periodCompare && (
+              {valueAvailable && periodCompare && (
                 <div
                   className="profit-periods mt-4"
                   style={{ rowGap: 6 }}
@@ -418,8 +302,8 @@ export default function Dashboard() {
                 >
                   {([
                     { key: 'today', label: '오늘', data: periodCompare.today },
-                    { key: 'week',  label: '이번주', data: periodCompare.week },
-                    { key: 'month', label: '이번달', data: periodCompare.month },
+                    { key: 'week',  label: '최근 7일', data: periodCompare.week },
+                    { key: 'month', label: '최근 31일', data: periodCompare.month },
                   ] as const).map(({ key, label, data: d }) => {
                     const isPrimary = key === 'today';
                     // 부모 subgrid가 가장 긴 수익률의 실제 너비를 전체/기간 행에 공유한다.
@@ -439,8 +323,7 @@ export default function Dashboard() {
                       );
                     }
                     const isUp = d.pct >= 0;
-                    const krwDelta = d.deltaKrw;
-                    const dollarDelta = data.usdKrw > 0 ? krwDelta / data.usdKrw : 0;
+                    const delta = d.delta;
                     const accentColor = isUp ? 'var(--color-gain, #EF4452)' : 'var(--color-loss, #3182F6)';
                     return (
                       <div key={key} data-period={key} style={{ ...rowStyle, borderLeft: `2px solid ${isPrimary ? accentColor : 'transparent'}` }}>
@@ -466,8 +349,8 @@ export default function Dashboard() {
                         }}>
                           <span style={{ display: 'inline-block', width: '1em', textAlign: 'center' }}>{isUp ? '▲' : '▼'}</span>
                           {currency === 'KRW'
-                            ? formatKrw(Math.round(Math.abs(krwDelta)))
-                            : `$${Math.abs(dollarDelta).toFixed(dollarDelta < 100 ? 2 : 0)}`}
+                            ? formatKrw(Math.round(Math.abs(delta)))
+                            : `$${Math.abs(delta).toFixed(Math.abs(delta) < 100 ? 2 : 0)}`}
                         </span>
                         {/* 3열 — 퍼센트 (right, 고정폭) */}
                         <span className="profit-percent tabular-nums" style={{
@@ -483,16 +366,8 @@ export default function Dashboard() {
 
             {/* Sub Stats List */}
             <div className="dashboard-asset-details flex flex-col justify-center gap-3">
-              {!data.quotesLoaded ? (
-                [0,1,2].map(i => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="skeleton-shimmer" style={{ width: 48, height: 14, borderRadius: 4 }} />
-                    <div className="skeleton-shimmer" style={{ width: 80, height: 14, borderRadius: 4 }} />
-                  </div>
-                ))
-              ) : [
-                { label: '총 평가', value: currency === 'KRW' ? formatKrw(Math.round(data.totalValueWon), { suffix: '원', prefix: false }) : formatUsd(data.totalValue, 0) },
-                { label: '총 투자', value: currency === 'KRW' ? formatKrw(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : formatUsd(data.totalCost, 0) },
+              {[
+                { label: '투자 원금', value: displayTotals.cost === null ? '매수가·환율 확인 필요' : currency === 'KRW' ? formatKrw(Math.round(data.totalCostWon), { suffix: '원', prefix: false }) : formatUsd(data.totalCost, 0) },
                 { label: '보유 종목', value: `${data.holdingCount}개` },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between" style={{ fontSize: 13, gap: 12 }}>
@@ -508,13 +383,28 @@ export default function Dashboard() {
           </div>
         )}
         {data.hasInvestment && <>
-          <FxStaleNotice style={{ marginTop: 12 }} />
+          <details style={{ marginTop: 12, fontSize: 13, lineHeight: 1.8, color: 'var(--text-secondary)' }}>
+            <summary className={readingUI.disclosure}>금액과 손익은 어떻게 계산하나요?</summary>
+            <p>평가금액은 입력한 수량에 확인된 주가를 곱한 금액이에요. 손익은 지금 팔았다고 가정한 이익이나 손해예요. 입력한 매수가와 비교하며, 원화로 볼 때는 미국 주식의 매수 환율도 반영해요. 수수료와 세금, 계좌에 남은 현금은 포함하지 않아요.</p>
+            <p>기간별 변화는 지금 가진 수량을 계속 보유했다고 가정해 비교해요. 최근 7일·31일은 해당 날짜 이전의 마지막 종가와 비교해요. 과거에 사고판 기록과 환율 변동은 반영하지 않아 실제 그 기간의 수익과 다를 수 있어요.</p>
+          </details>
+          {currency === 'USD' && (stocks.investing || []).some(stock => isRegisteredHolding(stock) && getStockCurrency(stock.symbol, stock.currency) === 'USD') && <p style={{ fontSize: 12, lineHeight: 1.7, color: 'var(--text-secondary)', marginTop: 12 }}>미국 주식의 달러 손익에는 환율 변동을 반영하지 않았어요.</p>}
           <button
             className="dashboard-detail-toggle md:hidden"
             aria-expanded={detailsOpen}
             onClick={() => setDetailsOpen(open => !open)}
           >{detailsOpen ? '자산·기간별 수익 접기' : '자산·기간별 수익 자세히'} <span aria-hidden="true">{detailsOpen ? '⌃' : '⌄'}</span></button>
         </>}
+
+        <div className={styles.status}>
+          {marketCountdowns.map((market, index) => <span key={index} className={styles.market}>
+            {market.accent === 'live' && <span className={styles.live} aria-hidden="true" />}{market.text}
+          </span>)}
+          {investorTypeSetAt && <button type="button" className={`${appUI.textButton} ${styles.investorType}`}
+            aria-label={`내 투자 유형: ${typeMeta.nameKr} · 주비 리포트로 이동`}
+            onClick={() => setCurrentSection('insights')}>내 투자 유형 · {typeMeta.nameKr} →</button>}
+        </div>
+        <UsMarketClockNotice now={currentTime} home />
 
         {/* 최근 알림 미리보기 — Status ≠ Alert이지만 진입점만 추가 (정책 §8) */}
         {topAlerts.length > 0 && (() => {

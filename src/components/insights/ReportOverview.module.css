@@ -1,14 +1,21 @@
 .report { max-width:880px;margin:0 auto;color:var(--text-primary); }
 .header { display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 24px; }
-.header h1 { font-size:26px;font-weight:800;letter-spacing:-.04em; }
+.header h1 { font-size:var(--type-page-size);font-weight:650;letter-spacing:-.035em;line-height:1.4; }
 .eyebrow { font-size:13px;color:var(--text-body);margin-bottom:6px; }
-.header button { font-size:12px;font-weight:650;color:var(--text-primary);min-height:44px;cursor:pointer;flex-shrink:0; }
+.header button { padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--control-radius);background:var(--surface);font:inherit;font-size:14px;font-weight:550;color:var(--text-body);min-height:48px;cursor:pointer;flex-shrink:0; }
+.header button:hover { background:var(--bg-subtle); }
+.header button:focus-visible,.calendar:focus-visible { outline:2px solid var(--text-primary);outline-offset:3px; }
 .check { padding:20px 0 12px; }
 .check h2 { font-size:18px;font-weight:750;margin:0 0 14px; }
 .check>p { font-size:14px;color:var(--text-body);line-height:1.8; }
-.calendar { width:100%;background:var(--surface);color:var(--text-primary);border:1px solid var(--border-light);border-radius:16px;margin:12px 0; }
+.calendar { width:100%;background:var(--surface-warm);color:var(--text-primary);border:1px solid transparent;border-radius:12px;margin:12px 0; }
 .calendar { display:flex;justify-content:space-between;align-items:center;gap:12px;text-align:left;padding:18px;cursor:pointer;list-style:none; }
 .calendar strong { display:block;font-size:15px;font-weight:700; }
 .calendar small { display:block;font-size:13px;color:var(--text-body);line-height:1.7;margin-top:5px; }
 .calendar svg { flex-shrink:0; }
-@media(max-width:360px) { .header h1 {font-size:23px;} .header button {font-size:11px;} .calendar {padding:16px;} }
+@media(max-width:480px) { .header { align-items:flex-start;flex-wrap:wrap; } .calendar {padding:16px;} }
+
+.emptyCheck p { font-size:14px;color:var(--text-body);line-height:1.8;margin:0 0 8px; }
+.emptyCheck button { display:inline-flex;align-items:center;min-height:48px;padding:8px 0;border:0;background:transparent;color:var(--text-primary);font:inherit;font-size:14px;font-weight:600;cursor:pointer; }
+.emptyCheck button:hover { text-decoration:underline;text-underline-offset:4px; }
+.emptyCheck button:focus-visible { outline:2px solid var(--text-primary);outline-offset:3px; }

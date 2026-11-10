@@ -1,0 +1,51 @@
+.root { color:var(--text-primary);padding:24px 0;min-width:0;scroll-margin-top:90px; }
+.header { display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px; }
+.header h2 { font-size:22px;line-height:1.45;font-weight:750;letter-spacing:-.035em;word-break:keep-all; }
+.eyebrow { color:var(--text-body);font-size:12px;margin:0 0 6px;line-height:1.6; }
+.iconButton { min-width:44px;min-height:44px;display:grid;place-items:center;color:var(--text-body);cursor:pointer;flex-shrink:0; }
+.filters { display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px; }
+.filters button { padding:8px 12px;min-height:44px;border-radius:8px;font-size:13px;color:var(--text-body);cursor:pointer; }
+.filters button[aria-pressed="true"] { background:var(--pill-active-bg);color:var(--pill-active-fg);font-weight:700; }
+.event { border-top:1px solid var(--border-light); }
+.event>summary { list-style:none;padding:22px 0;cursor:pointer; }
+.event>summary::-webkit-details-marker { display:none; }
+.event h3,.preview strong { display:block;font-size:20px;font-weight:750;line-height:1.55;letter-spacing:-.025em;margin:7px 0;word-break:keep-all;overflow-wrap:anywhere; }
+.event:not([open])>summary h3,.preview strong { display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden; }
+.event summary p { font-size:14px;line-height:1.8;color:var(--text-body);overflow-wrap:anywhere; }
+.meta { display:block;font-size:12px;line-height:1.7;color:var(--text-body);font-weight:400; }
+.link { display:flex;gap:4px;align-items:center;font-size:13px;color:var(--text-body);margin-top:12px; }
+.event[open]>summary .link svg { transform:rotate(90deg); }
+.body { padding:0 0 24px;max-width:100%; }
+.body section { margin:18px 0; }
+.body h4 { font-size:15px;font-weight:700;line-height:1.6;margin-bottom:8px; }
+.body p,.path li { font-size:14px;line-height:1.9;color:var(--text-body);overflow-wrap:anywhere; }
+.path { padding-left:22px;list-style:decimal; }
+.path li { padding:4px 0; }
+.history { border-left:2px solid var(--border-light);padding-left:16px; }
+.history ol { list-style:none;padding:0; }
+.history li { padding:8px 0; }
+.history time { display:block;font-size:12px;color:var(--text-body); }
+.history strong { display:block;margin-top:4px;font-size:14px;line-height:1.7;overflow-wrap:anywhere; }
+.body .limits { font-size:12px;line-height:1.8;border-top:1px solid var(--border-light);padding-top:14px; }
+.sources ul { padding:0;list-style:none; }
+.sources li { margin:12px 0; }
+.sources a { display:inline-flex;align-items:baseline;gap:4px;color:var(--text-primary);text-decoration:underline;text-underline-offset:3px;font-size:13px;line-height:1.8;overflow-wrap:anywhere; }
+.sources svg { flex-shrink:0; }
+.sources li>span,.sources>p { display:block;font-size:12px;line-height:1.7;color:var(--text-body); }
+.stocks { display:flex;flex-wrap:wrap;gap:8px;margin-top:10px; }
+.stocks button { display:flex;align-items:center;gap:4px;min-height:44px;padding:8px 12px;border:1px solid var(--border-light);border-radius:8px;font-size:13px;cursor:pointer; }
+.message { font-size:13px;line-height:1.9;color:var(--text-body);padding:10px 0; }
+.message button { min-height:44px;text-decoration:underline;cursor:pointer; }
+.more { display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;padding:12px 0;font-size:13px;color:var(--text-primary);cursor:pointer;text-align:left; }
+.more svg { flex-shrink:0; }
+.coverage { border-top:1px solid var(--border-light);margin-top:12px;color:var(--text-body);font-size:12px;line-height:1.9; }
+.coverage p { margin:8px 0; }
+.coverage ul { list-style:disc;padding-left:18px; }
+.preview { width:100%;text-align:left;display:block;cursor:pointer; }
+.previewSummary { display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.8;color:var(--text-body); }
+.compact { margin:12px 0 20px;padding:20px 0;border-block:1px solid var(--border-light); }
+.compact .header h2 { font-size:18px; }
+.compact .header { margin-bottom:12px; }
+.compact .preview strong { font-size:19px; }
+.root button:focus-visible,.root summary:focus-visible,.root a:focus-visible { outline:2px solid var(--text-tertiary);outline-offset:3px;border-radius:4px; }
+@media(max-width:360px) { .header h2 { font-size:20px; }.event h3 { font-size:18px; }.filters button { padding:8px 10px; } }

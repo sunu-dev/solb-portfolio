@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthClient } from '@/lib/supabaseServer';
+import { getAuthClient, getServiceClient } from '@/lib/supabaseServer';
+import { withDeadline } from '@/lib/withDeadline';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
+
+const METERING_DEADLINE_MS = 1000;
+// Admission is reserved before asynchronous I/O. During a DB outage this remains
+// an instance-local limit, not a replacement for the shared database ledger.
+const admissions = new Map<string, number[]>();
+function reserveAdmission(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const recent = (admissions.get(key) ?? []).filter(at => at > now - windowMs);
+  if (recent.length >= limit) return false;
+  if (!admissions.has(key) && admissions.size >= 2000) {
+    for (const [id, times] of admissions) if (times.at(-1)! <= now - 3600000) admissions.delete(id);
+    if (admissions.size >= 2000) return false;
+  }
+  admissions.set(key, [...recent, now]);
+  return true;
+}
 
 
 // ─── Rate limit 정책 ────────────────────────────────────────────────────────
@@ -43,15 +61,43 @@ export function getClientIp(req: NextRequest): string {
 /**
  * Supabase auth 토큰으로 유저 식별
  */
+// Reuse only within this Request object. Never share an identity across requests.
+export type AuthOutcome =
+  | { status: 'authenticated'; userId: string }
+  | { status: 'unauthorized' }
+  | { status: 'unavailable' };
+const requestAuth = new WeakMap<NextRequest, Promise<AuthOutcome>>();
+export function getAuthOutcome(req: NextRequest): Promise<AuthOutcome> {
+  const existing = requestAuth.get(req);
+  if (existing) return existing;
+  const pending = authenticate(req);
+  requestAuth.set(req, pending);
+  return pending;
+}
+/** Compatibility view for callers that only need an ID. */
 export async function getUserIdFromAuth(req: NextRequest): Promise<string | null> {
-  const supabase = getAuthClient();
-  if (!supabase) return null;
+  const outcome = await getAuthOutcome(req);
+  return outcome.status === 'authenticated' ? outcome.userId : null;
+}
+function authFailure(error: unknown): AuthOutcome {
+  const value = error && typeof error === 'object' ? error as { status?: number; code?: string; name?: string } : {};
+  const invalidToken = value.status === 401 || value.status === 403
+    || value.name === 'AuthSessionMissingError'
+    || ['bad_jwt', 'session_not_found', 'session_expired', 'user_not_found'].includes(value.code ?? '');
+  return { status: invalidToken ? 'unauthorized' : 'unavailable' };
+}
+async function authenticate(req: NextRequest): Promise<AuthOutcome> {
   const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
+  if (!authHeader?.startsWith('Bearer ') || !authHeader.slice(7).trim()) return { status: 'unauthorized' };
   try {
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-    return user?.id || null;
-  } catch { return null; }
+    return await withAbortDeadline<AuthOutcome>(async signal => {
+      const supabase = getAuthClient(signal);
+      if (!supabase) return { status: 'unavailable' };
+      const { data: { user }, error } = await supabase.auth.getUser(authHeader.slice(7));
+      if (error) return authFailure(error);
+      return user?.id ? { status: 'authenticated', userId: user.id } : { status: 'unauthorized' };
+    }, 5000, req.signal);
+  } catch (error) { return authFailure(error); }
 }
 
 /**
@@ -72,29 +118,36 @@ export async function checkRateLimit(
   const nowSec = Math.floor(Date.now() / 1000);
   const resetAt = nowSec + policy.windowSec;
 
-  const supabase = getAuthClient();
+  const localKey = `${endpoint}:${userKey}:${policy.windowSec}:${limit}`;
+  if (!reserveAdmission(localKey, limit, policy.windowSec * 1000)) {
+    return { allowed: false, remaining: 0, resetAt, limit };
+  }
+  const localRemaining = Math.max(0, limit - admissions.get(localKey)!.length);
+  const supabase = getServiceClient();
   if (!supabase) {
-    // Supabase 없으면 fail-open (rate limit 없이 통과)
-    return { allowed: true, remaining: limit, resetAt, limit };
+    return { allowed: true, remaining: localRemaining, resetAt, limit };
   }
 
   try {
     const sinceIso = new Date(Date.now() - policy.windowSec * 1000).toISOString();
-    const { count } = await supabase
+    const { count, error } = await withDeadline(Promise.resolve(supabase
       .from('api_calls')
       .select('*', { count: 'exact', head: true })
       .eq('user_key', userKey)
       .eq('endpoint', endpoint)
-      .gte('created_at', sinceIso);
+      .gte('created_at', sinceIso)
+      .abortSignal(AbortSignal.timeout(METERING_DEADLINE_MS))), METERING_DEADLINE_MS);
+    if (error) throw error;
 
     const used = count || 0;
-    const remaining = Math.max(0, limit - used);
+    const remaining = Math.min(localRemaining, Math.max(0, limit - used));
     const allowed = used < limit;
 
     return { allowed, remaining, resetAt, limit };
   } catch {
-    // 조회 실패 시 fail-open
-    return { allowed: true, remaining: limit, resetAt, limit };
+    // Retain availability for public data with the admission limit above.
+    // Authentication and paid AI daily quotas are checked separately.
+    return { allowed: true, remaining: localRemaining, resetAt, limit };
   }
 }
 
@@ -110,10 +163,10 @@ export async function recordApiCall(params: {
   latencyMs: number;
   errorCode?: string;
 }) {
-  const supabase = getAuthClient();
+  const supabase = getServiceClient();
   if (!supabase) return;
   try {
-    await supabase.from('api_calls').insert({
+    await withDeadline(Promise.resolve(supabase.from('api_calls').insert({
       endpoint: params.endpoint,
       user_key: params.userKey,
       user_id: params.userId || null,
@@ -121,7 +174,7 @@ export async function recordApiCall(params: {
       status: params.status,
       latency_ms: params.latencyMs,
       error_code: params.errorCode || null,
-    });
+    }).abortSignal(AbortSignal.timeout(METERING_DEADLINE_MS))), METERING_DEADLINE_MS);
   } catch { /* silent */ }
 }
 

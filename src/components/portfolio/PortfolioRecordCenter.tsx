@@ -1,5 +1,8 @@
 'use client';
 
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+import PortfolioPrivacyNotice from '../common/PortfolioPrivacyNotice';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { formatKrw, formatUsd } from '@/utils/koreanNumber';
@@ -207,7 +210,7 @@ function HistoryDialog({ onClose }: { onClose: () => void }) {
                 아직 변경 기록이 없어요
               </div>
               <div style={{ marginTop: 6, color: 'var(--text-secondary, #8B95A1)', fontSize: 12, lineHeight: 1.6 }}>
-                CSV나 스크린샷 변경을 승인하면<br />반영 전 상태가 자동으로 보관돼요.
+                가져온 기록의 변경을 승인하면<br />반영 전 상태가 자동으로 보관돼요.
               </div>
             </div>
           ) : (
@@ -356,6 +359,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
   const closePreview = useCallback(() => setShowPreview(false), []);
 
   const openCsv = useCallback(() => {
+    if (!requirePortfolioWriteAccess()) return;
     if (cloudLoadStatus === 'loading' || cloudLoadStatus === 'error' || syncStatus === 'conflict' || syncStatus === 'storage-error') {
       setExpanded(true);
       setGuardNotice(
@@ -613,6 +617,7 @@ export default function PortfolioRecordCenter({ ocrEnabled, onOpenOcr }: Props) 
           hidden={!expanded}
           style={{ padding: '13px 13px 12px', borderTop: '1px solid var(--border-light, #F2F4F6)' }}
         >
+          <PortfolioPrivacyNotice />
           {latestImport ? (
             <div style={{ color: 'var(--text-secondary, #5B6674)', fontSize: 11, lineHeight: 1.55 }}>
               최근 {latestImport.source} · 신규 {latestImport.summary.added} · 변경 {latestImport.summary.updated}

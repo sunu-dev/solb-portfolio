@@ -1,0 +1,20 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+const m = vi.hoisted(() => ({ feed: { events: [{ key: 'official', kind: 'cpi', title: '공식 일정', at: '2026-11-10T13:30:00Z' }], warnings: [] as string[], checkedAt: '2026-11-06' }, earnings: vi.fn() }));
+vi.mock('@/lib/apiRoute', () => ({ defineRoute: ({ handler }: { handler: (ctx: unknown) => Promise<Response> }) => (req: NextRequest) => handler({ req }), POLICIES: { general: {} } }));
+vi.mock('@/lib/economicFeed', () => ({ getEconomicFeed: () => Promise.resolve(m.feed) }));
+vi.mock('@/lib/earningsEvents', () => ({ getEarningsEvents: m.earnings }));
+import { GET } from '@/app/api/economic-events/route';
+afterEach(() => vi.useRealTimers());
+it('one stalled earnings calendar cannot discard available events or contaminate another request', async () => {
+  vi.useFakeTimers();
+  m.earnings.mockImplementation((symbol: string) => symbol === 'AAPL' ? Promise.resolve([{ key: 'earnings:AAPL' }]) : new Promise(() => {}));
+  const pending = GET(new NextRequest('http://localhost/api/economic-events?symbols=AAPL,MSFT'));
+  await vi.advanceTimersByTimeAsync(5500);
+  const response = await pending; const feed = await response.json();
+  expect(response.status).toBe(200); expect(feed.events.map((e: { key: string }) => e.key)).toEqual(['official', 'earnings:AAPL']);
+  expect(feed.warnings).toContain('MSFT 실적 일정을 확인하지 못했어요.');
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(m.feed.events).toHaveLength(1); expect(m.feed.warnings).toEqual([]);
+  expect((await (await GET(new NextRequest('http://localhost/api/economic-events'))).json()).events).toHaveLength(1);
+});

@@ -1,206 +1,60 @@
 'use client';
 
-/**
- * BrokerSummaryCard — 증권사별 보유 종목 분포 요약 (Phase B-1)
- *
- * docs/BROKER_FEATURE.md 점진 노출 원칙:
- * - 실제 등록된 broker 수 < 2 → 컴포넌트 자체 미렌더 (UI 변화 0)
- * - 2 이상 → 카드 자동 노출
- *
- * 표시 내용: 증권사별 종목 수 + 총 평가액 + 손익 비율 (한국 증권사 15개)
- */
-
 import { useMemo } from 'react';
-import { resolveUsdKrw } from '@/utils/koreanNumber';
+import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import {
-  BROKER_LABELS, BROKER_ORDER, BROKER_DISCOVERY_THRESHOLD,
-  type Broker,
-} from '@/config/constants';
-import {
-  convertStockAmount,
-  convertStockCostAmount,
-} from '@/utils/stockCurrency';
-
-interface BrokerStat {
-  broker: Broker | 'unspecified';
-  label: string;
-  count: number;
-  totalValueKrw: number;
-  totalCostKrw: number;
-  pnlPct: number;
-}
+import { BROKER_LABELS, BROKER_ORDER, BROKER_DISCOVERY_THRESHOLD, type Broker } from '@/config/constants';
+import { holdingTotals, isRegisteredHolding } from '@/utils/mergedHoldings';
+import { formatKrw } from '@/utils/koreanNumber';
+import readingUI from '../ui/ReadingUI.module.css';
+import styles from './HoldingsOverview.module.css';
 
 interface Props {
-  /** 활성 필터 (null = 전체) — 부모가 관리 */
   active?: Broker | 'unspecified' | null;
-  /** 칩 클릭 핸들러 — 같은 칩 재클릭 시 null 전달 (해제) */
   onSelect?: (broker: Broker | 'unspecified' | null) => void;
 }
 
+const won = (value: number) => formatKrw(value, { prefix: false, suffix: '원', short: false });
+const direction = (value: number | null) => value === null || value === 0 ? styles.neutral : value > 0 ? styles.gain : styles.loss;
+
+function SummaryAmount({ total }: { total: ReturnType<typeof holdingTotals> }) {
+  const reason = total.missingPrices ? '시세 확인 필요' : total.missingFx ? '현재 환율 확인 필요'
+    : total.missingCosts ? '매수가 입력 필요' : total.missingPurchaseRates ? '매수 환율 입력 필요' : '계산 정보 확인 필요';
+  return <span className={styles.amount}>
+    <strong>{total.value === null ? reason : won(total.value)}</strong>
+    <span className={direction(total.pnlPct)}>{total.pnlPct === null ? `손익 · ${reason}` : `손익 ${total.pnlPct > 0 ? '+' : ''}${total.pnlPct.toFixed(1)}%`}</span>
+  </span>;
+}
+
 export default function BrokerSummaryCard({ active = null, onSelect }: Props = {}) {
-  const { stocks, macroData } = usePortfolioStore();
+  const { stocks, macroData } = usePortfolioStore(useShallow(state => ({ stocks: state.stocks, macroData: state.macroData })));
+  const { stats, total } = useMemo(() => {
+    const holdings = (stocks.investing || []).filter(isRegisteredHolding);
+    const keys = [...new Set(holdings.map(stock => stock.broker || 'unspecified'))];
+    const stats = keys.filter(key => key !== 'unspecified').length < BROKER_DISCOVERY_THRESHOLD ? [] : keys
+      .sort((a, b) => a === 'unspecified' ? 1 : b === 'unspecified' ? -1 : BROKER_ORDER.indexOf(a as Broker) - BROKER_ORDER.indexOf(b as Broker))
+      .map(broker => ({ broker: broker as Broker | 'unspecified', label: broker === 'unspecified' ? '증권사 미지정' : BROKER_LABELS[broker as Broker],
+        total: holdingTotals(holdings.filter(stock => (stock.broker || 'unspecified') === broker), macroData) }));
+    return { stats, total: holdingTotals(holdings, macroData) };
+  }, [stocks.investing, macroData]);
+  if (!stats.length) return null;
 
-  const stats = useMemo<BrokerStat[]>(() => {
-    const investing = stocks.investing || [];
-    const usdKrw = resolveUsdKrw(macroData);
-
-    // broker별 집계
-    const acc: Record<string, BrokerStat> = {};
-    for (const s of investing) {
-      if (!s.shares || s.shares <= 0) continue;
-      const quote = macroData[s.symbol] as { c?: number } | undefined;
-      const currentPrice = quote?.c || s.avgCost;
-      const value = convertStockAmount(
-        s.symbol,
-        currentPrice,
-        usdKrw,
-        s.currency,
-      ).krw * s.shares;
-      const cost = convertStockCostAmount(
-        s.symbol,
-        s.avgCost,
-        usdKrw,
-        s.purchaseRate,
-        s.currency,
-      ).krw * s.shares;
-
-      const key = s.broker || 'unspecified';
-      const label = s.broker ? BROKER_LABELS[s.broker as Broker] : '미지정';
-      if (!acc[key]) {
-        acc[key] = { broker: key as Broker | 'unspecified', label, count: 0, totalValueKrw: 0, totalCostKrw: 0, pnlPct: 0 };
-      }
-      acc[key].count++;
-      acc[key].totalValueKrw += value;
-      acc[key].totalCostKrw += cost;
-    }
-    // 손익률 계산
-    for (const k of Object.keys(acc)) {
-      const a = acc[k];
-      a.pnlPct = a.totalCostKrw > 0 ? ((a.totalValueKrw - a.totalCostKrw) / a.totalCostKrw) * 100 : 0;
-    }
-
-    // 점진 노출 — 미지정 제외한 실제 broker 종류 ≥ threshold 일 때만 렌더
-    const realBrokers = Object.keys(acc).filter(k => k !== 'unspecified');
-    if (realBrokers.length < BROKER_DISCOVERY_THRESHOLD) return [];
-
-    // 정렬: BROKER_ORDER 순 + 미지정은 맨 뒤
-    return Object.values(acc).sort((a, b) => {
-      if (a.broker === 'unspecified') return 1;
-      if (b.broker === 'unspecified') return -1;
-      const ai = BROKER_ORDER.indexOf(a.broker as Broker);
-      const bi = BROKER_ORDER.indexOf(b.broker as Broker);
-      return ai - bi;
-    });
-  }, [stocks, macroData]);
-
-  if (stats.length === 0) return null;
-
-  return (
-    <section style={{
-      marginBottom: 20,
-      padding: '16px 18px',
-      borderRadius: 16,
-      background: 'var(--surface, #fff)',
-      border: '1px solid var(--border-light, #F2F4F6)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 16 }}>🏦</span>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', margin: 0 }}>
-          증권사별 보유 현황
-        </h3>
-        <span style={{ fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto' }}>
-          사용자 입력 정보 · 실제 보유와 다를 수 있어요
-        </span>
-      </div>
-
-      {/* Phase M-3 — 통합 자산 합계 (모든 broker 합산) */}
-      {(() => {
-        const totalValue = stats.reduce((sum, s) => sum + s.totalValueKrw, 0);
-        const totalCost = stats.reduce((sum, s) => sum + s.totalCostKrw, 0);
-        const totalPnlKrw = totalValue - totalCost;
-        const totalPnlPct = totalCost > 0 ? (totalPnlKrw / totalCost) * 100 : 0;
-        const pnlColor = totalPnlPct > 0 ? '#EF4452' : totalPnlPct < 0 ? '#3182F6' : '#8B95A1';
-        return (
-          <div style={{
-            display: 'flex', alignItems: 'baseline', gap: 8,
-            padding: '10px 12px', marginBottom: 10,
-            borderRadius: 10,
-            background: 'var(--bg-subtle)',
-            border: '1px solid var(--border-strong)',
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-body)' }}>💎 통합 자산</span>
-            <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary, #191F28)', marginLeft: 'auto' }}>
-              ₩{Math.round(totalValue).toLocaleString()}
-            </span>
-            {totalCost > 0 && (
-              <span style={{ fontSize: 12, fontWeight: 700, color: pnlColor }}>
-                {totalPnlPct >= 0 ? '+' : ''}{totalPnlPct.toFixed(1)}%
-              </span>
-            )}
-          </div>
-        );
-      })()}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {stats.map(s => {
-          const pnlColor = s.pnlPct > 0 ? '#EF4452' : s.pnlPct < 0 ? '#3182F6' : '#8B95A1';
-          const pct = stats.length > 0 ? (s.totalValueKrw / Math.max(...stats.map(x => x.totalValueKrw), 1)) * 100 : 0;
-          const isActive = active === s.broker;
-          const isOtherActive = active !== null && !isActive;
-          const Wrap = onSelect ? 'button' : 'div';
-          return (
-            <Wrap key={s.broker} type={onSelect ? 'button' : undefined}
-              onClick={onSelect ? () => onSelect(isActive ? null : s.broker) : undefined}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', borderRadius: 10,
-                background: isActive ? 'var(--pill-active-bg)' : 'var(--bg-subtle)',
-                color: isActive ? 'var(--pill-active-fg)' : 'var(--text-primary)',
-                border: isActive ? '1px solid var(--pill-active-bg)' : '1px solid transparent',
-                opacity: isOtherActive ? 0.5 : 1,
-                cursor: onSelect ? 'pointer' : 'default',
-                width: '100%',
-                textAlign: 'left',
-                transition: 'opacity 0.2s, background 0.2s',
-              }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: isActive ? 'var(--pill-active-fg)' : 'var(--text-primary)' }}>
-                    {s.label}
-                  </span>
-                  <span style={{ fontSize: 11, color: isActive ? 'var(--pill-active-fg)' : 'var(--text-body)' }}>
-                    {s.count}종목
-                  </span>
-                </div>
-                <div style={{ height: 4, background: 'var(--border-light, #E5E8EB)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{
-                    width: `${Math.max(2, pct)}%`,
-                    height: '100%',
-                    background: s.broker === 'unspecified' ? '#B0B8C1' : 'var(--brand-primary)',
-                    borderRadius: 2,
-                  }} />
-                </div>
-              </div>
-              <div style={{ textAlign: 'right', minWidth: 80 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: isActive ? 'var(--pill-active-fg)' : 'var(--text-primary)' }}>
-                  ₩{Math.round(s.totalValueKrw).toLocaleString()}
-                </div>
-                {s.totalCostKrw > 0 && Math.abs(s.pnlPct) >= 0.1 && (
-                  <div style={{ fontSize: 11, fontWeight: 600, color: pnlColor }}>
-                    {s.pnlPct >= 0 ? '+' : ''}{s.pnlPct.toFixed(1)}%
-                  </div>
-                )}
-              </div>
-            </Wrap>
-          );
-        })}
-      </div>
-      {active !== null && (
-        <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-body)', textAlign: 'center' }}>
-          🔍 필터 활성 — 같은 칩을 다시 누르면 전체 보기
-        </div>
-      )}
-    </section>
-  );
+  return <section className={styles.panel} aria-label="증권사별 보유 현황">
+    <h3 className={styles.title}>증권사별 보유 현황</h3>
+    <p className={styles.intro}>등록한 주식만 합쳤어요. 계좌에 남은 현금은 포함하지 않아요.</p>
+    <div className={styles.total}><span>전체 평가금액</span><SummaryAmount total={total} /></div>
+    <div className={styles.rows}>
+      {stats.map(stat => {
+        const content = <><span className={styles.identity}><strong>{stat.label}</strong><span>{stat.total.count}종목{onSelect ? ' · 목록 보기' : ''}</span></span><SummaryAmount total={stat.total} /></>;
+        return onSelect ? <button key={stat.broker} type="button" className={styles.brokerRow}
+          aria-pressed={active === stat.broker} onClick={() => onSelect(active === stat.broker ? null : stat.broker)}>{content}</button>
+          : <div key={stat.broker} className={styles.brokerRow}>{content}</div>;
+      })}
+    </div>
+    {active !== null && onSelect && <button type="button" className={styles.textButton} onClick={() => onSelect(null)}>전체 종목 목록 보기 →</button>}
+    <details className={styles.explanation}><summary className={readingUI.disclosure}>어떤 금액인가요?</summary>
+      <p>입력한 수량에 확인된 주가를 곱한 금액이에요. 미국 주식은 현재 환율로 원화로 바꿔요. 손익은 지금 팔았다고 가정한 이익이나 손해예요. 입력한 매수가와 비교하고, 미국 주식을 살 때의 환율도 반영해요. 빠진 정보가 있으면 해당 합계나 손익을 표시하지 않아요.</p>
+      <p>수수료와 세금은 계산에 넣지 않았어요. 직접 등록한 정보로 계산하므로 증권사에 보이는 금액과 다를 수 있어요.</p>
+    </details>
+  </section>;
 }

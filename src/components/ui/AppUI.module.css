@@ -1,0 +1,61 @@
+/* Joobi controls: use these roles in both native JSX and component primitives. */
+.button {
+ display:inline-flex; align-items:center; justify-content:center; gap:8px;
+ min-height:var(--control-height); min-width:0; padding:12px 16px;
+ border:1px solid transparent; border-radius:var(--control-radius);
+ font-family:var(--font-ui); font-size:var(--type-label-size); font-weight:var(--type-label-weight);
+ line-height:1.6; letter-spacing:-.02em; text-align:center; text-decoration:none;
+ white-space:normal; overflow-wrap:anywhere; cursor:pointer;
+}
+.button:disabled, .button[aria-disabled='true'] { opacity:.45; cursor:default; }
+.button:focus-visible, .field:focus-visible, .switchRow:focus-visible, .switchButton:focus-visible, .tab:focus-visible {
+ outline:2px solid var(--text-primary); outline-offset:3px;
+}
+.secondaryButton { composes:button; border-color:var(--border-strong); }
+.button.secondaryButton { background:var(--surface); color:var(--text-body); }
+.secondaryButton:hover:not(:disabled) { background:var(--bg-subtle); }
+.primaryButton { composes:button; }
+.button.primaryButton { background:var(--pill-active-bg); color:var(--pill-active-fg); }
+.primaryButton:hover:not(:disabled) { opacity:.85; }
+.accentButton { composes:button; }
+.button.accentButton { background:var(--brand-highlight); color:var(--text-on-highlight); font-weight:650; transition:background 160ms ease, transform 160ms ease; }
+.accentButton:hover:not(:disabled) { background:var(--brand-highlight-hover); }
+.accentButton:active:not(:disabled) { transform:translateY(1px); }
+@media (prefers-reduced-motion:reduce) { .button.accentButton, .button.accentButton:active:not(:disabled) { transition:none; transform:none; } }
+.dangerButton { composes:button; border-color:var(--color-danger); }
+.button.dangerButton { background:var(--surface); color:var(--color-danger); }
+.textButton { composes:button; padding-inline:0; background:transparent; }
+.button.textButton { color:var(--text-body); }
+.textButton:hover:not(:disabled) { text-decoration:underline; text-underline-offset:4px; }
+.iconButton { composes:button; width:44px; min-width:44px; min-height:44px; height:44px; padding:8px; background:transparent; flex-shrink:0; }
+.button.iconButton { color:var(--text-secondary); }
+.iconButton:hover:not(:disabled) { background:var(--bg-subtle); }
+.button[aria-pressed='true']:not(.switchButton) { background:var(--pill-active-bg); color:var(--pill-active-fg); border-color:var(--pill-active-bg); }
+.providerButton { composes:button; }
+.button.providerButton { background:#fee500; color:#191919; border-color:transparent; }
+.field { width:100%; min-width:0; min-height:var(--control-height); padding:10px 12px; border:1px solid var(--border-strong); border-radius:var(--control-radius); background:var(--surface); color:var(--text-primary); font-family:var(--font-ui); font-size:16px; line-height:1.6; }
+.field::placeholder { color:var(--text-secondary); }
+.field:disabled { opacity:.5; cursor:default; }
+.field[aria-invalid='true'] { border-color:var(--color-danger); }
+:root .tab { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:var(--control-height); padding:12px 14px; border:0; border-bottom:2px solid transparent; border-radius:0; background:transparent; color:var(--text-secondary); font-family:var(--font-ui); font-size:var(--type-label-size); font-weight:var(--type-label-weight); line-height:1.6; white-space:nowrap; cursor:pointer; }
+:root .tab[aria-pressed='true'], :root .tab[aria-selected='true'], :root .tab[data-active] { border-bottom-color:var(--text-primary); color:var(--text-primary); font-weight:650; }
+.pageTitle { margin:0; font-size:var(--type-page-size); font-weight:650; line-height:1.4; letter-spacing:-.035em; color:var(--text-primary); }
+.groupTitle { margin:0; font-size:var(--type-group-size); font-weight:650; line-height:1.5; letter-spacing:-.025em; color:var(--text-primary); }
+.segments { display:flex;align-items:center;width:fit-content;max-width:100%;gap:2px;padding:3px;border-radius:10px;background:var(--bg-subtle); }
+.segment { composes:button;padding:8px 16px;background:transparent;color:var(--text-secondary);border-radius:7px; }
+.segments .segment[aria-pressed='true'] { background:var(--surface);color:var(--text-primary);border-color:var(--border-light);font-weight:650; }
+.segment:hover:not(:disabled) { color:var(--text-primary); }
+.switchRow { display:flex; align-items:center; gap:12px; width:100%; min-height:var(--control-height); padding:12px; border:1px solid var(--border-light); border-radius:var(--control-radius); background:var(--surface); color:var(--text-primary); font:inherit; text-align:left; cursor:pointer; }
+.switchRow[aria-pressed='true'] { background:var(--bg-subtle); border-color:var(--border-strong); }
+.switchRow:disabled { opacity:.45; cursor:default; }
+.switchButton { display:inline-flex; align-items:center; justify-content:center; min-width:48px; min-height:48px; padding:0; border:0; background:transparent; cursor:pointer; }
+.switchTrack { display:block; width:40px; height:24px; position:relative; flex-shrink:0; border-radius:999px; background:var(--switch-off-bg); }
+.switchTrack::after { content:''; position:absolute; width:20px; height:20px; top:2px; left:2px; border-radius:50%; background:var(--switch-knob-bg); box-shadow:var(--switch-knob-shadow); }
+[aria-pressed='true'] > .switchTrack { background:var(--brand-fill); }
+[aria-pressed='true'] > .switchTrack::after { transform:translateX(16px); }
+@media(prefers-reduced-motion:no-preference) { .switchTrack { transition:background .15s; } .switchTrack::after { transition:transform .15s; } }
+
+.button.primaryButton:disabled, .button.providerButton:disabled { opacity:.45; }
+
+.field { color-scheme:light; }
+:global(.dark) .field { color-scheme:dark; }

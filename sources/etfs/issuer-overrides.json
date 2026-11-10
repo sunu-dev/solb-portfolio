@@ -1,0 +1,18 @@
+{
+  "KORU": "https://www.direxion.com/product/daily-msci-south-korea-bull-3x-etf",
+  "SOXS": "https://www.direxion.com/product/daily-semiconductor-bull-bear-3x-etfs",
+  "TNA": "https://www.direxion.com/product/daily-small-cap-bull-bear-3x-etfs",
+  "TZA": "https://www.direxion.com/product/daily-small-cap-bull-bear-3x-etfs",
+  "TMF": "https://www.direxion.com/product/daily-20-year-treasury-bull-bear-3x-etfs",
+  "EWY": "https://www.ishares.com/us/products/239681/ishares-msci-south-korea-etf",
+  "EEM": "https://www.ishares.com/us/products/239637/ishares-msci-emerging-markets-etf",
+  "EFA": "https://www.ishares.com/us/products/239623/ishares-msci-eafe-etf",
+  "EWJ": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf",
+  "DVY": "https://www.ishares.com/us/products/239500/ishares-select-dividend-etf",
+  "JCPB": "https://am.jpmorgan.com/content/dam/jpm-am-aem/americas/us/en/literature/fact-sheet/etfs/FS-JCPB.PDF",
+  "BBUS": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-betabuilders-u-s-equity-etf-etf-shares-46641q399",
+  "PVAL": "https://www.franklintempleton.com/investments/options/exchange-traded-funds/products/39434/SINGLCLASS/putnam-focused-large-cap-value-etf/PVAL",
+  "SUB": "https://www.ishares.com/us/products/239772/ishares-short-term-national-muni-bond-etf",
+  "TLH": "https://www.ishares.com/us/products/239453/ishares-10-20-year-treasury-bond-etf",
+  "ETHA": "https://www.ishares.com/us/products/337614/ishares-ethereum-trust-eth"
+}

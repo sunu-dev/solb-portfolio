@@ -13,6 +13,26 @@ export interface LocalPortfolio {
   recentSymbols?: unknown[];
 }
 
+/** Save the outgoing owner's pending edits before sign-out/account-switch clears its outbox. */
+export function preserveUnsyncedPortfolio(
+  ownerId: string | null,
+  state: LocalPortfolio,
+  syncStatus: string,
+  storage: Storage,
+): void {
+  if (!ownerId || (state.portfolioOwnerId && state.portfolioOwnerId !== ownerId)) return;
+  const outboxKey = `solb_portfolio_sync_outbox_v1:${ownerId}`;
+  const pending = storage.getItem(outboxKey);
+  if (!pending && !['saving', 'error', 'storage-error', 'local-only', 'conflict'].includes(syncStatus)) return;
+  const records: Record<string, string> = {};
+  if (pending) records[outboxKey] = pending;
+  // A recovery copy is never loaded as the next user's active portfolio.
+  const backup = JSON.stringify({ ownerId, state: { ...state, portfolioOwnerId: ownerId }, records });
+  const key = `${PORTFOLIO_RECOVERY_PREFIX}${ownerId}:${crypto.randomUUID()}`;
+  storage.setItem(key, backup);
+  if (storage.getItem(key) !== backup) throw new Error('Portfolio recovery could not be verified');
+}
+
 /** A legacy, unowned portfolio must never be claimed by the next login. */
 export function preparePortfolioIdentity(
   userId: string | null,

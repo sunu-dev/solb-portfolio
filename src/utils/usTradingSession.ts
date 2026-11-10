@@ -1,6 +1,4 @@
-import { MARKET_HOLIDAYS_2026 } from '@/config/marketHolidays';
-
-const EARLY_CLOSE = new Set(['2026-11-27', '2026-12-24']);
+import { usCalendarDay } from '@/config/usTradingCalendar';
 // NYSE 2026 core session calendar: https://www.nyse.com/markets/hours-calendars
 export function getEasternClock(now: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -13,9 +11,8 @@ export function getEasternClock(now: Date) {
 }
 
 function isTradingDay(day: Date) {
-  return ![0, 6].includes(day.getUTCDay()) && !MARKET_HOLIDAYS_2026.some(
-    h => h.date === day.toISOString().slice(0, 10) && h.market !== 'KR',
-  );
+  const calendar = usCalendarDay(day.toISOString().slice(0, 10));
+  return calendar.known && ![0, 6].includes(day.getUTCDay()) && !calendar.holiday;
 }
 
 // Resolve the offset on the target trading date, not today's offset (DST weekends).
@@ -27,16 +24,16 @@ function atEasternMinute(day: Date, minute: number) {
 
 export function getUsTradingSession(now: Date) {
   const { day, key, minutes } = getEasternClock(now);
-  const closeMinute = EARLY_CLOSE.has(key) ? 780 : 960;
+  const calendar = usCalendarDay(key), closeMinute = calendar.closeMinute;
   let nextOpen: number | null = null;
   for (let i = 0; i < 14; i++) {
     const candidate = new Date(day.getTime() + i * 86400000);
-    if (candidate.getUTCFullYear() !== 2026) break;
+    if (!usCalendarDay(candidate.toISOString().slice(0, 10)).known) break;
     if (!isTradingDay(candidate)) continue;
     const opens = atEasternMinute(candidate, 570);
     if (opens > now.getTime()) { nextOpen = opens; break; }
   }
-  const known = day.getUTCFullYear() === 2026;
+  const known = calendar.known;
   const trading = known && isTradingDay(day);
   const phase = !known ? 'unknown' : !trading
     ? ([0, 6].includes(day.getUTCDay()) ? 'weekend' : 'holiday')

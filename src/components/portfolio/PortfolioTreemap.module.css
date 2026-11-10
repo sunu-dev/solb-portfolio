@@ -65,11 +65,7 @@
 .panel [data-direction='gain'] { color: var(--map-gain); }
 .panel [data-direction='loss'] { color: var(--map-loss); }
 .detailActions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 0 18px; }
-.history { flex: 1 1 140px; min-width: 0; margin-top: 8px; }
-.history summary { display: flex; align-items: center; gap: 4px; min-height: 44px; width: fit-content; list-style: none; cursor: pointer; font-size: 12px; color: var(--map-muted); }
-.history summary::-webkit-details-marker, .help summary::-webkit-details-marker { display: none; }
-.history[open] summary svg { transform: rotate(180deg); }
-.history[open] { flex-basis: 100%; }
+.history { flex: 1 1 140px; min-width: 0; margin-top: 8px; }.history summary::-webkit-details-marker, .help summary::-webkit-details-marker { display: none; }.history[open] { flex-basis: 100%; }
 .historyCaption { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 11px; margin-top: 8px; }
 .historyCaption > span { color: var(--map-muted); }
 .historyCaption b { font-weight: 500; }

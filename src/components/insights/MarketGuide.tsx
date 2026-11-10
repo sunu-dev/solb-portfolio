@@ -1,4 +1,5 @@
 'use client';
+import readingUI from '../ui/ReadingUI.module.css';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowLeft, Check, ChevronRight } from 'lucide-react';
@@ -133,7 +134,7 @@ function GuideLesson({ guide, entry, draftEntry, updateDraft, save }: {
   }
 
   return <>
-    <details className={styles.terms}><summary>용어 설명 <span>{guide.terms.length}개</span></summary><dl>{guide.terms.map(item => <div key={item.term}><dt>{item.term}</dt><dd><ReadingText>{item.meaning}</ReadingText></dd></div>)}</dl></details>
+    <details className={styles.terms}><summary className={readingUI.disclosure}>용어 설명 <span>{guide.terms.length}개</span></summary><dl>{guide.terms.map(item => <div key={item.term}><dt>{item.term}</dt><dd><ReadingText>{item.meaning}</ReadingText></dd></div>)}</dl></details>
     <section className={styles.section} aria-labelledby="guide-path-title">
       <h3 id="guide-path-title">기업에는 어떤 영향이 있나요?</h3>
       <ol className={styles.path}>{guide.steps.map((step, index) => <li key={step.title}><span className={styles.number} aria-hidden="true">{index + 1}</span><div><h4 className="reading-title">{step.title}</h4><p className="reading-copy"><ReadingText>{step.body}</ReadingText></p></div></li>)}</ol>
@@ -147,7 +148,7 @@ function GuideLesson({ guide, entry, draftEntry, updateDraft, save }: {
     {guide.eventKinds.length > 0 && <GuideFollowup guide={guide} />}
     <ContextExploration key={guide.id} topics={explorationTopic(guide.id).related} context={guide.category} />
     <details className={styles.notes} open={!!entry?.savedAt || hasLocalDraft}>
-    <summary><strong>{entry?.savedAt ? '내 메모' : '메모 남기기'}</strong></summary>
+    <summary className={readingUI.disclosure}><strong>{entry?.savedAt ? '내 메모' : '메모 남기기'}</strong></summary>
     <section className={styles.section} aria-label="메모">
       <label htmlFor="guide-note" className="sr-only">메모 내용</label>
       <textarea id="guide-note" value={draft} maxLength={GUIDE_NOTE_LIMIT} onChange={event => {
@@ -158,14 +159,14 @@ function GuideLesson({ guide, entry, draftEntry, updateDraft, save }: {
       {conflict && <div className={styles.feedback} id="guide-note-conflict" role="status">
         <strong>다른 탭에서 메모가 바뀌었어요.</strong>
         <p>지금 쓰던 초안은 그대로 두었어요. 이 초안으로 저장하면 다른 탭의 기록을 바꿔요.</p>
-        <details className={styles.model}><summary>새로 저장된 메모 보기</summary><p>{savedExplanation || '저장된 메모가 지워졌어요.'}</p></details>
+        <details className={styles.model}><summary className={readingUI.disclosure}>새로 저장된 메모 보기</summary><p>{savedExplanation || '저장된 메모가 지워졌어요.'}</p></details>
       </div>}
       <div className={styles.noteActions}><button className={styles.primary} disabled={!draft.trim() || (!dirty && !!entry?.savedAt)} onClick={saveNote}>{user ? conflict ? '이 내용으로 바꿔 저장' : '저장하기' : conflict ? '이 내용으로 메모 바꾸기' : '메모 남기기'}</button><button className={styles.secondary} disabled={!draft.trim()} onClick={() => void copyNote()}>복사하기</button></div>
       {dirty && <p className={styles.hint}>{user ? '이 탭에서 다른 메뉴를 다녀와도 초안은 유지돼요. 새로고침하거나 탭을 닫기 전에는 저장해주세요.' : '이 탭에서 다른 메뉴를 다녀와도 초안은 유지돼요. 보관할 내용은 복사해두세요.'}</p>}
       <p id="guide-note-storage" className={styles.hint}>{user ? '이 브라우저에만 저장돼요. 로그아웃하면 지워져요.' : '이용 중에는 메모가 유지돼요. 새로고침하거나 로그인하면 지워져요. 계속 보관하려면 로그인 후 저장해주세요.'}</p><p className={styles.notice} role="status">{notice}</p>
     </section>
     </details>
-    <details className={styles.sources}><summary>설명에 참고한 자료</summary><ul>{guide.sources.map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.label}<span className="sr-only"> (새 창)</span></a></li>)}</ul></details>
+    <details className={styles.sources}><summary className={readingUI.disclosure}>설명에 참고한 자료</summary><ul>{guide.sources.map(source => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.label}<span className="sr-only"> (새 창)</span></a></li>)}</ul></details>
   </>;
 }
 

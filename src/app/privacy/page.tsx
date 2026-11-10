@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: "'Pretendard Variable', sans-serif", background: 'var(--bg, #fff)', minHeight: '100vh' }}>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: '48px 24px', fontFamily: 'var(--font-ui)', background: 'var(--bg, #fff)', minHeight: '100vh' }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, color: 'var(--text-primary, #191F28)' }}>개인정보처리방침</h1>
       <p style={{ fontSize: 13, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 4 }}>시행일: {PRIVACY_EFFECTIVE_DATE} ({PRIVACY_VERSION})</p>
       <p style={{ fontSize: 12, color: 'var(--text-tertiary, #8B95A1)', marginBottom: 24 }}>본 서비스는 현재 <strong style={{ color: '#3182F6' }}>베타 단계</strong>로, 무료로 제공됩니다.</p>
@@ -29,6 +29,8 @@ export default function PrivacyPage() {
           <li><strong>멤버십 등급</strong>: Free / PRO 구분, 등급 변경 이력</li>
           <li><strong>온보딩·투어 이벤트</strong>: 단계별 도달·이탈, 도움말 페이지 열람 여부 (UX 개선용)</li>
           <li><strong>서비스 이용 기록</strong>: 무작위 방문·브라우저 식별자, 회원 계정 식별자(로그인 시), 기능별 활성 사용시간·설명 탐색 이벤트. 보유종목·메모·검색어·URL은 이 기록에 포함하지 않음</li>
+          <li><strong>내 주식사전(선택)</strong>: 저장한 용어·메모·관련 종목·이해 표시·복습 날짜. 로그인하면 계정에 저장하고, 직접 삭제하거나 회원 탈퇴할 때 삭제합니다.</li>
+          <li><strong>직접 질문(선택)</strong>: 사용자가 적은 질문과 현재 화면의 최근 대화 최대 3개, 선택한 종목·시장·기간, 아직 헷갈리는 용어를 AI 답변에 이용합니다. 답변 개선에 관한 추가 안내(2026-11-07-case-v1): 질문 원문과 답변은 자동 저장하지 않습니다. 질문 유형·상품 유형·처리 시간·모델 및 설명 버전·실패 여부·브라우저 수신 확인을 원문·계정 식별자 없이 30일간 집계합니다. 별도로 누른 버튼 평가와 선택한 사유는 계정과 연결해 30일간 보관합니다. 사용자가 내용을 확인하고 별도로 동의한 질문·답변 사례만 답변 개선 및 운영자 검수 목적으로 계정과 연결해 30일간 보관합니다. 사례는 질문창의 ‘내가 제공한 사례’에서 삭제할 수 있습니다. 동의를 거부해도 질문 기능을 사용할 수 있으며, 검수 사례를 AI 모델 학습에 따로 전송하지 않습니다. 기간이 끝난 자료는 검수 대상에서 제외하고 매일 삭제합니다.</li>
           <li><strong>로그인 스트릭</strong>: 연속 접속 일수</li>
           <li><strong>자동 수집 정보</strong>: IP 주소, 접속 시간, 브라우저/OS 정보, 에러 로그</li>
         </ul>
@@ -36,7 +38,7 @@ export default function PrivacyPage() {
 
       <Section title="3. 개인정보의 수집 및 이용 목적">
         <ul>
-          <li>포트폴리오 데이터 저장 및 기기 간 동기화</li>
+          <li>포트폴리오 및 사용자가 저장한 주식 용어·메모의 보관과 기기 간 동기화</li>
           <li>만 18세 이상 이용 자격 확인 및 동의 증거 관리</li>
           <li>공개 시장정보 기반 AI 해설 제공 및 사용량 한도 관리</li>
           <li>맞춤 알림(푸시·이메일) 발송 및 발송 결과 추적</li>
@@ -109,12 +111,12 @@ export default function PrivacyPage() {
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Google LLC</td>
               <td style={{ padding: '8px 4px' }}>공개 시장정보 AI 해설 (Gemini API) — OCR은 현재 비활성화</td>
-              <td style={{ padding: '8px 4px' }}>미국 등 Google 처리 지역 — 종목·공개 시세·지표·뉴스만 전송. 평단·수량·목표·메모는 전송하지 않음</td>
+              <td style={{ padding: '8px 4px' }}>미국 등 Google 처리 지역 — 공개 종목·시세·뉴스 자료를 전송. 주비에게 직접 적은 질문과 대화는 전송하지 않음. 평단·수량·목표·메모는 자동 전송하지 않음</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Anthropic PBC</td>
-              <td style={{ padding: '8px 4px' }}>공개 시장정보 AI 해설 백업 (Claude API, Gemini 장애 시)</td>
-              <td style={{ padding: '8px 4px' }}>미국 — 종목·공개 시세·지표·뉴스만 전송, 개인 보유정보·개인식별정보 미포함</td>
+              <td style={{ padding: '8px 4px' }}>종목·차트·직접 질문 AI 해설 (Claude API) 및 일부 해설의 백업</td>
+              <td style={{ padding: '8px 4px' }}>미국 — 공개 자료와 사용자가 전송에 동의한 직접 질문·현재 화면의 최근 대화 최대 3개·선택 종목·시장·기간·헷갈리는 용어를 전송. 보유 수량·평균 매수가·사전 메모는 자동 전송하지 않음. 최신 기사 검색에는 공개 종목명·시장·기간만 사용하며 질문 원문과 대화는 검색어로 보내지 않음</td>
             </tr>
             <tr style={{ borderBottom: '1px solid var(--border-light, #F2F4F6)' }}>
               <td style={{ padding: '8px 4px' }}>Finnhub Inc.</td>
@@ -143,7 +145,7 @@ export default function PrivacyPage() {
       <Section title="6. 개인정보의 국외 이전">
         서비스는 위 수탁업체 중 일부를 통해 이용자의 데이터가 국외에서 처리되도록 합니다. Supabase의 주 데이터베이스는 대한민국 서울 리전에 있습니다.
         <ul>
-          <li><strong>이전되는 항목</strong>: 이메일·발송 내용(Resend), AI 해설 요청 데이터(Google, Anthropic — 종목·공개 시세·지표·뉴스만 해당하며 개인 보유정보와 OCR 이미지는 제외), 푸시 endpoint와 암호화된 알림 내용(Web Push 제공자)</li>
+          <li><strong>이전되는 항목</strong>: 이메일·발송 내용(Resend), AI 해설 요청 데이터(Google, Anthropic — 종목·공개 시세·지표·뉴스와 사용자가 별도 동의한 직접 질문·최근 대화·헷갈리는 용어가 해당하며, 계좌 보유정보와 OCR 이미지는 자동 전송하지 않음), 푸시 endpoint와 암호화된 알림 내용(Web Push 제공자)</li>
           <li><strong>이전 국가</strong>: 미국 등 각 수탁업체의 처리 지역 (Web Push는 브라우저 제공사 정책에 따라 다름)</li>
           <li><strong>이전 일시 및 방법</strong>: 서비스 이용 시 네트워크를 통한 실시간 전송</li>
           <li><strong>이전받는 자의 개인정보 이용 목적</strong>: 위 제5조의 위탁 업무 수행</li>
@@ -155,7 +157,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>열람 및 수정</strong>: 서비스 내에서 포트폴리오 데이터를 직접 열람·수정할 수 있습니다.</li>
           <li><strong>알림 수신 거부</strong>: 푸시 알림은 알림 설정에서, 이메일 알림은 메일 하단의 &quot;수신 거부&quot; 링크에서 즉시 해제할 수 있습니다.</li>
-          <li><strong>계정 삭제</strong>: 프로필 메뉴 &gt; 계정 삭제를 통해 모든 데이터를 즉시 삭제할 수 있습니다.</li>
+          <li><strong>계정 삭제</strong>: 설정 &gt; 계정 &gt; 계정 삭제를 통해 모든 데이터를 즉시 삭제할 수 있습니다.</li>
           <li><strong>동의 철회</strong>: 계정 삭제를 통해 개인정보 수집 및 이용에 대한 동의를 철회할 수 있습니다.</li>
           <li><strong>문의</strong>: 아래 개인정보보호 책임자에게 이메일로 요청할 수 있습니다.</li>
         </ul>

@@ -123,4 +123,35 @@ describe('포트폴리오 CSV 가져오기', () => {
     expect(() => parsePortfolioImportCsv('종목코드,종목명\nAAPL,애플')).toThrow('종목코드, 수량, 평균단가');
     expect(() => parsePortfolioImportCsv('종목코드,수량,평균단가\n"AAPL,1,100')).toThrow('따옴표');
   });
+  it('한국 코드의 거래소 접미사가 달라도 같은 증권사·종목 중복을 미리 막는다', () => {
+    const parsed = parsePortfolioImportCsv('구분,종목코드,수량,평균단가,증권사\n보유,005930,2,70000,토스증권\n관심,005930.KS,0,0,토스증권');
+    const rows = reconcilePortfolioCsvImport(parsed.rows, EMPTY, '');
+    expect(rows.every(row => row.reason === 'duplicate_in_upload')).toBe(true);
+    expect(applyPortfolioCsvImport(EMPTY, rows, new Set([0, 1])).stocks).toEqual(EMPTY);
+  });
+  it('샘플을 제거해 배열 위치가 바뀌어도 다른 실제 종목을 수정하지 않는다', () => {
+    const stocks: PortfolioStocks = { ...EMPTY, investing: [
+      { symbol: 'SAMPLE', shares: 1, avgCost: 1, targetReturn: 10, demo: true },
+      { symbol: 'AAPL', shares: 2, avgCost: 100, targetReturn: 10, broker: 'toss' },
+      { symbol: 'MSFT', shares: 3, avgCost: 300, targetReturn: 10, broker: 'toss' },
+    ] };
+    const parsed = parsePortfolioImportCsv('종목코드,수량,평균단가,증권사\nAAPL,5,110,토스증권');
+    const rows = reconcilePortfolioCsvImport(parsed.rows, stocks, '');
+    const result = applyPortfolioCsvImport(stocks, rows, new Set([0]));
+    expect(result.stocks.investing).toMatchObject([
+      { symbol: 'AAPL', shares: 5, avgCost: 110 },
+      { symbol: 'MSFT', shares: 3, avgCost: 300 },
+    ]);
+    expect(result.summary.updated).toBe(1);
+    expect(stocks.investing[1].shares).toBe(2);
+  });
+  it('미리보기 이후 바뀐 현재 기록을 덮어쓰거나 같은 신규 종목을 중복 추가하지 않는다', () => {
+    const parsed = parsePortfolioImportCsv('종목코드,수량,평균단가,증권사\nAAPL,5,110,토스증권');
+    const before: PortfolioStocks = { ...EMPTY, investing: [{ symbol: 'AAPL', shares: 2, avgCost: 100, targetReturn: 10, broker: 'toss' }] };
+    const changed: PortfolioStocks = { ...EMPTY, investing: [{ ...before.investing[0], shares: 7 }] };
+    const rows = reconcilePortfolioCsvImport(parsed.rows, before, '');
+    expect(applyPortfolioCsvImport(changed, rows, new Set([0]))).toMatchObject({ stocks: changed, summary: { updated: 0, needsReview: 1 } });
+    const freshRows = reconcilePortfolioCsvImport(parsed.rows, EMPTY, '');
+    expect(applyPortfolioCsvImport(changed, freshRows, new Set([0]))).toMatchObject({ stocks: changed, summary: { added: 0, needsReview: 1 } });
+  });
 });

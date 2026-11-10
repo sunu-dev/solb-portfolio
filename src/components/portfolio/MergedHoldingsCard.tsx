@@ -1,168 +1,62 @@
 'use client';
 
-/**
- * MergedHoldingsCard — 다중 broker 분산 보유 종목 통합 뷰 (Phase M-2)
- *
- * docs/BROKER_MERGE_FEATURE.md 합의:
- * - 자동 추론: 같은 symbol을 2개 이상 broker에 보유한 종목이 1개라도 있을 때만 렌더
- * - 통합 row + broker별 lots accordion (펼침)
- * - 가중평균 평단가 표시 + 디스클레이머 (주비 계산값)
- *
- * 단일 broker 사용자 / 분산 보유 0개 → 컴포넌트 자체 미렌더 (UI 변화 0)
- */
-
-import { useMemo, useState } from 'react';
-import { resolveUsdKrw } from '@/utils/koreanNumber';
+import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { usePortfolioStore } from '@/store/portfolioStore';
 import { BROKER_LABELS, STOCK_KR } from '@/config/constants';
-import { mergeHoldings } from '@/utils/mergedHoldings';
-import {
-  convertStockAmount,
-  getStockCurrency,
-} from '@/utils/stockCurrency';
+import { holdingPrice, mergeHoldings } from '@/utils/mergedHoldings';
+import StockExplorationLink from '@/components/explore/StockExplorationLink';
+import type { StockCurrency } from '@/utils/stockCurrency';
+import { formatKrw, formatUsd } from '@/utils/koreanNumber';
+import readingUI from '../ui/ReadingUI.module.css';
+import styles from './HoldingsOverview.module.css';
 
-interface Quote { c?: number; dp?: number }
+const shares = (value: number) => `${value.toLocaleString('ko-KR', { maximumFractionDigits: 6 })}주`;
+const money = (value: number, currency: StockCurrency) => currency === 'KRW'
+  ? formatKrw(value, { prefix: false, suffix: '원', short: false }) : formatUsd(value);
+const percent = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 
 export default function MergedHoldingsCard() {
-  const { stocks, macroData } = usePortfolioStore();
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const { stocks, macroData } = usePortfolioStore(useShallow(state => ({ stocks: state.stocks, macroData: state.macroData })));
+  const merged = useMemo(() => mergeHoldings(stocks.investing || []).filter(holding => holding.lots.length > 1), [stocks.investing]);
+  if (!merged.length) return null;
 
-  const merged = useMemo(() => {
-    return mergeHoldings(stocks.investing || []).filter(h => h.hasMultipleBrokers);
-  }, [stocks]);
-
-  if (merged.length === 0) return null;
-
-  const usdKrw = resolveUsdKrw(macroData);
-
-  return (
-    <section style={{
-      marginBottom: 20,
-      padding: '16px 18px',
-      borderRadius: 16,
-      background: 'var(--bg-subtle)',
-      border: '1px solid var(--border-strong)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 16 }}>🧮</span>
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary, #191F28)', margin: 0 }}>
-          여러 증권사에 분산 보유한 종목
-        </h3>
-        <span
-          title="여러 증권사에 같은 종목이 있을 때 가중평균 평단가로 합쳐 보여드려요. 주비 계산값이라 각 증권사 표시와 다를 수 있어요."
-          style={{
-            fontSize: 10, color: 'var(--text-tertiary, #B0B8C1)', marginLeft: 'auto', cursor: 'help',
-          }}
-        >ℹ️ 통합 평단가</span>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {merged.map(h => {
-          const isOpen = expanded === h.symbol;
-          const kr = STOCK_KR[h.symbol] || h.symbol;
-          const explicitCurrency = h.lots.find((lot) => lot.currency)?.currency;
-          const isKR = getStockCurrency(h.symbol, explicitCurrency) === 'KRW';
-          const unit = isKR ? '₩' : '$';
-          const quote = macroData[h.symbol] as Quote | undefined;
-          const currentPrice = quote?.c || h.mergedAvgCost;
-          const pnlPct = h.mergedAvgCost > 0 ? ((currentPrice - h.mergedAvgCost) / h.mergedAvgCost) * 100 : 0;
-          const pnlColor = pnlPct > 0 ? '#EF4452' : pnlPct < 0 ? '#3182F6' : '#8B95A1';
-          const totalValueLocal = currentPrice * h.totalShares;
-          const totalValueKrw = convertStockAmount(
-            h.symbol,
-            totalValueLocal,
-            usdKrw,
-            explicitCurrency,
-          ).krw;
-          const brokerLabels = h.brokers.map(b => BROKER_LABELS[b]).join(' + ');
-          const brokerSummary = h.hasUnspecifiedBroker
-            ? `${brokerLabels}${brokerLabels ? ' + ' : ''}미지정`
-            : brokerLabels;
-
-          return (
-            <div key={h.symbol} style={{
-              padding: '12px 14px',
-              borderRadius: 10,
-              background: 'var(--surface, #fff)',
-              border: '1px solid var(--border-light, #F2F4F6)',
-            }}>
-              {/* 통합 row */}
-              <button
-                onClick={() => setExpanded(isOpen ? null : h.symbol)}
-                style={{
-                  width: '100%',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <code style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>{h.symbol}</code>
-                    <span style={{ fontSize: 11, color: '#8B95A1' }}>{kr}</span>
-                    <span style={{
-                      fontSize: 10, padding: '2px 6px', borderRadius: 4,
-                      background: 'var(--bg-subtle)', color: 'var(--text-body)', fontWeight: 600,
-                    }}>
-                      🏦 {h.lots.length}개 증권사
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary, #B0B8C1)' }}>
-                    {brokerSummary}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', minWidth: 100 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                    {h.totalShares.toLocaleString(undefined, { maximumFractionDigits: 3 })}주
-                  </div>
-                  <div style={{ fontSize: 11, color: '#8B95A1' }}>
-                    평단가 {unit}{h.mergedAvgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', minWidth: 80 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary, #191F28)' }}>
-                    ₩{Math.round(totalValueKrw).toLocaleString()}
-                  </div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: pnlColor }}>
-                    {pnlPct >= 0 ? '+' : ''}{pnlPct.toFixed(1)}%
-                  </div>
-                </div>
-                <span style={{
-                  fontSize: 11, color: '#8B95A1',
-                  transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}>▶</span>
-              </button>
-
-              {/* broker별 분해 (펼침) */}
-              {isOpen && (
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border-light, #F2F4F6)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {h.lots.map((lot, i) => {
-                    const lotPnl = lot.avgCost > 0 ? ((currentPrice - lot.avgCost) / lot.avgCost) * 100 : 0;
-                    return (
-                      <div key={`${lot.symbol}-${lot.broker || 'na'}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                        <span style={{ minWidth: 88, color: '#4E5968', fontWeight: 600 }}>
-                          {lot.broker ? BROKER_LABELS[lot.broker] : '미지정'}
-                        </span>
-                        <span style={{ flex: 1, color: '#8B95A1' }}>
-                          {lot.shares.toLocaleString(undefined, { maximumFractionDigits: 3 })}주 · 평단 {unit}{lot.avgCost.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                        </span>
-                        <span style={{ minWidth: 50, textAlign: 'right', fontWeight: 600, color: lotPnl >= 0 ? '#EF4452' : '#3182F6' }}>
-                          {lotPnl >= 0 ? '+' : ''}{lotPnl.toFixed(1)}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ marginTop: 10, fontSize: 10, color: '#B0B8C1', lineHeight: 1.5 }}>
-        ℹ️ 통합 평단가는 주비 계산값이에요. 각 증권사 표시와 다를 수 있어요. 양도세 계산은 증권사·세무사 확인을 권해요.
-      </div>
-    </section>
-  );
+  return <section className={styles.panel} aria-label="같은 종목 합쳐 보기">
+    <h3 className={styles.title}>같은 종목 합쳐 보기</h3>
+    <p className={styles.intro}>여러 번 등록한 종목의 수량과 평균 매수가를 한곳에서 봐요.</p>
+    {merged.map(holding => {
+      const price = holdingPrice(holding.symbol, macroData);
+      const avg = holding.mergedAvgCost;
+      const pnl = price !== null && avg !== null && avg > 0 ? (price - avg) / avg * 100 : null;
+      const name = holding.lots.find(lot => lot.name)?.name || STOCK_KR[holding.symbol] || holding.symbol;
+      const brokers = [...holding.brokers.map(broker => BROKER_LABELS[broker]), ...(holding.hasUnspecifiedBroker ? ['증권사 미지정'] : [])];
+      return <details key={holding.id} className={styles.holding}>
+        {/* Composite summary: stock identity, quantity and the disclosure action have distinct roles. */}
+        <summary className={styles.holdingSummary} data-ui-disclosure="composite">
+          <span className={styles.identity}><strong>{name}</strong><span>{holding.symbol} · {holding.lots.length}건 등록</span></span>
+          <span className={styles.quantity}><strong>{shares(holding.totalShares)}</strong><span>증권사별 내역 <span className={styles.chevron} aria-hidden="true">⌄</span></span></span>
+        </summary>
+        <div className={styles.holdingBody}>
+          <p className={styles.brokers}>{brokers.join(' · ')}</p>
+          <dl className={styles.metrics}>
+            <div><dt>전체 평균 매수가</dt><dd>{avg === null ? '매수가 입력 필요' : money(avg, holding.currency)}</dd></div>
+            <div><dt>평가금액{holding.currency === 'USD' ? ' · 달러' : ''}</dt><dd>{price === null ? '시세 확인 필요' : money(price * holding.totalShares, holding.currency)}</dd></div>
+            <div><dt>주가로만 본 손익률</dt><dd className={pnl === null || pnl === 0 ? styles.neutral : pnl > 0 ? styles.gain : styles.loss}>{pnl === null ? price === null ? '시세 확인 필요' : '매수가 입력 필요' : percent(pnl)}</dd></div>
+          </dl>
+          <p className={styles.note}>현재 주가와 평균 매수가를 비교했어요. 환율 변동, 수수료, 세금은 계산에 넣지 않았어요.</p>
+          <ul className={styles.lots} aria-label={`${name} 등록 내역`}>
+            {holding.lots.map((lot, index) => <li key={`${lot.broker || 'none'}-${index}`}>
+              <span className={styles.identity}><strong>{lot.broker ? BROKER_LABELS[lot.broker] : '증권사 미지정'}</strong><span>{shares(lot.shares)}</span></span>
+              <span className={styles.lotCost}>평균 매수가<br /><strong>{Number.isFinite(lot.avgCost) && lot.avgCost > 0 ? money(lot.avgCost, holding.currency) : '입력 필요'}</strong></span>
+            </li>)}
+          </ul>
+          <StockExplorationLink symbol={holding.symbol}>{name} 설명 읽기</StockExplorationLink>
+        </div>
+      </details>;
+    })}
+    <details className={styles.explanation}><summary className={readingUI.disclosure}>평균 매수가는 어떻게 합치나요?</summary>
+      <p>예를 들어 10달러에 1주, 20달러에 3주를 샀다면 총 70달러를 쓴 거예요. 4주로 나누면 한 주에 평균 17.5달러예요.</p>
+      <p>한 건이라도 매수가가 비어 있으면 전체 평균은 계산하지 않아요. 증권사에 등록된 원래 내역은 그대로 두고, 이 화면에서만 합쳐 보여줘요.</p>
+    </details>
+  </section>;
 }

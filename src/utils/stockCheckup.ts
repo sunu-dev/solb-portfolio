@@ -2,7 +2,7 @@ import type { CandleRaw } from '@/config/constants';
 import { formatNativeAmount, formatPct } from './koreanNumber';
 
 export interface StockCheckItem {
-  id: 'price' | 'volume' | 'earnings' | 'dividend';
+  id: 'price' | 'volume';
   title: string;
   value: string;
   meaning: string;
@@ -14,12 +14,6 @@ export interface StockCheckItem {
 export interface StockCheckupInput {
   price?: number;
   candles?: CandleRaw;
-  fundamentals?: {
-    per?: number | null;
-    eps?: number | null;
-    dividendYield?: number | null;
-    currency?: 'KRW' | 'USD';
-  } | null;
   currency: 'KRW' | 'USD';
 }
 
@@ -111,68 +105,16 @@ function volumeItem(input: StockCheckupInput): StockCheckItem {
   };
 }
 
-function earningsItem(input: StockCheckupInput): StockCheckItem {
-  const base = {
-    id: 'earnings' as const,
-    title: '이익과 주가의 관계',
-    mentorId: 'value',
-    nextCheck: '최근 실적에서 매출과 이익이 어떻게 달라졌는지, 같은 업종의 기업은 어떤지 함께 살펴봐요.',
-  };
-  const fundamentals = input.fundamentals;
-  if (fundamentals?.currency && fundamentals.currency !== input.currency) {
-    return { ...base, available: false, value: '자료 확인 전', meaning: '기업 지표와 주가의 통화가 달라 같은 기준의 자료인지 먼저 확인해야 해요.' };
-  }
-  const eps = fundamentals?.eps;
-  const per = fundamentals?.per;
-  if (isFiniteNumber(eps) && eps <= 0) {
-    return {
-      ...base, available: true,
-      value: `주당순이익 ${formatNativeAmount(eps, input.currency)}`,
-      meaning: eps < 0
-        ? '제공된 주당순이익이 음수예요. 주식 한 주 기준으로 손실이 보고됐다는 뜻이에요. PER만으로 가격을 비교하기 어려워요.'
-        : '제공된 주당순이익은 0이에요. 이 값만으로 PER을 계산하거나 주가가 싼지 판단할 수는 없어요.',
-      nextCheck: isPositive(per)
-        ? '함께 제공된 PER과 주당순이익의 기준이 다를 수 있어요. 최근 실적 공시에서 기준 기간과 수치를 확인해요.'
-        : '최근 실적 공시에서 손익의 기준 기간과 일시적인 비용이 있었는지 확인해요.',
-    };
-  }
-  if (isPositive(per)) {
-    return {
-      ...base, available: true, value: `PER ${per.toFixed(1)}배`,
-      meaning: `주가가 주식 한 주당 이익의 몇 배인지 나타내는 값이에요.${isPositive(eps) ? ` 제공된 주당순이익은 ${formatNativeAmount(eps, input.currency)}이에요.` : ''} 낮다는 이유만으로 저평가라고 단정할 수는 없어요.`,
-    };
-  }
-  if (isPositive(eps)) {
-    return {
-      ...base, available: true, value: `주당순이익 ${formatNativeAmount(eps, input.currency)}`,
-      meaning: '회사의 이익을 주식 한 주 기준으로 나타낸 값이에요. 이익이 늘고 있는지는 이전 실적과 비교해야 알 수 있어요.',
-    };
-  }
-  return { ...base, available: false, value: '자료 확인 전', meaning: 'PER과 주당순이익을 확인하지 못했어요. 가격 흐름만으로 회사의 이익이나 성장성을 판단하지 않아요.' };
-}
-
 /** Public observations only: no score, personal cost basis, or inferred missing fundamentals. */
 export function buildStockCheckup(input: StockCheckupInput): StockCheckup {
-  const items = [priceItem(input), volumeItem(input), earningsItem(input)];
-  const dividend = input.fundamentals?.dividendYield;
-  const sameCurrency = !input.fundamentals?.currency || input.fundamentals.currency === input.currency;
-  if (sameCurrency && isFiniteNumber(dividend) && dividend >= 0) {
-    items.push({
-      id: 'dividend', title: '배당으로 돌려주는 금액', mentorId: 'safe', available: true,
-      value: `배당수익률 ${dividend.toFixed(2)}%`,
-      meaning: dividend === 0
-        ? '제공된 배당수익률은 0%예요. 앞으로도 배당을 하지 않는다는 뜻은 아니에요.'
-        : '주가에 비해 배당금이 어느 정도인지 나타내요. 주가와 배당금이 바뀌면 이 비율도 달라져요.',
-      nextCheck: '회사의 배당 공시에서 기준 기간과 실제 지급 계획을 확인해요. 과거 배당이 다음 배당을 보장하지는 않아요.',
-    });
-  }
+  const items = [priceItem(input), volumeItem(input)];
   const available = items.filter(item => item.available).length;
   return {
     summary: available === 0
       ? '아직 자료가 충분하지 않아요.'
       : available < items.length
         ? '확인된 정보부터 차근차근 살펴봐요.'
-        : '가격과 거래, 기업의 이익을 함께 살펴봐요.',
+        : '가격과 거래량의 변화를 함께 살펴봐요.',
     items,
   };
 }

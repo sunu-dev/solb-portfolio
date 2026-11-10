@@ -1,5 +1,7 @@
 'use client';
 
+import appUI from '../ui/AppUI.module.css';
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -147,7 +149,7 @@ export default function ApiStatsPanel() {
     }
   }
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#8B95A1' }}>API 통계 로딩 중...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>API 통계 로딩 중...</div>;
   if (error) return <div style={{ padding: 40, textAlign: 'center', color: '#EF4452' }}>{error}</div>;
   if (!stats) return null;
 
@@ -158,15 +160,10 @@ export default function ApiStatsPanel() {
       {/* 기간 선택 */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {[6, 24, 72, 168].map(h => (
-          <button
+          <button className={appUI.primaryButton}
             key={h}
             onClick={() => setHours(h)}
-            style={{
-              padding: '6px 14px', fontSize: 12, fontWeight: hours === h ? 700 : 400,
-              color: hours === h ? '#fff' : '#4E5968',
-              background: hours === h ? '#191F28' : '#F2F4F6',
-              border: 'none', borderRadius: 20, cursor: 'pointer',
-            }}
+            style={{ color: hours === h ? 'var(--surface)' : 'var(--text-body)', background: hours === h ? 'var(--text-primary)' : 'var(--bg-subtle)', border: 'none' }}
           >
             최근 {h === 168 ? '7일' : `${h}시간`}
           </button>
@@ -183,13 +180,13 @@ export default function ApiStatsPanel() {
             {stats.safety.checks.map(check => {
               const color = check.level === 'good' ? '#16A34A' : check.level === 'danger' ? '#EF4452' : '#FF9500';
               return (
-                <div key={check.id} style={{ padding: 12, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
+                <div key={check.id} style={{ padding: 12, background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
-                    <strong style={{ color: '#191F28' }}>{check.label}</strong>
+                    <strong style={{ color: 'var(--text-primary)' }}>{check.label}</strong>
                     <span style={{ color, fontWeight: 700 }}>{check.level === 'good' ? '정상' : check.level === 'danger' ? '위험' : '확인'}</span>
                   </div>
                   <div style={{ marginTop: 5, fontSize: 13, fontWeight: 700, color }}>{check.value}</div>
-                  <div style={{ marginTop: 4, fontSize: 10.5, color: '#8B95A1', lineHeight: 1.5 }}>{check.detail}</div>
+                  <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{check.detail}</div>
                 </div>
               );
             })}
@@ -202,15 +199,15 @@ export default function ApiStatsPanel() {
         <Section title="AI Provider 상태">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {/* Gemini */}
-            <div style={{ padding: 14, background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
+            <div style={{ padding: 14, background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A' }} />
                 Gemini (primary)
               </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
                 {stats.provider.gemini.keys > 0 ? `${stats.provider.gemini.keys}개 키 활성` : '키 없음'}
               </div>
-              <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
                 Flash Lite: $0.10/1M in, $0.40/1M out
               </div>
             </div>
@@ -218,12 +215,12 @@ export default function ApiStatsPanel() {
             {/* Claude */}
             <div style={{
               padding: 14,
-              background: stats.provider.claude.available ? '#fff' : '#F8F9FA',
+              background: stats.provider.claude.available ? 'var(--surface)' : 'var(--bg-subtle)',
               border: `1px solid ${stats.provider.claude.available ? 'var(--border-light, #F2F4F6)' : 'var(--border-light, #E5E8EB)'}`,
               borderRadius: 12,
               opacity: stats.provider.claude.available ? 1 : 0.6,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8B95A1', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-secondary)', marginBottom: 6 }}>
                 <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: '50%', background: '#AF52DE' }} />
                 Claude Haiku (fallback)
               </div>
@@ -231,15 +228,15 @@ export default function ApiStatsPanel() {
                 <>
                   <div style={{
                     fontSize: 16, fontWeight: 700,
-                    color: stats.provider.claude.remaining < 50 ? '#EF4452' : stats.provider.claude.used > 0 ? '#FF9500' : '#191F28',
+                    color: stats.provider.claude.remaining < 50 ? '#EF4452' : stats.provider.claude.used > 0 ? '#FF9500' : 'var(--text-primary)',
                   }}>
                     {stats.provider.claude.used} / {stats.provider.claude.limit} 회
                   </div>
-                  <div style={{ fontSize: 11, color: '#B0B8C1', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4 }}>
                     예상 비용 ${stats.provider.claude.estimatedCostUsd} / 오늘
                   </div>
                   {/* 진행 바 */}
-                  <div style={{ marginTop: 8, height: 4, background: '#F2F4F6', borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ marginTop: 8, height: 4, background: 'var(--bg-subtle)', borderRadius: 2, overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
@@ -251,7 +248,7 @@ export default function ApiStatsPanel() {
                   </div>
                 </>
               ) : (
-                <div style={{ fontSize: 13, color: '#8B95A1' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                   비활성 (ANTHROPIC_API_KEY 설정 필요)
                 </div>
               )}
@@ -281,7 +278,7 @@ export default function ApiStatsPanel() {
                   label="이번 달 누적 비용"
                   value={stats.aiCost.projection ? formatUsd(stats.aiCost.projection.monthSpentUsd) : '계산 대기'}
                   unit=""
-                  color="#191F28"
+                  color="var(--text-primary)"
                 />
                 <StatCard
                   label="월말 예상 비용"
@@ -297,27 +294,27 @@ export default function ApiStatsPanel() {
                 />
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, fontSize: 11, color: '#4E5968' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12, fontSize: 11, color: 'var(--text-body)' }}>
                 <TokenPill label="입력" value={stats.aiCost.inputTokens} />
                 <TokenPill label="출력" value={stats.aiCost.outputTokens} />
                 <TokenPill label="캐시 입력" value={stats.aiCost.cachedInputTokens} />
                 <TokenPill label="추론" value={stats.aiCost.reasoningTokens} />
               </div>
 
-              <div style={{ padding: 12, marginBottom: 12, background: '#F8F9FA', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
+              <div style={{ padding: 12, marginBottom: 12, background: 'var(--bg-subtle)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
-                  <strong style={{ color: '#191F28' }}>월 예산 하드캡</strong>
+                  <strong style={{ color: 'var(--text-primary)' }}>월 예산 하드캡</strong>
                   {stats.aiCost.monthlyBudget.enabled ? (
                     <span style={{ color: stats.aiCost.monthlyBudget.allowed ? '#16A34A' : '#EF4452', fontWeight: 700 }}>
                       {formatUsd(stats.aiCost.monthlyBudget.spentUsd)} / {formatUsd(stats.aiCost.monthlyBudget.budgetUsd)}
                       {' '}({stats.aiCost.monthlyBudget.usagePercent}%)
                     </span>
                   ) : (
-                    <span style={{ color: '#8B95A1' }}>비활성 · AI_MONTHLY_BUDGET_USD 설정 필요</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>비활성 · AI_MONTHLY_BUDGET_USD 설정 필요</span>
                   )}
                 </div>
                 {stats.aiCost.monthlyBudget.enabled && (
-                  <div style={{ height: 5, marginTop: 8, background: '#E5E8EB', borderRadius: 3, overflow: 'hidden' }}>
+                  <div style={{ height: 5, marginTop: 8, background: 'var(--border-strong)', borderRadius: 3, overflow: 'hidden' }}>
                     <div style={{
                       width: `${Math.min(100, stats.aiCost.monthlyBudget.usagePercent)}%`,
                       height: '100%',
@@ -328,7 +325,7 @@ export default function ApiStatsPanel() {
               </div>
 
               {stats.aiCost.breakdown.length === 0 ? (
-                <div style={{ padding: 16, color: '#8B95A1', fontSize: 13 }}>선택한 기간에 계측된 AI 호출이 없어요.</div>
+                <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 13 }}>선택한 기간에 계측된 AI 호출이 없어요.</div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <div style={{ minWidth: 820, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -338,23 +335,23 @@ export default function ApiStatsPanel() {
                         style={{
                           display: 'grid', gridTemplateColumns: '1.1fr 1.5fr 0.7fr 0.8fr 1fr 0.8fr 0.8fr',
                           gap: 8, padding: '10px 12px', alignItems: 'center',
-                          background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10,
+                          background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 10,
                           fontSize: 11,
                         }}
                       >
-                        <strong style={{ color: '#191F28' }}>{row.feature}</strong>
-                        <code style={{ color: '#4E5968' }}>{row.model}</code>
+                        <strong style={{ color: 'var(--text-primary)' }}>{row.feature}</strong>
+                        <code style={{ color: 'var(--text-body)' }}>{row.model}</code>
                         <span>{row.calls.toLocaleString()}회</span>
                         <strong style={{ color: '#AF52DE' }}>{formatUsd(row.costUsd)}</strong>
-                        <span style={{ color: '#8B95A1' }}>in {formatTokens(row.inputTokens)} / out {formatTokens(row.outputTokens)}</span>
-                        <span style={{ color: '#8B95A1' }}>{row.avgLatencyMs.toLocaleString()}ms</span>
-                        <span style={{ color: row.cacheHitRate > 0 ? '#16A34A' : '#8B95A1' }}>캐시 {row.cacheHitRate}%</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>in {formatTokens(row.inputTokens)} / out {formatTokens(row.outputTokens)}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{row.avgLatencyMs.toLocaleString()}ms</span>
+                        <span style={{ color: row.cacheHitRate > 0 ? '#16A34A' : 'var(--text-secondary)' }}>캐시 {row.cacheHitRate}%</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-              <p style={{ fontSize: 10, color: '#B0B8C1', marginTop: 8 }}>
+              <p style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 8 }}>
                 월말 비용과 잔여 호출은 이번 달 실제 호출당 평균 비용을 기준으로 계산해요. 청구서와 소폭 다를 수 있어요.
               </p>
             </>
@@ -364,7 +361,7 @@ export default function ApiStatsPanel() {
 
       {/* 총괄 카드 3개 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
-        <StatCard label="총 호출 수" value={stats.total.toLocaleString()} unit="회" color="#191F28" />
+        <StatCard label="총 호출 수" value={stats.total.toLocaleString()} unit="회" color="var(--text-primary)" />
         <StatCard
           label="성공률"
           value={`${stats.successRate}%`}
@@ -409,7 +406,7 @@ export default function ApiStatsPanel() {
             );
           })}
         </div>
-        <div style={{ fontSize: 10, color: '#B0B8C1', textAlign: 'center', marginTop: 4 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-secondary)', textAlign: 'center', marginTop: 4 }}>
           과거 ← → 최근 · 빨강: 에러 20%+
         </div>
       </Section>
@@ -418,7 +415,7 @@ export default function ApiStatsPanel() {
       <Section title="엔드포인트별">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {stats.endpoints.length === 0 && (
-            <div style={{ padding: 16, color: '#8B95A1', fontSize: 13 }}>호출 없음</div>
+            <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 13 }}>호출 없음</div>
           )}
           {stats.endpoints.map(e => (
             <div
@@ -426,17 +423,17 @@ export default function ApiStatsPanel() {
               style={{
                 display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
                 gap: 8, padding: '10px 14px', borderRadius: 10,
-                background: '#fff', border: '1px solid var(--border-light, #F2F4F6)',
+                background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)',
                 alignItems: 'center', fontSize: 12,
               }}
             >
-              <code style={{ fontSize: 12, color: '#191F28', fontWeight: 700 }}>{e.endpoint}</code>
+              <code style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 700 }}>{e.endpoint}</code>
               <div><strong>{e.count.toLocaleString()}</strong> 회</div>
               <div style={{ color: e.errorRate > 10 ? '#EF4452' : e.errorRate > 1 ? '#FF9500' : '#16A34A' }}>
                 에러 {e.errors} ({e.errorRate.toFixed(1)}%)
               </div>
-              <div style={{ color: '#8B95A1' }}>p50 {e.p50 ?? '-'}ms</div>
-              <div style={{ color: '#8B95A1' }}>p95 {e.p95 ?? '-'}ms</div>
+              <div style={{ color: 'var(--text-secondary)' }}>p50 {e.p50 ?? '-'}ms</div>
+              <div style={{ color: 'var(--text-secondary)' }}>p95 {e.p95 ?? '-'}ms</div>
             </div>
           ))}
         </div>
@@ -446,26 +443,26 @@ export default function ApiStatsPanel() {
       <Section title="Top 10 호출자">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {stats.topUsers.length === 0 && (
-            <div style={{ padding: 16, color: '#8B95A1', fontSize: 13 }}>호출자 없음</div>
+            <div style={{ padding: 16, color: 'var(--text-secondary)', fontSize: 13 }}>호출자 없음</div>
           )}
           {stats.topUsers.map((u, i) => (
             <div
               key={u.userKey}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
-                background: '#fff', borderRadius: 10, border: '1px solid var(--border-light, #F2F4F6)',
+                background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border-light, #F2F4F6)',
                 fontSize: 12,
               }}
             >
-              <span style={{ width: 24, color: '#B0B8C1', fontWeight: 700 }}>#{i + 1}</span>
+              <span style={{ width: 24, color: 'var(--text-secondary)', fontWeight: 700 }}>#{i + 1}</span>
               <span style={{
                 padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 600,
-                background: u.isAnon ? '#F2F4F6' : 'rgba(49,130,246,0.1)',
-                color: u.isAnon ? '#8B95A1' : '#3182F6',
+                background: u.isAnon ? 'var(--bg-subtle)' : 'rgba(49,130,246,0.1)',
+                color: u.isAnon ? 'var(--text-secondary)' : '#3182F6',
               }}>
                 {u.isAnon ? '비로그인' : '로그인'}
               </span>
-              <code style={{ flex: 1, fontSize: 11, color: '#4E5968', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <code style={{ flex: 1, fontSize: 11, color: 'var(--text-body)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {u.userKey}
               </code>
               <strong>{u.count}회</strong>
@@ -500,11 +497,11 @@ export default function ApiStatsPanel() {
 
 function StatCard({ label, value, unit, color }: { label: string; value: string | number; unit: string; color: string }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
-      <div style={{ fontSize: 12, color: '#8B95A1', marginBottom: 8 }}>{label}</div>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 16, padding: 20 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>{label}</div>
       <div style={{ fontSize: 24, fontWeight: 700, color }}>
         {value}
-        {unit && <span style={{ fontSize: 13, fontWeight: 400, color: '#8B95A1', marginLeft: 4 }}>{unit}</span>}
+        {unit && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--text-secondary)', marginLeft: 4 }}>{unit}</span>}
       </div>
     </div>
   );
@@ -512,8 +509,8 @@ function StatCard({ label, value, unit, color }: { label: string; value: string 
 
 function TokenPill({ label, value }: { label: string; value: number }) {
   return (
-    <span style={{ padding: '5px 9px', background: '#F8F9FA', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 8 }}>
-      {label} <strong style={{ color: '#191F28' }}>{formatTokens(value)}</strong>
+    <span style={{ padding: '5px 9px', background: 'var(--bg-subtle)', border: '1px solid var(--border-light, #F2F4F6)', borderRadius: 8 }}>
+      {label} <strong style={{ color: 'var(--text-primary)' }}>{formatTokens(value)}</strong>
     </span>
   );
 }
@@ -521,7 +518,7 @@ function TokenPill({ label, value }: { label: string; value: number }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#191F28', marginBottom: 10 }}>{title}</div>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>{title}</div>
       {children}
     </div>
   );

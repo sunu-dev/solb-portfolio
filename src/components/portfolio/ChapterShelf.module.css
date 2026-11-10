@@ -43,11 +43,7 @@
 .bookState { display: block; margin-top: 10px; font-size: 11px; line-height: 1.5; }
 .book[aria-pressed='true'] .spine { outline: 2px solid var(--text-primary); outline-offset: 3px; }
 .book[aria-pressed='true'] .bookState { color: var(--text-primary); font-weight: 650; }
-.details { margin-top: 20px; border-top: 1px solid var(--border-light); }
-.details summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 52px; list-style: none; cursor: pointer; color: var(--text-body); font-size: 13px; }
-.details summary::-webkit-details-marker { display: none; }
-.details[open] summary svg { transform: rotate(180deg); }
-.highlights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 12px 0 24px; }
+.details { margin-top: 20px; border-top: 1px solid var(--border-light); }.highlights { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 12px 0 24px; }
 .highlights dt { font-size: 12px; line-height: 1.6; color: var(--text-body); margin-bottom: 8px; word-break: keep-all; }
 .highlights dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
 .highlights dd span { font-variant-numeric: tabular-nums; }

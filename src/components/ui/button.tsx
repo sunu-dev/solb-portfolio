@@ -3,6 +3,7 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
 
+import appUI from "./AppUI.module.css";
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
@@ -51,7 +52,7 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(buttonVariants({ variant, size }), appUI[({ default: "primaryButton", outline: "secondaryButton", secondary: "secondaryButton", ghost: "textButton", destructive: "dangerButton", link: "textButton" } as const)[variant ?? "default"]], (size ?? "default").startsWith("icon") && appUI.iconButton, className)}
       {...props}
     />
   )

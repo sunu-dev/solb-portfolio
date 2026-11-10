@@ -5,6 +5,10 @@ export const SOURCES = {
   bea: 'https://www.bea.gov/news/schedule/ics/online-calendar-subscription.ics',
   bok: 'https://www.bok.or.kr/portal/singl/crncyPolicyDrcMtg/listYear.do?menuNo=200755&mtgSe=A',
 };
+export const BLS_RELEASE_SCHEDULES = {
+  cpi: 'https://www.bls.gov/schedule/news_release/cpi.htm',
+  jobs: 'https://www.bls.gov/schedule/news_release/empsit.htm',
+};
 const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const pad = (n: number) => String(n).padStart(2, '0');
 export function zonedIso(date: string, time: string, zone = 'America/New_York') {
@@ -32,6 +36,36 @@ export function parseCalendarIcs(text: string, source: 'bls' | 'bea'): EconomicE
     out.push({ key: `${kind}:${ref}`, kind, period: ref, title: kind === 'cpi' ? '미국 소비자물가 CPI' : kind === 'jobs' ? '미국 고용보고서' : '미국 소비지출 물가 PCE', at, timeKnown: true, sourceUrl: source === 'bls' ? 'https://www.bls.gov/schedule/' : 'https://www.bea.gov/news/schedule' });
   }
   return out;
+}
+
+/** The BLS subscription omits reference months. Its release tables provide them explicitly. */
+export function parseBlsReleaseSchedule(html: string, kind: keyof typeof BLS_RELEASE_SCHEDULES): EconomicEvent[] {
+  const table = html.match(/<table\b[^>]*class=["'][^"']*\brelease-list\b[^"']*["'][^>]*>([\s\S]*?)<\/table>/i)?.[1];
+  if (!table || !/Reference Month/i.test(table) || !/Release Date/i.test(table) || !/Release Time/i.test(table)) return [];
+  const monthNumber = (name: string) => months.findIndex(month => month.toLowerCase() === name.toLowerCase()
+    || month.slice(0, 3).toLowerCase() === name.replace(/\.$/, '').toLowerCase()) + 1;
+  const events: EconomicEvent[] = [];
+  for (const row of table.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? []) {
+    const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)]
+      .map(([, value]) => value.replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/gi, ' ').replace(/\s+/g, ' ').trim());
+    const period = cells[0]?.match(/^([A-Za-z]+) (20\d{2})$/);
+    const release = cells[1]?.match(/^([A-Za-z]+\.?) (\d{1,2}),? (20\d{2})$/);
+    const time = cells[2]?.match(/^(\d{1,2}):(\d{2}) (AM|PM)$/i);
+    if (!period || !release || !time) continue;
+    const refMonth = monthNumber(period[1]); const releaseMonth = monthNumber(release[1]);
+    const hour = Number(time[1]); const minute = Number(time[2]);
+    if (!refMonth || !releaseMonth || hour < 1 || hour > 12 || minute > 59) continue;
+    const date = `${release[3]}-${pad(releaseMonth)}-${pad(Number(release[2]))}`;
+    const stamp = Date.parse(`${date}T00:00:00Z`);
+    if (!Number.isFinite(stamp) || new Date(stamp).toISOString().slice(0, 10) !== date) continue;
+    const ref = `${period[2]}-${pad(refMonth)}`;
+    const hour24 = hour % 12 + (time[3].toUpperCase() === 'PM' ? 12 : 0);
+    events.push({ key: `${kind}:${ref}`, kind, period: ref,
+      title: kind === 'cpi' ? '미국 소비자물가 CPI' : '미국 고용보고서',
+      at: zonedIso(date, `${pad(hour24)}:${pad(minute)}`), timeKnown: true,
+      sourceUrl: BLS_RELEASE_SCHEDULES[kind] });
+  }
+  return events;
 }
 export function parseFedCalendar(html: string): EconomicEvent[] {
   const events: EconomicEvent[] = [];

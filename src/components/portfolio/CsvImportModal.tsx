@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { requirePortfolioWriteAccess } from '@/lib/portfolioWriteAccess';
+
+import appUI from '../ui/AppUI.module.css';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -17,7 +21,8 @@ import { logApiCall } from '@/lib/apiLogger';
 import { buildPortfolioImportChanges } from '@/lib/portfolioReconciliation';
 import { logFeatureFirstUse } from '@/lib/tourTelemetry';
 import { usePortfolioStore } from '@/store/portfolioStore';
-import { isBlockedLeverage } from '@/utils/leverageGuard';
+import { actionableImportIndices } from '@/lib/portfolioReconciliation';
+import { isSingleStockLeverage } from '@/utils/leverageGuard';
 import {
   applyPortfolioCsvImport,
   buildPortfolioImportTemplateCsv,
@@ -51,12 +56,6 @@ const REASON_COPY: Partial<Record<PortfolioCsvReconciliationRow['reason'], strin
   sold_position_match: '정리한 종목과 같아 자동으로 다시 등록하지 않아요.',
 };
 
-function actionableIndices(rows: PortfolioCsvReconciliationRow[]): Set<number> {
-  return new Set(rows
-    .filter((row) => (row.status === 'new' || row.status === 'changed')
-      && !isBlockedLeverage(row.draft.symbol, row.draft.name))
-    .map((row) => row.inputIndex));
-}
 
 function downloadText(content: string, filename: string, type: string) {
   const url = URL.createObjectURL(new Blob([content], { type }));
@@ -96,7 +95,11 @@ export default function CsvImportModal({ onClose }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const startedAtRef = useRef(0);
   const flowIdRef = useRef('');
-  useFocusTrap(true, dialogRef, onClose);
+  const requestClose = useCallback(() => {
+    if (step === 'review' && !window.confirm('확인 중인 가져오기를 닫을까요? 아직 투자 기록에는 반영되지 않았어요.')) return;
+    onClose();
+  }, [onClose, step]);
+  useFocusTrap(true, dialogRef, requestClose);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
@@ -113,15 +116,14 @@ export default function CsvImportModal({ onClose }: Props) {
       : [],
     [fallbackBroker, fallbackCategory, parsed, stocks],
   );
-  const allActionable = useMemo(() => actionableIndices(reconciliationRows), [reconciliationRows]);
+  const allActionable = useMemo(() => actionableImportIndices(reconciliationRows), [reconciliationRows]);
   const counts = useMemo(() => reconciliationRows.reduce((summary, row) => ({
     ...summary,
     [row.status]: summary[row.status] + 1,
   }), { new: 0, changed: 0, unchanged: 0, needs_review: 0 }), [reconciliationRows]);
   const selectableCount = reconciliationRows.filter((row) =>
     selected.has(row.inputIndex)
-    && (row.status === 'new' || row.status === 'changed')
-    && !isBlockedLeverage(row.draft.symbol, row.draft.name)).length;
+    && (row.status === 'new' || row.status === 'changed')).length;
   const missingBrokerCount = parsed?.rows.filter((row) => !row.broker).length || 0;
   const mutationBlocked = cloudLoadStatus === 'loading'
     || cloudLoadStatus === 'error'
@@ -130,7 +132,7 @@ export default function CsvImportModal({ onClose }: Props) {
 
   const selectForContext = (broker: Broker | '', category: CsvTargetCategory) => {
     if (!parsed) return;
-    setSelected(actionableIndices(
+    setSelected(actionableImportIndices(
       reconcilePortfolioCsvImport(parsed.rows, stocks, broker, category),
     ));
   };
@@ -156,7 +158,7 @@ export default function CsvImportModal({ onClose }: Props) {
       );
       setParsed(nextParsed);
       setFileName(file.name);
-      setSelected(actionableIndices(nextRows));
+      setSelected(actionableImportIndices(nextRows));
       setStep('review');
       const reviewCounts = nextRows.reduce((summary, row) => ({
         ...summary,
@@ -185,17 +187,12 @@ export default function CsvImportModal({ onClose }: Props) {
   };
 
   const applyImport = () => {
+    if (!requirePortfolioWriteAccess()) return;
     if (mutationBlocked) {
       setError('클라우드 기록 상태가 바뀌었어요. 현재 기록을 확인한 뒤 다시 시도해주세요.');
       return;
     }
-    const leverageCount = reconciliationRows.filter((row) =>
-      selected.has(row.inputIndex)
-      && isBlockedLeverage(row.draft.symbol, row.draft.name)).length;
-    const safeSelection = new Set([...selected].filter((inputIndex) => {
-      const row = reconciliationRows.find((candidate) => candidate.inputIndex === inputIndex);
-      return row && !isBlockedLeverage(row.draft.symbol, row.draft.name);
-    }));
+    const safeSelection = new Set([...selected].filter(index => allActionable.has(index)));
     const result = applyPortfolioCsvImport(stocks, reconciliationRows, safeSelection);
     const changes = buildPortfolioImportChanges(
       reconciliationRows,
@@ -206,7 +203,7 @@ export default function CsvImportModal({ onClose }: Props) {
     const checkpoint = commitPortfolioImport(result.stocks, 'CSV 가져오기', {
       summary: result.summary,
       changes,
-      excludedCount: leverageCount + (parsed?.skippedSold || 0),
+      excludedCount: (parsed?.skippedSold || 0),
     });
 
     setCheckpointId(checkpoint);
@@ -216,7 +213,6 @@ export default function CsvImportModal({ onClose }: Props) {
       skipped: result.summary.needsReview
         + result.summary.unchanged
         + result.summary.skippedLimit
-        + leverageCount
         + (parsed?.skippedSold || 0),
     });
     setRestored(false);
@@ -236,6 +232,7 @@ export default function CsvImportModal({ onClose }: Props) {
   };
 
   const restoreImport = () => {
+    if (!requirePortfolioWriteAccess()) return;
     if (mutationBlocked) {
       setError('클라우드 기록 상태가 바뀌어 되돌리기를 멈췄어요. 현재 기록을 먼저 확인해주세요.');
       return;
@@ -278,7 +275,7 @@ export default function CsvImportModal({ onClose }: Props) {
         padding: 16,
         background: 'rgba(0,0,0,0.5)',
       }}
-      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) requestClose(); }}
     >
       <div
         ref={dialogRef}
@@ -306,11 +303,11 @@ export default function CsvImportModal({ onClose }: Props) {
               기존 기록과 비교한 뒤 선택한 변경만 반영해요
             </div>
           </div>
-          <button
+          <button className={appUI.iconButton}
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="CSV 가져오기 닫기"
-            style={{ width: 40, height: 40, display: 'grid', placeItems: 'center', border: 0, background: 'none', color: 'var(--text-tertiary, #8B95A1)', cursor: 'pointer' }}
+            style={{ width: 40, display: 'grid', placeItems: 'center' }}
           >
             <X size={20} aria-hidden="true" />
           </button>
@@ -319,18 +316,10 @@ export default function CsvImportModal({ onClose }: Props) {
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
           {step === 'select' && (
             <>
-              <button
+              <button className={appUI.secondaryButton}
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                style={{
-                  width: '100%',
-                  padding: '42px 20px',
-                  borderRadius: 16,
-                  border: '2px dashed var(--border-strong, #D1D6DB)',
-                  background: 'var(--bg-subtle, #F8F9FA)',
-                  color: 'var(--text-primary, #191F28)',
-                  cursor: 'pointer',
-                }}
+                style={{ width: '100%', flexDirection: 'column', paddingBlock: 24 }}
               >
                 <Upload size={32} color="var(--brand-primary)" aria-hidden="true" />
                 <div style={{ marginTop: 10, fontSize: 15, fontWeight: 700 }}>CSV 파일 선택</div>
@@ -349,29 +338,14 @@ export default function CsvImportModal({ onClose }: Props) {
                 }}
               />
 
-              <button
+              <button className={appUI.secondaryButton}
                 type="button"
                 onClick={() => downloadText(
                   buildPortfolioImportTemplateCsv(),
                   'joobi-portfolio-template.csv',
                   'text/csv;charset=utf-8',
                 )}
-                style={{
-                  width: '100%',
-                  marginTop: 12,
-                  padding: 11,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 7,
-                  borderRadius: 11,
-                  border: '1px solid var(--border-strong, #E5E8EB)',
-                  background: 'var(--surface, #FFFFFF)',
-                  color: 'var(--text-secondary, #4E5968)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
+                style={{ width: '100%', marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}
               >
                 <Download size={15} aria-hidden="true" />
                 입력 양식 받기
@@ -403,14 +377,14 @@ export default function CsvImportModal({ onClose }: Props) {
               {missingBrokerCount > 0 && (
                 <label style={{ display: 'block', marginBottom: 12, color: 'var(--text-secondary, #4E5968)', fontSize: 12, fontWeight: 700 }}>
                   증권사가 비어 있는 {missingBrokerCount}개 행
-                  <select
+                  <select className={appUI.field}
                     value={fallbackBroker}
                     onChange={(event) => {
                       const broker = event.target.value as Broker | '';
                       setFallbackBroker(broker);
                       selectForContext(broker, fallbackCategory);
                     }}
-                    style={{ width: '100%', minHeight: 42, marginTop: 6, padding: '8px 10px', border: '1px solid var(--border-strong, #E5E8EB)', borderRadius: 10, background: 'var(--surface, #FFFFFF)', color: 'var(--text-primary, #191F28)', fontSize: 13 }}
+                    style={{ width: '100%', minHeight: 42, marginTop: 6 }}
                   >
                     <option value="">증권사 선택</option>
                     {BROKER_ORDER.map((broker) => (
@@ -423,24 +397,14 @@ export default function CsvImportModal({ onClose }: Props) {
               {parsed.rows.some((row) => row.category === null) && (
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   {([['investing', '투자 중'], ['watching', '관심 종목']] as const).map(([category, label]) => (
-                    <button
+                    <button className={appUI.primaryButton}
                       key={category}
                       type="button"
                       onClick={() => {
                         setFallbackCategory(category);
                         selectForContext(fallbackBroker, category);
                       }}
-                      style={{
-                        flex: 1,
-                        padding: '8px 0',
-                        borderRadius: 10,
-                        border: 0,
-                        background: fallbackCategory === category ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)',
-                        color: fallbackCategory === category ? 'var(--text-inverse, #FFFFFF)' : 'var(--text-secondary, #4E5968)',
-                        fontSize: 13,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
+                      style={{ flex: 1, border: 0, background: fallbackCategory === category ? 'var(--text-primary, #191F28)' : 'var(--bg-subtle, #F2F4F6)', color: fallbackCategory === category ? 'var(--text-inverse, #FFFFFF)' : 'var(--text-secondary, #4E5968)' }}
                     >
                       {label}
                     </button>
@@ -463,10 +427,10 @@ export default function CsvImportModal({ onClose }: Props) {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <button
+                <button className={appUI.textButton}
                   type="button"
                   onClick={() => setSelected(selectableCount === allActionable.size ? new Set() : allActionable)}
-                  style={{ border: 0, background: 'none', color: 'var(--brand-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+
                 >
                   {selectableCount === allActionable.size ? '전체 해제' : '변경 전체 선택'}
                 </button>
@@ -475,31 +439,19 @@ export default function CsvImportModal({ onClose }: Props) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {reconciliationRows.map((row) => {
                   const actionable = row.status === 'new' || row.status === 'changed';
-                  const blocked = isBlockedLeverage(row.draft.symbol, row.draft.name);
+                  const highRisk = isSingleStockLeverage(row.draft.symbol, row.draft.name);
                   const isSelected = selected.has(row.inputIndex);
                   const detail = row.status === 'changed'
-                    ? row.changes.map((change) => `${change.field === 'avgCost' ? '평단' : '수량'} ${change.before.toLocaleString()} → ${change.after.toLocaleString()}`).join(' · ')
+                    ? row.changes.map((change) => `${change.field === 'avgCost' ? '평단' : '수량'} ${change.before.toLocaleString('ko-KR', { maximumFractionDigits: 20 })} → ${change.after.toLocaleString('ko-KR', { maximumFractionDigits: 20 })}`).join(' · ')
                     : REASON_COPY[row.reason];
 
                   return (
-                    <button
+                    <button className={appUI.primaryButton}
                       key={`${row.csvRowNumber}-${row.draft.symbol}`}
                       type="button"
-                      disabled={!actionable || blocked}
+                      disabled={!actionable}
                       onClick={() => toggleSelect(row.inputIndex)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 14px',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                        borderRadius: 12,
-                        border: `1.5px solid ${row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`,
-                        background: isSelected ? 'var(--brand-primary-bg)' : 'var(--surface, #FFFFFF)',
-                        opacity: row.status === 'unchanged' ? 0.68 : 1,
-                        textAlign: 'left',
-                        cursor: actionable && !blocked ? 'pointer' : 'default',
-                      }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, border: `1.5px solid ${row.status === 'needs_review' ? 'var(--color-warning, #FF9500)' : isSelected ? 'var(--brand-primary)' : 'var(--border-light, #E5E8EB)'}`, background: isSelected ? 'var(--brand-primary-bg)' : 'var(--surface, #FFFFFF)', opacity: row.status === 'unchanged' ? 0.68 : 1, textAlign: 'left' }}
                     >
                       <span style={{ width: 20, height: 20, flexShrink: 0, display: 'grid', placeItems: 'center', borderRadius: 6, background: isSelected ? 'var(--brand-fill)' : 'var(--bg-subtle, #F2F4F6)' }}>
                         {isSelected && <Check size={13} color="white" aria-hidden="true" />}
@@ -508,13 +460,14 @@ export default function CsvImportModal({ onClose }: Props) {
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', color: 'var(--text-primary, #191F28)', fontSize: 13, fontWeight: 700 }}>
                           {row.draft.name || row.draft.symbol}
                           <span style={{ color: 'var(--text-tertiary, #8B95A1)', fontSize: 11, fontWeight: 400 }}>{row.draft.symbol}</span>
-                          <span style={{ color: row.status === 'needs_review' || blocked ? 'var(--color-warning, #FF9500)' : 'var(--brand-primary)', fontSize: 10 }}>
-                            {blocked ? '반영 제한' : STATUS_COPY[row.status]}
+                          <span style={{ color: row.status === 'needs_review' ? 'var(--color-warning, #FF9500)' : 'var(--brand-primary)', fontSize: 10 }}>
+                            {STATUS_COPY[row.status]}
                           </span>
                         </span>
                         <span style={{ display: 'block', marginTop: 5, color: 'var(--text-secondary, #4E5968)', fontSize: 11, lineHeight: 1.5 }}>
                           {row.broker ? BROKER_LABELS[row.broker] : '증권사 확인 필요'} · {row.targetCategory === 'investing' ? '투자 중' : '관심 종목'}
                           {detail ? ` · ${detail}` : ''}
+                          {highRisk ? ' · 고위험 상품: 보유 기록만 가져오며 신규 추천이 아니에요.' : ''}
                         </span>
                       </span>
                       <span style={{ color: 'var(--text-tertiary, #8B95A1)', fontSize: 10 }}>{row.csvRowNumber}행</span>
@@ -533,14 +486,14 @@ export default function CsvImportModal({ onClose }: Props) {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                <button type="button" onClick={reset} style={{ flex: 1, padding: 12, border: 0, borderRadius: 12, background: 'var(--bg-subtle, #F2F4F6)', color: 'var(--text-secondary, #4E5968)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                <button className={appUI.secondaryButton} type="button" onClick={reset} style={{ flex: 1 }}>
                   다른 파일
                 </button>
-                <button
+                <button className={appUI.primaryButton}
                   type="button"
                   onClick={applyImport}
                   disabled={selectableCount === 0 || mutationBlocked}
-                  style={{ flex: 2, padding: 12, border: 0, borderRadius: 12, background: selectableCount > 0 && !mutationBlocked ? 'var(--brand-fill)' : 'var(--border-strong, #D1D6DB)', color: 'var(--on-brand-fg)', fontSize: 13, fontWeight: 700, cursor: selectableCount > 0 && !mutationBlocked ? 'pointer' : 'not-allowed' }}
+                  style={{ flex: 2, border: 0, background: selectableCount > 0 && !mutationBlocked ? 'var(--brand-fill)' : 'var(--border-strong, #D1D6DB)', color: 'var(--on-brand-fg)' }}
                 >
                   {selectableCount}개 변경 승인
                 </button>
@@ -564,11 +517,11 @@ export default function CsvImportModal({ onClose }: Props) {
               )}
               <div style={{ display: 'flex', gap: 8, marginTop: 24 }}>
                 {!restored && (
-                  <button type="button" disabled={mutationBlocked} onClick={restoreImport} style={{ flex: 1, padding: 12, borderRadius: 12, border: '1px solid var(--border-strong, #E5E8EB)', background: 'var(--surface, #FFFFFF)', color: 'var(--text-secondary, #4E5968)', fontSize: 13, fontWeight: 700, cursor: mutationBlocked ? 'not-allowed' : 'pointer', opacity: mutationBlocked ? 0.5 : 1 }}>
+                  <button className={appUI.secondaryButton} type="button" disabled={mutationBlocked} onClick={restoreImport} style={{ flex: 1, opacity: mutationBlocked ? 0.5 : 1 }}>
                     되돌리기
                   </button>
                 )}
-                <button type="button" onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 12, border: 0, background: 'var(--brand-fill)', color: 'var(--on-brand-fg)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                <button className={appUI.primaryButton} type="button" onClick={requestClose} style={{ flex: 1 }}>
                   완료
                 </button>
               </div>

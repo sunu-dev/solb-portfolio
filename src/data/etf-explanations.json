@@ -1,0 +1,2720 @@
+{
+  "version": 1,
+  "selection": "편집 선정 100개와 자산 규모 상위 상품을 합친 미국 상장 ETF·상장상품 300개. 인기·거래량 순위가 아니에요.",
+  "selectedAt": "2026-10-15T15:07:14.863Z",
+  "records": [
+    {
+      "symbol": "SPY",
+      "name": "State Street SPDR S&P 500 ETF",
+      "kind": "equity",
+      "target": "S&P 500에 편입된 미국 대표 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spy/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/spdr-sp-500-etf-trust-spy",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VOO",
+      "name": "Vanguard S&P 500 ETF",
+      "kind": "equity",
+      "target": "S&P 500에 편입된 미국 대표 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/voo/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/voo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IVV",
+      "name": "iShares Core S&P 500 ETF",
+      "kind": "equity",
+      "target": "S&P 500에 편입된 미국 대표 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ivv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239726/ishares-core-sp-500-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QQQ",
+      "name": "Invesco QQQ Trust Series I",
+      "kind": "equity",
+      "target": "나스닥100에 속한 나스닥 상장 대형 비금융 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/qqq/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=qqq",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QQQM",
+      "name": "Invesco NASDAQ 100 ETF",
+      "kind": "equity",
+      "target": "나스닥100에 속한 나스닥 상장 대형 비금융 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/qqqm/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=qqqm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VTI",
+      "name": "Vanguard Morningstar Total Stock Market ETF",
+      "kind": "equity",
+      "target": "대형주부터 작은 기업까지 포함하는 미국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/vti/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vti",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ITOT",
+      "name": "iShares Core S&P Total U.S. Stock Market ETF",
+      "kind": "equity",
+      "target": "S&P Total Market Index를 통해 넓게 담는 미국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/itot/",
+      "issuerUrl": "https://www.ishares.com/us/products/239724/ishares-core-sp-total-us-stock-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHB",
+      "name": "Schwab U.S. Broad Market ETF",
+      "kind": "equity",
+      "target": "미국 대형·중형·소형 기업을 함께 담는 광범위한 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/schb/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPYM",
+      "name": "State Street SPDR Portfolio S&P 500 ETF",
+      "kind": "equity",
+      "target": "S&P 500에 편입된 미국 대표 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spym/",
+      "issuerUrl": "https://us.spdrs.com/en/etf/spdr-portfolio-large-cap-etf-SPYM",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHX",
+      "name": "Schwab U.S. Large-Cap ETF",
+      "kind": "equity",
+      "target": "미국 주식시장의 대형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schx/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schx",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DIA",
+      "name": "State Street SPDR Dow Jones Industrial Average ETF Trust",
+      "kind": "equity",
+      "target": "다우존스 산업평균지수에 속한 30개 기업의 주식. 기업 규모보다 한 주의 가격을 기준으로 비중을 정해요",
+      "sourceUrl": "https://stockanalysis.com/etf/dia/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/spdr-dow-jones-industrial-average-etf-trust-dia",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWM",
+      "name": "iShares Russell 2000 ETF",
+      "kind": "equity",
+      "target": "러셀2000 지수에 속한 미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwm/",
+      "issuerUrl": "https://www.ishares.com/us/products/239710/ishares-russell-2000-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VT",
+      "name": "Vanguard Total World Stock ETF",
+      "kind": "international",
+      "target": "선진국과 신흥국의 대형·중형·소형 기업을 함께 담는 전 세계 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/vt/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vt",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ACWI",
+      "name": "iShares MSCI ACWI ETF",
+      "kind": "international",
+      "target": "MSCI ACWI 지수에 속한 선진국·신흥국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/acwi/",
+      "issuerUrl": "https://www.ishares.com/us/products/239600/ishares-msci-acwi-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "RSP",
+      "name": "Invesco S&P 500 Equal Weight ETF",
+      "kind": "equal-weight",
+      "target": "S&P 500 기업을 정기적으로 같은 비중에 맞춰 담는 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/rsp/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=rsp",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VUG",
+      "name": "Vanguard Morningstar Growth ETF",
+      "kind": "growth",
+      "target": "성장 특성을 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vug/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vug",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHG",
+      "name": "Schwab U.S. Large-Cap Growth ETF",
+      "kind": "growth",
+      "target": "다우존스의 성장주 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schg/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schg",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWF",
+      "name": "iShares Russell 1000 Growth ETF",
+      "kind": "growth",
+      "target": "러셀1000 기업 중 성장 특성이 높은 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwf/",
+      "issuerUrl": "https://www.ishares.com/us/products/239706/ishares-russell-1000-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWD",
+      "name": "iShares Russell 1000 Value ETF",
+      "kind": "value",
+      "target": "러셀1000 기업 중 가치주 기준에 맞는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwd/",
+      "issuerUrl": "https://www.ishares.com/us/products/239708/ishares-russell-1000-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VTV",
+      "name": "Vanguard Morningstar Value ETF",
+      "kind": "value",
+      "target": "가치 평가 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vtv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vtv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IVE",
+      "name": "iShares S&P 500 Value ETF",
+      "kind": "value",
+      "target": "S&P 500 기업 중 가치주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ive/",
+      "issuerUrl": "https://www.ishares.com/us/products/239728/ishares-sp-500-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IVW",
+      "name": "iShares S&P 500 Growth ETF",
+      "kind": "growth",
+      "target": "S&P 500 기업 중 성장주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ivw/",
+      "issuerUrl": "https://www.ishares.com/us/products/239725/ishares-sp-500-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VO",
+      "name": "Vanguard Morningstar Mid-Cap ETF",
+      "kind": "equity",
+      "target": "미국 중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vo/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHD",
+      "name": "Schwab US Dividend Equity ETF",
+      "kind": "dividend",
+      "target": "다우존스 미국 배당100 지수의 배당 지급 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schd/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schd",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VYM",
+      "name": "Vanguard High Dividend Yield Index ETF",
+      "kind": "dividend",
+      "target": "상대적으로 배당수익률이 높은 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vym/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vym",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VIG",
+      "name": "Vanguard Dividend Appreciation ETF",
+      "kind": "dividend",
+      "target": "배당을 꾸준히 늘려 온 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vig/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vig",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DGRO",
+      "name": "iShares Core Dividend Growth ETF",
+      "kind": "dividend",
+      "target": "배당 성장과 지급 여력 등을 기준으로 고르는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dgro/",
+      "issuerUrl": "https://www.ishares.com/us/products/264623/ishares-core-dividend-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "HDV",
+      "name": "iShares Core High Dividend ETF",
+      "kind": "dividend",
+      "target": "배당 지속 가능성 등을 점검해 고르는 미국 고배당 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/hdv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239563/ishares-high-dividend-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPYD",
+      "name": "State Street SPDR Portfolio S&P 500 High Dividend ETF",
+      "kind": "dividend",
+      "target": "S&P 500 기업 중 배당수익률이 높은 기업을 같은 비중으로 담는 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/spyd/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-500-high-dividend-etf-spyd",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SDY",
+      "name": "State Street SPDR S&P Dividend ETF",
+      "kind": "dividend",
+      "target": "오랜 기간 배당을 늘려 온 S&P 1500 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/sdy/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-dividend-etf-sdy",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DGRW",
+      "name": "WisdomTree US Quality Dividend Growth Fund",
+      "kind": "dividend",
+      "target": "배당을 지급하면서 성장성과 재무 건전성 기준을 충족하는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dgrw/",
+      "issuerUrl": "https://www.wisdomtree.com/investments/etfs/equity/dgrw",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JEPI",
+      "name": "JPMorgan Equity Premium Income ETF",
+      "kind": "option-income",
+      "target": "운용사가 고른 미국 대형주와 옵션 수입을 연결하는 주가연계채권(ELN)",
+      "sourceUrl": "https://stockanalysis.com/etf/jepi/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-equity-premium-income-etf-etf-shares-46641q332",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JEPQ",
+      "name": "JPMorgan NASDAQ Equity Premium Income ETF",
+      "kind": "option-income",
+      "target": "나스닥 대형 성장주 중심의 주식과 옵션 수입을 연결하는 주가연계채권(ELN)",
+      "sourceUrl": "https://stockanalysis.com/etf/jepq/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-nasdaq-equity-premium-income-etf-etf-shares-46654q203/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QYLD",
+      "name": "Global X NASDAQ 100 Covered Call ETF",
+      "kind": "option-income",
+      "target": "나스닥100 주식을 담고 해당 지수의 콜옵션을 매도하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/qyld/",
+      "issuerUrl": "https://www.globalxetfs.com/funds/qyld/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XYLD",
+      "name": "Global X S&P 500 Covered Call ETF",
+      "kind": "option-income",
+      "target": "S&P 500 주식에 투자하면서 해당 지수의 콜옵션을 매도하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/xyld/",
+      "issuerUrl": "https://www.globalxetfs.com/funds/xyld/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DIVO",
+      "name": "Amplify CWP Enhanced Dividend Income ETF",
+      "kind": "option-income",
+      "target": "운용사가 고른 배당주에 투자하고 일부 종목의 콜옵션을 선택적으로 매도하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/divo/",
+      "issuerUrl": "https://amplifyetfs.com/divo/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SOXX",
+      "name": "iShares Semiconductor ETF",
+      "kind": "sector",
+      "target": "NYSE 반도체지수에 속한 미국 상장 반도체 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/soxx/",
+      "issuerUrl": "https://www.ishares.com/us/products/239705/SOXX",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SMH",
+      "name": "VanEck Semiconductor ETF",
+      "kind": "sector",
+      "target": "MVIS 미국 상장 반도체25 지수에 속한 반도체 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/smh/",
+      "issuerUrl": "https://www.vaneck.com/us/en/investments/semiconductor-etf-smh/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VGT",
+      "name": "Vanguard Information Technology ETF",
+      "kind": "sector",
+      "target": "미국 정보기술 산업의 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vgt/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vgt",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLK",
+      "name": "State Street Technology Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 정보기술 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlk/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-technology-select-sector-spdr-etf-xlk",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLF",
+      "name": "State Street Financial Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 금융 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlf/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-financial-select-sector-spdr-etf-xlf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLE",
+      "name": "State Street Energy Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 에너지 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xle/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-energy-select-sector-spdr-etf-xle",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLV",
+      "name": "State Street Health Care Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 건강관리·의료 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlv/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-health-care-select-sector-spdr-etf-xlv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLI",
+      "name": "State Street Industrial Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 산업재 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xli/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-industrial-select-sector-spdr-etf-xli",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLY",
+      "name": "State Street Consumer Discretionary Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 경기소비재 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xly/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-consumer-discretionary-select-sector-spdr-etf-xly",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLP",
+      "name": "State Street Consumer Staples Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 필수소비재 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlp/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-consumer-staples-select-sector-spdr-etf-xlp",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLU",
+      "name": "State Street Utilities Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 전기·가스 등 공익사업 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlu/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-utilities-select-sector-spdr-etf-xlu",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLB",
+      "name": "State Street Materials Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 소재 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlb/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-materials-select-sector-spdr-etf-xlb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLRE",
+      "name": "State Street Real Estate Select Sector SPDR ETF",
+      "kind": "real-estate",
+      "target": "S&P 500의 부동산 기업·리츠 주식. 주택담보대출 리츠는 제외해요",
+      "sourceUrl": "https://stockanalysis.com/etf/xlre/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-real-estate-select-sector-spdr-etf-xlre",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLC",
+      "name": "State Street Communication Services Select Sector SPDR ETF",
+      "kind": "sector",
+      "target": "S&P 500 기업 중 통신·미디어·엔터테인먼트 업종의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlc/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/state-street-communication-services-select-sector-spdr-etf-xlc",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IYR",
+      "name": "iShares U.S. Real Estate ETF",
+      "kind": "real-estate",
+      "target": "미국 부동산 기업과 리츠의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iyr/",
+      "issuerUrl": "https://www.ishares.com/us/products/239520/ishares-us-real-estate-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ARKK",
+      "name": "ARK Innovation ETF",
+      "kind": "active-equity",
+      "target": "운용사가 혁신 기술의 수혜를 기대하며 직접 고르는 글로벌 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/arkk/",
+      "issuerUrl": "https://ark-funds.com/funds/arkk/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ARKW",
+      "name": "ARK Next Generation Technology ETF",
+      "kind": "active-equity",
+      "target": "클라우드·모바일 등 차세대 기술 변화를 바탕으로 운용사가 고르는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/arkw/",
+      "issuerUrl": "https://ark-funds.com/funds/arkw/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BOTZ",
+      "name": "Global X Robotics & Artificial Intelligence ETF",
+      "kind": "theme",
+      "target": "로봇·인공지능 개발과 생산에 관련된 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/botz/",
+      "issuerUrl": "https://www.globalxetfs.com/funds/botz/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ROBO",
+      "name": "ROBO Global Robotics & Automation Index ETF",
+      "kind": "theme",
+      "target": "전 세계 로봇·자동화 관련 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/robo/",
+      "issuerUrl": "https://roboglobaletfs.com/robo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CIBR",
+      "name": "First Trust NASDAQ Cybersecurity ETF",
+      "kind": "theme",
+      "target": "나스닥 CTA 사이버보안 지수에 속한 보안 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cibr/",
+      "issuerUrl": "https://www.ftportfolios.com/retail/etf/etfsummary.aspx?Ticker=CIBR",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "HACK",
+      "name": "Amplify Cybersecurity ETF",
+      "kind": "theme",
+      "target": "사이버보안 기술과 서비스를 제공하는 글로벌 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/hack/",
+      "issuerUrl": "https://amplifyetfs.com/hack/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TAN",
+      "name": "Invesco Solar ETF",
+      "kind": "theme",
+      "target": "태양광 사업과 관련된 매출을 내는 글로벌 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/tan/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=tan",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ICLN",
+      "name": "iShares Global Clean Energy ETF",
+      "kind": "theme",
+      "target": "청정에너지 전환 사업에 관련된 글로벌 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/icln/",
+      "issuerUrl": "https://www.ishares.com/us/products/239738/ishares-global-clean-energy-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EWY",
+      "name": "iShares MSCI South Korea ETF",
+      "kind": "international",
+      "target": "MSCI Korea 25/50 지수에 속한 한국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ewy/",
+      "issuerUrl": "https://www.ishares.com/us/products/239681/ishares-msci-south-korea-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EEM",
+      "name": "iShares MSCI Emerging Markets ETF",
+      "kind": "international",
+      "target": "MSCI 신흥국 지수에 속한 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/eem/",
+      "issuerUrl": "https://www.ishares.com/us/products/239637/ishares-msci-emerging-markets-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VWO",
+      "name": "Vanguard FTSE Emerging Markets ETF",
+      "kind": "international",
+      "target": "FTSE 기준으로 분류한 신흥국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/vwo/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vwo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EFA",
+      "name": "iShares MSCI EAFE ETF",
+      "kind": "international",
+      "target": "MSCI EAFE 지수의 유럽·호주·극동 등 선진국 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/efa/",
+      "issuerUrl": "https://www.ishares.com/us/products/239623/ishares-msci-eafe-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VEA",
+      "name": "Vanguard FTSE Developed Markets ETF",
+      "kind": "international",
+      "target": "미국을 제외한 FTSE 선진국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/vea/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vea",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EWJ",
+      "name": "iShares MSCI Japan ETF",
+      "kind": "international",
+      "target": "MSCI 일본 지수에 속한 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ewj/",
+      "issuerUrl": "https://www.ishares.com/us/products/239665/ishares-msci-japan-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FXI",
+      "name": "iShares China Large-Cap ETF",
+      "kind": "international",
+      "target": "홍콩에 상장한 중국 대형 기업 50개의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/fxi/",
+      "issuerUrl": "https://www.ishares.com/us/products/239536/ishares-china-largecap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "KWEB",
+      "name": "KraneShares CSI China Internet ETF",
+      "kind": "theme",
+      "target": "해외에 상장한 중국 인터넷 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/kweb/",
+      "issuerUrl": "https://kraneshares.com/kweb/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TLT",
+      "name": "iShares 20+ Year Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 20년 이상인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/tlt/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239454/TLT",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IEF",
+      "name": "iShares 7-10 Year Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 7~10년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/ief/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239456/ishares-710-year-treasury-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SHY",
+      "name": "iShares 1-3 Year Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 1~3년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/shy/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239452/SHY",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SGOV",
+      "name": "iShares 0-3 Month Treasury Bond ETF",
+      "kind": "cash-bond",
+      "target": "만기가 3개월 이하인 미국 단기 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/sgov/",
+      "issuerUrl": "https://www.ishares.com/us/products/314116/ishares-0-3-month-Treasury-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BIL",
+      "name": "State Street SPDR Bloomberg 1-3 Month T-Bill ETF",
+      "kind": "cash-bond",
+      "target": "만기가 1~3개월인 미국 단기 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/bil/",
+      "issuerUrl": "https://www.ssga.com/us/en/intermediary/etfs/funds/spdr-bloomberg-1-3-month-t-bill-etf-bil",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GOVT",
+      "name": "iShares U.S. Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "여러 만기의 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/govt/",
+      "issuerUrl": "https://www.ishares.com/us/products/239468/ishares-us-treasury-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AGG",
+      "name": "iShares Core U.S. Aggregate Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "미국 국채·회사채·주택담보대출 관련 채권 등을 포함한 투자등급 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/agg/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239458/ishares-core-total-us-bond-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BND",
+      "name": "Vanguard Total Bond Market ETF",
+      "kind": "aggregate-bond",
+      "target": "달러로 발행된 투자등급 과세 채권을 넓게 담는 채권시장",
+      "sourceUrl": "https://stockanalysis.com/etf/bnd/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/bnd",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "LQD",
+      "name": "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "달러로 발행된 투자등급 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/lqd/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239566/ishares-iboxx-investment-grade-corporate-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "HYG",
+      "name": "iShares iBoxx $ High Yield Corporate Bond ETF",
+      "kind": "high-yield",
+      "target": "신용등급이 낮은 대신 높은 이자를 약속하는 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/hyg/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239565/ishares-iboxx-high-yield-corporate-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TIP",
+      "name": "iShares TIPS Bond ETF",
+      "kind": "inflation-bond",
+      "target": "미국 소비자물가에 따라 원금이 조정되는 물가연동국채(TIPS)",
+      "sourceUrl": "https://stockanalysis.com/etf/tip/",
+      "issuerUrl": "https://www.ishares.com/us/products/239467/TIP",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VCIT",
+      "name": "Vanguard Intermediate-Term Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "남은 만기가 5~10년인 투자등급 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/vcit/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vcit",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GLD",
+      "name": "SPDR Gold Shares",
+      "kind": "metal",
+      "target": "실물 금을 보관하고 금 현물 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/gld/",
+      "issuerUrl": "https://www.spdrgoldshares.com/usa/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IAU",
+      "name": "iShares Gold Trust",
+      "kind": "metal",
+      "target": "실물 금을 보관하고 금 현물 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/iau/",
+      "issuerUrl": "https://www.ishares.com/us/products/239561/ishares-gold-trust-fund",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SLV",
+      "name": "iShares Silver Trust",
+      "kind": "metal",
+      "target": "실물 은을 보관하고 은 현물 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/slv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239855/SLV",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "USO",
+      "name": "United States Oil Fund LP",
+      "kind": "commodity-futures",
+      "target": "WTI 원유 가격에 연결되는 선물 계약 중심의 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/uso/",
+      "issuerUrl": "https://www.uscfinvestments.com/filings/commodities/uso",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "UNG",
+      "name": "United States Natural Gas Fund LP",
+      "kind": "commodity-futures",
+      "target": "천연가스 가격에 연결되는 선물·스왑 계약 중심의 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/ung/",
+      "issuerUrl": "https://www.uscfinvestments.com/ung",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IBIT",
+      "name": "iShares Bitcoin Trust ETF",
+      "kind": "bitcoin-spot",
+      "target": "비트코인 현물을 보유해 달러 기준 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/ibit/",
+      "issuerUrl": "https://www.ishares.com/us/products/333011/ishares-bitcoin-trust",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FBTC",
+      "name": "Fidelity Wise Origin Bitcoin Fund",
+      "kind": "bitcoin-spot",
+      "target": "비트코인 현물을 보유해 달러 기준 가격을 따라가는 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/fbtc/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=FBTC",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BITO",
+      "name": "ProShares Bitcoin ETF",
+      "kind": "bitcoin-futures",
+      "target": "비트코인 현물을 직접 담는 대신 비트코인 선물에 투자하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/bito/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/strategic/bito",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TQQQ",
+      "name": "ProShares UltraPro QQQ",
+      "kind": "leverage",
+      "target": "나스닥100 지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/tqqq/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/tqqq",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SQQQ",
+      "name": "ProShares UltraPro Short QQQ",
+      "kind": "leverage",
+      "target": "나스닥100 지수",
+      "multiple": -3,
+      "sourceUrl": "https://stockanalysis.com/etf/sqqq/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/sqqq",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SOXL",
+      "name": "Direxion Daily Semiconductor Bull 3X ETF",
+      "kind": "leverage",
+      "target": "NYSE 반도체지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/soxl/",
+      "issuerUrl": "https://www.direxion.com/product/daily-semiconductor-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SOXS",
+      "name": "Direxion Daily Semiconductor Bear 3X ETF",
+      "kind": "leverage",
+      "target": "NYSE 반도체지수",
+      "multiple": -3,
+      "sourceUrl": "https://stockanalysis.com/etf/soxs/",
+      "issuerUrl": "https://www.direxion.com/product/daily-semiconductor-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "UPRO",
+      "name": "ProShares UltraPro S&P500",
+      "kind": "leverage",
+      "target": "S&P 500 지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/upro/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/upro",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPXU",
+      "name": "ProShares UltraPro Short S&P500",
+      "kind": "leverage",
+      "target": "S&P 500 지수",
+      "multiple": -3,
+      "sourceUrl": "https://stockanalysis.com/etf/spxu/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/spxu",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QLD",
+      "name": "ProShares Ultra QQQ",
+      "kind": "leverage",
+      "target": "나스닥100 지수",
+      "multiple": 2,
+      "sourceUrl": "https://stockanalysis.com/etf/qld/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/qld",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QID",
+      "name": "ProShares UltraShort QQQ",
+      "kind": "leverage",
+      "target": "나스닥100 지수",
+      "multiple": -2,
+      "sourceUrl": "https://stockanalysis.com/etf/qid/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/leveraged-and-inverse/qid",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TNA",
+      "name": "Direxion Daily Small Cap Bull 3X ETF",
+      "kind": "leverage",
+      "target": "러셀2000 미국 소형주 지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/tna/",
+      "issuerUrl": "https://www.direxion.com/product/daily-small-cap-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TZA",
+      "name": "Direxion Daily Small Cap Bear 3X ETF",
+      "kind": "leverage",
+      "target": "러셀2000 미국 소형주 지수",
+      "multiple": -3,
+      "sourceUrl": "https://stockanalysis.com/etf/tza/",
+      "issuerUrl": "https://www.direxion.com/product/daily-small-cap-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TMF",
+      "name": "Direxion Daily 20+ Year Treasury Bull 3X ETF",
+      "kind": "leverage",
+      "target": "만기 20년 이상 미국 국채 지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/tmf/",
+      "issuerUrl": "https://www.direxion.com/product/daily-20-year-treasury-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TMV",
+      "name": "Direxion Daily 20+ Year Treasury Bear 3X ETF",
+      "kind": "leverage",
+      "target": "만기 20년 이상 미국 국채 지수",
+      "multiple": -3,
+      "sourceUrl": "https://stockanalysis.com/etf/tmv/",
+      "issuerUrl": "https://www.direxion.com/product/daily-20-year-treasury-bull-bear-3x-etfs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "KORU",
+      "name": "Direxion Daily MSCI South Korea Bull 3X ETF",
+      "kind": "leverage",
+      "target": "MSCI Korea 25/50 한국 주식 지수",
+      "multiple": 3,
+      "sourceUrl": "https://stockanalysis.com/etf/koru/",
+      "issuerUrl": "https://www.direxion.com/product/daily-msci-south-korea-bull-3x-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IEFA",
+      "name": "iShares Core MSCI EAFE ETF",
+      "kind": "international",
+      "target": "북미를 제외한 선진국의 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iefa/",
+      "issuerUrl": "https://www.ishares.com/us/products/244049/ishares-core-msci-eafe-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VXUS",
+      "name": "Vanguard Total International Stock ETF",
+      "kind": "international",
+      "target": "미국을 제외한 전 세계 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vxus/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vxus",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IEMG",
+      "name": "iShares Core MSCI Emerging Markets ETF",
+      "kind": "international",
+      "target": "MSCI 신흥국 기준의 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iemg/",
+      "issuerUrl": "https://www.ishares.com/us/products/244050/ishares-core-msci-emerging-markets-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IJH",
+      "name": "iShares Core S&P Mid-Cap ETF",
+      "kind": "equity",
+      "target": "S&P 중형주400 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ijh/",
+      "issuerUrl": "https://www.ishares.com/us/products/239763/ishares-core-sp-midcap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IJR",
+      "name": "iShares Core S&P Small Cap ETF",
+      "kind": "equity",
+      "target": "S&P 소형주600 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ijr/",
+      "issuerUrl": "https://www.ishares.com/us/products/239774/ishares-core-sp-smallcap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BNDX",
+      "name": "Vanguard Total International Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "미국 밖의 투자등급 채권. 외화 변동을 달러 기준으로 줄이는 환헤지를 사용해요",
+      "sourceUrl": "https://stockanalysis.com/etf/bndx/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/bndx",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VB",
+      "name": "Vanguard Morningstar Small-Cap ETF",
+      "kind": "equity",
+      "target": "미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vb/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VEU",
+      "name": "Vanguard FTSE All-World ex-US Index Fund",
+      "kind": "international",
+      "target": "미국을 제외한 전 세계 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/veu/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/veu",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHF",
+      "name": "Schwab International Equity ETF",
+      "kind": "international",
+      "target": "미국을 제외한 선진국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schf/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IXUS",
+      "name": "iShares Core MSCI Total International Stock ETF",
+      "kind": "international",
+      "target": "미국 밖 선진국·신흥국의 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ixus/",
+      "issuerUrl": "https://www.ishares.com/us/products/244048/ishares-core-msci-total-international-stock-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPYG",
+      "name": "State Street SPDR Portfolio S&P 500 Growth ETF",
+      "kind": "growth",
+      "target": "S&P 500 기업 중 성장주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spyg/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-500-growth-etf-spyg",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWR",
+      "name": "iShares Russell Midcap ETF",
+      "kind": "equity",
+      "target": "러셀 중형주 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwr/",
+      "issuerUrl": "https://www.ishares.com/us/products/239718/ishares-russell-midcap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VV",
+      "name": "Vanguard Morningstar Large-Cap ETF",
+      "kind": "equity",
+      "target": "미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VTEB",
+      "name": "Vanguard Tax-Exempt Bond ETF",
+      "kind": "muni-bond",
+      "target": "미국 주정부·지방정부 등이 발행한 투자등급 지방채",
+      "sourceUrl": "https://stockanalysis.com/etf/vteb/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vteb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MUB",
+      "name": "iShares National Muni Bond ETF",
+      "kind": "muni-bond",
+      "target": "미국 주정부·지방정부 등이 발행한 투자등급 지방채",
+      "sourceUrl": "https://stockanalysis.com/etf/mub/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239766/ishares-national-amtfree-muni-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWB",
+      "name": "iShares Russell 1000 ETF",
+      "kind": "equity",
+      "target": "러셀1000 지수에 속한 미국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwb/",
+      "issuerUrl": "https://www.ishares.com/us/products/239707/ishares-russell-1000-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QUAL",
+      "name": "iShares MSCI USA Quality Factor ETF",
+      "kind": "quality",
+      "target": "이익의 질과 안정성·부채 수준 등을 기준으로 고르는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/qual/",
+      "issuerUrl": "https://www.ishares.com/us/products/256101/ishares-msci-usa-quality-factor-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IUSB",
+      "name": "iShares Core Total USD Bond Market ETF",
+      "kind": "aggregate-bond",
+      "target": "달러 표시 과세 채권을 넓게 담는 미국 종합 채권시장",
+      "sourceUrl": "https://stockanalysis.com/etf/iusb/",
+      "issuerUrl": "https://www.ishares.com/us/products/264615/ishares-core-total-usd-bond-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAC",
+      "name": "Dimensional U.S. Core Equity 2 ETF",
+      "kind": "active-equity",
+      "target": "미국 주식 전반에서 소형주 등 특성을 고려해 운용사가 직접 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfac/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfac/us-core-equity-2-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VONG",
+      "name": "Vanguard Russell 1000 Growth ETF",
+      "kind": "growth",
+      "target": "러셀1000 기업 중 성장주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vong/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vong",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BSV",
+      "name": "Vanguard Short-Term Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "만기 1~5년의 국채·투자등급 회사채 등 달러 표시 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/bsv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/bsv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VCSH",
+      "name": "Vanguard Short-Term Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "만기 1~5년의 투자등급 고정금리 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/vcsh/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vcsh",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DYNF",
+      "name": "iShares U.S. Equity Factor Rotation Active ETF",
+      "kind": "active-equity",
+      "target": "여러 투자 특성의 비중을 운용사가 바꾸며 고르는 미국 대형·중형 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dynf/",
+      "issuerUrl": "https://www.ishares.com/us/products/307283/#:~:text=The%20iShares%20U.S.%20Equity%20Factor,via%20a%20factor%20rotation%20model.",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JPST",
+      "name": "JPMorgan Ultra-Short Income ETF",
+      "kind": "cash-bond",
+      "target": "금리 민감도를 짧게 관리하는 달러 표시 우량 단기 채권. 국채만 담는 상품은 아니에요",
+      "sourceUrl": "https://stockanalysis.com/etf/jpst/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/gim/adv/products/d/jpmorgan-ultra-short-Income-etf-etf-shares-46641q837",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPDW",
+      "name": "State Street SPDR Portfolio Developed World ex-US ETF",
+      "kind": "international",
+      "target": "미국을 제외한 선진국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/spdw/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-developed-world-ex-us-etf-spdw",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VGIT",
+      "name": "Vanguard Intermediate-Term Treasury ETF",
+      "kind": "treasury",
+      "target": "만기 3~10년의 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/vgit/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vgit",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CGDV",
+      "name": "Capital Group Dividend Value ETF",
+      "kind": "active-equity",
+      "target": "배당을 지급하는 미국 대형·중형 기업 중심으로 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cgdv/",
+      "issuerUrl": "https://www.capitalgroup.com/advisor/investments/exchange-traded-funds/details/cgdv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VNQ",
+      "name": "Vanguard Real Estate ETF",
+      "kind": "real-estate",
+      "target": "미국 부동산을 소유·운영하는 기업과 리츠의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vnq/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vnq",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPYV",
+      "name": "State Street SPDR Portfolio S&P 500 Value ETF",
+      "kind": "value",
+      "target": "S&P 500 기업 중 가치주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spyv/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-500-value-etf-spyv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VBR",
+      "name": "Vanguard Morningstar Small-Cap Value ETF",
+      "kind": "value",
+      "target": "가치 평가 기준으로 고르는 미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vbr/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vbr",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MGK",
+      "name": "Vanguard Morningstar Mega Cap Growth ETF",
+      "kind": "growth",
+      "target": "성장 특성을 기준으로 고르는 미국 초대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/mgk/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/mgk",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MBB",
+      "name": "iShares MBS ETF",
+      "kind": "mortgage-bond",
+      "target": "미국 주택담보대출의 원리금 흐름에 연결된 주택저당증권(MBS)",
+      "sourceUrl": "https://stockanalysis.com/etf/mbb/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239465/ishares-mbs-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VGSH",
+      "name": "Vanguard Short-Term Treasury ETF",
+      "kind": "treasury",
+      "target": "만기 1~3년의 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/vgsh/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vgsh",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IUSG",
+      "name": "iShares Core S&P U.S. Growth ETF",
+      "kind": "growth",
+      "target": "S&P 900 기업 중 성장 특성이 있는 미국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iusg/",
+      "issuerUrl": "https://www.ishares.com/us/products/239713/IUSG",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IDEV",
+      "name": "iShares Core MSCI International Developed Markets ETF",
+      "kind": "international",
+      "target": "미국을 제외한 MSCI 선진국 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/idev/",
+      "issuerUrl": "https://www.ishares.com/us/products/286762/IDEV",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JAAA",
+      "name": "Janus Henderson AAA CLO ETF",
+      "kind": "clo",
+      "target": "기업 대출을 묶은 상품인 CLO 중 AAA 등급 채권 중심의 변동금리 투자",
+      "sourceUrl": "https://stockanalysis.com/etf/jaaa/",
+      "issuerUrl": "https://www.janushenderson.com/en-us/advisor/product/jaaa-aaa-clo-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GLDM",
+      "name": "SPDR Gold Minishares Trust of beneficial interest",
+      "kind": "metal",
+      "target": "실물 금을 보관하고 금 현물 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/gldm/",
+      "issuerUrl": "https://us.spdrs.com/en/etf/spdr-gold-minishares-trust-GLDM",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVUV",
+      "name": "Avantis U.S. Small Cap Value ETF",
+      "kind": "active-equity",
+      "target": "가치·수익성 등을 살펴 운용사가 고르는 미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avuv/",
+      "issuerUrl": "https://www.avantisinvestors.com/content/avantis/en/investments/avantis-u-s-small-cap-value-etf.html",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VXF",
+      "name": "Vanguard Extended Market ETF",
+      "kind": "equity",
+      "target": "S&P 500에 포함되지 않은 미국 중소형 기업 중심의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vxf/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vxf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EFV",
+      "name": "iShares MSCI EAFE Value ETF",
+      "kind": "value",
+      "target": "유럽·호주·극동 등 선진국 기업 중 가치주 기준에 맞는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/efv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239628/ishares-msci-eafe-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VGK",
+      "name": "Vanguard FTSE Europe ETF",
+      "kind": "international",
+      "target": "유럽 선진국의 대형·중형·소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vgk/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vgk",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VOOG",
+      "name": "Vanguard S&P 500 Growth ETF",
+      "kind": "growth",
+      "target": "S&P 500 기업 중 성장주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/voog/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/voog",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BIV",
+      "name": "Vanguard Intermediate-Term Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "만기 5~10년의 투자등급 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/biv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/biv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVEM",
+      "name": "Avantis Emerging Markets Equity ETF",
+      "kind": "active-equity",
+      "target": "신흥국 기업 중 가치·수익성 등 여러 기준으로 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avem/",
+      "issuerUrl": "https://www.avantisinvestors.com/avantis-investments/avantis-emerging-markets-equity-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FBND",
+      "name": "Fidelity Total Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "운용사가 종류와 만기를 조절하며 직접 고르는 종합 채권 포트폴리오",
+      "sourceUrl": "https://stockanalysis.com/etf/fbnd/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=FBND",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FNDX",
+      "name": "Schwab Fundamental U.S. Large Company ETF",
+      "kind": "quality",
+      "target": "매출·현금흐름·배당 및 자사주 매입 등 실적 지표로 비중을 정하는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/fndx/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/fndx",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IUSV",
+      "name": "iShares Core S&P US Value ETF",
+      "kind": "value",
+      "target": "S&P 900 기업 중 가치주 특성이 있는 미국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iusv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239715/IUSV",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GDX",
+      "name": "VanEck Gold Miners ETF",
+      "kind": "sector",
+      "target": "금·은을 채굴하는 글로벌 광산 기업의 주식. 금 현물을 직접 담는 상품과는 달라요",
+      "sourceUrl": "https://stockanalysis.com/etf/gdx/",
+      "issuerUrl": "https://www.vaneck.com/us/en/investments/gold-miners-etf-gdx/overview",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CGGR",
+      "name": "Capital Group Growth ETF",
+      "kind": "active-equity",
+      "target": "자본 성장을 목표로 운용사가 직접 고르는 미국 기업 중심의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cggr/",
+      "issuerUrl": "https://www.capitalgroup.com/advisor/investments/exchange-traded-funds/details/cggr",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MDY",
+      "name": "State Street SPDR S&P MIDCAP 400 ETF Trust",
+      "kind": "equity",
+      "target": "S&P 중형주400 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/mdy/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/funds/spdr-sp-midcap-400-etf-trust-mdy",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IYW",
+      "name": "iShares U.S. Technology ETF",
+      "kind": "sector",
+      "target": "미국 기술 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iyw/",
+      "issuerUrl": "https://www.ishares.com/us/products/239522/ishares-us-technology-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EMXC",
+      "name": "iShares MSCI Emerging Markets ex China ETF",
+      "kind": "international",
+      "target": "중국을 제외한 MSCI 신흥국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/emxc/",
+      "issuerUrl": "https://www.ishares.com/us/products/288504/?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "RDVY",
+      "name": "First Trust Rising Dividend Achievers ETF",
+      "kind": "dividend",
+      "target": "배당 증가와 재무 지표를 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/rdvy/",
+      "issuerUrl": "https://www.ftportfolios.com/retail/etf/etfsummary.aspx?Ticker=RDVY",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FNDF",
+      "name": "Schwab Fundamental International Equity ETF",
+      "kind": "quality",
+      "target": "실적 관련 지표를 기준으로 비중을 정하는 미국 밖 선진국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/fndf/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/fndf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "USHY",
+      "name": "iShares Broad USD High Yield Corporate Bond ETF",
+      "kind": "high-yield",
+      "target": "달러 표시 고수익·저신용 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/ushy/",
+      "issuerUrl": "https://www.ishares.com/us/products/291299/ishares-broad-usd-high-yield-corporate-bond-etf-fund",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "USMV",
+      "name": "iShares MSCI USA Min Vol Factor ETF",
+      "kind": "quality",
+      "target": "주가 변동을 줄이는 조합을 목표로 선정·배분한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/usmv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239695/USMV?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SHV",
+      "name": "iShares Trust iShares 0-1 Year Treasury Bond ETF",
+      "kind": "cash-bond",
+      "target": "남은 만기가 1년 이하인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/shv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239466/?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VOE",
+      "name": "Vanguard Morningstar Mid-Cap Value ETF",
+      "kind": "value",
+      "target": "가치 특성을 기준으로 고르는 미국 중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/voe/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/voe",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IGSB",
+      "name": "iShares 1-5 Year Investment Grade Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "만기 1~5년의 달러 표시 투자등급 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/igsb/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239451/ishares-13-year-credit-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VBK",
+      "name": "Vanguard Morningstar Small-Cap Growth ETF",
+      "kind": "growth",
+      "target": "성장 특성을 기준으로 고르는 미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vbk/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vbk",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPMO",
+      "name": "Invesco S&P 500 Momentum ETF",
+      "kind": "momentum",
+      "target": "S&P 500 기업 중 위험을 고려한 최근 주가 흐름이 강한 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spmo/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=spmo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DRAM",
+      "name": "Roundhill Memory ETF",
+      "kind": "active-equity",
+      "target": "메모리 산업과 관련된 글로벌 기업에 주식·파생상품으로 투자하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/dram/",
+      "issuerUrl": "https://www.roundhillinvestments.com/etf/dram/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DVY",
+      "name": "iShares Select Dividend ETF",
+      "kind": "dividend",
+      "target": "배당수익률 등을 기준으로 고르는 미국 배당 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dvy/",
+      "issuerUrl": "https://www.ishares.com/us/products/239500/ishares-select-dividend-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FTEC",
+      "name": "Fidelity MSCI Information Technology Index ETF",
+      "kind": "sector",
+      "target": "미국 정보기술 산업 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ftec/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=FTEC",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VONV",
+      "name": "Vanguard Russell 1000 Value ETF",
+      "kind": "value",
+      "target": "러셀1000 기업 중 가치주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vonv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vonv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVLV",
+      "name": "Avantis U.S. Large Cap Value ETF",
+      "kind": "active-equity",
+      "target": "가치·수익성 등을 살펴 운용사가 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avlv/",
+      "issuerUrl": "https://www.avantisinvestors.com/avantis-investments/avantis-us-large-cap-value-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHA",
+      "name": "Schwab U.S. Small-Cap ETF",
+      "kind": "equity",
+      "target": "미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/scha/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/scha",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFUS",
+      "name": "Dimensional U.S. Equity Market ETF",
+      "kind": "active-equity",
+      "target": "미국 기업 전반에서 운용사가 직접 선정·배분하는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfus/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfus/us-equity-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFIV",
+      "name": "Dimensional International Value ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국의 가치 특성을 가진 기업 중심으로 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfiv/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfiv/international-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VYMI",
+      "name": "Vanguard International High Dividend Yield ETF",
+      "kind": "dividend",
+      "target": "미국 밖 선진국·신흥국의 고배당 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vymi/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vymi",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "USFR",
+      "name": "WisdomTree Floating Rate Treasury Fund",
+      "kind": "floating-treasury",
+      "target": "시장 단기금리에 맞춰 이자가 바뀌는 미국 변동금리 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/usfr/",
+      "issuerUrl": "https://www.wisdomtree.com/investments/etfs/fixed-income/usfr",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "OEF",
+      "name": "iShares S&P 100 ETF",
+      "kind": "equity",
+      "target": "S&P 100에 속한 미국 대표 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/oef/",
+      "issuerUrl": "https://www.ishares.com/us/products/239723/ishares-sp-100-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VTIP",
+      "name": "Vanguard Short-Term Inflation-Protected Securities ETF",
+      "kind": "inflation-bond",
+      "target": "남은 만기가 5년 미만인 미국 물가연동국채",
+      "sourceUrl": "https://stockanalysis.com/etf/vtip/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vtip",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWV",
+      "name": "iShares Russell 3000 ETF",
+      "kind": "equity",
+      "target": "러셀3000 지수를 통해 넓게 담는 미국 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/iwv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239714/ishares-russell-3000-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVDV",
+      "name": "Avantis International Small Cap Value ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국의 소형 가치주 중심으로 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avdv/",
+      "issuerUrl": "https://www.avantisinvestors.com/content/avantis/en/investments/avantis-international-small-cap-value-etf.html",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MTUM",
+      "name": "iShares MSCI USA Momentum Factor ETF",
+      "kind": "momentum",
+      "target": "최근 주가 흐름과 변동성을 함께 고려해 고르는 미국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/mtum/",
+      "issuerUrl": "https://www.ishares.com/us/products/251614/ishares-msci-usa-momentum-factor-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWP",
+      "name": "iShares Russell Mid-Cap Growth ETF",
+      "kind": "growth",
+      "target": "러셀 중형주 지수에서 성장 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwp/",
+      "issuerUrl": "https://www.ishares.com/us/products/239717/ishares-russell-midcap-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PULS",
+      "name": "PGIM Ultra Short Bond ETF",
+      "kind": "cash-bond",
+      "target": "운용사가 고르는 달러 표시 우량 초단기 채권. 국채만 담는 상품은 아니에요",
+      "sourceUrl": "https://stockanalysis.com/etf/puls/",
+      "issuerUrl": "https://www.pgim.com/us/en/intermediary/investment-capabilities/products/etf/pgim-ultra-short-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VOT",
+      "name": "Vanguard Morningstar Mid-Cap Growth ETF",
+      "kind": "growth",
+      "target": "성장 특성을 기준으로 고르는 미국 중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vot/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vot",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BBJP",
+      "name": "JPMorgan BetaBuilders Japan ETF",
+      "kind": "international",
+      "target": "일본 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/bbjp/",
+      "issuerUrl": "https://am.jpmorgan.com/us/EN/asset-management/adv/products/jpmorgan-betabuilders-japan-etf-etf-shares-46641q217/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VHT",
+      "name": "Vanguard Health Care ETF",
+      "kind": "sector",
+      "target": "미국 건강관리·의료 산업 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vht/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vht",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVDE",
+      "name": "Avantis International Equity ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국 주식에서 가치·규모 등을 고려해 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avde/",
+      "issuerUrl": "https://www.avantisinvestors.com/avantis-investments/avantis-international-equity-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPHQ",
+      "name": "Invesco S&P 500 Quality ETF",
+      "kind": "quality",
+      "target": "이익의 질과 재무 지표를 기준으로 고르는 S&P 500 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/sphq/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=sphq",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IQMM",
+      "name": "ProShares GENIUS Money Market ETF",
+      "kind": "cash-bond",
+      "target": "만기가 93일 이하인 미국 국채 중심으로 운용하는 단기 금융상품",
+      "sourceUrl": "https://stockanalysis.com/etf/iqmm/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/strategic/iqmm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "COWZ",
+      "name": "Pacer US Cash Cows 100 ETF",
+      "kind": "quality",
+      "target": "사업에 쓰고 남은 현금인 잉여현금흐름을 기준으로 고르고 비중을 정하는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cowz/",
+      "issuerUrl": "https://www.paceretfs.com/products/cowz",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IGIB",
+      "name": "iShares 5-10 Year Investment Grade Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "만기 5~10년의 달러 표시 투자등급 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/igib/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239463/ishares-intermediate-credit-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MINT",
+      "name": "PIMCO Enhanced Short Maturity Active Exchange-Traded Fund",
+      "kind": "cash-bond",
+      "target": "운용사가 고르는 단기 채권. 은행 예금이나 원금 보장 상품은 아니에요",
+      "sourceUrl": "https://stockanalysis.com/etf/mint/",
+      "issuerUrl": "https://www.pimco.com/en-us/investments/etf/enhanced-short-maturity-active-exchange-traded-fund",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPMD",
+      "name": "State Street SPDR Portfolio S&P 400 Mid Cap ETF",
+      "kind": "equity",
+      "target": "S&P 중형주400 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spmd/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-400-mid-cap-etf-spmd",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ESGU",
+      "name": "iShares ESG Aware MSCI USA ETF",
+      "kind": "quality",
+      "target": "환경·사회·지배구조 기준을 반영해 선정·배분하는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/esgu/",
+      "issuerUrl": "https://www.ishares.com/us/products/286007/ESGU",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAI",
+      "name": "Dimensional International Core Equity Market ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국에서 가격과 수익성 등을 고려해 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfai/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfai/international-core-equity-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "USIG",
+      "name": "iShares Broad USD Investment Grade Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "달러 표시 투자등급 회사채를 넓게 담는 채권 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/usig/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239460/ishares-credit-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ACWX",
+      "name": "iShares MSCI ACWI ex U.S. ETF",
+      "kind": "international",
+      "target": "미국 밖 선진국·신흥국의 대형·중형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/acwx/",
+      "issuerUrl": "https://www.ishares.com/us/products/239594/ishares-msci-acwi-ex-us-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPEM",
+      "name": "State Street SPDR Portfolio Emerging Markets ETF",
+      "kind": "international",
+      "target": "S&P 기준으로 분류한 신흥국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spem/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-emerging-markets-etf-spem",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWY",
+      "name": "iShares Russell Top 200 Growth ETF",
+      "kind": "growth",
+      "target": "미국 초대형 기업 중 성장주 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iwy/",
+      "issuerUrl": "https://www.ishares.com/us/products/239720/ishares-russell-top-200-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IEI",
+      "name": "iShares 3-7 Year Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 3~7년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/iei/",
+      "issuerUrl": "https://www.ishares.com/us/Products/239455/ishares-37-year-treasury-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VTWO",
+      "name": "Vanguard Russell 2000 ETF",
+      "kind": "equity",
+      "target": "러셀2000 지수에 속한 미국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vtwo/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vtwo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BINC",
+      "name": "iShares Flexible Income Active ETF",
+      "kind": "aggregate-bond",
+      "target": "전 세계 여러 종류·신용등급·만기의 채권을 운용사가 직접 고르는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/binc/",
+      "issuerUrl": "https://www.ishares.com/us/products/331752/blackrock-flexible-income-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "STIP",
+      "name": "iShares 0-5 Year TIPS Bond ETF",
+      "kind": "inflation-bond",
+      "target": "남은 만기가 5년 미만인 미국 물가연동국채",
+      "sourceUrl": "https://stockanalysis.com/etf/stip/",
+      "issuerUrl": "https://www.ishares.com/us/products/239450/ishares-05-year-tips-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PYLD",
+      "name": "PIMCO Multisector Bond Active Exchange-Traded Fund",
+      "kind": "aggregate-bond",
+      "target": "지역·신용등급·만기를 폭넓게 활용해 운용사가 직접 고르는 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/pyld/",
+      "issuerUrl": "https://www.pimco.com/en-us/investments/etf/multisector-bond-active-exchange-traded-fund",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHP",
+      "name": "Schwab US TIPS ETF",
+      "kind": "inflation-bond",
+      "target": "남은 만기가 1년 이상인 미국 물가연동국채",
+      "sourceUrl": "https://stockanalysis.com/etf/schp/",
+      "issuerUrl": "https://www.schwabfunds.com/products/schp#",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPSM",
+      "name": "State Street SPDR Portfolio S&P 600 Small Cap ETF",
+      "kind": "equity",
+      "target": "S&P 소형주600 지수에 속한 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/spsm/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-600-small-cap-etf-spsm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VMBS",
+      "name": "Vanguard Mortgage-Backed Securities ETF",
+      "kind": "mortgage-bond",
+      "target": "미국 주택담보대출의 원리금 흐름에 연결된 주택저당증권",
+      "sourceUrl": "https://stockanalysis.com/etf/vmbs/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vmbs",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHO",
+      "name": "Schwab Short-Term US Treasury ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 1~3년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/scho/",
+      "issuerUrl": "https://www.schwabfunds.com/products/scho",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHV",
+      "name": "Schwab U.S. Large-Cap Value ETF",
+      "kind": "value",
+      "target": "가치 평가 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schv/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFUV",
+      "name": "Dimensional US Marketwide Value ETF",
+      "kind": "active-equity",
+      "target": "가치 특성이 있는 미국 기업을 운용사가 직접 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfuv/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfuv/us-marketwide-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "QQQI",
+      "name": "NEOS Nasdaq 100 High Income ETF",
+      "kind": "option-income",
+      "target": "나스닥100 주식과 해당 지수의 콜옵션 전략을 활용하는 수입 중심 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/qqqi/",
+      "issuerUrl": "https://neosfunds.com/qqqi",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GSLC",
+      "name": "TR Activebeta US Large Cap Equity ETF",
+      "kind": "quality",
+      "target": "가치·주가 흐름·재무 건전성·낮은 변동성 등 여러 기준으로 배분하는 미국 대형주",
+      "sourceUrl": "https://stockanalysis.com/etf/gslc/",
+      "issuerUrl": "https://assetmanagement.gs.com/content/gsam/us/en/individual/products/etf-fund-finder/goldman-sachs-activebeta-u-s--large-cap-equity-etf.html#scType=Common+Shares",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWS",
+      "name": "iShares Russell Mid-Cap Value ETF",
+      "kind": "value",
+      "target": "러셀 중형주 지수에서 가치 특성이 있는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iws/",
+      "issuerUrl": "https://www.ishares.com/us/products/239719/ishares-russell-midcap-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFIC",
+      "name": "Dimensional International Core Equity 2 ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국에서 가치·수익성·규모 등을 고려해 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfic/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfic/international-core-equity-2-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EFG",
+      "name": "iShares MSCI EAFE Growth ETF",
+      "kind": "growth",
+      "target": "유럽·호주·극동 등 선진국 기업 중 성장 특성이 있는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/efg/",
+      "issuerUrl": "https://www.ishares.com/us/products/239622/ishares-msci-eafe-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IGV",
+      "name": "iShares Expanded Tech-Software Sector ETF",
+      "kind": "sector",
+      "target": "미국·캐나다 소프트웨어 기업 중심의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/igv/",
+      "issuerUrl": "https://www.ishares.com/us/products/239771/ishares-north-american-techsoftware-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PVAL",
+      "name": "Putnam Focused Large Cap Value ETF",
+      "kind": "active-equity",
+      "target": "운용사가 직접 고르는 미국 대형 가치주. 매일 전체 보유 종목을 공개하는 방식과는 공개 범위가 달라요",
+      "sourceUrl": "https://stockanalysis.com/etf/pval/",
+      "issuerUrl": "https://www.franklintempleton.com/investments/options/exchange-traded-funds/products/39434/SINGLCLASS/putnam-focused-large-cap-value-etf/PVAL",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AVUS",
+      "name": "Avantis U.S. Equity ETF",
+      "kind": "active-equity",
+      "target": "가치·수익성·기업 규모 등을 고려해 운용사가 고르는 미국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/avus/",
+      "issuerUrl": "https://www.avantisinvestors.com/avantis-investments/avantis-us-equity-etf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAS",
+      "name": "Dimensional U.S. Small Cap ETF",
+      "kind": "active-equity",
+      "target": "여러 재무 특성을 고려해 운용사가 고르는 미국 소형주",
+      "sourceUrl": "https://stockanalysis.com/etf/dfas/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfas/us-small-cap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JCPB",
+      "name": "JPMorgan Core Plus Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "여러 종류의 채권을 운용사가 직접 고르는 종합 채권 포트폴리오",
+      "sourceUrl": "https://stockanalysis.com/etf/jcpb/",
+      "issuerUrl": "https://am.jpmorgan.com/content/dam/jpm-am-aem/americas/us/en/literature/fact-sheet/etfs/FS-JCPB.PDF",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHM",
+      "name": "Schwab U.S. Mid-Cap ETF",
+      "kind": "equity",
+      "target": "미국 중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/schm/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PAAA",
+      "name": "PGIM AAA CLO ETF",
+      "kind": "clo",
+      "target": "달러 표시 CLO 중 AAA 등급 채권을 운용사가 직접 고르는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/paaa/",
+      "issuerUrl": "https://www.pgim.com/investments/etfs/pgim-aaa-clo-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BOXX",
+      "name": "Alpha Architect 1-3 Month Box ETF",
+      "kind": "box-spread",
+      "target": "박스 스프레드라는 옵션 조합을 이용해 1~3개월 미국 단기 국채와 비슷한 수익을 목표로 하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/boxx/",
+      "issuerUrl": "https://funds.alphaarchitect.com/boxetf/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BAI",
+      "name": "iShares A.I. Innovation and Tech Active ETF",
+      "kind": "active-equity",
+      "target": "인공지능·기술 분야의 글로벌 기업을 운용사가 직접 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/bai/",
+      "issuerUrl": "https://www.blackrock.com/us/individual/products/339081/ishares-a-i-innovation-and-tech-active-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPTM",
+      "name": "State Street SPDR Portfolio S&P 1500 Composite Stock Market ETF",
+      "kind": "equity",
+      "target": "S&P 1500 지수에 속한 미국 대형·중형·소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/sptm/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-sp-1500-composite-stock-market-etf-sptm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWO",
+      "name": "iShares Russell 2000 Growth ETF",
+      "kind": "growth",
+      "target": "러셀2000 기업 중 성장 특성이 있는 미국 소형주",
+      "sourceUrl": "https://stockanalysis.com/etf/iwo/",
+      "issuerUrl": "https://www.ishares.com/us/products/239709/ishares-russell-2000-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MGV",
+      "name": "Vanguard Morningstar Mega Cap Value ETF",
+      "kind": "value",
+      "target": "가치 평가 기준으로 고르는 미국 초대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/mgv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/mgv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IWN",
+      "name": "iShares Russell 2000 Value ETF",
+      "kind": "value",
+      "target": "러셀2000 기업 중 가치 특성이 있는 미국 소형주",
+      "sourceUrl": "https://stockanalysis.com/etf/iwn/",
+      "issuerUrl": "https://www.ishares.com/us/products/239712/ishares-russell-2000-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAT",
+      "name": "Dimensional U.S. Targeted Value ETF",
+      "kind": "active-equity",
+      "target": "운용사가 직접 고르는 미국 중소형 가치주",
+      "sourceUrl": "https://stockanalysis.com/etf/dfat/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfat/us-targeted-value-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PAVE",
+      "name": "Global X U.S. Infrastructure Development ETF",
+      "kind": "theme",
+      "target": "미국 인프라 개발과 관련된 사업을 하는 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/pave/",
+      "issuerUrl": "https://www.globalxetfs.com/funds/pave/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IQLT",
+      "name": "iShares MSCI Intl Quality Factor ETF",
+      "kind": "quality",
+      "target": "미국 밖 선진국에서 재무 건전성 등을 기준으로 고르는 대형·중형 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/iqlt/",
+      "issuerUrl": "https://www.ishares.com/us/products/271540/ishares-msci-international-developed-quality-factor-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VBIL",
+      "name": "Vanguard 0-3 Month Treasury Bill ETF",
+      "kind": "cash-bond",
+      "target": "만기가 3개월 이하인 미국 단기 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/vbil/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vbil",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ESGV",
+      "name": "Vanguard ESG U.S. Stock ETF",
+      "kind": "quality",
+      "target": "환경·사회·지배구조 기준을 반영해 고르는 미국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/esgv/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/esgv",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHR",
+      "name": "Schwab Intermediate-Term US Treasury ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 3~10년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/schr/",
+      "issuerUrl": "https://www.schwabfunds.com/products/schr",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CORO",
+      "name": "iShares International Country Rotation Active ETF",
+      "kind": "active-equity",
+      "target": "국가별 경제 전망을 바탕으로 운용사가 미국 밖 국가의 투자 비중을 바꾸는 재간접 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/coro/",
+      "issuerUrl": "https://www.blackrock.com",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EWZ",
+      "name": "iShares MSCI Brazil ETF",
+      "kind": "international",
+      "target": "MSCI Brazil 25/50 지수에 속한 브라질 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ewz/",
+      "issuerUrl": "https://us.ishares.com/product_info/fund/overview/EWZ.htm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAU",
+      "name": "Dimensional US Core Equity Market ETF",
+      "kind": "active-equity",
+      "target": "기업 규모와 재무 특성을 고려해 운용사가 고르는 미국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfau/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfau/us-core-equity-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VFH",
+      "name": "Vanguard Financials ETF",
+      "kind": "sector",
+      "target": "미국 금융 업종 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vfh/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vfh",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EMB",
+      "name": "iShares JP Morgan USD Emerging Markets Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "신흥국 정부 등이 달러로 발행한 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/emb/",
+      "issuerUrl": "https://us.ishares.com/product_info/fund/overview/EMB.htm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHE",
+      "name": "Schwab Emerging Markets Equity ETF",
+      "kind": "international",
+      "target": "FTSE 신흥국 기준의 대형·중형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/sche/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/sche",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCZ",
+      "name": "iShares MSCI EAFE Small-Cap ETF",
+      "kind": "international",
+      "target": "유럽·아시아·극동 등 선진국의 소형 기업 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/scz/",
+      "issuerUrl": "https://www.ishares.com/us/products/239627/ishares-msci-eafe-smallcap-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DUHP",
+      "name": "Dimensional US High Profitability ETF",
+      "kind": "active-equity",
+      "target": "상대적으로 높은 수익성을 기준으로 운용사가 고르는 미국 대형주",
+      "sourceUrl": "https://stockanalysis.com/etf/duhp/",
+      "issuerUrl": "https://us.dimensional.com/etfs/duhp/us-high-profitability-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AMLP",
+      "name": "Alerian MLP ETF",
+      "kind": "energy-partnership",
+      "target": "미국 에너지 운송·저장 등 인프라 사업을 하는 상장 합자회사(MLP)의 지분",
+      "sourceUrl": "https://stockanalysis.com/etf/amlp/",
+      "issuerUrl": "https://www.alpsfunds.com/exchange-traded-funds/amlp",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPYI",
+      "name": "NEOS S&P 500 High Income ETF",
+      "kind": "option-income",
+      "target": "S&P 500 주식과 해당 지수의 옵션 전략을 활용하는 수입 중심 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/spyi/",
+      "issuerUrl": "https://neosfunds.com/spyi/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IAGG",
+      "name": "iShares Core International Aggregate Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "미국 밖 통화로 발행된 투자등급 채권. 외화 변동을 달러 기준으로 줄이는 환헤지를 사용해요",
+      "sourceUrl": "https://stockanalysis.com/etf/iagg/",
+      "issuerUrl": "https://www.ishares.com/us/products/279626/ishares-international-aggregate-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "EWT",
+      "name": "iShares MSCI Taiwan ETF",
+      "kind": "international",
+      "target": "MSCI Taiwan 25/50 지수에 속한 대만 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ewt/",
+      "issuerUrl": "https://us.ishares.com/product_info/fund/overview/EWT.htm",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SUB",
+      "name": "iShares Short-Term National Muni Bond ETF",
+      "kind": "muni-bond",
+      "target": "미국 주정부·지방정부 등이 발행한 단기 투자등급 지방채",
+      "sourceUrl": "https://stockanalysis.com/etf/sub/",
+      "issuerUrl": "https://www.ishares.com/us/products/239772/ishares-short-term-national-muni-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAX",
+      "name": "Dimensional World ex U.S. Core Equity 2 ETF",
+      "kind": "active-equity",
+      "target": "미국 밖 선진국·신흥국 기업을 운용사가 직접 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfax/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfax/world-ex-us-core-equity-2-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CGUS",
+      "name": "Capital Group Core Equity ETF",
+      "kind": "active-equity",
+      "target": "가격 상승과 배당 가능성을 살펴 운용사가 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cgus/",
+      "issuerUrl": "https://www.capitalgroup.com/advisor/investments/exchange-traded-funds/details/cgus",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GRID",
+      "name": "First Trust Nasdaq Clean Edge Smart GRID Infrastructure Index",
+      "kind": "theme",
+      "target": "스마트 전력망과 전력 인프라에 관련된 글로벌 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/grid/",
+      "issuerUrl": "https://www.ftportfolios.com/retail/etf/etfsummary.aspx?Ticker=GRID",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PFF",
+      "name": "iShares Preferred & Income Securities ETF",
+      "kind": "preferred",
+      "target": "미국 시장에서 거래되는 우선주와 수입형 증권",
+      "sourceUrl": "https://stockanalysis.com/etf/pff/",
+      "issuerUrl": "https://www.ishares.com/us/products/239826/ishares-us-preferred-stock-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XLG",
+      "name": "Invesco S&P 500 Top 50 ETF",
+      "kind": "equity",
+      "target": "S&P 500 기업 중 시가총액이 큰 50개 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/xlg/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=xlg",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "CGGO",
+      "name": "Capital Group Global Growth Equity ETF",
+      "kind": "active-equity",
+      "target": "성장 잠재력을 기준으로 운용사가 고르는 미국·해외 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/cggo/",
+      "issuerUrl": "https://www.capitalgroup.com/advisor/investments/exchange-traded-funds/details/cggo",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ITA",
+      "name": "iShares U.S. Aerospace & Defense ETF",
+      "kind": "sector",
+      "target": "미국 항공우주·방위산업 관련 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ita/",
+      "issuerUrl": "https://www.ishares.com/us/products/239502/ishares-us-aerospace-defense-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPHY",
+      "name": "State Street SPDR Portfolio High Yield Bond ETF",
+      "kind": "high-yield",
+      "target": "달러 표시 고수익·저신용 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/sphy/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-high-yield-bond-etf-sphy",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ESGD",
+      "name": "iShares ESG Aware MSCI EAFE ETF",
+      "kind": "quality",
+      "target": "미국·캐나다 밖 선진국에서 환경·사회·지배구조 기준을 반영해 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/esgd/",
+      "issuerUrl": "https://www.ishares.com/us/products/283778/ESGD?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MOAT",
+      "name": "VanEck Morningstar Wide Moat ETF",
+      "kind": "quality",
+      "target": "지속적인 경쟁 우위와 적정 가치 평가를 함께 고려해 고르는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/moat/",
+      "issuerUrl": "https://www.vaneck.com/us/en/investments/morningstar-wide-moat-etf-moat/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IGM",
+      "name": "iShares Expanded Tech Sector ETF",
+      "kind": "sector",
+      "target": "미국·캐나다 기술 기업 중심의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/igm/",
+      "issuerUrl": "https://www.ishares.com/us/products/239769/ishares-north-american-tech-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VFLO",
+      "name": "VictoryShares Free Cash Flow ETF",
+      "kind": "quality",
+      "target": "잉여현금흐름과 성장 지표를 기준으로 고르는 미국 대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vflo/",
+      "issuerUrl": "https://www.vcm.com/products/victoryshares-etfs/victoryshares-etfs-list/victoryshares-free-cash-flow-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFCF",
+      "name": "Dimensional Core Fixed Income ETF",
+      "kind": "aggregate-bond",
+      "target": "운용사가 직접 고르는 글로벌 투자등급 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/dfcf/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfcf/core-fixed-income-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FENI",
+      "name": "Fidelity Enhanced International ETF",
+      "kind": "active-equity",
+      "target": "미국·캐나다 밖 선진국 주식을 정량 분석 등을 활용해 운용사가 고르는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/feni/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=FENI",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VSS",
+      "name": "Vanguard FTSE All-World ex-US Small-Cap ETF",
+      "kind": "international",
+      "target": "미국 밖 선진국·신흥국 소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vss/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vss",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "TLH",
+      "name": "iShares 10-20 Year Treasury Bond ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 10~20년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/tlh/",
+      "issuerUrl": "https://www.ishares.com/us/products/239453/ishares-10-20-year-treasury-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FLOT",
+      "name": "iShares Floating Rate Bond ETF",
+      "kind": "floating-bond",
+      "target": "달러 표시 투자등급 변동금리 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/flot/",
+      "issuerUrl": "https://www.ishares.com/us/products/239534/ishares-floating-rate-bond-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPIB",
+      "name": "State Street SPDR Portfolio Intermediate Term Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "남은 만기가 1~10년인 투자등급 고정금리 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/spib/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-intermediate-term-corporate-bond-etf-spib",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPTL",
+      "name": "State Street SPDR Portfolio Long Term Treasury ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 10년 이상인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/sptl/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-long-term-treasury-etf-sptl",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "NOBL",
+      "name": "ProShares S&P 500 Dividend Aristocrats ETF",
+      "kind": "dividend",
+      "target": "오랜 기간 매년 배당을 늘린 S&P 500 기업을 같은 비중으로 담는 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/nobl/",
+      "issuerUrl": "https://www.proshares.com/our-etfs/strategic/nobl",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VDE",
+      "name": "Vanguard Energy ETF",
+      "kind": "sector",
+      "target": "미국 에너지 업종 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/vde/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vde",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPSB",
+      "name": "State Street SPDR Portfolio Short Term Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "남은 만기가 1~3년인 투자등급 고정금리 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/spsb/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-short-term-corporate-bond-etf-spsb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ONEQ",
+      "name": "Fidelity Nasdaq Composite Index ETF",
+      "kind": "equity",
+      "target": "나스닥 종합지수를 따라 넓게 담는 나스닥 상장 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/oneq/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=ONEQ",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JPIE",
+      "name": "JPMorgan Income ETF",
+      "kind": "aggregate-bond",
+      "target": "수입을 목표로 운용사가 여러 종류·시장의 채권 비중을 조절하는 전략",
+      "sourceUrl": "https://stockanalysis.com/etf/jpie/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-income-etf-etf-shares-46641q159/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BBCA",
+      "name": "JPMorgan BetaBuilders Canada ETF",
+      "kind": "international",
+      "target": "캐나다 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/bbca/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/gim/adv/Products/d/jpmorgan-betabuilders-canada-etf-etf-shares-46641q696",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BUFR",
+      "name": "FT Vest Laddered Buffer ETF",
+      "kind": "buffer",
+      "target": "만기가 분산된 여러 미국 주식 버퍼 ETF를 묶어 투자하는 재간접 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/bufr/",
+      "issuerUrl": "https://www.ftportfolios.com/retail/etf/etfsummary.aspx?Ticker=BUFR",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JIRE",
+      "name": "JPMorgan International Research Enhanced Equity ETF",
+      "kind": "active-equity",
+      "target": "북미 밖 선진국 기업을 운용사가 직접 고르는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/jire/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-international-research-enhanced-equity-etf-etf-shares-46641q134/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SDVY",
+      "name": "First Trust SMID Cap Rising Dividend Achievers ETF",
+      "kind": "dividend",
+      "target": "배당 증가와 재무 지표를 기준으로 고르는 미국 중소형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/sdvy/",
+      "issuerUrl": "https://www.ftportfolios.com/retail/etf/etfsummary.aspx?Ticker=SDVY",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHI",
+      "name": "Schwab 5-10 Year Corporate Bond ETF",
+      "kind": "corporate-bond",
+      "target": "남은 만기가 5~10년인 달러 표시 투자등급 회사채",
+      "sourceUrl": "https://stockanalysis.com/etf/schi/",
+      "issuerUrl": "https://www.schwabfunds.com/public/csim/home/products/exchange_traded_funds/summary.html?symbol=SCHI",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHH",
+      "name": "Schwab U.S. REIT ETF",
+      "kind": "real-estate",
+      "target": "미국 주식형 리츠. 주택담보대출 리츠와 혼합형 리츠는 제외해요",
+      "sourceUrl": "https://stockanalysis.com/etf/schh/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/schh",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PBUS",
+      "name": "Invesco MSCI USA ETF",
+      "kind": "equity",
+      "target": "MSCI USA 지수에 속한 미국 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/pbus/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=pbus",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IBB",
+      "name": "iShares Biotechnology ETF",
+      "kind": "sector",
+      "target": "미국에 상장된 바이오테크 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ibb/",
+      "issuerUrl": "https://www.ishares.com/us/products/239699/IBB?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IJK",
+      "name": "iShares S&P Mid-Cap 400 Growth ETF",
+      "kind": "growth",
+      "target": "S&P 중형주400 기업 중 성장 특성이 있는 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ijk/",
+      "issuerUrl": "https://www.ishares.com/us/products/239762/ishares-sp-midcap-400-growth-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPTI",
+      "name": "State Street SPDR Portfolio Intermediate Term Treasury ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 3~10년인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/spti/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-intermediate-term-treasury-etf-spti",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VGLT",
+      "name": "Vanguard Long-Term Treasury ETF",
+      "kind": "treasury",
+      "target": "남은 만기가 10년 이상인 미국 국채",
+      "sourceUrl": "https://stockanalysis.com/etf/vglt/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vglt",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "AIQ",
+      "name": "Global X Artificial Intelligence & Technology ETF",
+      "kind": "theme",
+      "target": "인공지능·빅데이터에 관련된 선진국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/aiq/",
+      "issuerUrl": "https://www.globalxetfs.com/funds/aiq/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SCHZ",
+      "name": "Schwab US Aggregate Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "미국 국채·회사채·주택저당증권 등을 넓게 담는 투자등급 채권시장",
+      "sourceUrl": "https://stockanalysis.com/etf/schz/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/insights/products/schz",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FNDE",
+      "name": "Schwab Fundamental Emerging Markets Equity ETF",
+      "kind": "quality",
+      "target": "매출·현금흐름·배당 및 자사주 매입 등 실적 지표로 선정·배분하는 신흥국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/fnde/",
+      "issuerUrl": "https://www.schwabassetmanagement.com/products/fnde",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "MGC",
+      "name": "Vanguard Morningstar Mega Cap ETF",
+      "kind": "equity",
+      "target": "미국 초대형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/mgc/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/mgc",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IGF",
+      "name": "iShares Global Infrastructure ETF",
+      "kind": "theme",
+      "target": "전 세계 인프라 관련 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/igf/",
+      "issuerUrl": "https://www.ishares.com/us/products/239746/ishares-global-infrastructure-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "GBTC",
+      "name": "Grayscale Bitcoin Trust ETF",
+      "kind": "bitcoin-spot",
+      "target": "비트코인 현물을 보유해 달러 기준 가격을 따라가는 신탁",
+      "sourceUrl": "https://stockanalysis.com/etf/gbtc/",
+      "issuerUrl": "https://grayscale.com/products/grayscale-bitcoin-trust/",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "FDVV",
+      "name": "Fidelity High Dividend ETF",
+      "kind": "dividend",
+      "target": "배당 관련 지표가 양호한 대형·중형 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/fdvv/",
+      "issuerUrl": "https://digital.fidelity.com/prgw/digital/research/quote/dashboard/summary?symbol=FDVV",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "XBI",
+      "name": "State Street SPDR S&P Biotech ETF",
+      "kind": "sector",
+      "target": "미국 바이오테크 기업을 동일 비중 중심으로 담는 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/xbi/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-sp-biotech-etf-xbi",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "SPAB",
+      "name": "State Street SPDR Portfolio Aggregate Bond ETF",
+      "kind": "aggregate-bond",
+      "target": "달러 표시 투자등급 채권을 넓게 담는 미국 종합 채권시장",
+      "sourceUrl": "https://stockanalysis.com/etf/spab/",
+      "issuerUrl": "https://www.ssga.com/us/en/institutional/etfs/state-street-spdr-portfolio-aggregate-bond-etf-spab",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JGRO",
+      "name": "JPMorgan Active Growth ETF",
+      "kind": "active-equity",
+      "target": "이익 성장 가능성을 기준으로 운용사가 고르는 미국 대형주",
+      "sourceUrl": "https://stockanalysis.com/etf/jgro/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-active-growth-etf-etf-shares-46654q609",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "RWL",
+      "name": "Invesco S&P 500 Revenue ETF",
+      "kind": "quality",
+      "target": "S&P 500 기업을 매출 규모에 따라 비중을 정해 담는 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/rwl/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=rwl",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFAE",
+      "name": "Dimensional Emerging Core Equity Market ETF",
+      "kind": "active-equity",
+      "target": "기업 규모와 재무 특성을 고려해 운용사가 고르는 신흥국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfae/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfae/emerging-core-equity-market-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "PRF",
+      "name": "Invesco RAFI US 1000 ETF",
+      "kind": "quality",
+      "target": "재무 지표를 기준으로 기업을 선정하고 비중을 정하는 미국 주식 묶음",
+      "sourceUrl": "https://stockanalysis.com/etf/prf/",
+      "issuerUrl": "https://www.invesco.com/us/financial-products/etfs/product-detail?audienceType=investor&ticker=prf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VUSB",
+      "name": "Vanguard Ultra-Short Bond ETF",
+      "kind": "cash-bond",
+      "target": "운용사가 만기를 짧게 관리하며 직접 고르는 투자등급 채권",
+      "sourceUrl": "https://stockanalysis.com/etf/vusb/",
+      "issuerUrl": "https://investor.vanguard.com/investment-products/etfs/profile/vusb",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BLCR",
+      "name": "iShares Large Cap Core Active ETF",
+      "kind": "active-equity",
+      "target": "재무·정량 분석을 활용해 운용사가 고르는 대형주 중심의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/blcr/",
+      "issuerUrl": "https://www.ishares.com/us/products/333889/ishares-large-cap-core-active-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "ETHA",
+      "name": "iShares Ethereum Trust ETF",
+      "kind": "ether-spot",
+      "target": "이더리움의 가상자산인 이더 현물 가격을 따라가는 상품",
+      "sourceUrl": "https://stockanalysis.com/etf/etha/",
+      "issuerUrl": "https://www.ishares.com/us/products/337614/ishares-ethereum-trust-eth",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IXN",
+      "name": "iShares Global Tech ETF",
+      "kind": "sector",
+      "target": "전 세계 기술 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ixn/",
+      "issuerUrl": "https://www.ishares.com/us/products/239750/ishares-global-tech-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "BBUS",
+      "name": "JPMorgan BetaBuilders U.S. Equity ETF",
+      "kind": "equity",
+      "target": "미국 기업을 시가총액 기준으로 담는 주식시장",
+      "sourceUrl": "https://stockanalysis.com/etf/bbus/",
+      "issuerUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/products/jpmorgan-betabuilders-u-s-equity-etf-etf-shares-46641q399",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DFEM",
+      "name": "Dimensional Emerging Markets Core Equity 2 ETF",
+      "kind": "active-equity",
+      "target": "기업 규모와 재무 특성을 고려해 운용사가 고르는 신흥국 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/dfem/",
+      "issuerUrl": "https://us.dimensional.com/etfs/dfem/emerging-markets-core-equity-2-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "IOO",
+      "name": "iShares Global 100 ETF",
+      "kind": "international",
+      "target": "전 세계 대표 다국적 기업 100개의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/ioo/",
+      "issuerUrl": "https://www.ishares.com/us/products/239737/ishares-global-100-etf",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "JQUA",
+      "name": "JPMorgan U.S. Quality Factor ETF",
+      "kind": "quality",
+      "target": "수익성·이익·상환 능력 등 재무 기준으로 고르는 미국 기업의 주식",
+      "sourceUrl": "https://stockanalysis.com/etf/jqua/",
+      "issuerUrl": "https://am.jpmorgan.com/us/EN/asset-management/adv/products/jpmorgan-us-quality-Factor-etf-etf-shares-46641q761",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "VLUE",
+      "name": "iShares MSCI USA Value Factor ETF",
+      "kind": "value",
+      "target": "업종별 재무 지표와 가격을 비교해 고르는 미국 대형·중형 가치주",
+      "sourceUrl": "https://stockanalysis.com/etf/vlue/",
+      "issuerUrl": "https://www.ishares.com/us/products/251616/VLUE?referrer=tickerSearch",
+      "checkedAt": "2026-10-15"
+    },
+    {
+      "symbol": "DBEF",
+      "name": "Xtrackers MSCI EAFE Hedged Equity ETF",
+      "kind": "international",
+      "target": "북미 밖 선진국 주식. 현지 통화 변동을 달러 기준으로 줄이는 환헤지를 사용해요",
+      "sourceUrl": "https://stockanalysis.com/etf/dbef/",
+      "issuerUrl": "https://dws.com/US/EN/Product-Detail-Page/DBEF",
+      "checkedAt": "2026-10-15"
+    }
+  ]
+}
