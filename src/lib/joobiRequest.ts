@@ -1,4 +1,4 @@
-import { JOOBI_STAGES, type JoobiProgress } from './joobiProgress';
+import { JOOBI_STAGES, parseJoobiPricePreview, type JoobiPreview, type JoobiProgress } from './joobiProgress';
 /** Transport errors must not be presented as a depleted question allowance. */
 export class JoobiRequestError extends Error {
   constructor(public readonly kind: 'timeout' | 'server' | 'format') { super(kind); }
@@ -13,7 +13,7 @@ export function withRequestSignal<T>(work: Promise<T>, signal: AbortSignal): Pro
   });
 }
 
-export async function readJoobiResponse(response: Response, progress?: JoobiProgress) {
+export async function readJoobiResponse(response: Response, progress?: JoobiProgress, preview?: JoobiPreview) {
   if (response.headers?.get('Content-Type')?.includes('application/x-ndjson')) {
     const reader = response.body?.getReader();
     if (!reader) throw new JoobiRequestError('format');
@@ -30,6 +30,7 @@ export async function readJoobiResponse(response: Response, progress?: JoobiProg
           const line = buffer.slice(0, newline); buffer = buffer.slice(newline + 1);
           const event = JSON.parse(line);
           if (event.type === 'stage' && Object.hasOwn(JOOBI_STAGES, event.stage)) progress?.(event.stage);
+          if (event.type === 'preview') { const parsed = parseJoobiPricePreview(event.preview); if (parsed) preview?.(parsed); }
           if (event.type === 'result' && event.body && typeof event.body === 'object' && !Array.isArray(event.body)) return { ...event.body, httpStatus: event.status };
         }
       }

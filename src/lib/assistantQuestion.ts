@@ -238,6 +238,13 @@ export function assistantStatusQuestion(question: AssistantQuestion) {
   return Boolean(question.symbol) && /(?:어때요?|어떤가요?)[?？.!~\s]*$/.test(text) && text.replace(/\s+/g, '').length <= 14;
 }
 
+/** 가격 움직임 자체를 묻는 질문. 설명을 쓰는 동안 서버가 확인한 등락률을 먼저 보여준다.
+ * 매수·매도 고민에는 그날의 등락률을 앞세우지 않는다. */
+export function assistantAsksAboutPriceMove(question: AssistantQuestion) {
+  if (assistantFollowUpStyle(question) || assistantConversationIntent(question) !== 'explain') return false;
+  return assistantStatusQuestion(question) || /주가|가격|시세|올랐|오르|올라|내렸|내려|내리|떨어|하락|상승|급등|급락|폭등|폭락|반등|움직|빠졌|빠지|등락|무슨\s*일/.test(question.text);
+}
+
 /** Simple definitions and price comparisons do not pay for web research. Follow-up topics stay connected. */
 export function assistantNeedsArticles(question: AssistantQuestion) {
   if (assistantFollowUpStyle(question)) return false;

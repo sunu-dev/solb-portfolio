@@ -31,10 +31,15 @@
 .welcome { display:flex; align-items:flex-start; gap:14px; padding:24px 0 12px; }
 .welcome h3 { margin:3px 0 8px; font-size:19px; font-weight:650; letter-spacing:-.04em; line-height:1.5; overflow-wrap:anywhere; }
 .welcome p { margin:0; color:var(--text-body); font-size:14px; line-height:1.8; }
-.suggestions { display:flex; flex-wrap:wrap; gap:8px; padding:0 0 16px; }
-.suggestions button { display:flex; align-items:center; gap:8px; min-height:44px; padding:10px 12px; border:1px solid var(--border-light); border-radius:12px; color:var(--text-body); background:var(--bg-subtle); font:inherit; font-size:13px; cursor:pointer; text-align:left; }
-.suggestions svg { flex-shrink:0; }
-.suggestions button:hover { background:var(--bg-subtle); }
+/* 질문 제안: 첫 화면의 예시와 답변 뒤 이어 묻기가 같은 줄 모양을 쓴다.
+   너비가 제각각인 회색 상자 대신 폭을 맞춘 흰 줄로 쌓고, 누를 수 있다는 표시는 오른쪽 화살표 하나만 둔다. */
+.suggestions { display:grid; gap:8px; padding:12px 0 16px; }
+.suggestionsLabel { margin:0 0 2px; color:var(--text-secondary); font-size:12px; line-height:1.6; }
+.suggestion { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:52px; box-sizing:border-box; padding:12px 12px 12px 16px; border:1px solid var(--border-strong); border-radius:14px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:15px; line-height:1.5; letter-spacing:-.01em; text-align:left; cursor:pointer; transition:background-color 120ms ease; }
+.suggestion > span { min-width:0; overflow-wrap:anywhere; }
+.suggestion svg { flex-shrink:0; color:var(--text-tertiary); }
+.suggestion:hover:not(:disabled),.suggestion:active:not(:disabled) { background:var(--bg-subtle); }
+@media(prefers-reduced-motion:reduce) { .suggestion { transition:none; } }
 .thread { padding-top:12px; }
 .turn { margin-bottom:28px; scroll-margin-top:80px; }
 .userMessage { width:fit-content; max-width:85%; margin:0 0 24px auto; padding:12px 16px; background:var(--brand-fill); color:var(--on-brand-fg); border-radius:18px 18px 4px 18px; font-size:15px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
@@ -48,8 +53,20 @@
 .sessionNote { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0; font-size:12px; color:var(--text-secondary); }
 .sessionNote button { min-height:40px; background:none; border:0; color:var(--text-secondary); font:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
 .continueActions { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:8px; }
-.continueActions button { min-height:44px; padding:8px 12px; border:1px solid var(--border-light); border-radius:12px; background:var(--surface); color:var(--text-body); font:inherit; font-size:13px; cursor:pointer; }
+.continueActions button { min-height:44px; padding:8px 16px; border:0; border-radius:999px; background:var(--bg-subtle); color:var(--text-body); font:inherit; font-size:13px; font-weight:550; cursor:pointer; }
+.continueActions button:hover:not(:disabled) { color:var(--text-primary); }
 .waiting { display:flex; align-items:center; gap:10px; padding:4px 0 24px; color:var(--text-body); font-size:14px; }
+.waitingWithFacts { padding-bottom:12px; }
+/* 설명보다 먼저 읽는 숫자: 서버가 확인한 등락률. 기다리는 동안과 답변 맨 위에서 같은 모양을 쓴다. */
+.priceStrip { margin:0 0 16px; padding:4px 16px 12px; border-radius:14px; background:var(--bg-subtle); }
+.priceStrip dl { margin:0; }
+.priceStrip dl > div { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:10px 0; }
+.priceStrip dl > div + div { border-top:1px solid var(--border-strong); }
+.priceStrip dt { min-width:0; color:var(--text-primary); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.priceStrip dd { flex-shrink:0; margin:0; font-size:16px; font-weight:650; line-height:1.5; font-variant-numeric:tabular-nums; }
+.priceStrip dd[data-direction=down] { color:var(--color-loss); }
+.priceStrip dd[data-direction=up] { color:var(--color-gain); }
+.priceStrip > p { margin:2px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.6; }
 .dots { display:inline-flex; gap:4px; margin-left:4px; }
 .dots i { width:5px; height:5px; border-radius:50%; background:var(--text-secondary); animation:thinking 1.4s ease-in-out infinite; }
 .dots i:nth-child(2) { animation-delay:.18s; }
@@ -101,9 +118,7 @@
   .composer { padding:12px 16px max(8px,env(safe-area-inset-bottom,0px)); }
   .welcome { gap:10px; padding-top:24px; }
   .welcome h3 { font-size:19px; }
-  .suggestions { padding-left:0; }
-  .suggestions button { max-width:100%; }
-  .chat .response { padding-left:0; }
+    .chat .response { padding-left:0; }
   .userMessage { max-width:90%; }
 }
 /* Both reading and composing remain reachable even when the keyboard leaves little room. */
@@ -172,10 +187,8 @@
 .sourceList { padding:0; margin:8px 0; list-style:none; }
 .sourceList li { margin:0; padding:10px 0; border-bottom:1px solid var(--border-light); font-size:13px; line-height:1.7; }
 .sourceList a { display:inline-flex; align-items:center; min-height:44px; }
-.followUps { display:grid; gap:8px; margin:16px 0; }
+.followUps { display:grid; gap:8px; margin:20px 0 16px; }
 .followUps p { margin:0 0 4px; }
-.secondary { display:inline-flex; align-items:center; justify-content:flex-start; gap:8px; min-height:44px; padding:10px 12px; border:1px solid var(--border-light); border-radius:var(--chat-control-radius); background:var(--surface); color:var(--text-body); font:inherit; font-size:13px; line-height:1.6; text-align:left; cursor:pointer; }
-.secondary svg { flex-shrink:0; }
 
 /* Failed sends remain readable while the next draft stays in the composer. */
 .failedNote { margin:-12px 0 20px; font-size:12px; line-height:1.7; color:var(--text-secondary); text-align:right; }

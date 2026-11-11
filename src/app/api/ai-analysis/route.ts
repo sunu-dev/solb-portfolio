@@ -1,11 +1,11 @@
-import { joobiProgressResponse, type JoobiProgress } from '@/lib/joobiProgress';
+import { joobiProgressResponse, type JoobiPreview, type JoobiProgress } from '@/lib/joobiProgress';
 import { randomUUID } from 'node:crypto';
 import { withAbortDeadline } from '@/lib/withAbortDeadline';
 import { resolveAssistantSubject } from '@/lib/assistantSubject';
 import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
 import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
 import { collectAssistantArticles } from '@/lib/assistantArticleSources';
-import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion } from '@/lib/assistantQuestion';
+import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion, assistantAsksAboutPriceMove } from '@/lib/assistantQuestion';
 import { fundAnalysisContext, fundAnalysisSources, isFundAnalysis } from '@/lib/fundQuestionContext';
 import { fundProfile } from '@/lib/fundExploration';
 import { questionsForInstrument, stockQuestion } from '@/config/stockQuestions';
@@ -236,10 +236,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (req.headers.get('accept') === 'application/x-ndjson') return joobiProgressResponse(progress => handlePost(req, progress));
+  if (req.headers.get('accept') === 'application/x-ndjson') return joobiProgressResponse((progress, preview) => handlePost(req, progress, preview));
   return handlePost(req);
 }
-async function handlePost(req: NextRequest, progress: JoobiProgress = () => {}) {
+async function handlePost(req: NextRequest, progress: JoobiProgress = () => {}, preview: JoobiPreview = () => {}) {
   const stepsMs: Record<string, number> = {};
   const startedAt = performance.now();
   let seed: { userId: string; topic: QualityEvent['topic']; asset: QualityEvent['asset'] } | undefined;
@@ -251,7 +251,7 @@ async function handlePost(req: NextRequest, progress: JoobiProgress = () => {}) 
     finally { stepsMs[step] = Math.round(performance.now() - started); }
   };
   try {
-    const response = await respond(req, progress, measure, value => { seed = value; });
+    const response = await respond(req, progress, measure, value => { seed = value; }, preview);
     if (!seed || process.env.JOOBI_QUESTION_QUALITY_ENABLED !== 'true') return response;
     try {
       const data = await response.clone().json();
@@ -269,7 +269,7 @@ async function handlePost(req: NextRequest, progress: JoobiProgress = () => {}) 
 }
 type RequestStep = 'auth' | 'consent' | 'rate_and_circuit' | 'admission' | 'business' | 'evidence' | 'articles' | 'generation' | 'repair' | 'usage' | 'finalize' | 'pending_costs';
 type Measure = <T>(step: RequestStep, work: () => Promise<T>) => Promise<T>;
-async function respond(req: NextRequest, progress: JoobiProgress, measure: Measure, track: (value: { userId: string; topic: QualityEvent['topic']; asset: QualityEvent['asset'] }) => void) {
+async function respond(req: NextRequest, progress: JoobiProgress, measure: Measure, track: (value: { userId: string; topic: QualityEvent['topic']; asset: QualityEvent['asset'] }) => void, preview: JoobiPreview) {
   const startedAt = performance.now();
   progress('checking');
   // 인증을 설정·레이트리밋·본문 파싱보다 먼저 확인한다.
@@ -440,6 +440,9 @@ async function respond(req: NextRequest, progress: JoobiProgress, measure: Measu
   }
 
   const pendingCosts: Promise<unknown>[] = [];
+  // 기사 수집 호출은 근거를 돌려준 뒤에도 잠시 이어진다(쓰이지 않는 마무리 글). 그 호출이 끝나야 알 수 있는
+  // 사용량 기록은 답변을 붙잡지 않도록 응답을 보낸 뒤에 마무리한다. 기록 자체는 빠뜨리지 않는다.
+  const lateCosts: Promise<unknown>[] = [];
   try {
     const { symbol, koreanName, currency: inputCurrency, price, change, changePercent,
             rsi, trend, cross, pattern, bollingerStatus, macdStatus, volRatio,
@@ -606,11 +609,16 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
         ? measure('evidence', () => collectAssistantEvidence(userQuestion!.symbol ?? (userQuestion!.market === 'us' ? '^GSPC' : '^KS11'), userQuestion!.period ?? '1d', isFund || isLev, userQuestion!.sessionReference, userQuestion!.industryFocus)) : undefined,
     ]);
     let assistantEvidence: AssistantEvidencePacket | undefined = collectedEvidence ? { ...collectedEvidence, evidence: [...collectedEvidence.evidence] } : undefined;
+    // 기사를 읽고 설명을 쓰는 동안(보통 10초 안팎) 이미 확인한 등락률부터 보여준다. 답변에 싣는 것과 같은 가격 자료다.
+    if (userQuestion && collectedEvidence?.price && assistantAsksAboutPriceMove(userQuestion)) {
+      preview({ day: collectedEvidence.price.day, baselineDay: collectedEvidence.price.baselineDay, sessionState: collectedEvidence.price.sessionState,
+        prices: [collectedEvidence.price, ...collectedEvidence.comparisons].slice(0, 4).map(({ symbol, label, changePercent }) => ({ symbol, label, changePercent })) });
+    }
     // 근황 질문은 기사를 찾아보되, 없으면 가격·제목만 확인한 범위로 답한다(아래 503은 원인 질문에만 적용).
     if (assistantEvidence && userQuestion && (assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
       progress('articles');
       const articlePacket = assistantEvidence;
-      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => { pendingCosts.push(write); }));
+      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => { if (!lateCosts.length) after(() => Promise.allSettled(lateCosts)); lateCosts.push(write); }));
       assistantEvidence.evidence.push(...articles);
       if (!articles.length) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
     }

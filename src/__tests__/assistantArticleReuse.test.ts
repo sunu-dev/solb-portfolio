@@ -1,8 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ create: vi.fn(), cost: vi.fn().mockResolvedValue(undefined) }));
+const replay = (result: Promise<{ content: unknown[] }>) => ({ abort() {}, finalMessage: () => result,
+  async *[Symbol.asyncIterator]() { for (const [index, content_block] of (await result).content.entries()) yield { type: 'content_block_start', index, content_block }; } });
 vi.mock('@anthropic-ai/sdk', () => ({ default: class {
   static APIError = class extends Error {};
-  messages = { create: state.create };
+  messages = { stream: (request: unknown) => replay(Promise.resolve(state.create(request))) };
 } }));
 vi.mock('@/lib/aiCostLedger', () => ({ recordAiCost: state.cost }));
 import { collectAssistantArticles } from '@/lib/assistantArticleSources';

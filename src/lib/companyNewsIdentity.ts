@@ -14,6 +14,34 @@ export const COMPANY_NEWS_ALIASES: Record<string, string[]> = {
 };
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/** 가져온 영어 기사가 그 회사 기사인지 알아볼 때만 쓰는 이름이다. 검색어·뉴스 탭 매칭·질문 속 종목 인식은 바꾸지 않는다.
+ * 한국어 이름만 있으면 "Broadcom shares jump" 같은 영어 기사를 회사 기사로 알아보지 못해 버린다(2026-11-11 실측).
+ * 흔한 영어 단어와 겹치는 이름은 법인명까지 붙인 형태만 쓴다(Block → Block Inc, Snap → Snap Inc). */
+const ENGLISH_ARTICLE_NAMES: Record<string, string[]> = {
+  AVGO: ['Broadcom'], AMD: ['Advanced Micro Devices'], NFLX: ['Netflix'], INTC: ['Intel'], QCOM: ['Qualcomm'],
+  TSM: ['TSMC', 'Taiwan Semiconductor'], IONQ: ['IonQ'], RGTI: ['Rigetti'], QUBT: ['Quantum Computing Inc'],
+  SMCI: ['Super Micro Computer', 'Supermicro'], DELL: ['Dell'], HPQ: ['HP Inc'], CSCO: ['Cisco'], SNOW: ['Snowflake'],
+  DDOG: ['Datadog'], MDB: ['MongoDB'], NET: ['Cloudflare'], SHOP: ['Shopify'], SQ: ['Block Inc'], RBLX: ['Roblox'],
+  SNAP: ['Snap Inc', 'Snapchat'], LYFT: ['Lyft'], DASH: ['DoorDash'], ZM: ['Zoom Video', 'Zoom Communications'], TWLO: ['Twilio'],
+  MSTR: ['MicroStrategy', 'Strategy Inc'], MARA: ['MARA Holdings', 'Marathon Digital'], RIOT: ['Riot Platforms'], ARM: ['Arm Holdings'],
+  AMAT: ['Applied Materials'], KLAC: ['KLA Corp', 'KLA Corporation'], LRCX: ['Lam Research'], ASML: ['ASML Holding'], TXN: ['Texas Instruments'],
+  GE: ['GE Aerospace', 'General Electric'], BA: ['Boeing'], RTX: ['RTX Corp', 'Raytheon'], LMT: ['Lockheed Martin'],
+  XOM: ['Exxon Mobil', 'ExxonMobil'], CVX: ['Chevron'], SHEL: ['Shell plc'], GS: ['Goldman Sachs'], MS: ['Morgan Stanley'],
+  C: ['Citigroup'], WFC: ['Wells Fargo'], 'BRK.B': ['Berkshire Hathaway'], UNH: ['UnitedHealth'], LLY: ['Eli Lilly'], PFE: ['Pfizer'],
+  MRNA: ['Moderna'], BNTX: ['BioNTech'], JPM: ['JPMorgan'], JNJ: ['Johnson & Johnson'], V: ['Visa Inc'], MA: ['Mastercard'],
+  BAC: ['Bank of America'], WMT: ['Walmart'], PG: ['Procter & Gamble'], DIS: ['Disney'], PYPL: ['PayPal'], CRM: ['Salesforce'],
+  ORCL: ['Oracle'], IBM: ['International Business Machines'], COST: ['Costco'], SBUX: ['Starbucks'], NKE: ['Nike'], UBER: ['Uber'],
+  ABNB: ['Airbnb'], HOOD: ['Robinhood'], COIN: ['Coinbase'], PLTR: ['Palantir'], RIVN: ['Rivian'], LCID: ['Lucid Group', 'Lucid Motors'],
+  NIO: ['Nio Inc'], BE: ['Bloom Energy'], BABA: ['Alibaba'], PDD: ['PDD Holdings', 'Pinduoduo'], JD: ['JD.com'],
+};
+/** 종목 코드 자체가 회사 이름으로 쓰이는 경우. 대문자 그대로일 때만 인정한다(일반 영어 단어와 겹치는 코드는 넣지 않는다). */
+const TICKER_IS_THE_NAME = new Set(['AMD', 'IBM', 'ASML']);
+
+export function mentionsCompanyInEnglish(symbol: string, text: string) {
+  if (TICKER_IS_THE_NAME.has(symbol) && new RegExp(`(?<![A-Za-z0-9])${escape(symbol)}(?![A-Za-z0-9])`).test(text)) return true;
+  return (ENGLISH_ARTICLE_NAMES[symbol] ?? []).some(name => new RegExp(`(?<![A-Za-z0-9])${name.split(/\s+/).map(escape).join('\\s+')}(?![A-Za-z0-9])`, 'i').test(text));
+}
+
 /** Search aliases never change the target company. A ticker alone is not an English word match. */
 export function companyNewsIdentity(symbol: string, storedName?: string, requestedQuery?: string) {
   const requestedName = requestedQuery?.replace(/\s+주가$/, '').trim();

@@ -2,9 +2,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { AssistantEvidencePacket } from '@/lib/assistantEvidence';
 
 const m = vi.hoisted(() => ({ create: vi.fn(), record: vi.fn() }));
+// The collector streams each call. The fixture replays a finished response as stream events.
+const replay = (result: Promise<{ content: unknown[] }>) => ({ abort() {}, finalMessage: () => result,
+  async *[Symbol.asyncIterator]() { for (const [index, content_block] of (await result).content.entries()) yield { type: 'content_block_start', index, content_block }; } });
 vi.mock('@anthropic-ai/sdk', () => ({ default: class {
   static APIError = class extends Error {};
-  messages = { create: m.create };
+  messages = { stream: (request: unknown) => replay(Promise.resolve(m.create(request))) };
 } }));
 vi.mock('@/lib/aiCostLedger', () => ({ recordAiCost: m.record }));
 vi.mock('next/cache', () => ({ unstable_cache: (fn: () => unknown) => fn }));

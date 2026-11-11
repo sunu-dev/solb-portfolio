@@ -1,7 +1,7 @@
 'use client';
-import { JOOBI_STAGES, type JoobiStage } from '@/lib/joobiProgress';
+import { JOOBI_STAGES, type JoobiPricePreview, type JoobiStage } from '@/lib/joobiProgress';
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { ArrowUp, ChevronDown, CornerDownRight, MessageCircle, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowUp, ChevronDown, ChevronRight, MessageCircle, SlidersHorizontal, X } from 'lucide-react';
 import { JoobiRequestError, withRequestSignal, readJoobiResponse, joobiRequestErrorMessage } from '@/lib/joobiRequest';
 import FinancialText from '@/components/common/FinancialText';
 import { ASSISTANT_QUESTION, GENERAL_SUBJECT, QUESTION_LIMIT } from '@/lib/assistantQuestion';
@@ -38,6 +38,17 @@ function AnswerParagraphs({ text }: { text: string }) {
   return <div className={chat.answerText}>{answerParagraphs(text).map((paragraph, index) => <p key={index}><FinancialText>{paragraph}</FinancialText></p>)}</div>;
 }
 
+const monthDay = (day: string) => `${Number(day.slice(5, 7))}월 ${Number(day.slice(8, 10))}일`;
+const samePricePreview = (a?: JoobiPricePreview | null, b?: JoobiPricePreview | null) => !!a && !!b && a.day === b.day && a.baselineDay === b.baselineDay
+  && a.prices.length === b.prices.length && a.prices.every((price, index) => price.symbol === b.prices[index].symbol && price.changePercent === b.prices[index].changePercent);
+/** 설명보다 먼저 읽는 숫자. 서버가 확인한 등락률만 보여주고, 자세한 조건은 '근거와 비교'에 둔다. */
+function PriceStrip({ preview }: { preview: JoobiPricePreview }) {
+  return <section className={chat.priceStrip} aria-label="같은 기간의 가격 변화">
+    <dl>{preview.prices.map(price => <div key={price.symbol}><dt>{price.label}</dt><dd data-direction={price.changePercent < 0 ? 'down' : price.changePercent > 0 ? 'up' : 'flat'}>{price.changePercent > 0 ? '+' : ''}{price.changePercent.toFixed(2)}%</dd></div>)}</dl>
+    <p>{monthDay(preview.baselineDay)} 종가 대비 · {monthDay(preview.day)} {preview.sessionState === 'closed' ? '마감 가격' : preview.sessionState === 'intraday' ? '장중 가격' : '마지막 가격'}</p>
+  </section>;
+}
+
 export default function AskJoobi({ symbol: initialSymbol, embedded = false, notice }: { symbol?: string; embedded?: boolean; notice?: ReactNode }) {
   const { owner, entries } = usePersonalDictionary();
   const stocks = usePortfolioStore(state => state.stocks);
@@ -55,6 +66,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   const [stopped, setStopped] = useState(false);
   const [error, setError] = useState('');
   const [stage, setStage] = useState<JoobiStage>('checking');
+  const [pricePreview, setPricePreview] = useState<JoobiPricePreview | null>(null);
   const [candidates, setCandidates] = useState<{ symbol: string; label: string }[]>([]);
   const [confirmedSymbol, setConfirmedSymbol] = useState<string | undefined>(undefined);
   const answer = answers.at(-1);
@@ -117,7 +129,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   useEffect(() => {
     const discard = () => {
       request.current?.abort(); request.current = null; unfinished.current = null;
-      setLoading(false); setPendingQuestion(null); setFailedQuestion(null); setConsent(false);
+      setLoading(false); setPendingQuestion(null); setFailedQuestion(null); setConsent(false); setPricePreview(null);
       setConfirmClear(false); setError(''); setStopped(false);
     };
     window.addEventListener('solb-user-storage-clearing', discard);
@@ -157,7 +169,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     setQuestion(draft => draft || pendingQuestion || '');
     setFailedQuestion(pendingQuestion);
     unfinished.current = null;
-    setPendingQuestion(null); setLoading(false); setStopped(true);
+    setPendingQuestion(null); setLoading(false); setStopped(true); setPricePreview(null);
     input.current?.focus();
   };
   const sendQuestion = async (agreed: boolean, retryQuestion?: string) => {
@@ -166,7 +178,10 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     const controller = new AbortController(); request.current = controller;
     let answered = false;
     let phase: 'session' | 'answer' = 'session';
-    setLoading(true); setFailedQuestion(null); setError(''); setStopped(false); setCandidates([]); setStage('checking');
+    setLoading(true); setFailedQuestion(null); setError(''); setStopped(false); setCandidates([]); setStage('checking'); setPricePreview(null);
+    // 바로 위 답변에 이미 보이는 숫자는 다시 보여주지 않는다.
+    const shownPrices = answers.findLast(item => item.pricePreview)?.pricePreview;
+    let preview: JoobiPricePreview | undefined;
     // Make room for the reply on phones; do not refocus the composer when it arrives.
     input.current?.blur();
     unfinished.current = submittedQuestion;
@@ -184,7 +199,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         body: JSON.stringify({ questionId: ASSISTANT_QUESTION.id, questionText: submittedQuestion, confirmedSymbol, questionConsent: true, symbol, questionPeriod: period, questionMarket: market, historySymbol: symbol,
           questionHistory: answers.filter(item => !item.local).slice(-3).map(item => ({ symbol: item.symbol, market: item.market, period: item.period, sessionReference: item.sessionReference, industryFocus: item.industryFocus, question: item.question, answer: [item.currentStatus, ...item.keyAdvice, ...(item.assistantInsights ?? []).map(insight => insight.text), item.conclusion.desc].join('\n').slice(0, 1800) })),
           unclearTerms: entries.filter(entry => entry.familiarity === 'confused' && entry.termId).slice(0, 8).map(entry => entry.termId) }) });
-      const data = await readJoobiResponse(response, next => { if (request.current === controller) setStage(next); });
+      const data = await readJoobiResponse(response, next => { if (request.current === controller) setStage(next); },
+        next => { if (request.current !== controller || samePricePreview(next, shownPrices)) return; preview = next; setPricePreview(next); });
       if (request.current !== controller) return;
       const acceptedQuota = quota.acceptResponse(data, owner);
       if (!response.ok || !data.success) {
@@ -192,7 +208,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         // Refresh once; never automatically resend a potentially charged request.
         if (!acceptedQuota) quota.refresh(); if (Array.isArray(data.candidates)) setCandidates(data.candidates.filter((item: { symbol?: unknown; label?: unknown }) => typeof item.symbol === 'string' && typeof item.label === 'string').slice(0, 4)); setError(data.code === 'daily_user_limit' ? '' : (data.httpStatus ?? response.status) === 401 ? '로그인이 만료됐어요. 다시 로그인한 뒤 보내주세요.' : typeof data.error === 'string' ? data.error : '답변 서버가 요청을 처리하지 못했어요. 잠시 후 다시 보내주세요.'); return; }
       if (typeof data.report?.currentStatus !== 'string' || !Array.isArray(data.report.keyAdvice) || !data.report.keyAdvice.every((item: unknown) => typeof item === 'string') || typeof data.report.conclusion?.desc !== 'string') throw new JoobiRequestError('format');
-      setAnswers(previous => [...previous, { ...data.report, turnId: (previous.at(-1)?.turnId ?? -1) + 1, question: submittedQuestion, symbol: data.subject?.symbol ?? symbol, market: data.subject?.market ?? market, period: data.subject?.period ?? period,
+      setAnswers(previous => [...previous, { ...data.report, ...(preview ? { pricePreview: preview } : {}), turnId: (previous.at(-1)?.turnId ?? -1) + 1, question: submittedQuestion, symbol: data.subject?.symbol ?? symbol, market: data.subject?.market ?? market, period: data.subject?.period ?? period,
         sessionReference: data.subject?.sessionReference === 'previous' || data.subject?.sessionReference === 'latest' ? data.subject.sessionReference : undefined,
         industryFocus: Array.isArray(data.subject?.industryFocus) ? ASSISTANT_INDUSTRIES.filter(industry => data.subject.industryFocus.includes(industry)) : undefined }]);
       answered = true;
@@ -208,7 +224,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       quota.refresh();
     } }
     finally { clearTimeout(timeout); if (request.current === controller) {
-      request.current = null; unfinished.current = null; setLoading(false); setPendingQuestion(null);
+      request.current = null; unfinished.current = null; setLoading(false); setPendingQuestion(null); setPricePreview(null);
       if (!answered) { setFailedQuestion(submittedQuestion); setQuestion(draft => draft || submittedQuestion); }
     } }
   };
@@ -245,7 +261,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     {confirmClear && <div className={chat.confirmation}><p>이 대화와 작성 중인 질문을 지울까요?</p><div><button type="button" onClick={() => setConfirmClear(false)}>계속 이야기하기</button><button type="button" onClick={resetConversation}>지우고 새로 시작</button></div></div>}
     {!answers.length && !loading && !failedQuestion && <>
       <div className={chat.welcome}><JoobiAvatar large /><div><h3>{symbol === GENERAL_SUBJECT ? '주식, 어디가 궁금하세요?' : `${subject}, 어떤 점이 궁금하세요?`}</h3><p>주가가 왜 움직였는지, 낯선 말은 무슨 뜻인지 물어보세요.</p></div></div>
-      {!question.trim() && <div className={chat.suggestions} aria-label="질문 예시">{starters.map(text => <button type="button" key={text} onClick={() => fillQuestion(text)}>{text}<CornerDownRight size={15} aria-hidden="true" /></button>)}</div>}
+      {!question.trim() && <div className={chat.suggestions} role="group" aria-labelledby={`${id}-examples`}><p id={`${id}-examples`} className={chat.suggestionsLabel}>이렇게 물어볼 수 있어요</p>{starters.map(text => <button type="button" key={text} className={chat.suggestion} onClick={() => fillQuestion(text)}><span>{text}</span><ChevronRight size={18} aria-hidden="true" /></button>)}</div>}
     </>}
     {!!answers.length && <div className={chat.thread} aria-label="주비와 나눈 대화">
       {answers.map((answer, index) => {
@@ -258,14 +274,15 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
           <div className={chat.assistantLabel}><JoobiAvatar /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
-      {!answer.local && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
+      {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
       {!answer.local && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에 적은 {STOCK_KR[answer.symbol] || answer.symbol}을 기준으로 답했어요.</p>}
+      {answer.pricePreview && <PriceStrip preview={answer.pricePreview} />}
       <AnswerParagraphs text={answer.currentStatus} />
       {answer.keyAdvice.map((text, index) => <AnswerParagraphs key={index} text={text} />)}
       {(answer.assistantEvidence?.price || !!answer.assistantInsights?.length) && <details className={chat.detailGroup}><summary className={readingUI.disclosure}>근거와 비교 더 보기</summary>
       {answer.assistantEvidence?.price && <section className={chat.priceComparison} aria-label="같은 기간의 주가 비교">
-        <header><h4>{answer.assistantEvidence.comparisons.length ? '같은 기간의 움직임' : '가격 변화'}</h4><p className={chat.muted}>{answer.assistantEvidence.price.baselineDay} 종가 대비<br />{answer.assistantEvidence.price.day} 마지막 가격</p></header>
-        <dl>{[answer.assistantEvidence.price, ...answer.assistantEvidence.comparisons].map(price => <div key={price.symbol}><dt>{price.label}</dt><dd data-direction={price.changePercent < 0 ? 'down' : price.changePercent > 0 ? 'up' : 'flat'}>{price.changePercent > 0 ? '+' : ''}{price.changePercent.toFixed(2)}%</dd></div>)}</dl>
+        {!answer.pricePreview && <><header><h4>{answer.assistantEvidence.comparisons.length ? '같은 기간의 움직임' : '가격 변화'}</h4><p className={chat.muted}>{answer.assistantEvidence.price.baselineDay} 종가 대비<br />{answer.assistantEvidence.price.day} 마지막 가격</p></header>
+        <dl>{[answer.assistantEvidence.price, ...answer.assistantEvidence.comparisons].map(price => <div key={price.symbol}><dt>{price.label}</dt><dd data-direction={price.changePercent < 0 ? 'down' : price.changePercent > 0 ? 'up' : 'flat'}>{price.changePercent > 0 ? '+' : ''}{price.changePercent.toFixed(2)}%</dd></div>)}</dl></>}
         {answer.assistantEvidence.price.intradayLowChangePercent !== undefined && <p className={chat.comparisonNote}><FinancialText>{(answer.assistantEvidence.price.intradayLowChangePercent === 0 ? '장중 가장 낮았을 때의 가격은 전일 종가와 같았어요.' : `장중 가장 낮았을 때는 전일 종가보다 ${Math.abs(answer.assistantEvidence.price.intradayLowChangePercent).toFixed(2)}% ${answer.assistantEvidence.price.intradayLowChangePercent < 0 ? '낮았어요' : '높았어요'}.`) + ' 위 등락률은 마지막으로 받은 가격 기준이에요.'}</FinancialText></p>}
         <p className={chat.comparisonNote}>{answer.assistantEvidence.comparisons.length > 0 && '함께 움직였더라도 같은 이유 때문이라고 단정할 수는 없어요. '}배당금은 포함하지 않았어요.</p>
       </section>}
@@ -275,7 +292,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       {!answer.local && <details className={chat.detailGroup}><summary className={readingUI.disclosure}>답변에 제공한 자료</summary><p className={chat.muted}>제공한 자료 목록이에요. 답변의 모든 문장을 검증했다는 뜻은 아니에요.</p>
         {answer.assistantEvidence && <><p className={chat.muted}>자료를 받은 시각: {new Date(answer.assistantEvidence.checkedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (한국 시간)</p>{answer.assistantEvidence.gaps.map((gap, i) => <p className={chat.muted} key={i}>{gap}</p>)}</>}
         {answer._meta?.sourceDetails?.length ? <ul className={chat.sourceList}>{answer._meta.sourceDetails.map((source, index) => <li key={index}>{source.url && /^https:\/\//.test(source.url) ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name} · {source.provider}<span className="sr-only"> (새 창)</span></a> : `${source.name} · ${source.provider}`}{source.note && <small>{source.note}</small>}</li>)}</ul> : <p>이번 질문에 연결된 출처 자료가 없어요. 최신 회사 소식이나 실적은 확인하지 못했어요.</p>}</details>}
-      {latest && !!answer.followUps?.length && <div className={chat.followUps}><h4>{answer.local ? '이런 것부터 물어볼 수 있어요' : '여기서 더 궁금하다면'}</h4>{quota.remaining === 0 && <p className={chat.muted}>오늘은 질문을 모두 사용했어요. 용어 설명과 지난 답변은 계속 볼 수 있어요.</p>}{answer.followUps.map(text => <button type="button" key={text} className={chat.secondary} disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}><CornerDownRight size={16} aria-hidden="true" />{text}</button>)}</div>}
+      {latest && !!answer.followUps?.length && <div className={chat.followUps}><h4>{answer.local ? '이런 것부터 물어볼 수 있어요' : '여기서 더 궁금하다면'}</h4>{quota.remaining === 0 && <p className={chat.muted}>오늘은 질문을 모두 사용했어요. 용어 설명과 지난 답변은 계속 볼 수 있어요.</p>}{answer.followUps.map(text => <button type="button" key={text} className={chat.suggestion} disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}><span>{text}</span><ChevronRight size={18} aria-hidden="true" /></button>)}</div>}
       {answer.qualityReceipt && <AnswerFeedback receipt={answer.qualityReceipt} question={answer.question} answer={[answer.currentStatus, ...answer.keyAdvice, ...(answer.assistantInsights ?? []).map(insight => insight.text)].join('\n\n')} />}
       {answer.local ? <p className={chat.muted}>바로 드린 답이라 질문 횟수는 쓰지 않았어요.</p> : latest && <p className={chat.muted}>밑줄 있는 용어를 누르면 뜻을 읽고 내 주식사전에 저장할 수 있어요.</p>}
     </article>
@@ -286,7 +303,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       </div>}
     </div>}
     {!loading && failedQuestion && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">답변을 받지 못한 질문: </span>{failedQuestion}</p><p className={chat.failedNote}>이 질문의 답변을 받지 못했어요.</p></div>}
-    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={chat.waiting} role="status"><JoobiAvatar /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div></div>}
+    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={`${chat.waiting}${pricePreview ? ` ${chat.waitingWithFacts}` : ''}`} role="status"><JoobiAvatar /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div>{pricePreview && <PriceStrip preview={pricePreview} />}</div>}
     {stopped && <p className={chat.footnote} role="status">답변 기다리기를 멈췄어요. 질문을 고쳐 다시 보낼 수 있어요. 이미 보낸 질문은 이용 횟수에 포함될 수 있어요.</p>}
     </div>
     </div>

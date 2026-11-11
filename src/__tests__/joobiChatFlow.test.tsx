@@ -319,3 +319,18 @@ it('treats a greeting followed by a real question as a question', () => {
   expect(render().filter(node => node.type === 'section')).toHaveLength(0);
   expect(render().find(node => node.type === 'textarea')!.props.value).toBe('안녕! 주식 처음인데 뭐부터 하면 돼?');
 });
+
+it('keeps the price move it showed while waiting at the top of the answer, and does not repeat it on the next turn', async () => {
+  const preview = { day: '2026-11-10', baselineDay: '2026-11-03', sessionState: 'closed', prices: [{ symbol: 'MU', label: '마이크론', changePercent: -3.2 }, { symbol: '^GSPC', label: '미국 대형주 시장(S&P 500)', changePercent: -0.4 }] };
+  const stream = () => new Response([{ type: 'stage', stage: 'sources' }, { type: 'preview', preview }, { type: 'result', status: 200, body: { success: true, report: { currentStatus: '시험용 설명', keyAdvice: [], conclusion: { desc: '시험용 결론' } } } }]
+    .map(line => JSON.stringify(line)).join('\n') + '\n', { headers: { 'Content-Type': 'application/x-ndjson' } });
+  h.fetch.mockImplementation(async () => stream());
+  fill('마이크론은 왜 떨어졌어요?'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  const strips = () => render().filter(node => (node.props.preview as { prices?: unknown[] } | undefined)?.prices?.length === 2);
+  expect(strips()).toHaveLength(1);
+  // The same numbers are already visible in the answer above.
+  fill('그게 왜 중요해요?'); submit();
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(2));
+  expect(strips()).toHaveLength(1);
+});

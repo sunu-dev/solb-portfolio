@@ -734,6 +734,25 @@ describe('assistant evidence routing', () => {
     expect(data.report.assistantEvidence.evidence[0]).toMatchObject({ id: 'A1', kind: 'article', url: 'https://finance.yahoo.com/news/micron' });
     expect(state.rows).toHaveLength(1);
   });
+  it('sends the confirmed price move ahead of the explanation, but not ahead of a buy or sell question', async () => {
+    const price = { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: -3.2, currency: 'USD', sessionState: 'closed' as const };
+    state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), gaps: [], evidence: [], price,
+      comparisons: [{ ...price, symbol: '^GSPC', label: '미국 대형주 시장(S&P 500)', changePercent: -0.4 }] });
+    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '기사 본문', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
+    const stream = async (questionText: string) => {
+      const live = new NextRequest('https://joobi.test/api/ai-analysis', { method: 'POST', headers: { Authorization: 'Bearer alice-token', 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
+        body: JSON.stringify({ questionId: 'ask-joobi', questionConsent: true, questionText, symbol: 'MU' }) });
+      return (await (await POST(live)).text()).trim().split('\n').map(line => JSON.parse(line));
+    };
+    const events = await stream('오늘 마이크론은 왜 떨어졌어요?');
+    const preview = events.find(event => event.type === 'preview');
+    // Only server price facts travel early: no article text and no generated prose.
+    expect(preview.preview).toEqual({ day: '2026-10-05', baselineDay: '2026-10-02', sessionState: 'closed',
+      prices: [{ symbol: 'MU', label: '마이크론', changePercent: -3.2 }, { symbol: '^GSPC', label: '미국 대형주 시장(S&P 500)', changePercent: -0.4 }] });
+    expect(events.findIndex(event => event.type === 'preview')).toBeLessThan(events.findIndex(event => event.type === 'result'));
+    expect(events.at(-1)).toMatchObject({ type: 'result', status: 200 });
+    expect((await stream('지금 더 사도 될까요?')).some(event => event.type === 'preview')).toBe(false);
+  });
   it('does not generate or charge a guessed reason when only headlines are available', async () => {
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [],
       evidence: [{ id: 'N1', kind: 'headline', title: '마이크론 관련 제목', text: '본문 없음', url: 'https://finance.yahoo.com/news/example', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }] });
@@ -861,7 +880,7 @@ describe('request latency without skipping admission or accounting', () => {
     expect((await pending).status).toBe(invalid ? 502 : 200);
   });
 
-  it('generates while article cost records finish, then waits for those records before responding', async () => {
+  it('generates while a retrieval call is still finishing, answers without waiting for it, and completes its cost record after the response', async () => {
     vi.useRealTimers();
     let releaseCosts!: () => void;
     const costs = new Promise<void>(resolve => { releaseCosts = resolve; });
@@ -870,13 +889,19 @@ describe('request latency without skipping admission or accounting', () => {
       track(costs);
       return [{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: 'PUBLIC_ARTICLE', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }];
     });
-    let finished = false;
-    const pending = POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '마이크론은 왜 올랐어요?', symbol: 'MU' })).then(result => { finished = true; return result; });
-    await vi.waitFor(() => expect(state.finalize).toHaveBeenCalled());
-    expect(state.claude).toHaveBeenCalledOnce();
-    expect(finished).toBe(false);
+    // The retrieval call returns its articles as soon as they arrive and keeps running to report real usage.
+    const response = await POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '마이크론은 왜 올랐어요?', symbol: 'MU' }));
+    expect(response.status).toBe(200);
+    expect(state.claude).toHaveBeenCalledOnce(); expect(state.rows).toHaveLength(1);
+    // The record is not skipped: it is finished by the work scheduled for after the response.
+    expect(state.qualityAfter).toHaveLength(1);
+    let recorded = false;
+    const afterResponse = state.qualityAfter[0]().then(() => { recorded = true; });
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(recorded).toBe(false);
     releaseCosts();
-    expect((await pending).status).toBe(200);
+    await afterResponse;
+    expect(recorded).toBe(true);
   });
 });
 
