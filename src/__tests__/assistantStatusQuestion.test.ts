@@ -28,6 +28,10 @@ describe('질문을 엉뚱한 종류로 보내지 않는다', () => {
     expect(assistantNeedsMarketEvidence(question)).toBe(true);
     expect(assistantNeedsArticles(question)).toBe(true);
   });
+  it.each(['이번 주에 왜 이렇게 움직였어요?', '며칠째 왜 이래요?', '이번 달에 무슨 일 있었어요?'])('%s 는 가격과 소식을 확인한다', text => {
+    expect(assistantNeedsMarketEvidence(q(text, '035420.KS'))).toBe(true);
+    expect(assistantNeedsArticles(q(text, '035420.KS'))).toBe(true);
+  });
   it.each(['PER이 뭐야?', 'ETF는 주식과 뭐가 달라요?', '상한가가 무슨 뜻이에요?', '배당이 뭐예요?'])('%s 는 여전히 뜻풀이다', text => {
     expect(assistantNeedsMarketEvidence(q(text, '000660.KS'))).toBe(false);
   });

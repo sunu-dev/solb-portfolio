@@ -619,7 +619,11 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     if (assistantEvidence && userQuestion && (assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
       progress('articles');
       const articlePacket = assistantEvidence;
-      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => { if (!lateCosts.length) after(() => Promise.allSettled(lateCosts)); lateCosts.push(write); }));
+      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => {
+        // If scheduling work after the response is ever unavailable, fall back to finishing the record before responding.
+        try { if (!lateCosts.length) after(() => Promise.allSettled(lateCosts)); lateCosts.push(write); }
+        catch { pendingCosts.push(write); }
+      }));
       assistantEvidence.evidence.push(...articles);
       if (!articles.length) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
     }
@@ -716,9 +720,10 @@ ${responseFormat}`;
           if (userQuestion) {
             parsed = cleanAssistantAnswer(parsed, assistantEvidence);
             parsedIssue = assistantReportIssue(parsed, assistantEvidence, true);
-            // Preserve only this known factual failure for the bounded recovery
-            // below. It cannot be delivered without passing all validators again.
-            if (parsedIssue && parsedIssue !== 'event_identity') throw new InvalidAnalysisResponse();
+            // A parsed answer that fails a factual validator (an unverified percentage, an amount not in the
+            // sources, a broken citation, a wrong shape) goes to the single bounded rewrite below instead of
+            // ending in an error. It cannot be delivered without passing every validator again.
+            if (parsedIssue) console.warn('[joobi-validation]', JSON.stringify({ reason: parsedIssue, priceIssue: assistantPriceClaimIssue(parsed, assistantEvidence), rewrite: true }));
           }
         }
         catch (error) { if (!(error instanceof InvalidAnalysisResponse)) throw error; if (assistantRequest) console.warn('[joobi-validation]', JSON.stringify({ reason: result.finishReason !== 'STOP' ? 'incomplete_generation' : parsed ? assistantReportIssue(parsed, assistantEvidence, true) : 'response_format', priceIssue: parsed ? assistantPriceClaimIssue(parsed, assistantEvidence) : undefined, finishReason: result.finishReason, outputTokens: result.usage?.outputTokens })); parsed = undefined; invalidResponse = true; lastError = error; }
@@ -782,12 +787,10 @@ ${responseFormat}`;
     if (answer) {
       progress('validating');
       if (userQuestion) answer.report = cleanAssistantAnswer(answer.report, assistantEvidence);
+      // Any factual issue keeps contextIssue set below, so this first answer is never delivered: it is
+      // either replaced by a rewrite that passes every validator, or withheld without a charge.
       const factualIssue = userQuestion ? assistantReportIssue(answer.report, assistantEvidence, true) : undefined;
-      if (factualIssue && factualIssue !== 'event_identity') {
-        await gate.finalize(502, 'invalid_user_answer');
-        return NextResponse.json({ error: '답변을 확인하지 못했어요. 이용 횟수는 차감하지 않았어요.', code: 'invalid_user_answer' }, { status: 502 });
-      }
-      if (userQuestion) answer.report.followUps = assistantFollowUps(answer.report.followUps as string[]);
+      if (userQuestion && Array.isArray(answer.report.followUps)) answer.report.followUps = assistantFollowUps(answer.report.followUps as string[]);
       if (question) delete answer.report.quote;
       if (chartFacts?.technical && Array.isArray(answer.report.chartViews)) {
         const observations = chartObservationText(chartFacts.technical, nativeCurrency);
@@ -800,8 +803,8 @@ ${responseFormat}`;
       const initialGuard = governAiAnalysisReport(structurallySafe, { educationalQuestion: assistantRequest });
       let { report: governedReport, blockedCount } = initialGuard;
       const { blockedFields } = initialGuard;
-      let contextIssue: string | undefined = factualIssue === 'event_identity' ? 'event_identity' : userQuestion
-        ? assistantContextIssue(answer.report, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(answer.report) : undefined) : undefined;
+      let contextIssue: string | undefined = factualIssue ?? (userQuestion
+        ? assistantContextIssue(answer.report, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(answer.report) : undefined) : undefined);
       if (contextIssue) console.warn('[AI analysis] context validation', JSON.stringify({ reason: contextIssue }));
       if (blockedCount > 0) console.warn('[AI analysis] answer validation', JSON.stringify({ blockedCount, blockedFields }));
       // Only a rejected direct answer gets one bounded regeneration. Reuse sources,

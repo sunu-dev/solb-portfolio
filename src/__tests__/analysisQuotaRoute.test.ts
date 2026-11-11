@@ -807,6 +807,41 @@ describe('assistant evidence routing', () => {
       expect(data.report.assistantEvidence.gaps.at(-1)).toContain('최근 소식은 확인하지 못한 채로 답했어요');
     });
   });
+  describe('an answer that fails a factual check', () => {
+    const price = { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: -3.2, currency: 'USD', sessionState: 'closed' as const };
+    const article = { id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '마이크론 주가는 공장 가동 지연 소식 뒤 내렸다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() };
+    const base = { ...report, finishReason: 'STOP', provider: 'claude', model: 'claude-haiku-5-5', latencyMs: 100, usage: { inputTokens: 1000, outputTokens: 300 } };
+    const good = { ...base, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론은 전 거래일보다 내린 채 마감했어요. Yahoo는 공장 가동 지연 소식을 전했어요.', keyAdvice: [] }) };
+    const inventedPercent = { ...base, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론은 나흘간 17.6% 내렸어요.', keyAdvice: [] }) };
+    const ask = () => POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '오늘 마이크론은 왜 떨어졌어요?', symbol: 'MU' }));
+    beforeEach(() => {
+      state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [], price, evidence: [] });
+      state.articles.mockResolvedValue([article]);
+    });
+    it('is rewritten once, and only the rewrite that passes every check is delivered and charged', async () => {
+      state.claude.mockResolvedValueOnce(inventedPercent).mockResolvedValueOnce(good);
+      const response = await ask();
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2);
+      expect(state.claude.mock.calls[1][0]).toContain('퍼센트(%) 숫자를 쓰지 마세요');
+      const data = await response.json();
+      expect(data.report.currentStatus).not.toContain('17.6'); expect(data.report.currentStatus).toContain('공장 가동 지연');
+      expect(state.rows).toHaveLength(1); expect(data.remaining).toBe(2);
+      // Both attempts are costed; only the accepted one counts as a success.
+      expect(state.cost.mock.calls.map(([entry]) => entry.success)).toEqual([false, true]);
+    });
+    it('is withheld without a charge when the rewrite fails the same check', async () => {
+      state.claude.mockResolvedValue(inventedPercent);
+      const response = await ask();
+      expect(response.status).toBe(502); expect(await response.json()).toMatchObject({ code: 'invalid_user_answer' });
+      expect(state.claude).toHaveBeenCalledTimes(2); expect(state.rows).toHaveLength(0);
+    });
+    it('never delivers the first answer when a rewrite is not attempted', async () => {
+      state.claude.mockResolvedValue(inventedPercent);
+      state.budget.mockResolvedValueOnce({ allowed: true }).mockResolvedValue({ allowed: false });
+      const response = await ask();
+      expect(response.status).toBe(502); expect(state.claude).toHaveBeenCalledOnce(); expect(state.rows).toHaveLength(0);
+    });
+  });
   it('does not generate or charge a guessed reason when only headlines are available', async () => {
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [],
       evidence: [{ id: 'N1', kind: 'headline', title: '마이크론 관련 제목', text: '본문 없음', url: 'https://finance.yahoo.com/news/example', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }] });
