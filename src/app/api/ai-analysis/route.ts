@@ -5,7 +5,8 @@ import { resolveAssistantSubject } from '@/lib/assistantSubject';
 import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
 import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
 import { collectAssistantArticles } from '@/lib/assistantArticleSources';
-import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion, assistantAsksAboutPriceMove } from '@/lib/assistantQuestion';
+import { assistantConversationIntent } from '@/lib/assistantIntent';
+import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantAsksForCause, assistantUnsourcedCauseIssue, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion, assistantAsksAboutPriceMove } from '@/lib/assistantQuestion';
 import { fundAnalysisContext, fundAnalysisSources, isFundAnalysis } from '@/lib/fundQuestionContext';
 import { fundProfile } from '@/lib/fundExploration';
 import { questionsForInstrument, stockQuestion } from '@/config/stockQuestions';
@@ -627,13 +628,26 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
       return NextResponse.json({ success: false, code: 'assistant_sources_unavailable', error: '지금 비교할 가격과 소식을 가져오지 못했어요. 이용 횟수는 사용하지 않았어요.',
         remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
     }
-    if (assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)
-      && !assistantEvidence.evidence.some(e => e.kind === 'article' || e.kind === 'publication')) {
-      await gate.finalize(503, 'assistant_articles_unavailable');
-      return NextResponse.json({ success: false, code: 'assistant_articles_unavailable', retryable: true,
-        error: '지금 이 질문에 답할 기사 본문이나 발표 자료를 가져오지 못했어요. 제목만으로 이유를 짐작해 답하지 않을게요. 이용 횟수는 사용하지 않았어요.',
-        remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+    // 기사 본문·발표 자료가 필요한 질문인데 하나도 구하지 못한 경우(2026-11-11 사용자 결정):
+    // 오류로 끝내지 않고 확인한 범위로 답한다. 제목은 원인의 근거가 아니므로 모델에게 주지 않고,
+    // 가격이 움직인 이유는 확인하지 못했다고 밝힌다(아래 assistantUnsourcedCauseIssue가 이를 검사한다).
+    const withoutReporting = Boolean(assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)
+      && !assistantEvidence.evidence.some(e => e.kind === 'article' || e.kind === 'publication'));
+    const explainsMove = Boolean(userQuestion && assistantConversationIntent(userQuestion) === 'explain');
+    if (withoutReporting && assistantEvidence) {
+      if (explainsMove && !assistantEvidence.price) {
+        // 가격 비교조차 없으면 답할 내용이 없다. 예전처럼 답하지 않고 횟수도 쓰지 않는다.
+        await gate.finalize(503, 'assistant_articles_unavailable');
+        return NextResponse.json({ success: false, code: 'assistant_articles_unavailable', retryable: true,
+          error: '지금 이 질문에 답할 기사 본문이나 발표 자료를 가져오지 못했어요. 제목만으로 이유를 짐작해 답하지 않을게요. 이용 횟수는 사용하지 않았어요.',
+          remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+      }
+      assistantEvidence.evidence = assistantEvidence.evidence.filter(e => e.kind !== 'headline');
+      assistantEvidence.gaps = [...assistantEvidence.gaps.filter(gap => !/뉴스|기사|소식/.test(gap)), explainsMove
+        ? '이 움직임을 설명하는 기사 본문이나 발표 자료를 가져오지 못했어요. 그래서 이유는 확인하지 못했고, 가격 비교까지만 답했어요.'
+        : '최근 기사 본문이나 발표 자료를 가져오지 못했어요. 최근 소식은 확인하지 못한 채로 답했어요.'];
     }
+    const guardsUnsourcedCause = Boolean(withoutReporting && explainsMove && userQuestion && assistantAsksForCause(userQuestion));
     if (!assistantEvidence && userQuestion && (productContext || businessContext?.sources.length)) {
       assistantEvidence = { version: 1, symbol, period: userQuestion.period ?? '1d', checkedAt: new Date().toISOString(), comparisons: [], evidence: [], gaps: [] };
     }
@@ -653,7 +667,7 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
       note: `${e.publishedAt} · ${e.kind === 'headline' ? '기사 제목만 확인' : e.kind === 'article' ? '기사 본문 참고 · 보도의 해석과 확정 사실은 다름' : e.kind === 'price' ? '정규장 가격 비교' : e.kind === 'reference' ? '회사·상품 참고 자료, 이번 등락 원인 아님' : '공개 공시 설명'}` })) ?? []));
     const rsiNumber = Number(rsi);
     const hasRsi = Number.isFinite(rsiNumber);
-    const prompt = userQuestion ? assistantQuestionPrompt(userQuestion, { business: businessContext?.prompt, product: productContext, evidence: assistantEvidence }) : chartFacts ? chartExplanationPrompt(symbol, nativeCurrency, chartFacts, Array.isArray(requestedChartViews) ? requestedChartViews.filter((view: ChartView) => chartFacts!.availableViews.includes(view)) : []) : `${baseRules}
+    const prompt = userQuestion ? assistantQuestionPrompt(userQuestion, { business: businessContext?.prompt, product: productContext, evidence: assistantEvidence, withoutReporting }) : chartFacts ? chartExplanationPrompt(symbol, nativeCurrency, chartFacts, Array.isArray(requestedChartViews) ? requestedChartViews.filter((view: ChartView) => chartFacts!.availableViews.includes(view)) : []) : `${baseRules}
 
 ${productContext}
 
@@ -786,7 +800,8 @@ ${responseFormat}`;
       const initialGuard = governAiAnalysisReport(structurallySafe, { educationalQuestion: assistantRequest });
       let { report: governedReport, blockedCount } = initialGuard;
       const { blockedFields } = initialGuard;
-      let contextIssue = factualIssue === 'event_identity' ? 'event_identity' : userQuestion ? assistantContextIssue(answer.report, userQuestion) : undefined;
+      let contextIssue: string | undefined = factualIssue === 'event_identity' ? 'event_identity' : userQuestion
+        ? assistantContextIssue(answer.report, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(answer.report) : undefined) : undefined;
       if (contextIssue) console.warn('[AI analysis] context validation', JSON.stringify({ reason: contextIssue }));
       if (blockedCount > 0) console.warn('[AI analysis] answer validation', JSON.stringify({ blockedCount, blockedFields }));
       // Only a rejected direct answer gets one bounded regeneration. Reuse sources,
@@ -805,7 +820,7 @@ ${responseFormat}`;
               if (validAssistantReport(parsed, assistantEvidence, true)) {
                 parsed.followUps = assistantFollowUps(parsed.followUps as string[]);
                 const checked = governAiAnalysisReport(parsed, { educationalQuestion: true });
-                const repairedContextIssue = assistantContextIssue(parsed, userQuestion);
+                const repairedContextIssue = assistantContextIssue(parsed, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(parsed) : undefined);
                 if (checked.blockedCount === 0 && !repairedContextIssue) {
                   governedReport = checked.report;
                   blockedCount = 0;

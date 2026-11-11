@@ -96,7 +96,30 @@ export function assistantAnswerContract(question: AssistantQuestion, evidence?: 
   };
 }
 
-export function assistantQuestionPrompt(question: AssistantQuestion, context: { business?: string; product?: string; prices?: string; evidence?: AssistantEvidencePacket }) {
+/** 지금 질문이 가격이 움직인 이유를 직접 묻는지. 이어지는 다른 질문("그럼 코스피랑 비교하면?")과 구분한다. */
+export function assistantAsksForCause(question: AssistantQuestion) {
+  return /왜|이유|원인|배경|까닭|어째서|무슨\s*일|어떤\s*일|(?:뭐|무엇)\s*때문/.test(question.text);
+}
+
+/** 원인을 묻는 질문에 기사 본문·발표 자료 없이 답할 때의 결정론적 검사.
+ * 이유를 확인하지 못했다는 말이 빠졌거나, 근거 없이 원인을 잇는 문장·추가 설명이 있으면 그 답은 내보내지 않는다.
+ * 문장 의미를 다 판정하지는 못한다. 프롬프트 지시가 지켜졌는지 확인하는 마지막 그물이다. */
+export function assistantUnsourcedCauseIssue(report: Record<string, unknown>): 'missing_unconfirmed_cause' | 'unsourced_cause' | 'unsourced_insight' | undefined {
+  if (Array.isArray(report.assistantInsights) && report.assistantInsights.length) return 'unsourced_insight';
+  const texts = [report.currentStatus, ...(Array.isArray(report.keyAdvice) ? report.keyAdvice : [])].filter((value): value is string => typeof value === 'string');
+  const sentences = texts.flatMap(text => text.split(/(?<=[.!?。])\s+|\n+/)).map(sentence => sentence.trim()).filter(Boolean);
+  // "코스피가 올랐기 때문에 올랐어요"처럼 원인을 잇는 말. 부정·유보하는 문장("~ 때문이라고 단정할 수 없어요")은 제외한다.
+  const causal = /때문|덕분|탓에|탓으로|영향으로|영향을\s*받|여파|힘입|로\s*인해|으로\s*인해|에\s*따른\s*(?:상승|하락|반등|급등|급락)/;
+  const hedged = /아니|않|없|못|단정|확인/;
+  if (sentences.some(sentence => causal.test(sentence) && !hedged.test(sentence))) return 'unsourced_cause';
+  // "왜 내렸는지는 확인하지 못했어요", "원인은 알 수 없어요", "이 움직임을 설명하는 기사를 찾지 못했어요" 모두 인정한다.
+  const aboutCause = /왜|이유|원인|배경|까닭|계기|때문인지|설명하는\s*(?:기사|보도|자료)/;
+  const unconfirmed = /확인하지\s*못|확인되지\s*않|확인할\s*수\s*없|알\s*수\s*없|찾지\s*못|파악하지\s*못|알려지지\s*않/;
+  if (!sentences.some(sentence => aboutCause.test(sentence) && unconfirmed.test(sentence))) return 'missing_unconfirmed_cause';
+  return undefined;
+}
+
+export function assistantQuestionPrompt(question: AssistantQuestion, context: { business?: string; product?: string; prices?: string; evidence?: AssistantEvidencePacket; withoutReporting?: boolean }) {
   const evidence = context.evidence;
   const intent = assistantConversationIntent(question);
   const status = intent === 'explain' && assistantStatusQuestion(question) && !assistantNeedsArticles(question);
@@ -115,7 +138,8 @@ export function assistantQuestionPrompt(question: AssistantQuestion, context: { 
       .map(({ id, kind, scope, timing, title, text, publisher, publishedAt }) => ({ id, kind, scope, timing, title, text: kind === 'price' ? undefined : text, publisher, publishedAt })), gaps: evidence.gaps,
   } : undefined;
   if (intent === 'trending') return assistantDecisionPrompt({ ...question, symbol: undefined }, intent, { scope: 'market', market: question.market }, null);
-  if (intent !== 'explain') return assistantDecisionPrompt(question, intent, contract, publicContext ? { ...publicContext, price: undefined, comparisons: [] } : undefined);
+  if (intent !== 'explain') return assistantDecisionPrompt(question, intent, contract, publicContext ? { ...publicContext, price: undefined, comparisons: [] } : undefined,
+    context.withoutReporting ? '이번에는 최근 기사 본문이나 발표 자료를 구하지 못했어요. 최근 소식이나 주가가 움직인 이유를 아는 것처럼 말하지 마세요. 확인하지 못했다는 점은 한 문장으로만 밝히고, 판단 기준 설명에 집중하세요.' : undefined);
   return `주비는 주식 초보자의 개인 주식비서예요. 이 답을 읽은 사람이 뉴스가 자기 종목과 어떻게 이어지는지 이해할 수 있게 설명하세요.
 
 [답변의 기준]
@@ -149,7 +173,11 @@ ${evidence?.evidence.some(e => e.id === 'R1') ? '' : context.product ?? ''}
 ${context.prices ?? ''}
 
 [JSON 출력]
-${clarifySession ? `날짜 안내가 먼저 필요한 질문이에요. 질문의 기준 거래일: ${evidence!.price!.day} 정규장. 그날 가격은 전날 종가보다 올랐어요. 첫 문장에 '○월 ○일은 전날 마감 가격보다 올랐고, 보도에서 크게 내렸다고 한 날은 ○일이에요'처럼 비교 기준을 짧게 알려주세요. 장중에 전혀 떨어진 적 없다고 말하는 것은 아니에요. 다른 날짜를 사용자가 말한 어제라고 확정하지 마세요. 시스템이나 날짜 해석 과정은 설명하지 마세요.` : cause && !question.history?.length && sharedReporting.length ? `시장·업종 공통 보도가 있어요(${sharedReporting.map(source => source.id).join(', ')}). 그 보도가 질문한 기간·방향을 설명하는지 먼저 확인해요. 일치하면 구체적인 계기와 회사 영향을 설명하고, 다른 날의 반대 움직임만 설명하면 그 기사를 첫 결론으로 삼지 마세요.` : ''}
+${context.withoutReporting && cause ? `이번에는 이 움직임을 설명하는 기사 본문이나 발표 자료를 구하지 못했어요. 그러니 원인을 말하지 마세요. '실적 기대', '차익 실현', '수급', '투자 심리', '금리'처럼 흔히 드는 이유를 후보로 나열하지도 마세요. '~ 때문에', '~ 영향으로', '~ 덕분에'로 문장을 잇지 마세요.
+왜 움직였는지 묻는 질문이면 본문은 세 가지로 끝내요. (가) 이 기간 가격이 어떻게 움직였는지 (나) 같은 기간 시장·업종 가격과 비교하면 이 종목만 움직였는지, 함께 움직였는지 — 비교 가격이 없으면 이 부분은 빼요 (다) 왜 움직였는지는 확인하지 못했다는 한 문장. 함께 움직였다는 것은 관찰이지 원인이 아니에요.\n다른 것을 묻는 이어지는 질문이면 새로 물은 점에 답하되, 움직인 이유를 아는 것처럼 쓰지 마세요.
+keyAdvice와 assistantInsights는 반드시 []. followUps에는 원인을 이미 아는 것처럼 묻는 질문을 넣지 말고, 이 회사가 하는 일이나 가격 비교를 읽는 법처럼 지금 답할 수 있는 질문을 넣어요.
+아래 기준 중 기사·보도가 있어야 쓸 수 있는 항목은 이번에는 적용하지 않아요.
+` : ''}${clarifySession ? `날짜 안내가 먼저 필요한 질문이에요. 질문의 기준 거래일: ${evidence!.price!.day} 정규장. 그날 가격은 전날 종가보다 올랐어요. 첫 문장에 '○월 ○일은 전날 마감 가격보다 올랐고, 보도에서 크게 내렸다고 한 날은 ○일이에요'처럼 비교 기준을 짧게 알려주세요. 장중에 전혀 떨어진 적 없다고 말하는 것은 아니에요. 다른 날짜를 사용자가 말한 어제라고 확정하지 마세요. 시스템이나 날짜 해석 과정은 설명하지 마세요.` : cause && !question.history?.length && sharedReporting.length ? `시장·업종 공통 보도가 있어요(${sharedReporting.map(source => source.id).join(', ')}). 그 보도가 질문한 기간·방향을 설명하는지 먼저 확인해요. 일치하면 구체적인 계기와 회사 영향을 설명하고, 다른 날의 반대 움직임만 설명하면 그 기사를 첫 결론으로 삼지 마세요.` : ''}
 currentStatus: ${cause ? `${status ? '근황을 묻는 질문이에요. 오르내린 이유만 답하지 말고 (가) 이 기간 가격이 어떻게 움직였는지 한 문장 (나) 자료에 있는 회사·업종 소식 중 가장 중요한 한 가지와 그것이 회사가 버는 돈에 어떻게 이어질 수 있는지 (다) 아직 확인하지 못한 점의 순서로 알려주세요. 기사 본문이 없으면 제목만 확인했다고 밝히고 원인으로 단정하지 마세요. 좋다·나쁘다는 평가나 앞으로의 전망은 하지 마세요. 아래 기준은 이 순서 안에서 적용해요.\n' : ''}${question.history?.length ? '이어지는 질문이에요. 직전 답에서 이미 말한 가격 움직임과 사건 설명을 다시 쓰지 마세요. 필요하면 한 구절로만 가리키고, 이번에 새로 물은 점에 답하는 데 글을 쓰세요. 새로 물은 점이 앞 답과 같은 내용이면 더 짧고 쉬운 말로 바꿔 답하세요. 아래 1)~3)은 이번 질문에 필요한 부분만 적용해요.\n' : ''}사용자가 이 답 하나로 무엇이 일어났고 자신의 질문과 어떻게 연결되는지 이해하도록 450자 이내, 짧은 2~3문단으로 작성하세요. 가능한 한 문단당 1~2문장으로 쓰고 글자 한도를 채우려고 늘리지 마세요. 문장 수에 맞추느라 핵심 연결을 빼지 마세요.
 1) 먼저 질문에 답하는 결론: 해당 움직임의 직접 근거가 있으면 사건과 의미를 설명하세요. 없으면 이유를 확인하지 못했다고 짧게 밝히고 같은 기간의 시장·업종 비교로 답하세요. ${clarifySession ? '단, 먼저 위 날짜 차이를 한 문장으로 밝혀요. 그 다음에는 하락 보도의 날짜를 명시해 해당 보도의 이유를 설명하고 다른 날을 어제라고 부르지 마세요.' : contract.questionPricePremise === 'unspecified' ? '사용자는 상승·하락을 단정하지 않았어요. 질문의 전제를 정정하거나 하락을 물었다고 바꾸지 마세요. 기준 거래일의 실제 움직임과 이유에 바로 답하세요.' : '사용자가 말한 오름·내림과 같은 기간의 가격을 비교하세요. 다르면 해당 날짜와 비교 기준만 밝히고, 장중 움직임까지 부정하지 마세요. 질문이 틀렸다거나 맞지 않는다고 평가하지 마세요.'}
 2) 질문한 움직임을 설명하는 보도가 있을 때만 사건 → 제품·고객의 변화 → 회사가 앞으로 벌 돈이나 비용에 대한 기대를 풀어주세요. 직접 이유가 없으면 확인된 같은 기간 시장·업종 비교와 그 의미까지로 본문을 마치세요. 과거 반대 방향 사건을 길게 설명해 본문을 채우지 마세요. 예를 들어 회사와 업종이 함께 올랐다면 회사만 오른 것은 아니라는 점까지 말할 수 있지만, 걱정 해소나 저가 매수가 원인이라는 뜻은 아니에요.
@@ -221,10 +249,12 @@ export function assistantNeedsMarketEvidence(question: AssistantQuestion) {
   const intent = assistantConversationIntent(question);
   if (intent !== 'explain') return intent !== 'trending' && Boolean(question.symbol);
   if (assistantStatusQuestion(question)) return true;
-  if (/(?:뭐(?:야|예요)|무슨\s*뜻|뜻이|정의|무엇|차이)/.test(question.text) && !/오늘|어제|최근|왜|뉴스|실적|주가|하락/.test(question.text)) return false;
+  // "ETF가 뭐야?"는 뜻풀이지만 "급등한 이유가 뭐야?", "뭐 때문에 내렸어?"는 가격이 움직인 이유를 묻는 말이다.
+  if (/(?:뭐(?:야|예요)|무슨\s*뜻|뜻이|정의|무엇|차이)/.test(question.text)
+    && !/오늘|어제|최근|왜|뉴스|실적|주가|하락|이유|원인|때문|배경|올랐|내렸|떨어졌|빠졌|움직였|급등(?:했|한)|급락(?:했|한)|상승(?:했|한)/.test(question.text)) return false;
   const topic = [question.text, ...(question.history ?? []).map(turn => turn.question)].join(' ');
   if (/가령|가정|예를\s*들|만약/.test(topic) && !/오늘|어제|최근|이번|뉴스|기사|실적|공시/.test(topic)) return false;
-  return /하락|떨어|내려|오르|올랐|올라|상승|급등|급락|주가|가격|차트|거래량|오늘|어제|최근|요즘|요새|근황|뉴스|기사|보도|실적|발표|공시|시장|수익률|손실|왜.*(?:빠|밀)/.test(topic);
+  return /하락|떨어|내려|내렸|빠졌|오르|올랐|올라|상승|급등|급락|주가|가격|차트|거래량|오늘|어제|최근|요즘|요새|근황|뉴스|기사|보도|실적|발표|공시|시장|수익률|손실|왜.*(?:빠|밀)/.test(topic);
 }
 
 /** "요즘 어때?"처럼 근황을 묻는 말. 가격과 소식을 함께 확인하되, 기사가 없어도 확인된 범위로 답한다.
@@ -253,5 +283,5 @@ export function assistantNeedsArticles(question: AssistantQuestion) {
   if (/시장\s*전체|업종|비교/.test(question.text) && /같이\s*움직|비교하면|몇\s*%|얼마나/.test(question.text)
     && !/왜|이유|원인|뉴스|기사|영향/.test(question.text)) return false;
   const topic = [question.text, ...(question.history ?? []).map(turn => turn.question)].join(' ');
-  return assistantNeedsMarketEvidence(question) && /왜|이유|원인|배경|영향|뉴스|기사|보도|소식|실적|발표|공시|무슨\s*일|어떤\s*일/.test(topic);
+  return assistantNeedsMarketEvidence(question) && /왜|이유|원인|배경|영향|뉴스|기사|보도|소식|실적|발표|공시|무슨\s*일|어떤\s*일|(?:뭐|무엇|무슨)\s*때문|어째서/.test(topic);
 }

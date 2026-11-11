@@ -753,6 +753,60 @@ describe('assistant evidence routing', () => {
     expect(events.at(-1)).toMatchObject({ type: 'result', status: 200 });
     expect((await stream('지금 더 사도 될까요?')).some(event => event.type === 'preview')).toBe(false);
   });
+  describe('a cause question with a price but no article', () => {
+    const price = { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: -3.2, currency: 'USD', sessionState: 'closed' as const };
+    const headline = { id: 'N1', kind: 'headline', scope: 'company', title: 'HEADLINE_ONLY_마이크론 급락 배경', text: '본문 없음', url: 'https://finance.yahoo.com/news/example', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() };
+    const priceEvidence = { id: 'P1', kind: 'price', title: '마이크론', text: '2026-10-02 종가 대비 2026-10-05 마지막 정규장 가격의 변화 -3.2%.', url: 'https://finance.yahoo.com/quote/MU/history/', publisher: 'Yahoo Finance', publishedAt: new Date(NOW).toISOString(), checkedAt: new Date(NOW).toISOString() };
+    const honest = { ...report, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론은 전 거래일보다 내린 채 마감했어요.\n왜 내렸는지는 확인하지 못했어요.', keyAdvice: [] }), finishReason: 'STOP', provider: 'claude', model: 'claude-haiku-5-5', latencyMs: 100, usage: { inputTokens: 1000, outputTokens: 300 } };
+    const guessing = { ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '마이크론은 전 거래일보다 내린 채 마감했어요.\n최근 많이 오른 뒤 차익 실현 매물 때문에 내렸어요.' }) };
+    const ask = (questionText: string) => POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText, symbol: 'MU' }));
+    beforeEach(() => {
+      state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: ['가격 확인 후 나온 기사도 있어요.'], price, evidence: [priceEvidence, headline] });
+      state.articles.mockResolvedValue([]);
+      state.claude.mockResolvedValue(honest);
+    });
+    it('answers from the price comparison, keeps the headline away from the model and the reader, and charges once', async () => {
+      const response = await ask('오늘 마이크론은 왜 떨어졌어요?');
+      expect(response.status).toBe(200);
+      const prompt = state.claude.mock.calls[0][0];
+      expect(prompt).not.toContain('HEADLINE_ONLY'); expect(prompt).toContain('원인을 말하지 마세요');
+      const data = await response.json();
+      expect(JSON.stringify(data)).not.toContain('HEADLINE_ONLY');
+      expect(data.report.assistantEvidence.evidence.map((item: { kind: string }) => item.kind)).toEqual(['price']);
+      expect(data.report.assistantEvidence.gaps).toEqual(['이 움직임을 설명하는 기사 본문이나 발표 자료를 가져오지 못했어요. 그래서 이유는 확인하지 못했고, 가격 비교까지만 답했어요.']);
+      expect(data.report.currentStatus).toContain('확인하지 못했어요');
+      expect(state.claude).toHaveBeenCalledOnce(); expect(state.rows).toHaveLength(1); expect(data.remaining).toBe(2);
+    });
+    it('rewrites once when the answer states a cause, and delivers only the corrected answer', async () => {
+      state.claude.mockResolvedValueOnce(guessing).mockResolvedValueOnce(honest);
+      const response = await ask('오늘 마이크론은 왜 떨어졌어요?');
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2);
+      expect(state.claude.mock.calls[1][0]).toContain('원인을 말하거나');
+      const data = await response.json();
+      expect(data.report.currentStatus).not.toContain('차익 실현'); expect(state.rows).toHaveLength(1);
+    });
+    it('shows nothing and charges nothing when the rewrite still states a cause', async () => {
+      state.claude.mockResolvedValue(guessing);
+      const response = await ask('오늘 마이크론은 왜 떨어졌어요?');
+      expect(response.status).toBe(502); expect(await response.json()).toMatchObject({ code: 'invalid_user_answer' });
+      expect(state.claude).toHaveBeenCalledTimes(2); expect(state.rows).toHaveLength(0);
+    });
+    it('does not demand the disclosure from a follow-up that asks something else', async () => {
+      state.claude.mockResolvedValue({ ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '마이크론은 정보를 저장하는 부품을 만드는 회사예요.' }) });
+      const response = await POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '그럼 이 회사는 뭘 만들어요?', symbol: 'MU', historySymbol: 'MU',
+        questionHistory: [{ question: '오늘 마이크론은 왜 떨어졌어요?', answer: '전 거래일보다 내렸어요. 이유는 확인하지 못했어요.', symbol: 'MU' }] }));
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledOnce();
+    });
+    it('answers a buy question without pretending to know recent news', async () => {
+      state.claude.mockResolvedValue({ ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '더 살지는 처음 산 이유가 그대로인지에 달려 있어요. 최근 소식은 확인하지 못했어요.' }) });
+      const response = await ask('지금 더 사도 될까요?');
+      expect(response.status).toBe(200);
+      const prompt = state.claude.mock.calls[0][0];
+      expect(prompt).not.toContain('HEADLINE_ONLY'); expect(prompt).toContain('최근 기사 본문이나 발표 자료를 구하지 못했어요');
+      const data = await response.json();
+      expect(data.report.assistantEvidence.gaps.at(-1)).toContain('최근 소식은 확인하지 못한 채로 답했어요');
+    });
+  });
   it('does not generate or charge a guessed reason when only headlines are available', async () => {
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [],
       evidence: [{ id: 'N1', kind: 'headline', title: '마이크론 관련 제목', text: '본문 없음', url: 'https://finance.yahoo.com/news/example', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }] });

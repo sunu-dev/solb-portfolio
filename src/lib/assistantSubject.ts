@@ -5,6 +5,7 @@ import { COMPANY_NEWS_ALIASES } from './companyNewsIdentity';
 import type { AssistantQuestion } from './assistantQuestion';
 import type { AssistantSessionReference } from './assistantSession';
 import type { AssistantIndustry } from './assistantEvidence';
+import { assistantIntent } from './assistantIntent';
 
 // Server-only catalog matching: no model request, portfolio access or fuzzy issuer guesses.
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -64,7 +65,11 @@ export function resolveAssistantSubject(question: AssistantQuestion): { question
     // Follow "그럼 왜?" back to the last named subject; previous AI prose is never an identity source.
     for (const turn of [...(question.history ?? [])].reverse()) {
       if (turn.symbol && symbols.has(turn.symbol)) { matches = [{ symbol: turn.symbol, label: STOCK_KR[turn.symbol] || turn.symbol }]; break; }
-      if (turn.symbol === 'GENERAL' && turn.market) return { question: { ...question, symbol: undefined, market: turn.market, period }, candidates: [] };
+      if (turn.symbol === 'GENERAL' && turn.market) {
+        // 종목 화면에서 시장 이야기를 잠깐 했더라도("코스피랑 비교하면?"), 사고파는 고민은 보고 있던 종목에 대한 것이다.
+        if (question.symbol && !['explain', 'trending'].includes(assistantIntent(question.text))) continue;
+        return { question: { ...question, symbol: undefined, market: turn.market, period }, candidates: [] };
+      }
       matches = mentionedAssistantStocks(turn.question);
       if (matches.length) break;
     }
