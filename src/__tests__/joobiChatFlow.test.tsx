@@ -314,6 +314,27 @@ it('answers a greeting or thanks on screen without consent, a request, or a used
   expect(turns).toHaveLength(4);
 });
 
+it('sends a one-word reply to the server when Joobi has just asked something, instead of a canned reply', async () => {
+  h.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, report: { currentStatus: '더 사면 한 종목에 묶이는 돈이 늘어요. 이 돈을 1년 안에 써야 하나요?', keyAdvice: [], conclusion: { desc: '' } } }) });
+  fill('지금 더 사도 될까요?'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  // "네" is the answer to Joobi's question: one character is enough here, and it is a real turn with history.
+  fill('네');
+  expect(render().find(node => node.type === 'button' && node.props['aria-label'] === '질문 보내기')!.props.disabled).toBe(false);
+  submit();
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(2));
+  const payload = JSON.parse(h.fetch.mock.calls[1][1].body);
+  expect(payload.questionText).toBe('네');
+  expect(payload.questionHistory.map((item: { question: string }) => item.question)).toEqual(['지금 더 사도 될까요?']);
+  // After an answer that asks nothing, the same word is small talk again and costs nothing.
+  fill('네'); submit();
+  expect(h.fetch).toHaveBeenCalledTimes(2);
+  expect(render().some(node => typeof node.props.text === 'string' && node.props.text.includes('더 궁금한 점이 생기면'))).toBe(true);
+  // A puzzled "네?" is not an acknowledgement.
+  fill('네?'); submit();
+  await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledTimes(3));
+});
+
 it('treats a greeting followed by a real question as a question', () => {
   fill('안녕! 주식 처음인데 뭐부터 하면 돼?'); submit();
   expect(render().filter(node => node.type === 'section')).toHaveLength(0);

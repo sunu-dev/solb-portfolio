@@ -17,7 +17,7 @@ import JoobiAvatar from './JoobiAvatar';
 import AnswerFeedback, { SharedAnswerCases } from './AnswerFeedback';
 import chat from './JoobiChat.module.css';
 import { STOCK_KR } from '@/config/constants';
-import { assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
+import { assistantAsksBack, assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
 import { savePendingQuestion, takePendingQuestion } from '@/lib/joobiPendingQuestion';
 import readingUI from '@/components/ui/ReadingUI.module.css';
 
@@ -71,6 +71,9 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   const [confirmedSymbol, setConfirmedSymbol] = useState<string | undefined>(undefined);
   const answer = answers.at(-1);
   const lastAnswered = answers.findLast(item => !item.local);
+  // 주비가 방금 되물었다면 "네" 한 글자도 그 물음에 대한 답이라 보낼 수 있어요.
+  const answersJoobi = !!answer && !answer.local && assistantAsksBack([answer.currentStatus, ...answer.keyAdvice]);
+  const shortest = answersJoobi ? 1 : 2;
   const starters = symbol === GENERAL_SUBJECT ? ['오늘 시장에 무슨 일이 있었어요?', 'ETF는 주식과 뭐가 달라요?'] : ['최근 주가가 왜 움직였어요?', '이 종목을 쉽게 설명해 주세요'];
   const subject = symbol === GENERAL_SUBJECT ? `${market === 'kr' ? '한국' : '미국'} 시장` : available.find(stock => stock.symbol === symbol)?.name || STOCK_KR[symbol] || symbol;
   const transcript = useRef<HTMLDivElement>(null);
@@ -174,7 +177,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   };
   const sendQuestion = async (agreed: boolean, retryQuestion?: string) => {
     const submittedQuestion = (retryQuestion ?? question).trim();
-    if (request.current || !agreed || submittedQuestion.length < 2 || quota.remaining === 0) return;
+    if (request.current || !agreed || submittedQuestion.length < shortest || quota.remaining === 0) return;
     const controller = new AbortController(); request.current = controller;
     let answered = false;
     let phase: 'session' | 'answer' = 'session';
@@ -232,6 +235,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   const replyLocally = (text: string) => {
     const kind = assistantSmallTalk(text);
     if (!kind || request.current) return false;
+    // 주비의 물음에 답한 "네"나 되묻는 "네?"는 맞장구가 아니에요.
+    if (kind === 'acknowledge' && (answersJoobi || /[?？]/.test(text))) return false;
     const reply = assistantSmallTalkReply(kind, { subject: symbol === GENERAL_SUBJECT ? undefined : subject, hasConversation: !!lastAnswered });
     setAnswers(previous => [...previous, { local: true, turnId: (previous.at(-1)?.turnId ?? -1) + 1, question: text, symbol, market, period,
       currentStatus: reply, keyAdvice: [], conclusion: { desc: '' }, followUps: kind === 'farewell' ? [] : lastAnswered?.followUps?.length ? lastAnswered.followUps : starters }]);
@@ -243,7 +248,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     event.preventDefault();
     if (request.current || question.trim().length < 1) return;
     if (replyLocally(question.trim())) return;
-    if (question.trim().length < 2 || quota.remaining === 0) return;
+    if (question.trim().length < shortest || quota.remaining === 0) return;
     if (owner === 'guest') { savePendingQuestion(question, symbol === GENERAL_SUBJECT ? undefined : symbol); window.dispatchEvent(new CustomEvent('open-login')); return; }
     if (!consent) { setError('AI 전송 안내를 확인한 뒤 ‘물어보기’를 눌러주세요.'); consentButton.current?.focus(); return; }
     void sendQuestion(true);
@@ -317,7 +322,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
             event.preventDefault(); event.currentTarget.form?.requestSubmit();
           }
         }} />
-        <div className={chat.inputFooter}>{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={question.trim().length < 2 || quota.remaining === 0} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || question.trim().length < 2 || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={question.trim().length < 2 || (owner !== 'guest' && quota.remaining === 0)} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
+        <div className={chat.inputFooter}>{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={question.trim().length < shortest || quota.remaining === 0} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || question.trim().length < shortest || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={question.trim().length < shortest || (owner !== 'guest' && quota.remaining === 0)} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
       </div>
 
       {error && <p className={chat.error} role="alert">{error}</p>}

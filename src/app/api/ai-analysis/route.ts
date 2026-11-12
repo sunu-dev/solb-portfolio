@@ -651,7 +651,10 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
         ? '이 움직임을 설명하는 기사 본문이나 발표 자료를 가져오지 못했어요. 그래서 이유는 확인하지 못했고, 가격 비교까지만 답했어요.'
         : '최근 기사 본문이나 발표 자료를 가져오지 못했어요. 최근 소식은 확인하지 못한 채로 답했어요.'];
     }
-    const guardsUnsourcedCause = Boolean(withoutReporting && explainsMove && userQuestion && assistantAsksForCause(userQuestion));
+    // 기사 없이 답하는 설명에는 근거 없는 원인 문장을 항상 막는다. 이유를 직접 물은 질문에는 '이유는 확인하지 못했다'는 말도 있어야 한다
+    // ("그럼 코스피랑 비교하면?"처럼 이어지는 다른 질문에는 그 문장을 요구하지 않는다).
+    const unsourcedCauseIssue = (report: Record<string, unknown>) => withoutReporting && explainsMove && userQuestion
+      ? assistantUnsourcedCauseIssue(report, { requireDisclosure: assistantAsksForCause(userQuestion) }) : undefined;
     if (!assistantEvidence && userQuestion && (productContext || businessContext?.sources.length)) {
       assistantEvidence = { version: 1, symbol, period: userQuestion.period ?? '1d', checkedAt: new Date().toISOString(), comparisons: [], evidence: [], gaps: [] };
     }
@@ -804,7 +807,7 @@ ${responseFormat}`;
       let { report: governedReport, blockedCount } = initialGuard;
       const { blockedFields } = initialGuard;
       let contextIssue: string | undefined = factualIssue ?? (userQuestion
-        ? assistantContextIssue(answer.report, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(answer.report) : undefined) : undefined);
+        ? assistantContextIssue(answer.report, userQuestion) ?? unsourcedCauseIssue(answer.report) : undefined);
       if (contextIssue) console.warn('[AI analysis] context validation', JSON.stringify({ reason: contextIssue }));
       if (blockedCount > 0) console.warn('[AI analysis] answer validation', JSON.stringify({ blockedCount, blockedFields }));
       // Only a rejected direct answer gets one bounded regeneration. Reuse sources,
@@ -823,7 +826,7 @@ ${responseFormat}`;
               if (validAssistantReport(parsed, assistantEvidence, true)) {
                 parsed.followUps = assistantFollowUps(parsed.followUps as string[]);
                 const checked = governAiAnalysisReport(parsed, { educationalQuestion: true });
-                const repairedContextIssue = assistantContextIssue(parsed, userQuestion) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(parsed) : undefined);
+                const repairedContextIssue = assistantContextIssue(parsed, userQuestion) ?? unsourcedCauseIssue(parsed);
                 if (checked.blockedCount === 0 && !repairedContextIssue) {
                   governedReport = checked.report;
                   blockedCount = 0;

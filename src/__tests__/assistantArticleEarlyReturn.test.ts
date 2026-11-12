@@ -54,17 +54,36 @@ it('returns the articles once the allowed fetches are used, and records real usa
   expect(m.record.mock.calls.map(([entry]) => [entry.outputTokens, entry.inputTokens, entry.webSearchRequests, entry.success]).sort()).toEqual([[1500, 50_000, 1, true], [700, 50_000, 1, true]]);
 });
 
-it('stops waiting when the model starts a closing summary after its results', async () => {
+it('stops waiting when the model starts a long closing summary after an article arrived', async () => {
   const tail = gate();
-  const summary = 'The report explains that investors weighed new policy concerns against chip demand, and that several large technology companies moved together during the session, which is why '.repeat(2);
+  const summary = 'The report explains that investors weighed new policy concerns against chip demand, and that several large technology companies moved together during the session, which is why '.repeat(3);
   const { articles, writes } = await collect(
     { steps: [start(search), start(fetched('market')), start({ type: 'text', text: '' }), text(summary), { wait: tail.wait }, text(summary)], final: final([search, fetched('market')]) },
-    { steps: [start(search), start({ type: 'text', text: '' }), text('No company report in this window. '), start({ type: 'text', text: '' }), { wait: tail.wait }], final: final([search]) });
+    // A lane that found nothing has no article to return early with: it is read to its end.
+    { steps: [start(search), start({ type: 'text', text: '' }), text('No company report in this window. ')], final: final([search]) });
   expect(articles.map(article => article.scope)).toEqual(['market']);
   tail.open();
   await writes;
   // A call that found nothing is still recorded, as before, as an unsuccessful lookup.
   expect(m.record.mock.calls.map(([entry]) => entry.success).sort()).toEqual([false, true]);
+});
+
+it('does not take a long note before the first fetch for a closing summary', async () => {
+  // 2026-11-12 review: 160 characters of text after the search result used to end the wait with no article at all.
+  const note = 'I found several reports about this session. The first results only list price moves, so I will open the market report that explains the policy news behind the sector move. '.repeat(3);
+  const { articles } = await collect(
+    { steps: [start(search), start({ type: 'text', text: '' }), text(note), start({ type: 'text', text: '' }), text(note), start({ type: 'server_tool_use', name: 'web_fetch' }), start(fetched('market'))], final: final([search, fetched('market')]) },
+    { steps: [start(search), start({ type: 'text', text: '' }), text(note), start({ type: 'server_tool_use', name: 'web_fetch' }), start(fetched('company'))], final: final([search, fetched('company')]) });
+  expect(articles.map(article => article.scope)).toEqual(['market', 'company']);
+});
+
+it('keeps waiting for the second fetch through a note of ordinary length after the first article', async () => {
+  const note = 'That article only lists the price drops. I will fetch the sector report that explains the policy event and how it may affect chip orders. ';
+  expect(note.length).toBeLessThan(400);
+  const { articles } = await collect(
+    { steps: [start(search), start(fetched('market', 'a')), start({ type: 'text', text: '' }), text(note), start({ type: 'text', text: '' }), text('Fetching now.'), start({ type: 'server_tool_use', name: 'web_fetch' }), start(fetched('market', 'b'))], final: final([search, fetched('market', 'a'), fetched('market', 'b')]) },
+    { steps: [start(search), start(fetched('company'))], final: final([search, fetched('company')]) });
+  expect(articles.map(article => article.scope)).toEqual(['market', 'market', 'company']);
 });
 
 it('keeps waiting through a short note before another fetch', async () => {

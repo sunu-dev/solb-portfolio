@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assistantNeedsArticles, assistantNeedsMarketEvidence, assistantStatusQuestion, type AssistantQuestion } from '@/lib/assistantQuestion';
+import { assistantAsksAboutPriceMove, assistantNeedsArticles, assistantNeedsMarketEvidence, assistantPrincipleQuestion, assistantStatusQuestion, parseAssistantQuestion, type AssistantQuestion } from '@/lib/assistantQuestion';
 import { resolveAssistantSubject } from '@/lib/assistantSubject';
 
 const q = (text: string, symbol?: string, history: AssistantQuestion['history'] = []): AssistantQuestion => ({ text, symbol, unclearTerms: [], period: '1d', market: 'kr', history });
@@ -34,6 +34,43 @@ describe('질문을 엉뚱한 종류로 보내지 않는다', () => {
   });
   it.each(['PER이 뭐야?', 'ETF는 주식과 뭐가 달라요?', '상한가가 무슨 뜻이에요?', '배당이 뭐예요?'])('%s 는 여전히 뜻풀이다', text => {
     expect(assistantNeedsMarketEvidence(q(text, '000660.KS'))).toBe(false);
+  });
+  // 초보자가 가장 자주 묻는 꼴. 오늘 일어난 일이 아니라 일반 원리를 묻는 말이라 시세·기사를 찾지 않는다.
+  it.each([['금리가 오르면 왜 채권 가격이 떨어져?', undefined], ['금리가 오르면 채권 가격이 떨어지는 이유가 뭐야?', undefined], ['환율이 오르면 수출 기업에 좋은 이유가 뭐예요?', undefined],
+    ['금리가 오르면 주가가 왜 떨어져요?', '005930.KS'], ['실적이 좋으면 왜 주가가 올라?', '005930.KS'], ['배당락일에 가격이 떨어지는 원인이 뭐예요?', '005930.KS'], ['금리가 오를 때 왜 주가가 떨어져?', undefined],
+    ['PER이 높으면 왜 비싸다고 해?', undefined], ['공매도가 늘면 주가가 왜 떨어져?', undefined], ['유상증자를 하면 왜 주가가 떨어져요?', '005930.KS'], ['금리를 인하하면 어떤 영향이 있어?', undefined], ['환율이 오르면 어떻게 돼?', undefined],
+  ])('%s 는 원리를 묻는 말이라 시세와 기사를 찾지 않는다', (text, symbol) => {
+    const question = q(text, symbol);
+    expect(assistantPrincipleQuestion(text)).toBe(true);
+    expect(assistantNeedsMarketEvidence(question)).toBe(false);
+    expect(assistantNeedsArticles(question)).toBe(false);
+  });
+  it.each(['ETF 가격이 순자산가치와 차이 나는 이유가 뭐야?', '배당락일에 가격이 떨어지는 원인이 뭐예요?', '채권 시장에서 가격이 떨어지는 이유가 뭐야?'])('%s 는 종목 없이 물으면 뜻풀이다', text => {
+    expect(assistantNeedsMarketEvidence(q(text))).toBe(false);
+  });
+  it.each([['코스피랑 비교하면 왜 더 떨어졌어?', '005930.KS'], ['그러면 왜 떨어진 거야?', '005930.KS'], ['실적이 좋은데 왜 떨어졌어?', '005930.KS'], ['오늘 금리가 오르면서 왜 떨어졌어?', '005930.KS'],
+    ['계속 떨어지는 이유가 뭐야?', '005930.KS'], ['코스피가 빠지는 이유가 뭐야?', undefined], ['시장이 떨어지는 이유가 뭐야?', undefined], ['계속 밀리는 이유가 뭐야?', '005930.KS'],
+    ['왜 떨어져?', '005930.KS'], ['오늘 왜 이렇게 빠져요?', '005930.KS'], ['어제 급락한 이유 알려줘', '005930.KS'], ['요즘 왜 이렇게 올라?', '005930.KS'], ['주가가 떨어지는 이유가 뭐야?', '005930.KS'],
+  ])('%s 는 실제로 움직인 이유를 묻는 말이다', (text, symbol) => {
+    expect(assistantPrincipleQuestion(text)).toBe(false);
+    expect(assistantNeedsMarketEvidence(q(text, symbol))).toBe(true);
+  });
+  it('does not take a pointer to an earlier moment for a general principle', () => {
+    for (const text of ['그때 왜 그래?', '이럴 때 왜 떨어졌어?', '비교하면 왜 이래?', '내일 왜 오를까?', '반면 삼성전자는 왜 떨어져?', '그렇다면 왜 떨어져?', '그러면 왜 그래?', '이런 측면 왜 중요해?']) expect(assistantPrincipleQuestion(text)).toBe(false);
+  });
+  it.each(['배당은 어때요?', '장기 투자로 어때?', 'PER은 어때?'])('%s 는 최근 가격을 묻는 말이 아니라서 등락률을 앞세우지 않는다', text => {
+    const question = q(text, '005930.KS');
+    expect(assistantStatusQuestion(question)).toBe(false);
+    expect(assistantAsksAboutPriceMove(question)).toBe(false);
+  });
+  it('lets a one-character reply through only inside a conversation', () => {
+    const body = { questionConsent: true, questionText: '네', symbol: '005930.KS', historySymbol: '005930.KS' };
+    expect(parseAssistantQuestion(body)).toBeNull();
+    const history = [{ question: '지금 사도 될까?', answer: '이 돈을 1년 안에 써야 하나요?', symbol: '005930.KS' }];
+    expect(parseAssistantQuestion({ ...body, questionHistory: history })?.text).toBe('네');
+    // 그 한 글자 답이 다음 질문의 대화 기록에 실려도 거절하지 않는다.
+    expect(parseAssistantQuestion({ ...body, questionText: '3년은 안 써요', questionHistory: [...history, { question: '네', answer: '그렇다면 오래 묶어둘 수 있는 돈인지부터 보면 돼요.', symbol: '005930.KS' }] })?.history).toHaveLength(2);
+    expect(parseAssistantQuestion({ ...body, questionText: '', questionHistory: history })).toBeNull();
   });
   it('keeps a buy or sell question on the stock being viewed after a detour about the market', () => {
     const history = [{ question: '오늘 왜 움직였어요?', answer: '전 거래일보다 올랐어요.', symbol: '035420.KS', market: 'kr' as const, period: '1d' as const },

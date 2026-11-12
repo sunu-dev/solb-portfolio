@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
+import { assistantAsksBack, assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
 
 describe('assistantSmallTalk', () => {
   it.each([
@@ -25,5 +25,11 @@ describe('assistantSmallTalk', () => {
       }
     }
     expect(assistantSmallTalkReply('greeting', { subject: '삼성전자', hasConversation: false })).toContain('삼성전자');
+  });
+  it('knows when Joobi ended its answer with a question of its own', () => {
+    expect(assistantAsksBack(['처음 산 이유가 아직 맞는지 먼저 따져봐야 해요. 이 돈을 얼마나 오래 묶어둘 수 있나요?'])).toBe(true);
+    expect(assistantAsksBack(['삼성전자 주가를 말씀하신 건가요?\n맞다면 최근 가격부터 볼게요.', '추가 설명'])).toBe(true);
+    expect(assistantAsksBack(['전 거래일보다 내렸어요.', '왜 내렸는지는 확인하지 못했어요.'])).toBe(false);
+    expect(assistantAsksBack([undefined, 3])).toBe(false);
   });
 });

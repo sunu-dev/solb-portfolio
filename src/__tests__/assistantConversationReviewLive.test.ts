@@ -54,21 +54,22 @@ it.skipIf(process.env.JOOBI_REVIEW_LIVE !== '1')('synthetic beginner conversatio
           evidence.evidence = evidence.evidence.filter(e => e.kind !== 'headline');
           evidence.gaps = [...evidence.gaps.filter(gap => !/뉴스|기사|소식/.test(gap)), '이 움직임을 설명하는 기사 본문이나 발표 자료를 가져오지 못했어요. 그래서 이유는 확인하지 못했고, 가격 비교까지만 답했어요.'];
         }
-        const guardsUnsourcedCause = withoutReporting && explainsMove && assistantAsksForCause(q);
+        // Same scope as the route: every explanation written without reporting is checked; only a direct why-question must also say the reason is unconfirmed.
+        const unsourcedCauseIssue = (candidate: Record<string, unknown>) => withoutReporting && explainsMove ? assistantUnsourcedCauseIssue(candidate, { requireDisclosure: assistantAsksForCause(q) }) : undefined;
         if (!evidence && business?.sources.length) evidence = { version: 1, symbol, period: q.period ?? '1d', checkedAt: new Date().toISOString(), comparisons: [], evidence: [], gaps: [] } as AssistantEvidencePacket;
         const reference = business?.sources.find(source => /^https:\/\//.test(source.url));
         if (evidence && reference && business?.prompt) evidence.evidence.push({ id: 'R1', kind: 'reference', scope: 'company', title: `${symbol} 회사 사업`, text: business.prompt.slice(0, 5000), url: reference.url, publisher: reference.label, publishedAt: reference.reviewedAt || '', checkedAt: reference.reviewedAt || '' } as AssistantEvidencePacket['evidence'][number]);
         const prompt = assistantQuestionPrompt(q, { business: business?.prompt, evidence, withoutReporting });
         let response = await callClaudeAnalysis(prompt, true, true, false, true, assistantReasoningEffort(q), assistantGenerationModel(q));
         let report = cleanAssistantAnswer(parseAnalysisResponse(response.text, true, response.finishReason, undefined, true), evidence);
-        const firstIssue = assistantContextIssue(report, q) ?? (guardsUnsourcedCause ? assistantUnsourcedCauseIssue(report) : undefined);
+        const firstIssue = assistantContextIssue(report, q) ?? unsourcedCauseIssue(report);
         if (firstIssue) {
           // One bounded rewrite, as on the server.
           record.rewrittenFor = firstIssue; record.firstAttempt = report.currentStatus;
           response = await callClaudeAnalysis(assistantRepairPrompt(prompt, firstIssue), true, true, false, true, 'medium', assistantGenerationModel(q));
           report = cleanAssistantAnswer(parseAnalysisResponse(response.text, true, response.finishReason, undefined, true), evidence);
         }
-        const unsourced = guardsUnsourcedCause ? assistantUnsourcedCauseIssue(report) : undefined;
+        const unsourced = unsourcedCauseIssue(report);
         const issue = assistantReportIssue(report, evidence, true);
         report.followUps = assistantFollowUps(report.followUps as string[]);
         const guard = governAiAnalysisReport(report, { educationalQuestion: true });

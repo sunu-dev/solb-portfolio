@@ -1,5 +1,5 @@
 import { expect, it, vi, afterEach } from 'vitest';
-import { assistantIntent, assistantConversationIntent } from '@/lib/assistantIntent';
+import { assistantIntent, assistantConversationIntent, assistantDecisionPrompt, assistantShortReply } from '@/lib/assistantIntent';
 import { assistantQuestionPrompt, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantGenerationModel } from '@/lib/assistantQuestion';
 afterEach(() => vi.unstubAllEnvs());
 it.each([
@@ -10,12 +10,21 @@ it.each([
   ['언제팔까?', 'sell_timing'],
   ['언제 살까?', 'buy_timing'],
   ['물타기가 뭐야?', 'explain'],
+  ['지금 들어가도 돼?', 'buy_timing'],
+  ['지금 들어가기 어때?', 'buy_timing'],
+  ['매수 타이밍 언제야?', 'buy_timing'],
+  ['지금 들어가 있는데 왜 떨어져?', 'explain'],
+  ['데이터센터에 들어가는 메모리가 뭐야?', 'explain'],
 ] as const)('routes novice wording %s to %s', (text, intent) => expect(assistantIntent(text)).toBe(intent));
 it('retains a short answer to the previous planning question but respects a new topic', () => {
   const history = [{ question: '더 사도 돼?' }];
   expect(assistantConversationIntent({ text: '6개월 정도', history })).toBe('buy_more');
   expect(assistantConversationIntent({ text: 'ETF가 뭐야?', history })).toBe('explain');
   expect(assistantConversationIntent({ text: '언제 팔까?', history })).toBe('sell_timing');
+  // 주비가 되물은 말에 답한 한마디도 앞 질문의 주제를 이어간다.
+  for (const reply of ['네', '응', '아니요', '맞아요', 'ㅇㅇ']) expect(assistantConversationIntent({ text: reply, history })).toBe('buy_more');
+  expect(assistantConversationIntent({ text: '네' })).toBe('explain');
+  expect(assistantConversationIntent({ text: '네 근데 PER이 뭐야?', history })).toBe('explain');
 });
 it('asks for the missing security without paying for unrelated market retrieval', () => {
   const q = { text: '더 사도 돼?', unclearTerms: [] };
@@ -36,4 +45,12 @@ it('does not promise a popularity ranking from ordinary news evidence', () => {
   const q = { text: '요즘 뜨는 종목 뭐야?', unclearTerms: [] };
   expect(assistantNeedsArticles(q)).toBe(false);
   expect(assistantQuestionPrompt(q, {})).toContain('전체 시장 인기 순위나 거래량 순위가 없어요');
+});
+
+it('tells the model how to take a one-word reply to its own question', () => {
+  for (const reply of ['네', '응', '아니요', '맞아요', '네!']) expect(assistantShortReply(reply)).toBe(true);
+  for (const text of ['네 근데 왜요?', '1년 정도요', '네이버 어때?', '아니 그게 아니라']) expect(assistantShortReply(text)).toBe(false);
+  const history = [{ question: '더 사도 돼?', answer: '이 돈을 1년 안에 써야 하나요?' }];
+  expect(assistantDecisionPrompt({ text: '네', symbol: 'MU', history }, 'buy_more', {}, undefined)).toContain('직전에 물은 것에 대한 짧은 대답');
+  expect(assistantDecisionPrompt({ text: '더 사도 돼?', symbol: 'MU' }, 'buy_more', {}, undefined)).not.toContain('직전에 물은 것에 대한 짧은 대답');
 });

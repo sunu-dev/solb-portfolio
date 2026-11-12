@@ -797,6 +797,41 @@ describe('assistant evidence routing', () => {
         questionHistory: [{ question: '오늘 마이크론은 왜 떨어졌어요?', answer: '전 거래일보다 내렸어요. 이유는 확인하지 못했어요.', symbol: 'MU' }] }));
       expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledOnce();
     });
+    // 2026-11-12 배포 전 검토: '왜'가 없는 원인 질문과 이어지는 질문에서는 원인 문장 검사가 꺼져 있었다.
+    it.each(['오늘 실적 때문에 떨어진 거야?', '오늘 주가에 영향 준 뉴스 있어?'])('guards a cause question that has no why-word: %s', async questionText => {
+      state.claude.mockResolvedValueOnce(guessing).mockResolvedValueOnce(honest);
+      const response = await ask(questionText);
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2);
+      expect((await response.json()).report.currentStatus).not.toContain('차익 실현');
+      expect(state.rows).toHaveLength(1);
+    });
+    it('keeps an unsourced cause out of a follow-up that asks something else', async () => {
+      const followUp = () => POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '그럼 다른 반도체 회사들도 같이 내렸어요?', symbol: 'MU', historySymbol: 'MU',
+        questionHistory: [{ question: '오늘 마이크론은 왜 떨어졌어요?', answer: '전 거래일보다 내렸어요. 이유는 확인하지 못했어요.', symbol: 'MU' }] }));
+      const comparison = { ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '다른 반도체 회사의 가격은 이번 자료에 없어서 함께 내렸는지는 말할 수 없어요.' }) };
+      state.claude.mockResolvedValueOnce({ ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '금리 인상 우려로 반도체 회사들이 함께 내렸어요.' }) }).mockResolvedValueOnce(comparison);
+      const response = await followUp();
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2);
+      expect((await response.json()).report.currentStatus).not.toContain('우려');
+      // The comparison itself needs no "reason unconfirmed" sentence.
+      state.claude.mockReset().mockResolvedValue(comparison);
+      expect((await followUp()).status).toBe(200); expect(state.claude).toHaveBeenCalledOnce();
+    });
+    it('answers a general principle without fetching prices or articles', async () => {
+      const response = await ask('금리가 오르면 왜 채권 가격이 떨어져?');
+      expect(response.status).toBe(200);
+      expect(state.evidence).not.toHaveBeenCalled(); expect(state.articles).not.toHaveBeenCalled();
+      expect(state.claude.mock.calls[0][0]).not.toContain('원인을 말하지 마세요');
+    });
+    it('takes a one-word reply to its own question as the next turn of that conversation', async () => {
+      state.claude.mockResolvedValue({ ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '1년 안에 쓸 돈이라면 값이 내렸을 때 기다릴 시간이 짧아요. 최근 소식은 확인하지 못했어요.' }) });
+      const response = await POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '네', symbol: 'MU', historySymbol: 'MU',
+        questionHistory: [{ question: '지금 더 사도 될까요?', answer: '더 사면 한 종목에 묶이는 돈이 늘어요. 이 돈을 1년 안에 써야 하나요?', symbol: 'MU' }] }));
+      expect(response.status).toBe(200);
+      // The buy question it answers decides the kind of answer, not the word "네".
+      expect(state.claude.mock.calls[0][0]).toContain('최근 기사 본문이나 발표 자료를 구하지 못했어요');
+      expect(state.claude.mock.calls[0][0]).not.toContain('원인을 말하지 마세요');
+    });
     it('answers a buy question without pretending to know recent news', async () => {
       state.claude.mockResolvedValue({ ...honest, text: JSON.stringify({ ...JSON.parse(honest.text), currentStatus: '더 살지는 처음 산 이유가 그대로인지에 달려 있어요. 최근 소식은 확인하지 못했어요.' }) });
       const response = await ask('지금 더 사도 될까요?');

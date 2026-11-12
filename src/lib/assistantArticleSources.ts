@@ -21,8 +21,9 @@ const publisherNames: Record<string, string> = { 'finance.yahoo.com': '야후 �
 const keyUrl = (value: string) => { const u = new URL(value); u.hash = ''; return u.toString().replace(/\/$/, ''); };
 const cache = new Map<string, { expires: number; promise: Promise<AssistantEvidence[]> }>();
 const RETRIEVAL_DEADLINE_MS = 28_000;
-/** 도구 결과 뒤에 글이 이만큼 이어지면 더 열람하지 않고 정리 글을 쓰는 중이다(짧은 예고 문장과 구분). */
-const CLOSING_PROSE_CHARS = 160;
+/** 기사를 받은 뒤 글이 이만큼 이어지면 더 열람하지 않고 정리 글을 쓰는 중이다.
+ * 2026-11-11 실측 38건에서 다음 열람 앞의 예고 문장은 최대 200자, 정리 글은 800자 이상이었다. */
+const CLOSING_PROSE_CHARS = 400;
 const priceDirection = (packet: AssistantEvidencePacket) => {
   const underlying = fundProfile(packet.symbol)?.underlyingSymbol;
   // Search the underlying's actual move, not an inverse/leveraged fund's move.
@@ -251,19 +252,23 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
   // The SDK timeout covers the wait for the response to start; this bounds the whole streamed call as before.
   const deadline = setTimeout(() => stream.abort(), RETRIEVAL_DEADLINE_MS);
   background.push((async () => {
-    let fetches = 0, closingProse = 0, closingBlocks = 0, sawResult = false;
+    let fetches = 0, closingProse = 0, sawArticle = false;
     try {
       for await (const event of stream) {
         if (event.type === 'content_block_start') {
           const block = event.content_block;
           if (block.type === 'web_search_tool_result' || block.type === 'web_fetch_tool_result') {
-            received.push(block); sawResult = true; closingProse = 0; closingBlocks = 0;
-            // Once the allowed fetches are used, nothing later in the response can add evidence.
-            if (block.type === 'web_fetch_tool_result' && ++fetches >= maxFetches) enough();
-          } else if (block.type === 'server_tool_use') { closingProse = 0; closingBlocks = 0; }
-          // Prose after tool results is the model's closing summary, which is never used as evidence.
-          else if (block.type === 'text' && sawResult && ++closingBlocks > 1) enough();
-        } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta' && sawResult
+            received.push(block); closingProse = 0;
+            if (block.type === 'web_fetch_tool_result') {
+              if (block.content.type === 'web_fetch_result') sawArticle = true;
+              // Once the allowed fetches are used, nothing later in the response can add evidence.
+              if (++fetches >= maxFetches) enough();
+            }
+          } else if (block.type === 'server_tool_use') closingProse = 0;
+        }
+        // A long stretch of prose after an article arrived is the model's closing summary, which is never used as evidence.
+        // Before any article has arrived, prose may be a note ahead of the first fetch, so the call is read to its end.
+        else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta' && sawArticle
           && (closingProse += event.delta.text.length) >= CLOSING_PROSE_CHARS) enough();
       }
       const response = await stream.finalMessage();

@@ -10,14 +10,24 @@ export function assistantIntent(text: string): AssistantIntent {
   if (/요[즘새].*(?:뜨는|인기|핫한)|뜨는종목|인기종목|거래량.*(?:많은|상위)|급등주/.test(q)) return 'trending';
   if (/언제.*(?:팔|매도)|(?:팔아|팔면|팔까|팔까요|매도해도|손절|익절)/.test(q)) return 'sell_timing';
   if (/(?:더|추가로?)(?:사|매수)|추가매수/.test(q)) return 'buy_more';
-  if (/언제.*(?:살|사|매수)|사도|살까|살까요|매수해도|매수시점|지금사/.test(q)) return 'buy_timing';
+  // "지금 들어가도 돼?", "들어가기 어때?"도 살 시점을 묻는 말이다. "지금 들어가 있는데"(보유 중)와 "서버에 들어가는 부품"은 아니다.
+  if (/언제.*(?:살|사|매수)|사도|살까|살까요|매수해도|매수시점|지금사|(?:지금|이제|여기서|오늘|내일|당장)들어가(?:도|면|기|야|볼|는게|는것)|들어가(?:도될|도돼|도되|도괜찮|볼까|기어때|기좋|기괜찮)|(?:매수|살|들어갈|진입)타이밍|진입(?:해도|할까|시점)/.test(q)) return 'buy_timing';
   return 'explain';
+}
+
+/** "네", "아니요"처럼 주비가 되물은 말에 답한 한마디. */
+export function assistantShortReply(text: string) {
+  return /^(?:네+|넵|넹|예|응+|웅|ㅇㅇ|맞아요?|그래요?|그렇죠|아니요?|아뇨|아니에요|ㄴㄴ)[.!?~\s]*$/.test(text.trim());
 }
 
 export function assistantConversationIntent(question: { text: string; history?: { question: string }[] }): AssistantIntent {
   const direct = assistantIntent(question.text);
   if (direct !== 'explain') return direct;
   if (assistantFollowUpStyleText(question.text) && question.history?.length) {
+    return assistantConversationIntent({ text: question.history.at(-1)!.question, history: question.history.slice(0, -1) });
+  }
+  // "네", "아니요"처럼 주비가 되물은 말에 답한 한마디는 앞 질문의 주제를 이어간다.
+  if (question.history?.length && assistantShortReply(question.text)) {
     return assistantConversationIntent({ text: question.history.at(-1)!.question, history: question.history.slice(0, -1) });
   }
   // Short answers to a single planning question retain the decision topic.
@@ -41,7 +51,7 @@ export function assistantDecisionPrompt(question: { text: string; symbol?: strin
   return `주비는 주식 초보자의 개인 주식비서예요. 사용자는 투자 결정을 고민하고 있어요. 뉴스 요약이나 '투자는 본인 책임' 같은 문구로 끝내지 말고 판단에 필요한 사실을 쉽게 풀어주세요.
 [이번 질문에 맞는 설명]
 ${focus}
-${note ? note + '\n' : ''}사용자의 현재 질문을 우선해요. 과거의 하락 이유 질문에 계속 답하지 마세요.
+${note ? note + '\n' : ''}${assistantShortReply(question.text) ? "사용자의 이번 말은 주비가 직전에 물은 것에 대한 짧은 대답이에요. 그 대답을 되읽거나 '이어서 설명할게요' 같은 예고를 하지 말고 바로 이어가요. 직전 물음이 예·아니요로 답할 수 있는 물음이었다면 그 대답을 조건으로 삼아 판단 기준이 어떻게 달라지는지 새로 설명해요. 기간이나 금액처럼 예·아니요로 답할 수 없는 물음이었다면 앞에서 한 설명을 반복하지 말고, 고르기 쉬운 보기 두 가지를 들어 한 번만 짧게 다시 물어요.\n" : ''}사용자의 현재 질문을 우선해요. 과거의 하락 이유 질문에 계속 답하지 마세요.
 선택한 종목이 있으면 이미 알려진 종목을 다시 묻지 마세요. 종목이 없으면 일반 원리를 한 문장 설명한 뒤 어떤 종목인지 한 가지만 물어봐요.
 자료가 있는 경우 해당 대상의 확인된 사실 → 그 선택으로 늘어나는 부담과 확인할 사실 → 필요한 개인 상황 한 가지 순서로 답해요. 실제 수량·평균 매수가·투자 비중·현금·목표를 알고 있다고 가정하지 마세요. 사용자가 대화에 직접 알려준 조건만 사용해요. 계좌번호·연락처·인증정보는 묻지 마세요.
 한 번에 여러 개인정보 질문을 설문처럼 나열하지 마세요. 보유 기간이나 자금 사용 시점 중 판단을 가장 바꿀 질문 하나만 선택하고, 이미 답한 질문은 반복하지 마세요. 특정 수량·금액·날짜의 매매를 지시하거나 회복·수익을 약속하지 마세요. 조건별 의미를 설명하는 것은 가능해요.
