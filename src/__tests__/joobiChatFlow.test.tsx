@@ -335,6 +335,32 @@ it('sends a one-word reply to the server when Joobi has just asked something, in
   await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledTimes(3));
 });
 
+it('keeps an acknowledgement free and local even when Joobi has just asked something', async () => {
+  const asking = { ok: true, json: async () => ({ success: true, report: { currentStatus: '더 사면 한 종목에 묶이는 돈이 늘어요.\n이 돈을 1년 안에 써야 하나요?', keyAdvice: ['다음 실적을 확인해 보세요.'], conclusion: { desc: '' } } }) };
+  h.fetch.mockResolvedValue(asking);
+  fill('지금 더 사도 될까요?'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  // 2026-11-12 재검토: 주비가 되물은 뒤에는 "알겠어요"까지 서버로 가 횟수가 차감됐다.
+  for (const word of ['알겠어요', '아하', '그렇구나', '좋아요']) { fill(word); submit(); }
+  expect(h.fetch).toHaveBeenCalledTimes(1);
+  // A single character that is not a yes or no cannot be sent.
+  fill('ㅋ');
+  expect(render().find(node => node.type === 'button' && node.props['aria-label'] === '질문 보내기')!.props.disabled).toBe(true);
+  submit();
+  expect(h.fetch).toHaveBeenCalledTimes(1);
+});
+
+it('answers 네 on screen when no questions are left, instead of doing nothing', async () => {
+  h.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, report: { currentStatus: '이 돈을 1년 안에 써야 하나요?', keyAdvice: [], conclusion: { desc: '' } } }) });
+  fill('지금 더 사도 될까요?'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  h.remaining = 0;
+  fill('네'); submit();
+  expect(h.fetch).toHaveBeenCalledTimes(1);
+  expect(render().some(node => typeof node.props.text === 'string' && node.props.text.includes('더 궁금한 점이 생기면'))).toBe(true);
+  expect(render().find(node => node.type === 'textarea')!.props.value).toBe('');
+});
+
 it('treats a greeting followed by a real question as a question', () => {
   fill('안녕! 주식 처음인데 뭐부터 하면 돼?'); submit();
   expect(render().filter(node => node.type === 'section')).toHaveLength(0);

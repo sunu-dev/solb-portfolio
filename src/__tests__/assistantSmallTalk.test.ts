@@ -27,9 +27,11 @@ describe('assistantSmallTalk', () => {
     expect(assistantSmallTalkReply('greeting', { subject: '삼성전자', hasConversation: false })).toContain('삼성전자');
   });
   it('knows when Joobi ended its answer with a question of its own', () => {
-    expect(assistantAsksBack(['처음 산 이유가 아직 맞는지 먼저 따져봐야 해요. 이 돈을 얼마나 오래 묶어둘 수 있나요?'])).toBe(true);
-    expect(assistantAsksBack(['삼성전자 주가를 말씀하신 건가요?\n맞다면 최근 가격부터 볼게요.', '추가 설명'])).toBe(true);
-    expect(assistantAsksBack(['전 거래일보다 내렸어요.', '왜 내렸는지는 확인하지 못했어요.'])).toBe(false);
-    expect(assistantAsksBack([undefined, 3])).toBe(false);
+    expect(assistantAsksBack('처음 산 이유가 아직 맞는지 먼저 따져봐야 해요.\n이 돈을 얼마나 오래 묶어둘 수 있나요?')).toBe(true);
+    expect(assistantAsksBack('어떤 종목을 더 사는 걸 고민하시는지 하나만 알려주실래요? ')).toBe(true);
+    // A rhetorical question in the middle of an explanation is not a question to the user.
+    expect(assistantAsksBack('그럼 삼성전자만 내린 걸까요?\n같은 날 코스피도 함께 내렸어요.')).toBe(false);
+    expect(assistantAsksBack('전 거래일보다 내렸어요.\n왜 내렸는지는 확인하지 못했어요.')).toBe(false);
+    expect(assistantAsksBack(undefined)).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import { ASSISTANT_PERIODS, ASSISTANT_INDUSTRIES, validateAssistantInsights, assistantPriceClaimsMatch, assistantMoneyClaimsMatch, assistantElectionClaimsMatch, type AssistantIndustry, type AssistantPeriod, type AssistantEvidencePacket } from './assistantEvidence';
 import { financialTerm, financialTermMatches } from './financialTerms';
 import { fundProfile } from './fundExploration';
-import { assistantConversationIntent, assistantDecisionPrompt } from './assistantIntent';
+import { assistantConversationIntent, assistantDecisionPrompt, assistantShortReply } from './assistantIntent';
 import { assistantFollowUpStyleText } from './assistantFollowUp';
 import { validSymbol } from './personalDictionary';
 import type { AiResultMeta } from './aiResultMeta';
@@ -20,8 +20,8 @@ export function assistantFollowUpStyle(question: AssistantQuestion): 'simpler' |
 export function parseAssistantQuestion(body: Record<string, unknown>): AssistantQuestion | null {
   if (body.questionConsent !== true || typeof body.questionText !== 'string') return null;
   const text = body.questionText.trim();
-  // 주비가 되물은 말에 "네"처럼 한 글자로 답할 수 있다. 대화의 첫 질문은 두 글자 이상이어야 한다.
-  const repliesInConversation = Array.isArray(body.questionHistory) && body.questionHistory.length > 0;
+  // 질문은 두 글자 이상이어야 한다. 대화 중에 주비가 되물은 말에 "네", "응"으로 답하는 한 글자만 예외다.
+  const repliesInConversation = Array.isArray(body.questionHistory) && body.questionHistory.length > 0 && assistantShortReply(text);
   if (text.length < (repliesInConversation ? 1 : 2) || text.length > QUESTION_LIMIT || /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(text)) return null;
   const symbol = body.symbol === GENERAL_SUBJECT || body.symbol === undefined || body.symbol === '' ? undefined : body.symbol;
   if (symbol !== undefined && !validSymbol(symbol)) return null;
@@ -101,45 +101,85 @@ export function assistantAnswerContract(question: AssistantQuestion, evidence?: 
 /** 지금 질문이 가격이 움직인 이유를 직접 묻는지. 이어지는 다른 질문("그럼 코스피랑 비교하면?")과 구분한다.
  * "실적 때문에 떨어진 거야?", "주가에 영향 준 뉴스 있어?"처럼 '왜'가 없어도 이유를 묻는 말이다. */
 export function assistantAsksForCause(question: AssistantQuestion) {
-  return /왜|이유|원인|배경|까닭|어째서|무슨\s*일|어떤\s*일|때문|탓|덕분|영향/.test(question.text);
+  const text = question.text;
+  // "환율 영향은 어때?", "반도체 덕분에 돈 버는 회사야?"는 회사를 묻는 말이다. 주가 움직임과 함께 쓴 '때문·영향'만 이유를 묻는 말로 본다.
+  return /왜|이유|원인|배경|까닭|어째서|무슨\s*일|어떤\s*일|(?:뭐|무엇|무슨)\s*때문/.test(text)
+    || (/때문|탓|덕분|영향/.test(text) && /떨어|내렸|내린|내려|올랐|오른|올라|빠졌|빠진|하락|상승|급등|급락|움직|주가/.test(text));
 }
 
 // 아래는 기사 본문·발표 자료 없이 답할 때 쓰는 낱말 목록이다. 이 경로에서 모델이 받은 것은 가격과 회사 사업 설명뿐이라,
-// 소식·수급·심리를 주가 움직임과 잇는 문장은 근거가 있을 수 없다.
-const UNSURE = /단정|확정|확인하지(?:는|도)?\s*못|확인되지(?:는|도)?\s*않|확인할\s*수(?:는|도)?\s*없|확인이\s*(?:어렵|어려|안\s*(?:됐|돼|되))|알\s*수(?:는|도)?\s*없|알기\s*(?:어렵|어려)|(?:보기|말하기|말씀드리기|판단하기)(?:는|엔|에는|도)?\s*(?:어렵|어려|힘들|이르|일러)|할\s*수(?:는|도)?\s*없|모르|불분명|찾지\s*못|구하지\s*못|가져오지\s*못|파악하지\s*못|알려지지\s*않/;
+// 소식·수급·심리를 주가 움직임과 잇는 문장은 근거가 있을 수 없다. 목록은 닫히지 않는다: 실제 답에서 새 표현이 보이면
+// assistantWithoutReporting.test.ts에 사례를 먼저 더하고 여기를 고친다.
+/** '모른다·확인하지 못했다·단정할 수 없다'로 맺는 말. "피할 수 없는", "모르는 투자자들"처럼 다른 뜻으로 쓰인 말은 넣지 않는다. */
+const UNSURE = /단정|확정|확인하지(?:는|도)?\s*못|확인되지(?:는|도)?\s*않|확인할\s*수(?:는|도)?\s*없|확인\s*못|확인이\s*(?:어렵|어려|안\s*(?:됐|돼|되))|알\s*수(?:는|도)?\s*없|알지\s*못|알기\s*(?:어렵|어려)|(?:보기|말하기|말씀드리기|판단하기)(?:는|엔|에는|도)?\s*(?:어렵|어려|힘들|이르|일러)|(?:라고|다고)\s*(?:할|볼|말할)\s*(?:수(?:는|도)?|근거(?:는|가)?)\s*없|모르겠|몰라요|모릅니다|모르지만|는지(?:는|도)?\s*(?:아직\s*)?몰|불분명|찾지\s*못|못\s*찾|구하지\s*못|가져오지\s*못|파악하지\s*못|알려지지\s*않|알려진\s*(?:이유|원인|바)(?:는|은|가)?\s*없/;
+/** 한 문장 안의 글자. 소수점("3.2%")은 문장 끝이 아니다. */
+const GAP = '(?:[^.!?\\n]|(?<=\\d)\\.(?=\\d))';
 /** 일반 설명에도 쓰는 이음말. 가격·소식을 말하는 문장에서만 원인 주장으로 본다. */
 const BECAUSE = /때문|덕분|탓(?:에|으로|이)/g;
-const CAUSE_WORD = /영향(?:으로|을\s*(?:받|미치|미쳤|줬|주었|준))|영향이\s*(?:컸|있었|크)|여파|힘입|(?:으)?로\s*인해|에\s*따른\s*(?:상승|하락|반등|급등|급락)|끌어올|끌어내|이끌|견인|부추|촉발|계기|직격탄|작용(?:했|한|하)/g;
-/** 기사가 없는데 보도를 옮기는 말투. */
-const REPORTED = /에\s*따르면|(?:라고|다고)\s*(?:전했|밝혔|말했|설명했|분석했|진단했|평가했|보도했)|보도했|전해졌|알려졌/g;
-const NEWS_TOPIC = '(?:우려|기대감?|불안감?|경계감?|매물|매도세|매수세|순매도|순매수|차익\\s*실현|심리|수급|실적|금리|환율|유가|물가|호재|악재|소식|이슈|리스크|규제|관세|정책|전망|발표|공시|수요|업황)';
-const MOVED = '(?:올랐|내렸|떨어졌|밀렸|빠졌|팔렸|뛰었|주저앉|(?:하락|상승|급등|급락|폭등|폭락|반등)(?:했|하며|해|세|\\s*마감)|약세(?:를|였|로)|강세(?:를|였|로))';
-/** "금리 우려로 … 내렸어요", "실적 발표 뒤 올랐어요"처럼 소식을 움직임과 잇는 문장. */
-const NEWS_THEN_MOVE = new RegExp(`${NEWS_TOPIC}[^.!?\\n]{0,40}?${MOVED}`, 'g');
+/** 원인을 잇거나 단정하는 말: "영향으로", "~로 인한", "원인으로 꼽혀요", "배경이에요", 그리고 함께 움직인 것을 원인처럼 잇는 "내리자 따라 내렸어요". */
+const CAUSE_WORD = new RegExp('영향(?:으로|을\\s*(?:받|미치|미쳤|줬|주었|준)|일|이었)|영향이\\s*(?:컸|있었|크)|여파|힘입|(?:으)?로\\s*인(?:해|한)|에\\s*따른\\s*(?:상승|하락|반등|급등|급락)|끌어올|끌어내|이끌|견인|부추|촉발|눌렀|짓눌|계기|직격탄|작용(?:했|한|하)'
+  + '|(?:원인|이유|배경|요인)(?:이에요|예요|이었어요|였어요|입니다|이죠|으로\\s*(?:꼽|지목|풀이|보))'
+  + '|(?:내리|오르|떨어지|빠지|밀리)자\\s|따라\\s*(?:내렸|올랐|떨어졌|빠졌)|(?:내려|올라|떨어져|빠져|밀려)서\\s' + GAP + '{0,30}?(?:같이|함께|덩달아)\\s*(?:내렸|올랐|떨어졌|빠졌)', 'g');
+/** "이유는 X예요"처럼 이유를 단정하는 꼴. "이유는 확인하지 못했어요", "이유는 아니에요"는 아니다. */
+const REASON_IS = /(?:이유|원인|배경|요인)(?:은|는)\s/g;
+/** 기사가 없는데 보도나 이름 없는 전문가를 옮기는 말투. */
+const REPORTED = /에\s*따르면|(?:라고|다고)\s*(?:전했|밝혔|말했|설명했|분석했|진단했|평가했|보도했)|보도했|전해졌|알려졌|전문가|증권가|애널리스트|분석가|(?:시장|업계)(?:에서는|에선)/g;
+const NEWS_TOPIC = '(?:우려|기대감?|불안감?|경계감?|걱정|매물|매도세?|매수세?|순매도|순매수|차익\\s*실현|심리|수급|외국인|기관|투자자|실적|금리|환율|유가|물가|호재|악재|소식|이슈|리스크|규제|관세|정책|전망|발표|공시|수요|부진|호조|둔화|수주|출시|계약|인수|합병|소송)';
+const MOVED = '(?:올랐|내렸|떨어졌|밀렸|빠졌|팔렸|뛰었|내려갔|올라갔|치솟|주저앉|곤두박질|흔들렸|(?:하락|상승|급등|급락|폭등|폭락|반등)(?:했|하며|해|세|으로|이었|이에요|\\s*마감)|(?:내리|오르|떨어지|빠지|밀리)고\\s*있|약세(?:였|를\\s*보였|로\\s*(?:마감|돌아섰)|예요|이에요)|강세(?:였|를\\s*보였|로\\s*(?:마감|돌아섰)|예요|이에요))';
+/** "금리 우려로 … 3.2% 내렸어요", "실적 발표 뒤 올랐어요"처럼 소식을 움직임과 잇는 문장. */
+const NEWS_THEN_MOVE = new RegExp(`${NEWS_TOPIC}(${GAP}{0,40}?)${MOVED}`, 'g');
+/** "차익 실현 매물이 나온 것으로 보여요"처럼 소식을 짐작으로 붙이는 문장. */
+const GUESS = new RegExp(`${NEWS_TOPIC}${GAP}{0,40}?(?:것으로\\s*보|로\\s*보(?:여|이|고\\s*있)|것\\s*같|일\\s*가능성|일\\s*수(?:도)?\\s*있)`, 'g');
 const ABOUT_PRICE_OR_NEWS = new RegExp(`${NEWS_TOPIC}|올랐|오르|올라|오른|내렸|내려|내리|내린|떨어|하락|상승|급등|급락|반등|밀렸|빠졌|빠진|팔렸|움직|약세|강세|주가|시장|업종|지수|종목|분위기`);
-const ABOUT_CAUSE = /왜|이유|원인|배경|까닭|계기|때문|덕분|탓|영향|설명하는\s*(?:기사|보도|자료)|(?:기사|보도|뉴스|소식|발표\s*자료)(?:는|은|를|을|도|가|이)?\s*(?:찾지|구하지|가져오지|확인하지)/;
+const MOVED_FACT = new RegExp(MOVED);
+/** 주가가 아니라 매출·수요·금리 같은 것이 오르내렸다는 말. 이어지는 질문의 회사 설명에서 주가 움직임으로 세지 않는다. */
+const OTHER_THING_MOVED = new RegExp(`(?:매출|영업이익|이익|판매량?|수요|비용|금리|환율|물가|유가|점유율|배당금?|출하량?|가격)(?:이|가|은|는|도)?\\s*(?:[가-힣]+\\s+){0,2}${MOVED}`, 'g');
+const ABOUT_CAUSE = /왜|이유|원인|배경|까닭|계기|때문|덕분|탓|영향|설명하는\s*(?:기사|보도|자료)|(?:기사|보도|뉴스|소식|발표\s*자료)(?:는|은|를|을|도|가|이)?\s*(?:아직\s*)?(?:찾지|못\s*찾|구하지|가져오지|확인하지)/;
+const CLAUSE_END = /[,，;]|(?<![라다냐자])고\s|지만|는데|(?:으)?며\s|(?:어|아)서\s/g;
+const clauseAfter = (tail: string) => tail.split(CLAUSE_END)[0];
 /** 원인을 잇는 말 바로 뒤, 같은 절 안에서 '모른다·단정할 수 없다'로 맺는지. 앞 절이나 뒤 절의 부정은 세지 않는다.
  * "기대에 못 미쳤기 때문에 내렸어요"의 '못'이나 "… 영향으로 내렸고, 그 밖의 이유는 확인하지 못했어요"의 '확인하지 못'은 원인 주장을 무르지 못한다. */
-function staysUnsure(tail: string) {
-  return /^(?:인지|일지|이었는지|였는지)/.test(tail)
-    || UNSURE.test(tail.split(/[,，;]|(?<![라다냐자])고\s|지만|는데|(?:으)?며\s|(?:어|아)서\s/)[0]);
+const staysUnsure = (tail: string) => UNSURE.test(clauseAfter(tail));
+/** 절 단위로 자른다(이음말은 앞 절에 붙인다). */
+function clauses(sentence: string) {
+  const out: string[] = []; let from = 0;
+  for (const match of sentence.matchAll(CLAUSE_END)) { out.push(sentence.slice(from, match.index + match[0].length)); from = match.index + match[0].length; }
+  out.push(sentence.slice(from));
+  return out;
 }
+/** "최근 소식은 확인하지 못했지만"처럼 '확인하지 못했다'로 맺는 절. 그 절의 소식 낱말은 뒤 절의 가격 움직임과 이어진 것이 아니다.
+ * 절 전체를 빼므로 "소식은 확인하지 못했지만 금리 우려로 내렸어요"의 뒤 절은 그대로 검사된다. */
+const DENIES = /(?:확인하지|확인되지|구하지|찾지|가져오지|파악하지)(?:는|도)?\s*(?:못|않)(?:했|해|한|하)?(?:지만|고|는데|으나|서|으며|어요|습니다|다)?[,.!?\s]*$|(?:알\s*수(?:는|도)?\s*없|모르겠|몰라|불분명하)[가-힣]{0,4}[,.!?\s]*$/;
+const asserted = (sentence: string) => clauses(sentence).filter(clause => !DENIES.test(clause)).join('');
 
 /** 가격이 움직인 이유를 설명해야 하는 질문에 기사 본문·발표 자료 없이 답할 때의 결정론적 검사.
- * 근거 없이 원인을 잇는 문장·보도 인용·추가 설명이 있으면 그 답은 내보내지 않는다. 이유를 직접 물은 질문(requireDisclosure)에는
- * 이유를 확인하지 못했다는 말도 있어야 한다.
+ * 근거 없이 원인을 잇는 문장·보도 인용·짐작·추가 설명이 있으면 그 답은 내보내지 않는다.
+ * asksWhy(이유를 직접 물은 질문): 답 전체가 그 움직임에 관한 것이라 엄격하게 보고, 이유를 확인하지 못했다는 말도 있어야 한다.
+ * 이어지는 다른 질문("이 회사는 뭘 만들어?"): 주가가 실제로 움직였다는 문장에 이유를 붙일 때만 막는다. 회사·개념 설명의 '때문에'는 그대로 둔다.
  * 문장 의미를 다 판정하지는 못한다. 프롬프트 지시가 지켜졌는지 확인하는 마지막 그물이며, 애매하면 막는 쪽으로 둔다(한 번 다시 쓰게 된다). */
-export function assistantUnsourcedCauseIssue(report: Record<string, unknown>, options: { requireDisclosure?: boolean } = {}): 'missing_unconfirmed_cause' | 'unsourced_cause' | 'unsourced_insight' | undefined {
+export function assistantUnsourcedCauseIssue(report: Record<string, unknown>, options: { asksWhy?: boolean } = {}): 'missing_unconfirmed_cause' | 'unsourced_cause' | 'unsourced_insight' | undefined {
+  const asksWhy = options.asksWhy !== false;
   if (Array.isArray(report.assistantInsights) && report.assistantInsights.length) return 'unsourced_insight';
   const texts = [report.currentStatus, ...(Array.isArray(report.keyAdvice) ? report.keyAdvice : [])].filter((value): value is string => typeof value === 'string');
   const sentences = texts.flatMap(text => text.split(/(?<=[.!?。])\s+|\n+/)).map(sentence => sentence.trim()).filter(Boolean);
   const claims = (sentence: string, pattern: RegExp) => [...sentence.matchAll(pattern)].some(match => !staysUnsure(sentence.slice(match.index + match[0].length)));
+  const tiesNewsToMove = (sentence: string) => claims(asserted(sentence), NEWS_THEN_MOVE);
+  const statesReason = (sentence: string) => [...sentence.matchAll(REASON_IS)].some(match => {
+    const clause = clauseAfter(sentence.slice(match.index + match[0].length));
+    return !UNSURE.test(clause) && !/아니|없/.test(clause);
+  });
   for (const sentence of sentences) {
-    if (claims(sentence, CAUSE_WORD) || claims(sentence, NEWS_THEN_MOVE) || claims(sentence, REPORTED)
-      || (ABOUT_PRICE_OR_NEWS.test(sentence) && claims(sentence, BECAUSE))) return 'unsourced_cause';
+    if (asksWhy) {
+      if (claims(sentence, CAUSE_WORD) || tiesNewsToMove(sentence) || claims(sentence, REPORTED) || claims(asserted(sentence), GUESS) || statesReason(sentence)
+        || (ABOUT_PRICE_OR_NEWS.test(sentence) && claims(sentence, BECAUSE))) return 'unsourced_cause';
+    } else {
+      const priceMove = sentence.replace(OTHER_THING_MOVED, ' ');
+      if (MOVED_FACT.test(priceMove) && (claims(priceMove, CAUSE_WORD) || tiesNewsToMove(priceMove) || claims(priceMove, REPORTED) || claims(priceMove, BECAUSE))) return 'unsourced_cause';
+      if (/주가|하락|상승|급등|급락|반등|(?:오른|내린|떨어진|빠진)\s*(?:이유|원인|배경)/.test(sentence) && statesReason(sentence)) return 'unsourced_cause';
+    }
   }
   // "왜 내렸는지는 확인하지 못했어요", "원인은 알 수 없어요", "이 움직임을 설명하는 기사를 구하지 못했어요", "실적 때문인지는 확인하지 못했어요" 모두 인정한다.
-  if (options.requireDisclosure !== false && !sentences.some(sentence => ABOUT_CAUSE.test(sentence) && UNSURE.test(sentence))) return 'missing_unconfirmed_cause';
+  if (asksWhy && !sentences.some(sentence => ABOUT_CAUSE.test(sentence) && UNSURE.test(sentence))) return 'missing_unconfirmed_cause';
   return undefined;
 }
 
@@ -208,7 +248,7 @@ currentStatus: ${cause ? `${status ? '근황을 묻는 질문이에요. 오르�
 2) 질문한 움직임을 설명하는 보도가 있을 때만 사건 → 제품·고객의 변화 → 회사가 앞으로 벌 돈이나 비용에 대한 기대를 풀어주세요. 직접 이유가 없으면 확인된 같은 기간 시장·업종 비교와 그 의미까지로 본문을 마치세요. 과거 반대 방향 사건을 길게 설명해 본문을 채우지 마세요. 예를 들어 회사와 업종이 함께 올랐다면 회사만 오른 것은 아니라는 점까지 말할 수 있지만, 걱정 해소나 저가 매수가 원인이라는 뜻은 아니에요.
 3) ${contract.product ? `상품 연결은 필수예요. ${contract.product.symbol}이 따라가는 대상(${contract.product.target})과 상품 자체를 구분하세요. ${contract.product.dailyMultiple !== undefined ? `하루 ${contract.product.dailyMultiple}배 목표라는 구조가 위 움직임을 어떻게 확대하거나 반대로 만들 수 있는지 본문에서 쉽게 연결해요. 목표와 실제 등락은 다르고, 며칠 수익률의 단순 배수도 아니에요. 숫자를 곱해 실제 손실률을 만들어내지 마세요.` : '투자 대상의 변화가 상품 가격에 전달되는 과정을 제공된 상품 자료로 설명하세요.'} 이 연결을 접힌 assistantInsights에만 넣지 마세요.` : '개별 종목 질문이면 해당 회사의 연결을, 시장 질문이면 업종 전반의 연결을 설명해요. 알려지지 않은 상품 배수·기업 사업은 만들지 마세요.'}
 
-실제로 확인되지 않은 점은 관련 문장에서 한 번만 밝혀요. 가격 표 재낭독·사건 목록·매매 권유는 빼세요. 날짜를 구분한 뒤 장중 최저나 상세 등락을 덧붙이지 마세요. 본문에는 정치권 세부 의석·요일 등 질문과 무관한 부연을 빼세요. 보통주는 회사 주식이라고 쉽게 쓰세요.` : '질문에 직접 답하는 짧은 2~4문장, 350자 이내. 제품의 쓰임이나 용어의 뜻, 요청한 비교부터 설명하세요. 두 문장마다 줄을 바꿔주세요.'}
+실제로 확인되지 않은 점은 관련 문장에서 한 번만 밝혀요. 가격 표 재낭독·사건 목록·매매 권유는 빼세요. 날짜를 구분한 뒤 장중 최저나 상세 등락을 덧붙이지 마세요. 본문에는 정치권 세부 의석·요일 등 질문과 무관한 부연을 빼세요. 보통주는 회사 주식이라고 쉽게 쓰세요.` : `질문에 직접 답하는 짧은 2~4문장, 350자 이내. 제품의 쓰임이나 용어의 뜻, 요청한 비교부터 설명하세요. 두 문장마다 줄을 바꿔주세요.${assistantPrincipleQuestion(question.text) ? " 일반 원리를 묻는 질문이에요. 원리를 쉬운 말로 바로 설명하세요. '이번 자료에는 관련 기사가 없어요', '오늘 시장의 원인은 확정할 수 없어요' 같은 자료 안내는 붙이지 마세요. 특정 종목이 최근 실제로 어떻게 움직였는지 아는 것처럼 말하지도 마세요." : ''}`}
 keyAdvice: ${cause ? '현재 질문에 답하기 위해 다음에 확인할 구체적 사실 하나와 그 의미를 짧은 1~2문장으로 담은 배열 1개, 180자 이내. 현재 움직임을 설명하는 사건이 있을 때 규정 확정이나 주문·실적 전망 변화를 짚으세요. 직접 원인이 없으면 과거 사건을 억지로 연결한 확인 과제를 만들지 말고 []. 아직 확인하지 않은 결과를 만들지 마세요. 전망이 그대로거나 나쁜 소식이 없다는 것만으로 사업에 문제가 없거나 시장 걱정만이 하락 원인이라고 단정하지 마세요. 뉴스와 실적을 함께 봐요 같은 막연한 권유는 피하세요. 매매 지시가 아닌 확인할 사실이에요. 제공된 근거로 구체화할 수 없으면 [].' : '꼭 필요한 가상 예시만 최대 1개, 300자 이내. 없으면 [].'}
 assistantInsights: 본문에 없는 별도 회사 소식이나 비교 근거만 최대 2개. 이전 반대 방향 사건은 해당 날짜와 함께 여기에 짧게 넣고 현재 움직임의 이유로 연결하지 마세요. 핵심 답·상품 연결·필수 날짜 안내를 이곳으로 미루지 마세요. {kind:"observation" 또는 "interpretation",text:"짧은 설명, 200자 이내",evidenceIds:["실제 제공된 ID 1~3개"]}. 새 내용이 없으면 []. 가격 근거로 상품 구조를 설명하지 마세요. 연결할 근거가 없으면 반드시 []. URL과 내부 근거 번호는 문장에 넣지 마세요.
 followUps: 사용자가 주비에게 이어서 물을 질문 2개, 각 60자 이내. 현재 질문의 핵심에서 이어가고, 추가 설명에만 넣은 과거 사건을 새 대화의 중심으로 바꾸지 마세요. 지금 답한 내용 반복과 매매 유도는 금지예요. '알려드릴까요?', '알고 싶나요?'처럼 주비가 사용자에게 묻는 말은 쓰지 마세요. 예: '그 변화가 회사 매출에 실제로 나타났는지 어디서 확인해요?' 사용자가 이미 이해한 핵심에서 한 단계 더 이어지는 질문으로 쓰세요. 임의 과거 날짜·정확한 장중 시각의 조회 기능은 없으므로 제안하지 마세요.
@@ -273,12 +313,13 @@ export function assistantReportIssue(report: Record<string, unknown>, evidence?:
 export function assistantPrincipleQuestion(text: string) {
   if (/오늘|어제|그제|내일|모레|최근|이번|요즘|요새|방금|지금|아까|며칠|\d+\s*(?:일|월)/.test(text)) return false;
   if (/올랐|내렸|떨어졌|빠졌|밀렸|움직였|(?:급등|급락|상승|하락|폭등|폭락|반등)(?:했|한)|떨어진|빠진/.test(text)) return false;
+  // "왜 이렇게 빠져?", "이 주식은 실적 발표하면 왜 맨날 떨어져?"는 지금 보고 있는 종목에 일어나는 일을 묻는 말이다.
+  if (/이렇게|이리|저렇게|맨날|자꾸|계속|또\s|다시\s|이\s*(?:주식|종목|회사)|이거|얘/.test(text)) return false;
   const asksWhy = '[^?？]*(?:왜|이유|원인|까닭|어째서|어떻게\\s*(?:돼|되)|(?:무슨|어떤)\\s*영향)';
-  // "오르면", "좋으면", "발표하면"처럼 용언 뒤에 붙은 '면'만 조건으로 본다. "반면", "측면", "화면"은 명사이고
-  // "비교하면", "그렇다면", "보면"은 조건이 아니라 말을 잇는 표현이다.
-  const conditional = new RegExp(`(?:으|하|르|리|지|되|오|가|늘|줄|크|치|키|서|내|나|쁘|우|이|라|다)면\\s${asksWhy}`).test(text)
-    && !/(?:비교하|따지|말하|그렇다|이렇다|저렇다|아니라)면\s/.test(text);
-  return conditional || new RegExp(`(?:(?<![그이저])때|경우|락일|발표일|만기일|지급일)(?:에|엔|에는|은|는|마다|에도)?\\s${asksWhy}`).test(text);
+  // 용언 뒤의 '~면'만 조건이다. "반면", "측면", "화면" 같은 명사와 "비교하면", "그렇다면", "보면"처럼 말을 잇는 표현은 아니다.
+  const conditional = new RegExp(`[가-힣]면[,\\s]${asksWhy}`).test(text)
+    && !/(?:반|측|화|국|전|정|표|수|장|양|단|외|직|당|방)면[,\s]|(?:비교하|따지|말하|말하자|그러|그렇다|이러|저러|이렇다|저렇다|아니|아니라|보|어쩌|왜냐하)면[,\s]/.test(text);
+  return conditional || new RegExp(`(?:(?<![그이저])때|경우|락일|발표일|만기일|지급일|\\s시)(?:에|엔|에는|은|는|마다|에도)?[,\\s]${asksWhy}`).test(text);
 }
 
 /** Cheap routing: company/product/concept questions need no market fetch; ambiguous follow-ups inherit the recent topic. */
@@ -291,11 +332,12 @@ export function assistantNeedsMarketEvidence(question: AssistantQuestion) {
   if (assistantPrincipleQuestion(text)) return false;
   // "ETF가 뭐야?", "배당락일에 가격이 떨어지는 원인이 뭐예요?"는 뜻·원리를 묻는 말이다.
   // "급등한 이유가 뭐야?", "뭐 때문에 내렸어?", 그리고 종목·시장을 두고 묻는 "떨어지는 이유가 뭐야?"는 실제로 움직인 이유를 묻는 말이다.
-  const happened = /오늘|어제|최근|왜|뉴스|실적|주가|하락|올랐|내렸|떨어졌|빠졌|밀렸|움직였|(?:급등|급락|상승|폭등|폭락|반등)(?:했|한)|떨어진|빠진|(?:뭐|무엇|무슨)\s*때문/.test(text);
+  const happened = /오늘|어제|최근|지금|요즘|요새|이번|계속|이렇게|왜|뉴스|실적|주가|하락|올랐|내렸|떨어졌|빠졌|밀렸|움직였|(?:급등|급락|상승|폭등|폭락|반등)(?:했|한)|떨어진|빠진|(?:뭐|무엇|무슨)\s*때문/.test(text);
   const aboutThisMove = (Boolean(question.symbol) || /(?:코스피|코스닥|나스닥|다우|S&P\s*500|국장|미장)(?:이|가|은|는|도)?\s|(?:증시|시장|지수)(?:이|가|은|는|도)\s/i.test(text))
     && /이유|원인|배경|때문/.test(text) && /떨어지|오르|내리|빠지|밀리|급등|급락|상승|움직|흔들|약세|강세/.test(text);
   if (/(?:뭐(?:야|예요)|무슨\s*뜻|뜻이|정의|무엇|차이)/.test(text) && !happened && !aboutThisMove) return false;
-  const topic = [question.text, ...(question.history ?? []).map(turn => turn.question)].join(' ');
+  // 원리를 물은 앞 질문("금리가 오르면 왜 채권 가격이 떨어져?")의 낱말은 이어지는 질문을 시세 조회로 끌고 가지 않는다.
+  const topic = [question.text, ...(question.history ?? []).map(turn => turn.question).filter(asked => !assistantPrincipleQuestion(asked))].join(' ');
   if (/가령|가정|예를\s*들|만약/.test(topic) && !/오늘|어제|최근|이번|뉴스|기사|실적|공시/.test(topic)) return false;
   return /하락|떨어|내려|내렸|내리|빠졌|빠지|빠진|밀렸|밀리|오르|올랐|올라|상승|급등|급락|움직|주가|가격|차트|거래량|오늘|어제|최근|요즘|요새|근황|이번\s*(?:주|달)|며칠|뉴스|기사|보도|실적|발표|공시|시장|수익률|손실|왜.*(?:빠|밀)/.test(topic);
 }
@@ -327,6 +369,7 @@ export function assistantNeedsArticles(question: AssistantQuestion) {
   if (intent !== 'explain') return intent !== 'trending' && Boolean(question.symbol);
   if (/시장\s*전체|업종|비교/.test(question.text) && /같이\s*움직|비교하면|몇\s*%|얼마나/.test(question.text)
     && !/왜|이유|원인|뉴스|기사|영향/.test(question.text)) return false;
-  const topic = [question.text, ...(question.history ?? []).map(turn => turn.question)].join(' ');
+  // 원리를 물은 앞 질문("금리가 오르면 왜 채권 가격이 떨어져?")의 낱말은 이어지는 질문을 시세 조회로 끌고 가지 않는다.
+  const topic = [question.text, ...(question.history ?? []).map(turn => turn.question).filter(asked => !assistantPrincipleQuestion(asked))].join(' ');
   return assistantNeedsMarketEvidence(question) && /왜|이유|원인|배경|영향|뉴스|기사|보도|소식|실적|발표|공시|무슨\s*일|어떤\s*일|(?:뭐|무엇|무슨)\s*때문|어째서/.test(topic);
 }

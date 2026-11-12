@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assistantAsksAboutPriceMove, assistantNeedsArticles, assistantNeedsMarketEvidence, assistantPrincipleQuestion, assistantStatusQuestion, parseAssistantQuestion, type AssistantQuestion } from '@/lib/assistantQuestion';
+import { assistantAsksAboutPriceMove, assistantNeedsArticles, assistantNeedsMarketEvidence, assistantPrincipleQuestion, assistantQuestionPrompt, assistantStatusQuestion, parseAssistantQuestion, type AssistantQuestion } from '@/lib/assistantQuestion';
 import { resolveAssistantSubject } from '@/lib/assistantSubject';
 
 const q = (text: string, symbol?: string, history: AssistantQuestion['history'] = []): AssistantQuestion => ({ text, symbol, unclearTerms: [], period: '1d', market: 'kr', history });
@@ -39,6 +39,7 @@ describe('질문을 엉뚱한 종류로 보내지 않는다', () => {
   it.each([['금리가 오르면 왜 채권 가격이 떨어져?', undefined], ['금리가 오르면 채권 가격이 떨어지는 이유가 뭐야?', undefined], ['환율이 오르면 수출 기업에 좋은 이유가 뭐예요?', undefined],
     ['금리가 오르면 주가가 왜 떨어져요?', '005930.KS'], ['실적이 좋으면 왜 주가가 올라?', '005930.KS'], ['배당락일에 가격이 떨어지는 원인이 뭐예요?', '005930.KS'], ['금리가 오를 때 왜 주가가 떨어져?', undefined],
     ['PER이 높으면 왜 비싸다고 해?', undefined], ['공매도가 늘면 주가가 왜 떨어져?', undefined], ['유상증자를 하면 왜 주가가 떨어져요?', '005930.KS'], ['금리를 인하하면 어떤 영향이 있어?', undefined], ['환율이 오르면 어떻게 돼?', undefined],
+    ['배당을 주면 왜 주가가 떨어져?', '005930.KS'], ['돈을 풀면 왜 주가가 올라?', undefined], ['회사가 자사주를 사면 왜 주가가 올라?', '005930.KS'], ['금리가 오르면, 왜 채권 가격이 떨어져?', undefined], ['금리 인상 시 채권 가격이 떨어지는 이유는?', undefined],
   ])('%s 는 원리를 묻는 말이라 시세와 기사를 찾지 않는다', (text, symbol) => {
     const question = q(text, symbol);
     expect(assistantPrincipleQuestion(text)).toBe(true);
@@ -51,9 +52,25 @@ describe('질문을 엉뚱한 종류로 보내지 않는다', () => {
   it.each([['코스피랑 비교하면 왜 더 떨어졌어?', '005930.KS'], ['그러면 왜 떨어진 거야?', '005930.KS'], ['실적이 좋은데 왜 떨어졌어?', '005930.KS'], ['오늘 금리가 오르면서 왜 떨어졌어?', '005930.KS'],
     ['계속 떨어지는 이유가 뭐야?', '005930.KS'], ['코스피가 빠지는 이유가 뭐야?', undefined], ['시장이 떨어지는 이유가 뭐야?', undefined], ['계속 밀리는 이유가 뭐야?', '005930.KS'],
     ['왜 떨어져?', '005930.KS'], ['오늘 왜 이렇게 빠져요?', '005930.KS'], ['어제 급락한 이유 알려줘', '005930.KS'], ['요즘 왜 이렇게 올라?', '005930.KS'], ['주가가 떨어지는 이유가 뭐야?', '005930.KS'],
+    // 2026-11-12 재검토: 지금 보고 있는 종목·시장의 일을 가리키는 말은 조건문 꼴이어도 실제 움직임 질문이다.
+    ['실적 발표 때 왜 이렇게 빠져?', '005930.KS'], ['장 시작할 때 왜 이렇게 떨어져?', '005930.KS'], ['이 회사는 실적 발표하면 왜 맨날 떨어져?', '005930.KS'], ['환율이 오르면 왜 이 주식이 떨어지는 거야?', '005930.KS'], ['오르면 왜 다시 떨어져?', '005930.KS'],
+    ['지금 떨어지는 이유가 뭐야?', undefined], ['요즘 계속 빠지는 이유가 뭐야?', undefined], ['이렇게 오르는 이유가 뭐야?', undefined],
   ])('%s 는 실제로 움직인 이유를 묻는 말이다', (text, symbol) => {
     expect(assistantPrincipleQuestion(text)).toBe(false);
     expect(assistantNeedsMarketEvidence(q(text, symbol))).toBe(true);
+  });
+  it('asks for the principle itself, without a note about missing articles', () => {
+    expect(assistantQuestionPrompt(q('금리가 오르면 왜 채권 가격이 떨어져?'), {})).toContain('일반 원리를 묻는 질문이에요');
+    expect(assistantQuestionPrompt(q('ETF가 뭐야?'), {})).not.toContain('일반 원리를 묻는 질문이에요');
+  });
+  it('keeps a follow-up to a principle question on the concept path', () => {
+    const history = [{ question: '금리가 오르면 왜 채권 가격이 떨어져?', answer: '새 채권이 이자를 더 주기 때문이에요.' }];
+    for (const text of ['그럼 주식은 어떻게 돼?', '네', '예를 하나 들어줘']) {
+      expect(assistantNeedsMarketEvidence(q(text, undefined, history))).toBe(false);
+      expect(assistantNeedsArticles(q(text, undefined, history))).toBe(false);
+    }
+    // 실제 움직임을 물은 앞 질문은 그대로 이어진다.
+    expect(assistantNeedsMarketEvidence(q('그게 나한테 왜 중요해?', '005930.KS', [{ question: '삼성전자 오늘 왜 떨어졌어?', answer: '전 거래일보다 내렸어요.' }]))).toBe(true);
   });
   it('does not take a pointer to an earlier moment for a general principle', () => {
     for (const text of ['그때 왜 그래?', '이럴 때 왜 떨어졌어?', '비교하면 왜 이래?', '내일 왜 오를까?', '반면 삼성전자는 왜 떨어져?', '그렇다면 왜 떨어져?', '그러면 왜 그래?', '이런 측면 왜 중요해?']) expect(assistantPrincipleQuestion(text)).toBe(false);
@@ -71,6 +88,9 @@ describe('질문을 엉뚱한 종류로 보내지 않는다', () => {
     // 그 한 글자 답이 다음 질문의 대화 기록에 실려도 거절하지 않는다.
     expect(parseAssistantQuestion({ ...body, questionText: '3년은 안 써요', questionHistory: [...history, { question: '네', answer: '그렇다면 오래 묶어둘 수 있는 돈인지부터 보면 돼요.', symbol: '005930.KS' }] })?.history).toHaveLength(2);
     expect(parseAssistantQuestion({ ...body, questionText: '', questionHistory: history })).toBeNull();
+    // 한 글자 예외는 예·아니요 대답에만 열려 있다.
+    for (const text of ['?', 'ㅋ', '왜', '아']) expect(parseAssistantQuestion({ ...body, questionText: text, questionHistory: history })).toBeNull();
+    expect(parseAssistantQuestion({ ...body, questionText: '응', questionHistory: history })?.text).toBe('응');
   });
   it('keeps a buy or sell question on the stock being viewed after a detour about the market', () => {
     const history = [{ question: '오늘 왜 움직였어요?', answer: '전 거래일보다 올랐어요.', symbol: '035420.KS', market: 'kr' as const, period: '1d' as const },

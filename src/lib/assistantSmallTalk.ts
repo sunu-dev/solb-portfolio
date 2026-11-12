@@ -24,9 +24,10 @@ export function assistantSmallTalk(input: string): AssistantSmallTalk | null {
   return null;
 }
 
-/** 주비의 답이 물음으로 끝났는지. 그 뒤의 "네", "응"은 맞장구가 아니라 그 물음에 대한 답이라 AI에 보낸다. */
-export function assistantAsksBack(parts: unknown[]): boolean {
-  return parts.some(part => typeof part === 'string' && part.split(/\n+/).some(paragraph => /[?？]["'”’)\s]*$/.test(paragraph.trim())));
+/** 주비의 답이 물음으로 끝났는지. 그 뒤의 "네", "응"은 맞장구가 아니라 그 물음에 대한 답이라 AI에 보낸다.
+ * 본문의 마지막 문단만 본다. 설명 중간의 "그럼 삼성전자만 내린 걸까요?" 같은 말은 사용자에게 묻는 것이 아니다. */
+export function assistantAsksBack(answer: unknown): boolean {
+  return typeof answer === 'string' && /[?？]["'”’)\s]*$/.test(answer.trim());
 }
 
 export function assistantSmallTalkReply(kind: AssistantSmallTalk, context: { subject?: string; hasConversation: boolean }): string {
