@@ -1,64 +1,69 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-12
-마지막 담당: Claude Code
-상태: 채팅 변경을 운영에 선별 배포했고(2026-11-12 두 번째 배포에 실존 인물 보도 기준 추가), 사용자 승인으로 로그인 계정 실제 질문 3개 검수까지 통과했다. main은 로컬 커밋 a14d59f + 문서 커밋. push는 하지 못했다(아래 'push 주의').
-현재 진행 중인 제품 코드 작업/테스트 프로세스: 없음(로컬 개발 서버 3071은 종료했다).
+마지막 담당: Claude Code → 다음 담당: Codex (사용자 지시 "다음 턴은 Codex로")
+상태: 채팅 변경을 운영에 선별 배포했고 로그인 계정 실제 질문 3개 검수까지 통과했다. main은 로컬 커밋만 있다(이 문서 커밋 포함). GitHub push는 사용자가 직접 실행할 예정이며, 이 문서를 쓸 때는 아직 올라가지 않았다(아래 'push').
+현재 진행 중인 제품 코드 작업/테스트 프로세스: 없음. 로컬 개발 서버 없음. Claude 세션 임시 폴더의 릴리스 워크트리는 지웠다(브랜치와 커밋은 저장소에 그대로 있다).
+
+Codex 시작 체크
+1. git status(깨끗해야 함), git log --oneline -5(main 맨 위가 이 문서 커밋, 그 아래 c165462·a14d59f).
+2. git ls-remote --heads origin: 사용자가 push했다면 release/chat-natural-20261112(b49f711)와 backup/main-20261112(main)가 보인다. origin/main은 03ae229 그대로여야 한다.
+3. 아래 '절대 하지 않을 것'을 먼저 읽는다.
+
+절대 하지 않을 것
+- git push origin main: Vercel이 GitHub main을 운영 브랜치로 자동 배포한다. main HEAD 전체(보호 보관·패스키, 종목 상세 개편, 산업 그림, 로딩 시안, 수집 도구 같은 미배포 기능 포함)가 joobi.kr에 나간다. AGENTS.md의 'push와 운영 배포' 참조.
+- main 전체 배포. 운영 반영은 docs/JOOBI_SELECTIVE_RELEASE.md의 릴리스 브랜치 선별 배포로만 한다.
+- 인증 우회(쿠키 주입 등), 운영 Supabase 테스트 계정 생성, 인증 설정 변경. 로그인이 필요한 검수는 사용자 로그인 세션과 승인으로 한다.
+
+push
+- 이 컴퓨터의 GitHub 기본 계정은 swhan-cubox-ai라 이 저장소에 403이다. sunu-dev 계정도 로그인돼 있으나 비활성이다. 계정 전환은 사용자 설정이라 사용자가 실행한다:
+  gh auth switch --user sunu-dev && git push origin release/chat-natural-20261112 main:refs/heads/backup/main-20261112; gh auth switch --user swhan-cubox-ai
+- 다른 이름의 브랜치 push는 Vercel 미리보기 배포만 만든다(운영 무관).
 
 운영 — 2026-11-12 채팅 선별 배포
-- 운영: https://joobi.kr / dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ (solb-portfolio-1g5jaljcn). 바로 전 채팅 배포: dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW. 채팅 변경 전체를 되돌릴 대상: dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa (g4awox82t).
-- 운영 소스: 브랜치 release/chat-natural-20261112 @ b49f711 (로컬 전용, push 없음) = 이전 운영 기준 ea1fdc3 + main a14d59f의 채팅 파일 35개. 33개는 main과 같고 page.tsx·AnalysisPanel.tsx는 React key 한 줄씩만 옮겼다.
-- push 주의: Vercel 프로젝트가 GitHub(sunu-dev/solb-portfolio)에 연결돼 있고 운영 브랜치가 main, 빌드 생략 설정이 없다. git push origin main을 하면 main HEAD 전체(미배포 기능 포함)가 joobi.kr에 자동 배포된다. 백업은 다른 이름으로: git push origin release/chat-natural-20261112, git push origin main:refs/heads/backup/main-20261112 (미리보기 배포만 생긴다). 2026-11-12 이 push는 자동 권한 검사에서 막혀 실행되지 않았다. origin/main은 03ae229.
-- main의 미배포 기능(보호 보관·패스키, 종목 상세 개편, 산업 그림, 로딩 시안, 수집 도구)은 넣지 않았다. HEAD 전체 배포 금지는 그대로다.
-- 방법: 릴리스 워크트리에서 vercel deploy --prod --skip-domain(단계 배포) → 홈 200·비로그인 API 401 확인 → vercel promote. 워크트리는 세션 임시 폴더라 사라질 수 있다. 다시 만들 때는 git worktree add <폴더> release/chat-natural-20261112. 다음 선별도 "a9fdb82..main에서 바뀐 파일 중 ea1fdc3과 a9fdb82가 같은 파일만" 얹는다(절차는 sessionary/2026-11-12-chat-release.md).
-- 배포 뒤 확인: 홈 200, 비로그인 API 401, joobi.kr·www 별칭 연결, 공개 페이지 3개 200. Chrome(사용자 로그인 세션)에서 새 질문 제안 디자인과 "안녕" 즉답(AI 전송·횟수 차감 없음, 남은 3회 유지) 확인. 운영 로그에 ai-analysis 오류 0건.
-- 로그인 검수(사용자 승인, 2026-11-12 12:43 UTC, 삼성전자, 하루 3회 모두 사용): "오늘 왜 움직였어?" → 기사를 읽는 동안 3초에 등락률 줄(삼성전자 +0.97%, 코스피 −0.61%), 16.5초에 답(기사 7.8초·작성 6.7초), 3→2회. "그럼 지금 더 사도 될까?" → 8.7초, 등락률 줄 없음(매수 고민이라 의도대로), 끝에서 되물음, 2→1회. "네" → 한 글자로 전송 가능, 9.0초에 앞 질문을 이어 답, 1→0회와 '오늘 질문을 모두 사용했어요' 표시. 비용 원장: 기사 수집 2행 + 답 3행 모두 성공 기록(응답 뒤 기록 포함), 답마다 1회 과금. 재작성 0.
-- 배포 직후 관찰(채팅 변경과 무관한 호출, 기존 미해결과 같은 증상): 로그인 계정 첫 진입 5회 중 앞의 2회가 "지금 계정을 확인할 수 없어요". 브라우저→Supabase 직접 조회 user_portfolios 8.2초·user_consents 제한 초과, /api/me/admin 5.1초 503, /api/config 1회 실패(12:18 UTC). 3분 뒤 3.3초, 5분 뒤 0.3~0.6초로 정상. 로그인 없는 같은 표 조회는 0.3초였다.
+- 운영: https://joobi.kr / dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ. 되돌리기: 직전 채팅 배포 dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW, 채팅 배포 전 운영 dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa (vercel promote <ID> --yes).
+- 운영 소스: release/chat-natural-20261112 @ b49f711 = 이전 운영 기준 ea1fdc3 + main a14d59f의 채팅 파일 35개(33개는 main과 동일, page.tsx·AnalysisPanel.tsx는 React key 한 줄씩만 옮김). 절차·스크립트·이력: docs/JOOBI_SELECTIVE_RELEASE.md.
+- 운영 확인: 홈 200, 비로그인 API 401, joobi.kr·www 별칭, 공개 페이지 200, 운영 로그 ai-analysis 오류 0.
+- 로그인 검수(사용자 승인, 12:43 UTC, 삼성전자, 하루 3회 모두 사용): 원인 질문 16.5초(3초에 등락률 줄), 매수 질문 8.7초(등락률 줄 없음, 끝에서 되물음), "네" 9.0초(앞 질문을 이어감). 횟수 3→2→1→0. 비용 원장 5행(기사 수집 2, 답 3) 모두 성공 기록 — 응답 뒤 기록(after)도 운영에서 남는 것을 확인. 재작성 0.
+- 배포 직후 관찰: 로그인 계정 첫 진입 5회 중 앞 2회 "지금 계정을 확인할 수 없어요"(user_portfolios 8.2초, /api/me/admin 5.1초 503). 5분 뒤 0.3~0.6초로 회복. 채팅 변경이 거치지 않는 호출이고 기존 미해결과 같은 증상.
 
-이번에 운영에 들어간 채팅 변경 (과정과 근거: sessionary/2026-11-11-chat-naturalness.md, sessionary/2026-11-12-chat-release.md)
-1. 한국 종목 가격 누락 수정, 근황 질문("요즘 어때?") 답변, 인사·감사·맞장구 즉답(AI 전송·횟수 차감 없음), 후속 질문 반복 금지, 금액 검증 오탐 수정, 회사 설명 간헐 누락 수정, 로그인 전에 적은 질문 복원.
+운영에 들어간 채팅 변경 (근거: sessionary/2026-11-11-chat-naturalness.md, sessionary/2026-11-12-chat-release.md)
+1. 한국 종목 가격 누락 수정, 근황 질문, 인사·감사·맞장구 즉답(AI 전송·횟수 차감 없음), 후속 반복 금지, 금액 검증 오탐 수정, 로그인 전 질문 복원.
 2. 답변 화면 정리, 질문 제안 디자인(폭 맞춘 흰 줄), 등락률 먼저 보여주기.
-3. 첫 답 지연: 기사를 1건 이상 받은 뒤에는 모델의 마무리 글을 기다리지 않음, cnbc 제외, 영어 기사의 회사 인식, 수집 비용 기록은 응답 뒤(after).
-4. 기사 0건인 원인 질문은 오류 대신 가격 비교 + "이유는 확인하지 못했어요"(2026-11-11 사용자 결정). 제목은 모델에 주지 않는다. 근거 없는 원인 문장·보도 인용·짐작은 결정론적 검사로 막아 한 번 다시 쓰게 하고, 또 걸리면 내보내지 않고 횟수도 쓰지 않는다.
-5. 사실 검증(퍼센트·금액·출처 연결·형식)에 걸린 답도 오류 대신 한 번 다시 쓴다. 모든 검증을 통과한 답만 전달·과금한다.
-6. 질문 분류: 원리 질문("금리가 오르면 왜 채권 가격이 떨어져?")은 시세·기사 조회 없이 개념으로 답한다. "지금 떨어지는 이유가 뭐야?", "왜 이렇게 빠져?"는 실제 움직임 질문이다. "배당은 어때요?"는 근황 질문이 아니다. "지금 들어가도 돼?"는 매수 시점 질문이고 "회사도…"·시장 진입·지수 편입은 아니다.
-7. 주비가 되물은 직후의 "네/아니요"는 서버로 보내 대화를 잇는다(한 글자 질문은 이 경우에만 허용). "알겠어요" 같은 맞장구는 계속 화면에서 답한다.
+3. 첫 답 지연 단축(기사 수집 조기 반환, cnbc 제외, 영어 기사 회사 인식, 비용 기록은 응답 뒤).
+4. 기사 0건 원인 질문은 가격 비교 + "이유는 확인하지 못했어요". 근거 없는 원인 문장·보도 인용·짐작은 결정론적 검사로 한 번 다시 쓰고, 또 걸리면 내보내지 않고 횟수도 쓰지 않는다.
+5. 사실 검증(퍼센트·금액·출처·형식)에 걸린 답도 한 번 다시 쓴다. 모든 검증을 통과한 답만 전달·과금.
+6. 질문 분류: 원리 질문은 시세·기사 없이 개념으로, "지금 떨어지는 이유가 뭐야?"·"왜 이렇게 빠져?"는 실제 움직임으로, "배당은 어때요?"는 근황 아님, "지금 들어가도 돼?"는 매수 시점.
+7. 주비가 되물은 직후의 "네/아니요"는 서버로 보내 대화를 잇는다. 다른 맞장구는 화면에서 답한다.
+8. 실존 인물 보도(사용자 승인 기본값): 회사 쪽 사실만 담담하게, 사생활·확인되지 않은 개인 의혹·'폭로·스캔들' 표현 금지, 걸리면 한 번 다시 씀. 문구: src/lib/assistantIntent.ts ASSISTANT_PERSON_RULE.
 
 검사와 검토
-- main 9da461b: 타입검사, 공통검사 5종, 앱 2890 통과/17 생략, 도구 4, quality-lab 66, next build 통과.
-- 릴리스 1a2bba8: 타입검사, 공통검사 5종, 앱 2724 통과/15 생략, webpack 빌드 통과. 원격 빌드 2721 통과/18 생략.
-- 실제 모델(서버 경로 그대로, 인증·한도·원장만 대체: src/__tests__/assistantRouteLive.test.ts): 질문 15개 모두 200, 재작성 1건(금액 검증 → 다시 쓴 답 전달), 보류 0. 그 앞 단계 코드로 21개. 실존 인물 기준 추가 뒤 같은 엔비디아 보도로 4개, 모두 사생활 표현 없이 '이사회가 최고경영자 관련 조사를 시작했다'처럼 답함.
-- a14d59f(실존 인물 기준): main 앱 2901 통과/17 생략, 도구 4, quality-lab 66, 빌드 통과. 릴리스 b49f711 2735 통과/15 생략, 원격 2732 통과/18 생략.
-- 배포 전 독립 검토 2회(검토 2 + 반박 1씩): 1회차 8건 중 7건 확정, 2회차 8건 중 5건 확정(나머지 3건은 검토 도중 이미 고친 것). 확정 건은 모두 고치고 사례를 테스트로 남겼다.
-- 검토하지 못한 것: 2회차 지적을 고친 마지막 수정분(원인 검사 3차, 분류·의도 수정)은 테스트와 실제 모델 확인만 했다. 처음 띄운 큰 검토 2개는 사용량 한도로 결과가 없다.
+- main a14d59f: 타입검사, 공통검사 5종, 앱 2901 통과/17 생략, 도구 4, quality-lab 66, next build 통과.
+- 릴리스 b49f711: 타입검사, 공통검사 5종, 앱 2735 통과/15 생략, webpack 빌드 통과. 원격 빌드 2732 통과/18 생략.
+- 실제 모델(서버 경로, 인증·한도·원장만 대체: src/__tests__/assistantRouteLive.test.ts, 비용 발생): 최종 단계 질문 19개 모두 200, 재작성 1(금액 검증 → 다시 쓴 답 전달), 보류 0.
+- 배포 전 독립 검토 2회: 확정 12건 모두 수정·테스트화. 2회차 지적을 고친 마지막 수정분과 실존 인물 기준은 독립 검토 없이 테스트·실제 모델로만 확인.
 
 확인 못 한 것
-- 로그인 뒤 질문 복원(로그아웃이 필요해 하지 않음), 용어 팝업 → 사전 저장(계정 데이터 쓰기라 하지 않음), 재작성 성공률의 운영 표본, 실제 좁은 화면·iPhone.
+- 로그인 뒤 질문 복원(로그아웃 필요), 용어 팝업 → 사전 저장(계정 데이터 쓰기), 재작성률·보류율의 운영 표본, 실제 좁은 화면·iPhone.
 
 남은 문제
-- (가) Supabase 로그인 계정 조회 지연(위 관찰). TODO의 "운영 DB·로그인 안정화"와 같은 증상이고 원인은 미확정이다.
-- (나) 원인 검사는 낱말 목록이라 끝이 없다. 새 표현이 보이면 assistantWithoutReporting.test.ts에 사례를 먼저 더한다.
-- (다) 실존 인물 보도: 2026-11-12 사용자 승인으로 기본 기준을 정해 배포했다(회사 쪽 사실만 담담하게, 사생활·확인되지 않은 개인 의혹·'폭로·스캔들' 표현 금지, 걸리면 한 번 다시 씀). 기준 문구는 src/lib/assistantIntent.ts의 ASSISTANT_PERSON_RULE. 사용자가 범위를 바꾸면 여기와 assistantContextIssue의 낱말을 고친다.
-- (마) 로그인 검수에서 본 것: 주비의 '둘 중 하나' 물음("이미 가진 주식이 있고 더 사려는 건가요, 아니면 처음 사려는 건가요?")에 "네"라고 하면 앞쪽(보유 중)으로 받아들이고 답했다. 증권사 연구원 코멘트·투자의견 하향 같은 제3자 의견을 출처와 함께 옮긴다(운영에서도 원래 그랬음, 방향 제시 0 원칙과의 경계는 사용자 판단). 대화 설정의 종목 목록이 삼성전자를 '005930.KS (005930.KS)'로 표시(바로 아래 칩은 이름 표시). 두 번째 질문에서 [assistant-quality] metric_write_failed 1건과 횟수 기록 2.1초(DB 지연).
-- (라) 답 첫머리의 되읽기("질문하신 배당에 대해 말씀드리면")가 가끔 남는다. 표현 가드 pattern_5가 "반등…매출 전망"을 주가 전망으로 오인한 사례 1건.
+- (가) Supabase 로그인 계정 조회 지연(원인 미확정). TODO의 "운영 DB·로그인 안정화", "Supabase 근본 지연 후속"과 같은 증상.
+- (나) 원인 검사는 낱말 목록이라 끝이 없다. 새 표현은 src/__tests__/assistantWithoutReporting.test.ts에 사례부터 더한다.
+- (다) '둘 중 하나' 물음("이미 가진 주식이 있고 더 사려는 건가요, 아니면 처음 사려는 건가요?") 뒤 "네"를 앞쪽 선택으로 받아들인다.
+- (라) 대화 설정의 종목 목록이 삼성전자를 '005930.KS (005930.KS)'로 표시(바로 아래 칩은 이름 표시). 답 첫머리 되읽기("질문하신 배당에 대해 말씀드리면") 가끔.
+- (마) 사용자 판단 필요: 증권사 연구원 코멘트·투자의견 하향 같은 제3자 의견을 출처와 함께 옮긴다(이전 운영도 동일). 방향 제시 0 원칙과의 경계.
 
-코드와 기준
-- main @ 9da461b(로컬, push 없음). 운영 소스: release/chat-natural-20261112 @ 1a2bba8. 이전 운영 기준: ea1fdc3. 리뷰 스냅샷: 670d2c1.
-- 운영에 없는 main의 기능은 사용자 검수·운영 적용 판단이 따로 필요하다(종목 상세·산업 그림·로딩 시안·수집 도구, 보호 보관은 기본 비활성·SQL은 proposal).
-- artifacts, 환경 파일, 로컬 pilot 상태는 보존하지만 커밋하지 않는다. 세션 기록은 Git으로 보존한다.
-
-다음 작업 — 우선순위
-1. 백업 push를 사용자가 직접 실행하거나 권한을 허용한다(위 'push 주의'의 두 명령, origin/main에는 올리지 않는다).
-2. Supabase 지연: 첫 진입 조회별 시간을 시간대별로 모아 원인을 가른다(유휴 뒤 첫 조회인지, 사양 한계인지). 진입: sessionary/TODO.md의 "Supabase 근본 지연 후속"
-3. 운영 표본으로 재작성률·보류율·기사 0건 비율 확인(운영 로그는 1시간만 남는다). 진입: src/app/api/ai-analysis/route.ts의 [joobi-validation]·[joobi-step-timing] 로그. 그 다음 위 (마)의 '둘 중 하나 물음 + 네' 처리와 종목 목록 이름 표시.
+다음 작업 — Codex 우선순위
+1. push 확인(위 'Codex 시작 체크' 2). 안 됐으면 사용자에게 위 명령을 안내하고, origin/main에는 올리지 않는다.
+2. Supabase 지연 원인 분리: 첫 진입 조회별 시간(user_portfolios, user_consents, /api/me/admin)을 시간대·유휴 여부별로 모은다. 앱 수정 전에 측정부터. 진입: sessionary/TODO.md "Supabase 근본 지연 후속", src/hooks/useAuth.ts, src/app/api/me/admin
+3. 채팅 소수정: (라) 종목 목록 이름 표시 → (다) '둘 중 하나' 물음 뒤 "네"는 되묻기. 진입: src/components/learning/AskJoobi.tsx, src/lib/assistantIntent.ts. 운영 반영은 docs/JOOBI_SELECTIVE_RELEASE.md 절차로.
 
 진입 파일과 기록
-- 공통 제품 원칙: docs/JOOBI_EXPLANATION_PRINCIPLES.md
+- 공통 규칙: AGENTS.md(push와 운영 배포 포함), 제품 원칙: docs/JOOBI_EXPLANATION_PRINCIPLES.md
+- 선별 배포 절차: docs/JOOBI_SELECTIVE_RELEASE.md
 - 채팅/사전 디자인: docs/JOOBI_CHAT_DESIGN_SYSTEM.md, docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md
-- 원인 검사·질문 분류: src/lib/assistantQuestion.ts(assistantUnsourcedCauseIssue, assistantPrincipleQuestion, assistantNeedsMarketEvidence), 의도·짧은 대답: src/lib/assistantIntent.ts
-- 전체 리뷰 절차/운영 근거(당시 기록): docs/CLAUDE_REVIEW_HANDOFF_2026-11-10.txt, docs/CLAUDE_REVIEW_RELEASE_BASELINE_2026-11-10.txt
+- 원인 검사·질문 분류: src/lib/assistantQuestion.ts(assistantUnsourcedCauseIssue, assistantPrincipleQuestion, assistantNeedsMarketEvidence, assistantContextIssue), 의도·짧은 대답·실존 인물 기준: src/lib/assistantIntent.ts, 서버 경로: src/app/api/ai-analysis/route.ts
 - 보호 보관 전환: docs/PORTFOLIO_VAULT_ROLLOUT.md
-- 전체 미해결 목록: sessionary/TODO.md
-- 최근 작업 기록: sessionary/2026-11-12-chat-release.md (이전: 2026-11-11-chat-naturalness.md)
+- 전체 미해결 목록: sessionary/TODO.md, 최근 작업 기록: sessionary/2026-11-12-chat-release.md
 
 검사 명령
 npm run typecheck
@@ -68,10 +73,10 @@ npm --prefix quality-lab test
 npm run lint:ui && npm run lint:alerts && npm run lint:korean && npm run lint:darkmode && npm run lint:tour-anchors
 npm run build
 실제 모델 확인(비용 발생): JOOBI_ROUTE_LIVE=1 JOOBI_ROUTE_SCENARIOS=<시나리오 json> JOOBI_ROUTE_OUT=<결과 json> npx vitest run src/__tests__/assistantRouteLive.test.ts
-격리 복사본에서 외부 node_modules symlink를 쓰는 경우 npx next build --webpack으로 검증했다.
+  시나리오 형식: [{"name":"N1","symbol":"005930.KS","market":"kr","noArticles":true,"turns":["오늘 왜 떨어졌어?","이 회사는 뭘로 돈 벌어?"]}]
 
 계정·실행 상태와 주의점
-- 로컬 카카오 로그인은 joobi.kr로 돌아온다(Supabase Redirect URLs에 localhost 없음). 설정 변경은 사용자 몫이고 2026-11-11에 건너뛰기로 했다.
-- 인증 자동 이동은 자동 승인 검토에서 거절된 이력이 있다. 다른 도구나 쿠키 주입으로 우회하지 않고 필요한 사용자 로그인을 인계한다.
-- 이전 QA 계정은 정리·비활성화됐다. 실제 사용/비용 원장은 보존했다.
+- 로컬 카카오 로그인은 joobi.kr로 돌아온다(Supabase Redirect URLs에 localhost 없음, 변경은 사용자 몫). 로그인 흐름은 운영에서 사용자 세션으로만 검수했다.
+- 운영 질문 검수는 사용자 계정의 하루 3회를 쓴다. 2026-11-12 분은 모두 사용했다.
+- git worktree list의 /private/tmp/joobi-art-release-20261015, joobi-main-sync-check-20261001은 예전 세션 것(prunable)이다. 지우기 전에 사용자에게 확인한다.
 - 이 파일의 완료 항목은 위 범위만 뜻한다. 실제 코드/검사 결과와 다르면 먼저 정정한다.

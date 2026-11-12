@@ -38,6 +38,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 `HANDOFF.txt`는 현재 상태의 요약이며 코드·Git·실제 실행 결과를 대신하지 않는다. 사용자의 최신 지시와 상위 지침을 우선한다.
 
+### push와 운영 배포 — 두 도구 모두 필수
+
+- `git push origin main`은 **운영 배포**다. Vercel이 GitHub `main`을 운영 브랜치로 자동 배포하므로 main HEAD 전체(미배포 기능 포함)가 joobi.kr에 나간다. 사용자가 main 전체 배포를 명시하지 않으면 origin/main에 올리지 않는다. 백업은 `release/...`·`backup/...` 같은 다른 이름으로 올린다(미리보기 배포만 생김).
+- 운영 반영은 릴리스 브랜치 선별 배포로 한다: [선별 배포 절차](docs/JOOBI_SELECTIVE_RELEASE.md).
+
 ## 주비 제품 원칙 — 모든 제품 작업에 적용
 
 주비는 **주식비서**이며, 핵심 타깃은 **주식 초보자**다. 사용자가 시장과 자신의 투자를 이해하면서 **서비스에 오래 머무르고 다시 방문하게 만드는 것**을 목표로 한다.
