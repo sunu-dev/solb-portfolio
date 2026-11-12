@@ -43,3 +43,33 @@ it('does not tell neutral questions to correct an imagined decline', () => {
   expect(prompt).not.toContain('제공된 가격이 질문의 하락 전제와 다르면');
   expect(prompt).toContain('선거가 치러진 날·결과가 알려진 날·그 결과로 주가가 움직인 날');
 });
+
+// 2026-11-12 사용자 승인: 실존 인물의 사생활·개인 의혹은 옮기지 않고, 주가와 이어지는 회사 쪽 사실만 담담하게 전한다.
+it.each([
+  '이투데이는 엔비디아 젠슨 황 CEO를 둘러싼 사생활 폭로가 국가안보 문제로 번졌다고 전했어요.',
+  '최고경영자의 불륜 의혹이 불거지며 경영 공백 걱정이 커졌어요.',
+  '회장의 스캔들 보도 뒤 그룹 계열사 주가가 흔들렸어요.',
+  '창업자의 혼외자 논란이 이어지고 있어요.',
+])('sends a real person\'s private life or scandal wording to the rewrite: %s', text => {
+  expect(assistantContextIssue({ currentStatus: text }, q('오늘 왜 떨어졌어?'))).toBe('personal_allegation');
+  // Also when the wording sits in the expanded parts of the answer.
+  expect(assistantContextIssue({ currentStatus: '전 거래일보다 내렸어요.', assistantInsights: [{ text }] }, q('오늘 왜 떨어졌어?'))).toBe('personal_allegation');
+  expect(assistantContextIssue({ currentStatus: '전 거래일보다 내렸어요.', conclusion: { desc: text } }, q('오늘 왜 떨어졌어?'))).toBe('personal_allegation');
+});
+it.each([
+  '야후 파이낸스는 엔비디아 이사회가 최고경영자 관련 조사를 시작했다고 전했어요.',
+  '경영진 교체 가능성을 다룬 보도가 나온 뒤 불확실성이 커졌다고 전했어요.',
+  '애플은 사생활 보호 기능을 강조해 왔어요.',
+  '현대차는 내연기관 차와 전기차를 함께 팔아요.',
+  '해외도 비슷한 흐름이에요. 예외도 있어요.',
+])('lets neutral company wording through: %s', text => {
+  expect(assistantContextIssue({ currentStatus: text }, q('오늘 왜 떨어졌어?'))).toBeUndefined();
+});
+it('tells both prompts and the rewrite how to handle reporting about a real person', () => {
+  const question = { ...q('오늘 왜 떨어졌어?'), period: '1d' as const, market: 'us' as const };
+  expect(assistantQuestionPrompt(question, {})).toContain('실존 인물의 사생활');
+  expect(assistantQuestionPrompt({ ...question, text: '지금 더 사도 될까?' }, {})).toContain('실존 인물의 사생활');
+  const repair = assistantRepairPrompt('기존 지시', 'personal_allegation');
+  expect(repair).toContain('사생활이나 확인되지 않은 개인 의혹의 내용은 빼세요');
+  expect(repair).not.toContain('젠슨');
+});

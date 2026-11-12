@@ -864,6 +864,15 @@ describe('assistant evidence routing', () => {
       // Both attempts are costed; only the accepted one counts as a success.
       expect(state.cost.mock.calls.map(([entry]) => entry.success)).toEqual([false, true]);
     });
+    it('rewrites an answer that relays a real person\'s private life, and delivers only the neutral version', async () => {
+      const gossip = { ...base, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '최고경영자를 둘러싼 사생활 폭로가 이어지며 마이크론이 내렸다고 Yahoo가 전했어요.', keyAdvice: [] }) };
+      state.claude.mockResolvedValueOnce(gossip).mockResolvedValueOnce(good);
+      const response = await ask();
+      expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2);
+      expect(state.claude.mock.calls[1][0]).toContain('개인 의혹의 내용은 빼세요');
+      const data = await response.json();
+      expect(data.report.currentStatus).not.toMatch(/사생활|폭로/); expect(state.rows).toHaveLength(1);
+    });
     it('is withheld without a charge when the rewrite fails the same check', async () => {
       state.claude.mockResolvedValue(inventedPercent);
       const response = await ask();
