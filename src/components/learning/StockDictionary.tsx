@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
-import { ArrowLeft, Bookmark, Check, ChevronRight, Plus, Search, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, Check, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { financialTerm, FINANCIAL_TERMS } from '@/lib/financialTerms';
 import { buildDictionaryReview, dictionaryReviewEntries, DICTIONARY_LIMIT, type DictionaryEntry, type ReviewQuestion } from '@/lib/personalDictionary';
 import FinancialText from '@/components/common/FinancialText';
@@ -56,6 +56,7 @@ function EntryTools({ entry }: { entry: DictionaryEntry }) {
 export default function StockDictionary({ initialTermId, titleId, onClose }: { initialTermId?: string; titleId: string; onClose: () => void }) {
   const { owner, entries, ready, error, reload, save } = usePersonalDictionary();
   const [search, setSearch] = useState('');
+  const [pageDirection, setPageDirection] = useState<'next' | 'previous'>();
   const [filter, setFilter] = useState<Filter>('saved');
   const [hideFamiliar, setHideFamiliar] = useState(true);
   const [selected, setSelected] = useState(initialTermId ? `term:${initialTermId}` : '');
@@ -114,7 +115,9 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   const term = active?.termId ? financialTerm(active.termId) : undefined;
   const saved = entries.find(entry => entry.id === active?.id);
   const reviewCount = Math.min(3, dictionaryReviewEntries(entries).length);
+  const pageIndex = list.findIndex(entry => entry.id === active?.id);
   const pick = (entryId: string) => {
+    if (entryId !== active?.id) setPageDirection(list.findIndex(entry => entry.id === entryId) < pageIndex ? 'previous' : 'next');
     setSelected(entryId); setReading(true); toTop();
     requestAnimationFrame(() => reader.current?.focus({ preventScroll: true }));
   };
@@ -153,7 +156,11 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
             </section>
             <section className={styles.reader} ref={reader} tabIndex={-1} aria-label="선택한 단어 뜻">
               <button type="button" className={`${theme.linkButton} ${styles.backToList}`} onClick={() => { setReading(false); toTop(); }}><ArrowLeft size={17} aria-hidden="true" />목록으로</button>
-              {active ? <><article className={styles.note}><i className={styles.tape} aria-hidden="true" /><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article>{saved && <EntryTools key={saved.id} entry={saved} />}</> : <p className={styles.emptyHint}>{filter === 'saved' && hideFamiliar && familiarCount > 0 && list.length === 0 ? '단어와 메모는 그대로 보관하고 있어요. 다시 보고 싶으면 이해한 단어를 펼쳐보세요.' : '목록에서 단어를 선택하면 뜻을 볼 수 있어요.'}</p>}
+              {active ? <><article key={active.id} className={styles.note} data-turn={pageDirection}><i className={styles.tape} aria-hidden="true" /><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article>{pageIndex >= 0 && list.length > 1 && <nav className={styles.pageNavigation} aria-label="사전 책장 넘기기">
+                <button type="button" className={theme.button} disabled={pageIndex === 0} onClick={() => pick(list[pageIndex - 1].id)}><ChevronLeft size={16} aria-hidden="true" />이전 단어</button>
+                <span aria-live="polite">{pageIndex + 1} / {list.length}</span>
+                <button type="button" className={theme.button} disabled={pageIndex === list.length - 1} onClick={() => pick(list[pageIndex + 1].id)}>다음 단어<ChevronRight size={16} aria-hidden="true" /></button>
+              </nav>}{saved && <EntryTools key={saved.id} entry={saved} />}</> : <p className={styles.emptyHint}>{filter === 'saved' && hideFamiliar && familiarCount > 0 && list.length === 0 ? '단어와 메모는 그대로 보관하고 있어요. 다시 보고 싶으면 이해한 단어를 펼쳐보세요.' : '목록에서 단어를 선택하면 뜻을 볼 수 있어요.'}</p>}
             </section>
           </div>}
         </>

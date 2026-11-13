@@ -15,7 +15,7 @@
 .theme :is(button,a,input,textarea,summary):focus-visible { outline:2px solid var(--dict-accent); outline-offset:3px; }
 .theme :is(h2,h3):focus { outline:none; }
 .theme :is(h2,h3,p) { overflow-wrap:anywhere; word-break:keep-all; }
-.hand { font-family:var(--font-wordmark),sans-serif; font-weight:400; letter-spacing:0; }
+.hand { font-family:inherit; font-weight:700; letter-spacing:-.025em; }
 .button,.primary,.linkButton { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:9px 13px; border:1px solid var(--dict-line); border-radius:9px; background:var(--dict-paper); color:var(--dict-ink); font:inherit; font-size:14px; cursor:pointer; }
 .button[aria-pressed=true] { background:var(--dict-note); border-color:var(--dict-accent); box-shadow:inset 0 0 0 1px var(--dict-accent); }
 .primary { background:var(--dict-accent); color:var(--dict-on-accent); border-color:var(--dict-accent); }
