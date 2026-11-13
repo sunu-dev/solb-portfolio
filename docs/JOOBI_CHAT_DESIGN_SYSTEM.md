@@ -114,3 +114,10 @@
 
 ## 2026-11-13 캐릭터 상태 반응
 JoobiAvatar mood: idle/hello/searching/thinking/ready/retry. 기존 선택한 캐릭터 이미지를 회전/이동하는 CSS 모션과 작은 상태 기호를 사용. 얼굴 원화/새 영상은 없음. 인사·도착1회, 검색/준비3회 후 정지. reduced-motion에서는 모션 없이 기호만 유지. 서버 단계 문구 유지, 실패는 재시도 표시. 실기 동작 검수 별도.
+
+## 반응21종 (2026-11-13 추가 요청)
+idle 제외: hello/listening/checking/searching/reading/supplement/thinking/validating/ready/retry/thanks/nod/bye/introduce/clarify/limited/stopped/settings/privacy/clear/welcomeBack.
+- 입력창 옆28px 주비에 입력/설정/전송 안내/삭제 확인/한도/중단/재진입 상태 연결.
+- 서버6단계는 각각 다른 상태로 연결, 로컬 인사/감사/이해/작별/자기소개/선택 되묻기 구분.
+- 실제21상태 도달성·우선순위 회귀검사. 주가 상승/하락 자체를 축하하거나 사용자의 감정을 추정하지 않음.
+- 검색/준비 움직임은2회(총4.8초)로 축소, 나머지는1회. reduced-motion 정지 유지.

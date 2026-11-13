@@ -14,6 +14,7 @@ import { ASSISTANT_INDUSTRIES, ASSISTANT_PERIOD_LABELS, ASSISTANT_PERIODS, type 
 import { useJoobiConversation } from './JoobiConversationProvider';
 import { usePersonalDictionary } from './PersonalLearningProvider';
 import JoobiAvatar from './JoobiAvatar';
+import { JOOBI_STAGE_REACTIONS, joobiComposerReaction, joobiReplyReaction } from '@/lib/joobiReactions';
 import AnswerFeedback, { SharedAnswerCases } from './AnswerFeedback';
 import chat from './JoobiChat.module.css';
 import { STOCK_KR } from '@/config/constants';
@@ -281,7 +282,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         const sameSubjectAsPrevious = !!previous && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
         return <section key={answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
           <p className={chat.userMessage}><span className="sr-only">내 질문: </span>{answer.question}</p>
-          <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? 'ready' : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
+          <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? joobiReplyReaction(answer.question, !!answer.local) : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
       {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
@@ -313,7 +314,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       </div>}
     </div>}
     {!loading && failedQuestion && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">답변을 받지 못한 질문: </span>{failedQuestion}</p><div className={chat.assistantLabel}><JoobiAvatar mood="retry" /><p className={chat.failedNote}>이 질문의 답변을 받지 못했어요.</p></div></div>}
-    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={`${chat.waiting}${pricePreview ? ` ${chat.waitingWithFacts}` : ''}`} role="status"><JoobiAvatar mood={stage === 'sources' || stage === 'articles' || stage === 'supplement' ? 'searching' : 'thinking'} /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div>{pricePreview && <PriceStrip preview={pricePreview} />}</div>}
+    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={`${chat.waiting}${pricePreview ? ` ${chat.waitingWithFacts}` : ''}`} role="status"><JoobiAvatar mood={JOOBI_STAGE_REACTIONS[stage]} /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div>{pricePreview && <PriceStrip preview={pricePreview} />}</div>}
     {stopped && <p className={chat.footnote} role="status">답변 기다리기를 멈췄어요. 질문을 고쳐 다시 보낼 수 있어요. 이미 보낸 질문은 이용 횟수에 포함될 수 있어요.</p>}
     </div>
     </div>
@@ -327,7 +328,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
             event.preventDefault(); event.currentTarget.form?.requestSubmit();
           }
         }} />
-        <div className={chat.inputFooter}>{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={tooShort(question.trim()) || (quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || tooShort(question.trim()) || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
+        <div className={chat.inputFooter}><JoobiAvatar size={28} mood={joobiComposerReaction({ options, clear: confirmClear, loading, stage, stopped, error: !!error, candidates: !!candidates.length, limited: quota.remaining === 0, typing: !!question.trim(), history: !!answers.length })} />{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={tooShort(question.trim()) || (quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || tooShort(question.trim()) || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
       </div>
 
       {error && <p className={chat.error} role="alert">{error}</p>}

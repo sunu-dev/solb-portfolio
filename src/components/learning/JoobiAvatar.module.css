@@ -5,8 +5,8 @@
 .avatar img { transform-origin:50% 85%; }
 .reaction { position:absolute; right:-4px; top:-5px; display:flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 2px; border-radius:50%; background:var(--surface); color:var(--text-body); font-size:12px; font-weight:700; line-height:1; }
 .avatar[data-mood="hello"] img { animation:joobiHello 850ms ease-in-out 1; }
-.avatar[data-mood="searching"] img { animation:joobiLook 2.6s ease-in-out 3; }
-.avatar[data-mood="thinking"] img { animation:joobiThink 2.4s ease-in-out 3; }
+.avatar[data-mood="searching"] img { animation:joobiLook 2.4s ease-in-out 2; }
+.avatar[data-mood="thinking"] img { animation:joobiThink 2.4s ease-in-out 2; }
 .avatar[data-mood="ready"] img { animation:joobiReady 650ms ease-out 1; }
 .avatar[data-mood="retry"] img { transform:rotate(-7deg); }
 @keyframes joobiHello { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-9deg); } 65% { transform:rotate(9deg); } }
@@ -14,3 +14,51 @@
 @keyframes joobiThink { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
 @keyframes joobiReady { 0%,100% { transform:translateY(0) scale(1); } 40% { transform:translateY(-5px) scale(1.05); } 70% { transform:translateY(0) scale(.97); } }
 @media(prefers-reduced-motion:reduce) { .avatar img { animation:none !important; transform:none !important; } }
+
+.avatar[data-mood="listening"] img { animation:joobi_listening 800ms ease-in-out 1; }
+@keyframes joobi_listening { 0%,100%{transform:rotate(0)}50%{transform:rotate(-5deg) scale(1.03)} }
+
+.avatar[data-mood="checking"] img { animation:joobi_checking 700ms ease-in-out 1; }
+@keyframes joobi_checking { 0%,100%{transform:scale(1)}50%{transform:scale(.94)} }
+
+.avatar[data-mood="reading"] img { animation:joobi_reading 1.4s ease-in-out 1; }
+@keyframes joobi_reading { 0%,100%{transform:rotate(0)}35%{transform:rotate(5deg) translateY(1px)}70%{transform:rotate(-3deg)} }
+
+.avatar[data-mood="supplement"] img { animation:joobi_supplement 1s ease-in-out 1; }
+@keyframes joobi_supplement { 0%,100%{transform:translateX(0)}30%{transform:translateX(-3px)}70%{transform:translateX(3px)} }
+
+.avatar[data-mood="validating"] img { animation:joobi_validating 650ms ease-in-out 1; }
+@keyframes joobi_validating { 0%,100%{transform:translateY(0)}40%{transform:translateY(2px) scale(.98)} }
+
+.avatar[data-mood="thanks"] img { animation:joobi_thanks 900ms ease-in-out 1; }
+@keyframes joobi_thanks { 0%,100%{transform:rotate(0)}50%{transform:rotate(8deg) translateY(2px)} }
+
+.avatar[data-mood="nod"] img { animation:joobi_nod 600ms ease-in-out 1; }
+@keyframes joobi_nod { 0%,100%{transform:scaleY(1)}40%{transform:scaleY(.9)} }
+
+.avatar[data-mood="bye"] img { animation:joobi_bye 1.2s ease-in-out 1; }
+@keyframes joobi_bye { 0%,100%{transform:rotate(0)}20%,60%{transform:rotate(10deg)}40%,80%{transform:rotate(-10deg)} }
+
+.avatar[data-mood="introduce"] img { animation:joobi_introduce 800ms ease-in-out 1; }
+@keyframes joobi_introduce { 0%,100%{transform:scale(1)}50%{transform:scale(1.08)} }
+
+.avatar[data-mood="clarify"] img { animation:joobi_clarify 1.1s ease-in-out 1; }
+@keyframes joobi_clarify { 0%,100%{transform:rotate(0)}50%{transform:rotate(-12deg)} }
+
+.avatar[data-mood="limited"] img { animation:joobi_limited 1.3s ease-in-out 1; }
+@keyframes joobi_limited { 0%,100%{transform:translateY(0)}50%{transform:translateY(3px) scale(.95)} }
+
+.avatar[data-mood="stopped"] img { animation:joobi_stopped 450ms ease-in-out 1; }
+@keyframes joobi_stopped { 0%{transform:translateY(-2px)}100%{transform:translateY(0)} }
+
+.avatar[data-mood="settings"] img { animation:joobi_settings 700ms ease-in-out 1; }
+@keyframes joobi_settings { 0%,100%{transform:rotate(0)}50%{transform:rotate(5deg)} }
+
+.avatar[data-mood="privacy"] img { animation:joobi_privacy 900ms ease-in-out 1; }
+@keyframes joobi_privacy { 0%,100%{transform:scale(1)}50%{transform:scale(.92) translateY(1px)} }
+
+.avatar[data-mood="clear"] img { animation:joobi_clear 900ms ease-in-out 1; }
+@keyframes joobi_clear { 0%,100%{transform:translateX(0)}25%{transform:translateX(-2px) rotate(-4deg)}75%{transform:translateX(2px) rotate(4deg)} }
+
+.avatar[data-mood="welcomeBack"] img { animation:joobi_welcomeBack 750ms ease-in-out 1; }
+@keyframes joobi_welcomeBack { 0%,100%{transform:translateY(0)}35%{transform:translateY(-3px) rotate(4deg)} }
