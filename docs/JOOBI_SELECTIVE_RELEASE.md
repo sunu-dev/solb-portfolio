@@ -1,4 +1,6 @@
-# 주비 선별 배포 절차 (2026-11-12 기준)
+# 주비 선별 배포 절차 (2026-11-13 갱신)
+
+> 현재 운영은 `e921efa` / `dpl_BDpzQjeS4yDco4atagjYxMGbd2ru`. 11월13일 실제 운영 `dcc031c` 위에 채팅4파일만 선별했다. 아래 `ea1fdc3`/`a9fdb82` 동기화 스크립트는 11월12일 당시 기준이며 현재 릴리스에 그대로 재사용하지 않는다. 현재 운영 기준 위에 승인된 변경만 얹고 검사·단계 배포·검증·promote 절차를 적용한다. 모든 Git push는 사용자만 실행한다.
 
 > **2026-11-13 갱신:** 사용자가 GitHub main을 push해 main 전체(`bf55401`, `dpl_2RZZR7K2AgoLcn482PnMyeuhiKLf`)가 운영에 자동 배포됐고, 사용자는 그대로 운영하기로 했다. 지금 운영 소스는 main이며 아래 릴리스 브랜치 절차는 main 일부만 내보내야 할 때를 위한 기록이다.
 
@@ -74,6 +76,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://joobi.kr/   # 200
 
 ## 되돌리기
 
+- 이번 직전 운영: `dpl_7riwQs5CNYucqYQ4ovra572AQ9YH` (`dcc031c`). 아래 오래된 배포는 main 전체 기능도 되돌릴 수 있으므로 구분한다.
+
 - main 전체 배포 직전(검수한 채팅 릴리스): `dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ`
 - 그 전 채팅 배포: `dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW`
 - 채팅 선별 배포 전 운영: `dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa`
@@ -85,6 +89,9 @@ curl -s -o /dev/null -w '%{http_code}\n' https://joobi.kr/   # 200
 |---|---|---|---|---|
 | 2026-11-12 | `dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW` | `1a2bba8` | `9da461b` | 채팅 자연스러움·첫 답 지연·기사 없는 답·검증 재작성·검토 수정 |
 | 2026-11-12 | `dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ` | `b49f711` | `a14d59f` | 실존 인물 보도 기준 추가 |
-| 2026-11-12 22시대 KST | `dpl_2RZZR7K2AgoLcn482PnMyeuhiKLf` | (GitHub main 자동 배포) | `bf55401` | main 전체. 2026-11-13 사용자가 유지 결정(현재 운영) |
+| 2026-11-12 22시대 KST | `dpl_2RZZR7K2AgoLcn482PnMyeuhiKLf` | (GitHub main 자동 배포) | `bf55401` | main 전체. 2026-11-13 사용자가 유지 결정(당시 운영) |
+| 2026-11-13 | `dpl_BDpzQjeS4yDco4atagjYxMGbd2ru` | `e921efa` | 기준 `dcc031c` | 종목명·양자택일 무료 되묻기4파일 선별, 현재 운영 |
+
+최신 과정: `sessionary/2026-11-13-deploy-chat-followup.md`.
 
 과정과 판단 근거: `sessionary/2026-11-12-chat-release.md`.
