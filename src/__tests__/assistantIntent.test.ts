@@ -66,3 +66,15 @@ it('tells the model how to take a one-word reply to its own question', () => {
   expect(assistantDecisionPrompt({ text: '네', symbol: 'MU', history }, 'buy_more', {}, undefined)).toContain('직전에 물은 것에 대한 짧은 대답');
   expect(assistantDecisionPrompt({ text: '더 사도 돼?', symbol: 'MU' }, 'buy_more', {}, undefined)).not.toContain('직전에 물은 것에 대한 짧은 대답');
 });
+
+it('clarifies yes/no after alternatives without changing a single yes/no question', async () => {
+  const { assistantChoiceClarification, ASSISTANT_CHOICE_CLARIFICATION } = await import('@/lib/assistantIntent');
+  for (const reply of ['네', '응', '아니요', '맞아요']) {
+    expect(assistantChoiceClarification(reply, '이미 가진 주식이 있고 더 사려는 건가요, 아니면 처음 사려는 건가요?')).toBe(ASSISTANT_CHOICE_CLARIFICATION);
+    expect(assistantChoiceClarification(reply, ASSISTANT_CHOICE_CLARIFICATION)).toBe(ASSISTANT_CHOICE_CLARIFICATION);
+    expect(assistantChoiceClarification(reply, '이 돈을 1년 안에 써야 하나요?')).toBeUndefined();
+    expect(assistantChoiceClarification(reply, '현금 또는 예금도 비교할 수 있어요. 이 돈을 1년 안에 써야 하나요?')).toBeUndefined();
+  }
+  expect(assistantChoiceClarification('처음 사려는 거예요', '보유 중인가요, 아니면 처음인가요?')).toBeUndefined();
+  expect(assistantChoiceClarification('네?', '보유 중인가요, 아니면 처음인가요?')).toBeUndefined();
+});

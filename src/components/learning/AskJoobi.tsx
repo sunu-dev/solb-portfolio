@@ -18,7 +18,7 @@ import AnswerFeedback, { SharedAnswerCases } from './AnswerFeedback';
 import chat from './JoobiChat.module.css';
 import { STOCK_KR } from '@/config/constants';
 import { assistantAsksBack, assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
-import { assistantShortReply } from '@/lib/assistantIntent';
+import { assistantChoiceClarification, assistantShortReply } from '@/lib/assistantIntent';
 import { savePendingQuestion, takePendingQuestion } from '@/lib/joobiPendingQuestion';
 import readingUI from '@/components/ui/ReadingUI.module.css';
 
@@ -75,9 +75,10 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   // 주비가 방금 되물었다면 "네", "아니요"는 맞장구가 아니라 그 물음에 대한 답이에요. 한 글자여도 보낼 수 있어요.
   const answersJoobi = owner !== 'guest' && !!answer && !answer.local && assistantAsksBack(answer.currentStatus);
   const repliesToJoobi = (text: string) => answersJoobi && assistantShortReply(text);
-  const tooShort = (text: string) => text.length < 2 && !repliesToJoobi(text);
+  const clarifiesChoice = (text: string) => !!assistantChoiceClarification(text, answer?.currentStatus);
+  const tooShort = (text: string) => text.length < 2 && !repliesToJoobi(text) && !clarifiesChoice(text);
   const starters = symbol === GENERAL_SUBJECT ? ['오늘 시장에 무슨 일이 있었어요?', 'ETF는 주식과 뭐가 달라요?'] : ['최근 주가가 왜 움직였어요?', '이 종목을 쉽게 설명해 주세요'];
-  const subject = symbol === GENERAL_SUBJECT ? `${market === 'kr' ? '한국' : '미국'} 시장` : available.find(stock => stock.symbol === symbol)?.name || STOCK_KR[symbol] || symbol;
+  const subject = symbol === GENERAL_SUBJECT ? `${market === 'kr' ? '한국' : '미국'} 시장` : STOCK_KR[symbol] || available.find(stock => stock.symbol === symbol)?.name || symbol;
   const transcript = useRef<HTMLDivElement>(null);
   const transcriptContent = useRef<HTMLDivElement>(null);
   const scrollThumb = useRef<HTMLSpanElement>(null);
@@ -235,12 +236,13 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   };
   // 인사·감사·맞장구는 AI에 보내지 않고 바로 답해요. 횟수·로그인·전송 동의가 필요 없어요.
   const replyLocally = (text: string) => {
+    const clarification = assistantChoiceClarification(text, answer?.currentStatus);
     const kind = assistantSmallTalk(text);
-    if (!kind || request.current) return false;
+    if ((!kind && !clarification) || request.current) return false;
     // 주비의 물음에 답한 "네"나 되묻는 "네?"는 다음 질문이에요. "알겠어요" 같은 맞장구는 그대로 화면에서 답해요.
     // 로그인 전이거나 오늘 질문을 다 썼으면 보낼 수 없으니 이때도 화면에서 답해요.
-    if (kind === 'acknowledge' && owner !== 'guest' && quota.remaining !== 0 && (repliesToJoobi(text) || /[?？]/.test(text))) return false;
-    const reply = assistantSmallTalkReply(kind, { subject: symbol === GENERAL_SUBJECT ? undefined : subject, hasConversation: !!lastAnswered });
+    if (!clarification && kind === 'acknowledge' && owner !== 'guest' && quota.remaining !== 0 && (repliesToJoobi(text) || /[?？]/.test(text))) return false;
+    const reply = clarification ?? assistantSmallTalkReply(kind!, { subject: symbol === GENERAL_SUBJECT ? undefined : subject, hasConversation: !!lastAnswered });
     setAnswers(previous => [...previous, { local: true, turnId: (previous.at(-1)?.turnId ?? -1) + 1, question: text, symbol, market, period,
       currentStatus: reply, keyAdvice: [], conclusion: { desc: '' }, followUps: kind === 'farewell' ? [] : lastAnswered?.followUps?.length ? lastAnswered.followUps : starters }]);
     setQuestion(''); resetTransient();
@@ -325,7 +327,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
             event.preventDefault(); event.currentTarget.form?.requestSubmit();
           }
         }} />
-        <div className={chat.inputFooter}>{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={tooShort(question.trim()) || quota.remaining === 0} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || tooShort(question.trim()) || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0)} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
+        <div className={chat.inputFooter}>{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={tooShort(question.trim()) || (quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || tooShort(question.trim()) || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
       </div>
 
       {error && <p className={chat.error} role="alert">{error}</p>}
@@ -344,7 +346,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
           <div className={chat.selectWrap}><select id={`${id}-stock`} value={symbol} disabled={loading} onChange={event => chooseSymbol(event.target.value)}>
             <option value={GENERAL_SUBJECT}>{`${market === 'kr' ? '한국' : '미국'} 시장에 대해 물어보기`}</option>
             {initialSymbol && !available.some(stock => stock.symbol === initialSymbol) && <option value={initialSymbol}>{STOCK_KR[initialSymbol] || initialSymbol} · 지금 보고 있는 종목</option>}
-            {available.map(stock => <option key={stock.symbol} value={stock.symbol}>{stock.name || stock.symbol} ({stock.symbol})</option>)}
+            {available.map(stock => <option key={stock.symbol} value={stock.symbol}>{STOCK_KR[stock.symbol] || stock.name || stock.symbol} ({stock.symbol})</option>)}
           </select><ChevronDown size={16} aria-hidden="true" /></div>
         </div>
         {symbol === GENERAL_SUBJECT && <div className={chat.optionField}><span id={`${id}-market`}>이야기할 시장</span><div className={chat.segments} role="group" aria-labelledby={`${id}-market`}>{(['kr', 'us'] as const).map(value => <button type="button" key={value} aria-pressed={market === value} disabled={loading} onClick={() => changeContext(GENERAL_SUBJECT, value)}>{value === 'kr' ? '한국 시장' : '미국 시장'}</button>)}</div></div>}

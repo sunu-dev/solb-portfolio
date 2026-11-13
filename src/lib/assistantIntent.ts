@@ -27,6 +27,20 @@ export function assistantShortReply(text: string) {
   return /^(?:네+|넵|넹|예|응+|웅|ㅇㅇ|맞아요?|그래요?|그렇죠|아니요?|아뇨|아니에요|ㄴㄴ)[.!~\s]*$/.test(text.trim());
 }
 
+export const ASSISTANT_CHOICE_CLARIFICATION = '두 가지 중 어느 쪽인지 말씀해 주세요.';
+
+/** A yes/no cannot select an alternative. Check only the trailing question,
+ * not an earlier explanation containing "또는". Keep this turn local/free. */
+export function assistantChoiceClarification(text: string, previousAnswer: unknown): string | undefined {
+  if (!assistantShortReply(text) || typeof previousAnswer !== 'string') return undefined;
+  if (previousAnswer === ASSISTANT_CHOICE_CLARIFICATION) return ASSISTANT_CHOICE_CLARIFICATION;
+  const ending = previousAnswer.trim().replace(/["'”’)\s]+$/, '');
+  if (!/[?？]$/.test(ending)) return undefined;
+  const last = ending.split(/(?<=[.!。])\s+|\n+/).at(-1) ?? '';
+  if (/아니면|또는|혹은|둘\s*중|두\s*가지\s*중|어느\s*쪽/.test(last)) return ASSISTANT_CHOICE_CLARIFICATION;
+  return undefined;
+}
+
 export function assistantConversationIntent(question: { text: string; history?: { question: string }[] }): AssistantIntent {
   const direct = assistantIntent(question.text);
   if (direct !== 'explain') return direct;
@@ -58,7 +72,7 @@ export function assistantDecisionPrompt(question: { text: string; symbol?: strin
   return `주비는 주식 초보자의 개인 주식비서예요. 사용자는 투자 결정을 고민하고 있어요. 뉴스 요약이나 '투자는 본인 책임' 같은 문구로 끝내지 말고 판단에 필요한 사실을 쉽게 풀어주세요.
 [이번 질문에 맞는 설명]
 ${focus}
-${note ? note + '\n' : ''}${assistantShortReply(question.text) ? "사용자의 이번 말은 주비가 직전에 물은 것에 대한 짧은 대답이에요. 그 대답을 되읽거나 '이어서 설명할게요' 같은 예고를 하지 말고 바로 이어가요. 직전 물음이 예·아니요로 답할 수 있는 물음이었다면 그 대답을 조건으로 삼아 판단 기준이 어떻게 달라지는지 새로 설명해요. 기간이나 금액처럼 예·아니요로 답할 수 없는 물음이었다면 앞에서 한 설명을 반복하지 말고, 고르기 쉬운 보기 두 가지를 들어 한 번만 짧게 다시 물어요.\n" : ''}사용자의 현재 질문을 우선해요. 과거의 하락 이유 질문에 계속 답하지 마세요.
+${note ? note + '\n' : ''}${assistantShortReply(question.text) ? "사용자의 이번 말은 주비가 직전에 물은 것에 대한 짧은 대답이에요. 그 대답을 되읽거나 '이어서 설명할게요' 같은 예고를 하지 말고 바로 이어가요. 직전 물음이 예·아니요로 답할 수 있는 물음이었다면 그 대답을 조건으로 삼아 판단 기준이 어떻게 달라지는지 새로 설명해요. 'A인가요, 아니면 B인가요?'처럼 둘 중 하나를 고르는 물음에는 '네·아니요'만으로 어느 쪽도 선택했다고 단정하지 마세요. 두 가지 중 어느 쪽인지 짧게 다시 물어요. 기간이나 금액처럼 예·아니요로 답할 수 없는 물음이었다면 앞에서 한 설명을 반복하지 말고, 고르기 쉬운 보기 두 가지를 들어 한 번만 짧게 다시 물어요.\n" : ''}사용자의 현재 질문을 우선해요. 과거의 하락 이유 질문에 계속 답하지 마세요.
 ${ASSISTANT_PERSON_RULE}
 선택한 종목이 있으면 이미 알려진 종목을 다시 묻지 마세요. 종목이 없으면 일반 원리를 한 문장 설명한 뒤 어떤 종목인지 한 가지만 물어봐요.
 자료가 있는 경우 해당 대상의 확인된 사실 → 그 선택으로 늘어나는 부담과 확인할 사실 → 필요한 개인 상황 한 가지 순서로 답해요. 실제 수량·평균 매수가·투자 비중·현금·목표를 알고 있다고 가정하지 마세요. 사용자가 대화에 직접 알려준 조건만 사용해요. 계좌번호·연락처·인증정보는 묻지 마세요.

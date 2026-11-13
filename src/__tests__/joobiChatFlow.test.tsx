@@ -381,3 +381,34 @@ it('keeps the price move it showed while waiting at the top of the answer, and d
   await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(2));
   expect(strips()).toHaveLength(1);
 });
+
+it('shows the company name in the stock selector and selected subject', () => {
+  h.stocks = [{ symbol: '005930.KS', name: '005930.KS' }, { symbol: 'UNKNOWN', name: '새 회사' }];
+  openOptions();
+  expect(text(render().find(node => node.type === 'option' && node.props.value === '005930.KS'))).toBe('삼성전자 (005930.KS)');
+  expect(text(render().find(node => node.type === 'option' && node.props.value === 'UNKNOWN'))).toBe('새 회사 (UNKNOWN)');
+});
+
+it('asks for a choice locally, even with no quota, and sends the explicit choice with the original context', async () => {
+  h.fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ success: true, report: {
+    currentStatus: '이미 가진 주식이 있고 더 사려는 건가요, 아니면 처음 사려는 건가요?', keyAdvice: [], conclusion: { desc: '' },
+  } }) });
+  fill('지금 사도 될까요?'); click('물어보기');
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
+  h.remaining = 0;
+  for (const reply of ['네', '네', '아니요']) {
+    fill(reply);
+    expect(render().find(node => node.type === 'button' && node.props['aria-label'] === '질문 보내기')!.props.disabled).toBe(false);
+    submit();
+    expect(render().some(node => node.props.text === '두 가지 중 어느 쪽인지 말씀해 주세요.')).toBe(true);
+    expect(h.fetch).toHaveBeenCalledTimes(1);
+    expect(h.accept).toHaveBeenCalledTimes(1);
+  }
+  h.remaining = 2;
+  fill('처음 사려는 거예요'); submit();
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(2));
+  const payload = JSON.parse(h.fetch.mock.calls[1][1].body);
+  expect(payload.questionText).toBe('처음 사려는 거예요');
+  expect(payload.questionHistory).toHaveLength(1);
+  expect(payload.questionHistory[0].answer).toContain('아니면 처음 사려는 건가요?');
+});
