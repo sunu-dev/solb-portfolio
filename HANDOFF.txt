@@ -1,98 +1,89 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex — 사용자 추가요청 반영: 사전 서비스 글꼴 통일·책장 전환 구현 중. e1f24bc 배포 보류
-현재 브랜치: fix/chat-followup-20261113
-작업 시작 기준: ad5b3f5, 작업 트리 clean 확인. 오래된 bf55401 기준은 이후 작업으로 대체됨.
-현재 운영: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 / joobi.kr / READY
-운영 복구 후보: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG
-최신 지시: “운영에 배포하자.” 승인으로 로고 인사5ebb887 배포 완료.
+담당: Codex — 사전 재질 컨셉·페이지 넘김 개발 시안. 실제 사전 통합 미완료.
+브랜치: fix/chat-followup-20261113
+작업 기준: b7475ba. 후속 로컬 커밋 해시는 git log 확인.
+최신 요청: 스캔한 문서처럼 보이는 사전을 실제 종이 질감으로 개선.
+운영: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 / joobi.kr
+복구 후보: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG
+이번 작업에서 push·배포·DB·환경변수·계정 설정 변경 없음.
 
 필수 규칙
-- AGENTS.md → 이 파일 → 관련 기록 순으로 확인한다. 이 파일보다 실제 코드/Git/실행 결과가 우선.
-- 모든 push는 사용자만 한다. main push는 즉시 운영 자동 배포다.
-- 현재 CLI 운영 릴리스의 수정이 main에 모두 포함되었는지 사용자 다음 push 전에 확인한다.
-- 마지막 확인 main/원격 main은 dcc031c. 이번 작업에서 원격 재조회하지 않음.
+- AGENTS.md → 이 파일 → 관련 기록. 실제 코드/Git/실행 결과가 우선.
+- 모든 push는 사용자만 한다. main push는 운영 자동 배포다.
+- CLI 운영 릴리스의 수정이 main에 포함됐는지 다음 사용자 push 전 확인.
+- 마지막 확인 main/원격 main dcc031c. 이번 사전 작업에서 원격 재조회 안 함.
 - 인증 우회·쿠키 주입·운영 테스트계정 생성·인증/계정 설정 변경 금지.
-- 운영 사용자 질문은 일일 공통 분석 한도10회를 사용하므로 먼저 묻는다. 유료 실제 모델검사는 필요한 표본만.
-- 개인화는 설계만; 동의 없이 원문 수집/개인화 활성화하지 않는다.
+- 운영 질문은 일일 공통 분석10회를 사용하므로 먼저 묻는다.
+- 실제 모델 검사는 필요한 표본만. 이번 유료 모델·운영 질문 실행 안 함.
+- 개인화는 설계만. 동의 없이 원문 수집/개인화 활성화 금지.
 
-이번 구현
-- signupEligibility: 정상 응답4.4초 측정을 근거로 첫 조회3초→5초, 조회 전체4.5초→5.5초.
-  화면의6초 상한 유지. 재시도는 읽기만, 최대1회. 실패/동의누락은 통과시키지 않음.
-- AgeEligibilityGate: 재시도/사용자변경/언마운트 시 이전 요청 취소, 오래된 결과 무시.
-  동의 저장은 자동 재시도하지 않음. 저장후 재조회도 같은 수명주기로 관리.
-- 브라우저 User Timing에 joobi:startup:consent:<결과> 기록. 사용자ID/내용/서버 업로드 없음.
-- AccountAccessStatus: 확인중 checking/동의 privacy/실패 retry 반응 연결.
-  대기 float 유지, 실패시 짧은1.2초 동작. reduced-motion에서는 동작 안 함.
+이번 로컬 구현과 산출물
+- 기존 사전 서비스 기본 글꼴 유지. 거부된 단순 rotateY 전환 제거.
+- 개발전용 /brand-preview/dictionary-book: react-pageflip 실제 책 넘김 시안.
+  58개 용어, 검색 이동, 저장, 데스크톱 양면/좁은화면 단면.
+- react-pageflip 2.0.3 / page-flip 2.0.7 추가. React19 ref 중복등록 방어와 테스트2개.
+- 개발전용 /brand-preview/dictionary-curl: HTML 캡처→임시 WebGL 곡면 비교 시안.
+  전환 완료 후 HTML로 복귀. 느리게 보기 옵션, 오류시 즉시전환, reduced-motion 분기.
+  HP BSD3 라이선스 원문 보존. 손 드래그/취소는 미구현.
+- docs/design-previews/dictionary-paper-concept-20261113.png: 생성한 정적 재질 컨셉.
+  같은 이름 .md에 전체 프롬프트와 한계 기록. 실제 앱 화면이 아님.
+- 종이결·책등 곡면·겹친 단면·얇은 녹색 천 표지 방향. 실제 UI 적용 미완료.
+- 사용자 디자인 승인·기존 사전 통합·운영 배포 모두 미완료.
 
-확인한 근거와 한계
-- 직전 익명32조회 모두200, 동의 최대4403ms/portfolio2215ms/auth573ms/config1695ms 뒤 회복.
-- 이전64조회63건200/1연결실패, 별도 SQL0.914ms/잠금0. 같은 시각 자원 측정 아님.
-- 익명 조회는 실제 로그인 계정 경로와 다름. 유휴/동시성/DB사양/인증락 근본 원인은 미확정.
-- 코드상 첫 조회3초 중단과 화면 이탈 후 요청 잔존을 확인. 이것이 사용자 캡처의 직접 원인이라고 단정하지 않음.
-- 이번 실제 로그인 지연/모바일 모션/reduced-motion 실화면 미검수. 실제 모델·운영질문 없음.
+검사 통과
+- npm run typecheck 통과.
+- npm test -- --maxWorkers=2: 2929통과17생략.
+- lint:ui / lint:alerts / lint:korean / lint:darkmode / lint:tour-anchors 통과.
+- test:tools 4통과 / quality-lab 66통과.
+- npx next build --webpack 통과. 기본 Turbopack 빌드는 실행 안 함.
+- 기존 ai-chok 고아 앵커 경고 유지.
+- 빌드와 타입검사를 동시에 돌려 .next/types 일시 누락 발생; 빌드 후 타입 재검사 통과.
+- 실제 모델 검사 등 생략 유지. 검사 로그 /private/tmp/joobi-curl-{tests,build}.log.
 
-검사
-- 타입·전체2927통과17생략·도구4·quality66·공통5종·webpack 빌드 통과. 세부 기록: sessionary/2026-11-13-account-loading-fix.md
-- 기본 명령: npm run typecheck; npm test -- --maxWorkers=2; npm run test:tools;
-  npm --prefix quality-lab test; npm run lint:ui; npm run lint:alerts; npm run lint:korean;
-  npm run lint:darkmode; npm run lint:tour-anchors; npx next build --webpack.
-- npm run build 기본 Turbopack 대신 기존 검증 방식 webpack 사용. 기존 ai-chok 고아 앵커 경고 유지.
-
-이미 운영 반영된 작업
-- e921efa: 종목 설정 회사명·양자택일 짧은 답 무료 되묻기. 로그인 목록 삼성전자 확인.
-- 4c22d3f: df7124f 원인 단정 검사 포함 기사 수집 확대. 로컬 실제 API16.8초 결과 확인, 운영 질문 미검수.
-- 465952f: 검증탈락 기사 뒤 긴 설명으로 조기 종료되던 결함 수정, 수집 요약 로그·캐시v14.
-- e47b718: 말풍선·공통 분석 기본10회·21반응. 운영 ANALYSIS_DAILY_FREE override없음.
-  원격 빌드/홈·약관200/비로그인API401 확인. 실제 로그인 잔여횟수/모바일 미검수.
-- vault 플래그 운영 미설정(꺼짐). SQL proposal 상태로 활성화하지 않음.
+실화면 확인과 한계
+- Safari pageflip 다음/이전·ETF 검색·390px 단면 확인. 넘김 중간의 접힘/그림자 관찰.
+- 곡면 시안 HTML 페이지1→2→3 이동 확인. 오류 대체문구 미표시.
+- 곡면 애니메이션 중간 프레임을 확실히 포착 못 함; 시각 완성도 검증 완료 아님.
+- Threads 참조는 본문·확대 이미지 확인. 리디북스 곡면을 밀리에도 요청하는 게시물.
+  전체 동영상을 시청했다고 기록하지 않는다.
+- 모바일 실기기 터치·다른 브라우저·OS reduced-motion·성능/메모리 미검수.
+- 생성 컨셉은 사용자에게 표시했으나 구현 화면은 아직 그 수준에 도달하지 못함.
 
 다음 작업
-1. 배포된 헤더 점프 인사의 데스크톱/모바일 실화면 검수. 계정 조회 실제 지연 측정도 후속.
-2. 운영 로그인 후 모션·횟수 표시·좁은화면 검수. 질문 전 사용자 횟수 사용 승인.
-3. 기사 충분성/탈락사유 관측과 개인화 선택동의 구현 범위 후속. 제3자 투자의견 인용은 사용자 결정 대기.
+1. 컨셉의 종이 재질/책등/단면을 실제 HTML 사전에 적용하고 시안 비교.
+2. 곡면 중간 프레임·글자 선명도·드래그와 취소·기기 성능 확인.
+3. 검색/저장/메모/복습 통합 검수 후 사용자 승인받아 배포. 지금은 배포하지 않음.
 
 진입 파일/기록
-- src/lib/signupEligibility.ts, src/components/auth/AgeEligibilityGate.tsx,
-  src/components/auth/AccountAccessStatus.tsx/.module.css, src/hooks/useAuth.ts
-- sessionary/2026-11-13-account-loading-recurrence.md (측정), account-loading-fix.md (이번 수정)
-- sessionary/2026-11-13-chat-reactions-release.md, source-stability.md, source-release.md (날짜 prefix 동일)
-- docs/JOOBI_EXPLANATION_PRINCIPLES.md, docs/JOOBI_CHAT_DESIGN_SYSTEM.md
-- docs/JOOBI_CONVERSATION_PERSONALIZATION.md: 기본off 목적별 동의 설계, 미구현.
-- 전체 TODO: sessionary/TODO.md. 과거 선별배포 절차: docs/JOOBI_SELECTIVE_RELEASE.md.
+- src/components/learning/DictionaryBookPreview.tsx/.module.css
+- src/components/learning/DictionaryCurlPreview.tsx/.module.css
+- src/lib/pageFlipRef.ts, pageCurlRenderer.ts, pageCurlShader.ts
+- src/components/learning/StockDictionary.tsx/.module.css
+- sessionary/2026-11-13-dictionary-pageflip-preview.md
+- docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md, docs/JOOBI_EXPLANATION_PRINCIPLES.md
+- 전체 미해결: sessionary/TODO.md
 
-환경/실행
-- Vercel CLI65.15.0 /Users/sunu/.local/bin/vercel. 이번 push/환경변수/DB변경 없음. 사용자 승인으로714681a 운영배포 완료.
-- 운영 소스 워크트리 /private/tmp/joobi-account-release-20261113 유지(714681a). 이전 reactions 워크트리도 유지.
-- 로컬 카카오 로그인은 joobi.kr로 돌아옴. 리다이렉트 설정 변경하지 않음.
-- 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop, 건드리지 않음.
-- 이번 시작한 검사/빌드 프로세스 모두 종료. 구현 로컬 커밋714681a. 이번 배포 기록은 별도 로컬 문서 커밋; 실제 해시는 git log 확인.
+유지할 운영 상태와 후속 문제
+- e921efa 회사명/양자택일 되묻기, 4c22d3f 기사 수집, 465952f 조기종료 수정 운영반영.
+- e47b718 말풍선·기본10회·21반응, 714681a 계정 로딩, 5ebb887 로고 인사 운영반영.
+- 운영 로고 배포: 홈/이미지200·비로그인AI401·운영ID 일치, 초기error로그0행.
+  실제 로그인·모바일·reduced-motion 검수는 남음. sessionary/2026-11-13-logo-release.md.
+- 질문 오른쪽 정렬/사전 가독성 e1f24bc 및 b7475ba 이후 사전 수정은 미배포.
+- Supabase 근본 지연 미확정. 익명32조회 모두200/동의 최대4403ms 이후 회복.
+  과거64조회63건200/1연결실패·SQL0.914ms/잠금0은 동시 측정 아님.
+  익명 요청을 실제 로그인 경로와 동일시하지 않는다.
+- 계정 첫조회5초/전체5.5초·취소 처리 운영반영. 실제 로그인 요청별 계측 후속.
+  sessionary/2026-11-13-account-loading-recurrence.md 및 account-loading-fix.md.
+- 기사 원인 근거 충분성/탈락사유 관측 후속. 제3자 투자의견 인용은 사용자 결정 대기.
+- docs/JOOBI_CONVERSATION_PERSONALIZATION.md 목적별 기본off 동의 설계만, 실제 수집 없음.
+- vault 운영 플래그 미설정, SQL proposal 활성화 안 함.
 
-운영 배포 검증 (2026-11-13)
-- 독립 release/account-recovery-20261113 워크트리에서 --prod --skip-domain 후 READY/promote 성공.
-- 원격 빌드2분5초/후처리35초. 홈·약관200, 비로그인 AI POST401, joobi.kr의 배포ID 일치 확인.
-- 새 배포 초기 error 로그0건(짧은 관측, 장기 무오류 보장 아님). drains 설정은 미조회.
-- 임시주소는 Vercel 로그인 보호302여서 공개 검사는 promote후 운영에서 수행. 인증 우회 없음.
-- 실제 로그인 지연·모바일·reduced-motion 검수와 근본 원인 규명은 남음. 운영 질문/모델 호출 없음.
-- sessionary/2026-11-13-account-recovery-release.md 참조. 배포/검사 프로세스 종료.
-
-최신 로컬: 헤더 JoobiLockup greet 옵션. 1.2초뒤 첫 인사, 2.4초3점프, 마우스 진입 재생30초 간격 제한.
-- 선택 캐릭터/기존 빨간선·글자 유지, 비활성탭·화면밖·reduced-motion 정지. 헤더만 적용.
-- 타입/전체2927통과17생략/공통5/도구4/quality66/webpack빌드 통과. 실화면/모바일 미검수.
-- push/배포/모델호출 없음. 검사 프로세스 종료. sessionary/2026-11-13-logo-greeting.md.
-
-최신 운영 배포(로고): 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 READY/promote 완료.
-- 원격빌드2분16초/후처리37초. 홈·캐릭터이미지200, 비로그인AI401, 운영ID일치. 초기error로그0행.
-- 위 로고 로컬/미배포 표기는 이번 배포로 해소. 실제 로그인/모바일/reduced-motion 미검수.
-- push/DB/환경변수변경/실제모델/운영질문 없음. 배포프로세스 종료.
-- 워크트리 /private/tmp/joobi-logo-release-20261113 유지. sessionary/2026-11-13-logo-release.md 참조.
-
-최신 로컬 디자인: 예시 질문 오른쪽 정렬/동일색/질문선택 안내. 사전은 기존 새싹수첩 유지, 선택목록 강조·뜻과 예시 영역 분리.
-- 타입/2927통과17생략/공통5/도구4/quality66/webpack빌드 통과. 실화면·모바일 미검수.
-- 운영5ebb887 유지. push/배포/모델호출 없음. sessionary/2026-11-13-dictionary-reading-polish.md.
-
-사전 추가요청 반영: 서비스 기본글꼴 통일(전체/미니 사전), 이전/다음 단어·페이지수·420ms 종이전환 구현.
-- 전체2927통과17생략/타입/공통5/도구4/quality66/webpack빌드 통과.
-- 로컬 Chrome 게스트에서 사전검색·뜻·예시·닫기와 질문 오른쪽 정렬 검수. 새 책장동작/모바일은 Chrome 동시조작으로 중단.
-- e1f24bc 릴리스 워크트리만 준비했고 배포명령은 실행안함. 운영5ebb887 유지.
-- 브라우저 조작 가능시점 질문 대기. 로컬3013 dev서버는 검수용 실행중.
+환경/프로세스
+- 로컬3013 dev서버 유지: /brand-preview/dictionary-book 및 /dictionary-curl.
+  로그 /private/tmp/joobi-dictionary-preview.log, exec 세션59172.
+- 검사/빌드 종료. Safari 별도 검수창 사용, 사용자 메인창과 혼동 주의.
+- 다른 프로젝트 InterviewLoop의3122 서버는 건드리지 않는다.
+- Vercel CLI65.15.0. 로컬 카카오 로그인은 joobi.kr로 복귀; 설정 바꾸지 않는다.
+- /private/tmp/joobi-dictionary-release-20261113은 오래된 e1f24bc 준비물. 배포 금지.
+- 이번 변경은 로컬 커밋으로 보관. push 없음; 최종 작업 트리 상태는 git status로 확인.

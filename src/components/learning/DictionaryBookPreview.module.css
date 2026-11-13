@@ -1,0 +1,50 @@
+.screen { min-height:100dvh; box-sizing:border-box; padding:32px 32px 24px; background:var(--bg-subtle); }
+.header,.navigation,.previewNote,.results,.turnHint { width:min(760px,100%); margin-left:auto; margin-right:auto; }
+.header { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:30px; }
+.header h1 { display:flex; align-items:center; gap:12px; margin:0; font-size:22px; font-weight:700; letter-spacing:-.04em; }
+.header h1 span { color:var(--dict-muted); font-size:12px; font-weight:400; letter-spacing:0; }
+.intro { margin:5px 0 0; color:var(--dict-muted); font-size:13px; }
+.toolbar { flex:0 1 240px; }
+.search { display:flex; align-items:center; gap:9px; border-bottom:1px solid var(--dict-cover-edge); color:var(--dict-muted); }
+.search input { min-width:0; width:100%; min-height:44px; border:0; background:transparent; font:inherit; font-size:14px; color:var(--dict-ink); }
+.results { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:18px; }
+.cover { position:relative; max-width:780px; margin:0 auto; padding:7px 8px 11px; border:1px solid var(--dict-cover-edge); border-radius:4px 10px 10px 4px; background:var(--dict-cover); box-shadow:0 2px 0 var(--dict-cover-edge),0 12px 24px -12px var(--dict-shadow); }
+.cover::after { content:''; position:absolute; bottom:5px; left:12px; right:12px; height:5px; border-top:1px solid var(--dict-line); border-bottom:1px solid var(--dict-line); background:var(--dict-paper); pointer-events:none; }
+.book { margin:0 auto; }
+.leaf { background:var(--dict-paper); overflow:hidden; }
+.page { display:flex; flex-direction:column; height:100%; box-sizing:border-box; padding:18px 30px 14px; background:var(--dict-paper); }
+.leaf:nth-child(odd) .page { box-shadow:inset -16px 0 18px -20px var(--dict-ink); padding-right:36px; }
+.leaf:nth-child(even) .page { box-shadow:inset 16px 0 18px -20px var(--dict-ink); padding-left:36px; }
+.runningTitle { display:flex; align-items:center; justify-content:space-between; min-height:34px; color:var(--dict-muted); font-size:10px; letter-spacing:.02em; }
+.runningTitle button { min-height:32px; padding:4px 6px; border:0; border-radius:4px; background:transparent; font-size:11px; color:var(--dict-muted); }
+.runningTitle button svg { width:14px; height:14px; }
+.pageText { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:thin; padding:20px 0 8px; }
+.page h2 { margin:0 0 9px; color:var(--dict-ink); font-family:inherit; font-size:27px; font-weight:700; letter-spacing:-.045em; line-height:1.3; }
+.subtitle { margin:0 0 22px; font-size:12px; line-height:1.65; color:var(--dict-accent); }
+.subtitle:empty { display:none; }
+.meaning { margin:0; font-size:15px; line-height:1.85; word-break:keep-all; overflow-wrap:anywhere; }
+.example { margin-top:22px; padding-top:16px; border-top:1px solid var(--dict-line); }
+.example h3 { font-size:11px; font-weight:600; margin:0 0 7px; color:var(--dict-muted); }
+.example p { margin:0; font-size:13px; line-height:1.8; word-break:keep-all; overflow-wrap:anywhere; }
+.actions { margin-top:18px; }
+.actions a { display:inline-flex; align-items:center; min-height:36px; font-size:11px; color:var(--dict-muted); text-decoration:underline; text-decoration-color:var(--dict-line); text-underline-offset:4px; }
+.folio { text-align:center; font-size:10px; padding-top:8px; color:var(--dict-muted); font-variant-numeric:tabular-nums; }
+.navigation { display:flex; justify-content:center; align-items:center; gap:22px; margin-top:22px; }
+.navigation button { border:0; background:transparent; font-size:13px; min-height:40px; border-radius:6px; }
+.navigation button:hover:not(:disabled) { background:var(--dict-cover); }
+.navigation > span { min-width:70px; text-align:center; font-size:12px; font-variant-numeric:tabular-nums; color:var(--dict-muted); }
+.turnHint { margin-top:2px; margin-bottom:0; text-align:center; font-size:11px; color:var(--dict-muted); }
+.previewNote { text-align:center; margin-top:24px; font-size:11px; color:var(--dict-muted); }
+@media(max-width:650px) {
+ .screen { padding:20px 14px; }
+ .header { flex-direction:column; align-items:stretch; gap:16px; margin-bottom:22px; }
+ .header h1 { font-size:21px; }
+ .toolbar { flex:auto; }
+ .search input { font-size:16px; }
+ .cover { padding:5px 5px 9px; max-width:390px; }
+ .page,.leaf:nth-child(odd) .page,.leaf:nth-child(even) .page { padding:16px 24px 12px; }
+ .pageText { padding-top:16px; }
+ .page h2 { font-size:26px; }
+ .meaning { font-size:15px; }
+ .navigation { margin-top:16px; gap:14px; }
+}
