@@ -1,6 +1,6 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex (2026-11-13 채팅 소수정 운영 배포 완료, 원인 검사 개선 로컬 완료)
+담당: Codex (2026-11-13 채팅 배포 완료, NVDA 원인 보도 누락 코드 조사)
 현재 운영: dpl_BDpzQjeS4yDco4atagjYxMGbd2ru / joobi.kr / release/chat-followup-20261113 @ e921efa. 실제 직전 운영 dcc031c 위에 채팅4파일만 선별. 기존 main 기능 유지.
 현재 로컬: fix/chat-followup-20261113 @ df7124f + 인계 문서 커밋. 단정/확정 긍정문이 원인 검사를 통과하던 결함 수정·전체검사 완료, 이 후속 개선은 운영 미반영.
 최신 사용자 지시: “운영에 배포하고 개선작업 이어지 진행할까?”로 e921efa 배포·후속 개선 승인. Codex는 모든 push 금지. 후속 개선의 추가 운영 배포는 별도 범위로 구분. 상세: sessionary/2026-11-13-deploy-chat-followup.md
@@ -83,3 +83,5 @@ npm run build
 릴리스 워크트리: /private/tmp/joobi-chat-release-20261113 유지. .env.local/node_modules 링크와 .next 제거 완료. 이번 배포·테스트 프로세스 종료, Chrome 새 joobi.kr 탭의 종목 선택 메뉴 유지.
 
 CLI 환경(2026-11-13 사용자 요청): npm 전역 Vercel58.0.0→65.15.0 업데이트 완료. 실행 /Users/sunu/.local/bin/vercel, --version 및 deploy 도움말 확인. 앱 의존성·운영 배포 변경 없음.
+
+NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공식 NVIDIA·AP·Reuters 도메인 미허용, 회사 검색1/열람1, 28초 제한, 경영진 사건 단락 점수 누락 가능. 사생활 제외 규칙은 회사 사실 설명을 허용. 해당 요청의 원시 수집 로그 미확보로 정확한 실패 단계 미확정. 앱 수정·모델 호출·배포 없음. sessionary/2026-11-13-nvda-source-review.md 참고.
