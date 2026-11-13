@@ -1,0 +1,5 @@
+.stage { overflow: visible; }
+.guest { opacity: 0; pointer-events: none; transform-origin: 0 0; }
+@media (prefers-reduced-motion: reduce) {
+  .guest { display: none; }
+}

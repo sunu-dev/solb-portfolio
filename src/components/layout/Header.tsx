@@ -72,7 +72,7 @@ export default function Header({ user, onLoginClick, onSignOut }: HeaderProps) {
 
   return <header className={`main-header ${styles.header}`}>
     <div className={styles.inner}>
-      <button type="button" className={styles.home} aria-label="주비 홈으로" onClick={() => setCurrentSection('portfolio')}><JoobiLockup variant="header" /></button>
+      <button type="button" className={styles.home} aria-label="주비 홈으로" onClick={() => setCurrentSection('portfolio')}><JoobiLockup variant="header" greet /></button>
       <nav className={styles.desktop} aria-label="주요 메뉴">
         {NAV_ITEMS.map(item => <button type="button" key={item.section} className={styles.item}
           aria-current={currentSection === item.section ? 'page' : undefined}
