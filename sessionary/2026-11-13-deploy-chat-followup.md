@@ -50,3 +50,8 @@
 
 ## 다음 세션 진입점
 HANDOFF.txt → 이 기록. 현재 운영 e921efa / 후속 로컬 df7124f. 배포 워크트리 유지(비밀링크/빌드산출물 제거 완료), 실행 중인 배포·테스트 프로세스 없음. Chrome은 정상 로그인한 새 joobi.kr 탭의 종목 선택 메뉴 상태로 남김.
+
+## 후속: Vercel CLI 업데이트
+- 사용자 “버셀도 업데이트 하자”로 전역 CLI 업데이트 요청. 기존 npm prefix /Users/sunu/.local 설치를 npm install -g vercel@latest로 갱신.
+- 58.0.0→65.15.0(native) 확인. command -v 경로 /Users/sunu/.local/bin/vercel 유지, 전역 npm 목록·deploy 도움말의 prod/skip-domain 확인.
+- 앱 코드/의존성/계정 설정/운영 배포 변경 없음. 제품 테스트 재실행 대상 아님. 추가 미해결 작업·메모리 승급 후보 없음.

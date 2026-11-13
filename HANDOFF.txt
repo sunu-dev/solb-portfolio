@@ -81,3 +81,5 @@ npm run build
 - 이 파일의 완료 항목은 위 범위만 뜻한다. 실제 코드/검사 결과와 다르면 먼저 정정한다.
 
 릴리스 워크트리: /private/tmp/joobi-chat-release-20261113 유지. .env.local/node_modules 링크와 .next 제거 완료. 이번 배포·테스트 프로세스 종료, Chrome 새 joobi.kr 탭의 종목 선택 메뉴 유지.
+
+CLI 환경(2026-11-13 사용자 요청): npm 전역 Vercel58.0.0→65.15.0 업데이트 완료. 실행 /Users/sunu/.local/bin/vercel, --version 및 deploy 도움말 확인. 앱 의존성·운영 배포 변경 없음.
