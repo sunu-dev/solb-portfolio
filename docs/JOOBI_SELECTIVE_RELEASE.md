@@ -1,5 +1,7 @@
 # 주비 선별 배포 절차 (2026-11-12 기준)
 
+> **2026-11-13 갱신:** 사용자가 GitHub main을 push해 main 전체(`bf55401`, `dpl_2RZZR7K2AgoLcn482PnMyeuhiKLf`)가 운영에 자동 배포됐고, 사용자는 그대로 운영하기로 했다. 지금 운영 소스는 main이며 아래 릴리스 브랜치 절차는 main 일부만 내보내야 할 때를 위한 기록이다.
+
 main에는 운영에 내보내지 않기로 한 작업(보호 보관·패스키, 종목 상세 개편, 산업 그림, 로딩 시안, 수집 도구)이 함께 있다. 그래서 운영은 **main 전체가 아니라 릴리스 브랜치**로 배포한다. 2026-11-12 채팅 배포 두 번을 이 절차로 했다.
 
 ## 먼저 알아둘 것
@@ -72,7 +74,8 @@ curl -s -o /dev/null -w '%{http_code}\n' https://joobi.kr/   # 200
 
 ## 되돌리기
 
-- 직전 채팅 배포: `dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW`
+- main 전체 배포 직전(검수한 채팅 릴리스): `dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ`
+- 그 전 채팅 배포: `dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW`
 - 채팅 선별 배포 전 운영: `dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa`
 - `vercel promote <배포 ID 또는 주소> --yes`로 되돌린다.
 
@@ -81,6 +84,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://joobi.kr/   # 200
 | 날짜 | 배포 | 릴리스 커밋 | main 커밋 | 내용 |
 |---|---|---|---|---|
 | 2026-11-12 | `dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW` | `1a2bba8` | `9da461b` | 채팅 자연스러움·첫 답 지연·기사 없는 답·검증 재작성·검토 수정 |
-| 2026-11-12 | `dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ` | `b49f711` | `a14d59f` | 실존 인물 보도 기준 추가(현재 운영) |
+| 2026-11-12 | `dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ` | `b49f711` | `a14d59f` | 실존 인물 보도 기준 추가 |
+| 2026-11-12 22시대 KST | `dpl_2RZZR7K2AgoLcn482PnMyeuhiKLf` | (GitHub main 자동 배포) | `bf55401` | main 전체. 2026-11-13 사용자가 유지 결정(현재 운영) |
 
 과정과 판단 근거: `sessionary/2026-11-12-chat-release.md`.

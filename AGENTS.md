@@ -40,8 +40,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### push와 운영 배포 — 두 도구 모두 필수
 
-- `git push origin main`은 **운영 배포**다. Vercel이 GitHub `main`을 운영 브랜치로 자동 배포하므로 main HEAD 전체(미배포 기능 포함)가 joobi.kr에 나간다. 사용자가 main 전체 배포를 명시하지 않으면 origin/main에 올리지 않는다. 백업은 `release/...`·`backup/...` 같은 다른 이름으로 올린다(미리보기 배포만 생김).
-- 운영 반영은 릴리스 브랜치 선별 배포로 한다: [선별 배포 절차](docs/JOOBI_SELECTIVE_RELEASE.md).
+- `git push origin main`은 **곧바로 운영 배포**다. Vercel이 GitHub `main`을 운영 브랜치로 자동 배포한다. 2026-11-13 사용자가 main을 push했고 main 전체를 운영으로 유지하기로 결정했다. 이제 운영 소스는 main이다.
+- push는 사용자가 직접 한다. Codex·Claude Code는 push하지 않는다. main에 커밋한 것은 사용자의 다음 push 때 그대로 운영에 나가므로, 운영에 내보내면 안 되는 작업은 main에 섞지 말고 다른 브랜치에서 한다.
+- main 일부만 내보내야 할 때 쓰던 릴리스 브랜치 선별 배포 절차는 [기록](docs/JOOBI_SELECTIVE_RELEASE.md)으로 남아 있다.
 
 ## 주비 제품 원칙 — 모든 제품 작업에 적용
 
