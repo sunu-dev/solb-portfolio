@@ -181,3 +181,29 @@ describe('the prompt when no reporting was found', () => {
     expect(prompt).toContain('assistantInsights는 []로 두세요');
   });
 });
+
+describe('certainty wording must contain an actual denial', () => {
+  it.each([
+    '금리 인상 때문이라고 단정할 수 있어요',
+    '금리 인상 때문이라고 확정할 수 있어요',
+    '금리 인상이라고 단정해요',
+    '금리 인상이라고 확정됐어요',
+    '금리 인상이라는 확정적인 사실이에요',
+    '금리 인상이라고 단정하기 충분해요',
+  ])('rejects an affirmative claim: %s', claim => {
+    const report = answer(`주가 하락의 이유는 ${claim}. 정확한 원인은 확인하지 못했어요.`);
+    expect(assistantUnsourcedCauseIssue(report)).toBe('unsourced_cause');
+    expect(assistantUnsourcedCauseIssue(report, { asksWhy: false })).toBe('unsourced_cause');
+  });
+  it.each([
+    '금리 인상 때문이라고 단정할 수는 없어요',
+    '금리 인상 때문이라고 확정할 수 없어요',
+    '금리 인상이라고 단정하기 어려워요',
+    '금리 인상이라고 확정하기는 어려워요',
+    '아직 단정하지 못했어요',
+    '아직 확정되지 않았어요',
+    '확정할 근거가 없어요',
+  ])('preserves a genuine denial: %s', denial => {
+    expect(assistantUnsourcedCauseIssue(answer(`주가 하락의 이유는 ${denial}.`))).toBeUndefined();
+  });
+});
