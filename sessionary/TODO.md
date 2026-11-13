@@ -1410,4 +1410,4 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - [ ] **계정 로딩 개선 운영 확인:** 첫 조회5초/전체5.5초, 화면 이탈·재시도 취소, 전체화면 반응714681a 운영 배포 완료(dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG). 로그인 요청별 측정·모바일 모션 실검수 필요. 근본 지연 원인 미확정. sessionary/2026-11-13-account-loading-fix.md.
 
-- [ ] **헤더 로고 주비 점프 인사:** 구현·필수검사 완료. 데스크톱/모바일 실화면 검수 후 운영 반영 확인. sessionary/2026-11-13-logo-greeting.md.
+- [ ] **헤더 로고 주비 점프 인사:** 5ebb887 운영배포 완료. 데스크톱/모바일·reduced-motion 실화면 검수 필요. sessionary/2026-11-13-logo-greeting.md.
