@@ -28,27 +28,29 @@
 .scrollRail span { display:block; width:100%; height:var(--dictionary-scroll-thumb); transform:translateY(var(--dictionary-scroll-offset)); background:var(--dict-accent); border-radius:3px; }
 .columns { display:grid; grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr); gap:28px; }
 .index,.reader { min-width:0; }
+.index { padding-right:20px; border-right:1px solid var(--dict-line); }
 .reader:focus { outline:none; }
 .search { display:flex; align-items:center; gap:10px; padding:0 12px; border:1px solid var(--dict-line); border-radius:10px; background:var(--dict-paper); }
 .search input { width:100%; min-width:0; height:48px; padding:10px 0; border:0; color:var(--dict-ink); background:transparent; font:inherit; font-size:16px; }
 .search svg { flex-shrink:0; color:var(--dict-muted); }
 .search input:focus-visible { outline-offset:0; }
 .emptyHint { font-size:13px; color:var(--dict-muted); margin:14px 0; line-height:1.8; }
-.wordList { max-height:365px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--dict-cover-edge) var(--dict-paper); }
+.wordList { display:grid; gap:6px; padding:4px 2px; max-height:365px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:var(--dict-cover-edge) var(--dict-paper); }
 .wordList:focus-visible { outline:2px solid var(--dict-accent); outline-offset:2px; }
-.word { display:flex; align-items:center; gap:10px; width:100%; min-height:68px; padding:12px 8px; border:0; border-bottom:1px solid var(--dict-line); background:transparent; color:var(--dict-ink); cursor:pointer; text-align:left; font:inherit; }
+.word { display:flex; align-items:center; gap:10px; width:100%; min-height:68px; padding:12px 14px; border:1px solid transparent; border-radius:12px; background:transparent; color:var(--dict-ink); cursor:pointer; text-align:left; font:inherit; }
 .word > span { flex:1; min-width:0; }
 .word strong { display:block; font-family:var(--font-wordmark),sans-serif; font-size:24px; font-weight:400; line-height:1.35; overflow-wrap:anywhere; }
 .word small { display:block; font-size:13px; line-height:1.7; color:var(--dict-muted); overflow-wrap:anywhere; }
 .word svg { flex-shrink:0; color:var(--dict-accent); }
-.word[aria-pressed=true] { background:var(--dict-note); border-radius:7px; }
-.note { position:relative; padding:26px 22px 18px; margin:13px 0 0; border:1px solid var(--dict-line); border-radius:3px 8px 5px 6px; background:var(--dict-note); box-shadow:2px 4px 0 var(--dict-shadow); }
-.note h3 { margin:0 0 10px; font-size:32px; line-height:1.4; }
+.word:hover { background:var(--dict-paper); border-color:var(--dict-line); }
+.word[aria-pressed=true] { background:var(--dict-note); border-color:var(--dict-line); box-shadow:inset 3px 0 var(--dict-accent); }
+.note { position:relative; padding:26px 22px 18px; margin:13px 0 0; border:1px solid var(--dict-line); border-radius:4px 16px 16px 16px; background:var(--dict-paper); box-shadow:0 3px 0 var(--dict-shadow); }
+.note h3 { margin:0 0 20px; padding-bottom:14px; border-bottom:1px solid var(--dict-line); font-size:36px; line-height:1.4; }
 .tape { position:absolute; left:calc(50% - 40px); top:-12px; width:80px; height:24px; background:var(--dict-tape); opacity:.7; transform:rotate(-4deg); pointer-events:none; clip-path:polygon(2% 0,98% 0,100% 20%,98% 40%,100% 60%,98% 80%,100% 100%,2% 100%,0 80%,2% 60%,0 40%); }
 .meaning { margin:0 0 16px; font-size:18px; line-height:1.9; }
-.example { margin:12px 0 18px; font-size:16px; }
-.example p { margin:0 0 12px; line-height:1.85; }
-.example > summary { color:var(--dict-accent); }
+.example { margin:20px 0; padding:0 16px; border:1px solid var(--dict-line); border-radius:12px; background:var(--dict-note); font-size:16px; }
+.example p { margin:0 0 16px; padding-top:4px; line-height:1.85; }
+.example > summary { min-height:48px; color:var(--dict-accent); }
 .source { display:inline-flex; align-items:center; min-height:44px; color:var(--dict-muted); font-size:13px; margin-top:6px; text-underline-offset:4px; }
 .catalogLink { display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; min-height:48px; margin-top:10px; padding:8px; border:0; border-radius:7px; background:var(--dict-paper); color:var(--dict-accent); font:inherit; font-size:14px; cursor:pointer; }
 .catalogLink:hover { background:var(--dict-note); }
@@ -93,6 +95,7 @@
  .tabs button[aria-pressed=true] { border-bottom-color:var(--dict-accent); }
  .scroll { padding:17px 14px; }
  .columns { display:block; }
+ .index { padding-right:0; border-right:0; }
  .reader { display:none; }
  .notebook[data-reading=true] .reader { display:block; }
  .notebook[data-reading=true] .index { display:none; }
