@@ -107,3 +107,5 @@ NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공�
 캐릭터 후속: idle 제외21반응 실제 상태 연결. 기존전체2921+새반응3 별도 통과/타입·공통5·도구4·quality66·webpack빌드 통과. 입력창 옆 캐릭터, 검색/준비 최대4.8초. 실화면 미검수·로컬만. src/lib/joobiReactions.ts 진입.
 
 최신 운영검증: e47b718 promote 성공, 홈/terms200·AI비로그인401, 약관10회 확인. ANALYSIS_DAILY_FREE 운영override없음. 실제 로그인 잔여횟수·21반응 모바일 실화면 미검수. 이전 말풍선/10회/21반응 미배포 표기는 이번 배포로 해소. push없음. sessionary/2026-11-13-chat-reactions-release.md.
+
+15시 계정 로딩 재발: 사용자 캡처 오류→동의조회 화면. 익명32조회200, 동의최대4403ms/포트폴리오2215ms/auth573ms/config1695ms 후회복. 로그인6초/동의6초 제한 확인, 실제 로그인 실패원인 미확정. 로딩화면은별도float애니메이션, 오류정지·21반응미연결. 앱수정/배포없음. sessionary/2026-11-13-account-loading-recurrence.md.
