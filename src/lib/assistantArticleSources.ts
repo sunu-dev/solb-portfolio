@@ -164,7 +164,7 @@ export function collectAssistantArticles(packet: AssistantEvidencePacket, supple
     if (!packet.symbol.startsWith('^')) {
       // Company-only searches repeatedly miss the shared event and trigger a
       // second serial lookup. Research both independent scopes together, within
-      // the existing ceiling of two searches (now at most three article fetches).
+      // the existing ceiling of two searches (at most four article fetches).
       const results = await Promise.allSettled([
         retrieve(packet, costs, background, undefined, 'shared'),
         retrieve(packet, costs, background, undefined, 'company'),
@@ -187,7 +187,7 @@ export function collectAssistantArticles(packet: AssistantEvidencePacket, supple
     if (needsArticleSupplement(packet, articles)) throw new PartialArticleEvidence(articles);
     return articles;
   };
-  const promise = (shared ? unstable_cache(work, ['joobi-articles-v13', key], { revalidate: 300 })() : work()).catch(error => {
+  const promise = (shared ? unstable_cache(work, ['joobi-articles-v14', key], { revalidate: 300 })() : work()).catch(error => {
     if (error instanceof PartialArticleEvidence) return error.articles;
     console.warn('[assistant-public-sources] unavailable', error instanceof Anthropic.APIError ? { status: error.status, type: error.name,
       code: 'provider_request_failed' } : { type: error instanceof Error ? error.name : 'unknown' });
@@ -253,7 +253,7 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
   // The SDK timeout covers the wait for the response to start; this bounds the whole streamed call as before.
   const deadline = setTimeout(() => stream.abort(), RETRIEVAL_DEADLINE_MS);
   background.push((async () => {
-    let fetches = 0, closingProse = 0, sawArticle = false;
+    let fetches = 0, closingProse = 0;
     try {
       for await (const event of stream) {
         if (event.type === 'content_block_start') {
@@ -261,7 +261,6 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
           if (block.type === 'web_search_tool_result' || block.type === 'web_fetch_tool_result') {
             received.push(block); closingProse = 0;
             if (block.type === 'web_fetch_tool_result') {
-              if (block.content.type === 'web_fetch_result') sawArticle = true;
               // Once the allowed fetches are used, nothing later in the response can add evidence.
               if (++fetches >= maxFetches || focus === 'company' && accepted(received).length > 0) enough();
             }
@@ -269,7 +268,7 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
         }
         // A long stretch of prose after an article arrived is the model's closing summary, which is never used as evidence.
         // Before any article has arrived, prose may be a note ahead of the first fetch, so the call is read to its end.
-        else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta' && sawArticle
+        else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta' && accepted(received).length > 0
           && (closingProse += event.delta.text.length) >= CLOSING_PROSE_CHARS) enough();
       }
       const response = await stream.finalMessage();
@@ -278,6 +277,7 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
         cachedInputTokens: u.cache_read_input_tokens ?? 0, cacheWriteInputTokens: u.cache_creation_input_tokens ?? 0,
         webSearchRequests: u.server_tool_use?.web_search_requests ?? 0 };
       const articles = accepted(response.content);
+      console.info('[assistant-source-summary]', { focus, stop: response.stop_reason, fetches, accepted: articles.length, elapsedMs: Date.now() - started });
       if (process.env.JOOBI_SOURCE_DIAGNOSTIC === '1') console.info('[source-diagnostic]', JSON.stringify({ stop: response.stop_reason, target: packet.price?.day, accepted: articles.map(a => a.url), blocks: response.content.map(b => b.type === 'web_fetch_tool_result' ? { type: b.type, content: b.content.type === 'web_fetch_result' ? { type: b.content.type, url: b.content.url, title: b.content.content.title, chars: b.content.content.source.type === 'text' ? b.content.content.source.data.length : 0 } : b.content } : b.type === 'server_tool_use' ? { type: b.type, name: b.name, input: b.input } : { type: b.type }) }));
       costs.push({ ...usage, feature: 'assistant-public-sources', provider: 'claude', model: response.model, latencyMs: Date.now() - started,
         success: articles.length > 0, ...(!articles.length ? { errorCode: 'no_usable_article' } : {}) });

@@ -116,3 +116,20 @@ it('still waits for the cost records when the caller does not track them', async
   expect(await pending).toHaveLength(3);
   expect(m.record).toHaveBeenCalledTimes(2);
 });
+
+it('does not return empty evidence during a long note after a rejected article', async () => {
+ const next = gate();
+ const recap = fetched('company', 'wrong-scope');
+ let settled = false;
+ const pending = collect(
+  {steps:[start(search),start(recap),text('This company recap is unsuitable for market coverage. '.repeat(12)),{wait:next.wait},start(fetched('market'))],final:final([search,recap,fetched('market')])},
+  {steps:[start(search),start(fetched('company'))],final:final([search,fetched('company')])}
+ ).then(value=>{settled=true;return value;});
+ await new Promise(resolve=>setTimeout(resolve,30));
+ const returnedBeforeRecovery=settled;
+ next.open();
+ const result=await pending;
+ await result.writes;
+ expect(returnedBeforeRecovery).toBe(false);
+ expect(result.articles.map(a=>a.scope)).toEqual(['market','company']);
+});
