@@ -17,3 +17,8 @@
 
 ## 다음 세션 진입점
 - assistantArticleSources.ts, assistantArticleEarlyReturn.test.ts, AskJoobi.tsx.
+
+## 후속 운영 배포·개인화 설계
+- 사용자 배포 승인 후465952f를 release/chat-stability-20261113로 단계배포. dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg READY/빌드1분45초/promote성공. 단계·운영 홈200/API401. 복구4c22d3f 배포. 운영 로그인 질문은 미실행, push없음.
+- 사용자 대화 기록 개인화/통계 요청 및 선택동의 토글 이미지 제시. 기본off 목적별 개인화/품질개선 토글 제안. docs/JOOBI_CONVERSATION_PERSONALIZATION.md 작성.
+- 현재 대화는 메모리20턴, 원문 자동영구보관 없음. 기존 원문 없는 통계/별도동의30일 사례 재사용 제안. 실제 데이터 수집/계정 설정/DB/환경변수 변경 없음. 유지기간·구현범위 결정 후 구현 필요.

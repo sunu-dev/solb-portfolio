@@ -1,7 +1,7 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex (2026-11-13 안정성 수정465952f 로컬 완료, 운영 미반영)
-현재 운영: dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E / joobi.kr / release/chat-sources-20261113 @4c22d3f. e921efa+df7124f 원인 검사+기사 수집 수정. 복구 dpl_BDpzQjeS4yDco4atagjYxMGbd2ru.
+담당: Codex (2026-11-13 안정성465952f 운영 배포 완료, 개인화 선택동의 설계)
+현재 운영: dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg / joobi.kr / release/chat-stability-20261113 @465952f. 복구 dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E(4c22d3f).
 현재 로컬: fix/chat-followup-20261113, 4c22d3f 배포 이후 수집 조기 종료 안정성 수정 중. df7124f는 이미 운영 반영.
 최신 사용자 지시: “운영에 배포하고 개선작업 이어지 진행할까?”로 e921efa 배포·후속 개선 승인. Codex는 모든 push 금지. 후속 개선의 추가 운영 배포는 별도 범위로 구분. 상세: sessionary/2026-11-13-deploy-chat-followup.md
 현재 진행 중인 테스트 프로세스: 없음. (이 컴퓨터의 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop의 local-pilot이다. 건드리지 않는다.)
@@ -95,3 +95,5 @@ NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공�
 최신 완료: 4c22d3f READY/promote 성공, 운영 홈200/API 비로그인401. 전체2919통과17생략, 실제 API 최종16.8초 CEO사임 설명 성공(로컬 인증mock 하네스). 운영 로그인 질문 미검수. 이전 df7124f 미반영/승인대기 표기는 이번 배포로 해소. 기사0건 변동성/범용 공식출처/충분성 검사 후속 남음. push없음. sessionary/2026-11-13-source-release.md.
 
 안정성 후속465952f: 검증 탈락 기사 뒤 긴 설명으로 조기 종료되던 결함 재현→수정. 원문 없는 수집 요약 로그, 캐시v14. 전체2920통과17생략·타입·공통5·도구4·quality66·webpack 빌드 통과. 이번 실제 모델/운영 질문 미실행. push/추가배포 없음. 진행 표시·출처 UI 유지. sessionary/2026-11-13-source-stability.md.
+
+최신 배포: 465952f READY/promote 완료. 단계/운영 홈200·비로그인API401. 실제 로그인 질문 미실행, push없음. 개인화·통계는 docs/JOOBI_CONVERSATION_PERSONALIZATION.md 설계안만 작성; 수집/동의/DB/환경변수 미변경. 사용자 예시 기본off 선택동의 UI 검토, 목적별 토글 제안. 이전 미배포 표기는 이번 배포로 해소.
