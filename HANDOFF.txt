@@ -1,7 +1,7 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex (2026-11-13 채팅 배포 완료, NVDA 원인 보도 누락 코드 조사)
-현재 운영: dpl_BDpzQjeS4yDco4atagjYxMGbd2ru / joobi.kr / release/chat-followup-20261113 @ e921efa. 실제 직전 운영 dcc031c 위에 채팅4파일만 선별. 기존 main 기능 유지.
+담당: Codex (2026-11-13 기사 수집 수정4c22d3f 운영 배포 완료)
+현재 운영: dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E / joobi.kr / release/chat-sources-20261113 @4c22d3f. e921efa+df7124f 원인 검사+기사 수집 수정. 복구 dpl_BDpzQjeS4yDco4atagjYxMGbd2ru.
 현재 로컬: fix/chat-followup-20261113 @ df7124f + 인계 문서 커밋. 단정/확정 긍정문이 원인 검사를 통과하던 결함 수정·전체검사 완료, 이 후속 개선은 운영 미반영.
 최신 사용자 지시: “운영에 배포하고 개선작업 이어지 진행할까?”로 e921efa 배포·후속 개선 승인. Codex는 모든 push 금지. 후속 개선의 추가 운영 배포는 별도 범위로 구분. 상세: sessionary/2026-11-13-deploy-chat-followup.md
 현재 진행 중인 테스트 프로세스: 없음. (이 컴퓨터의 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop의 local-pilot이다. 건드리지 않는다.)
@@ -87,3 +87,9 @@ CLI 환경(2026-11-13 사용자 요청): npm 전역 Vercel58.0.0→65.15.0 업�
 NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공식 NVIDIA·AP·Reuters 도메인 미허용, 회사 검색1/열람1, 28초 제한, 경영진 사건 단락 점수 누락 가능. 사생활 제외 규칙은 회사 사실 설명을 허용. 해당 요청의 원시 수집 로그 미확보로 정확한 실패 단계 미확정. 앱 수정·모델 호출·배포 없음. sessionary/2026-11-13-nvda-source-review.md 참고.
 
 알고리즘 감사: 기존31+진단3=34통과. 사임 문단 제거·공식 IR 차단·시장 기사만으로 종목 자료 충분 판정 재현(합성 fixture). 회사 근거 누락/시장근거 존재 시 withoutReporting 검사 비활성 구조 확인. 앱 무수정, 전체/빌드/실제 모델 미실행. 상세 위 NVDA 기록.
+
+진행: 사용자 기사 수집 수정 포함 배포 승인. 최신 AGENTS에 따라 push 안 함. 4c22d3f 단계 배포 dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E 진행 중. 최종 상태는 후속 기록 확인.
+
+최신 완료: 4c22d3f READY/promote 성공, 운영 홈200/API 비로그인401. 전체2919통과17생략, 실제 API 최종16.8초 CEO사임 설명 성공(로컬 인증mock 하네스). 운영 로그인 질문 미검수. 이전 df7124f 미반영/승인대기 표기는 이번 배포로 해소. 기사0건 변동성/범용 공식출처/충분성 검사 후속 남음. push없음. sessionary/2026-11-13-source-release.md.
+
+최신 완료: 4c22d3f READY/promote 성공, 운영 홈200/API 비로그인401. 전체2919통과17생략, 실제 API 최종16.8초 CEO사임 설명 성공(로컬 인증mock 하네스). 운영 로그인 질문 미검수. 이전 df7124f 미반영/승인대기 표기는 이번 배포로 해소. 기사0건 변동성/범용 공식출처/충분성 검사 후속 남음. push없음. sessionary/2026-11-13-source-release.md.
