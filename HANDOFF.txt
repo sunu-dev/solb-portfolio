@@ -1,11 +1,11 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex — 계정 동의조회 지연·취소 처리와 전체화면 반응 개선
+담당: Codex — 714681a 계정 조회·반응 개선 운영 배포 완료
 현재 브랜치: fix/chat-followup-20261113
 작업 시작 기준: ad5b3f5, 작업 트리 clean 확인. 오래된 bf55401 기준은 이후 작업으로 대체됨.
-현재 운영: e47b718 / dpl_baEx995XK5cuBBSWq3ZLFjjXfm5T / joobi.kr / READY
-운영 복구 후보: 465952f / dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg
-최신 지시: 반복되는 계정 오류·로딩 조사 후 개선 “진행하자”. 이번 변경은 로컬 구현, 추가 운영 배포 전 범위 확인.
+현재 운영: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG / joobi.kr / READY
+운영 복구 후보: e47b718 / dpl_baEx995XK5cuBBSWq3ZLFjjXfm5T
+최신 지시: “운영 배포하자.” 714681a 배포 승인. Git push 없이 독립 워크트리에서 단계 배포 후 promote.
 
 필수 규칙
 - AGENTS.md → 이 파일 → 관련 기록 순으로 확인한다. 이 파일보다 실제 코드/Git/실행 결과가 우선.
@@ -48,7 +48,7 @@
 - vault 플래그 운영 미설정(꺼짐). SQL proposal 상태로 활성화하지 않음.
 
 다음 작업
-1. 이번 수정 검사·로컬 커밋 뒤 배포 범위 확인. 실제 로그인 요청별 소요/중복수/실패코드 수집.
+1. 배포한714681a의 실제 로그인 요청별 소요/중복수/실패코드 수집.
 2. 운영 로그인 후 모션·횟수 표시·좁은화면 검수. 질문 전 사용자 횟수 사용 승인.
 3. 기사 충분성/탈락사유 관측과 개인화 선택동의 구현 범위 후속. 제3자 투자의견 인용은 사용자 결정 대기.
 
@@ -62,8 +62,16 @@
 - 전체 TODO: sessionary/TODO.md. 과거 선별배포 절차: docs/JOOBI_SELECTIVE_RELEASE.md.
 
 환경/실행
-- Vercel CLI65.15.0 /Users/sunu/.local/bin/vercel. 이번 push/배포/환경변수/DB변경 없음.
-- 운영 소스 워크트리 /private/tmp/joobi-reactions-release-20261113 유지.
+- Vercel CLI65.15.0 /Users/sunu/.local/bin/vercel. 이번 push/환경변수/DB변경 없음. 사용자 승인으로714681a 운영배포 완료.
+- 운영 소스 워크트리 /private/tmp/joobi-account-release-20261113 유지(714681a). 이전 reactions 워크트리도 유지.
 - 로컬 카카오 로그인은 joobi.kr로 돌아옴. 리다이렉트 설정 변경하지 않음.
 - 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop, 건드리지 않음.
-- 이번 시작한 검사/빌드 프로세스 모두 종료. 로컬 커밋 예정(이 파일 포함); 실제 해시는 git log 확인.
+- 이번 시작한 검사/빌드 프로세스 모두 종료. 구현 로컬 커밋714681a. 이번 배포 기록은 별도 로컬 문서 커밋; 실제 해시는 git log 확인.
+
+운영 배포 검증 (2026-11-13)
+- 독립 release/account-recovery-20261113 워크트리에서 --prod --skip-domain 후 READY/promote 성공.
+- 원격 빌드2분5초/후처리35초. 홈·약관200, 비로그인 AI POST401, joobi.kr의 배포ID 일치 확인.
+- 새 배포 초기 error 로그0건(짧은 관측, 장기 무오류 보장 아님). drains 설정은 미조회.
+- 임시주소는 Vercel 로그인 보호302여서 공개 검사는 promote후 운영에서 수행. 인증 우회 없음.
+- 실제 로그인 지연·모바일·reduced-motion 검수와 근본 원인 규명은 남음. 운영 질문/모델 호출 없음.
+- sessionary/2026-11-13-account-recovery-release.md 참조. 배포/검사 프로세스 종료.
