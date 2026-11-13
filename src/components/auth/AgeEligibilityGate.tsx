@@ -18,7 +18,7 @@ import {
 } from '@/lib/aiAgeGate';
 import AccountAccessStatus from './AccountAccessStatus';
 import JoobiLockup from '@/components/brand/JoobiLockup';
-import { withDeadline } from '@/lib/withDeadline';
+import { withAbortDeadline } from '@/lib/withAbortDeadline';
 import { resolveSignupRequirements, type SignupRequirements } from '@/lib/signupEligibility';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -30,13 +30,21 @@ interface AgeEligibilityGateProps {
 
 type GateStatus = 'checking' | 'required' | 'saving' | 'eligible' | 'error';
 
-async function readSignupRequirements(userId: string): Promise<SignupRequirements> {
-  const controller = new AbortController();
+async function readSignupRequirements(userId: string, signal: AbortSignal): Promise<SignupRequirements> {
+  const started = performance.now();
+  let result: SignupRequirements = { status: 'error', missing: [] };
   try {
-    return await withDeadline(resolveSignupRequirements(supabase, userId, sessionStorage, controller.signal), 6000);
+    result = await withAbortDeadline(childSignal =>
+      resolveSignupRequirements(supabase, userId, sessionStorage, childSignal), 6000, signal);
+    return result;
   } catch {
-    return { status: 'error', missing: [] };
-  } finally { controller.abort(); }
+    return result;
+  } finally {
+    // Local browser timing only; no account identifier, consent content or upload.
+    try {
+      performance.measure(`joobi:startup:consent:${signal.aborted ? 'cancelled' : result.status}`, { start: started });
+    } catch { /* Timing support must never affect account access. */ }
+  }
 }
 
 /**
@@ -49,6 +57,8 @@ export default function AgeEligibilityGate(props: AgeEligibilityGateProps) {
 
 function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityGateProps) {
   const [{ status, missing }, setGate] = useState<{ status: GateStatus; missing: SignupRequirements['missing'] }>({ status: 'checking', missing: [] });
+  const [attempt, setAttempt] = useState(0);
+  const requestRef = useRef<AbortController | null>(null);
   const [birthDate, setBirthDate] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [agreePrivacy, setAgreePrivacy] = useState(false);
@@ -64,15 +74,17 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
     && (!needsPrivacy || agreePrivacy) && status === 'required' && missing.length > 0;
 
   useEffect(() => {
-    let active = true;
-    void readSignupRequirements(userId).then((nextGate) => {
-      if (active) setGate(nextGate);
+    const controller = new AbortController();
+    requestRef.current = controller;
+    void readSignupRequirements(userId, controller.signal).then((nextGate) => {
+      if (!controller.signal.aborted) setGate(nextGate);
     });
-    return () => { active = false; };
-  }, [userId]);
+    return () => { controller.abort(); };
+  }, [userId, attempt]);
 
   const confirm = async () => {
-    if (!canConfirm) return;
+    const signal = requestRef.current?.signal;
+    if (!canConfirm || !signal || signal.aborted) return;
     setGate(previous => ({ ...previous, status: 'saving' }));
     const agreedAt = new Date().toISOString();
     try {
@@ -81,13 +93,15 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
         { user_id: userId, consent_type: 'terms', version: TERMS_VERSION, agreed_at: agreedAt },
         { user_id: userId, consent_type: 'privacy', version: PRIVACY_VERSION, agreed_at: agreedAt },
       ].filter(row => missing.some(type => type === row.consent_type));
-      const { error } = await withDeadline(Promise.resolve(supabase.from('user_consents').upsert(
+      const { error } = await withAbortDeadline(childSignal => supabase.from('user_consents').upsert(
         confirmations,
         { onConflict: 'user_id,consent_type,version', ignoreDuplicates: true },
-      ).abortSignal(AbortSignal.timeout(6000))), 6000);
-      setGate(error ? { status: 'error', missing: [] } : await readSignupRequirements(userId));
+      ).abortSignal(childSignal), 6000, signal);
+      if (signal.aborted) return;
+      setGate({ status: error ? 'error' : 'checking', missing: [] });
+      if (!error) setAttempt(value => value + 1);
     } catch {
-      setGate({ status: 'error', missing: [] });
+      if (!signal.aborted) setGate({ status: 'error', missing: [] });
     }
   };
 
@@ -96,7 +110,8 @@ function AccountEligibilityGate({ userId, onSignOut, children }: AgeEligibilityG
   if (status === 'checking' || status === 'error') return <AccountAccessStatus
     phase="consent" error={status === 'error'} onSwitchAccount={onSignOut} onRetry={() => {
       setGate({ status: 'checking', missing: [] });
-      void readSignupRequirements(userId).then(setGate);
+      requestRef.current?.abort();
+      setAttempt(value => value + 1);
     }} />;
 
   return (

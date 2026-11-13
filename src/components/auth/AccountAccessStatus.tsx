@@ -21,7 +21,7 @@ export default function AccountAccessStatus({ error = false, message, phase, onR
   return <main data-startup-screen data-startup-phase={phase} data-loading-design="joobi-recovery" data-state={error ? 'error' : 'pending'} className={styles.page}>
     <section className={styles.content} aria-labelledby="access-title">
       <p className={styles.brand}>주비 <span>내 주식비서</span></p>
-      <div className={styles.portrait}><span className={styles.characterFrame}><span className={styles.mascot}><JoobiAvatar size={112} /></span></span></div>
+      <div className={styles.portrait}><span className={styles.characterFrame}><span className={styles.mascot}><JoobiAvatar key={`${phase}-${error}`} size={112} mood={error ? 'retry' : phase === 'consent' ? 'privacy' : 'checking'} /></span></span></div>
       <h1 id="access-title" className={styles.title}>{error ? (phase ? '지금 계정을 확인할 수 없어요' : '화면을 불러오지 못했어요') : '화면을 불러오고 있어요'}</h1>
       {error ? <>
         <p className={styles.message} role="alert">{message ?? (phase ? '서버 응답을 받지 못했어요. 잠시 뒤 다시 시도해주세요.' : '연결이 끊겼거나 응답이 늦어지고 있어요. 다시 연결해 주세요.')}</p>

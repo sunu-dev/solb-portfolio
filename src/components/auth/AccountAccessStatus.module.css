@@ -31,3 +31,12 @@
 .characterFrame { position:relative; z-index:1; }
 @keyframes joobiFloat { 0%,100% { transform:translateY(0) rotate(-2deg); } 50% { transform:translateY(-7px) rotate(2deg); } }
 @keyframes joobiShadow { 0%,100% { transform:scaleX(1); opacity:.12; } 50% { transform:scaleX(.72); opacity:.06; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .page[data-state='error'] .mascot { animation: joobiRecovery 1.2s ease-in-out 1; }
+}
+@keyframes joobiRecovery {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(3px); }
+  70% { transform: translateY(-2px); }
+}

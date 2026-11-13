@@ -22,7 +22,7 @@ afterEach(() => { vi.useRealTimers(); });
 it('recovers a stalled consent read with a fresh query without treating it as a new signup', async () => {
   read.mockImplementationOnce(() => new Promise(() => {})).mockResolvedValueOnce({ data: rows, error: null, status: 200 });
   const pending = resolveSignupRequirements(client(), 'owner', storage);
-  await vi.advanceTimersByTimeAsync(3000);
+  await vi.advanceTimersByTimeAsync(5000);
   expect(await pending).toEqual({ status: 'eligible', missing: [] });
   expect(read).toHaveBeenCalledTimes(2); expect(signals[0].aborted).toBe(true);
   expect(signals[1]).not.toBe(signals[0]); expect(filters.mock.calls).toEqual([['user_id', 'owner'], ['user_id', 'owner']]);
@@ -30,7 +30,7 @@ it('recovers a stalled consent read with a fresh query without treating it as a 
 it('bounds two stalled reads and leaves the account gate closed', async () => {
   read.mockImplementation(() => new Promise(() => {}));
   const pending = resolveSignupRequirements(client(), 'owner', storage);
-  await vi.advanceTimersByTimeAsync(4500);
+  await vi.advanceTimersByTimeAsync(5500);
   expect(await pending).toEqual({ status: 'error', missing: [] });
   expect(read).toHaveBeenCalledTimes(2); expect(signals.every(signal => signal.aborted)).toBe(true);
   expect(vi.getTimerCount()).toBe(0);

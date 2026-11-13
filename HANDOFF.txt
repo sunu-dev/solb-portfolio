@@ -1,111 +1,69 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex (2026-11-13 말풍선·10회·21반응 e47b718 운영 배포 완료)
-현재 운영: e47b718 / dpl_baEx995XK5cuBBSWq3ZLFjjXfm5T / joobi.kr / READY. 복구465952f/dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg.
-현재 로컬: fix/chat-followup-20261113, 4c22d3f 배포 이후 수집 조기 종료 안정성 수정 중. df7124f는 이미 운영 반영.
-최신 사용자 지시: “운영에 배포하고 개선작업 이어지 진행할까?”로 e921efa 배포·후속 개선 승인. Codex는 모든 push 금지. 후속 개선의 추가 운영 배포는 별도 범위로 구분. 상세: sessionary/2026-11-13-deploy-chat-followup.md
-현재 진행 중인 테스트 프로세스: 없음. (이 컴퓨터의 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop의 local-pilot이다. 건드리지 않는다.)
+담당: Codex — 계정 동의조회 지연·취소 처리와 전체화면 반응 개선
+현재 브랜치: fix/chat-followup-20261113
+작업 시작 기준: ad5b3f5, 작업 트리 clean 확인. 오래된 bf55401 기준은 이후 작업으로 대체됨.
+현재 운영: e47b718 / dpl_baEx995XK5cuBBSWq3ZLFjjXfm5T / joobi.kr / READY
+운영 복구 후보: 465952f / dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg
+최신 지시: 반복되는 계정 오류·로딩 조사 후 개선 “진행하자”. 이번 변경은 로컬 구현, 추가 운영 배포 전 범위 확인.
 
-Codex 시작 체크
-1. 현재 작업 브랜치 fix/chat-followup-20261113. 운영 코드 e921efa/후속 로컬 df7124f, main dcc031c(Claude 문서 종료 커밋).
-2. 원격 main은 사용자의 push로 dcc031c까지 변경됨(Vercel Git 소스·ls-remote 확인). 이번 Codex push 없음. CLI 릴리스 e921efa와 원격 main을 구분한다.
-3. 코드 e921efa·df7124f와 이후 인계 문서 커밋을 구분. 미커밋 상태는 git status로 확인.
+필수 규칙
+- AGENTS.md → 이 파일 → 관련 기록 순으로 확인한다. 이 파일보다 실제 코드/Git/실행 결과가 우선.
+- 모든 push는 사용자만 한다. main push는 즉시 운영 자동 배포다.
+- 현재 CLI 운영 릴리스의 수정이 main에 모두 포함되었는지 사용자 다음 push 전에 확인한다.
+- 마지막 확인 main/원격 main은 dcc031c. 이번 작업에서 원격 재조회하지 않음.
+- 인증 우회·쿠키 주입·운영 테스트계정 생성·인증/계정 설정 변경 금지.
+- 운영 사용자 질문은 일일 공통 분석 한도10회를 사용하므로 먼저 묻는다. 유료 실제 모델검사는 필요한 표본만.
+- 개인화는 설계만; 동의 없이 원문 수집/개인화 활성화하지 않는다.
 
-규칙
-- Vercel은 GitHub main을 운영으로 자동 배포한다. Codex는 어떤 브랜치도 push하지 않는다. 이번 요청은 사용자 승인 후 선별 배포만 허용한다.
-- 옛 릴리스 b49f711을 바로 promote/재배포하면 기존 main 기능을 되돌릴 수 있다. 다음 선별 배포 기준은 현재 운영 e921efa. 원격 main을 그대로 push/재배포하면 이번 CLI 릴리스 수정이 덮일 수 있으므로 사용자의 다음 push 전 코드 포함 여부 확인.
-- main에 커밋한 것은 사용자의 다음 push 때 운영에 나간다. 운영에 내보내면 안 되는 미완성 작업은 다른 브랜치에서 한다.
-- 인증 우회(쿠키 주입 등), 운영 Supabase 테스트 계정 생성, 인증·계정 설정 변경 금지. 로그인 검수는 사용자 세션과 승인으로 한다.
-- 운영에서 사용자 계정으로 질문하면 하루 3회를 쓴다. 먼저 묻는다. 실제 모델 테스트(assistantRouteLive)는 비용이 드니 필요한 표본만.
+이번 구현
+- signupEligibility: 정상 응답4.4초 측정을 근거로 첫 조회3초→5초, 조회 전체4.5초→5.5초.
+  화면의6초 상한 유지. 재시도는 읽기만, 최대1회. 실패/동의누락은 통과시키지 않음.
+- AgeEligibilityGate: 재시도/사용자변경/언마운트 시 이전 요청 취소, 오래된 결과 무시.
+  동의 저장은 자동 재시도하지 않음. 저장후 재조회도 같은 수명주기로 관리.
+- 브라우저 User Timing에 joobi:startup:consent:<결과> 기록. 사용자ID/내용/서버 업로드 없음.
+- AccountAccessStatus: 확인중 checking/동의 privacy/실패 retry 반응 연결.
+  대기 float 유지, 실패시 짧은1.2초 동작. reduced-motion에서는 동작 안 함.
 
-운영
-- https://joobi.kr / dpl_BDpzQjeS4yDco4atagjYxMGbd2ru / READY. e921efa, 원격2901통과20생략/빌드 성공. 홈·www·privacy·config200/비로그인AI401. 초기15분 error로그0행(장기 보장 아님).
-- 이번 직전 운영 복구: dpl_7riwQs5CNYucqYQ4ovra572AQ9YH(dcc031c), 사용자 승인 후 promote.
-- 더 오래된 복구 이력: 검수한 채팅 릴리스 dpl_9WScYHWe5kb8PoftT6NP6xjZttLQ, 그 전 dpl_78AHcGj7TGmF8EbHiVDG9GuQ8WTW, 채팅 변경 전 dpl_6dXQvQjjyr2vvyip7LEJFRicb7fa (vercel promote <ID> --yes, 사용자 승인 뒤).
-- 2026-11-13 확인: 홈·/terms·/privacy·/brand-preview·/manifest.json 200, 비로그인 /api/ai-analysis 401. 최근 40분 런타임 오류: cron sync-listings의 KS·KQ 조회 401(이 경로는 ea1fdc3 이후 바뀌지 않음 = 이번 배포와 무관한 외부 인증 문제로 보임, 미확인), cron market-watch 시세 소스 부분 불가 30분 이상.
+확인한 근거와 한계
+- 직전 익명32조회 모두200, 동의 최대4403ms/portfolio2215ms/auth573ms/config1695ms 뒤 회복.
+- 이전64조회63건200/1연결실패, 별도 SQL0.914ms/잠금0. 같은 시각 자원 측정 아님.
+- 익명 조회는 실제 로그인 계정 경로와 다름. 유휴/동시성/DB사양/인증락 근본 원인은 미확정.
+- 코드상 첫 조회3초 중단과 화면 이탈 후 요청 잔존을 확인. 이것이 사용자 캡처의 직접 원인이라고 단정하지 않음.
+- 이번 실제 로그인 지연/모바일 모션/reduced-motion 실화면 미검수. 실제 모델·운영질문 없음.
 
-함께 운영에 나간 작업 (검수한 채팅 릴리스 b49f711 대비 src 90개 파일, 운영 검수 안 됨)
-- 종목 상세 개편(components/analysis 14개), 탐색(components/explore), 포트폴리오 화면, 산업 그림·브랜드 미리보기(/brand-preview), 로딩 시안, 수집·검수 도구, API 일부.
-- 보호 보관(vault)·패스키: 코드상 NEXT_PUBLIC_PORTFOLIO_VAULT_READER=on일 때만 켜지고 운영 환경변수에 없다 = 꺼져 있음(코드 읽기로만 확인). SQL은 proposal 그대로이니 켜지 않는다. 관련: portfolioWriteAccess.ts, privateNotificationPause.ts도 같이 나갔다.
-- 당시 기록: docs/CLAUDE_REVIEW_HANDOFF_2026-11-10.txt, docs/STOCK_DETAIL_REDESIGN_HANDOFF_2026-11-03.md, docs/PORTFOLIO_VAULT_ROLLOUT.md
+검사
+- 타입·전체2927통과17생략·도구4·quality66·공통5종·webpack 빌드 통과. 세부 기록: sessionary/2026-11-13-account-loading-fix.md
+- 기본 명령: npm run typecheck; npm test -- --maxWorkers=2; npm run test:tools;
+  npm --prefix quality-lab test; npm run lint:ui; npm run lint:alerts; npm run lint:korean;
+  npm run lint:darkmode; npm run lint:tour-anchors; npx next build --webpack.
+- npm run build 기본 Turbopack 대신 기존 검증 방식 webpack 사용. 기존 ai-chok 고아 앵커 경고 유지.
 
-채팅 변경 (2026-11-11~12, 운영 검수 완료. 근거: sessionary/2026-11-12-chat-release.md)
-- 자연스러운 대화(인사 즉답·근황 질문·후속 반복 금지), 한국 종목 가격, 첫 답 지연 단축, 등락률 먼저 표시, 기사 0건 원인 질문은 가격 비교 + 이유 미확인(근거 없는 원인 문장은 결정론적 검사로 한 번 재작성, 또 걸리면 보류·무과금), 검증에 걸린 답 재작성, 원리 질문 분류, "네/아니요" 이어가기, 실존 인물 보도 기준(src/lib/assistantIntent.ts ASSISTANT_PERSON_RULE).
-- 로그인 검수(2026-11-12, 사용자 승인, 삼성전자 3문): 원인 16.5초(3초에 등락률), 매수 8.7초, "네" 9.0초, 횟수 3→0, 비용 원장 5행 모두 성공(응답 뒤 기록 포함).
-- 검사: main a14d59f 기준 앱 2901 통과/17 생략, 도구 4, quality-lab 66, 빌드 통과.
+이미 운영 반영된 작업
+- e921efa: 종목 설정 회사명·양자택일 짧은 답 무료 되묻기. 로그인 목록 삼성전자 확인.
+- 4c22d3f: df7124f 원인 단정 검사 포함 기사 수집 확대. 로컬 실제 API16.8초 결과 확인, 운영 질문 미검수.
+- 465952f: 검증탈락 기사 뒤 긴 설명으로 조기 종료되던 결함 수정, 수집 요약 로그·캐시v14.
+- e47b718: 말풍선·공통 분석 기본10회·21반응. 운영 ANALYSIS_DAILY_FREE override없음.
+  원격 빌드/홈·약관200/비로그인API401 확인. 실제 로그인 잔여횟수/모바일 미검수.
+- vault 플래그 운영 미설정(꺼짐). SQL proposal 상태로 활성화하지 않음.
 
-남은 문제
-- (가) 11/13 익명 직접 REST·운영 config에서도 최대 약4초 지연/연결 실패1건 재현. 별도 SQL0.914ms/blocked0. 유휴·동시성·Nano 사양/공급자 원인은 미확정. 로그인 계정 첫 진입 지연(Supabase): 2026-11-12 첫 진입 5회 중 2회 "지금 계정을 확인할 수 없어요"(user_portfolios 8.2초, /api/me/admin 5.1초 503), 몇 분 뒤 회복. 원인 미확정.
-- (나) e921efa 종목 목록 이름·양자택일 짧은 답 수정 운영 반영. 네이티브 Chrome 로그인 후 목록 “삼성전자 (005930.KS)” 확인. 되묻기는 로컬 무료/횟수0·반복 답 테스트 통과, 실제 AI 대화 미검수. 답 첫머리 되읽기는 별도 미해결.
-- (추가 검토) UNSURE 단정/확정 긍정문 통과 결함은 df7124f에서 수정·회귀13개 추가/전체2917통과17생략. 4c22d3f 배포에 포함되어 운영 반영 완료.
-- (다) 사용자 판단 필요: 증권사 연구원 코멘트·투자의견 하향 같은 제3자 의견을 출처와 함께 옮길지(매매 방향 0 원칙과의 경계).
-- (라) 로그인 뒤 질문 복원, 용어 팝업 → 사전 저장, 좁은 화면·iPhone 실기는 미검수.
+다음 작업
+1. 이번 수정 검사·로컬 커밋 뒤 배포 범위 확인. 실제 로그인 요청별 소요/중복수/실패코드 수집.
+2. 운영 로그인 후 모션·횟수 표시·좁은화면 검수. 질문 전 사용자 횟수 사용 승인.
+3. 기사 충분성/탈락사유 관측과 개인화 선택동의 구현 범위 후속. 제3자 투자의견 인용은 사용자 결정 대기.
 
-이번 검사/확인 범위
-- e921efa: 타입검사, 앱2904통과/17생략, 도구4, quality-lab66, 공통검사5종, 프로덕션 빌드 통과. 기존 ai-chok 고아 앵커 경고1개.
-- 첫 build 샌드박스 정체/quality-lab listen EPERM은 권한 재실행으로 통과. 실행한 프로세스 종료.
-- 실제 모델/운영 사용자 질문 미실행. 브라우저 host는 unavailable이나 네이티브 Chrome으로 실제 화면 검수 가능함을 확인. 새 탭 계정 확인 실패 → 재연결1회로 회복 → 종목명 표시 확인. 요청별 ms 계측은 미실행. 인증 우회/계정 생성/설정 변경 없음.
-- Supabase 64조회 중63건200/1건연결실패. 결과는 artifacts/db-latency-20261113, 재현은 scripts/measure-supabase-read-latency.mjs. 앱 인증 코드·DB 설정 변경 없음.
+진입 파일/기록
+- src/lib/signupEligibility.ts, src/components/auth/AgeEligibilityGate.tsx,
+  src/components/auth/AccountAccessStatus.tsx/.module.css, src/hooks/useAuth.ts
+- sessionary/2026-11-13-account-loading-recurrence.md (측정), account-loading-fix.md (이번 수정)
+- sessionary/2026-11-13-chat-reactions-release.md, source-stability.md, source-release.md (날짜 prefix 동일)
+- docs/JOOBI_EXPLANATION_PRINCIPLES.md, docs/JOOBI_CHAT_DESIGN_SYSTEM.md
+- docs/JOOBI_CONVERSATION_PERSONALIZATION.md: 기본off 목적별 동의 설계, 미구현.
+- 전체 TODO: sessionary/TODO.md. 과거 선별배포 절차: docs/JOOBI_SELECTIVE_RELEASE.md.
 
-후속 개선 검사
-- df7124f: 타입, 관련223통과3생략/전체2917통과17생략, 공통5종, 도구4, quality66, webpack 빌드 통과. 당시 실제 모델 미실행. 이후 4c22d3f 배포에 포함.
-- 릴리스 최초 전체 병렬검사에서 기존 테스트2실패(timeout·암호문의 CSV 우연 일치). maxWorkers2 재실행 통과. 테스트 안정화 후속은 TODO.
-
-다음 작업 — Codex 우선순위
-1. Supabase 계정 첫 진입 실패 원인: 정상 네이티브 Chrome 세션을 이용해 요청별 시간·중복수와 동시 공급자 자원 지표 계측. 계정 설정/인증 우회 금지.
-2. 수집 조기 종료 안정성 개선 검증 후 배포 확인. 제3자 의견 인용 결정은 아직 대기.
-3. 기존 불안정 테스트(암호문의 짧은 문자열 우연 일치·동시 실행 timeout) 안정화. 좁은 화면·iPhone·실제 양자택일 대화는 별도 검수.
-
-진입 파일과 기록
-- 공통 규칙: AGENTS.md(push와 운영 배포 포함), 제품 원칙: docs/JOOBI_EXPLANATION_PRINCIPLES.md
-- 채팅/사전 디자인: docs/JOOBI_CHAT_DESIGN_SYSTEM.md, docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md
-- 채팅 서버: src/app/api/ai-analysis/route.ts, 검사·분류: src/lib/assistantQuestion.ts, 의도·짧은 대답: src/lib/assistantIntent.ts
-- 선별 배포 절차(기록): docs/JOOBI_SELECTIVE_RELEASE.md
-- 전체 미해결 목록: sessionary/TODO.md, 최근 작업 기록: sessionary/2026-11-13-deploy-chat-followup.md (앞선 측정: sessionary/2026-11-13-codex-chat-db-review.md) (직전 배포: sessionary/2026-11-12-chat-release.md)
-
-검사 명령
-npm run typecheck
-npm test -- --maxWorkers=2
-npm run test:tools
-npm --prefix quality-lab test
-npm run lint:ui && npm run lint:alerts && npm run lint:korean && npm run lint:darkmode && npm run lint:tour-anchors
-npm run build
-실제 모델 확인(비용 발생): JOOBI_ROUTE_LIVE=1 JOOBI_ROUTE_SCENARIOS=<시나리오 json> JOOBI_ROUTE_OUT=<결과 json> npx vitest run src/__tests__/assistantRouteLive.test.ts
-  시나리오 형식: [{"name":"N1","symbol":"005930.KS","market":"kr","noArticles":true,"turns":["오늘 왜 떨어졌어?","이 회사는 뭘로 돈 벌어?"]}]
-
-계정·실행 상태와 주의점
-- 로컬 카카오 로그인은 joobi.kr로 돌아온다(Supabase Redirect URLs에 localhost 없음, 변경은 사용자 몫).
-- 이 컴퓨터의 활성 GitHub 계정은 swhan-cubox-ai(이 저장소 403). push는 사용자가 sunu-dev 계정으로 한다.
-- 운영 Vercel 로그는 1시간만 남는다.
-- git worktree list의 /private/tmp/joobi-art-release-20261015, joobi-main-sync-check-20261001은 예전 세션 것(prunable). 지우기 전에 사용자에게 확인한다.
-- 이 파일의 완료 항목은 위 범위만 뜻한다. 실제 코드/검사 결과와 다르면 먼저 정정한다.
-
-릴리스 워크트리: /private/tmp/joobi-chat-release-20261113 유지. .env.local/node_modules 링크와 .next 제거 완료. 이번 배포·테스트 프로세스 종료, Chrome 새 joobi.kr 탭의 종목 선택 메뉴 유지.
-
-CLI 환경(2026-11-13 사용자 요청): npm 전역 Vercel58.0.0→65.15.0 업데이트 완료. 실행 /Users/sunu/.local/bin/vercel, --version 및 deploy 도움말 확인. 앱 의존성·운영 배포 변경 없음.
-
-NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공식 NVIDIA·AP·Reuters 도메인 미허용, 회사 검색1/열람1, 28초 제한, 경영진 사건 단락 점수 누락 가능. 사생활 제외 규칙은 회사 사실 설명을 허용. 해당 요청의 원시 수집 로그 미확보로 정확한 실패 단계 미확정. 앱 수정·모델 호출·배포 없음. sessionary/2026-11-13-nvda-source-review.md 참고.
-
-알고리즘 감사: 기존31+진단3=34통과. 사임 문단 제거·공식 IR 차단·시장 기사만으로 종목 자료 충분 판정 재현(합성 fixture). 회사 근거 누락/시장근거 존재 시 withoutReporting 검사 비활성 구조 확인. 앱 무수정, 전체/빌드/실제 모델 미실행. 상세 위 NVDA 기록.
-
-진행: 사용자 기사 수집 수정 포함 배포 승인. 최신 AGENTS에 따라 push 안 함. 4c22d3f 단계 배포 dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E 진행 중. 최종 상태는 후속 기록 확인.
-
-최신 완료: 4c22d3f READY/promote 성공, 운영 홈200/API 비로그인401. 전체2919통과17생략, 실제 API 최종16.8초 CEO사임 설명 성공(로컬 인증mock 하네스). 운영 로그인 질문 미검수. 이전 df7124f 미반영/승인대기 표기는 이번 배포로 해소. 기사0건 변동성/범용 공식출처/충분성 검사 후속 남음. push없음. sessionary/2026-11-13-source-release.md.
-
-최신 완료: 4c22d3f READY/promote 성공, 운영 홈200/API 비로그인401. 전체2919통과17생략, 실제 API 최종16.8초 CEO사임 설명 성공(로컬 인증mock 하네스). 운영 로그인 질문 미검수. 이전 df7124f 미반영/승인대기 표기는 이번 배포로 해소. 기사0건 변동성/범용 공식출처/충분성 검사 후속 남음. push없음. sessionary/2026-11-13-source-release.md.
-
-안정성 후속465952f: 검증 탈락 기사 뒤 긴 설명으로 조기 종료되던 결함 재현→수정. 원문 없는 수집 요약 로그, 캐시v14. 전체2920통과17생략·타입·공통5·도구4·quality66·webpack 빌드 통과. 이번 실제 모델/운영 질문 미실행. push/추가배포 없음. 진행 표시·출처 UI 유지. sessionary/2026-11-13-source-stability.md.
-
-최신 배포: 465952f READY/promote 완료. 단계/운영 홈200·비로그인API401. 실제 로그인 질문 미실행, push없음. 개인화·통계는 docs/JOOBI_CONVERSATION_PERSONALIZATION.md 설계안만 작성; 수집/동의/DB/환경변수 미변경. 사용자 예시 기본off 선택동의 UI 검토, 목적별 토글 제안. 이전 미배포 표기는 이번 배포로 해소.
-
-최신 로컬: 첫 예시 질문 말풍선 디자인·공통 분석 일한도 기본10회/약관 변경. 전체2921통과17생략·타입·공통5·도구4·quality66. 운영 미반영, 환경변수 우선값 미확인, 실화면 미검수. sessionary/2026-11-13-chat-bubbles-quota.md.
-
-첫 질문 말풍선/10회 변경 최종 webpack 빌드 통과. 로컬 커밋, push/배포 없음.
-
-최신 로컬 캐릭터: 상황별 mood/CSS모션·상태기호 연결. 타입·전체2921통과17생략·공통5·도구4·quality66·webpack 빌드 통과. 실화면/모바일 미검수, 운영 미반영. 기존이미지 움직임이며 얼굴 원화 변화는 미구현. sessionary/2026-11-13-chat-character-motion.md.
-
-캐릭터 후속: idle 제외21반응 실제 상태 연결. 기존전체2921+새반응3 별도 통과/타입·공통5·도구4·quality66·webpack빌드 통과. 입력창 옆 캐릭터, 검색/준비 최대4.8초. 실화면 미검수·로컬만. src/lib/joobiReactions.ts 진입.
-
-최신 운영검증: e47b718 promote 성공, 홈/terms200·AI비로그인401, 약관10회 확인. ANALYSIS_DAILY_FREE 운영override없음. 실제 로그인 잔여횟수·21반응 모바일 실화면 미검수. 이전 말풍선/10회/21반응 미배포 표기는 이번 배포로 해소. push없음. sessionary/2026-11-13-chat-reactions-release.md.
-
-15시 계정 로딩 재발: 사용자 캡처 오류→동의조회 화면. 익명32조회200, 동의최대4403ms/포트폴리오2215ms/auth573ms/config1695ms 후회복. 로그인6초/동의6초 제한 확인, 실제 로그인 실패원인 미확정. 로딩화면은별도float애니메이션, 오류정지·21반응미연결. 앱수정/배포없음. sessionary/2026-11-13-account-loading-recurrence.md.
+환경/실행
+- Vercel CLI65.15.0 /Users/sunu/.local/bin/vercel. 이번 push/배포/환경변수/DB변경 없음.
+- 운영 소스 워크트리 /private/tmp/joobi-reactions-release-20261113 유지.
+- 로컬 카카오 로그인은 joobi.kr로 돌아옴. 리다이렉트 설정 변경하지 않음.
+- 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop, 건드리지 않음.
+- 이번 시작한 검사/빌드 프로세스 모두 종료. 로컬 커밋 예정(이 파일 포함); 실제 해시는 git log 확인.

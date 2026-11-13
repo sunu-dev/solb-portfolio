@@ -37,21 +37,23 @@ export async function resolveSignupRequirements(
 
 /** Retry only the idempotent read, never the pending consent write above. */
 async function readSignupConsents(client: SupabaseClient, userId: string, parentSignal?: AbortSignal) {
+  // Observed healthy responses can take 4.4s: allow them to finish before retrying.
+  // Keep the whole read within 5.5s, inside the gate's existing 6s deadline.
   const started = Date.now();
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const result = await withAbortDeadline(signal => client.from('user_consents')
         .select('consent_type,version').eq('user_id', userId)
         .in('consent_type', [AI_ADULT_CONSENT_TYPE, 'terms', 'privacy']).abortSignal(signal),
-      attempt === 0 ? 3000 : Math.max(1, Math.min(1500, 4500 - (Date.now() - started))), parentSignal);
+      attempt === 0 ? 5000 : Math.max(1, Math.min(1500, 5500 - (Date.now() - started))), parentSignal);
       const code = result.error?.code ?? '';
       const transient = !!result.error && (/^08|^53|^57P0|^PGRST00[0-3]$|^57014$/.test(code)
         || (!code && (result.status === 0 || result.status >= 500)));
-      if (!transient || attempt === 1 || parentSignal?.aborted || Date.now() - started >= 4500) return result;
+      if (!transient || attempt === 1 || parentSignal?.aborted || Date.now() - started >= 5500) return result;
     } catch (error) {
       const transient = error instanceof TypeError || error instanceof Error
         && (error.message === 'Request deadline exceeded' || error.name === 'AbortError' || error.name === 'TimeoutError');
-      if (!transient || attempt === 1 || parentSignal?.aborted || Date.now() - started >= 4500) throw error;
+      if (!transient || attempt === 1 || parentSignal?.aborted || Date.now() - started >= 5500) throw error;
     }
   }
   throw new Error('Consent read unavailable');

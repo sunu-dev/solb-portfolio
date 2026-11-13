@@ -17,8 +17,10 @@ describe('startup loading and recovery',()=>{
  it('identifies account checks without presenting a server failure as a user connection problem',()=>{
   const pending=renderToStaticMarkup(createElement(AccountAccessStatus,{phase:'consent'}));
   expect(pending).toContain('이용 동의 내역을 확인하고 있어요.');
+  expect(pending).toContain('data-mood="privacy"');
   const failed=renderToStaticMarkup(createElement(AccountAccessStatus,{phase:'session',error:true,onRetry:()=>{}}));
   expect(failed).toContain('지금 계정을 확인할 수 없어요');
+  expect(failed).toContain('data-mood="retry"');
   expect(failed).toContain('서버 응답을 받지 못했어요');
   expect(failed).toContain('다시 연결하기');
  });

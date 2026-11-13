@@ -76,3 +76,39 @@ describe('로그인 동의 저장 → 조회 순서', () => {
     await expect(resolveSignupRequirements(s.client, 'a', s.storage)).resolves.toEqual({ status: 'error', missing: [] });
   });
 });
+
+
+describe('동의 조회 지연과 취소', () => {
+  it('4.4초 정상 응답을 중단하거나 재조회하지 않는다', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = setup(false);
+      s.read.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ data: rows, error: null }), 4400)));
+      const result = resolveSignupRequirements(s.client, 'a', s.storage);
+      await vi.advanceTimersByTimeAsync(4400);
+      await expect(result).resolves.toEqual({ status: 'eligible', missing: [] });
+      expect(s.read).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
+  });
+  it('응답 없는 조회도 5.5초 안에 오류로 끝내며 통과하지 않는다', async () => {
+    vi.useFakeTimers();
+    try {
+      const s = setup(false);
+      s.read.mockImplementation(() => new Promise(() => {}));
+      const result = resolveSignupRequirements(s.client, 'a', s.storage);
+      await vi.advanceTimersByTimeAsync(5500);
+      await expect(result).resolves.toEqual({ status: 'error', missing: [] });
+      expect(s.read).toHaveBeenCalledTimes(2);
+    } finally { vi.useRealTimers(); }
+  });
+  it('화면 이탈 취소는 재시도하지 않는다', async () => {
+    const s = setup(false);
+    const controller = new AbortController();
+    s.read.mockImplementation(() => new Promise(() => {}));
+    const result = resolveSignupRequirements(s.client, 'a', s.storage, controller.signal);
+    await vi.waitFor(() => expect(s.read).toHaveBeenCalledTimes(1));
+    controller.abort();
+    await expect(result).resolves.toEqual({ status: 'error', missing: [] });
+    expect(s.read).toHaveBeenCalledTimes(1);
+  });
+});
