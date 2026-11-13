@@ -96,7 +96,7 @@ it('requests one supplementary lookup for a company recap without sector/event c
  const recap={id:'A1',kind:'article' as const,scope:'company' as const,title:'Micron',text:'Micron earnings estimates and closing prices.',url:'https://finance.yahoo.com/news/example',publisher:'Yahoo',publishedAt:packet.checkedAt,checkedAt:packet.checkedAt};
  expect(needsArticleSupplement(stock,[recap])).toBe(true);
  expect(needsArticleSupplement(stock,[{...recap,text:'US semiconductor stocks declined amid election policy concerns.'}])).toBe(true);
- expect(needsArticleSupplement(stock,[{...recap,scope:'industry',text:'US semiconductor stocks declined amid election policy concerns.'}])).toBe(false);
+ expect(needsArticleSupplement(stock,[{...recap,scope:'industry',text:'US semiconductor stocks declined amid election policy concerns.'}])).toBe(true);
  expect(needsArticleSupplement(stock,[])).toBe(true);
 });
 
@@ -180,4 +180,18 @@ it('treats an individual stock column as company coverage despite its market ser
  expect(needsArticleSupplement(stock,articles)).toBe(true);
  block.content.content.title='Stock Market Today, Nov. 4: Nasdaq rebounds as US chip stocks rise';
  expect(fetchedArticleEvidence([block],us)).toMatchObject([{scope:'market'}]);
+});
+
+it('preserves leadership events even without price words', () => {
+ const event = 'NVIDIA announced that its chief executive resigned effective immediately. The board appointed an interim chief executive while it searches for a permanent successor.';
+ expect(articlePassages(event, 'Leadership')).toContain(event);
+});
+
+it('accepts issuer reporting and marks market-only stock coverage incomplete', () => {
+ const stock={...packet,symbol:'NVDA',price:{...packet.price!,symbol:'NVDA',label:'엔비디아'}};
+ const block=fetchBlock('https://investor.nvidia.com/news/leadership','2026-11-04','NVIDIA announced that its chief executive resigned effective immediately. The board appointed an interim chief executive while it searches for a permanent successor.\n'.repeat(3));
+ if(block.type!=='web_fetch_tool_result'||block.content.type!=='web_fetch_result')throw Error('fixture');
+ block.content.content.title='NVIDIA leadership transition';
+ expect(fetchedArticleEvidence([block],stock)).toHaveLength(1);
+ expect(needsArticleSupplement(stock,[{id:'A1',kind:'article',scope:'market',title:'US stocks',text:'US stocks declined',url:'https://finance.yahoo.com/news/test',publisher:'Yahoo',publishedAt:packet.checkedAt,checkedAt:packet.checkedAt}])).toBe(true);
 });

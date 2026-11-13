@@ -30,7 +30,7 @@ it('starts independent research together, keeps both scopes and shares an in-fli
   const first = collectAssistantArticles(packet);
   const concurrent = collectAssistantArticles(packet);
   await vi.waitFor(() => expect(m.create).toHaveBeenCalledTimes(2));
-  expect(m.create.mock.calls.map(([request]) => request.tools.find((tool: {name: string}) => tool.name === 'web_fetch').max_uses)).toEqual([2, 1]);
+  expect(m.create.mock.calls.map(([request]) => request.tools.find((tool: {name: string}) => tool.name === 'web_fetch').max_uses)).toEqual([2, 2]);
   finish[1](response('company')); finish[0](response('market'));
   expect((await first).map(article => article.scope)).toEqual(['market', 'company']);
   expect(await concurrent).toEqual(await first);
