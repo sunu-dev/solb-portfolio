@@ -1401,3 +1401,5 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 - [ ] **대화 개인화·통계 선택동의:** docs/JOOBI_CONVERSATION_PERSONALIZATION.md 설계안. 기본off 목적별 토글, 확인한 구조화 선호만 기억, 원문 없는 통계/별도사례동의 유지 제안. 구현·실제 수집 미적용.
 
 - [ ] 첫 질문 말풍선 실화면 확인·배포, 공통 분석 기본10회 운영환경값 확인 후 적용. sessionary/2026-11-13-chat-bubbles-quota.md.
+
+- [ ] 주비 캐릭터 상태별 CSS모션 실화면 검수/배포. 기존이미지 반응 구현, 카카오톡처럼 부위별 원화 애니메이션은 후속. sessionary/2026-11-13-chat-character-motion.md.

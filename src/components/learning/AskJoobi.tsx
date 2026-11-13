@@ -270,7 +270,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     {!!answers.length && <div className={chat.sessionNote}><span>이 탭에서 나눈 이야기를 이어가요</span><button type="button" disabled={loading} onClick={() => setConfirmClear(true)}>대화 지우기</button></div>}
     {confirmClear && <div className={chat.confirmation}><p>이 대화와 작성 중인 질문을 지울까요?</p><div><button type="button" onClick={() => setConfirmClear(false)}>계속 이야기하기</button><button type="button" onClick={resetConversation}>지우고 새로 시작</button></div></div>}
     {!answers.length && !loading && !failedQuestion && <>
-      <div className={chat.welcome}><JoobiAvatar large /><div><h3>{symbol === GENERAL_SUBJECT ? '주식, 어디가 궁금하세요?' : `${subject}, 어떤 점이 궁금하세요?`}</h3><p>주가가 왜 움직였는지, 낯선 말은 무슨 뜻인지 물어보세요.</p></div></div>
+      <div className={chat.welcome}><JoobiAvatar large mood="hello" /><div><h3>{symbol === GENERAL_SUBJECT ? '주식, 어디가 궁금하세요?' : `${subject}, 어떤 점이 궁금하세요?`}</h3><p>주가가 왜 움직였는지, 낯선 말은 무슨 뜻인지 물어보세요.</p></div></div>
       {!question.trim() && <div className={chat.suggestions} role="group" aria-labelledby={`${id}-examples`}><p id={`${id}-examples`} className={chat.suggestionsLabel}>이런 이야기부터 나눠볼까요?</p>{starters.map(text => <button type="button" key={text} className={chat.starterBubble} onClick={() => fillQuestion(text)}><MessageCircle size={18} strokeWidth={1.6} aria-hidden="true" /><span>{text}</span></button>)}</div>}
     </>}
     {!!answers.length && <div className={chat.thread} aria-label="주비와 나눈 대화">
@@ -281,7 +281,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         const sameSubjectAsPrevious = !!previous && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
         return <section key={answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
           <p className={chat.userMessage}><span className="sr-only">내 질문: </span>{answer.question}</p>
-          <div className={chat.assistantLabel}><JoobiAvatar /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
+          <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? 'ready' : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
       {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
@@ -312,8 +312,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         {['더 쉽게 설명해 줘', '예를 들어 설명해 줘'].map(text => <button key={text} type="button" disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}>{text}</button>)}
       </div>}
     </div>}
-    {!loading && failedQuestion && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">답변을 받지 못한 질문: </span>{failedQuestion}</p><p className={chat.failedNote}>이 질문의 답변을 받지 못했어요.</p></div>}
-    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={`${chat.waiting}${pricePreview ? ` ${chat.waitingWithFacts}` : ''}`} role="status"><JoobiAvatar /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div>{pricePreview && <PriceStrip preview={pricePreview} />}</div>}
+    {!loading && failedQuestion && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">답변을 받지 못한 질문: </span>{failedQuestion}</p><div className={chat.assistantLabel}><JoobiAvatar mood="retry" /><p className={chat.failedNote}>이 질문의 답변을 받지 못했어요.</p></div></div>}
+    {loading && <div ref={pendingMessage}><p className={chat.userMessage}><span className="sr-only">보낸 질문: </span>{pendingQuestion}</p><div className={`${chat.waiting}${pricePreview ? ` ${chat.waitingWithFacts}` : ''}`} role="status"><JoobiAvatar mood={stage === 'sources' || stage === 'articles' || stage === 'supplement' ? 'searching' : 'thinking'} /><span>{JOOBI_STAGES[stage]}</span><span className={chat.dots} aria-hidden="true"><i /><i /><i /></span></div>{pricePreview && <PriceStrip preview={pricePreview} />}</div>}
     {stopped && <p className={chat.footnote} role="status">답변 기다리기를 멈췄어요. 질문을 고쳐 다시 보낼 수 있어요. 이미 보낸 질문은 이용 횟수에 포함될 수 있어요.</p>}
     </div>
     </div>

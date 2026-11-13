@@ -1,2 +1,16 @@
 .avatar { display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; vertical-align:middle; }
 .avatar img { display:block; width:100%; height:100%; object-fit:contain; }
+
+.avatar { position:relative; }
+.avatar img { transform-origin:50% 85%; }
+.reaction { position:absolute; right:-4px; top:-5px; display:flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 2px; border-radius:50%; background:var(--surface); color:var(--text-body); font-size:12px; font-weight:700; line-height:1; }
+.avatar[data-mood="hello"] img { animation:joobiHello 850ms ease-in-out 1; }
+.avatar[data-mood="searching"] img { animation:joobiLook 2.6s ease-in-out 3; }
+.avatar[data-mood="thinking"] img { animation:joobiThink 2.4s ease-in-out 3; }
+.avatar[data-mood="ready"] img { animation:joobiReady 650ms ease-out 1; }
+.avatar[data-mood="retry"] img { transform:rotate(-7deg); }
+@keyframes joobiHello { 0%,100% { transform:rotate(0); } 25% { transform:rotate(-9deg); } 65% { transform:rotate(9deg); } }
+@keyframes joobiLook { 0%,100% { transform:rotate(0); } 25%,35% { transform:rotate(-7deg); } 65%,75% { transform:rotate(7deg); } }
+@keyframes joobiThink { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+@keyframes joobiReady { 0%,100% { transform:translateY(0) scale(1); } 40% { transform:translateY(-5px) scale(1.05); } 70% { transform:translateY(0) scale(.97); } }
+@media(prefers-reduced-motion:reduce) { .avatar img { animation:none !important; transform:none !important; } }
