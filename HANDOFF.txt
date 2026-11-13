@@ -1,7 +1,7 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-13
-담당: Codex (2026-11-13 안정성465952f 운영 배포 완료, 개인화 선택동의 설계)
-현재 운영: dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg / joobi.kr / release/chat-stability-20261113 @465952f. 복구 dpl_7kHL5q5TZUXutsvXiPMmPwhs6R9E(4c22d3f).
+담당: Codex (2026-11-13 말풍선·10회·21반응 e47b718 운영 배포 완료)
+현재 운영: e47b718 / dpl_baEx995XK5cuBBSWq3ZLFjjXfm5T / joobi.kr / READY. 복구465952f/dpl_58ZEPy7srA8QzDvZa5CoEUdRGkxg.
 현재 로컬: fix/chat-followup-20261113, 4c22d3f 배포 이후 수집 조기 종료 안정성 수정 중. df7124f는 이미 운영 반영.
 최신 사용자 지시: “운영에 배포하고 개선작업 이어지 진행할까?”로 e921efa 배포·후속 개선 승인. Codex는 모든 push 금지. 후속 개선의 추가 운영 배포는 별도 범위로 구분. 상세: sessionary/2026-11-13-deploy-chat-followup.md
 현재 진행 중인 테스트 프로세스: 없음. (이 컴퓨터의 127.0.0.1:3122 next-server는 다른 프로젝트 InterviewLoop의 local-pilot이다. 건드리지 않는다.)
@@ -105,3 +105,5 @@ NVDA 기사 누락 조사(11/13): 운영과 동일한 수집 코드 확인. 공�
 최신 로컬 캐릭터: 상황별 mood/CSS모션·상태기호 연결. 타입·전체2921통과17생략·공통5·도구4·quality66·webpack 빌드 통과. 실화면/모바일 미검수, 운영 미반영. 기존이미지 움직임이며 얼굴 원화 변화는 미구현. sessionary/2026-11-13-chat-character-motion.md.
 
 캐릭터 후속: idle 제외21반응 실제 상태 연결. 기존전체2921+새반응3 별도 통과/타입·공통5·도구4·quality66·webpack빌드 통과. 입력창 옆 캐릭터, 검색/준비 최대4.8초. 실화면 미검수·로컬만. src/lib/joobiReactions.ts 진입.
+
+최신 운영검증: e47b718 promote 성공, 홈/terms200·AI비로그인401, 약관10회 확인. ANALYSIS_DAILY_FREE 운영override없음. 실제 로그인 잔여횟수·21반응 모바일 실화면 미검수. 이전 말풍선/10회/21반응 미배포 표기는 이번 배포로 해소. push없음. sessionary/2026-11-13-chat-reactions-release.md.
