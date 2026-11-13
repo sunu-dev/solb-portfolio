@@ -17,7 +17,7 @@ const positiveInt = (value: string | undefined, fallback: number) => {
 
 export function getAiSafetyStatus(env: Record<string, string | undefined> = process.env) {
   const totalDaily = positiveInt(env.AI_DAILY_LIMIT_TOTAL, 250);
-  const analysisFree = positiveInt(env.ANALYSIS_DAILY_FREE, 3);
+  const analysisFree = positiveInt(env.ANALYSIS_DAILY_FREE, 10);
   const chokFree = positiveInt(env.CHOK_DAILY_FREE, 1);
   const ocrUser = positiveInt(env.OCR_DAILY_LIMIT_USER, 5);
   const ocrEnabled = isOcrProviderEnabled(env);

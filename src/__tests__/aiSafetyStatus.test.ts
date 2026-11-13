@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { getAiSafetyStatus } from '@/lib/aiSafetyStatus';
 
 describe('getAiSafetyStatus', () => {
+  it('shows the shared daily default of ten while preserving explicit overrides', () => {
+    expect(getAiSafetyStatus({}).checks.find(check => check.id === 'free-user')?.value).toBe('분석 10 · 촉 1회/일');
+    expect(getAiSafetyStatus({ ANALYSIS_DAILY_FREE: '7' }).checks.find(check => check.id === 'free-user')?.value).toBe('분석 7 · 촉 1회/일');
+  });
   it('warns when the monthly budget is not configured', () => {
     const status = getAiSafetyStatus({});
     expect(status.overall).toBe('warning');

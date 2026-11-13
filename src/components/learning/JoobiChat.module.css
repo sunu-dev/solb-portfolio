@@ -239,3 +239,12 @@
  .optionsPanel > header { padding-block:4px; }
  .optionsPanel > footer { padding-block:6px; }
 }
+
+/* 첫 대화 제안: 메뉴 카드 대신 작고 부드러운 말풍선. 후속 질문 목록은 기존 표현 유지. */
+.starterBubble { display:flex; align-items:center; gap:10px; justify-self:start; width:fit-content; max-width:100%; min-height:48px; box-sizing:border-box; padding:13px 18px; border:1px solid transparent; border-radius:20px 20px 20px 6px; background:var(--brand-accent-light); color:var(--text-primary); font:inherit; font-size:15px; line-height:1.6; text-align:left; cursor:pointer; transition:background-color 120ms ease; }
+.starterBubble + .starterBubble { margin-left:12px; max-width:calc(100% - 12px); border-radius:20px 20px 6px 20px; background:var(--bg-subtle); }
+.starterBubble > span { min-width:0; overflow-wrap:anywhere; }
+.starterBubble > svg { flex-shrink:0; color:var(--text-secondary); }
+.starterBubble:hover { background:var(--brand-accent-bg); border-color:var(--border-strong); }
+.starterBubble:active { background:var(--brand-primary-light); }
+@media(prefers-reduced-motion:reduce) { .starterBubble { transition:none; } }

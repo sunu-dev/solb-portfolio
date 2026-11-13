@@ -271,7 +271,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     {confirmClear && <div className={chat.confirmation}><p>이 대화와 작성 중인 질문을 지울까요?</p><div><button type="button" onClick={() => setConfirmClear(false)}>계속 이야기하기</button><button type="button" onClick={resetConversation}>지우고 새로 시작</button></div></div>}
     {!answers.length && !loading && !failedQuestion && <>
       <div className={chat.welcome}><JoobiAvatar large /><div><h3>{symbol === GENERAL_SUBJECT ? '주식, 어디가 궁금하세요?' : `${subject}, 어떤 점이 궁금하세요?`}</h3><p>주가가 왜 움직였는지, 낯선 말은 무슨 뜻인지 물어보세요.</p></div></div>
-      {!question.trim() && <div className={chat.suggestions} role="group" aria-labelledby={`${id}-examples`}><p id={`${id}-examples`} className={chat.suggestionsLabel}>이렇게 물어볼 수 있어요</p>{starters.map(text => <button type="button" key={text} className={chat.suggestion} onClick={() => fillQuestion(text)}><span>{text}</span><ChevronRight size={18} aria-hidden="true" /></button>)}</div>}
+      {!question.trim() && <div className={chat.suggestions} role="group" aria-labelledby={`${id}-examples`}><p id={`${id}-examples`} className={chat.suggestionsLabel}>이런 이야기부터 나눠볼까요?</p>{starters.map(text => <button type="button" key={text} className={chat.starterBubble} onClick={() => fillQuestion(text)}><MessageCircle size={18} strokeWidth={1.6} aria-hidden="true" /><span>{text}</span></button>)}</div>}
     </>}
     {!!answers.length && <div className={chat.thread} aria-label="주비와 나눈 대화">
       {answers.map((answer, index) => {

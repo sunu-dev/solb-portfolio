@@ -50,7 +50,7 @@ export interface TierLimits {
 // 비투자 도구에서만 차등하고, 분석·시장 관찰판의 한도/품질은 전 등급 동일하다.
 const SHARED_AI_LIMITS: TierLimits = {
   chokDaily: parseInt(process.env.CHOK_DAILY_FREE || '1', 10),
-  analysisDaily: parseInt(process.env.ANALYSIS_DAILY_FREE || '3', 10),
+  analysisDaily: parseInt(process.env.ANALYSIS_DAILY_FREE || '10', 10),
 };
 
 export const TIER_LIMITS: Record<UserTier, TierLimits> = {

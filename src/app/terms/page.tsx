@@ -69,7 +69,7 @@ export default function TermsPage() {
           <li>AI 기능은 다음과 같이 제한됩니다 (베타 기간 중 변경될 수 있음):
             <ul style={{ marginTop: 6, marginLeft: 12 }}>
               <li><strong>시장 관찰판</strong>: 로그인 사용자에게 동일하게 일 1회 제공됩니다.</li>
-              <li><strong>AI 분석(기술적·멘토)</strong>: 로그인 필수. 멤버십과 관계없이 동일하게 일 3회 제공됩니다.</li>
+              <li><strong>AI 분석(기술적·멘토)</strong>: 로그인 필수. 멤버십과 관계없이 동일하게 일 10회 제공됩니다.</li>
               <li><strong>비로그인 사용자</strong>: AI 기능 사용 불가 (시세·차트만 제공).</li>
             </ul>
           </li>
