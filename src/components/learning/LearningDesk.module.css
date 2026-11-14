@@ -1,16 +1,16 @@
 .desk { color:var(--text-primary); margin:0 0 8px; }
 .navigation { display:flex; align-items:center; gap:8px; min-height:44px; }
-.navigation button { display:flex; align-items:center; justify-content:flex-start; gap:0; flex:0 0 auto; width:44px; height:44px; padding:7px; overflow:hidden; border:1px solid var(--border-light); border-radius:12px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:width 160ms ease,background-color 160ms ease; }
-.navigation button > :first-child { flex-shrink:0; width:28px; }
+.navigation button[aria-controls] { display:flex; align-items:center; justify-content:flex-start; gap:0; flex:0 0 auto; width:44px; height:44px; padding:7px; overflow:hidden; border:1px solid var(--border-light); border-radius:12px; background:var(--surface); color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:width 160ms ease,background-color 160ms ease; }
+.navigation button[aria-controls] > :first-child { flex-shrink:0; width:28px; }
 .navigationLabel { flex-shrink:0; white-space:nowrap; opacity:0; margin-left:8px; transition:opacity 120ms ease; }
-.navigation button[aria-expanded=true] { background:var(--bg-subtle); border-color:var(--text-secondary); }
-.navigation button:focus-visible { width:188px; }
-.navigation button:focus-visible .navigationLabel { opacity:1; }
+.navigation button[aria-controls][aria-expanded=true] { background:var(--bg-subtle); border-color:var(--text-secondary); }
+.navigation button[aria-controls]:focus-visible { width:188px; }
+.navigation button[aria-controls]:focus-visible .navigationLabel { opacity:1; }
 @media(hover:hover) and (pointer:fine) {
- .navigation button:hover { width:188px; background:var(--bg-subtle); }
- .navigation button:hover .navigationLabel { opacity:1; }
+ .navigation button[aria-controls]:hover { width:188px; background:var(--bg-subtle); }
+ .navigation button[aria-controls]:hover .navigationLabel { opacity:1; }
 }
-@media(prefers-reduced-motion:reduce) { .navigation button,.navigationLabel { transition:none; } }
+@media(prefers-reduced-motion:reduce) { .navigation button[aria-controls],.navigationLabel { transition:none; } }
 .panel { max-width:760px; padding:24px 0; border-bottom:1px solid var(--border-light); }
 .panelHeading,.submitRow { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
 .panelHeading h2 { font-size:23px; letter-spacing:-.035em; margin:0 0 16px; }

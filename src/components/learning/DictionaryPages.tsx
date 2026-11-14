@@ -19,6 +19,7 @@ type Props = {
 /** Native column fragmentation keeps every line in reading order, without a scrollable sheet. */
 export default function DictionaryPages({ children, label, resetKey, spread = false, jump, busy, turn, previousEntry, nextEntry }: Props) {
   const viewport = useRef<HTMLDivElement>(null);
+  const press = useRef<{ x: number; y: number } | null>(null);
   const flow = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(0);
   const [layout, setLayout] = useState({ width: 1, count: 1, visible: 1 });
@@ -56,6 +57,7 @@ export default function DictionaryPages({ children, label, resetKey, spread = fa
     setPage(Math.floor(leaf / layout.visible) * layout.visible);
   }, [jump, layout.width, layout.visible]);
   const change = (reverse: boolean) => {
+    if (busy || (reverse ? page === 0 && !previousEntry : page + layout.visible >= layout.count && !nextEntry)) return;
     const commit = () => {
       if (reverse && page === 0) previousEntry?.();
       else if (!reverse && page + layout.visible >= layout.count) nextEntry?.();
@@ -64,7 +66,21 @@ export default function DictionaryPages({ children, label, resetKey, spread = fa
     if (turn) void turn(commit, reverse); else commit();
   };
   return <div className={styles.pages}>
-    <div ref={viewport} className={styles.viewport} onFocusCapture={event => {
+    <div ref={viewport} className={styles.viewport}
+      onPointerDown={event => { press.current = event.isPrimary && event.button === 0 ? { x: event.clientX, y: event.clientY } : null; }}
+      onPointerCancel={() => { press.current = null; }}
+      onClick={event => {
+        const start = press.current;
+        press.current = null;
+        if (!start || event.detail > 1 || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
+        if (!(event.target instanceof Element) || event.target.closest('button,a,input,textarea,select,label,summary,[role="button"],[contenteditable]')) return;
+        if (window.getSelection()?.toString()) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        // Keep the binding neutral; each paper surface turns in its own direction.
+        const x = event.clientX - rect.left;
+        if (Math.abs(x - rect.width / 2) < 20) return;
+        change(x < rect.width / 2);
+      }} onFocusCapture={event => {
       // Tabbing to a link on another leaf turns to that leaf instead of scrolling the book.
       if (!flow.current || !(event.target instanceof HTMLElement)) return;
       const offset = event.target.getBoundingClientRect().left - flow.current.getBoundingClientRect().left;

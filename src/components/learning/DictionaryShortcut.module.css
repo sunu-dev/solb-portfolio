@@ -1,0 +1,8 @@
+.shortcut { display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; min-height:44px; padding:5px 10px 5px 6px; border:0; border-radius:9px; background:transparent; color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
+.shortcut:hover { background:var(--bg-subtle); }
+.shortcut:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; }
+.book { flex-shrink:0; color:var(--text-secondary); }
+.seam { stroke:var(--surface); stroke-opacity:.3; }
+.paper { fill:var(--surface); stroke:var(--text-secondary); stroke-width:1; }
+.ribbon { fill:var(--brand-fill); }
+.title { fill:none; stroke:var(--surface); stroke-width:1.1; stroke-linecap:round; }

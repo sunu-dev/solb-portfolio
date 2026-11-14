@@ -4,8 +4,8 @@ import styles from './DictionaryBookSurface.module.css';
 /** Decorative geometry only: the readable and interactive layer remains HTML. */
 export default function DictionaryBookSurface() {
   const id = useId().replace(/:/g, '');
-  const left = 'M24 30 C150 30 365 8 468 24 Q490 27 500 39 L500 575 Q480 560 449 563 C305 585 130 575 24 571 Z';
-  const right = 'M500 39 Q514 26 538 24 C665 10 847 29 976 30 L976 571 C841 580 676 582 548 564 Q519 560 500 575 Z';
+  const left = 'M24 30 C150 30 365 8 468 24 Q490 27 500 39 L500 575 C482 575 469 565 442 565 C305 579 130 575 24 571 Z';
+  const right = 'M500 39 Q514 26 538 24 C665 10 847 29 976 30 L976 571 C841 575 695 579 558 565 C531 565 518 575 500 575 Z';
   return <svg className={styles.surface} viewBox="0 0 1000 610" preserveAspectRatio="none" aria-hidden="true" focusable="false">
     <defs>
       <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="140%"><feGaussianBlur stdDeviation="7" /></filter>
@@ -26,8 +26,8 @@ export default function DictionaryBookSurface() {
       <pattern id={`${id}-grain`} width="256" height="256" patternUnits="userSpaceOnUse"><image href="/textures/dictionary-paper.svg" width="256" height="256" /></pattern>
     </defs>
     <path filter={`url(#${id}-shadow)`} className={styles.shadow} d="M19 46 Q268 23 500 52 Q737 27 981 46 L982 587 Q734 599 500 589 Q248 599 18 586Z" />
-    <path className={styles.cover} d="M18 34 Q261 14 482 35 Q500 46 518 35 Q744 16 982 34 L983 584 Q754 600 520 583 Q500 594 480 583 Q252 600 17 584Z" />
-    {[8, 5, 2].map(offset => <g key={offset} transform={`translate(0 ${offset})`} className={styles.edges}><path d={left} /><path d={right} /></g>)}
+    <path className={styles.cover} d="M21 32 C150 32 365 10 468 26 Q490 29 500 41 Q514 28 538 26 C665 12 847 31 979 32 L979 580 C841 584 695 588 558 574 C531 574 518 584 500 584 C482 584 469 574 442 574 C305 588 130 584 21 580 Z" />
+    {[6, 4, 2].map(offset => <g key={offset} transform={`translate(0 ${offset})`} className={styles.edges}><path d={left} /><path d={right} /></g>)}
     <path d={left} className={styles.paper} /><path d={right} className={styles.paper} />
     <path d={left} fill={`url(#${id}-left)`} /><path d={right} fill={`url(#${id}-right)`} />
     <path d={left} fill={`url(#${id}-grain)`} /><path d={right} fill={`url(#${id}-grain)`} />
