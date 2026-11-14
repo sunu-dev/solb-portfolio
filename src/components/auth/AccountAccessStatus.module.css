@@ -18,25 +18,9 @@
 .help .actions { margin-top:16px; }
 @keyframes reveal { to { visibility:visible; } }
 @media (prefers-reduced-motion:no-preference) {
- .page[data-state='pending'] .mascot { animation:joobiFloat 2.8s ease-in-out infinite; transform-origin:50% 80%; }
- .page[data-state='pending'] .portrait::after { content:''; position:absolute; bottom:19px; width:46px; height:6px; border-radius:50%; background:var(--text-tertiary,#8b95a1); opacity:.1; animation:joobiShadow 2.8s ease-in-out infinite; pointer-events:none; }
  .page[data-state='pending'] .dots i { animation:waiting 1.4s ease-in-out infinite; }
  .page[data-state='pending'] .dots i:nth-child(2) { animation-delay:.15s; }
  .page[data-state='pending'] .dots i:nth-child(3) { animation-delay:.3s; }
 }
 @keyframes waiting { 0%,70%,100% { opacity:.35; } 35% { opacity:1; } }
 @media (max-height:600px) { .brand { margin-bottom:12px; } .portrait { width:104px; height:104px; margin-bottom:12px; } .portrait > span { transform:scale(.8); } .page { padding-block:20px; } }
-
-.characterFrame,.mascot { display:inline-flex; align-items:center; justify-content:center; }
-.characterFrame { position:relative; z-index:1; }
-@keyframes joobiFloat { 0%,100% { transform:translateY(0) rotate(-2deg); } 50% { transform:translateY(-7px) rotate(2deg); } }
-@keyframes joobiShadow { 0%,100% { transform:scaleX(1); opacity:.12; } 50% { transform:scaleX(.72); opacity:.06; } }
-
-@media (prefers-reduced-motion: no-preference) {
-  .page[data-state='error'] .mascot { animation: joobiRecovery 1.2s ease-in-out 1; }
-}
-@keyframes joobiRecovery {
-  0%, 100% { transform: translateY(0); }
-  40% { transform: translateY(3px); }
-  70% { transform: translateY(-2px); }
-}

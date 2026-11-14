@@ -1,6 +1,7 @@
 import {createElement} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {describe,expect,it} from 'vitest';
+import JoobiLoadingCharacter from '@/components/learning/JoobiLoadingCharacter';
 import AccountAccessStatus from '@/components/auth/AccountAccessStatus';
 describe('startup loading and recovery',()=>{
  it('keeps a native reload fallback in initial HTML before JavaScript is ready',()=>{
@@ -23,5 +24,18 @@ describe('startup loading and recovery',()=>{
   expect(failed).toContain('data-mood="retry"');
   expect(failed).toContain('서버 응답을 받지 못했어요');
   expect(failed).toContain('다시 연결하기');
+ });
+});
+
+describe('articulated loading character', () => {
+ it('keeps SVG resources unique when more than one loading surface is mounted', () => {
+  const html = renderToStaticMarkup(createElement('div', null, createElement(JoobiLoadingCharacter), createElement(JoobiLoadingCharacter, {error:true})));
+  const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  expect(ids.length).toBeGreaterThan(0);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const match of html.matchAll(/url\(#([^)]+)\)/g)) expect(ids).toContain(match[1]);
+  expect(html).toContain('data-state="pending"');
+  expect(html).toContain('data-state="error"');
+  expect(html).not.toContain('↻');
  });
 });
