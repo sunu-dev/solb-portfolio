@@ -10,6 +10,7 @@ import SaveTermButton from './SaveTermButton';
 import DictionaryReview from './DictionaryReview';
 import DictionaryStory from './DictionaryStory';
 import DictionaryBookSurface from './DictionaryBookSurface';
+import { useDictionaryPageTurn } from './useDictionaryPageTurn';
 import styles from './StockDictionary.module.css';
 import theme from './DictionaryTheme.module.css';
 
@@ -66,6 +67,9 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   const id = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const reader = useRef<HTMLElement>(null);
+  const turnCanvas = useRef<HTMLCanvasElement>(null);
+  const turnSnapshot = useRef<HTMLDivElement>(null);
+  const { turn, busy: turning, cancel: cancelTurn } = useDictionaryPageTurn(reader, turnCanvas, turnSnapshot);
   const scroll = useRef<HTMLDivElement>(null);
   const scrollFrame = useRef<HTMLDivElement>(null);
   const scrollContent = useRef<HTMLDivElement>(null);
@@ -120,7 +124,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
     setSelected(entryId); setReading(true); toTop();
     requestAnimationFrame(() => reader.current?.focus({ preventScroll: true }));
   };
-  const chooseFilter = (next: Filter) => { setFilter(next); setSearch(''); setSelected(''); setReading(false); setReview(null); toTop(); };
+  const chooseFilter = (next: Filter) => { cancelTurn(); setFilter(next); setSearch(''); setSelected(''); setReading(false); setReview(null); toTop(); };
   return <section className={`${theme.theme} ${styles.notebook}`} data-stock-dictionary data-reading={reading || review !== null}>
     <div className={styles.paper}>
       <header className={styles.header}><div><h2 ref={heading} id={titleId} tabIndex={-1} data-dialog-initial-focus className={theme.hand}>내 주식사전</h2><p>{ready ? <>저장한 단어 <b>{entries.length}</b>개</> : error ? '저장한 단어 확인 필요' : '저장한 단어 확인 중'}</p></div><button type="button" className={styles.close} aria-label="내 주식사전 닫기" onClick={onClose}><X size={22} aria-hidden="true" /></button></header>
@@ -131,7 +135,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
         {!ready && !error && <p className={styles.loading} role="status">저장한 단어를 확인하고 있어요. 기본 용어부터 읽을 수 있어요.</p>}
         <>
           {review ? <DictionaryReview questions={review} onClose={() => { setReview(null); setReading(false); }} /> : <div className={styles.columns}><DictionaryBookSurface />
-            <section className={styles.index} aria-label="단어 목록">
+            <section className={styles.index} inert={turning} aria-label="단어 목록">
               <label className={styles.search}><Search size={18} aria-hidden="true" /><span className="sr-only">사전에서 찾기</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={exploring ? '궁금한 단어 찾기' : '단어나 내 메모 찾기'} /></label>
               {exploring && ready && entries.length === 0 && <p className={styles.emptyHint}>저장한 단어가 없어요.<br />아래에서 뜻을 읽고 저장할 수 있어요.</p>}
               {filter === 'saved' && ready && familiarCount > 0 && <label className={styles.knownToggle}><input type="checkbox" checked={hideFamiliar} onChange={event => { setHideFamiliar(event.target.checked); setSelected(''); setReading(false); }} /><span>이해한 단어 숨기기 <small>{familiarCount}개</small></span></label>}
@@ -152,20 +156,21 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
                 if (ok) { setWord(''); setMessage('사전에 저장했어요.'); setSelected(entry.id); } else setMessage('저장하지 못했어요. 다시 시도해 주세요.');
               }}><label htmlFor={`${id}-new`}>추가할 단어</label><input id={`${id}-new`} maxLength={100} value={word} onChange={e => setWord(e.target.value)} placeholder="예: ETF, 거래량" /><button className={theme.button} disabled={!ready || !word.trim() || saving} type="submit">{saving ? '저장 중' : '저장'}</button>{known && <p className={theme.muted}>뜻과 출처도 함께 저장해요.</p>}</form>{message && <p role="status" className={theme.message}>{message}</p>}</details>
             </section>
-            <section className={styles.reader} ref={reader} tabIndex={-1} aria-label="선택한 단어 뜻">
+            <div className={styles.readerFrame} aria-busy={turning}><section className={styles.reader} inert={turning} ref={reader} tabIndex={-1} aria-label="선택한 단어 뜻">
               <button type="button" className={`${theme.linkButton} ${styles.backToList}`} onClick={() => { setReading(false); toTop(); }}><ArrowLeft size={17} aria-hidden="true" />목록으로</button>
               {active ? <><article key={active.id} className={styles.note}><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<DictionaryStory termId={term.id} /><SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article>{pageIndex >= 0 && list.length > 1 && <nav className={styles.pageNavigation} aria-label="사전 책장 넘기기">
-                <button type="button" className={theme.button} disabled={pageIndex === 0} onClick={() => pick(list[pageIndex - 1].id)}><ChevronLeft size={16} aria-hidden="true" />이전 단어</button>
+                <button type="button" className={theme.button} disabled={turning || pageIndex === 0} onClick={() => void turn(() => pick(list[pageIndex - 1].id), true)}><ChevronLeft size={16} aria-hidden="true" />이전 단어</button>
                 <span aria-live="polite">{pageIndex + 1} / {list.length}</span>
-                <button type="button" className={theme.button} disabled={pageIndex === list.length - 1} onClick={() => pick(list[pageIndex + 1].id)}>다음 단어<ChevronRight size={16} aria-hidden="true" /></button>
-              </nav>}{saved && <EntryTools key={saved.id} entry={saved} />}</> : <p className={styles.emptyHint}>{filter === 'saved' && hideFamiliar && familiarCount > 0 && list.length === 0 ? '단어와 메모는 그대로 보관하고 있어요. 다시 보고 싶으면 이해한 단어를 펼쳐보세요.' : '목록에서 단어를 선택하면 뜻을 볼 수 있어요.'}</p>}
-            </section>
+                <button type="button" className={theme.button} disabled={turning || pageIndex === list.length - 1} onClick={() => void turn(() => pick(list[pageIndex + 1].id), false)}>다음 단어<ChevronRight size={16} aria-hidden="true" /></button>
+              </nav>}{saved && <EntryTools key={`tools:${saved.id}`} entry={saved} />}</> : <p className={styles.emptyHint}>{filter === 'saved' && hideFamiliar && familiarCount > 0 && list.length === 0 ? '단어와 메모는 그대로 보관하고 있어요. 다시 보고 싶으면 이해한 단어를 펼쳐보세요.' : '목록에서 단어를 선택하면 뜻을 볼 수 있어요.'}</p>}
+            </section><div className={styles.turnSnapshot} ref={turnSnapshot} aria-hidden="true" />
+              <canvas className={styles.turnCanvas} ref={turnCanvas} aria-hidden="true" /></div>
           </div>}
         </>
         </div></div>
         <div className={styles.scrollRail} aria-hidden="true"><span /></div>
         </div>
-        <footer className={styles.footer}><details className={styles.storage}><summary className={readingUI.disclosure}>{owner === 'guest' ? '이 브라우저에 저장돼요' : '내 계정에 저장돼요'}</summary><p>{owner === 'guest' ? '다른 기기에서는 보이지 않아요. 로그인해도 기존 단어가 자동으로 옮겨지지는 않아요.' : '다른 기기에서도 같은 계정으로 로그인하면 볼 수 있어요.'} 최대 {DICTIONARY_LIMIT}개까지 저장할 수 있어요.</p></details>{!review && ready && reviewCount > 0 && <button type="button" className={theme.button} onClick={() => { setReview(buildDictionaryReview(entries)); toTop(); }}>{reviewCount}문제 퀴즈 풀기</button>}</footer>
+        <footer className={styles.footer}><details className={styles.storage}><summary className={readingUI.disclosure}>{owner === 'guest' ? '이 브라우저에 저장돼요' : '내 계정에 저장돼요'}</summary><p>{owner === 'guest' ? '다른 기기에서는 보이지 않아요. 로그인해도 기존 단어가 자동으로 옮겨지지는 않아요.' : '다른 기기에서도 같은 계정으로 로그인하면 볼 수 있어요.'} 최대 {DICTIONARY_LIMIT}개까지 저장할 수 있어요.</p></details>{!review && ready && reviewCount > 0 && <button type="button" className={theme.button} disabled={turning} onClick={() => { setReview(buildDictionaryReview(entries)); toTop(); }}>{reviewCount}문제 퀴즈 풀기</button>}</footer>
     </div>
   </section>;
 }
