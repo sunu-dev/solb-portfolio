@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
-import { ArrowLeft, Bookmark, Check, ChevronRight, Plus, Search, X } from 'lucide-react';
+import { Bookmark, Check, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { financialTerm, FINANCIAL_TERMS } from '@/lib/financialTerms';
 import { buildDictionaryReview, dictionaryReviewEntries, DICTIONARY_LIMIT, type DictionaryEntry, type ReviewQuestion } from '@/lib/personalDictionary';
 import FinancialText from '@/components/common/FinancialText';
@@ -62,6 +62,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   const [filter, setFilter] = useState<Filter>('saved');
   const [hideFamiliar, setHideFamiliar] = useState(true);
   const [selected, setSelected] = useState(initialTermId ? `term:${initialTermId}` : '');
+  const [jump, setJump] = useState<{ id: string; revision: number } | undefined>(initialTermId ? { id: `term:${initialTermId}`, revision: 0 } : undefined);
   const [reading, setReading] = useState(Boolean(initialTermId));
   const toolsDialog = useRef<HTMLDialogElement>(null);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -70,7 +71,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   const [word, setWord] = useState(''), [message, setMessage] = useState(''), [saving, setSaving] = useState(false);
   const id = useId();
   const heading = useRef<HTMLHeadingElement>(null);
-  const reader = useRef<HTMLElement>(null);
+  const reader = useRef<HTMLDivElement>(null);
   const turnCanvas = useRef<HTMLCanvasElement>(null);
   const turnSnapshot = useRef<HTMLDivElement>(null);
   const { turn, busy: turning, cancel: cancelTurn } = useDictionaryPageTurn(reader, turnCanvas, turnSnapshot);
@@ -120,30 +121,31 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   const selectedSaved = entries.find(entry => entry.id === selected);
   const selectedTerm = selected.startsWith('term:') ? financialTerm(selected.slice(5)) : undefined;
   const active = selectedSaved ?? (selectedTerm ? { id: selected, title: selectedTerm.title, termId: selectedTerm.id } : undefined) ?? list[0];
-  const term = active?.termId ? financialTerm(active.termId) : undefined;
+  const bookEntries = jump && active && jump.id === active.id && !list.some(entry => entry.id === active.id) ? [active, ...list] : list;
   const saved = entries.find(entry => entry.id === active?.id);
   const reviewCount = Math.min(3, dictionaryReviewEntries(entries).length);
-  const pageIndex = list.findIndex(entry => entry.id === active?.id);
   const pick = (entryId: string) => {
-    setSelected(entryId); setReading(true); toTop();
+    setSelected(entryId); setReading(true); setJump(current => ({ id: entryId, revision: (current?.revision ?? 0) + 1 })); toTop();
     requestAnimationFrame(() => reader.current?.focus({ preventScroll: true }));
   };
-  const chooseFilter = (next: Filter) => { cancelTurn(); setFilter(next); setSearch(''); setSelected(''); setReading(false); setReview(null); toTop(); };
-  return <section className={`${theme.theme} ${styles.notebook}`} data-stock-dictionary data-review={review !== null} data-reading={reading || review !== null}>
+  const chooseFilter = (next: Filter) => { cancelTurn(); setFilter(next); setJump(undefined); setSearch(''); setSelected(''); setReading(false); setReview(null); toTop(); };
+  return <section className={`${theme.theme} ${styles.notebook}`} data-stock-dictionary data-unified="true" data-review={review !== null} data-reading={reading || review !== null}>
     <div className={styles.paper}>
       <header className={styles.header}><div><h2 ref={heading} id={titleId} tabIndex={-1} data-dialog-initial-focus className={theme.hand}>내 주식사전</h2><p>{ready ? <>저장한 단어 <b>{entries.length}</b>개</> : error ? '저장한 단어 확인 필요' : '저장한 단어 확인 중'}</p></div><button type="button" className={styles.close} aria-label="내 주식사전 닫기" onClick={onClose}><X size={22} aria-hidden="true" /></button></header>
-      <nav className={styles.tabs} aria-label="사전 분류">{(['saved', 'find', 'confused'] as const).map(value => <button type="button" key={value} aria-pressed={filter === value && !review} onClick={() => chooseFilter(value)}>{value === 'saved' ? '내 단어' : value === 'find' ? '단어 찾기' : '헷갈려요'}</button>)}</nav>
+      <nav className={styles.tabs} aria-label="사전 분류">{(['saved', 'find', 'confused'] as const).map(value => <button type="button" key={value} aria-pressed={filter === value && !review} onClick={() => chooseFilter(value)}>{value === 'saved' ? '내 단어' : value === 'find' ? '단어 찾기' : '헷갈려요'}</button>)}<button type="button" onClick={() => setJump(current => ({ id: "contents", revision: (current?.revision ?? 0) + 1 }))}>목차로</button></nav>
       <div ref={scrollFrame} className={styles.scrollFrame}>
       <div ref={scroll} className={styles.scroll} tabIndex={0} role="region" aria-label="사전 내용"><div ref={scrollContent}>
         {error && <div role="alert" className={styles.connectionNotice}><p>{error}</p><button type="button" className={theme.button} onClick={reload}>다시 불러오기</button></div>}
         {!ready && !error && <p className={styles.loading} role="status">저장한 단어를 확인하고 있어요. 기본 용어부터 읽을 수 있어요.</p>}
         <>
           {review ? <DictionaryReview questions={review} onClose={() => { setReview(null); setReading(false); }} /> : <div className={styles.columns}><DictionaryBookSurface />
-            <section className={styles.index} inert={turning} aria-label="단어 목록"><DictionaryPages resetKey={`${filter}:${search}:${hideFamiliar}`} label="목차">
+            <div className={styles.spreadReader} ref={reader} tabIndex={-1} aria-label="사전 펼침면" aria-busy={turning}>
+              <DictionaryPages label="사전" spread busy={turning} turn={turn} resetKey={`${filter}:${search}:${hideFamiliar}`} jump={jump}>
+                <section className={styles.contentsLeaf} data-book-entry="contents"><h3>목차</h3>
               <label className={styles.search}><Search size={18} aria-hidden="true" /><span className="sr-only">사전에서 찾기</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={exploring ? '궁금한 단어 찾기' : '단어나 내 메모 찾기'} /></label>
               {exploring && ready && entries.length === 0 && <p className={styles.emptyHint}>저장한 단어가 없어요.<br />아래에서 뜻을 읽고 저장할 수 있어요.</p>}
               {filter === 'saved' && ready && familiarCount > 0 && <label className={styles.knownToggle}><input type="checkbox" checked={hideFamiliar} onChange={event => { setHideFamiliar(event.target.checked); setSelected(''); setReading(false); }} /><span>이해한 단어 숨기기 <small>{familiarCount}개</small></span></label>}
-              <div className={styles.wordList} aria-label="단어 목록">
+              <div className={`${styles.wordList} ${styles.tocWords}`} aria-label="단어 목록">
                 {list.map(entry => <button type="button" className={styles.word} key={entry.id} aria-pressed={active?.id === entry.id} onClick={() => pick(entry.id)}><span><strong>{entry.title.split(' · ')[0]}</strong><small>{entry.title.split(' · ').slice(1).join(' · ') || (entry.termId ? '뜻 보기' : '직접 적은 단어')}</small></span>{entries.some(saved => saved.id === entry.id) ? <Bookmark size={16} aria-label="저장됨" /> : <ChevronRight size={16} aria-hidden="true" />}</button>)}
                 {list.length === 0 && <div className={styles.emptyHint}>
                   <p>{q ? '찾는 단어가 없어요. 다른 말로 찾아보세요.' : filter === 'saved' && hideFamiliar && familiarCount > 0 ? '저장한 단어를 모두 이해했어요.' : '헷갈린다고 표시한 단어가 없어요.'}</p>
@@ -159,19 +161,30 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
                 setSaving(true); const ok = await save(entry); setSaving(false);
                 if (ok) { setWord(''); setMessage('사전에 저장했어요.'); setSelected(entry.id); } else setMessage('저장하지 못했어요. 다시 시도해 주세요.');
               }}><label htmlFor={`${id}-new`}>추가할 단어</label><input id={`${id}-new`} maxLength={100} value={word} onChange={e => setWord(e.target.value)} placeholder="예: ETF, 거래량" /><button className={theme.button} disabled={!ready || !word.trim() || saving} type="submit">{saving ? '저장 중' : '저장'}</button>{known && <p className={theme.muted}>뜻과 출처도 함께 저장해요.</p>}</form>{message && <p role="status" className={theme.message}>{message}</p>}</details>
-            </DictionaryPages></section>
-            <div className={styles.readerFrame} aria-busy={turning}><section className={styles.reader} inert={turning} ref={reader} tabIndex={-1} aria-label="선택한 단어 뜻">
-              <button type="button" className={`${theme.linkButton} ${styles.backToList}`} onClick={() => { setReading(false); toTop(); }}><ArrowLeft size={17} aria-hidden="true" />목록으로</button>
-              <DictionaryPages key={active?.id ?? "empty"} resetKey={`${reading}:${filter}`} label="본문" busy={turning} turn={turn} previousEntry={pageIndex > 0 ? () => pick(list[pageIndex - 1].id) : undefined} nextEntry={pageIndex >= 0 && pageIndex < list.length - 1 ? () => pick(list[pageIndex + 1].id) : undefined}>
-              {active ? <><article key={active.id} className={styles.note}><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<DictionaryStory termId={term.id} /><SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article></> : <p className={styles.emptyHint}>{filter === 'saved' && hideFamiliar && familiarCount > 0 && list.length === 0 ? '단어와 메모는 그대로 보관하고 있어요. 다시 보고 싶으면 이해한 단어를 펼쳐보세요.' : '목록에서 단어를 선택하면 뜻을 볼 수 있어요.'}</p>}
-            </DictionaryPages></section><div className={styles.turnSnapshot} ref={turnSnapshot} aria-hidden="true" />
-              <canvas className={styles.turnCanvas} ref={turnCanvas} aria-hidden="true" /></div>
+
+                </section>
+                {bookEntries.map(entry => {
+                  const definition = entry.termId ? financialTerm(entry.termId) : undefined;
+                  return <article className={styles.definitionLeaf} key={entry.id} data-book-entry={entry.id} onClick={() => setSelected(entry.id)}>
+                    <h3 className={theme.hand}>{entry.title.split(' · ')[0]}</h3>
+                    {definition ? <><p className={styles.meaning}><FinancialText current={definition.id}>{definition.meaning}</FinancialText></p>
+                      {definition.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{definition.example}</p></details>}
+                      <DictionaryStory termId={definition.id} /><SaveTermButton termId={definition.id} compact notebook />
+                      {entries.some(item => item.id === entry.id) && <button type="button" className={theme.linkButton} onClick={() => { setSelected(entry.id); setToolsOpen(true); }}>이 단어 메모 · 복습 표시</button>}
+                      <a className={styles.source} href={definition.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a>
+                    </> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}
+                  </article>;
+                })}
+              </DictionaryPages>
+            </div>
+            <div className={styles.turnSnapshot} ref={turnSnapshot} aria-hidden="true" />
+            <canvas className={styles.turnCanvas} ref={turnCanvas} aria-hidden="true" />
           </div>}
         </>
         </div></div>
         <div className={styles.scrollRail} aria-hidden="true"><span /></div>
         </div>
-        <footer className={styles.footer}>{saved && !review && <button type="button" className={theme.button} onClick={() => setToolsOpen(true)}>메모 · 복습 표시</button>}<details className={styles.storage}><summary className={readingUI.disclosure}>{owner === 'guest' ? '이 브라우저에 저장돼요' : '내 계정에 저장돼요'}</summary><p>{owner === 'guest' ? '다른 기기에서는 보이지 않아요. 로그인해도 기존 단어가 자동으로 옮겨지지는 않아요.' : '다른 기기에서도 같은 계정으로 로그인하면 볼 수 있어요.'} 최대 {DICTIONARY_LIMIT}개까지 저장할 수 있어요.</p></details>{!review && ready && reviewCount > 0 && <button type="button" className={theme.button} disabled={turning} onClick={() => { setReview(buildDictionaryReview(entries)); toTop(); }}>{reviewCount}문제 퀴즈 풀기</button>}</footer>
+        <footer className={styles.footer}><details className={styles.storage}><summary className={readingUI.disclosure}>{owner === 'guest' ? '이 브라우저에 저장돼요' : '내 계정에 저장돼요'}</summary><p>{owner === 'guest' ? '다른 기기에서는 보이지 않아요. 로그인해도 기존 단어가 자동으로 옮겨지지는 않아요.' : '다른 기기에서도 같은 계정으로 로그인하면 볼 수 있어요.'} 최대 {DICTIONARY_LIMIT}개까지 저장할 수 있어요.</p></details>{!review && ready && reviewCount > 0 && <button type="button" className={theme.button} disabled={turning} onClick={() => { setReview(buildDictionaryReview(entries)); toTop(); }}>{reviewCount}문제 퀴즈 풀기</button>}</footer>
     </div>
     <dialog ref={toolsDialog} className={`${theme.theme} ${styles.toolsDialog}`} onCancel={() => setToolsOpen(false)} onClose={() => setToolsOpen(false)} aria-label="단어 메모와 복습 표시">
       <header><h3>{active?.title.split(' · ')[0]}</h3><button type="button" className={styles.close} aria-label="메모 닫기" onClick={() => setToolsOpen(false)}><X size={20} aria-hidden="true" /></button></header>

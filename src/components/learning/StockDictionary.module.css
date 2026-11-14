@@ -191,3 +191,24 @@
 .toolsDialog::backdrop { background:rgb(0 0 0 / 30%); }
 .toolsDialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .toolsDialog h3 { font:inherit; font-size:21px; font-weight:700; }
+
+/* One continuous book: contents first, then definitions across both facing leaves. */
+.notebook[data-unified=true] .columns { display:block; position:relative; padding:46px 58px 34px; }
+.spreadReader { position:relative; height:100%; min-height:0; outline:none; }
+.contentsLeaf h3,.definitionLeaf h3 { margin:0 0 22px; font-size:26px; line-height:1.35; }
+.contentsLeaf,.definitionLeaf { break-before:column; }
+.contentsLeaf { break-before:auto; }
+.tocWords .word { min-height:44px; padding:6px 2px; }
+.tocWords .word small { display:none; }
+.definitionLeaf .meaning { margin-top:0; }
+.notebook[data-unified=true] .turnCanvas,.notebook[data-unified=true] .turnSnapshot { inset:46px 58px 34px; width:calc(100% - 116px); height:calc(100% - 80px); }
+@media(max-width:650px) {
+ .notebook[data-unified=true] .columns { padding:26px 26px 20px; }
+ .notebook[data-unified=true] .turnCanvas,.notebook[data-unified=true] .turnSnapshot { inset:26px 26px 20px; width:calc(100% - 52px); height:calc(100% - 46px); }
+}
+@media(max-width:650px) {
+ .spreadReader { background:var(--dict-paper) url('/textures/dictionary-paper.svg'); border-radius:8px 14px 14px 8px; box-shadow:0 2px 5px var(--dict-shadow); }
+ .notebook[data-unified=true] .columns { padding:12px 12px 18px; }
+ .spreadReader { padding:20px; box-sizing:border-box; }
+ .notebook[data-unified=true] .turnCanvas,.notebook[data-unified=true] .turnSnapshot { inset:12px 12px 18px; width:calc(100% - 24px); height:calc(100% - 30px); }
+}

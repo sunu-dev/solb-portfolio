@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-14
-담당: Codex — 사용자 지적에 따라 책 내부 스크롤 제거·실제 쪽 나눔 구현/검수 완료. 운영 미배포.
+담당: Codex — 사용자 재지적에 따라 독립 목차/본문 넘김을 단일 펼침면 흐름으로 수정·검수 완료. 운영 미배포.
 브랜치: fix/chat-followup-20261113
-검증 기준: a02a1ac 이후 사전 페이지 분할 변경. 최신 로컬 커밋은 git log 확인.
-최신 요청: 책 내부 스크롤을 없애기. 재질 방향 승인과 최종 사용자 검수를 구분.
+검증 기준: 6d8328a 이후 단일 책 흐름 변경. 최신 로컬 커밋은 git log 확인.
+최신 요청: 실제 책처럼 하나의 다음 장으로 이어지게 수정. 재질 방향 승인과 최종 사용자 검수를 구분.
 운영: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 / joobi.kr (이번 재조회 없음)
 복구 후보: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG
 
@@ -16,10 +16,13 @@
 - 개인화는 설계만, 실제 수집 없음. DB/환경변수/계정 설정 변경 없음.
 
 로컬 구현 완료
-- 책 내부/목차 스크롤 제거. CSS 다단 흐름을 고정 쪽으로 나누고 이전·다음 쪽으로 이동.
-- 펼침·검색·글꼴 로드·크기 변화 시 쪽 수 재측정. 본문 끝에서 다음 단어로 연결.
-- 메모/복습/삭제는 별도 dialog. 모바일 목록 복귀는 어느 쪽에서도 가능.
-- Safari390px 긴 역사 쪽 나눔·다크·기존 메모 보존/닫기 확인. 브라우저 확대 실검수는 미실행.
+- 책 내부 스크롤 없음. 목차가 앞부분에 있고 본문이 연속하는 단일 책 흐름.
+- 데스크톱 한 번에 양면 이동(1–2→3–4), 모바일 한 쪽씩. 넘김 컨트롤 하나.
+- 목차 단어 클릭 시 해당 펼침면으로 이동, 상단 목차로 버튼으로 복귀.
+- 펼침·검색·글꼴 로드·크기 변화 시 쪽 수 재측정. 다음 단어도 같은 페이지 흐름.
+- 각 저장 단어 안의 메모 버튼으로 해당 단어 dialog. 공통 하단의 혼동 가능한 메모 버튼 제거.
+- 최신 Safari 데스크톱19–20→21–22, 목차 ETF 바로 이동,390px 단면 재배치 확인.
+- 모바일 단면 배경에 책 단면 줄무늬가 비치던 결함을 발견/수정 후 재확인.
 - 서비스 기본 글꼴 유지, 카드 목차를 줄 단위 목록으로 변경.
 - SVG 곡선 종이/얇은 표지/겹친 단면/중앙 제본, 비율1.45 및 뷰포트 맞춤.
 - 밝음/어두움 재질, Safari SVG 그림자와 다크 밝은 띠 수정.
@@ -34,8 +37,8 @@
 - typecheck, lint:ui/alerts/korean/darkmode/tour-anchors 통과.
 - 전체2929통과17생략, 도구4통과, quality-lab66통과, next build --webpack 통과.
 - 기존 ai-chok 고아 앵커 경고 유지. quality 로컬 포트 EPERM은 권한 재실행 통과.
-- 페이지 분할 후 전체 suite 통과. 메모 창 분리 후 타입·공통lint·빌드 재검사.
-- 로그 /private/tmp/joobi-pages-{tests,quality,build}.log.
+- 단일 흐름 변경 후 전체 suite/타입/공통lint/빌드 통과. 최종 모바일 CSS 뒤 빌드 재검사.
+- 로그 /private/tmp/joobi-spread-{tests,quality,build}.log.
 
 실화면 확인
 - Safari 데스크톱 밝음/어두움, 역사 펼침과 다음 쪽 이동. 책 위 휠 입력에도 본문 고정 확인.
@@ -47,7 +50,8 @@
 
 명확한 한계/미실행
 - 운영 반영·로그인 검수·실제 휴대폰 터치·다른 브라우저·OS reduced-motion 실검수 없음.
-- 손 드래그 넘김 미구현. 이전/다음 버튼 전환으로 구현.
+- 손 드래그 넘김 미구현. 이전/다음 버튼 전환.
+- 현재 전환은 펼침면 캡처의 WebGL 효과. 책등을 축으로 한 물리적인 한 장의 앞/뒷면 회전과는 다름.
 - 정지 본문 자체의3D 왜곡 없음. SVG 윤곽과 일시적인 WebGL 전환.
 - 캡처 시 원격 CSS 재수집이 Safari 오류를 내어 자동 폰트 수집 생략.
   정지 HTML은 서비스 글꼴 유지. 임시 캡처는 환경에 따라 시스템 대체 글꼴 가능.
@@ -63,6 +67,7 @@
 - src/components/learning/DictionaryBookSurface.tsx/.module.css
 - src/components/learning/StockDictionary.tsx/.module.css, useDictionaryPageTurn.ts
 - src/lib/pageCurlRenderer.ts, pageCurlShader.ts (HP BSD3 라이선스 보존)
+- sessionary/2026-11-14-dictionary-spread.md
 - sessionary/2026-11-14-dictionary-pagination.md
 - sessionary/2026-11-14-dictionary-turn-verification.md
 - sessionary/2026-11-14-dictionary-silhouette.md, dictionary-material.md
