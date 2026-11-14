@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-14
-담당: Codex — 사전 책 형태·이전/다음 곡면 넘김 로컬 구현과 검수 종료. 운영 미배포.
+담당: Codex — 사용자 지적에 따라 책 내부 스크롤 제거·실제 쪽 나눔 구현/검수 완료. 운영 미배포.
 브랜치: fix/chat-followup-20261113
-검증 기준: 53a9c26 이후 사전 넘김 변경. 최신 로컬 커밋은 git log 확인.
-최신 요청: 진행하고 완성되면 보고. 재질 방향 승인과 최종 사용자 검수를 구분.
+검증 기준: a02a1ac 이후 사전 페이지 분할 변경. 최신 로컬 커밋은 git log 확인.
+최신 요청: 책 내부 스크롤을 없애기. 재질 방향 승인과 최종 사용자 검수를 구분.
 운영: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 / joobi.kr (이번 재조회 없음)
 복구 후보: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG
 
@@ -16,6 +16,10 @@
 - 개인화는 설계만, 실제 수집 없음. DB/환경변수/계정 설정 변경 없음.
 
 로컬 구현 완료
+- 책 내부/목차 스크롤 제거. CSS 다단 흐름을 고정 쪽으로 나누고 이전·다음 쪽으로 이동.
+- 펼침·검색·글꼴 로드·크기 변화 시 쪽 수 재측정. 본문 끝에서 다음 단어로 연결.
+- 메모/복습/삭제는 별도 dialog. 모바일 목록 복귀는 어느 쪽에서도 가능.
+- Safari390px 긴 역사 쪽 나눔·다크·기존 메모 보존/닫기 확인. 브라우저 확대 실검수는 미실행.
 - 서비스 기본 글꼴 유지, 카드 목차를 줄 단위 목록으로 변경.
 - SVG 곡선 종이/얇은 표지/겹친 단면/중앙 제본, 비율1.45 및 뷰포트 맞춤.
 - 밝음/어두움 재질, Safari SVG 그림자와 다크 밝은 띠 수정.
@@ -30,11 +34,11 @@
 - typecheck, lint:ui/alerts/korean/darkmode/tour-anchors 통과.
 - 전체2929통과17생략, 도구4통과, quality-lab66통과, next build --webpack 통과.
 - 기존 ai-chok 고아 앵커 경고 유지. quality 로컬 포트 EPERM은 권한 재실행 통과.
-- 최종 key/폰트 캡처 수정 뒤 빌드·타입·공통lint 통과. 전체 suite는 그 직전 실행.
-- 로그 /private/tmp/joobi-turn-{tests,quality,build}.log.
+- 페이지 분할 후 전체 suite 통과. 메모 창 분리 후 타입·공통lint·빌드 재검사.
+- 로그 /private/tmp/joobi-pages-{tests,quality,build}.log.
 
 실화면 확인
-- Safari 데스크톱 밝음/어두움, 본문 스크롤, 역사 펼침, 이전/다음 이동.
+- Safari 데스크톱 밝음/어두움, 역사 펼침과 다음 쪽 이동. 책 위 휠 입력에도 본문 고정 확인.
 - 느린 전환에서 종이 말림·뒷면 글자·그림자 중간 프레임 확인.
 - Safari 응답형390×844에서 목록→주식본문, 저장, 한글 메모 저장, 다크 확인.
 - 새로고침 뒤 저장한 단어1개 유지. 수정 후 중복 key 오류 재발 없음.
@@ -59,6 +63,7 @@
 - src/components/learning/DictionaryBookSurface.tsx/.module.css
 - src/components/learning/StockDictionary.tsx/.module.css, useDictionaryPageTurn.ts
 - src/lib/pageCurlRenderer.ts, pageCurlShader.ts (HP BSD3 라이선스 보존)
+- sessionary/2026-11-14-dictionary-pagination.md
 - sessionary/2026-11-14-dictionary-turn-verification.md
 - sessionary/2026-11-14-dictionary-silhouette.md, dictionary-material.md
 - sessionary/2026-11-13-dictionary-pageflip-preview.md
@@ -85,6 +90,6 @@
 - 로컬3013 dev서버 유지(세션78907), /brand-preview/dictionary-material.
 - /dictionary-book(react-pageflip), /dictionary-curl(WebGL) 별도 개발 시안 유지.
 - 검사/빌드 프로세스 종료. 다른 프로젝트3122 서버는 건드리지 않음.
-- Safari 사용자 탭 변경을 관찰해 UI 조작 종료. 퀴즈 결과로 오인하지 않음.
+- Safari390px 사전 검수 종료. 퀴즈 결과는 이번 확인하지 않음.
 - Vercel CLI65.15.0. /private/tmp/joobi-dictionary-release-20261113은 오래된 준비물, 배포 금지.
 - 로컬 커밋만. 최종 작업 트리는 git status로 확인.

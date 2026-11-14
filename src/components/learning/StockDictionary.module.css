@@ -156,3 +156,38 @@
 }
 
 .turnSnapshot { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none; background-size: 100% 100%; }
+
+/* A sheet is a fixed page. Long content flows onto the next leaf, never a scroll pane. */
+.columns .index,.columns .reader { overflow:visible; min-height:0; }
+.wordList { display:block; max-height:none; overflow:visible; }
+.wordList .word { break-inside:avoid; }
+.note { padding-top:4px; }
+.note h3 { break-after:avoid; }
+.noteEditor textarea { max-height:110px; resize:none; }
+@media(min-width:651px) {
+ .columns { width:min(100%,800px); min-width:0; min-height:520px; }
+ .index,.reader { padding-top:16px; padding-bottom:8px; }
+ .wordList { max-height:none; }
+}
+@media(max-width:650px) {
+ .columns { box-sizing:border-box; height:580px; }
+ .columns .index,.readerFrame,.readerFrame .reader { height:100%; min-height:0; box-sizing:border-box; }
+ .notebook[data-reading=true] .readerFrame .reader { display:block; }
+ .word { min-height:58px; padding:8px 4px; }
+ .word strong { font-size:17px; }
+ .word small { font-size:12px; }
+}
+.notebook[data-review=false] .scroll { overflow:visible; }
+.notebook[data-review=false] .scroll > div { height:100%; }
+.notebook[data-review=false] .scrollRail,.notebook[data-review=false] .scrollFrame::before,.notebook[data-review=false] .scrollFrame::after { display:none; }
+.notebook[data-review=false] .columns { height:100%; min-height:0; margin-top:0; margin-bottom:0; aspect-ratio:auto; }
+.columns .reader { display:flex; flex-direction:column; }
+.columns .reader > div { flex:1; min-height:0; }
+@media(max-width:650px) {
+ .notebook[data-reading=true] .readerFrame .reader { display:flex; }
+ .backToList { flex-shrink:0; align-self:flex-start; }
+}
+.toolsDialog { width:min(440px,calc(100vw - 32px)); max-height:80dvh; margin:auto; padding:24px; border:1px solid var(--dict-line); border-radius:16px; background:var(--dict-paper); color:var(--dict-ink); overflow-y:auto; }
+.toolsDialog::backdrop { background:rgb(0 0 0 / 30%); }
+.toolsDialog header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.toolsDialog h3 { font:inherit; font-size:21px; font-weight:700; }
