@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-14
-담당: Codex — 09421b7 운영 배포·공개 응답 검증 완료.
+담당: Codex — 세션 정리 완료. 09421b7 운영, 다음 작업은 실사용 검수.
 브랜치: fix/chat-followup-20261113
 검증 기준: 구현/운영 09421b7. 이후 로컬 커밋은 배포 기록.
-최신 요청: 로딩 때 다양한 표정/몸짓 구현 + 주식사전 아이콘 변경.
+최신 요청: 작업 정리 및 다음 세션 인계. 정리 중 운영 재조회는 하지 않음.
 운영: 09421b7 / dpl_HJtNLe8vUJV3hUbjhRKedRpbarge / joobi.kr (READY·도메인 일치)
 복구 후보: 8d3e511 / dpl_FVVbu5FibYfrxCiNcJCdeiGm9fKJ
 
@@ -63,7 +63,7 @@
 - src/components/learning/DictionaryShortcut.tsx/.module.css
 - src/app/brand-preview/character-motion/, src/__tests__/accountAccessScreen.test.tsx
 - sessionary/2026-11-14-loading-character-and-dictionary-icon.md
-- 전체 미해결 sessionary/TODO.md.
+- 세션 정리 sessionary/2026-11-14-session-wrap-up.md. 전체 미해결 sessionary/TODO.md.
 
 유지할 운영 상태와 후속 문제
 - e921efa 회사명/양자택일 되묻기, 4c22d3f 기사 수집, 465952f 조기종료 수정 운영반영.
@@ -82,7 +82,7 @@
 
 
 환경/프로세스
-- localhost3013 dev서버 유지(기존 세션78907), /brand-preview/dictionary-material.
+- localhost3013 dev서버 실행 중(PID17845 재확인). 사전/character-motion 검수 경로 유지.
 - 검사/빌드 완료, 진행 중 검사 없음. 다른 프로젝트3122는 건드리지 않음.
 - 개발용 기존 /dictionary-book(react-pageflip), /dictionary-curl(HP WebGL) 시안은 유지. 기존 BSD3 표기 보존.
 - Vercel CLI65.15.0. 오래된 /private/tmp/joobi-dictionary-release-20261113 배포 금지.
