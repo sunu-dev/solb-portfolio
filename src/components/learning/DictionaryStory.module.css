@@ -1,0 +1,5 @@
+.story { margin-top:24px; border-top:1px solid var(--dict-line); color:var(--dict-ink); }
+.story summary { color:var(--dict-accent); font-size:15px; }
+.story p { font-size:14px; line-height:1.9; margin:12px 0; }
+.story .note { font-size:12px; color:var(--dict-muted); }
+.story a { display:block; width:fit-content; min-height:36px; padding:6px 0; color:var(--dict-muted); font-size:12px; text-underline-offset:4px; }

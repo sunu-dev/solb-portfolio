@@ -6,9 +6,9 @@ import { buildDictionaryReview, dictionaryReviewEntries, DICTIONARY_LIMIT, type 
 import FinancialText from '@/components/common/FinancialText';
 import readingUI from '@/components/ui/ReadingUI.module.css';
 import { usePersonalDictionary } from './PersonalLearningProvider';
-import JoobiAvatar from './JoobiAvatar';
 import SaveTermButton from './SaveTermButton';
 import DictionaryReview from './DictionaryReview';
+import DictionaryStory from './DictionaryStory';
 import styles from './StockDictionary.module.css';
 import theme from './DictionaryTheme.module.css';
 
@@ -121,9 +121,8 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
   };
   const chooseFilter = (next: Filter) => { setFilter(next); setSearch(''); setSelected(''); setReading(false); setReview(null); toTop(); };
   return <section className={`${theme.theme} ${styles.notebook}`} data-stock-dictionary data-reading={reading || review !== null}>
-    <div className={styles.rings} aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
     <div className={styles.paper}>
-      <header className={styles.header}><div><h2 ref={heading} id={titleId} tabIndex={-1} data-dialog-initial-focus className={theme.hand}>내 주식사전</h2><p>{ready ? <>저장한 단어 <b>{entries.length}</b>개</> : error ? '저장한 단어 확인 필요' : '저장한 단어 확인 중'}</p></div><JoobiAvatar size={62} /><button type="button" className={styles.close} aria-label="내 주식사전 닫기" onClick={onClose}><X size={22} aria-hidden="true" /></button></header>
+      <header className={styles.header}><div><h2 ref={heading} id={titleId} tabIndex={-1} data-dialog-initial-focus className={theme.hand}>내 주식사전</h2><p>{ready ? <>저장한 단어 <b>{entries.length}</b>개</> : error ? '저장한 단어 확인 필요' : '저장한 단어 확인 중'}</p></div><button type="button" className={styles.close} aria-label="내 주식사전 닫기" onClick={onClose}><X size={22} aria-hidden="true" /></button></header>
       <nav className={styles.tabs} aria-label="사전 분류">{(['saved', 'find', 'confused'] as const).map(value => <button type="button" key={value} aria-pressed={filter === value && !review} onClick={() => chooseFilter(value)}>{value === 'saved' ? '내 단어' : value === 'find' ? '단어 찾기' : '헷갈려요'}</button>)}</nav>
       <div ref={scrollFrame} className={styles.scrollFrame}>
       <div ref={scroll} className={styles.scroll} tabIndex={0} role="region" aria-label="사전 내용"><div ref={scrollContent}>
@@ -154,7 +153,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
             </section>
             <section className={styles.reader} ref={reader} tabIndex={-1} aria-label="선택한 단어 뜻">
               <button type="button" className={`${theme.linkButton} ${styles.backToList}`} onClick={() => { setReading(false); toTop(); }}><ArrowLeft size={17} aria-hidden="true" />목록으로</button>
-              {active ? <><article key={active.id} className={styles.note}><i className={styles.tape} aria-hidden="true" /><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article>{pageIndex >= 0 && list.length > 1 && <nav className={styles.pageNavigation} aria-label="사전 책장 넘기기">
+              {active ? <><article key={active.id} className={styles.note}><h3 className={theme.hand}>{active.title.split(' · ')[0]}</h3>{term ? <><p className={styles.meaning}><FinancialText current={term.id}>{term.meaning}</FinancialText></p>{term.example && <details className={styles.example}><summary className={readingUI.disclosure}>예시로 보기</summary><p>{term.example}</p></details>}<DictionaryStory termId={term.id} /><SaveTermButton key={term.id} termId={term.id} compact notebook /><a className={styles.source} href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></> : <p className={styles.meaning}>직접 적은 단어예요. 확인된 뜻이 없어 퀴즈에는 나오지 않아요.</p>}</article>{pageIndex >= 0 && list.length > 1 && <nav className={styles.pageNavigation} aria-label="사전 책장 넘기기">
                 <button type="button" className={theme.button} disabled={pageIndex === 0} onClick={() => pick(list[pageIndex - 1].id)}><ChevronLeft size={16} aria-hidden="true" />이전 단어</button>
                 <span aria-live="polite">{pageIndex + 1} / {list.length}</span>
                 <button type="button" className={theme.button} disabled={pageIndex === list.length - 1} onClick={() => pick(list[pageIndex + 1].id)}>다음 단어<ChevronRight size={16} aria-hidden="true" /></button>

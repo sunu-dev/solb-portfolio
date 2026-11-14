@@ -1,12 +1,16 @@
-/* A ring notebook and J mini notebook share one palette, type and action system. */
+/* Joobi dictionary: uncoated paper, sage cloth and the service typeface. */
 .theme {
-  --dict-paper:#fffef7; --dict-cover:#d6dfc4; --dict-cover-edge:#a9b995;
-  --dict-ink:#43483b; --dict-muted:#69715d; --dict-line:#d8decb;
-  --dict-accent:#58743d; --dict-on-accent:#fffef7; --dict-note:#fbf1cc;
-  --dict-tape:#c1cda5; --dict-dots:#c4cdb2; --dict-shadow:rgb(63 77 40 / 15%);
+  --dict-paper:#f8f6ef; --dict-cover:#a2af91; --dict-cover-edge:#778768;
+  --dict-page-edge:#d5d0c3; --dict-paper-light:rgb(255 255 255 / 42%);
+  --dict-binding-shade:rgb(93 77 45 / 11%); --dict-binding-line:rgb(87 71 42 / 24%);
+  --dict-ink:#30332e; --dict-muted:#6a7064; --dict-line:#deded2;
+  --dict-accent:#58743d; --dict-on-accent:#fffef7; --dict-note:#e9eddf;
+  --dict-tape:#c1cda5; --dict-dots:#c4cdb2; --dict-shadow:rgb(45 42 31 / 25%);
   color:var(--dict-ink); font-size:15px; line-height:1.7;
 }
 :global(.dark) .theme {
+  --dict-page-edge:#495043; --dict-paper-light:rgb(255 255 255 / 3%);
+  --dict-binding-shade:rgb(0 0 0 / 16%); --dict-binding-line:rgb(0 0 0 / 35%);
   --dict-paper:#252b22; --dict-cover:#394530; --dict-cover-edge:#667b54;
   --dict-ink:#f0f2e6; --dict-muted:#bbc5ac; --dict-line:#4f5d43;
   --dict-accent:#c0d6a3; --dict-on-accent:#20291b; --dict-note:#363626;

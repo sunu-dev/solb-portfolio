@@ -7,6 +7,7 @@ import { FINANCIAL_TERMS } from '@/lib/financialTerms';
 import { uniquePageFlipRef } from '@/lib/pageFlipRef';
 import PersonalLearningProvider from './PersonalLearningProvider';
 import SaveTermButton from './SaveTermButton';
+import DictionaryStory from './DictionaryStory';
 import theme from './DictionaryTheme.module.css';
 import styles from './DictionaryBookPreview.module.css';
 
@@ -24,14 +25,14 @@ interface BookHandle { pageFlip(): FlipEngine | undefined }
 export const DictionaryBookLeaf = forwardRef<HTMLDivElement, { term: Term; number: number }>(function Leaf({ term, number }, ref) {
   const pageRef = useMemo(() => uniquePageFlipRef(ref), [ref]);
   return <div ref={pageRef} className={styles.leaf} data-density="soft">
-    <article className={styles.page}>
+    <article className={`${styles.page} ${number % 2 ? styles.leftPage : styles.rightPage}`}>
       <header className={styles.runningTitle}><span>주비 주식사전</span><SaveTermButton termId={term.id} compact notebook /></header>
       <div className={styles.pageText} onMouseDown={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}>
         <h2>{term.title.split(' · ')[0]}</h2>
         <p className={styles.subtitle}>{term.title.split(' · ').slice(1).join(' · ')}</p>
         <p className={styles.meaning}>{term.meaning}</p>
         {term.example && <section className={styles.example}><h3>예를 들면</h3><p>{term.example}</p></section>}
-        <div className={styles.actions}><a href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></div>
+        <DictionaryStory termId={term.id} /><div className={styles.actions}><a href={term.source} target="_blank" rel="noopener noreferrer">설명의 출처<span className="sr-only"> (새 창)</span></a></div>
       </div>
       <footer className={styles.folio}>{number}</footer>
     </article>
