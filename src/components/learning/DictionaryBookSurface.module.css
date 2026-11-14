@@ -1,0 +1,11 @@
+.surface { position:absolute; inset:0; width:100%; height:100%; z-index:-1; overflow:visible; pointer-events:none; }
+.cover { fill:var(--dict-cover); stroke:var(--dict-cover-edge); stroke-width:1; }
+.edges { fill:var(--dict-paper); stroke:var(--dict-page-edge); stroke-width:.8; }
+.binding { fill:none; stroke:var(--dict-binding-line); stroke-width:1.1; }
+.shadow { fill:var(--dict-shadow); filter:blur(10px); transform:translateY(10px); }
+@media(max-width:650px) { .surface { display:none; } }
+
+.paperStop { stop-color:var(--dict-paper); }
+.lightStop { stop-color:var(--dict-paper-light); }
+.darkStop { stop-color:var(--dict-binding-line); }
+.paper { fill:var(--dict-paper); }

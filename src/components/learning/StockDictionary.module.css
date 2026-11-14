@@ -117,3 +117,12 @@
 .pageNavigation { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:18px 0 6px; padding-top:12px; border-top:1px solid var(--dict-line); }
 .pageNavigation span { color:var(--dict-muted); font-size:13px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .pageNavigation button { min-width:44px; }
+
+/* The desktop spread follows an SVG silhouette, not a rounded rectangular card. */
+@media(min-width:651px) {
+ .columns { position:relative; isolation:isolate; box-sizing:border-box; height:clamp(280px,calc(var(--modal-viewport-height,100dvh) - 430px),460px); padding:34px 24px 40px; border:0; border-radius:0; background:none; box-shadow:none; }
+ .columns::before { display:none; }
+ .index,.reader { background:none; box-shadow:none; border-radius:0; padding:18px 36px; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--dict-page-edge) transparent; }
+ .index { padding-right:44px; }
+ .reader { padding-left:44px; }
+}

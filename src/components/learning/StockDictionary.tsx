@@ -9,6 +9,7 @@ import { usePersonalDictionary } from './PersonalLearningProvider';
 import SaveTermButton from './SaveTermButton';
 import DictionaryReview from './DictionaryReview';
 import DictionaryStory from './DictionaryStory';
+import DictionaryBookSurface from './DictionaryBookSurface';
 import styles from './StockDictionary.module.css';
 import theme from './DictionaryTheme.module.css';
 
@@ -129,7 +130,7 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
         {error && <div role="alert" className={styles.connectionNotice}><p>{error}</p><button type="button" className={theme.button} onClick={reload}>다시 불러오기</button></div>}
         {!ready && !error && <p className={styles.loading} role="status">저장한 단어를 확인하고 있어요. 기본 용어부터 읽을 수 있어요.</p>}
         <>
-          {review ? <DictionaryReview questions={review} onClose={() => { setReview(null); setReading(false); }} /> : <div className={styles.columns}>
+          {review ? <DictionaryReview questions={review} onClose={() => { setReview(null); setReading(false); }} /> : <div className={styles.columns}><DictionaryBookSurface />
             <section className={styles.index} aria-label="단어 목록">
               <label className={styles.search}><Search size={18} aria-hidden="true" /><span className="sr-only">사전에서 찾기</span><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder={exploring ? '궁금한 단어 찾기' : '단어나 내 메모 찾기'} /></label>
               {exploring && ready && entries.length === 0 && <p className={styles.emptyHint}>저장한 단어가 없어요.<br />아래에서 뜻을 읽고 저장할 수 있어요.</p>}
