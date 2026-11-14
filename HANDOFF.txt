@@ -1,16 +1,16 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-14
-담당: Codex — 책등 축 한 장 곡면 넘김·재질 수정 및 Safari 데스크톱/390px 검수 완료. 운영 미배포.
+담당: Codex — 8d3e511 운영 배포·공개 응답 검증 완료.
 브랜치: fix/chat-followup-20261113
-검증 기준: 7a71cf1 이후 이번 변경. 최종 로컬 커밋은 git log 확인.
-최신 요청: 사용자가 사전 질감을 느끼도록 한 장 넘김과 실제 검증 진행.
-운영: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4 / joobi.kr (이번 재조회 없음)
-복구 후보: 714681a / dpl_FEYwZLPTzFXetmp9Ye2euGLX46CG
+검증 기준: 구현 8d3e511. 이후 로컬 커밋은 배포 기록만 포함.
+최신 요청: 사용자 운영 배포 승인에 따라 배포 완료.
+운영: 8d3e511 / dpl_FVVbu5FibYfrxCiNcJCdeiGm9fKJ / joobi.kr (READY·도메인 ID 일치 확인)
+복구 후보: 5ebb887 / dpl_4ZYFso4sxE7JqzSR1RVZyX735Mf4
 
 필수 규칙
 - AGENTS.md → 이 파일 → 관련 기록. 실제 코드/Git/실행 결과가 우선.
-- 모든 push는 사용자만. main push는 운영 자동 배포. 이번 push/배포 없음.
-- 마지막 확인 main/원격 main dcc031c. 이번 원격 재조회 없음.
+- 모든 push는 사용자만. main push는 운영 자동 배포. 이번 push 없음, CLI 운영 배포 완료.
+- 원격 재조회: origin/main dcc031c, 다른 원격 브랜치 없음. 로컬 구현 브랜치와 다름.
 - 인증 우회·쿠키 주입·운영 테스트계정 생성·인증/계정 설정 변경 금지.
 - 운영 질문은 공통 분석10회 사용. 실제 모델·운영 질문 이번 미실행.
 - 개인화 설계만 유지. DB/환경변수/계정 설정 변경 없음.
@@ -41,7 +41,14 @@
 - 기존 ai-chok 고아 앵커 경고 유지. quality localhost EPERM은 권한 재실행으로 통과.
 - 로그 /private/tmp/joobi-leaf-{tests,tools,quality,build}.log.
 
-실화면 확인
+운영 배포 검증 — 2026-11-14
+- 독립 worktree 8d3e511에서 --prod --skip-domain 빌드 후 READY 확인, promote 완료.
+- 원격 검사2929통과20생략, 원격 빌드 성공. 로컬 검사 결과와 생략 수 구분.
+- 홈200, Pretendard/종이결200 및 로컬 SHA256 일치. 개발용 사전 시안404.
+- 신규 배포 오류/fatal 로그 16:23~16:38 KST 조회0건(장기 안정성 보장은 아님).
+- sessionary/2026-11-14-dictionary-production-release.md 참조.
+
+로컬 실화면 확인
 - Safari 데스크톱: 좌우 넘김 중간 프레임, 고정 면과 움직이는 면 분리, 밝음/어두움, 종이결·그림자.
 - Safari 응답형390×844: 단면 일반/느린 넘김, 앞뒤 이동, 마지막 쪽 제한, 연속 클릭.
 - 긴 역사 설명 펼침2→4쪽, 내부 스크롤 없이 다음 쪽으로 이어짐.
@@ -54,12 +61,12 @@
 - 손가락을 따라가는 드래그 진행률 제어는 미구현. 클릭/버튼 기반 한 장 곡면 애니메이션.
 - 유한 조각으로 만든 시각적 종이 모델이며 실제 재료 역학 전체를 시뮬레이션하는 것은 아님.
 - 큰 데이터/느린 기기에서는2.2초 제한 뒤 효과 없이 쪽 이동 가능. 페이지 이동을 막지 않음.
-- 운영/로그인 검수 미실행. 사용자 최종 미감 승인과 로컬 검수 통과를 구분.
+- 운영 로그인 후 사전 조작 미검수. 사용자 최종 미감 승인과 로컬 검수 통과를 구분.
 
 다음 작업
-1. 사용자 로컬 미감 확인: localhost:3013/brand-preview/dictionary-material.
+1. 운영 로그인 후 사전 넘김·저장·퀴즈 복귀 사용자 확인.
 2. 실제 휴대폰/다른 브라우저·OS 동작 줄이기 검수. 필요하면 손 드래그 별도 구현.
-3. 배포 요청 시 운영 소스와 브랜치 차이 확인. push는 사용자만.
+3. 다음 main push 전 운영 8d3e511 포함 여부 확인. 오래된 main push로 덮어쓰지 않도록 주의.
 
 진입 파일/기록
 - src/components/learning/useDictionaryPageTurn.ts, DictionaryPages.tsx, DictionaryBookSurface.tsx
@@ -76,7 +83,7 @@
 - e47b718 말풍선·기본10회·21반응, 714681a 계정 로딩, 5ebb887 로고 인사 운영반영.
 - 운영 로고 배포: 홈/이미지200·비로그인AI401·운영ID 일치, 초기error로그0행.
   실제 로그인·모바일·reduced-motion 검수는 남음. sessionary/2026-11-13-logo-release.md.
-- 질문 오른쪽 정렬/사전 가독성 e1f24bc 및 b7475ba 이후 사전 수정은 미배포.
+- 질문 오른쪽 정렬 및 이번 사전 수정까지 8d3e511 운영 반영 완료.
 - Supabase 근본 지연 미확정. 익명32조회 모두200/동의 최대4403ms 이후 회복.
   과거64조회63건200/1연결실패·SQL0.914ms/잠금0은 동시 측정 아님.
   익명 요청을 실제 로그인 경로와 동일시하지 않는다.
@@ -92,4 +99,5 @@
 - 검사/빌드 완료, 진행 중 검사 없음. 다른 프로젝트3122는 건드리지 않음.
 - 개발용 기존 /dictionary-book(react-pageflip), /dictionary-curl(HP WebGL) 시안은 유지. 기존 BSD3 표기 보존.
 - Vercel CLI65.15.0. 오래된 /private/tmp/joobi-dictionary-release-20261113 배포 금지.
-- 로컬 커밋만. 최종 작업 트리는 git status로 확인.
+- 배포 worktree /private/tmp/joobi-dictionary-release-20261114 (detached 8d3e511) 유지.
+- 배포/검사 프로세스 종료. 로컬 커밋만, push 없음. 최종 작업 트리는 git status로 확인.
