@@ -1,13 +1,13 @@
 /* Shared physical materials. Content stays selectable HTML above the texture. */
 .book {
- position:relative; isolation:isolate; padding:9px 12px 17px;
- border:1px solid var(--dict-cover-edge); border-radius:2% 3% 3% 2% / 2% 3% 3% 2%;
+ position:relative; isolation:isolate; padding:3px 3px 5px;
+ border:1px solid var(--dict-cover-edge); border-radius:3px 5px 5px 3px;
  background-color:var(--dict-cover);
- background-image:repeating-linear-gradient(90deg,transparent 0 2px,rgb(255 255 255 / 13%) 2px 3px,transparent 3px 4px),repeating-linear-gradient(0deg,transparent 0 2px,rgb(29 45 22 / 13%) 2px 3px,transparent 3px 4px);
- box-shadow:0 2px 2px var(--dict-cover-edge),0 14px 20px -10px var(--dict-shadow),0 28px 44px -24px var(--dict-shadow);
+ background-image:none;
+ box-shadow:0 1px 1px var(--dict-cover-edge),0 12px 24px -16px var(--dict-shadow);
 }
 .book::before {
- content:''; position:absolute; z-index:-1; inset:13px 7px 7px; border-radius:5px 8px 7px 5px;
+ content:''; position:absolute; z-index:-1; inset:3px 2px 2px; border-radius:2px 4px 4px 2px;
  background:repeating-linear-gradient(0deg,var(--dict-page-edge) 0 1px,var(--dict-paper) 1px 3px);
  box-shadow:0 1px 2px var(--dict-shadow); pointer-events:none;
 }
