@@ -1,12 +1,11 @@
 import { useId } from 'react';
 import styles from './DictionaryBookSurface.module.css';
+import { leftPaper as left, rightPaper as right } from '@/lib/dictionaryPaper';
 
 /** Decorative geometry only: the readable and interactive layer remains HTML. */
 export default function DictionaryBookSurface() {
   const id = useId().replace(/:/g, '');
-  const left = 'M24 30 C150 30 365 8 468 24 Q490 27 500 39 L500 575 C482 575 469 565 442 565 C305 579 130 575 24 571 Z';
-  const right = 'M500 39 Q514 26 538 24 C665 10 847 29 976 30 L976 571 C841 575 695 579 558 565 C531 565 518 575 500 575 Z';
-  return <svg className={styles.surface} viewBox="0 0 1000 610" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  return <svg data-book-surface className={styles.surface} viewBox="0 0 1000 610" preserveAspectRatio="none" aria-hidden="true" focusable="false">
     <defs>
       <filter id={`${id}-shadow`} x="-10%" y="-10%" width="120%" height="140%"><feGaussianBlur stdDeviation="7" /></filter>
       <linearGradient id={`${id}-left`}>

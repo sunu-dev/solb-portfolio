@@ -177,8 +177,8 @@ export default function StockDictionary({ initialTermId, titleId, onClose }: { i
                 })}
               </DictionaryPages>
             </div>
-            <div className={styles.turnSnapshot} ref={turnSnapshot} aria-hidden="true" />
-            <canvas className={styles.turnCanvas} ref={turnCanvas} aria-hidden="true" />
+            <div data-turn-overlay className={styles.turnSnapshot} ref={turnSnapshot} aria-hidden="true" />
+            <canvas data-turn-overlay className={styles.turnCanvas} ref={turnCanvas} aria-hidden="true" />
           </div>}
         </>
         </div></div>
