@@ -2,10 +2,10 @@
 .cover { fill:var(--dict-cover); stroke:var(--dict-cover-edge); stroke-width:1; }
 .edges { fill:var(--dict-paper); stroke:var(--dict-page-edge); stroke-width:.8; }
 .binding { fill:none; stroke:var(--dict-binding-line); stroke-width:1.1; }
-.shadow { fill:var(--dict-shadow); filter:blur(10px); transform:translateY(10px); }
+.shadow { fill:var(--dict-shadow); transform:translateY(10px); }
 @media(max-width:650px) { .surface { display:none; } }
 
 .paperStop { stop-color:var(--dict-paper); }
-.lightStop { stop-color:var(--dict-paper-light); }
-.darkStop { stop-color:var(--dict-binding-line); }
+.lightStop { stop-color:color-mix(in srgb,var(--dict-paper) 96%,white); }
+.darkStop { stop-color:color-mix(in srgb,var(--dict-paper) 78%,black); }
 .paper { fill:var(--dict-paper); }

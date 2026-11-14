@@ -17,3 +17,11 @@
 ## 다음 세션 진입점
 - DictionaryBookSurface.tsx/.module.css, StockDictionary.module.css.
 - localhost:3013/brand-preview/dictionary-material. 로컬 서버 유지.
+
+## 사용자 재지적 후 수정
+- 기능 검사에 치우친 검수 부족 인정. 폭과 높이 비율1.45로 고정, 뷰포트에 맞춰 축소, 큰 카드 제거.
+- 중앙 그림자 좁힘, 표지 노출 폭 축소. SVG 그림자 실제 Gaussian blur 사용.
+- Safari 다크에서 밝은 띠를 발견하고 투명 stop-color를 불투명 color-mix로 수정. 재확인 결과 띠 해소.
+- 밝음/어두움·주식 선택·역사 펼침·내부스크롤 마지막 출처/이전다음 도달 확인.
+- 타입/공통5/전체2929통과17생략/도구4/quality66/webpack 통과. 마지막 명암 CSS는 브라우저 재확인.
+- 정지 화면 개선이며 곡면 넘김 통합/모바일 실검수/최종 사용자 승인/나란한 비교물은 미완료.

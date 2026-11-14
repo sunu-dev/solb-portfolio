@@ -120,9 +120,28 @@
 
 /* The desktop spread follows an SVG silhouette, not a rounded rectangular card. */
 @media(min-width:651px) {
- .columns { position:relative; isolation:isolate; box-sizing:border-box; height:clamp(280px,calc(var(--modal-viewport-height,100dvh) - 430px),460px); padding:34px 24px 40px; border:0; border-radius:0; background:none; box-shadow:none; }
+ .columns { position:relative; isolation:isolate; box-sizing:border-box; width:min(100%,760px,calc((100dvh - 370px)*1.45)); min-width:540px; height:auto; aspect-ratio:1.45; margin:0 auto 22px; padding:34px 24px 40px; border:0; border-radius:0; background:none; box-shadow:none; }
  .columns::before { display:none; }
- .index,.reader { background:none; box-shadow:none; border-radius:0; padding:18px 36px; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--dict-page-edge) transparent; }
- .index { padding-right:44px; }
- .reader { padding-left:44px; }
+ .index,.reader { background:none; box-shadow:none; border-radius:0; padding:20px 30px; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--dict-page-edge) transparent; }
+ .index { padding-right:36px; }
+ .reader { padding-left:36px; }
+}
+
+@media(min-width:651px) {
+ .header { padding:12px 24px; border-bottom:0; }
+ .header h2 { font-size:23px; }
+ .scroll { padding-top:12px; }
+ .word { min-height:58px; padding:9px 4px; border:0; border-bottom:1px solid var(--dict-line); border-radius:0; }
+ .word strong { font-size:16px; font-weight:550; }
+ .word small { font-size:11px; }
+ .word[aria-pressed=true] { background:transparent; box-shadow:none; color:var(--dict-accent); }
+ .word[aria-pressed=true] strong { font-weight:750; }
+ .word:hover { background:var(--dict-note); }
+ .search { border:0; border-bottom:1px solid var(--dict-line); border-radius:0; padding:0; background:transparent; }
+ .search input { font-size:14px; }
+ .meaning { font-size:15px; line-height:1.95; }
+ .note h3 { font-size:27px; }
+ .emptyHint { font-size:12px; }
+ .pageNavigation button { padding:8px 4px; border:0; background:transparent; font-size:12px; }
+ .wordList { max-height:240px; }
 }
