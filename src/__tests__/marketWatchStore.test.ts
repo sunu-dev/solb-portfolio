@@ -37,3 +37,23 @@ describe('shared publication store', () => {
     expect(mocks.rpc.mock.calls[1][1]).toMatchObject({ p_scope: 'industries', p_events: [], p_run: { coverage: [{ available: 42, total: 42 }] } });
   });
 });
+
+it('shares public reads, isolates consumer mutations, and invalidates after publication', async () => {
+  vi.resetModules();
+  const store = await import('@/lib/marketWatchStore');
+  const run = { scope: 'market', checkedAt: new Date().toISOString(), coverage: [], warnings: [] };
+  const events = { gte: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(), limit: vi.fn().mockResolvedValue({ data: [], error: null }), eq: vi.fn().mockReturnThis() };
+  mocks.from.mockImplementation((table: string) => ({ select: () => table === 'market_watch_events' ? events : Object.assign(Promise.resolve({ data: [{ last_run: run }], error: null }), { eq: () => ({ maybeSingle: async () => ({ data: { last_run: run }, error: null }) }) }) }));
+  const now = Date.now();
+  const first = await store.readMarketWatch(now);
+  first.runs[0].warnings.push('consumer mutation');
+  const second = await store.readMarketWatch(now);
+  expect(second.runs[0].warnings).toEqual([]);
+  expect(events.limit).toHaveBeenCalledTimes(1);
+  mocks.rpc.mockResolvedValue({ data: true, error: null });
+  mocks.collect.mockResolvedValue({ candidates: [], coverage: [{ id: 'industry-news', available: 1, total: 1 }], warnings: [] });
+  await store.refreshMarketWatch('industries');
+  await store.readMarketWatch(now);
+  // One initial read, one collection read, one read after invalidation.
+  expect(events.limit).toHaveBeenCalledTimes(3);
+});

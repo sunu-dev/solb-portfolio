@@ -1,0 +1,25 @@
+import { afterEach, expect, it, vi } from 'vitest';
+const state = vi.hoisted(() => ({ effect: undefined as undefined | (() => (() => void)) }));
+vi.mock('react', () => ({ useEffect: (effect: () => (() => void)) => { state.effect = effect; }, useMemo: (fn: () => unknown) => fn(), useState: (value: unknown) => [value, vi.fn()] }));
+vi.mock('@/store/portfolioStore', () => ({ usePortfolioStore: (select: (s: unknown) => unknown) => select({ stocks: { investing: [], watching: [] } }) }));
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+it('skips hidden polling, refreshes on return, and removes the listener on unmount', async () => {
+  vi.useFakeTimers();
+  const doc = Object.assign(new EventTarget(), { visibilityState: 'hidden' });
+  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ events: [], warnings: [] }) });
+  vi.stubGlobal('document', doc); vi.stubGlobal('fetch', fetch);
+  const { useEconomicEvents } = await import('@/hooks/useEconomicEvents');
+  useEconomicEvents(); const cleanup = state.effect!();
+  await vi.advanceTimersByTimeAsync(600_000);
+  expect(fetch).not.toHaveBeenCalled();
+  doc.visibilityState = 'visible'; doc.dispatchEvent(new Event('visibilitychange'));
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  doc.visibilityState = 'hidden'; await vi.advanceTimersByTimeAsync(600_000);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  doc.visibilityState = 'visible'; doc.dispatchEvent(new Event('visibilitychange'));
+  await vi.advanceTimersByTimeAsync(0); expect(fetch).toHaveBeenCalledTimes(2);
+  cleanup(); await vi.advanceTimersByTimeAsync(600_000);
+  doc.dispatchEvent(new Event('visibilitychange'));
+  expect(fetch).toHaveBeenCalledTimes(2);
+});

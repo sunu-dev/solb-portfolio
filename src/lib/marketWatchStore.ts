@@ -1,3 +1,4 @@
+import { createCoalescedRead } from './coalescedRead';
 import { randomUUID } from 'node:crypto';
 import { requireServiceClient } from './supabaseServer';
 import { collectMarketWatch } from './marketWatchCollector';
@@ -7,7 +8,12 @@ import { sendCronAlert } from './cronAlert';
 import { buildMarketFlowBriefs } from './marketFlowEngine';
 import { mergeWatchEvent, sortWatchEvents, type WatchEvent, type WatchFeed, type WatchRun, type WatchScope } from './marketWatch';
 
+const publicRead = createCoalescedRead<WatchFeed>(30_000);
 export async function readMarketWatch(now = Date.now()): Promise<WatchFeed> {
+  // Bucket the requested observation time too: historical callers cannot reuse a live feed.
+  return structuredClone(await publicRead.read(Math.floor(now / 30_000), () => loadMarketWatch(now)));
+}
+async function loadMarketWatch(now: number): Promise<WatchFeed> {
   const db = requireServiceClient();
   const [events, runs] = await Promise.all([
     db.from('market_watch_events').select('payload').gte('last_observed_at', new Date(now - 30 * 86400000).toISOString()).order('last_observed_at', { ascending: false }).limit(500),
@@ -53,6 +59,7 @@ export async function refreshMarketWatch(scope: WatchScope) {
     const health = trackWatchSources(collection.coverage, priorRun.data?.last_run?.coverage || [], checkedAt);
     const run: WatchRun = { scope, checkedAt, coverage: health.coverage, warnings: collection.warnings };
     const published = await db.rpc('publish_market_watch', { p_scope: scope, p_owner: owner, p_events: events, p_run: run });
+    publicRead.clear();
     if (published.error || published.data !== true) throw new Error('Could not publish market watch');
     if (health.alerts.length) await sendCronAlert({ jobName: `market-watch-${scope}`, stage: 'source-degraded',
       error: 'Sources have remained partially unavailable for at least 30 minutes', context: { sources: health.alerts } });
@@ -60,5 +67,7 @@ export async function refreshMarketWatch(scope: WatchScope) {
   } catch (error) {
     await db.rpc('publish_market_watch', { p_scope: scope, p_owner: owner, p_events: [], p_run: null, p_error: 'collection_failed' });
     throw error;
+  } finally {
+    publicRead.clear();
   }
 }

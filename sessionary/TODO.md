@@ -1435,12 +1435,12 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - **11/16 최신 운영:** main/origin/main `5b4daa7`, `dpl_F622wRwdBexcoB7KkYGPFWaBPHYo` READY. 운영09421b7 main 통합·push 완료로 이전 main 미포함 항목 해소. 원격2930통과20생략·홈200·단기 error0건. 로그인/실기기 검수는 유지.
 
-## 2026-11-16 사전 디자인 재설계
-- [ ] 별도 브랜치 redesign/dictionary-20261116 구현 사용자 검수. 책 형태 제거·단일 정의·CSS3D 개념 체험. 운영 미반영.
-- [ ] 실제 휴대폰/OS reduced-motion 및 최종 승인 후 통합/배포. 상세 sessionary/2026-11-16-dictionary-redesign.md.
+## 2026-11-16 사전 디자인 재설계 — 운영 완료
+- 사용자 방향 승인 및 운영 반영 완료. main/origin/main1a84dea, dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG READY.
+- 전체58개 로컬 확인, 운영 사전/체험/검색/390px/닫기 확인. 상세 sessionary/2026-11-16-dictionary-redesign.md.
+- [ ] 실제 휴대폰/OS reduced-motion, 운영 저장·복습 검수(운영 계정 데이터 수정은 미실행).
+- [ ] 계정 확인 실패 재연결2회 후 회복. /api/config upstream failure1건, 원인 계측 후속. 사전 배포에서 인증/config 변경 없음.
 
-- 11/16 사전 후속 고도화: 입체 체험 중심 재배치·넓게 보기·관련 용어 경로·키보드 검색 구현/검증 완료. 사용자 미감/실기기 검수 및 최종 배포는 대기.
+- [ ] Supabase IO 경고: Free/Nano 확인,24시간 IO차트 로딩실패. 장애시각IO/IOwait/스왑 대조 후 상향/쿼리 개선 결정. digest유휴guard 적용됨. sessionary/2026-11-16-supabase-disk-io.md.
 
-- 11/16 폰트·설명 후속: 문장별 위계·로컬 폰트·예시 상자 제거·본문 연결 탐색 완료. 최신3013미리보기/3015production, typography-*.png 기준 사용자 검수 대기.
-
-- 11/16 사용자 디자인 방향 승인.58개 용어 점검/반복 장식 제거/모바일 체험·focus 개선 완료. 실제 휴대폰·로그인 검수 및 통합/배포는 여전히 미실행.
+- [ ] 저비용1차 최적화 perf/low-cost-20261116:공개읽기중복병합/경제일정숨김폴링중단 구현. 운영반영후 호출량비교 필요. 추가고정비없음. sessionary/2026-11-16-low-cost-optimization.md.

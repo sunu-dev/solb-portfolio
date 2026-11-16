@@ -24,8 +24,10 @@ export function useEconomicEvents() {
   useEffect(()=>{
     let active = true;
     const update = () => { void load(key).then(data=>{ if(active)setState({key,data}); }).catch(()=>{if(active)setState({key,error:'일정을 불러오지 못했어요. 다시 시도해주세요.'});}); };
-    update(); const timer = setInterval(update,300000);
-    return ()=>{active=false;clearInterval(timer);};
+    const visibleUpdate = () => { if (document.visibilityState === 'visible') update(); };
+    visibleUpdate(); const timer = setInterval(visibleUpdate,300000);
+    document.addEventListener('visibilitychange', visibleUpdate);
+    return ()=>{active=false;clearInterval(timer);document.removeEventListener('visibilitychange', visibleUpdate);};
   },[key,retry]);
   return { data: state.key === key ? state.data : undefined, error: state.key === key ? state.error : undefined, symbols, retry: ()=>{cache.delete(key);setRetry(n=>n+1);} };
 }

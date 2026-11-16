@@ -75,3 +75,11 @@
 - 사용자 “운영에 반영하자”에 따라 이번 커밋/main통합/push 승인 적용. 원격 fetch 후 origin/main=main=HEAD5b4daa7, 충돌 없음.
 - 전체2933통과17생략/도구4통과/타입·lint·webpack빌드 통과. 기존 ai-chok 고아 tour마커 경고1 유지.
 - 복구 기준 dpl_F622wRwdBexcoB7KkYGPFWaBPHYo /5b4daa7. 자동 배포 완료 후 운영 실화면 확인 예정.
+
+## 운영 반영 완료
+- main/origin/main1a84dea, dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG READY. joobi.kr alias 확인. 홈페이지/폰트200.
+- 원격2930통과20생략, Turbopack build/타입 통과.06:24:25 UTC 배포 완료.
+- 운영 기존 로그인 상태에서 사전 ETF/카드선택/검색/매출/모바일390/출처/닫기 검수 통과. 계정 저장 데이터 수정하지 않음.
+- 최초 계정 확인 실패, 재연결2회 후 회복. 새 배포10분 오류조회에서 /api/config upstream failure1건(06:25:13 UTC). 기존 계정 지연과 같은 증상이며 원인 미확정. 인증/config 소스 변경 없음.
+- 실기기/운영 저장·복습 검수는 후속. 운영 반영 및 방향 승인 대기 항목은 해소.
+- 코드 clean 확인 후 결과 문서만 후속 갱신/미커밋. 반복 배포 방지 위해 문서만 추가 push하지 않음.
