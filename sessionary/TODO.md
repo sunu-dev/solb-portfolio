@@ -1424,3 +1424,11 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 - [ ] **사전 역사 확장:** 주식 생성 배경·출처 구현 완료. 한국어 어원 등 추가 콘텐츠는 근거 확보 후 작성.
 
 - [ ] **로딩 캐릭터·사전 아이콘(11/14):** 새싹 눈/양쪽 잎/몸 부위별18초 동작·오류 표정 및 펼친 책 아이콘 로컬 구현, 전체2933/도구4/quality66/타입/lint/빌드 통과. Safari 데스크톱 밝음·어두움/오류 확인. 09421b7 운영 배포 완료(dpl_HJtNLe8vUJV3hUbjhRKedRpbarge), 공개 응답 확인. 전체 시간별 프레임·모바일·OS reduced-motion 및 운영 로그인 후 실검수 남음. 강아지/채팅21반응은 기존 유지. `sessionary/2026-11-14-loading-character-and-dictionary-icon.md`.
+
+## 2026-11-16 후속 검수
+- 로컬 390px 로딩/오류·재연결, reduced-motion 새싹 정지, 사전 저장 유지·퀴즈 완료/중단 복귀 통과. 실제 휴대폰·운영 로그인 후 검수는 남음.
+- 로컬 main=dcc031c에 운영09421b7 미포함 확인. 다음 사용자 push 전 통합 필요.
+- [ ] 개발 Vercel Analytics/Speed Insights CSP 차단과 CSS preload 경고 검토. 기능 오류와 구분.
+- 상세: sessionary/2026-11-16-browser-verification.md
+
+- 11/16 main 통합: 원격 fetch 결과 dcc031c, 작업 브랜치로 fast-forward 가능. 운영09421b7 대비 제품 코드 동일. 사용자 최신 명시 요청으로 이번 Codex push 진행.
