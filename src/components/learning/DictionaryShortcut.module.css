@@ -1,10 +1,4 @@
-.shortcut { display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; min-height:44px; padding:5px 10px 5px 6px; border:0; border-radius:9px; background:transparent; color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
+.shortcut { display:inline-flex; align-items:center; gap:8px; flex:0 0 auto; min-height:44px; padding:6px 10px; border:0; border-radius:9px; background:transparent; color:var(--text-primary); font:inherit; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
 .shortcut:hover { background:var(--bg-subtle); }
 .shortcut:focus-visible { outline:2px solid var(--text-body); outline-offset:3px; }
-.book { flex-shrink:0; }
-.cover { fill:var(--text-secondary); }
-.edge { fill:var(--bg-subtle); stroke:var(--border); stroke-width:.7; }
-.paper { fill:var(--surface); stroke:var(--text-secondary); stroke-width:.8; stroke-linejoin:round; }
-.seam { fill:none; stroke:var(--text-secondary); stroke-width:.8; opacity:.6; }
-.lines { fill:none; stroke:var(--text-tertiary); stroke-width:.9; stroke-linecap:round; }
-.ribbon { fill:var(--brand-fill); }
+.shortcut svg { flex-shrink:0; color:var(--text-secondary); }

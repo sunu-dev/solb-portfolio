@@ -11,8 +11,19 @@
 - 강제 push 및 별도 CLI 배포하지 않음. Git 연동 자동 배포 상태 확인.
 
 ## 미해결 TODO
-- [ ] push 후 자동 배포 상태 확인.
+- [x] push 후 자동 배포 READY·도메인 연결·HTTP200 확인.
 - [ ] 운영 로그인 후·실기기 검수.
 
 ## 다음 세션 진입점
 - HANDOFF.txt 및 이 기록. main과 origin/main 커밋 확인.
+
+## 최종 결과
+- main fast-forward 후 5b4daa7 커밋을 origin/main에 push 성공.
+- 기본 인증 계정 swhan-cubox-ai는403. 이미 로그인된 sunu-dev의 토큰을 명령 환경에만 전달해 성공. 기본 계정·저장된 인증 설정 변경 없음.
+- 제품 코드(src/public/package/설정)는09421b7과 동일. 전체 diff도 문서6개뿐.
+- 자동 운영 배포 dpl_F622wRwdBexcoB7KkYGPFWaBPHYo READY. 빌드2분16초, 원격 테스트2930통과20생략.
+- joobi.kr 및 www.joobi.kr 새 배포 alias 확인. 홈 HTTP200.
+- 2026-11-16 14:06 KST 기준 직전10분 새 배포 error 로그0건. 짧은 관찰 구간이며 로그인 검수 아님.
+- 빌드 로그 /private/tmp/joobi-main-deploy-20261116.log.
+- 최종 결과를 담은 HANDOFF/TODO/이 기록은 미커밋. 반복 자동 배포를 피하기 위해 결과 문서만 후속 작업에 보존.
+- Vercel CLI65.15.0 사용, 세션 안내의65.16.0 업데이트는 미수행.
