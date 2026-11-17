@@ -2,7 +2,7 @@
 갱신일: 2026-11-17
 담당: Codex — 보안패치 구현·검증 완료. 사용자 직접push 대기.
 브랜치: main
-검증 기준: 495dd9c 이후 보안패치 작업트리. 원격/마지막확인 운영6355927, 새배포 미실행.
+검증 기준: 보안패치 커밋3fc5311. 원격/마지막확인 운영6355927, 새배포 미실행.
 최신 요청: CI/보안 수정 진행 승인. CI수정495dd9c + 보안패치 검증완료.
 마지막확인 운영: origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
 배포 URL: solb-portfolio-9dq8xnkj4-sunudevelop-1252s-projects.vercel.app
@@ -54,8 +54,8 @@
 - 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
 
 환경·미커밋
-- 제품d66fd8e 로컬main 통합완료. 새push/배포 없음. .playwright-mcp/ 기존 로컬 산출물은 추적하지 않음.
-- 로컬 검수3017 종료 요청. 유료API호출/DB/키 변경없음.
+- 제품d66fd8e/CI495dd9c/보안3fc5311 로컬main 커밋완료. 새push/배포 없음. .playwright-mcp/ 기존 로컬 산출물은 추적하지 않음.
+- 로컬 검수3017 종료확인. 유료API호출/DB/키 변경없음.
 - /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
 - Vercel CLI65.15.0.65.16.0 업그레이드 미수행.
 
