@@ -26,10 +26,15 @@
 - 사용자의 앤스로픽 질문품질 피드백을 병행기록. 현재회사/상장뉴스검색→사업설명→조건부전망순서 필요. 아직엔진코드변경없음.
 
 ## 미해결 TODO
-- [ ] 배포/CI검증,사용자 이메일연결·실TOTP검수.
+- [ ] 배포/CI검증완료. 사용자 이메일연결·실TOTP검수 남음.
 - [ ] 다른메일필요시 Resend도메인인증/SMTP연결 별도진행.
 - [ ] 앤스로픽상장 질문의 기업중심검색·의도분기 개선.
 
 ## 다음 세션 진입점
 - HANDOFF.txt, src/components/admin/AdminMfa.tsx, src/lib/adminMfaSetup.ts, src/__tests__/adminMfaSetup.test.ts.
 - 공식근거 https://github.com/supabase/auth/blob/master/internal/api/mfa.go , https://supabase.com/docs/guides/auth/auth-smtp .
+
+## 운영반영
+- e5cc6f2 push, dpl_FfXh1UqFW4P6qbsgvstDtAD1pPka READY/joobi.kr일치. CI44049720691 verify/build 성공.
+- 운영/admin200/실제JS 이메일복구안내/overview미인증401 확인. 실제메일발송/본인등록 미실행.
+- 로컬서버종료,최종인계만 로컬커밋.

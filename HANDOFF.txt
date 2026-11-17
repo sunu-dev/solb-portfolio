@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 이메일없는 계정 MFA복구 구현/검증완료,운영반영진행.
+담당: Codex — MFA이메일복구 운영반영완료. 사용자이메일연결/실TOTP등록대기.
 브랜치: main
-검증 기준/원격main: d4e58e6. 인증앱 issuer/friendlyName 주비 관리자.
-현재운영:d4e58e6, dpl_59UN3wKymqCB2W7bfazgKJum9AqA READY/joobi.kr alias일치.
+검증 기준/원격main: e5cc6f2. 이메일없는계정 확인흐름 추가.
+현재운영:e5cc6f2, dpl_FfXh1UqFW4P6qbsgvstDtAD1pPka READY/joobi.kr alias일치.
 운영주소: https://joobi.kr
 
 필수 규칙
@@ -68,3 +68,8 @@ MFA 실제등록실패 후속
 - 기본SMTP는 프로젝트팀메일만 허용,Resend도메인미인증. SMTP/DNS/계정변경·실메일발송없음. 사용자팀메일수신가능여부질문대기.
 - 실이메일연결/실QR/실TOTP검증 미완료. 기록 sessionary/2026-11-17-mfa-email-repair.md.
 - 앤스로픽상장질문:기업자체 최신상장보도/사업현황검색 후 조건부전망 필요. 엔진수정은 아직미실행,TODO기록.
+
+MFA이메일복구 운영검증
+- CI44049720691 verify/build 성공. 운영/admin200/실제JS 이메일연결안내확인/overview미인증401.
+- 실제메일발송·이메일연결·실TOTP검증은 아직미완료. 사용자팀메일수신가능여부질문대기.
+- 로컬서버종료. 코드push완료,최종인계만 후속로컬커밋.
