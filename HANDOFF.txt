@@ -1,133 +1,59 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 반영 요청으로 400오류/별칭 수정 운영배포 진행.
-브랜치: fix/news-provider-20261117 (운영 main53573d6)
-검증 기준: 53573d623a33c1cb73fec5ca7a976dddb63f0266
-최신 요청: 반영하자. 400원인제거/별칭/오류미차감 수정 main통합/push/배포 승인. 실API검색·생성 검수완료.
-운영: dpl_2YusF7oSJ4Bnei5eP1HeGtmhms7K / joobi.kr READY
-배포 URL: solb-portfolio-gkposhpr0-sunudevelop-1252s-projects.vercel.app
+담당: Codex — 사용자 배포 요청에 따라 사전 전체 체험 커밋/main통합 진행.
+브랜치: feat/dictionary-all-concepts-20261117
+검증 기준: 3d9a4d8 + 사전 미커밋 변경
+최신 요청: 배포 마저하자. 검사된 변경을 main에 통합. AGENTS.md에 따라 push는 사용자 직접.
+운영: main/origin/main 3d9a4d8, dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH READY
+배포 URL: solb-portfolio-a48qua69k-sunudevelop-1252s-projects.vercel.app
 복구 후보: 02be1b3 / dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG
 
 필수 규칙
-- AGENTS.md → 이 파일 → 관련 기록. 제품 작업 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
-- main push는 운영 자동 배포. 기본 사용자 직접 push. 이번 요청으로 사전1a84dea만 Codex push 완료.
-- 인증 우회/쿠키 주입/테스트계정 생성/계정 설정 변경 금지. 이번 인증 조작 없음.
-- 실제 모델 질문/DB 직접 변경/환경변수 변경 없음. 운영 계정 저장 데이터는 수정하지 않음.
+- AGENTS.md → 이 파일 → 관련 기록. 제품 변경 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
+- main push는 운영 자동배포. 기본 사용자 직접 push. 이번 사전 확장 push/배포 없음.
+- 운영 인증·계정 데이터·DB·환경변수 변경 없음.
 
-현재 운영 사전
-- 책등/종이/쪽 분할 제거. 검색/목록 + 단일 용어 읽기. 전체 기본, 내 단어는 실제 저장 항목.
-- 로컬 Pretendard Variable. 제목46/34px·620, 핵심25/21px·480, 본문18/17px·420.
-- 정의 원문을 문장별로 나눠 첫 뜻→체험→보충 설명. 예시 초록 상자/중복 부제 제거.
-- ETF/펀드 자산카드, 거래량 합계, 주식10칸, 수익률 슬라이더. 실제 시세/예측 아닌 가상 예시.
-- 일반 용어는 반복 입체 제목판 없이 설명과 관련 용어 연결. 전 용어 개별 체험은 아님.
-- 넓게 보기, / 검색, reader 좌우키, 관련 경로 최대6개/복귀. 입력/range 키 보존.
-- 저장/메모/헷갈림/복습/출처 유지. 모바일 목록↔본문, 다크, reduced-motion 지원.
-- 보조 글자 대비/크기, 키보드 focus outline 개선. 모바일 체험 높이 조정.
-- 과거 책 파일은 개발용으로 유지. 실제 사전 import에서 제외.
+최신 운영 반영 — 뉴스 검색 오류/회사 별칭
+- 3d9a4d8 커밋/main push 완료. joobi.kr inspect에서 위 배포 READY 일치.
+- 홈 /api/market-watch /api/economic-events 각각 HTTP200 확인.
+- mk.co.kr provider 접근불가로 검색 전체400 발생 확인. allowed_domains에서 제거.
+- 시선에이아이/시선 에이아이 별칭 및 겹친 회사명 오인식 수정.
+- 검색 설정오류400/401/403/404시 생성 중단/503/횟수 미차감. 오류를 기사없음으로 숨기지 않음.
+- 사용자 최대4호출/추정1달러 이내 승인. 진단1+실검색1+실생성1=3호출 사용.
+- 뉴스핌11/16기사 수집6.264초, 생성5.136초. 실제 응답 정규화 오프라인 replay 통과.
+- 운영 로그인 실대화 최종검수는 미실행. 기사와 상승의 직접인과는 확정하지 않음.
+- 배포 전 전체2971통과18생략/빌드/lint 통과. 이번 후속 error로그 조회는 미실행.
+- 상세 sessionary/2026-11-17-chat-submit-stop-quality.md, docs/JOOBI_NEWS_ANSWER_ENGINE.md.
 
-사전 배포 및 검사(이전1a84dea)
-- main에 fast-forward 통합,1a84dea 커밋/push 완료. 원격/main 동일 확인.
-- 로컬 전체2933통과17생략, 도구4통과. 타입/ESLint/UI·dark·한국어·alerts·tour lint/webpack build 통과.
-- 기존 ai-chok 고아 tour마커 경고1은 변경 범위 밖. 검사 성공.
-- Vercel 원격2930통과20생략, Turbopack build/타입 통과.06:24:25 UTC 배포 완료.
-- joobi.kr alias가 새 배포인 것 확인. 홈페이지와 로컬 폰트 HTTP200.
-- 운영 기존 로그인 상태에서 새 ETF사전/카드선택/검색/매출설명/390px 가로넘침 없음/출처/닫기 확인.
-- 운영 저장·삭제는 계정 데이터 보존 위해 미실행. 로컬 guest 저장/메모/복습 검수는 통과.
-- 실기기/OS reduced-motion 검수는 남음. 사용자 디자인 방향·운영 반영 승인됨.
-
-운영 확인 중 발견
-- 최초 계정 확인 실패, 다시 연결하기2회 후 정상 진입. 이전 계정 지연과 같은 화면 증상.
-- 새 배포 직전10분 로그 조회에서 /api/config upstream failure(status0/code unknown)1건.
-- 오류 관찰 시각06:25:13 UTC. 이 배포는 계정/config 소스를 바꾸지 않았음. 정확한 원인 미확정.
-- 복구됐다고 근본 해결로 판단하지 않음. 전체 운영 무오류라고 보고하지 않음.
-
-근거와 진입점
-- sessionary/2026-11-16-dictionary-redesign.md — 디자인/검증/운영 이력.
-- docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md —11/16 현재 기준(과거 책 지침보다 우선).
-- src/components/learning/StockDictionary.tsx/.module.css
-- src/components/learning/DictionaryConceptStage.tsx/.module.css
-- 전체 미해결 sessionary/TODO.md.
-- /private/tmp/joobi-dictionary-release-{tests,build}.log 및 release-{deploy,alias}.json,release-errors.jsonl.
-- 로컬 화면 artifacts/dictionary-redesign-20261116. 개인정보 포함 운영 화면은 저장소에 넣지 않음.
+현재 사전 작업 — 로컬 구현 완료, 미배포
+- 기존5개 체험 유지 + 나머지53개에 수치/분할/캔들/단계별 구조 체험 추가. 전체58개.
+- stock-split/reverse-split: 조각 수·주당가격이 바뀌어도 전체가치 보존.
+- distribution: 지급 전→현금 분배→가격 하락. 현금+상품가치 합계 함께 표시.
+- 재무지표/환율/가격/차트: 가상 숫자 변경, 서로 다른 단위는 길이 비교 생략.
+- 채권/기초지수/자산: 단계별 구조 강조. 모든 항목이 개별3D영상인 것은 아님.
+- 자동재생 없음. 44px 버튼/aria-pressed/aria-live/reduced-motion 지원.
+- 신규 src/lib/dictionaryScenes.ts, DictionaryScenarioStage.tsx/.module.css.
+- DictionaryConceptStage.tsx에서 기존5개 이외 시나리오 렌더러 연결.
+- 전체2974통과19생략. 타입/ESLint/webpack production build 통과.
+- UI/alerts/한국어/darkmode/tour lint 통과. 기존 ai-chok 고아마커 경고1 유지.
+- 실제 컴포넌트 로컬 브라우저: 390px에서58개 전부 버튼 클릭/체험 표시/가로넘침 없음.
+- 분할 모바일/분배금 데스크톱 스크린샷 시각검수. 어두운 토큰+모션감소 전환 확인.
+- 브라우저는 격리된 실제 컴포넌트 harness. 운영 전체 사전/실기기/사용자 미감 검수 별도.
+- 상세 sessionary/2026-11-17-dictionary-all-concepts.md.
 
 다음 작업
-1. 실제 휴대폰에서 운영 사전 읽기/체험/저장/복습 검수.
-2. Supabase 및 /api/config 계정 지연 실제 요청별 시간/실패 계측. 별도 장애 조사.
-3. 추가 콘텐츠는 매출·순이익 등 개념 비교 체험을 우선 검토.
+1. main 통합 후 사용자 git push origin main → Vercel READY/alias 및 운영 사전 확인.
+2. 운영 로그인 후 시선에이아이 실제 답변 확인. 추가 유료호출은 승인 범위에 유의.
+3. 뉴스 엔진30+10사례 평가/근거 충돌 판정 후속. 사용자에게 조사 전가·반복문구 추가 검토.
 
 유지할 후속 문제
-- Supabase 근본 지연 미확정. 계정 로딩 제한·재연결 UI는 이미 운영반영.
-- 기사 원인 충분성/탈락사유 관측 후속. 제3자 투자의견 인용은 결정 대기.
-- 개인화/통계 동의는 설계만 유지, 수집 미적용. vault 운영 플래그/SQL proposal 비활성.
-- 이전 검수: sessionary/2026-11-16-browser-verification.md, main-integration.md.
+- Supabase Free/Nano IO 경고:24시간 IO차트 로딩실패. 장애시간 IOwait/스왑 상관 미확정.
+- 저비용 최적화02be1b3 운영. 공개읽기 캐시/동시병합/경제일정 숨김폴링 중단. 실제 IO절감 미확정.
+- 계정/config 지연:재연결로 회복하나 근본원인 미확정. 운영 저장·복습 검수는 별도.
+- 사전 전체 디자인 기준 docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md. 폰트/기존 읽기 UI 유지.
+- 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
 
-환경/프로세스/미커밋
-- localhost3013 dev 유지.3014/3015는 이전 production 실행 프로세스(이번 최종 변경 뒤 재시작 안 함).
-- Vercel CLI65.15.0 사용,65.16.0 전역 업그레이드 미수행.
-- 재설계 코드 커밋/push/운영 배포 완료. 배포 결과 HANDOFF/TODO/세션/디자인 문서는 후속 미커밋.
-- 반복 자동 배포를 피하려고 결과 문서만 추가 push하지 않음. git status로 최신 확인.
-
-Supabase IO 조사(11/16 후속)
-- Free/Nano,소진임박경고 확인. DB작음/용량부족아님. Memory commitment1.51GB SEVERE지만 단일 실시간RAM여유246MiB/스왑45%,현재고갈 확정불가.
-- cron4개 활성,digest유휴guard 이미 적용.24시간 IO차트 로딩실패로 장애시간소진 상관관계 미확정.
-- 요금/설정/cron 변경없음. sessionary/2026-11-16-supabase-disk-io.md에 수치/한계/후속 기록.
-
-저비용 최적화(02be1b3 운영 완료)
-- 공개시장소식30초프로세스캐시·동시병합/발행무효화. 경제일정 숨김폴링중단/복귀갱신.
-- 최근24시간api_calls집계 quotes688/marketwatch223/cron144. 수집주기·사용량제한·기록보존 유지.
-- 관련13검사/타입/ESLint/webpack production build 통과. 운영반영완료,IO경고해결·절감률 미확정.
-- sessionary/2026-11-16-low-cost-optimization.md. 다음은 최종검토/운영반영후동일시간대비교.
-
-최신 운영 검증(저비용 최적화)
--02be1b3 main통합/push,원격2935통과20생략/production빌드READY.로컬2938통과17생략/도구4/lint통과.
-- joobi.kr alias일치,홈/market-watch/economic-events200 및 데이터구조 확인.브라우저새로고침200.
--17:53KST 새배포직전10분 error조회0건(단기관찰).숨김폴링은자동검사,운영장시간탭실측미실행.
-- 추가구독/서버/DB설정/cron변경없음.실제IO절감효과는동일조건관측후판단.
-- /private/tmp/joobi-low-cost-{deploy,alias}.json,remote-build.log,errors.jsonl,release-tests.log.
-- 코드커밋/push완료,결과HANDOFF/TODO/세션문서만후속미커밋.문서만추가push안함.
-
-11/17 질문 전송·중단/답변 품질
-- fix/chat-submit-stop-20261117, 기준02be1b3. 첫 Enter도 사전 전송안내 아래 즉시 제출, 버튼과 같은 form경로.
-- 중단 클릭 기본동작 취소/stop-send key분리. 늦은 응답 무시·초안 복원 유지.
-- handler 검사27통과, tsc/변경파일ESLint통과. 실제 브라우저 중단 재현·실기기 검수는 미실행.
-- 코드/문서 미커밋, push/운영배포 없음. 이전 결과문서 변경 보존. 새 서버 프로세스 없음.
-- 시선AI11/16 뉴스핌10:01 보도 확인(촬영기기 탐지/시험부정행위). 주비 답변에서 누락.
-- 누락 단계(검색/본문수집/필터/생성) 미확정. 실제 유료질문 재실행·검색엔진 변경 없음.
-- 다음: assistantArticleSources.ts/assistantEvidenceSource.ts 수집경로와 해당 질문 근거 확인.
-- 상세 sessionary/2026-11-17-chat-submit-stop-quality.md.
-
-11/17 엔진 설계: docs/JOOBI_NEWS_ANSWER_ENGINE.md. 질문별 근거상태/회사우선 검색/예산/검증/평가계획.
-- v1 구현/검증 결과는 아래 운영 전 보고 참조. 운영변경없음.
-
-엔진 운영 전 보고(11/17)
-- docs/JOOBI_NEWS_ANSWER_ENGINE.md 끝의 구현범위/검증/설계대비한계 참조.
-- 회사우선검색/2회상한/28초전체기한/4상태계약/시장기사로회사근거충족금지/원문탈락집계.
-- 전체2965통과18생략,추가API2회귀(파일111통과3생략),lint/quality/tool4/webpack build통과.
-- 브라우저 로컬fixture Enter1회/중단abort/초안보존/재전송없음 확인. 서버3016종료.
-- 실API공개사례1건은 자동승인검토가 유료호출명시승인없어 거절. 실제호출없음,질문도구승인대기.
-- 실보도 접근/생성품질·비용·지연 비교 미검증. 전체설계 완료/운영준비완료로 주장하지 않음.
-- 새 파일 assistantNewsAssessment.ts,assistantNewsEngine.test.ts,assistantNewsLive.test.ts.
-- 코드/문서 미커밋.기존11/16결과문서변경 보존.운영 main02be1b3 유지.
-- 다음: 비용승인후 opt-in실API검사→결과보고→별도운영지시. /private/tmp/joobi-engine-* 검사로그.
-
-최신 운영 검증(11/17)
-- 사용자 운영반영 지시로53573d6커밋/main통합/push완료.원격2964통과21생략/빌드READY.
-- joobi.kr alias 새배포일치,홈/market-watch/economic-events HTTP200.단기 error로그0건.
-- 실제 유료검색/답변 검수는 여전히 미실행.운영반영이 실답변품질개선의 검증을 뜻하지 않음.
-- 결과기록만 후속미커밋,문서만추가push안함. /private/tmp/joobi-engine-{deploy,alias}.json,remote-build.log,errors.jsonl.
-
-사용자 운영검수 실패(11/17후속): 시선에이아이 미인식→시장fallback, 시선AI 원인미확인.
-- alias53573d6 READY재확인.최근15분로그 company2회/shared/combined 각검색 status400,근거unavailable0건.
-- 정확한400응답본문/파라미터원인 미확정. 별칭누락과 검색API실패 우선수정 필요.
-
-후속로컬수정: 시선에이아이 별칭/겹친짧은회사명 배제,검색API400등 설정오류시 생성중단/미차감503.
-- 관련134통과3생략.정확한400원인/수정후실API검증은 미완료.최대4호출/추정1달러이내 승인질문대기.
-- 코드미커밋/후속push·배포없음.기존운영53573d6 그대로.
-
-실API 승인 후 결과(11/17)
-- 총3호출: 기존설정400진단1, 수정후검색1/답변1.남은1회사용안함.
-- 오류원문: mk.co.kr provider crawler 접근불가로 요청전체invalid_request_error.해당도메인제거,우회없음.
-- 뉴스핌11/16시선AI 기사 실제확보6.264초/본문1건/검색1회.답변생성5.136초,AI안경/보안기술 연결.
-- 테스트에서 운영정규화누락으로answer_shape 발생→mentor/assistant 정규화경로로 실제응답오프라인재검사통과.추가API없음.
-- 전체2971통과18생략,실응답replay1통과,webpack빌드/ESLint통과.정확한운영로그인실대화는미실행.
-- 한글별칭/400시503미차감도로컬완료. 코드미커밋/새운영배포없음.현재운영53573d6에는400문제가남음.
+환경·미커밋
+- 사전 제품코드/테스트/기록은 현재 작업 브랜치 미커밋. main과 운영은 뉴스 수정까지.
+- /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
+- Vercel CLI65.15.0.65.16.0 업그레이드 미수행.

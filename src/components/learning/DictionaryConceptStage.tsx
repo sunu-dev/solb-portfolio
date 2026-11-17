@@ -4,9 +4,10 @@ import { useRef, useState, type CSSProperties } from 'react';
 import { Layers3, RotateCcw } from 'lucide-react';
 import { type FinancialTerm } from '@/lib/financialTerms';
 import styles from './DictionaryConceptStage.module.css';
+import DictionaryScenarioStage from './DictionaryScenarioStage';
 
 /** Illustrative quantities only. No market data or investment predictions. */
-export default function DictionaryConceptStage({ term, onSelect }: { term: FinancialTerm; onSelect: (id: string) => void }) {
+export default function DictionaryConceptStage({ term }: { term: FinancialTerm; onSelect: (id: string) => void }) {
   const stage = useRef<HTMLElement>(null);
   const [trade, setTrade] = useState(3);
   const [shares, setShares] = useState(2);
@@ -16,7 +17,7 @@ export default function DictionaryConceptStage({ term, onSelect }: { term: Finan
   const stock = term.id === 'stock';
   const returns = term.id === 'return';
   const etf = term.id === 'etf' || term.id === 'fund';
-  if (!volume && !stock && !returns && !etf) return null;
+  if (!volume && !stock && !returns && !etf) return <DictionaryScenarioStage key={term.id} term={term} />;
   const assets = [{ label:'주식', detail:'기업의 주식에 투자하는 상품' }, { label:'채권', detail:'채권에 투자하는 상품' }, { label:'원자재', detail:'금 같은 원자재에 투자하는 상품' }];
   return <section ref={stage} className={styles.stage} data-kind={volume ? 'volume' : stock ? 'stock' : returns ? 'return' : 'fund'} aria-label={`${term.title.split(' · ')[0]} 개념 체험`}
     onPointerMove={event => {
