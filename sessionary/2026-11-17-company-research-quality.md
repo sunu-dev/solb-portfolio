@@ -59,3 +59,9 @@
 - 운영브라우저 홈200,새싹border0/새겹그림자/대화창열기통과. 추가AI질문없음.
 - 최근5분 error로그조회 recordsReturned0. 장기장애없음 또는 실제답변품질검증을 뜻하지 않음.
 - 수정후실제답변재검수는후속. .playwright-mcp 미추적유지. 최종배포기록문서만 로컬추가커밋,운영재배포하지않음.
+
+## 투명 아이콘 후속
+- 사용자요청으로 앞서추가한입체버튼표면까지제거. 이미지자체는기존투명새싹/벡터사전아이콘유지.
+- launcher iconOnly,LearningDesk진입,DictionaryShortcut hover 배경제거. 44px히트영역/포커스유지.
+- 밝음/어두움 hover계산스타일배경transparent,border0,shadow none. 390px사전lazy로드후열기통과/넘침없음.
+- darkmode게이트/diff검사통과. CSS만변경이라전체테스트/빌드재실행안함. 서버종료. 미커밋/미배포.

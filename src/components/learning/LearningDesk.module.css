@@ -162,10 +162,6 @@
  .emptyDictionary { padding:18px 0; }
 }
 
-/* A soft raised surface keeps the sprout prominent without an outlined tile. */
-.navigation button[aria-controls] { border:0; background:linear-gradient(150deg,var(--surface),var(--bg-subtle)); box-shadow:0 2px 4px rgb(0 0 0 / 5%),0 7px 16px rgb(0 0 0 / 8%),inset 0 1px 1px rgb(255 255 255 / 65%); }
-.navigation button[aria-controls]:hover { background:linear-gradient(150deg,var(--surface),var(--bg-subtle)); box-shadow:0 3px 6px rgb(0 0 0 / 6%),0 9px 20px rgb(0 0 0 / 10%),inset 0 1px 1px rgb(255 255 255 / 65%); }
-.navigation button[aria-controls]:active { box-shadow:0 1px 3px rgb(0 0 0 / 9%),inset 0 1px 3px rgb(0 0 0 / 6%); }
-:global(.dark) .navigation button[aria-controls] { box-shadow:0 2px 5px rgb(0 0 0 / 24%),0 7px 18px rgb(0 0 0 / 22%),inset 0 1px 1px rgb(255 255 255 / 10%); }
-
+/* Preserve the hit area and keyboard focus without painting a button box. */
+.navigation button[aria-controls],.navigation button[aria-controls]:hover,.navigation button[aria-controls][aria-expanded=true] { border:0; background:transparent; box-shadow:none; }
 .navigation button[aria-controls]:focus-visible { outline:2px solid var(--text-primary); outline-offset:3px; }
