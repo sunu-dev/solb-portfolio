@@ -1,12 +1,12 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 최신 운영반영 요청으로 엔진v1/채팅수정 배포 진행.
-브랜치: fix/chat-submit-stop-20261117 (기준02be1b3, 운영은 그대로)
-검증 기준: 02be1b3a71dac1141c3f6d09efc90b6b49841a10
-최신 요청: 운영에 반영하자. 이번 main 통합/push/배포 진행. 실API검수 미실행은 유지.
-운영: dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG / joobi.kr READY
-배포 URL: solb-portfolio-823fj0erp-sunudevelop-1252s-projects.vercel.app
-복구 후보: 1a84dea / dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG
+담당: Codex — 사용자 반영 요청으로 400오류/별칭 수정 운영배포 진행.
+브랜치: fix/news-provider-20261117 (운영 main53573d6)
+검증 기준: 53573d623a33c1cb73fec5ca7a976dddb63f0266
+최신 요청: 반영하자. 400원인제거/별칭/오류미차감 수정 main통합/push/배포 승인. 실API검색·생성 검수완료.
+운영: dpl_2YusF7oSJ4Bnei5eP1HeGtmhms7K / joobi.kr READY
+배포 URL: solb-portfolio-gkposhpr0-sunudevelop-1252s-projects.vercel.app
+복구 후보: 02be1b3 / dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG
 
 필수 규칙
 - AGENTS.md → 이 파일 → 관련 기록. 제품 작업 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
@@ -109,3 +109,25 @@ Supabase IO 조사(11/16 후속)
 - 새 파일 assistantNewsAssessment.ts,assistantNewsEngine.test.ts,assistantNewsLive.test.ts.
 - 코드/문서 미커밋.기존11/16결과문서변경 보존.운영 main02be1b3 유지.
 - 다음: 비용승인후 opt-in실API검사→결과보고→별도운영지시. /private/tmp/joobi-engine-* 검사로그.
+
+최신 운영 검증(11/17)
+- 사용자 운영반영 지시로53573d6커밋/main통합/push완료.원격2964통과21생략/빌드READY.
+- joobi.kr alias 새배포일치,홈/market-watch/economic-events HTTP200.단기 error로그0건.
+- 실제 유료검색/답변 검수는 여전히 미실행.운영반영이 실답변품질개선의 검증을 뜻하지 않음.
+- 결과기록만 후속미커밋,문서만추가push안함. /private/tmp/joobi-engine-{deploy,alias}.json,remote-build.log,errors.jsonl.
+
+사용자 운영검수 실패(11/17후속): 시선에이아이 미인식→시장fallback, 시선AI 원인미확인.
+- alias53573d6 READY재확인.최근15분로그 company2회/shared/combined 각검색 status400,근거unavailable0건.
+- 정확한400응답본문/파라미터원인 미확정. 별칭누락과 검색API실패 우선수정 필요.
+
+후속로컬수정: 시선에이아이 별칭/겹친짧은회사명 배제,검색API400등 설정오류시 생성중단/미차감503.
+- 관련134통과3생략.정확한400원인/수정후실API검증은 미완료.최대4호출/추정1달러이내 승인질문대기.
+- 코드미커밋/후속push·배포없음.기존운영53573d6 그대로.
+
+실API 승인 후 결과(11/17)
+- 총3호출: 기존설정400진단1, 수정후검색1/답변1.남은1회사용안함.
+- 오류원문: mk.co.kr provider crawler 접근불가로 요청전체invalid_request_error.해당도메인제거,우회없음.
+- 뉴스핌11/16시선AI 기사 실제확보6.264초/본문1건/검색1회.답변생성5.136초,AI안경/보안기술 연결.
+- 테스트에서 운영정규화누락으로answer_shape 발생→mentor/assistant 정규화경로로 실제응답오프라인재검사통과.추가API없음.
+- 전체2971통과18생략,실응답replay1통과,webpack빌드/ESLint통과.정확한운영로그인실대화는미실행.
+- 한글별칭/400시503미차감도로컬완료. 코드미커밋/새운영배포없음.현재운영53573d6에는400문제가남음.

@@ -140,3 +140,22 @@ it('retains a precise Korean after-close publication time', async () => {
   blocks[0].content.content.source.data = '기사입력 2026년11월16일 17:02\n' + source().text;
   expect(fetchedArticleEvidence(blocks as Parameters<typeof fetchedArticleEvidence>[0], base)[0].timing).toBe('after-price');
 });
+it('rejects a provider configuration error once, without disguising it as empty news or caching it', async () => {
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const error = Object.assign(Object.create(Anthropic.APIError.prototype), { status: 400 });
+  m.request.mockRejectedValue(error);
+  const { collectAssistantArticles } = await import('@/lib/assistantArticleSources');
+  await expect(collectAssistantArticles(base)).rejects.toThrow('assistant_news_provider_unavailable');
+  expect(m.request).toHaveBeenCalledTimes(1);
+  await expect(collectAssistantArticles(base)).rejects.toThrow('assistant_news_provider_unavailable');
+  expect(m.request).toHaveBeenCalledTimes(2);
+});
+it('never sends a known crawler-blocked domain to either provider tool', async () => {
+  m.request.mockResolvedValue(response([source()]));
+  const { collectAssistantArticles } = await import('@/lib/assistantArticleSources');
+  await collectAssistantArticles(base);
+  for (const tool of m.request.mock.calls[0][0].tools) {
+    expect(tool.allowed_domains).not.toContain('mk.co.kr');
+    expect(tool.allowed_domains).toContain('newspim.com');
+  }
+});

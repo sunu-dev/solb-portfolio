@@ -12,8 +12,10 @@ import { fundProfile } from './fundExploration';
 // Publishers that disallow the provider's crawler are excluded; do not bypass their access restrictions.
 // cnbc.com 제외(2026-11-11): 열람 도구가 8번 시도 중 8번 url_not_accessible. 목록에 있으면 모델이 CNBC를 골라
 // 허용된 열람 횟수를 실패에 쓰고, 그 종목은 기사 0건으로 끝난다. 다시 열리는지 확인한 뒤에만 되돌린다.
+// mk.co.kr: provider rejects the entire request with HTTP400 (verified 2026-11-17).
+// Respect the publisher's crawler restriction; never add it without a provider compatibility check.
 const DOMAINS = ['finance.yahoo.com', 'investor.nvidia.com', 'nvidianews.nvidia.com', 'sec.gov', 'federalreserve.gov', 'hankyung.com', 'edaily.co.kr', 'etoday.co.kr',
-  'newspim.com', 'mk.co.kr', 'm-i.kr', 'newsis.com', 'news1.kr', 'sedaily.com', 'krx.co.kr', 'bok.or.kr'];
+  'newspim.com', 'm-i.kr', 'newsis.com', 'news1.kr', 'sedaily.com', 'krx.co.kr', 'bok.or.kr'];
 const allowed = (value: string) => {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password && !u.port
     && DOMAINS.some(domain => u.hostname === domain || u.hostname.endsWith('.' + domain)); } catch { return false; }
@@ -33,6 +35,9 @@ const priceDirection = (packet: AssistantEvidencePacket) => {
     ? packet.comparisons.find(value => value.symbol === underlying) : packet.price;
   return price ? price.changePercent > 0 ? 'up' : price.changePercent < 0 ? 'down' : 'flat' : 'unknown';
 };
+export class AssistantNewsProviderError extends Error {
+  constructor() { super('assistant_news_provider_unavailable'); }
+}
 class PartialArticleEvidence extends Error {
   constructor(readonly articles: AssistantEvidence[]) { super('partial_article_coverage'); }
 }
@@ -176,13 +181,13 @@ export function collectAssistantArticles(packet: AssistantEvidencePacket, supple
       const deadline = Date.now() + RETRIEVAL_DEADLINE_MS;
       const company = !packet.symbol.startsWith('^');
       let first: AssistantEvidence[] = [];
-      try { first = await retrieve(packet, costs, background, undefined, company ? 'company' : 'combined', Math.min(18_000, deadline - Date.now())); } catch { /* A second bounded search may recover. */ }
+      try { first = await retrieve(packet, costs, background, undefined, company ? 'company' : 'combined', Math.min(18_000, deadline - Date.now())); } catch (error) { if (error instanceof AssistantNewsProviderError) throw error; /* A second bounded search may recover. */ }
       collected = first;
       const assessment = assessAssistantNews({ ...packet, evidence: first });
       if ((assessment.state === 'context_only' || assessment.state === 'unavailable' || packet.industryFocus?.length && needsArticleSupplement(packet, first)) && deadline - Date.now() >= 1000) {
         supplement?.();
         const focus = company && !assessment.sourceIds.length ? 'company' : 'shared';
-        try { collected = [...first, ...await retrieve(packet, costs, background, first, focus, deadline - Date.now())]; } catch { /* Keep verified evidence. */ }
+        try { collected = [...first, ...await retrieve(packet, costs, background, first, focus, deadline - Date.now())]; } catch (error) { if (!first.length && error instanceof AssistantNewsProviderError) throw error; /* Keep verified evidence. */ }
       }
     } else if (!packet.symbol.startsWith('^')) {
       // Company-only searches repeatedly miss the shared event and trigger a
@@ -212,6 +217,7 @@ export function collectAssistantArticles(packet: AssistantEvidencePacket, supple
   };
   const promise = (shared ? unstable_cache(work, ['joobi-articles-v15', key], { revalidate: 300 })() : work()).catch(error => {
     if (error instanceof PartialArticleEvidence) return error.articles;
+    if (error instanceof AssistantNewsProviderError) throw error;
     console.warn('[assistant-public-sources] unavailable', error instanceof Anthropic.APIError ? { status: error.status, type: error.name,
       code: 'provider_request_failed' } : { type: error instanceof Error ? error.name : 'unknown' });
     return [];
@@ -225,7 +231,7 @@ export function collectAssistantArticles(packet: AssistantEvidencePacket, supple
   // retrieval calls have ended, which can be after the articles were returned: the route finishes it
   // after the response (next/server `after`) so the answer is not held, and the record is never skipped.
   cache.set(key, { expires: now + 300_000, promise });
-  void promise.then(articles => { const item = cache.get(key); if ((!articles.length || needsArticleSupplement(packet, articles)) && item?.promise === promise) item.expires = Date.now() + 60_000; });
+  void promise.then(articles => { const item = cache.get(key); if ((!articles.length || needsArticleSupplement(packet, articles)) && item?.promise === promise) item.expires = Date.now() + 60_000; }, () => { if (cache.get(key)?.promise === promise) cache.delete(key); });
   return promise;
 }
 
@@ -313,6 +319,9 @@ async function retrieve(packet: AssistantEvidencePacket, costs: AiCostEntry[], b
   await ready;
   const articles = accepted(received);
   // A response that broke off after an article arrived still leaves usable evidence.
-  if (failure && !articles.length) throw failure;
+  if (failure && !articles.length) {
+    if (failure instanceof Anthropic.APIError && [400, 401, 403, 404].includes(failure.status)) throw new AssistantNewsProviderError();
+    throw failure;
+  }
   return articles;
 }

@@ -18,10 +18,28 @@ it.skipIf(process.env.JOOBI_LIVE_NEWS !== '1')('retrieves and explains a public 
   await writes;
   expect(assessAssistantNews(packet).sourceIds.length).toBeGreaterThan(0);
   const question = { text: '시선AI는 어제 왜 그렇게 오른거야?', symbol: packet.symbol, period: '1d' as const, market: 'kr' as const, unclearTerms: [] };
-  const result = await callClaudeAnalysis(assistantQuestionPrompt(question, { evidence: packet }), false, true, false, true, 'medium', 'claude-sonnet-5-5');
-  const report = JSON.parse(result.text);
+  const result = await callClaudeAnalysis(assistantQuestionPrompt(question, { evidence: packet }), true, true, false, true, 'medium', 'claude-sonnet-5-5');
+  const { parseAnalysisResponse } = await import('@/lib/aiAnalysisResponse');
+  const report = parseAnalysisResponse(result.text, true, result.finishReason, undefined, true);
   console.info('[live-answer]', JSON.stringify({ report, usage: result.usage, latencyMs: result.latencyMs }));
   expect(assistantReportIssue(report, packet, true)).toBeUndefined();
   expect(assistantContextIssue(report, question)).toBeUndefined();
   expect(newsAnswerIssue(report, packet)).toBeUndefined();
 }, 85_000);
+
+
+it.skipIf(process.env.JOOBI_REPLAY_NEWS !== '1')('replays the captured real response through the production normalizer without API calls', async () => {
+  const { readFileSync } = await import('node:fs');
+  const lines = readFileSync('/private/tmp/joobi-provider-live-2.log', 'utf8').split('\n');
+  const answer = JSON.parse(lines.find(l => l.startsWith('[live-answer] '))!.slice('[live-answer] '.length));
+  const captured = JSON.parse(lines.find(l => l.startsWith('[live-evidence] '))!.slice('[live-evidence] '.length));
+  const { parseAnalysisResponse } = await import('@/lib/aiAnalysisResponse');
+  const { assistantReportIssue, assistantContextIssue } = await import('@/lib/assistantQuestion');
+  const { estimateAiCostUsd } = await import('@/lib/aiCostLedger');
+  const report = parseAnalysisResponse(JSON.stringify(answer.report), true, 'STOP', undefined, true);
+  // Metadata-only replay validates schema/IDs; it does not recreate or invent article bodies.
+  const evidence: AssistantEvidencePacket = {version:1,symbol:'340810.KQ',period:'1d',checkedAt:'2026-11-17',comparisons:[],gaps:[],evidence:captured.sources.map((s: {url:string;title:string;date:string},i:number)=>({id:`A${i+1}`,kind:'article',scope:'company',text:'',url:s.url,title:s.title,publisher:'뉴스핌',publishedAt:s.date,checkedAt:'2026-11-17'}))};
+  expect(assistantReportIssue(report,evidence,true)).toBeUndefined();
+  expect(assistantContextIssue(report,{text:'시선AI는 어제 왜 그렇게 오른거야?',symbol:'340810.KQ',unclearTerms:[],market:'kr',period:'1d'})).toBeUndefined();
+  console.info('[replay-cost-usd]',estimateAiCostUsd('claude-haiku-5-5',{inputTokens:43877,outputTokens:675,webSearchRequests:1})+estimateAiCostUsd('claude-sonnet-5-5',answer.usage));
+});

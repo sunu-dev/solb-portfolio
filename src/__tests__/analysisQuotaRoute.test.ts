@@ -48,7 +48,7 @@ vi.mock('@/lib/aiAgeGate', () => ({ checkCurrentAdultAiConsent: state.consent })
 vi.mock('@/lib/claudeAnalysis', () => ({ callClaudeAnalysis: state.claude }));
 vi.mock('@/lib/companyAnalysisContext', () => ({ companyAnalysisContext: state.business }));
 vi.mock('@/lib/assistantEvidenceSource', () => ({ collectAssistantEvidence: state.evidence }));
-vi.mock('@/lib/assistantArticleSources', () => ({ collectAssistantArticles: state.articles }));
+vi.mock('@/lib/assistantArticleSources', () => ({ collectAssistantArticles: state.articles, AssistantNewsProviderError: class extends Error {} }));
 vi.mock('@/lib/intradaySource', () => ({ readLatestIntraday: state.intraday }));
 
 let GET: (request: NextRequest) => Promise<Response>;
@@ -1107,4 +1107,13 @@ describe('question-specific news evidence gate', () => {
     state.claude.mockResolvedValue({ ...report, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론이 오른 직접적인 이유는 확인하지 못했어요. 전 거래일보다 오른 가격은 확인했어요.', keyAdvice: [] }), finishReason: 'STOP', usage: {} });
     expect((await ask()).status).toBe(200); expect(state.rows).toHaveLength(1);
   });
+});
+
+it('does not generate or charge when the news provider rejects the request configuration', async () => {
+ const { AssistantNewsProviderError } = await import('@/lib/assistantArticleSources');
+ state.articles.mockRejectedValueOnce(new AssistantNewsProviderError());
+ const response = await POST(request('POST', {questionId:'ask-joobi',questionConsent:true,questionText:'마이크론 왜 올랐어?',symbol:'MU'}));
+ expect(response.status).toBe(503);
+ expect((await response.json()).code).toBe('assistant_news_provider_unavailable');
+ expect(state.claude).not.toHaveBeenCalled(); expect(state.rows).toHaveLength(0);
 });

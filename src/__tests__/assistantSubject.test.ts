@@ -80,3 +80,10 @@ it('carries the industry topic through bounded or older history and clears it fo
  expect(resolveAssistantSubject({...base,text:'그럼 다음에는?',history:[{question:'미국 반도체주 전체는 왜 내려요?',answer:'이전 설명'}]}).question).toMatchObject({market:'us',industryFocus:['semiconductors']});
  expect(resolveAssistantSubject({...base,text:'그럼 다음에는?',history:[...history,{question:'시장 전체는?',answer:'이전 설명',symbol:'GENERAL',market:'us' as const,industryFocus:[]}]}).question.industryFocus).toEqual([]);
 });
+
+it('recognizes the spoken Korean company name without falling back to the market', () => {
+ for (const name of ['시선에이아이','시선 에이아이','시선AI']) {
+  const result = resolveAssistantSubject({text:`어제 ${name}는 왜 많이 오른거야?`,unclearTerms:[],market:'kr'});
+  expect(result.question.symbol, JSON.stringify({name,candidates:result.candidates})).toBe('340810.KQ');
+ }
+});

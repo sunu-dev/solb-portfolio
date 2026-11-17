@@ -25,7 +25,11 @@ export function mentionedAssistantStocks(text: string) {
     const token = match[0], symbol = token.replace(/^\$|^(?:NASDAQ|NYSE)\s*:\s*/, '');
     return commonWords.has(symbol) && token === symbol ? '' : symbol;
   }));
-  return entries.filter(entry => tickers.has(entry.symbol) || (/\.K[SQ]$/.test(entry.symbol) && tickers.has(entry.symbol.slice(0, 6))) || entry.patterns.some(({ needle, pattern }) => compact.includes(needle) && pattern.test(text)))
+  const named = entries.flatMap(entry => entry.patterns.flatMap(({ needle, pattern }) => compact.includes(needle)
+    ? [...text.matchAll(new RegExp(pattern.source, 'gi'))].map(match => ({ symbol: entry.symbol, start: match.index, end: match.index + match[0].length })) : []));
+  const namedSymbols = new Set(named.filter(hit => !named.some(other => other.symbol !== hit.symbol
+    && other.start <= hit.start && other.end >= hit.end && other.end - other.start > hit.end - hit.start)).map(hit => hit.symbol));
+  return entries.filter(entry => tickers.has(entry.symbol) || (/\.K[SQ]$/.test(entry.symbol) && tickers.has(entry.symbol.slice(0, 6))) || namedSymbols.has(entry.symbol))
     .map(({ symbol, label }) => ({ symbol, label }));
 }
 function mentionedIndustries(text: string): AssistantIndustry[] {

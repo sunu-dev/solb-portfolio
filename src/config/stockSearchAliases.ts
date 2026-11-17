@@ -1,6 +1,7 @@
 import { STOCK_KR } from '@/config/constants';
 
 export const EXTRA_ALIASES: Record<string, string[]> = {
+  '340810.KQ': ['시선에이아이', '시선 에이아이'],
   '036540.KQ': ['에스에프에이반도체', 'SFA Semicon'],
   GOOGL: ['알파벳', '알파벳A', '알파벳 클래스 A', '구글', 'Alphabet', 'Google'],
   GOOG: ['알파벳', '알파벳C', '알파벳 클래스 C', '구글', 'Alphabet', 'Google'],

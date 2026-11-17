@@ -5,7 +5,7 @@ import { withAbortDeadline } from '@/lib/withAbortDeadline';
 import { resolveAssistantSubject } from '@/lib/assistantSubject';
 import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
 import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
-import { collectAssistantArticles } from '@/lib/assistantArticleSources';
+import { AssistantNewsProviderError, collectAssistantArticles } from '@/lib/assistantArticleSources';
 import { assistantConversationIntent } from '@/lib/assistantIntent';
 import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantAsksForCause, assistantUnsourcedCauseIssue, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion, assistantAsksAboutPriceMove } from '@/lib/assistantQuestion';
 import { fundAnalysisContext, fundAnalysisSources, isFundAnalysis } from '@/lib/fundQuestionContext';
@@ -620,11 +620,17 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     if (assistantEvidence && userQuestion && (assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
       progress('articles');
       const articlePacket = assistantEvidence;
-      const articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => {
+      let articles;
+      try { articles = await measure('articles', () => collectAssistantArticles(articlePacket, () => progress('supplement'), true, write => {
         // If scheduling work after the response is ever unavailable, fall back to finishing the record before responding.
         try { if (!lateCosts.length) after(() => Promise.allSettled(lateCosts)); lateCosts.push(write); }
         catch { pendingCosts.push(write); }
       }));
+      } catch (error) {
+        if (!(error instanceof AssistantNewsProviderError)) throw error;
+        await gate.finalize(503, 'assistant_news_provider_unavailable');
+        return NextResponse.json({ success: false, code: 'assistant_news_provider_unavailable', error: '뉴스 검색 연결에 문제가 생겨 답변을 만들지 못했어요. 이용 횟수는 차감하지 않았어요.', remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
+      }
       assistantEvidence.evidence.push(...articles);
       if (!articles.length) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
     }
