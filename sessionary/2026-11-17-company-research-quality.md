@@ -76,3 +76,9 @@
 - DictionaryShortcut 회색lucide아이콘→next/image34x31,투명버튼/주식사전텍스트유지. 공통컴포넌트사용두진입점반영.
 - 실제밝음/다크 screenshot,390px/44px터치/사전열기통과. 타입/변경파일ESLint/diff통과. 서버종료. 미커밋/미배포.
 - 스크린샷 /private/tmp/joobi-brown-book-{light,dark}.png.
+
+## 브라운책 운영완료
+- 사용자운영반영지시:c9ff6b4 커밋/push,Vercel dpl_BJ5zm1ygFFdUUjEpQgiogswKFZM3 READY/joobi.kr alias일치.
+- CI44095804477 success. 운영홈200/브라운이미지decode성공34px/390px사전열기/밝음·다크스크린샷확인.
+- 최근5분오류1건:/api/economic-events FRED PAYEMS 캐시재검증 deadline. 재조회200,아이콘기능실패없음. 경제지표외부응답지연후속관찰.
+- 추가AI호출없음. 최종배포기록만로컬커밋/추가push없음,.playwright-mcp 미추적유지.
