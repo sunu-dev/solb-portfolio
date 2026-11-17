@@ -70,3 +70,9 @@
 - 사용자운영반영지시로1895ad4 커밋/push완료. Vercel dpl_8RDa26qXffe6mPVRandcsv8R62Hi READY,joobi.kr alias일치.
 - CI44086751637 검증/프로덕션빌드success. 운영홈200/390px/밝음·다크 hover 배경투명,border0,shadow없음/사전열기확인.
 - 최근5분오류조회0건. 추가AI호출없음. 최종문서만로컬커밋/추가push없음,.playwright-mcp 미추적유지.
+
+## 선택한 브라운책 적용
+- 사용자10개시안중2번선택,책표지브라운으로수정한생성이미지사용. 생성원본보존/public/illustrations/joobi/dictionary-brown-v1.png 복사.1312x1199 alpha있음.
+- DictionaryShortcut 회색lucide아이콘→next/image34x31,투명버튼/주식사전텍스트유지. 공통컴포넌트사용두진입점반영.
+- 실제밝음/다크 screenshot,390px/44px터치/사전열기통과. 타입/변경파일ESLint/diff통과. 서버종료. 미커밋/미배포.
+- 스크린샷 /private/tmp/joobi-brown-book-{light,dark}.png.
