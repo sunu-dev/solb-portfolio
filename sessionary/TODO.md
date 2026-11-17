@@ -1451,9 +1451,9 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - [ ] 긴급 챗봇 품질:11/17 13:27 운영 회사검색2회 본문각1개 모두 entity_rejected, 근거0. 별칭/탈락진단/재검색회피/제목없는테마기사채택/어제+오늘 분리 로컬수정. 실제기사replay통과. 추가승인12회 사용완료(성공10/사용한도실패2). 전체2984통과22생략. 추가승인4회 실제생성 성공,최종문구/한글별칭 검수완료. 사용자검수/운영반영/전종목평가 후속. HANDOFF.txt 최신 실패 기록 참조.
 
-- [ ] 11/17 뉴스답변 개선 d66fd8e 로컬main 통합/최종빌드 완료. 사용자push 후 운영READY/alias/공개응답 검증. 도구push/새배포 미실행.
+- 11/17 뉴스개선d66fd8e 포함9e65621 운영READY/alias/공개응답검증완료. 실대화/전종목평가 후속.
 
-- [ ] 11/17 보안패치 로컬완료: Next16.4.6/glob14.0.2/minimatch11.0.1/CSP강화,최종audit0/전체검사·기본빌드·클린설치통과. 사용자push 후 운영확인. 실제RLS/MFA 및 상위패키지지원후override제거 후속. sessionary/2026-11-17-ci-security-review.md.
-- [ ] CI CommonJS규칙 오류140+module변수1 수정,전체lint0오류52경고 확인. 사용자push 후 원격verify/build 성공확인.
+- [ ] 11/17 보안패치 운영완료(9e65621): Next16.4.6/glob14.0.2/minimatch11.0.1/CSP강화,최종audit0/전체검사·기본빌드·클린설치통과. 운영CSP확인완료. 실제RLS/플랫폼계정MFA 및 상위패키지지원후override제거 후속. sessionary/2026-11-17-ci-security-review.md.
+- CI CommonJS/선택peer잠금파일 오류수정,44032534340 원격verify/build 성공확인.
 
-- [ ] 11/17 관리자MFA 구현/검증완료(전체2997/도구4/빌드통과). 이번사용자push대행명시승인. 운영반영확인 및 운영자실TOTP등록/클라우드계정MFA·실제RLS검수 후속. sessionary/2026-11-17-admin-mfa.md.
+- [ ] 11/17 관리자MFA 구현/검증완료(전체2997/도구4/빌드통과). 9e65621 운영반영확인완료. 운영자실TOTP등록/클라우드계정MFA·실제RLS검수 후속. sessionary/2026-11-17-admin-mfa.md.

@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 보안패치/관리자MFA 검증완료, 사용자 명시승인으로 이번 push/운영검증 진행.
+담당: Codex — 운영배포/원격CI 검증완료. 운영자 실제TOTP등록 대기.
 브랜치: main
-검증 기준: 보안3fc5311/문서4f58944 이후 MFA작업트리.
-마지막확인 원격/운영:6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY.
+검증 기준: MFA6f50ce6 + Linux잠금파일9e65621. 원격main9e65621.
+현재운영:9e65621, dpl_EoATTjTswsH6r67DU3aG6UK2cA8x READY/joobi.kr alias일치.
 운영주소: https://joobi.kr
 
 필수 규칙
@@ -32,8 +32,8 @@
 - 상세 sessionary/2026-11-17-admin-mfa.md 및 2026-11-17-ci-security-review.md.
 
 다음 작업
-1. 이번승인 push 후 GitHub verify/build 및 Vercel READY/alias/CSP 검증.
-2. 운영자 /admin 인증앱등록·실검수. Supabase 등 플랫폼계정 MFA는 별도확인.
+1. 운영자 /admin에서 실제인증앱등록/6자리검증. 등록전 관리자API 차단됨.
+2. Supabase 등 플랫폼계정 MFA/실제DB RLS 별도검토.
 3. 뉴스엔진30+10사례평가/원래탈락기사진단/근거충돌판정.
 
 이전 완료·유지할 맥락
@@ -48,3 +48,11 @@
 - 저비용최적화02be1b3 운영,실제IO절감미확정. 계정/config재연결지연 근본원인미확정.
 - 과금조사는 개인계정정보 저장하지 않음. 운영키sensitive반환안됨은 키불일치증거 아님.
 - 전체TODO sessionary/TODO.md. .playwright-mcp/ 기존검수산출물은 추적하지 않음.
+
+최종 운영검증
+- 사용자명시승인 push완료. GitHub CI44032534340 verify/build 모두success.
+- 최초CI44032219385 npm10 Linux선택peer누락실패→9e65621복구. npm10/Linux ci dry-run 및 audit0.
+- 운영홈/admin200,overview/usage/codes 미인증401. CSP unsafe-eval 없음/frame-ancestors self.
+- 운영guest 관리자로그인화면확인. 단기관찰error0건. 실제등록·실인증 미실행.
+- 코드변경 전부push완료. 이번배포결과 인계문서만 후속로컬커밋,추가push없음.
+- 진행서버/빌드프로세스없음. 미추적.playwright-mcp/유지.
