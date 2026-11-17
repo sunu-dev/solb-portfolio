@@ -45,3 +45,5 @@
 - 사용자 반영지시. 최신 원격main6355927 확인. 최종 next build --webpack 통과.
 - 전체2984통과22생략/타입/ESLint/빌드 통과를 기준으로 main 통합 준비.
 - AGENTS.md 사용자직접push 규칙 적용. 도구push/직접Vercel배포 없음.
+- 제품d66fd8e 커밋 및 로컬main fast-forward 완료. 원격6355927 유지. 사용자 git push origin main 대기.
+- .playwright-mcp/ 기존 로컬검수 산출물 미추적 유지. 서버/빌드 프로세스 종료.

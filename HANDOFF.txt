@@ -1,10 +1,10 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 운영반영 지시. 최종빌드 통과, main 통합/커밋 준비.
-브랜치: fix/assistant-news-reliability-20261117
-검증 기준: 운영6355927 + 이번 챗봇 수정 미커밋.
-최신 요청: 운영 반영. AGENTS.md에 따라 사용자 직접push를 위한 main 통합 준비, 도구push/배포 없음.
-운영: main/origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
+담당: Codex — 최종검증·커밋·로컬main 통합 완료. 사용자push 대기.
+브랜치: main
+검증 기준: 제품 커밋d66fd8e. 원격/마지막확인 운영6355927, 새배포 미실행.
+최신 요청: 운영 반영. d66fd8e 로컬main fast-forward 완료. AGENTS.md에 따라 사용자 직접push 대기.
+마지막확인 운영: origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
 배포 URL: solb-portfolio-9dq8xnkj4-sunudevelop-1252s-projects.vercel.app
 복구 후보: 3d9a4d8 / dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH
 
@@ -54,7 +54,7 @@
 - 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
 
 환경·미커밋
-- 배포6355927 push완료. 배포결과 HANDOFF/TODO/세션기록만 후속미커밋. 문서만 재배포하지 않음.
+- 제품d66fd8e 로컬main 통합완료. 새push/배포 없음. .playwright-mcp/ 기존 로컬 산출물은 추적하지 않음.
 - 로컬 검수 서버3016 종료. 이번 작업에서 새 프로세스 없음.
 - /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
 - Vercel CLI65.15.0.65.16.0 업그레이드 미수행.
@@ -90,9 +90,9 @@
 - 개선: 겹친 가능성/딱딱한 한계문구 축약,불필요한 인증이력 제거,사업자료에 기사ID 대용 금지,기술개선중 상태 보존.
 - 최종 전체2984통과22생략/타입/ESLint 통과. 최종 next build --webpack 통과. /private/tmp/joobi-reliability-deploy-build.log.
 - 실제생성 /private/tmp/joobi-reliability-answerfinal1~4.json,전체검사 joobi-reliability-final-tests.log. 추가호출허용량4/4 사용.
-- 다음: main 통합/커밋→사용자push→운영READY/alias/공개응답 검증. 전종목30+10사례 평가는 후속.
+- 다음: 사용자 git push origin main→운영READY/alias/공개응답 검증. 전종목30+10사례 평가는 후속.
 - 비용조사 중 모델호출0. 로컬키 콘솔마스킹 식별정보 일치. 운영변수 sensitive로 값 미반환: 불일치 증거 아님.
 - 전체운영변수 다운로드/콘솔키 상세열기 자동검토 거절. 후속 허가된 단일변수 조회는 값 비공개로 대조불가.
 - 키/과금 개인계정 내역은 저장소에 기록하지 않음. 결제/한도/키 변경 없음.
 - 공개본문/실응답 /private/tmp/joobi-reliability-{response,packet,replay}.json. 생성검증파일 assistantReliabilityAnswerLive.test.ts.
-- 현재작업코드 및 이전배포결과기록 미커밋. 서버프로세스없음.
+- 코드/이전배포결과기록 d66fd8e 커밋. 인계상태 후속문서커밋 예정. 서버프로세스없음.
