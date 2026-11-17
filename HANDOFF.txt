@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 최종검증·커밋·로컬main 통합 완료. 사용자push 대기.
+담당: Codex — CI 오류 수정·전체lint 검증 완료, 의존성/운영헤더 보안검토 보고.
 브랜치: main
 검증 기준: 제품 커밋d66fd8e. 원격/마지막확인 운영6355927, 새배포 미실행.
-최신 요청: 운영 반영. d66fd8e 로컬main fast-forward 완료. AGENTS.md에 따라 사용자 직접push 대기.
+최신 요청: 어제CI실패 확인 + 기술보안 검토. CI수정 완료, 보안패치후보 보고. 직접push 대기.
 마지막확인 운영: origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
 배포 URL: solb-portfolio-9dq8xnkj4-sunudevelop-1252s-projects.vercel.app
 복구 후보: 3d9a4d8 / dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH
@@ -42,8 +42,8 @@
 - 상세 sessionary/2026-11-17-dictionary-all-concepts.md.
 
 다음 작업
-1. 운영 새 체험 사용자 디자인 검수/실기기 확인.
-2. 운영 로그인 후 시선에이아이 실제 답변 확인. 추가 유료호출은 승인 범위에 유의.
+1. Next16.4.6 및 하위glob/minimatch 보안패치 호환검증. 현재패키지변경 없음.
+2. 사용자push 후 GitHub CI verify/build와 Vercel READY/alias 확인. 운영실대화 후속.
 3. 뉴스 엔진30+10사례 평가/근거 충돌 판정 후속. 사용자에게 조사 전가·반복문구 추가 검토.
 
 유지할 후속 문제
@@ -96,3 +96,11 @@
 - 키/과금 개인계정 내역은 저장소에 기록하지 않음. 결제/한도/키 변경 없음.
 - 공개본문/실응답 /private/tmp/joobi-reliability-{response,packet,replay}.json. 생성검증파일 assistantReliabilityAnswerLive.test.ts.
 - 코드/이전배포결과기록 d66fd8e 커밋. 인계상태 후속문서커밋 예정. 서버프로세스없음.
+
+CI/보안 검토(11/17)
+- 최신원격CI44016686499 verify실패/build생략. 전체lint141오류(140require+1module변수) 재현.
+- scripts/**/*.cjs만 require규칙off,앱error유지. 지역module변수명변경. 전체lint0오류52기존경고.
+- 도구4/인증·한도·저장경계136통과3생략/구문검사통과. 런타임변경없어 빌드반복미실행.
+- npm audit전체중간15/운영6(고유GHSA3),높음·치명적0. Next16.4.3 패치필요;발생조건직접사용 미발견.
+- CSP unsafe-inline/eval 존재. 운영홈200/AI·관리자GET401/HSTS등확인. DB실제RLS·MFA 미검증.
+- 상세 sessionary/2026-11-17-ci-security-review.md. 패키지/운영설정/DB/키 변경없음.

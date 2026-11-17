@@ -1452,3 +1452,6 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 - [ ] 긴급 챗봇 품질:11/17 13:27 운영 회사검색2회 본문각1개 모두 entity_rejected, 근거0. 별칭/탈락진단/재검색회피/제목없는테마기사채택/어제+오늘 분리 로컬수정. 실제기사replay통과. 추가승인12회 사용완료(성공10/사용한도실패2). 전체2984통과22생략. 추가승인4회 실제생성 성공,최종문구/한글별칭 검수완료. 사용자검수/운영반영/전종목평가 후속. HANDOFF.txt 최신 실패 기록 참조.
 
 - [ ] 11/17 뉴스답변 개선 d66fd8e 로컬main 통합/최종빌드 완료. 사용자push 후 운영READY/alias/공개응답 검증. 도구push/새배포 미실행.
+
+- [ ] 11/17 보안검토: Next16.4.3→16.4.6+eslint-config-next 패치,glob/minimatch/Sentry 하위호환패치,CSP강화. 전체중간15/운영6 고유GHSA3. 운영RLS/MFA 후속. sessionary/2026-11-17-ci-security-review.md.
+- [ ] CI CommonJS규칙 오류140+module변수1 수정,전체lint0오류52경고 확인. 사용자push 후 원격verify/build 성공확인.

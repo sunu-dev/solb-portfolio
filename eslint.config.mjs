@@ -56,6 +56,11 @@ const NO_MODULE_SCOPE_CLIENT = [
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    // Standalone Node tools intentionally use CommonJS; keep the rule for app code.
+    files: ["scripts/**/*.cjs"],
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
