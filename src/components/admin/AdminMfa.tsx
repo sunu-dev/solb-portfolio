@@ -37,12 +37,12 @@ export default function AdminMfa({ onVerified }: { onVerified: () => Promise<voi
       if (listed.error) throw listed.error;
       if (listed.data.totp.length) { setFactors(listed.data.totp); setFactorId(listed.data.totp[0].id); return; }
       for (const factor of listed.data.all) {
-        if (factor.factor_type === 'totp' && factor.status === 'unverified' && factor.friendly_name === 'Joobi admin') {
+        if (factor.factor_type === 'totp' && factor.status === 'unverified' && ['Joobi admin', '주비 관리자'].includes(factor.friendly_name ?? '')) {
           const removed = await supabase.auth.mfa.unenroll({ factorId: factor.id });
           if (removed.error) throw removed.error;
         }
       }
-      const result = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: 'Joobi admin', issuer: 'Joobi' });
+      const result = await supabase.auth.mfa.enroll({ factorType: 'totp', friendlyName: '주비 관리자', issuer: '주비 관리자' });
       if (result.error) throw result.error;
       setFactorId(result.data.id);
       setEnrollment({ qr: result.data.totp.qr_code, secret: result.data.totp.secret });

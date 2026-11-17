@@ -1,6 +1,6 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 운영배포/원격CI 검증완료. 운영자 실제TOTP등록 대기.
+담당: Codex — 인증앱 표시이름 주비 관리자 변경/운영반영 진행.
 브랜치: main
 검증 기준: MFA6f50ce6 + Linux잠금파일9e65621. 원격main9e65621.
 현재운영:9e65621, dpl_EoATTjTswsH6r67DU3aG6UK2cA8x READY/joobi.kr alias일치.
