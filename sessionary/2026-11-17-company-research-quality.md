@@ -51,3 +51,11 @@
 - 검증로그·diff확인후 제품커밋 db64370 생성. 변경11파일(챗봇/버튼/검사),.playwright-mcp 미추적 유지.
 - AGENTS.md 사용자직접push 규칙 적용:도구push/직접Vercel배포 없음. 사용자 git push origin main 대기.
 - 남은 실제답변재검수는 배포완료 여부와 구분. 운영은 아직 e5cc6f2.
+
+## 운영 배포 완료
+- 사용자 직접push안내후 운영배포를 반복지시. 이번push포함 실행으로 해석하여 알린뒤 main630d8f9 push완료.
+- Vercel dpl_7zZkkt8pBmG2UqKxf13aQZvFwUQy READY. joobi.kr inspect가 같은배포를 반환.
+- GitHub CI44083614528 타입/게이트/테스트 및 프로덕션빌드 모두success.
+- 운영브라우저 홈200,새싹border0/새겹그림자/대화창열기통과. 추가AI질문없음.
+- 최근5분 error로그조회 recordsReturned0. 장기장애없음 또는 실제답변품질검증을 뜻하지 않음.
+- 수정후실제답변재검수는후속. .playwright-mcp 미추적유지. 최종배포기록문서만 로컬추가커밋,운영재배포하지않음.

@@ -1,17 +1,17 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 운영반영지시로 db64370 커밋완료. 사용자 main push 대기. 실제답변재검수는 후속.
+담당: Codex — 운영630d8f9 배포/CI/도메인/버튼확인 완료. 실제답변재검수 후속.
 브랜치: main
-검증 기준/원격main: e5cc6f2. 이메일없는계정 확인흐름 추가.
-현재운영:e5cc6f2, dpl_FfXh1UqFW4P6qbsgvstDtAD1pPka READY/joobi.kr alias일치.
+검증 기준/원격main:630d8f9(제품db64370). 원격push완료.
+현재운영:630d8f9, dpl_7zZkkt8pBmG2UqKxf13aQZvFwUQy READY/joobi.kr alias일치.
 운영주소: https://joobi.kr
 
 필수 규칙
 - AGENTS.md → HANDOFF → 관련기록. 제품원칙 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
-- main push는 운영 자동배포. AGENTS.md에 따라 사용자직접push. 과거 MFA push예외는 이번작업에 재사용하지않음.
+- 기본은 사용자직접push. 이번에는 직접push안내후 사용자가 운영배포를 재지시해 이번 배포push포함 진행으로 해석하고 알린뒤 실행.
 - 이번 승인 검색2회/생성1회 모두사용. 추가모델호출없음. 별도결제가 아닌 기존API 검증사용량. DB/키/클라우드계정설정 변경없음.
 
-현재 미배포 작업 — 기업 리서치
+최신 배포 — 기업 리서치
 - 제품커밋 db64370(main). 신규검색/기업별답변 경로,초기별칭Anthropic/OpenAI/SpaceX+기존카탈로그.
 - 최근90일보도/공식사업소개 구분,가격원인경로 분리,기업명표시/IPO ETF오인수정.
 - 최종verify3016통과23생략/도구4/변경파일ESLint/webpack빌드 통과. 저장답변 replay통과.
@@ -19,8 +19,9 @@
 - 날짜없는공식제품경로확대/탈락URL진단/숫자나열·PBC표현보완. 수정후실제검색·재생성은미검증.
 - 사용자새싹버튼테두리제거→얕은입체그림자. 밝음/어두움/390px/포커스/열기검수통과. 서버종료.
 - 진입:assistantCompanyResearch.ts,assistantCompanyResearchLive.test.ts.
-- 상세:sessionary/2026-11-17-company-research-quality.md. 제품커밋완료,push/운영변경없음.
-- fetch확인:원격main e5cc6f2,충돌없음. 사용자 git push origin main 후 CI/Vercel/운영화면 확인.
+- 상세:sessionary/2026-11-17-company-research-quality.md. 제품커밋/push/운영READY확인완료.
+- 원격main630d8f9. CI44083614528 검증/빌드성공. 운영홈200/버튼border0+그림자/대화창열기확인.
+- 최근5분오류조회0건(짧은관측). 추가AI호출없음. 로그인후실제답변재검수는남음.
 
 이번 변경
 - d66fd8e 뉴스회사식별/본문추출/어제오늘분리/답변품질 개선, db95c25 인계.
