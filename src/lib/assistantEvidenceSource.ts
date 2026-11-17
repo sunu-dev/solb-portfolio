@@ -1,3 +1,4 @@
+import type { AssistantQuestion } from './assistantQuestion';
 import { readMarketWatch } from './marketWatchStore';
 import { readOfficialPolicies } from './marketCause/officialPublication';
 import { STOCK_KR } from '@/config/constants';
@@ -37,6 +38,22 @@ export function collectAssistantEvidence(symbol: string, period: AssistantPeriod
   cache.set(key, { expires: now + 60_000, promise });
   void promise.catch(() => { if (cache.get(key)?.promise === promise) cache.delete(key); });
   return promise;
+}
+
+/** Preserve yesterday's event window while separately checking today's price. */
+export async function collectAssistantQuestionEvidence(question: AssistantQuestion, fund = false): Promise<AssistantEvidencePacket> {
+  const symbol = question.symbol ?? (question.market === 'us' ? '^GSPC' : '^KS11');
+  const mixed = /어제/.test(question.text) && /오늘/.test(question.text);
+  const [primary, latest] = await Promise.all([
+    collectAssistantEvidence(symbol, question.period ?? '1d', fund, question.sessionReference, question.industryFocus),
+    mixed ? collectAssistantEvidence(symbol, '1d', fund, 'latest') : undefined,
+  ]);
+  if (!mixed) return primary;
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: /\.(KS|KQ)$/.test(symbol) || ['^KS11','^KQ11'].includes(symbol) ? 'Asia/Seoul' : 'America/New_York', year:'numeric',month:'2-digit',day:'2-digit' }).format(new Date(primary.checkedAt));
+  // Yesterday's close returned as "latest" is not evidence of today's move.
+  if (!latest?.price || latest.price.day !== today || latest.price.day === primary.price?.day) return {...primary, gaps:[...primary.gaps,'오늘 날짜의 가격 자료를 추가 조회했지만 확인하지 못했어요. 사용자 설명을 확인된 시세처럼 쓰지 마세요.']};
+  const priceSource = latest.evidence.find(source => source.id === 'P1');
+  return {...primary, latestPrice:latest.price, evidence:[...primary.evidence, ...(priceSource ? [{...priceSource,id:'P99',title:`오늘 확인한 ${latest.price.label} 가격`}] : [])]};
 }
 async function quote(symbol: string, label: string, period: AssistantPeriod, now: number, throughDay?: string) {
   try {

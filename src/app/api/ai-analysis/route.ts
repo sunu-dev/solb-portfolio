@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { withAbortDeadline } from '@/lib/withAbortDeadline';
 import { resolveAssistantSubject } from '@/lib/assistantSubject';
 import { cleanAssistantAnswer, assistantPriceClaimIssue, assistantFollowUps, type AssistantEvidencePacket } from '@/lib/assistantEvidence';
-import { collectAssistantEvidence } from '@/lib/assistantEvidenceSource';
+import { collectAssistantQuestionEvidence } from '@/lib/assistantEvidenceSource';
 import { AssistantNewsProviderError, collectAssistantArticles } from '@/lib/assistantArticleSources';
 import { assistantConversationIntent } from '@/lib/assistantIntent';
 import { ASSISTANT_QUESTION, GENERAL_SUBJECT, parseAssistantQuestion, assistantQuestionPrompt, assistantAsksForCause, assistantUnsourcedCauseIssue, assistantReasoningEffort, assistantGenerationModel, assistantQuestionSources, validAssistantReport, assistantReportIssue, assistantContextIssue, assistantNeedsMarketEvidence, assistantNeedsArticles, assistantStatusQuestion, assistantAsksAboutPriceMove } from '@/lib/assistantQuestion';
@@ -608,7 +608,7 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     const [businessContext, collectedEvidence] = await Promise.all([
       measure('business', async () => underlyingSymbol ? companyAnalysisContext(underlyingSymbol) : isFund || isLev || chartRequest || symbol === GENERAL_SUBJECT ? null : companyAnalysisContext(symbol)),
       userQuestion && assistantNeedsMarketEvidence(userQuestion)
-        ? measure('evidence', () => collectAssistantEvidence(userQuestion!.symbol ?? (userQuestion!.market === 'us' ? '^GSPC' : '^KS11'), userQuestion!.period ?? '1d', isFund || isLev, userQuestion!.sessionReference, userQuestion!.industryFocus)) : undefined,
+        ? measure('evidence', () => collectAssistantQuestionEvidence(userQuestion!, isFund || isLev)) : undefined,
     ]);
     let assistantEvidence: AssistantEvidencePacket | undefined = collectedEvidence ? { ...collectedEvidence, evidence: [...collectedEvidence.evidence] } : undefined;
     // 기사를 읽고 설명을 쓰는 동안(보통 10초 안팎) 이미 확인한 등락률부터 보여준다. 답변에 싣는 것과 같은 가격 자료다.

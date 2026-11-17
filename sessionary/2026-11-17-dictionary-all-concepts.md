@@ -19,9 +19,16 @@
 
 ## 미해결 TODO
 - [ ] 새 체험 사용자 디자인 검수 및 실기기 확인.
-- [ ] 사용자 직접push 후 운영READY/alias/사전 확인.
+- [x] 후속 운영 지시로6355927 push/READY/alias/사전 확인 완료.
 - 후속 배포 요청:46afbbf 커밋/main fast-forward 완료. AGENTS.md 사용자직접push 규칙 준수, push/새배포 미실행. 기존 검사코드와 동일하여 전체검사 반복하지 않음.
 
 ## 다음 세션 진입점
 - HANDOFF.txt, src/lib/dictionaryScenes.ts, src/components/learning/DictionaryScenarioStage.tsx.
 - /private/tmp/joobi-dictionary-all 검수harness/스크린샷, /private/tmp/dictionary-*.log.
+
+## 운영 배포 완료
+- 사용자 push대기 안내 후 운영배포 재지시.6355927 push, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY.
+- 원격2971통과22생략/도구4,production빌드 통과. joobi.kr alias일치/공개3경로200.
+- 새배포 최근10분error조회 recordsReturned0. 단기관찰임.
+- 운영guest 사전 분할/분배금 단계선택 및 계산결과 확인,390px 가로넘침없음. 계정저장/유료호출없음.
+- 결과문서만 후속미커밋 유지.

@@ -68,3 +68,9 @@
 - 실검사초기실패는 테스트가 운영정규화(mentor=true/assistant=true)를 누락한 문제. 캡처응답을API없이실제파서로replay해형식/근거ID/맥락검사통과.
 - 전체2971통과18생략,리플레이1통과,빌드/린트통과. /private/tmp/joobi-provider-live-{1,2}.log,replay.log,final-tests.log,build.log.
 - 후속commit/push/운영반영 없음. 현재운영은53573d6이며정정배포필요.
+
+## 13:27 운영 답변 재실패 조사
+- 사용자 질문 어제 시선ai 상승/오늘 하락에 원인없음 답변. 최신6355927 READY 확인.
+- 가장 최근 요청 로그 회사검색2회, 각각본문1/채택0/entity_rejected1. 근거평가 unavailable.
+- 로그에 원문URL/제목없어 정확한 오탈락 여부는 미확정. API400 아닌 본문 대상회사 분류 탈락 단계 확인.
+- 제품코드/유료API/운영수정 없음. 다음은 공개기사 진단정보와 본문/별칭 재현, 복합기간 처리 점검.

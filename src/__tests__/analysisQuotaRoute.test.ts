@@ -47,7 +47,7 @@ vi.mock('@/lib/aiBudgetGuard', () => ({ getAiMonthlyBudgetStatus: state.budget }
 vi.mock('@/lib/aiAgeGate', () => ({ checkCurrentAdultAiConsent: state.consent }));
 vi.mock('@/lib/claudeAnalysis', () => ({ callClaudeAnalysis: state.claude }));
 vi.mock('@/lib/companyAnalysisContext', () => ({ companyAnalysisContext: state.business }));
-vi.mock('@/lib/assistantEvidenceSource', () => ({ collectAssistantEvidence: state.evidence }));
+vi.mock('@/lib/assistantEvidenceSource', () => ({ collectAssistantQuestionEvidence: (q: {symbol?:string;market?:string;period?:string;sessionReference?:string;industryFocus?:string[]}, fund:boolean) => state.evidence(q.symbol ?? (q.market === 'us' ? '^GSPC' : '^KS11'), q.period ?? '1d', fund, q.sessionReference, q.industryFocus) }));
 vi.mock('@/lib/assistantArticleSources', () => ({ collectAssistantArticles: state.articles, AssistantNewsProviderError: class extends Error {} }));
 vi.mock('@/lib/intradaySource', () => ({ readLatestIntraday: state.intraday }));
 

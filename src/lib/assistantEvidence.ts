@@ -23,7 +23,7 @@ export interface PriceComparison {
 }
 export interface AssistantEvidencePacket {
   version: 1; symbol: string; period: AssistantPeriod; checkedAt: string; subjectName?: string;
-  price?: PriceComparison; comparisons: PriceComparison[];
+  price?: PriceComparison; latestPrice?: PriceComparison; comparisons: PriceComparison[];
   evidence: AssistantEvidence[]; gaps: string[];
   session?: AssistantSessionSelection;
   sessionUnavailable?: true;
@@ -108,8 +108,9 @@ export function assistantPriceClaimIssue(report: Record<string, unknown>, packet
     ...(Array.isArray(report.assistantInsights) ? report.assistantInsights.map(item => item?.text) : [])].filter((v): v is string => typeof v === 'string');
   if (texts.some(text => /\b[APNMDFR]\d+\b/.test(text))) return 'unknown_evidence_id';
   if (!packet?.price) return undefined;
+  if (packet.latestPrice && texts.some(text => /(?:내리고|떨어지고)\s*있지\s*않/.test(text))) return 'unsupported_intraday_denial';
   if (packet.price.sessionState === 'intraday' && texts.some(text => /(?:상승|하락|보합)\s*마감(?:했|한|하|이|으로)|마감\s*기준(?:으로|으론)?\s*(?:올|오|내|떨|하락|상승|[+-]?\d)/.test(text))) return 'intraday_described_as_close';
-  const prices = [packet.price, ...packet.comparisons];
+  const prices = [packet.price, ...packet.comparisons, ...(packet.latestPrice ? [packet.latestPrice] : [])];
   // Restrict "only X fell" to the compared subjects. A generic Korean word
   // ending in 만 also matched conjunctions such as "다만" and "하지만".
   const subjectNames = [...new Set(prices.flatMap(price => [price.symbol, price.label, price.label.split(/[\s(]/)[0]]))]
@@ -172,7 +173,7 @@ export function assistantMoneyClaimsMatch(report: Record<string, unknown>, packe
     return values;
   };
   const sourceAmounts = packet.evidence.filter(e => e.kind !== 'headline').flatMap(e => money(e.title + '\n' + e.text));
-  for (const price of [packet.price, ...packet.comparisons]) if (price) sourceAmounts.push({ currency: price.currency, amount: price.price });
+  for (const price of [packet.price, packet.latestPrice, ...packet.comparisons]) if (price) sourceAmounts.push({ currency: price.currency, amount: price.price });
   const texts = [report.currentStatus, ...(Array.isArray(report.keyAdvice) ? report.keyAdvice : []),
     ...(Array.isArray(report.assistantInsights) ? report.assistantInsights.map(item => item?.text) : [])].filter((value): value is string => typeof value === 'string');
   return texts.every(text => /^(?:예를 들어|가령|가상 예|가정한 예)/.test(text) || money(text).every(claim => sourceAmounts.some(source => source.currency === claim.currency && Math.abs(source.amount - claim.amount) <= Math.max(0.01, Math.abs(source.amount) * 0.000001))));

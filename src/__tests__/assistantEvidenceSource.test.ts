@@ -71,3 +71,27 @@ it('compares explicit US industries using ETFs while retaining the same dated ma
   expect(await collectAssistantEvidence('^GSPC','1d',false,'previous',['technology','semiconductors'])).toBe(both);
   expect(fetcher.mock.calls.length).toBe(6);
 });
+
+it('keeps yesterday separate while checking today for a two-date question',async()=>{
+ vi.useFakeTimers();const now=Date.parse('2026-11-17T04:30:00Z');vi.setSystemTime(now);
+ state.companies.mockResolvedValue({cards:[]});state.policies.mockResolvedValue({cards:[]});state.market.mockResolvedValue({events:[],runs:[]});
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.includes('news.google')?new Response('<rss><channel/></rss>'):Response.json({chart:{result:[{
+ meta:{regularMarketTime:now/1000,currency:'KRW',exchangeTimezoneName:'Asia/Seoul'},timestamp:['2026-11-13','2026-11-16','2026-11-17'].map(d=>Date.parse(d+'T00:00:00Z')/1000),indicators:{quote:[{close:[100,126,120]}]},
+ }]}})));
+ const {collectAssistantQuestionEvidence}=await import('@/lib/assistantEvidenceSource');
+ const p=await collectAssistantQuestionEvidence({text:'어제 시선ai는 왜오른거야?? 오늘은 떨어지네',symbol:'340810.KQ',period:'1d',sessionReference:'previous',unclearTerms:[]});
+ expect(p.price).toMatchObject({day:'2026-11-16',price:126});
+ expect(p.latestPrice).toMatchObject({day:'2026-11-17',price:120,sessionState:'intraday'});
+ expect(p.comparisons.every(q=>q.day==='2026-11-16')).toBe(true);
+ expect(p.evidence.find(e=>e.id==='P99')?.text).toContain('2026-11-17');
+});
+it('does not call a stale latest close today',async()=>{
+ vi.useFakeTimers();const now=Date.parse('2026-11-18T04:30:00Z');vi.setSystemTime(now);
+ state.companies.mockResolvedValue({cards:[]});state.policies.mockResolvedValue({cards:[]});state.market.mockResolvedValue({events:[],runs:[]});
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>url.includes('news.google')?new Response('<rss><channel/></rss>'):Response.json({chart:{result:[{
+ meta:{regularMarketTime:Date.parse('2026-11-17T06:30:00Z')/1000,currency:'KRW',exchangeTimezoneName:'Asia/Seoul'},timestamp:['2026-11-16','2026-11-17'].map(d=>Date.parse(d+'T00:00:00Z')/1000),indicators:{quote:[{close:[100,120]}]},
+ }]}})));
+ const {collectAssistantQuestionEvidence}=await import('@/lib/assistantEvidenceSource');
+ const p=await collectAssistantQuestionEvidence({text:'어제 올랐는데 오늘 떨어져?',symbol:'340810.KQ',sessionReference:'previous',unclearTerms:[]});
+ expect(p.latestPrice).toBeUndefined();expect(p.gaps.join(' ')).toContain('오늘 날짜의 가격 자료를 추가 조회했지만');
+});

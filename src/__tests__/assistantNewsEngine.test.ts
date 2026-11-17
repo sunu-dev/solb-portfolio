@@ -28,7 +28,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 it('keeps relevant technology news distinct from a reported price catalyst', () => {
   expect(assessAssistantNews(packet(source()))).toMatchObject({ state: 'relevant_event', sourceIds: ['A1'] });
-  expect(newsAssessmentPrompt(packet(source()))).toContain('직접 원인으로 확정하지 못했어요');
+  expect(newsAssessmentPrompt(packet(source()))).toContain('실제 주가를 움직인 원인으로 입증된 것은 아니라는');
 });
 it('does not let a market wrap satisfy a company question', () => {
   const p = packet(source({ scope: 'market', title: '코스닥 하락', text: '코스닥은 반도체 수요와 정책 우려로 하락했다. '.repeat(10) }));
@@ -158,4 +158,51 @@ it('never sends a known crawler-blocked domain to either provider tool', async (
     expect(tool.allowed_domains).not.toContain('mk.co.kr');
     expect(tool.allowed_domains).toContain('newspim.com');
   }
+});
+
+it('retains a thematic report that explicitly lists the target among movers in its body',()=>{
+ const report=source({title:'시험 보안 우려에 전파탐지 테마주 급등',text:'시험 보안에 대한 우려로 탐지 수요에 관심이 모였다.\n시선AI(340810)와 다른 보안 관련주가 상승했다.\n관련 기술 개발에 대한 관심이며 계약 확정은 아니다.'.repeat(2)});
+ expect(assessAssistantNews(packet(report)).state).toBe('relevant_event');
+ expect(assessAssistantNews(packet({...report,text:report.text.replaceAll('시선AI','다른회사')})).state).toBe('context_only');
+});
+it('recognizes verified Korean and spaced issuer names in article bodies',async()=>{
+ const {companyNewsIdentity}=await import('@/lib/companyNewsIdentity');
+ const identity=companyNewsIdentity('340810.KQ','시선AI');
+ for(const name of ['시선AI','시선 AI','시선에이아이','시선 에이아이'])expect(identity.matches(`${name}는 탐지 기술을 개발했다.`)).toBe(true);
+ expect(identity.matches('다른시선AI는 개발했다.')).toBe(false);
+});
+it('passes rejected public candidates into the recovery search',async()=>{
+ m.request.mockResolvedValueOnce(response([source({title:'다른회사 기술 개발',text:'다른회사는 보안 기술을 개발했다. '.repeat(20)})])).mockResolvedValueOnce(response([source()]));
+ const {collectAssistantArticles}=await import('@/lib/assistantArticleSources');
+ expect(await collectAssistantArticles(base)).toHaveLength(1);
+ expect(m.request.mock.calls[1][0].messages[0].content).toContain('다른회사 기술 개발');
+ expect(m.request.mock.calls[1][0].messages[0].content).toContain('do not fetch the same URLs again');
+});
+it('separates both dates in the answer contract and accepts only supplied latest percentages',async()=>{
+ const {assistantPriceClaimIssue}=await import('@/lib/assistantEvidence');
+ const p={...packet(source()),latestPrice:{...base.price!,day:'2026-11-17',baselineDay:'2026-11-16',price:3000,changePercent:-6.25,sessionState:'intraday' as const}};
+ const prompt=assistantQuestionPrompt({text:'어제 왜 올랐어? 오늘은 떨어지네',symbol:base.symbol,unclearTerms:[],sessionReference:'previous'},{evidence:p});
+ expect(prompt).toContain('[두 날짜를 함께 묻는 질문]');expect(prompt).toContain('latestPrice');
+ expect(assistantPriceClaimIssue({currentStatus:'오늘은 6.25% 하락 중이에요.'},p)).toBeUndefined();
+ expect(assistantPriceClaimIssue({currentStatus:'오늘은 9.99% 하락 중이에요.'},p)).toBe('unverified_percentage');
+});
+it('does not turn yesterday rise into a decline premise because today falls',async()=>{
+ const {assistantPricePremise}=await import('@/lib/assistantQuestion');
+ expect(assistantPricePremise({text:'어제 시선ai는 왜오른거야?? 오늘은 떨어지네',unclearTerms:[]})).toBe('up');
+ expect(assistantPricePremise({text:'오늘은 떨어지네. 어제는 왜 오른거야?',unclearTerms:[]})).toBe('up');
+});
+it('spends the recovery search on company detail after a theme-only report',async()=>{
+ const theme=source({title:'시험 보안 관련주 급등',text:'시험 보안 수요로 탐지 기술에 관심이 모였다.\n시선AI와 다른 회사의 주가가 상승했다.\n'.repeat(6)});
+ m.request.mockResolvedValueOnce(response([theme])).mockResolvedValueOnce(response([source({url:'https://www.newspim.com/news/view/company-detail'})]));
+ const {collectAssistantArticles}=await import('@/lib/assistantArticleSources');
+ expect(await collectAssistantArticles(base)).toHaveLength(2);
+ expect(m.request).toHaveBeenCalledTimes(2);
+ const content=m.request.mock.calls[1][0].messages[0].content;
+ expect(content).toContain('company-specific');expect(content).toContain('"from":"2026-11-16"');
+});
+it('does not deny an intraday decline merely because price remains above the prior close',async()=>{
+ const {assistantPriceClaimIssue}=await import('@/lib/assistantEvidence');
+ const p={...base,latestPrice:{...base.price!,day:'2026-11-17',changePercent:1,intradayHighChangePercent:10,sessionState:'intraday' as const}};
+ expect(assistantPriceClaimIssue({currentStatus:'현재 내리고 있지 않아요.'},p)).toBe('unsupported_intraday_denial');
+ expect(assistantPriceClaimIssue({currentStatus:'어제 종가보다 높지만 오늘 고점보다 낮아요.'},p)).toBeUndefined();
 });

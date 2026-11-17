@@ -198,3 +198,10 @@ it('accepts issuer reporting and marks market-only stock coverage incomplete', (
  expect(fetchedArticleEvidence([block],stock)).toHaveLength(1);
  expect(needsArticleSupplement(stock,[{id:'A1',kind:'article',scope:'market',title:'US stocks',text:'US stocks declined',url:'https://finance.yahoo.com/news/test',publisher:'Yahoo',publishedAt:packet.checkedAt,checkedAt:packet.checkedAt}])).toBe(true);
 });
+it('keeps original product and limitation paragraphs while removing generated summaries and related stories',()=>{
+ const title='가상기업 시험 보안 기술';
+ const text=`# ${title}\n### AI 핵심 요약\n- 자동 요약은 공급을 확정했다고 잘못 주장한다.\n!AI가 자동 생성한 요약으로 정확하지 않을 수 있어요.\n가상기업은 얼굴인식 기반 시험 보안 기술을 개발하고 있다.\n최초 로그인 이후에도 사용자가 바뀌는지 확인하는 기능이 있다.\n다만 실제 시험장 도입은 각 기관의 검증과 계약에 따라 결정된다.\n### [관련기사]\n다른회사는 무조건 공급을 확정했다는 별도 기사다.`;
+ const passages=articlePassages(text,title);
+ expect(passages).toContain('로그인 이후');expect(passages).toContain('각 기관의 검증');
+ expect(passages).not.toContain('자동 요약');expect(passages).not.toContain('다른회사');
+});

@@ -1,16 +1,16 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 배포 요청에 따라 사전 전체 체험 커밋/main통합 완료, 사용자 push 대기.
-브랜치: main
-검증 기준: 제품 커밋46afbbf. 검사 후 제품코드 변경 없음.
-최신 요청: 배포 마저하자. 검사된 변경을 main에 통합. AGENTS.md에 따라 push는 사용자 직접.
-운영: origin/main 3d9a4d8, dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH READY
-배포 URL: solb-portfolio-a48qua69k-sunudevelop-1252s-projects.vercel.app
-복구 후보: 02be1b3 / dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG
+담당: Codex — 사용자 운영반영 지시. 최종빌드 통과, main 통합/커밋 준비.
+브랜치: fix/assistant-news-reliability-20261117
+검증 기준: 운영6355927 + 이번 챗봇 수정 미커밋.
+최신 요청: 운영 반영. AGENTS.md에 따라 사용자 직접push를 위한 main 통합 준비, 도구push/배포 없음.
+운영: main/origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
+배포 URL: solb-portfolio-9dq8xnkj4-sunudevelop-1252s-projects.vercel.app
+복구 후보: 3d9a4d8 / dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH
 
 필수 규칙
 - AGENTS.md → 이 파일 → 관련 기록. 제품 변경 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
-- main push는 운영 자동배포. 기본 사용자 직접 push. 이번 사전 확장 push/배포 없음.
+- main push는 운영 자동배포. 기본 사용자 직접 push. 이번에는 후속 운영배포 지시로6355927 push 완료.
 - 운영 인증·계정 데이터·DB·환경변수 변경 없음.
 
 최신 운영 반영 — 뉴스 검색 오류/회사 별칭
@@ -25,7 +25,7 @@
 - 배포 전 전체2971통과18생략/빌드/lint 통과. 이번 후속 error로그 조회는 미실행.
 - 상세 sessionary/2026-11-17-chat-submit-stop-quality.md, docs/JOOBI_NEWS_ANSWER_ENGINE.md.
 
-현재 사전 작업 — 로컬 구현 완료, 미배포
+현재 사전 작업 — 운영 배포 완료
 - 기존5개 체험 유지 + 나머지53개에 수치/분할/캔들/단계별 구조 체험 추가. 전체58개.
 - stock-split/reverse-split: 조각 수·주당가격이 바뀌어도 전체가치 보존.
 - distribution: 지급 전→현금 분배→가격 하락. 현금+상품가치 합계 함께 표시.
@@ -42,7 +42,7 @@
 - 상세 sessionary/2026-11-17-dictionary-all-concepts.md.
 
 다음 작업
-1. main 통합 후 사용자 git push origin main → Vercel READY/alias 및 운영 사전 확인.
+1. 운영 새 체험 사용자 디자인 검수/실기기 확인.
 2. 운영 로그인 후 시선에이아이 실제 답변 확인. 추가 유료호출은 승인 범위에 유의.
 3. 뉴스 엔진30+10사례 평가/근거 충돌 판정 후속. 사용자에게 조사 전가·반복문구 추가 검토.
 
@@ -54,7 +54,45 @@
 - 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
 
 환경·미커밋
-- 제품 커밋46afbbf main통합 완료. 후속 기록 커밋 포함 사용자 push 대기, 새 운영배포 없음.
+- 배포6355927 push완료. 배포결과 HANDOFF/TODO/세션기록만 후속미커밋. 문서만 재배포하지 않음.
 - 로컬 검수 서버3016 종료. 이번 작업에서 새 프로세스 없음.
 - /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
 - Vercel CLI65.15.0.65.16.0 업그레이드 미수행.
+
+사전 운영검증(11/17)
+- 원격2971통과22생략/도구4통과/production build READY. joobi.kr alias일치.
+- 홈/시장/경제일정200. 새배포 최근10분error조회0건(단기관찰).
+- 운영 guest 사전 주식분할2대1(5만원×2주=10만원), 분배금95+5=100 조작 확인.390px 가로넘침없음.
+- 계정저장/유료API호출없음. 실기기/사용자최종미감 검수 별도.
+- /private/tmp/joobi-dictionary-final-{inspect,alias,errors}.json* 및 final-build.log.
+
+챗봇 사용자 검수 실패(11/17 13:27 KST 요청)
+- 최신 배포6355927 READY 확인. 가장 최근 ai-analysis 요청 검색2회 각각fetch1/accepted0/entity_rejected1.
+- 최종assessment unavailable/primary0/background0. 이전API400 재발 증거없음.
+- 가져온 기사 URL/제목/사용한 회사별칭은 현 로그에 없어 관련기사 오탈락인지 엉뚱한기사 검색인지 미확정.
+- 다음: 공개기사 진단메타 보강/실패본문 확보→회사식별·본문추출 검사. 어제+오늘 복합시간 처리 별도 확인.
+- 이번엔 읽기전용 조사. 제품수정/추가유료API/배포없음. /private/tmp/joobi-answer-audit-logs.jsonl.
+
+챗봇 후속수정(11/17 13:38 KST)
+- 회사뉴스 식별에 시선AI 한글/띄어쓰기 별칭 추가. 탈락기사 공개URL/제목/종목 진단 및 재검색 회피목록 전달.
+- 제목에 회사가 없지만 본문앞에서 종목 움직임을 명시한 테마주 보도를 relevant_event로 인정. 다른회사 단독제목/시장기사는 여전히 제외. 직접원인 확정 금지.
+- 어제+오늘 질문: 어제 근거기간 보존, 오늘가격 별도조회/latestPrice/P99. 최신자료가 어제인 경우 오늘로 취급안함.
+- 질문가격전제도 어제 문장 기준. 오늘하락을 어제상승과 혼동하지 않음.
+- 이전API승인 남은1회사용: 서울경제11/16 전파탐지 테마주기사 실제확보. 총4/4회소진.
+- 당시 운영에서 탈락한 두 기사URL은 여전히 미확보. 새재현에서 후속판정 제목제한이 실제기사 버리는 문제 추가확인.
+- 실제응답 재사용+공개시세조회(유료0회)로 relevant_event/sourceA1,어제11/16+26.23%,오늘11/17 13:17KST -3.44% 확보 확인. 현재시세로 재사용금지.
+- 전체2981통과20생략,후속관련58통과,tsc/ESLint/webpack빌드통과. 이후 opt-in검증파일 추가는 타입통과.
+- 추가승인12회 모두사용: 검색4회/생성6회 성공, 마지막생성2회 provider 사용한도400. 이후 모델호출 중단. 새배포없음.
+- 최종 전체2984통과22생략,타입/ESLint/webpack빌드 통과. 로그 /private/tmp/joobi-reliability-release-*.log.
+- 뉴스핌 해당일 회사기사 독립검색2회 성공. AI요약/관련기사 제거,짧은본문/로그인 제품문장 보존 수정.
+- 생성6회에서 구체적 회사기술/관련사건/오늘가격시각 확인. 마지막 문구수정 후 실제생성은 한도오류로 미검증.
+- 최종 추가4회 생성 성공: 원질문/한글별칭·명시적 오늘하락 질문 검수. 기존 공개근거·시세 스냅샷 재사용, 현재시세 검증 아님.
+- 개선: 겹친 가능성/딱딱한 한계문구 축약,불필요한 인증이력 제거,사업자료에 기사ID 대용 금지,기술개선중 상태 보존.
+- 최종 전체2984통과22생략/타입/ESLint 통과. 최종 next build --webpack 통과. /private/tmp/joobi-reliability-deploy-build.log.
+- 실제생성 /private/tmp/joobi-reliability-answerfinal1~4.json,전체검사 joobi-reliability-final-tests.log. 추가호출허용량4/4 사용.
+- 다음: main 통합/커밋→사용자push→운영READY/alias/공개응답 검증. 전종목30+10사례 평가는 후속.
+- 비용조사 중 모델호출0. 로컬키 콘솔마스킹 식별정보 일치. 운영변수 sensitive로 값 미반환: 불일치 증거 아님.
+- 전체운영변수 다운로드/콘솔키 상세열기 자동검토 거절. 후속 허가된 단일변수 조회는 값 비공개로 대조불가.
+- 키/과금 개인계정 내역은 저장소에 기록하지 않음. 결제/한도/키 변경 없음.
+- 공개본문/실응답 /private/tmp/joobi-reliability-{response,packet,replay}.json. 생성검증파일 assistantReliabilityAnswerLive.test.ts.
+- 현재작업코드 및 이전배포결과기록 미커밋. 서버프로세스없음.

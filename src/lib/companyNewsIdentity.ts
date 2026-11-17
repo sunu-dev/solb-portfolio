@@ -1,6 +1,7 @@
 import { STOCK_KR } from '@/config/constants';
 
 export const COMPANY_NEWS_ALIASES: Record<string, string[]> = {
+  '340810.KQ': ['시선AI', '시선 AI', '시선에이아이', '시선 에이아이'],
   MU: ['마이크론', 'Micron', 'Micron Technology', '마이크론 테크놀로지'],
   '005930.KS': ['삼성전자', 'Samsung Electronics'],
   MSFT: ['마이크로소프트', 'Microsoft'],
