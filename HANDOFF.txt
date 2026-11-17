@@ -1,9 +1,9 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 운영반영지시로 아이콘투명화 커밋/push/배포진행.
+담당: Codex — 아이콘투명화1895ad4 운영배포/CI/모바일·다크실검수완료.
 브랜치: main
-검증 기준/원격main:630d8f9(제품db64370). 원격push완료.
-현재운영:630d8f9, dpl_7zZkkt8pBmG2UqKxf13aQZvFwUQy READY/joobi.kr alias일치.
+검증 기준/원격main:1895ad4. CI44086751637 검증/프로덕션빌드success.
+현재운영:1895ad4, dpl_8RDa26qXffe6mPVRandcsv8R62Hi READY/joobi.kr alias일치.
 운영주소: https://joobi.kr
 
 필수 규칙
@@ -11,10 +11,11 @@
 - 기본은 사용자직접push. 이번에는 직접push안내후 사용자가 운영배포를 재지시해 이번 배포push포함 진행으로 해석하고 알린뒤 실행.
 - 이번 승인 검색2회/생성1회 모두사용. 추가모델호출없음. 별도결제가 아닌 기존API 검증사용량. DB/키/클라우드계정설정 변경없음.
 
-현재 후속변경
+최신배포 — 투명아이콘
 - 사용자 누끼요청:기존투명이미지 유지하고 버튼배경/테두리/그림자/hover박스 제거.
 - CSS3파일,44px터치/키보드포커스 유지. 밝음·어두움 hover 모두투명/0px/none,390px사전열기통과.
-- darkmode게이트/diff검사통과. 스크린샷 /private/tmp/joobi-cutout-icons.png. 서버종료.
+- darkmode게이트/diff검사통과. 운영홈200/390px밝음·어두움 hover투명·border0·shadow없음/사전열기확인.
+- 최근5분오류조회0건. 추가AI호출없음. 스크린샷 /private/tmp/joobi-cutout-icons.png. 서버종료.
 
 최신 배포 — 기업 리서치
 - 제품커밋 db64370(main). 신규검색/기업별답변 경로,초기별칭Anthropic/OpenAI/SpaceX+기존카탈로그.

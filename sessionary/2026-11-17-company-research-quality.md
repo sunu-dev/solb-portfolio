@@ -65,3 +65,8 @@
 - launcher iconOnly,LearningDesk진입,DictionaryShortcut hover 배경제거. 44px히트영역/포커스유지.
 - 밝음/어두움 hover계산스타일배경transparent,border0,shadow none. 390px사전lazy로드후열기통과/넘침없음.
 - darkmode게이트/diff검사통과. CSS만변경이라전체테스트/빌드재실행안함. 서버종료. 미커밋/미배포.
+
+## 투명아이콘 운영완료
+- 사용자운영반영지시로1895ad4 커밋/push완료. Vercel dpl_8RDa26qXffe6mPVRandcsv8R62Hi READY,joobi.kr alias일치.
+- CI44086751637 검증/프로덕션빌드success. 운영홈200/390px/밝음·다크 hover 배경투명,border0,shadow없음/사전열기확인.
+- 최근5분오류조회0건. 추가AI호출없음. 최종문서만로컬커밋/추가push없음,.playwright-mcp 미추적유지.
