@@ -1,10 +1,10 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 사용자 배포 요청에 따라 사전 전체 체험 커밋/main통합 진행.
-브랜치: feat/dictionary-all-concepts-20261117
-검증 기준: 3d9a4d8 + 사전 미커밋 변경
+담당: Codex — 사용자 배포 요청에 따라 사전 전체 체험 커밋/main통합 완료, 사용자 push 대기.
+브랜치: main
+검증 기준: 제품 커밋46afbbf. 검사 후 제품코드 변경 없음.
 최신 요청: 배포 마저하자. 검사된 변경을 main에 통합. AGENTS.md에 따라 push는 사용자 직접.
-운영: main/origin/main 3d9a4d8, dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH READY
+운영: origin/main 3d9a4d8, dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH READY
 배포 URL: solb-portfolio-a48qua69k-sunudevelop-1252s-projects.vercel.app
 복구 후보: 02be1b3 / dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG
 
@@ -54,6 +54,7 @@
 - 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
 
 환경·미커밋
-- 사전 제품코드/테스트/기록은 현재 작업 브랜치 미커밋. main과 운영은 뉴스 수정까지.
+- 제품 커밋46afbbf main통합 완료. 후속 기록 커밋 포함 사용자 push 대기, 새 운영배포 없음.
+- 로컬 검수 서버3016 종료. 이번 작업에서 새 프로세스 없음.
 - /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
 - Vercel CLI65.15.0.65.16.0 업그레이드 미수행.

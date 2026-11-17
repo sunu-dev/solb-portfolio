@@ -19,7 +19,8 @@
 
 ## 미해결 TODO
 - [ ] 새 체험 사용자 디자인 검수 및 실기기 확인.
-- [ ] 요청 시 통합/커밋, 사용자 직접push. 현재 미커밋/미배포.
+- [ ] 사용자 직접push 후 운영READY/alias/사전 확인.
+- 후속 배포 요청:46afbbf 커밋/main fast-forward 완료. AGENTS.md 사용자직접push 규칙 준수, push/새배포 미실행. 기존 검사코드와 동일하여 전체검사 반복하지 않음.
 
 ## 다음 세션 진입점
 - HANDOFF.txt, src/lib/dictionaryScenes.ts, src/components/learning/DictionaryScenarioStage.tsx.

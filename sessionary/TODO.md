@@ -1447,4 +1447,4 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - **11/17 운영3d9a4d8:** 전송/중단/엔진v1 및 검색400(mk.co.kr제거)/시선에이아이 별칭 배포완료. dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH READY,alias/공개3경로200. 승인된 실API3회로 뉴스핌기사 수집·생성확인.
 - [ ] 뉴스 엔진 운영 로그인 최종대화/30+10사례 평가/충돌판정·반복문구 개선. docs/JOOBI_NEWS_ANSWER_ENGINE.md.
-- [ ] 사전58개 전체체험 로컬구현/검사통과, 사용자미감·실기기검수/통합은후속. 별도브랜치 미커밋/미배포. sessionary/2026-11-17-dictionary-all-concepts.md.
+- [ ] 사전58개 전체체험 로컬구현/검사통과, 46afbbf main통합 완료. 사용자push/운영확인·실기기검수 후속, 미배포. sessionary/2026-11-17-dictionary-all-concepts.md.
