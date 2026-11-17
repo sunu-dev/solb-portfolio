@@ -281,14 +281,14 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         const answerName = STOCK_KR[answer.symbol] || (answer.assistantEvidence?.price?.symbol === answer.symbol ? answer.assistantEvidence.price.label : undefined) || answer.symbol;
         // 같은 종목·같은 거래일 답이 이어지면 대상 표시를 반복하지 않는다.
         const previous = answers.slice(0, index).findLast(item => !item.local);
-        const sameSubjectAsPrevious = !!previous && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
+        const sameSubjectAsPrevious = !!previous && previous.assistantEvidence?.companyResearch?.id === answer.assistantEvidence?.companyResearch?.id && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
         return <section key={answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
           <p className={chat.userMessage}><span className="sr-only">내 질문: </span>{answer.question}</p>
           <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? joobiReplyReaction(answer.question, !!answer.local) : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
-      {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : answerName !== answer.symbol ? `${answerName} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
-      {!answer.local && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에서 확인한 종목은 {answerName}예요.</p>}
+      {!answer.local && !answer.pricePreview && (answer.assistantEvidence?.companyResearch || answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.assistantEvidence?.companyResearch ? answer.assistantEvidence.companyResearch.name : answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : answerName !== answer.symbol ? `${answerName} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
+      {!answer.local && !answer.assistantEvidence?.companyResearch && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에서 확인한 종목은 {answerName}예요.</p>}
       {answer.pricePreview && <PriceStrip preview={answer.pricePreview} />}
       <AnswerParagraphs text={answer.currentStatus} />
       {answer.keyAdvice.map((text, index) => <AnswerParagraphs key={index} text={text} />)}

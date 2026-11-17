@@ -1,3 +1,4 @@
+import { resolveCompanyResearch } from './assistantCompanyResearch';
 import snapshot from '../../public/stock-catalog.json';
 import { STOCK_KR } from '@/config/constants';
 import { EXTRA_ALIASES } from '@/config/stockSearchAliases';
@@ -9,7 +10,7 @@ import { assistantIntent } from './assistantIntent';
 
 // Server-only catalog matching: no model request, portfolio access or fuzzy issuer guesses.
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const commonWords = new Set(['A', 'I', 'AI', 'IT', 'ON', 'BE', 'FOR', 'OR', 'ALL', 'ANY', 'NOW', 'NEW', 'OPEN', 'CAN', 'ARE', 'CEO', 'ETF']);
+const commonWords = new Set(['A', 'I', 'AI', 'IT', 'ON', 'BE', 'FOR', 'OR', 'ALL', 'ANY', 'NOW', 'NEW', 'OPEN', 'CAN', 'ARE', 'CEO', 'ETF', 'IPO']);
 const catalog = new Map(snapshot.stocks.map(stock => [stock.symbol, stock]));
 const symbols = new Set([...catalog.keys(), ...Object.keys(STOCK_KR)]);
 const entries = [...symbols].map(symbol => {
@@ -41,6 +42,15 @@ function mentionedIndustries(text: string): AssistantIndustry[] {
 const wholeMarket = (text: string) => /시장\s*전체|전체\s*(?:시장|증시)|증시\s*전체|\b(?:broad market|market[- ]wide)\b/i.test(text);
 const mentionedMarket = (text: string): 'kr' | 'us' | undefined => /미국(?:의)?\s*(?:시장|증시|주식|기술주|기술\s*업종|반도체)|미장|나스닥|S&P\s*500|\b(?:US|U\.S\.|American)\s+(?:semiconductor|chip|tech|technology|stock)/i.test(text) ? 'us' : /한국(?:의)?\s*(?:시장|증시|주식|기술주|반도체)|국내\s*(?:시장|증시|주식|기술주|반도체)|국장|코스피|코스닥/.test(text) ? 'kr' : undefined;
 export function resolveAssistantSubject(question: AssistantQuestion): { question: AssistantQuestion; candidates: { symbol: string; label: string }[] } {
+  let companyResearch = resolveCompanyResearch(question, mentionedAssistantStocks(question.text));
+  if (!companyResearch && /^(?:그럼|그러면|그 회사|이 회사|거기|수익|매출|비용|공모가)/.test(question.text) && !mentionedAssistantStocks(question.text).length && !mentionedMarket(question.text)) {
+    const previous = question.history?.at(-1);
+    if (previous) companyResearch = resolveCompanyResearch({ ...question, text: previous.question, history: [] }, mentionedAssistantStocks(previous.question));
+  }
+  if (companyResearch) {
+    const listedSymbol = symbols.has(companyResearch.id) ? companyResearch.id : undefined;
+    return { question: { ...question, companyResearch, symbol: listedSymbol, market: listedSymbol ? /\.K[SQ]$/.test(listedSymbol) ? 'kr' : 'us' : undefined, sessionReference: undefined, industryFocus: undefined }, candidates: [] };
+  }
   const reference = (text: string): AssistantSessionReference | undefined => /어제/.test(text) ? 'previous' : /오늘|최근\s*거래일|(?:최근\s*)?5\s*(?:거래)?일|이번\s*주|최근\s*(?:한|1)\s*(?:달|개월)|20\s*거래일/.test(text) ? 'latest' : undefined;
   // Current words override prior relative choices. Earlier generated answers
   // are never date selectors; history carries only a validated relative choice,

@@ -1,3 +1,4 @@
+import type { CompanyResearch } from './assistantCompanyResearch';
 /** Public evidence contract. No account information or generated text is evidence. */
 import type { AssistantSessionSelection } from './assistantSession';
 import { usCalendarDay } from '@/config/usTradingCalendar';
@@ -22,6 +23,7 @@ export interface PriceComparison {
   sessionState?: 'intraday' | 'closed' | 'unknown';
 }
 export interface AssistantEvidencePacket {
+  companyResearch?: CompanyResearch;
   version: 1; symbol: string; period: AssistantPeriod; checkedAt: string; subjectName?: string;
   price?: PriceComparison; latestPrice?: PriceComparison; comparisons: PriceComparison[];
   evidence: AssistantEvidence[]; gaps: string[];

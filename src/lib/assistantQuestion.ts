@@ -1,3 +1,4 @@
+import { companyResearchPrompt, type CompanyResearch } from './assistantCompanyResearch';
 import { assessAssistantNews, newsAssessmentPrompt, newsEngineEnabled } from './assistantNewsAssessment';
 import { ASSISTANT_PERIODS, ASSISTANT_INDUSTRIES, validateAssistantInsights, assistantPriceClaimsMatch, assistantMoneyClaimsMatch, assistantElectionClaimsMatch, type AssistantIndustry, type AssistantPeriod, type AssistantEvidencePacket } from './assistantEvidence';
 import { financialTerm, financialTermMatches } from './financialTerms';
@@ -12,7 +13,7 @@ export const ASSISTANT_QUESTION = { id: 'ask-joobi', mentor: 'simple', question:
 export const GENERAL_SUBJECT = 'GENERAL';
 export const QUESTION_LIMIT = 600;
 export interface AssistantTurn { question: string; answer: string; symbol?: string; market?: 'kr' | 'us'; period?: AssistantPeriod; sessionReference?: AssistantSessionReference; industryFocus?: AssistantIndustry[] }
-export interface AssistantQuestion { text: string; symbol?: string; confirmedSymbol?: string; unclearTerms: string[]; period?: AssistantPeriod; market?: 'kr' | 'us'; history?: AssistantTurn[]; sessionReference?: AssistantSessionReference; industryFocus?: AssistantIndustry[] }
+export interface AssistantQuestion { companyResearch?: CompanyResearch; text: string; symbol?: string; confirmedSymbol?: string; unclearTerms: string[]; period?: AssistantPeriod; market?: 'kr' | 'us'; history?: AssistantTurn[]; sessionReference?: AssistantSessionReference; industryFocus?: AssistantIndustry[] }
 const cleanText = (value: unknown, max: number, min = 2): value is string => typeof value === 'string' && value.trim().length >= min && value.length <= max && !/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(value);
 export function assistantFollowUpStyle(question: AssistantQuestion): 'simpler' | 'example' | null {
   if (!question.history?.length) return null;
@@ -43,12 +44,12 @@ export function assistantDefinitions(question: AssistantQuestion) {
   return [...new Set([...financialTermMatches(question.text).map(match => match.id), ...question.unclearTerms])].slice(0, 10).map(id => financialTerm(id)!);
 }
 export function assistantReasoningEffort(question: AssistantQuestion): 'low' | 'medium' {
-  return assistantConversationIntent(question) !== 'explain' || assistantNeedsMarketEvidence(question) || question.history?.length || /%|계산|수익률|배수|다음\s*날|며칠/.test(question.text) ? 'medium' : 'low';
+  return question.companyResearch || assistantConversationIntent(question) !== 'explain' || assistantNeedsMarketEvidence(question) || question.history?.length || /%|계산|수익률|배수|다음\s*날|며칠/.test(question.text) ? 'medium' : 'low';
 }
 /** Server configuration only. The existing Haiku choice remains the default. */
 export function assistantGenerationModel(question: AssistantQuestion): 'claude-haiku-5-5' | 'claude-sonnet-5-5' {
   return process.env.JOOBI_ASSISTANT_REASONING_MODEL === 'claude-sonnet-5-5'
-    && (assistantConversationIntent(question) !== 'explain' || assistantNeedsArticles(question) || assistantStatusQuestion(question) || !!question.history?.length)
+    && (question.companyResearch || assistantConversationIntent(question) !== 'explain' || assistantNeedsArticles(question) || assistantStatusQuestion(question) || !!question.history?.length)
     ? 'claude-sonnet-5-5' : 'claude-haiku-5-5';
 }
 
@@ -66,10 +67,11 @@ export function assistantPricePremise(question: AssistantQuestion): 'down' | 'up
 /** 실존 인물의 사생활이나 자극적인 의혹 표현. "사생활 보호"(제품 기능), "내연기관", "예외도"처럼 다른 뜻으로 쓰인 말은 잡지 않는다. */
 const PERSONAL_ALLEGATION = /사생활(?!\s*(?:보호|침해))|폭로|스캔들|불륜|내연\s*(?:남|녀|관계)|염문|추문|혼외|사생아/;
 
-export function assistantContextIssue(report: Record<string, unknown>, question: AssistantQuestion): 'invented_question_premise' | 'relative_election_time' | 'personal_allegation' | undefined {
+export function assistantContextIssue(report: Record<string, unknown>, question: AssistantQuestion): 'invented_question_premise' | 'relative_election_time' | 'personal_allegation' | 'company_topic_drift' | undefined {
   const texts = [report.currentStatus, ...(Array.isArray(report.keyAdvice) ? report.keyAdvice : []),
     ...(Array.isArray(report.assistantInsights) ? report.assistantInsights.map(item => item?.text) : [])]
     .filter((value): value is string => typeof value === 'string');
+  if (question.companyResearch && texts.some(text => /오늘.{0,12}(?:증시|시장).{0,20}(?:약세|하락|원인)|직전 거래일|코스피는|코스닥은/.test(text))) return 'company_topic_drift';
   if (assistantPricePremise(question) === 'unspecified' && texts.some(text => /질문(?:의|하신)?\s*전제와\s*(?:달리|다르)|(?:떨어졌|하락했|올랐|상승했)다고\s*(?:말씀|하셨|물으셨)/.test(text))) return 'invented_question_premise';
   // A relative election date is ambiguous between the request, article and price day.
   // Even a sourced date should be written as an explicit date, or omitted if irrelevant.
@@ -192,6 +194,7 @@ export function assistantUnsourcedCauseIssue(report: Record<string, unknown>, op
 }
 
 export function assistantQuestionPrompt(question: AssistantQuestion, context: { business?: string; product?: string; prices?: string; evidence?: AssistantEvidencePacket; withoutReporting?: boolean }) {
+  if (question.companyResearch) return companyResearchPrompt(question, context.evidence);
   const evidence = context.evidence;
   const newsContract = newsEngineEnabled() && assistantNeedsArticles(question) && evidence;
   if (newsContract) {
@@ -345,6 +348,7 @@ export function assistantPrincipleQuestion(text: string) {
 
 /** Cheap routing: company/product/concept questions need no market fetch; ambiguous follow-ups inherit the recent topic. */
 export function assistantNeedsMarketEvidence(question: AssistantQuestion) {
+  if (question.companyResearch) return false;
   if (assistantFollowUpStyle(question)) return false;
   const intent = assistantConversationIntent(question);
   if (intent !== 'explain') return intent !== 'trending' && Boolean(question.symbol);
@@ -366,6 +370,7 @@ export function assistantNeedsMarketEvidence(question: AssistantQuestion) {
 /** "요즘 어때?"처럼 근황을 묻는 말. 가격과 소식을 함께 확인하되, 기사가 없어도 확인된 범위로 답한다.
  * 시간 표현이 없는 "어때"는 종목이 정해진 대화에서만 근황 질문으로 본다. */
 export function assistantStatusQuestion(question: AssistantQuestion) {
+  if (question.companyResearch) return false;
   if (assistantFollowUpStyle(question) || assistantConversationIntent(question) !== 'explain') return false;
   const text = question.text;
   if (/(?:뭐(?:야|예요)|무슨\s*뜻|뜻이|정의|차이)/.test(text)) return false;
@@ -379,12 +384,14 @@ export function assistantStatusQuestion(question: AssistantQuestion) {
 /** 가격 움직임 자체를 묻는 질문. 설명을 쓰는 동안 서버가 확인한 등락률을 먼저 보여준다.
  * 매수·매도 고민에는 그날의 등락률을 앞세우지 않는다. */
 export function assistantAsksAboutPriceMove(question: AssistantQuestion) {
+  if (question.companyResearch) return false;
   if (assistantFollowUpStyle(question) || assistantConversationIntent(question) !== 'explain') return false;
   return assistantStatusQuestion(question) || /주가|가격|시세|올랐|오르|올라|내렸|내려|내리|떨어|하락|상승|급등|급락|폭등|폭락|반등|움직|빠졌|빠지|등락|무슨\s*일/.test(question.text);
 }
 
 /** Simple definitions and price comparisons do not pay for web research. Follow-up topics stay connected. */
 export function assistantNeedsArticles(question: AssistantQuestion) {
+  if (question.companyResearch) return false;
   if (assistantFollowUpStyle(question)) return false;
   const intent = assistantConversationIntent(question);
   if (intent !== 'explain') return intent !== 'trending' && Boolean(question.symbol);

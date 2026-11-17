@@ -1,3 +1,4 @@
+import { companyResearchPacket } from '@/lib/assistantCompanyResearch';
 import { assessAssistantNews, newsAnswerIssue, newsEngineEnabled } from '@/lib/assistantNewsAssessment';
 import { joobiProgressResponse, type JoobiPreview, type JoobiProgress } from '@/lib/joobiProgress';
 import { randomUUID } from 'node:crypto';
@@ -606,8 +607,8 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     const underlyingSymbol = userQuestion ? fundProfile(symbol)?.underlyingSymbol : undefined;
     progress('sources');
     const [businessContext, collectedEvidence] = await Promise.all([
-      measure('business', async () => underlyingSymbol ? companyAnalysisContext(underlyingSymbol) : isFund || isLev || chartRequest || symbol === GENERAL_SUBJECT ? null : companyAnalysisContext(symbol)),
-      userQuestion && assistantNeedsMarketEvidence(userQuestion)
+      measure('business', async () => userQuestion?.companyResearch ? null : underlyingSymbol ? companyAnalysisContext(underlyingSymbol) : isFund || isLev || chartRequest || symbol === GENERAL_SUBJECT ? null : companyAnalysisContext(symbol)),
+      userQuestion?.companyResearch ? companyResearchPacket(userQuestion) : userQuestion && assistantNeedsMarketEvidence(userQuestion)
         ? measure('evidence', () => collectAssistantQuestionEvidence(userQuestion!, isFund || isLev)) : undefined,
     ]);
     let assistantEvidence: AssistantEvidencePacket | undefined = collectedEvidence ? { ...collectedEvidence, evidence: [...collectedEvidence.evidence] } : undefined;
@@ -617,7 +618,7 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
         prices: [collectedEvidence.price, ...collectedEvidence.comparisons].slice(0, 4).map(({ symbol, label, changePercent }) => ({ symbol, label, changePercent })) });
     }
     // 근황 질문은 기사를 찾아보되, 없으면 가격·제목만 확인한 범위로 답한다(아래 503은 원인 질문에만 적용).
-    if (assistantEvidence && userQuestion && (assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
+    if (assistantEvidence && userQuestion && (userQuestion.companyResearch || assistantNeedsArticles(userQuestion) || assistantStatusQuestion(userQuestion))) {
       progress('articles');
       const articlePacket = assistantEvidence;
       let articles;
@@ -632,11 +633,11 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
         return NextResponse.json({ success: false, code: 'assistant_news_provider_unavailable', error: '뉴스 검색 연결에 문제가 생겨 답변을 만들지 못했어요. 이용 횟수는 차감하지 않았어요.', remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
       }
       assistantEvidence.evidence.push(...articles);
-      if (!articles.length) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
+      if (!articles.length && !userQuestion.companyResearch) assistantEvidence.gaps = [...assistantEvidence.gaps, '관련 기사 본문을 가져오지 못했어요. 기사 제목만으로 이번 변동의 이유를 확정할 수는 없어요.'];
     }
     if (assistantEvidence && assistantEvidence.evidence.length === 0) {
       await gate.finalize(503, 'assistant_sources_unavailable');
-      return NextResponse.json({ success: false, code: 'assistant_sources_unavailable', error: '지금 비교할 가격과 소식을 가져오지 못했어요. 이용 횟수는 사용하지 않았어요.',
+      return NextResponse.json({ success: false, code: 'assistant_sources_unavailable', error: userQuestion?.companyResearch ? '지금 이 기업의 공식 자료와 최근 보도를 가져오지 못했어요. 이용 횟수는 사용하지 않았어요.' : '지금 비교할 가격과 소식을 가져오지 못했어요. 이용 횟수는 사용하지 않았어요.',
         remaining: Math.max(0, perUserLimit - userCount), dailyLimit: perUserLimit, tier, day }, { status: 503, headers: { 'Cache-Control': 'private, no-store' } });
     }
     // 기사 본문·발표 자료가 필요한 질문인데 하나도 구하지 못한 경우(2026-11-11 사용자 결정):
@@ -689,7 +690,7 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     }
     const assistantSources = userQuestion ? assistantQuestionSources(userQuestion) : [];
     assistantSources.push(...(assistantEvidence?.evidence.map(e => ({ name: e.title, provider: e.publisher, retrievedAt: e.checkedAt, url: e.url,
-      note: `${e.publishedAt} · ${e.kind === 'headline' ? '기사 제목만 확인' : e.kind === 'article' ? '기사 본문 참고 · 보도의 해석과 확정 사실은 다름' : e.kind === 'price' ? '정규장 가격 비교' : e.kind === 'reference' ? '회사·상품 참고 자료, 이번 등락 원인 아님' : '공개 공시 설명'}` })) ?? []));
+      note: `${e.publishedAt || '게시일 미표시'} · ${e.kind === 'headline' ? '기사 제목만 확인' : e.kind === 'article' ? '기사 본문 참고 · 보도의 해석과 확정 사실은 다름' : e.kind === 'price' ? '정규장 가격 비교' : e.kind === 'reference' ? '회사·상품 참고 자료' : '공식 공개 자료'}` })) ?? []));
     const rsiNumber = Number(rsi);
     const hasRsi = Number.isFinite(rsiNumber);
     const prompt = userQuestion ? assistantQuestionPrompt(userQuestion, { business: businessContext?.prompt, product: productContext, evidence: assistantEvidence, withoutReporting }) : chartFacts ? chartExplanationPrompt(symbol, nativeCurrency, chartFacts, Array.isArray(requestedChartViews) ? requestedChartViews.filter((view: ChartView) => chartFacts!.availableViews.includes(view)) : []) : `${baseRules}
@@ -867,7 +868,7 @@ ${responseFormat}`;
       }
       // Article passages are model inputs, not a republication of the publisher's body to the browser.
       if (userQuestion && assistantEvidence) governedReport.assistantEvidence = { ...assistantEvidence,
-        evidence: assistantEvidence.evidence.map(e => e.kind === 'article' ? { ...e, text: '답변 작성에 기사 본문을 참고했어요. 전체 내용은 원문에서 읽을 수 있어요.' } : e) };
+        evidence: assistantEvidence.evidence.map(e => (assistantEvidence.companyResearch || e.kind === 'article') ? { ...e, text: '답변 작성에 기사 본문을 참고했어요. 전체 내용은 원문에서 읽을 수 있어요.' } : e) };
       const finalReport = attachAiResultMeta(governedReport, 'ai-analysis', { symbol, aiProvider: answer.provider, aiModel: answer.model,
         sourceDetails: chart ? [{ name: '5분 가격 자료', provider: 'Yahoo Finance', retrievedAt: chartRetrievedAt ?? auditSnapshot.capturedAt, note: chart.sessionDate + ' 정규장 · 자료를 받은 구간만 포함' }] : [
           ...(assistantRequest ? assistantSources : [{ name: '시세', provider: '요청에 포함된 가격', retrievedAt: auditSnapshot.capturedAt, note: '응답 생성 시점의 실시간 가격을 뜻하지 않아요' }]),
