@@ -1453,5 +1453,5 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - [ ] 11/17 뉴스답변 개선 d66fd8e 로컬main 통합/최종빌드 완료. 사용자push 후 운영READY/alias/공개응답 검증. 도구push/새배포 미실행.
 
-- [ ] 11/17 보안검토: Next16.4.3→16.4.6+eslint-config-next 패치,glob/minimatch/Sentry 하위호환패치,CSP강화. 전체중간15/운영6 고유GHSA3. 운영RLS/MFA 후속. sessionary/2026-11-17-ci-security-review.md.
+- [ ] 11/17 보안패치 로컬완료: Next16.4.6/glob14.0.2/minimatch11.0.1/CSP강화,최종audit0/전체검사·기본빌드·클린설치통과. 사용자push 후 운영확인. 실제RLS/MFA 및 상위패키지지원후override제거 후속. sessionary/2026-11-17-ci-security-review.md.
 - [ ] CI CommonJS규칙 오류140+module변수1 수정,전체lint0오류52경고 확인. 사용자push 후 원격verify/build 성공확인.

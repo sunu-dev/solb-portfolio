@@ -52,3 +52,20 @@
 - https://github.com/react/react/security/advisories/GHSA-xqc2-xf4c-x3h3
 - https://github.com/vercel/next.js/releases/tag/v16.4.1
 - https://nextjs.org/docs/app/guides/content-security-policy
+
+## 사용자 승인 후 보안패치
+- Next/eslint-config-next16.4.3→16.4.6. Sentry10을 유지하며 bundler-plugins의 glob14.0.2, 취약범위 minimatch만11.0.1 override. 영향없는 minimatch3 유지.
+- 운영 CSP unsafe-eval 제거, 개발모드만 유지. frame-ancestors self 추가. unsafe-inline 제거는 nonce/동적렌더 설계가 필요하므로 이번 범위에서 유지.
+- 프롬프트 금지예시의 격식체를 같은 의미의 지시로 변경: 전체 한국어게이트 실패 해소.
+- npm install이 선택의존성 일부를 누락하여 npm ci dry-run 실패. 임시 디렉터리에서 lock-only 복구 후 실제 npm ci --ignore-scripts 성공. 기본 npm캐시 권한충돌은 별도 임시캐시 사용으로 해소.
+- 최종 npm audit 전체0건. 알려진 패키지 취약점 기준이며 서비스 전체 안전을 보증하지 않음.
+- 클린설치 후 verify:2984통과22생략/도구4통과/타입 및 모든 제품게이트 통과. 전체ESLint0오류52기존경고.
+- 기본 next build(Turbopack) 성공. 제한환경에서는 진척없어 중단한 뒤 권한 있는 실행에서 성공. webpack 대체로 숨기지 않음.
+- Sentry globFiles와 shadcn ts-morph 실제파일탐색 호환성 확인. 전체 Sentry업로드/CLI생성 기능은 미실행.
+- 로컬 production 홈200, unsafe-eval 없음/frame-ancestors self 헤더확인. 사전열기/주식분할설명/질문창열기 통과. eval CSP오류없음. Vercel통계스크립트는 로컬404/MIME오류(플랫폼전용), 기존preload경고1.
+- 원격CI/운영배포/로그인후대화 검증 미실행. 유료모델호출0, 운영계정/DB/키 변경없음. push는 사용자가 직접 진행.
+- 로그 /private/tmp/joobi-security-{verify,eslint,build,ci-install}.log 및 audit-after.json. 임시 npm캐시/lockfix는 /private/tmp 아래.
+
+## 남은 후속
+- 사용자push 후 원격CI/운영READY와 실제CSP검증.
+- 실제DB RLS/MFA 검토, 상위의존성이 패치를 지원하면 overrides 제거.
