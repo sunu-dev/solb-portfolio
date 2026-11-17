@@ -1,3 +1,4 @@
+import { assessAssistantNews, newsAnswerIssue, newsEngineEnabled } from '@/lib/assistantNewsAssessment';
 import { joobiProgressResponse, type JoobiPreview, type JoobiProgress } from '@/lib/joobiProgress';
 import { randomUUID } from 'node:crypto';
 import { withAbortDeadline } from '@/lib/withAbortDeadline';
@@ -636,7 +637,12 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     // 오류로 끝내지 않고 확인한 범위로 답한다. 제목은 원인의 근거가 아니므로 모델에게 주지 않고,
     // 가격이 움직인 이유는 확인하지 못했다고 밝힌다(아래 assistantUnsourcedCauseIssue가 이를 검사한다).
     const withoutReporting = Boolean(assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)
-      && !assistantEvidence.evidence.some(e => e.kind === 'article' || e.kind === 'publication'));
+      && (newsEngineEnabled() ? ['context_only', 'unavailable'].includes(assessAssistantNews(assistantEvidence).state)
+        : !assistantEvidence.evidence.some(e => e.kind === 'article' || e.kind === 'publication')));
+    if (newsEngineEnabled() && assistantEvidence && userQuestion && assistantNeedsArticles(userQuestion)) {
+      const assessment = assessAssistantNews(assistantEvidence);
+      console.info('[assistant-evidence-assessment]', { state: assessment.state, primary: assessment.sourceIds.length, background: assessment.contextIds.length, missing: assessment.missing });
+    }
     const explainsMove = Boolean(userQuestion && assistantConversationIntent(userQuestion) === 'explain');
     if (withoutReporting && assistantEvidence) {
       if (explainsMove && !assistantEvidence.price) {
@@ -653,8 +659,14 @@ newsAnalysis는 뉴스가 있으면 headline(제목 그대로)과 impact(사건�
     }
     // 기사 없이 답하는 설명에는 근거 없는 원인 문장을 항상 막는다. 이유를 직접 물은 질문은 답 전체를 엄격하게 보고 '이유는 확인하지 못했다'는 말도 요구한다.
     // "그럼 이 회사는 뭘 만들어?"처럼 이어지는 다른 질문은 주가가 움직였다는 문장에 이유를 붙일 때만 막는다.
-    const unsourcedCauseIssue = (report: Record<string, unknown>) => withoutReporting && explainsMove && userQuestion
-      ? assistantUnsourcedCauseIssue(report, { asksWhy: assistantAsksForCause(userQuestion) }) : undefined;
+    const unsourcedCauseIssue = (report: Record<string, unknown>) => {
+      if (newsEngineEnabled() && userQuestion && assistantNeedsArticles(userQuestion)) {
+        const issue = newsAnswerIssue(report, assistantEvidence);
+        if (issue) return issue;
+      }
+      return withoutReporting && explainsMove && userQuestion
+        ? assistantUnsourcedCauseIssue(report, { asksWhy: assistantAsksForCause(userQuestion) }) : undefined;
+    };
     if (!assistantEvidence && userQuestion && (productContext || businessContext?.sources.length)) {
       assistantEvidence = { version: 1, symbol, period: userQuestion.period ?? '1d', checkedAt: new Date().toISOString(), comparisons: [], evidence: [], gaps: [] };
     }

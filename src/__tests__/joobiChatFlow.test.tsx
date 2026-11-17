@@ -51,7 +51,9 @@ function submit() { (render().find(node => node.type === 'form')!.props.onSubmit
 function click(label: string) {
   const button = render().find(node => node.type === 'button' && text(node.props.children) === label)!;
   expect(button).toBeDefined();
-  (button.props.onClick as () => void)();
+  if (button.props.disabled) return;
+  if (button.props.type === 'submit') submit();
+  else (button.props.onClick as (event: unknown) => void)({ preventDefault() {} });
 }
 function openOptions() {
   const trigger = render().find(node => node.type === 'button' && node.props['aria-label'] === '대화 설정')!;
@@ -77,14 +79,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-it('offers one explicit consent-and-send button, while keyboard submission alone never grants consent', async () => {
-  fill('마이크론을 쉽게 설명해주세요'); submit();
-  expect(h.fetch).not.toHaveBeenCalled(); expect(h.session).not.toHaveBeenCalled();
-  expect(render().some(node => text(node.props.children) === '물어보기')).toBe(true);
-  expect(render().filter(node => node.type === 'button' && text(node.props.children) === '물어보기')).toHaveLength(1);
-  expect(h.fetch).not.toHaveBeenCalled();
-  expect(render().find(node => node.type === 'textarea')!.props.value).toBe('마이크론을 쉽게 설명해주세요');
-  submit(); click('물어보기');
+it('sends the first question once from the form with visible transmission notice', async () => {
+  fill('마이크론을 쉽게 설명해주세요');
+  expect(render().some(node => node.type === 'p' && text(node.props.children).includes('버튼이나 Enter로 보내면'))).toBe(true);
+  submit(); submit();
   await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(1));
   expect(h.fetch).toHaveBeenCalledTimes(1);
   const payload = JSON.parse(h.fetch.mock.calls[0][1].body);
@@ -96,7 +94,6 @@ it('offers one explicit consent-and-send button, while keyboard submission alone
 it('keeps the visible conversation and sends only three prior exchanges on follow-up', async () => {
   for (let index = 1; index <= 5; index++) {
     fill(`시험 질문 ${index}`); submit();
-    if (index === 1) click('물어보기');
     await vi.waitFor(() => expect(h.accept).toHaveBeenCalledTimes(index));
   }
   const turns = render().filter(node => node.type === 'section' && String(node.props['aria-label']).endsWith('번째 질문과 답변'));
@@ -137,7 +134,7 @@ it('keeps Korean composition and Shift+Enter out of the send shortcut', () => {
 it('keeps the sent bubble separate from the next draft and does not erase that draft on reply', async () => {
   let finish!: (value: unknown) => void;
   h.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  fill('마이크론은 어떤 회사예요?'); submit(); click('물어보기');
+  fill('마이크론은 어떤 회사예요?'); submit();
   await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledOnce());
   fill('그러면 주요 고객은 누구예요?'); submit();
   expect(h.fetch).toHaveBeenCalledOnce();
@@ -150,7 +147,7 @@ it('keeps the sent bubble separate from the next draft and does not erase that d
 it('ignores a late answer after stopping and restores the question for editing', async () => {
   let finish!: (value: unknown) => void;
   h.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  fill('마이크론은 어떤 회사예요?'); submit(); click('물어보기');
+  fill('마이크론은 어떤 회사예요?'); submit();
   await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledOnce());
   click('중단');
   expect(h.fetch.mock.calls[0][1].signal.aborted).toBe(true);
@@ -203,7 +200,7 @@ it('reports session lookup failure without implying the model rejected the quest
 });
 
 it('disables new follow-ups at the daily limit while keeping the existing conversation readable', async () => {
- fill('시험 질문'); submit(); click('물어보기');
+ fill('시험 질문'); submit();
  await vi.waitFor(()=>expect(h.accept).toHaveBeenCalledOnce());
  h.remaining=0;
  const tree=render();
@@ -361,10 +358,11 @@ it('answers 네 on screen when no questions are left, instead of doing nothing',
   expect(render().find(node => node.type === 'textarea')!.props.value).toBe('');
 });
 
-it('treats a greeting followed by a real question as a question', () => {
+it('treats a greeting followed by a real question as a question', async () => {
   fill('안녕! 주식 처음인데 뭐부터 하면 돼?'); submit();
   expect(render().filter(node => node.type === 'section')).toHaveLength(0);
-  expect(render().find(node => node.type === 'textarea')!.props.value).toBe('안녕! 주식 처음인데 뭐부터 하면 돼?');
+  await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledOnce());
+  expect(JSON.parse(h.fetch.mock.calls[0][1].body).questionText).toBe('안녕! 주식 처음인데 뭐부터 하면 돼?');
 });
 
 it('keeps the price move it showed while waiting at the top of the answer, and does not repeat it on the next turn', async () => {
@@ -411,4 +409,25 @@ it('asks for a choice locally, even with no quota, and sends the explicit choice
   expect(payload.questionText).toBe('처음 사려는 거예요');
   expect(payload.questionHistory).toHaveLength(1);
   expect(payload.questionHistory[0].answer).toContain('아니면 처음 사려는 건가요?');
+});
+
+
+it('cancels the stop click default action and allows a corrected question after a late response', async () => {
+  let finish!: (value: unknown) => void;
+  h.fetch.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  fill('잘못 적은 질문'); submit();
+  await vi.waitFor(() => expect(h.fetch).toHaveBeenCalledOnce());
+  const stop = render().find(node => node.type === 'button' && text(node.props.children) === '중단')!;
+  const preventDefault = vi.fn();
+  (stop.props.onClick as (event: unknown) => void)({ preventDefault });
+  expect(preventDefault).toHaveBeenCalledOnce();
+  expect(render().some(node => node.type === 'button' && text(node.props.children) === '중단')).toBe(false);
+  expect(render().some(node => node.props.role === 'status' && text(node.props.children).includes('멈췄어요'))).toBe(true);
+  fill('고쳐 적은 질문'); submit();
+  await vi.waitFor(() => expect(h.accept).toHaveBeenCalledOnce());
+  finish({ ok: true, json: async () => ({ success: true, report: { currentStatus: '폐기할 답변', keyAdvice: [], conclusion: { desc: '' } } }) });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(h.fetch).toHaveBeenCalledTimes(2);
+  expect(h.accept).toHaveBeenCalledOnce();
+  expect(render().some(node => typeof node.props.text === 'string' && node.props.text.includes('폐기할 답변'))).toBe(false);
 });

@@ -81,7 +81,7 @@ async function collect(symbol: string, period: AssistantPeriod, fund: boolean, n
     bounded(readMarketWatch(now), { events: [], runs: [], servedAt: new Date(now).toISOString() }),
     bounded(readOfficialPolicies(), { cards: [], warnings: [] }),
   ]);
-  const packet: AssistantEvidencePacket = { version: 1, symbol: canonical, period, checkedAt: new Date(now).toISOString(),
+  const packet: AssistantEvidencePacket = { version: 1, symbol: canonical, subjectName: STOCK_KR[newsSymbol] || company.name || newsSymbol, period, checkedAt: new Date(now).toISOString(),
     ...(price ? { price } : {}), ...(session ? { session } : {}), ...(industryFocus.length ? { industryFocus } : {}), comparisons: [], evidence: [], gaps: [] };
   if (!price) packet.gaps.push('비교할 가격을 확인하지 못했어요. 자료 누락·지연·주식 분할 여부를 확인해야 해요.');
   if (price) {

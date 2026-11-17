@@ -1,12 +1,12 @@
 주비 공통 작업 인계 — 최신 상태
-갱신일: 2026-11-16
-담당: Codex — 사용자 운영 반영 승인으로 저비용 최적화 배포 진행.
-브랜치: perf/low-cost-20261116 (main/origin/main1a84dea에서 분리)
-검증 기준: 1a84deabdd09ae1f3f8a6494b2cb7972e2de620a
-최신 요청: 저비용 최적화 “운영에 반영하자”. 이번 커밋/main통합/push 승인으로 적용.
-운영: dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG / joobi.kr READY
-배포 URL: solb-portfolio-ehh7ew3mp-sunudevelop-1252s-projects.vercel.app
-복구 후보: 5b4daa7 / dpl_F622wRwdBexcoB7KkYGPFWaBPHYo
+갱신일: 2026-11-17
+담당: Codex — 사용자 최신 운영반영 요청으로 엔진v1/채팅수정 배포 진행.
+브랜치: fix/chat-submit-stop-20261117 (기준02be1b3, 운영은 그대로)
+검증 기준: 02be1b3a71dac1141c3f6d09efc90b6b49841a10
+최신 요청: 운영에 반영하자. 이번 main 통합/push/배포 진행. 실API검수 미실행은 유지.
+운영: dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG / joobi.kr READY
+배포 URL: solb-portfolio-823fj0erp-sunudevelop-1252s-projects.vercel.app
+복구 후보: 1a84dea / dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG
 
 필수 규칙
 - AGENTS.md → 이 파일 → 관련 기록. 제품 작업 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
@@ -25,7 +25,7 @@
 - 보조 글자 대비/크기, 키보드 focus outline 개선. 모바일 체험 높이 조정.
 - 과거 책 파일은 개발용으로 유지. 실제 사전 import에서 제외.
 
-배포 및 검사
+사전 배포 및 검사(이전1a84dea)
 - main에 fast-forward 통합,1a84dea 커밋/push 완료. 원격/main 동일 확인.
 - 로컬 전체2933통과17생략, 도구4통과. 타입/ESLint/UI·dark·한국어·alerts·tour lint/webpack build 통과.
 - 기존 ai-chok 고아 tour마커 경고1은 변경 범위 밖. 검사 성공.
@@ -72,8 +72,40 @@ Supabase IO 조사(11/16 후속)
 - cron4개 활성,digest유휴guard 이미 적용.24시간 IO차트 로딩실패로 장애시간소진 상관관계 미확정.
 - 요금/설정/cron 변경없음. sessionary/2026-11-16-supabase-disk-io.md에 수치/한계/후속 기록.
 
-저비용 최적화(현재 별도브랜치/미커밋)
+저비용 최적화(02be1b3 운영 완료)
 - 공개시장소식30초프로세스캐시·동시병합/발행무효화. 경제일정 숨김폴링중단/복귀갱신.
 - 최근24시간api_calls집계 quotes688/marketwatch223/cron144. 수집주기·사용량제한·기록보존 유지.
-- 관련13검사/타입/ESLint/webpack production build 통과. 운영미반영,IO경고해결·절감률 미확정.
+- 관련13검사/타입/ESLint/webpack production build 통과. 운영반영완료,IO경고해결·절감률 미확정.
 - sessionary/2026-11-16-low-cost-optimization.md. 다음은 최종검토/운영반영후동일시간대비교.
+
+최신 운영 검증(저비용 최적화)
+-02be1b3 main통합/push,원격2935통과20생략/production빌드READY.로컬2938통과17생략/도구4/lint통과.
+- joobi.kr alias일치,홈/market-watch/economic-events200 및 데이터구조 확인.브라우저새로고침200.
+-17:53KST 새배포직전10분 error조회0건(단기관찰).숨김폴링은자동검사,운영장시간탭실측미실행.
+- 추가구독/서버/DB설정/cron변경없음.실제IO절감효과는동일조건관측후판단.
+- /private/tmp/joobi-low-cost-{deploy,alias}.json,remote-build.log,errors.jsonl,release-tests.log.
+- 코드커밋/push완료,결과HANDOFF/TODO/세션문서만후속미커밋.문서만추가push안함.
+
+11/17 질문 전송·중단/답변 품질
+- fix/chat-submit-stop-20261117, 기준02be1b3. 첫 Enter도 사전 전송안내 아래 즉시 제출, 버튼과 같은 form경로.
+- 중단 클릭 기본동작 취소/stop-send key분리. 늦은 응답 무시·초안 복원 유지.
+- handler 검사27통과, tsc/변경파일ESLint통과. 실제 브라우저 중단 재현·실기기 검수는 미실행.
+- 코드/문서 미커밋, push/운영배포 없음. 이전 결과문서 변경 보존. 새 서버 프로세스 없음.
+- 시선AI11/16 뉴스핌10:01 보도 확인(촬영기기 탐지/시험부정행위). 주비 답변에서 누락.
+- 누락 단계(검색/본문수집/필터/생성) 미확정. 실제 유료질문 재실행·검색엔진 변경 없음.
+- 다음: assistantArticleSources.ts/assistantEvidenceSource.ts 수집경로와 해당 질문 근거 확인.
+- 상세 sessionary/2026-11-17-chat-submit-stop-quality.md.
+
+11/17 엔진 설계: docs/JOOBI_NEWS_ANSWER_ENGINE.md. 질문별 근거상태/회사우선 검색/예산/검증/평가계획.
+- v1 구현/검증 결과는 아래 운영 전 보고 참조. 운영변경없음.
+
+엔진 운영 전 보고(11/17)
+- docs/JOOBI_NEWS_ANSWER_ENGINE.md 끝의 구현범위/검증/설계대비한계 참조.
+- 회사우선검색/2회상한/28초전체기한/4상태계약/시장기사로회사근거충족금지/원문탈락집계.
+- 전체2965통과18생략,추가API2회귀(파일111통과3생략),lint/quality/tool4/webpack build통과.
+- 브라우저 로컬fixture Enter1회/중단abort/초안보존/재전송없음 확인. 서버3016종료.
+- 실API공개사례1건은 자동승인검토가 유료호출명시승인없어 거절. 실제호출없음,질문도구승인대기.
+- 실보도 접근/생성품질·비용·지연 비교 미검증. 전체설계 완료/운영준비완료로 주장하지 않음.
+- 새 파일 assistantNewsAssessment.ts,assistantNewsEngine.test.ts,assistantNewsLive.test.ts.
+- 코드/문서 미커밋.기존11/16결과문서변경 보존.운영 main02be1b3 유지.
+- 다음: 비용승인후 opt-in실API검사→결과보고→별도운영지시. /private/tmp/joobi-engine-* 검사로그.

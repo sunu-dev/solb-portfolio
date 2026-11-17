@@ -1,3 +1,6 @@
+import { beforeAll, afterAll } from 'vitest';
+beforeAll(() => { process.env.JOOBI_NEWS_ENGINE = 'legacy'; });
+afterAll(() => { delete process.env.JOOBI_NEWS_ENGINE; });
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import type { AssistantEvidencePacket } from '@/lib/assistantEvidence';
 

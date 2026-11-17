@@ -727,7 +727,7 @@ describe('assistant evidence routing', () => {
   });
   it.each([true, false])('uses fetched passages with quote availability %s while returning only metadata', async (hasPrice) => {
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [], evidence: [], price: hasPrice ? { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: 1, currency: 'USD' } : undefined });
-    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: 'ARTICLE_BODY_FOR_MODEL_ONLY', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
+    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: 'ARTICLE_BODY_FOR_MODEL_ONLY 마이크론은 메모리 생산시설의 가동 일정이 지연되고 있다고 설명했다. 이번 보도는 생산과 공급 일정에 대한 투자자의 우려를 다루며 확정된 고객 주문 취소나 실적 감소를 의미하지 않는다. 실제 영향은 이후 회사가 공개하는 생산 일정과 주문 현황에 달려 있다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
     const response = await POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '오늘 마이크론은 왜 올랐어요?', symbol: 'MU' }));
     expect(response.status).toBe(200); expect(state.claude.mock.calls[0][0]).toContain('ARTICLE_BODY_FOR_MODEL_ONLY');
     const data = await response.json(); expect(JSON.stringify(data)).not.toContain('ARTICLE_BODY_FOR_MODEL_ONLY');
@@ -738,7 +738,7 @@ describe('assistant evidence routing', () => {
     const price = { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: -3.2, currency: 'USD', sessionState: 'closed' as const };
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), gaps: [], evidence: [], price,
       comparisons: [{ ...price, symbol: '^GSPC', label: '미국 대형주 시장(S&P 500)', changePercent: -0.4 }] });
-    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '기사 본문', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
+    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '기사 본문 마이크론은 메모리 생산시설의 가동 일정이 지연되고 있다고 설명했다. 이번 보도는 생산과 공급 일정에 대한 투자자의 우려를 다루며 확정된 고객 주문 취소나 실적 감소를 의미하지 않는다. 실제 영향은 이후 회사가 공개하는 생산 일정과 주문 현황에 달려 있다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
     const stream = async (questionText: string) => {
       const live = new NextRequest('https://joobi.test/api/ai-analysis', { method: 'POST', headers: { Authorization: 'Bearer alice-token', 'Content-Type': 'application/json', Accept: 'application/x-ndjson' },
         body: JSON.stringify({ questionId: 'ask-joobi', questionConsent: true, questionText, symbol: 'MU' }) });
@@ -844,7 +844,7 @@ describe('assistant evidence routing', () => {
   });
   describe('an answer that fails a factual check', () => {
     const price = { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: -3.2, currency: 'USD', sessionState: 'closed' as const };
-    const article = { id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '마이크론 주가는 공장 가동 지연 소식 뒤 내렸다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() };
+    const article = { id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: '마이크론 주가는 공장 가동 지연 소식 뒤 내렸다. 마이크론은 메모리 생산시설의 가동 일정이 지연되고 있다고 설명했다. 이번 보도는 생산과 공급 일정에 대한 투자자의 우려를 다루며 확정된 고객 주문 취소나 실적 감소를 의미하지 않는다. 실제 영향은 이후 회사가 공개하는 생산 일정과 주문 현황에 달려 있다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() };
     const base = { ...report, finishReason: 'STOP', provider: 'claude', model: 'claude-haiku-5-5', latencyMs: 100, usage: { inputTokens: 1000, outputTokens: 300 } };
     const good = { ...base, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론은 전 거래일보다 내린 채 마감했어요. Yahoo는 공장 가동 지연 소식을 전했어요.', keyAdvice: [] }) };
     const inventedPercent = { ...base, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론은 나흘간 17.6% 내렸어요.', keyAdvice: [] }) };
@@ -918,7 +918,7 @@ describe('bounded direct answer recovery', () => {
   expect(response.status).toBe(502); expect(state.claude).toHaveBeenCalledTimes(2); expect(state.rows).toHaveLength(0);
  });
  it('repairs an election identity error from the original article, not the rejected answer', async () => {
-  state.articles.mockResolvedValue([{ id:'A1',kind:'article',scope:'market',title:'중간선거 보도',text:'미국 중간선거 결과에 대한 우려를 다룬 공개 자료입니다.',url:'https://example.com/article',publisher:'test',publishedAt:'2026-10-05',checkedAt:'2026-10-05' }]);
+  state.articles.mockResolvedValue([{ id:'A1',kind:'article',scope:'company',title:'마이크론과 미국 중간선거 보도',text:'미국 중간선거 결과에 대한 정책 우려가 마이크론의 반도체 수요와 생산에 미칠 가능성을 다룬 공개 자료입니다. 확정된 정책 변경이나 실제 매출 감소로 판단할 수 없으며 다음 정책 발표의 구체적 범위가 중요합니다.',url:'https://example.com/article',publisher:'test',publishedAt:'2026-10-05',checkedAt:'2026-10-05' }]);
   state.claude.mockResolvedValueOnce({ ...rejected, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '미국 대선 결과가 영향을 주었어요.' }) });
   const response = await POST(request('POST', { ...question, symbol:'MU', questionText:'최근 주가가 움직인 이유는?' }));
   expect(response.status).toBe(200); expect(state.claude).toHaveBeenCalledTimes(2); expect(state.rows).toHaveLength(1);
@@ -1020,7 +1020,7 @@ describe('request latency without skipping admission or accounting', () => {
     state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [], evidence: [], price: { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: 1, currency: 'USD' } });
     state.articles.mockImplementation(async (_packet, _progress, _shared, track) => {
       track(costs);
-      return [{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: 'PUBLIC_ARTICLE', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }];
+      return [{ id: 'A1', kind: 'article', scope: 'company', title: '마이크론 기사', text: 'PUBLIC_ARTICLE 마이크론은 메모리 생산시설의 가동 일정이 지연되고 있다고 설명했다. 이번 보도는 생산과 공급 일정에 대한 투자자의 우려를 다루며 확정된 고객 주문 취소나 실적 감소를 의미하지 않는다. 실제 영향은 이후 회사가 공개하는 생산 일정과 주문 현황에 달려 있다.', url: 'https://finance.yahoo.com/news/micron', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }];
     });
     // The retrieval call returns its articles as soon as they arrive and keeps running to report real usage.
     const response = await POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '마이크론은 왜 올랐어요?', symbol: 'MU' }));
@@ -1085,5 +1085,26 @@ describe('question quality boundary with collection enabled', () => {
     expect(response.status).toBe(401);
     await state.qualityAfter[0]();
     expect(state.qualityWrite).not.toHaveBeenCalled();
+  });
+});
+
+describe('question-specific news evidence gate', () => {
+  const ask = () => POST(request('POST', { questionId: 'ask-joobi', questionConsent: true, questionText: '마이크론은 왜 올랐어요?', symbol: 'MU' }));
+  beforeEach(() => {
+    state.evidence.mockResolvedValue({ version: 1, symbol: 'MU', period: '1d', checkedAt: new Date(NOW).toISOString(), comparisons: [], gaps: [], evidence: [],
+      price: { symbol: 'MU', label: '마이크론', day: '2026-10-05', baselineDay: '2026-10-02', at: new Date(NOW).toISOString(), price: 100, changePercent: 1, currency: 'USD' } });
+    state.articles.mockResolvedValue([{ id: 'A1', kind: 'article', scope: 'market', title: '미국 증시 정책 우려',
+      text: '미국 증시는 정책과 금리 전망을 살피며 움직였다. 이번 보도는 시장 전체의 배경만 다루며 개별 회사의 계약이나 생산 변화를 설명하지 않는다. 실제 기업 주문 감소가 확인된 것은 아니며 정책 결정의 내용에 따라 영향은 달라질 수 있다.',
+      url: 'https://finance.yahoo.com/news/market', publisher: 'Yahoo', publishedAt: '2026-10-05', checkedAt: new Date(NOW).toISOString() }]);
+  });
+  it('rejects market-backed invented company causes without charging', async () => {
+    state.claude.mockResolvedValue({ ...report, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '정책 기대 때문에 마이크론이 올랐어요.', keyAdvice: ['새 계약을 확인해 보세요.'] }), finishReason: 'STOP', usage: {} });
+    expect((await ask()).status).toBe(502);
+    expect(state.rows).toHaveLength(0); expect(state.claude).toHaveBeenCalledTimes(2);
+    expect(state.claude.mock.calls[0][0]).toContain('상태: context_only');
+  });
+  it('allows an honest short answer without inventing a homework task', async () => {
+    state.claude.mockResolvedValue({ ...report, text: JSON.stringify({ ...JSON.parse(report.text), currentStatus: '마이크론이 오른 직접적인 이유는 확인하지 못했어요. 전 거래일보다 오른 가격은 확인했어요.', keyAdvice: [] }), finishReason: 'STOP', usage: {} });
+    expect((await ask()).status).toBe(200); expect(state.rows).toHaveLength(1);
   });
 });

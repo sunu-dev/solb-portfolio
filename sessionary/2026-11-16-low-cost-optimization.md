@@ -33,3 +33,11 @@
 ## 운영 반영 진행
 - 사용자 운영 반영 승인,원격/main/HEAD1a84dea동일.전체2938통과17생략/도구4통과/ESLint/품질검사통과/기존webpack빌드통과.
 - 기존ai-chok tour고아마커 경고1유지.이번커밋/main통합/push진행.복구1a84dea/dpl_Ks5Zv1BwQqLSMQtXRSJnS6rGMQxG.
+
+## 운영 반영 완료
+- main/origin/main02be1b3, dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG READY,joobi.kr alias확인.
+- 원격2935통과20생략/Turbopack production빌드통과.로컬2938통과17생략/도구4통과.
+- 홈200/시장소식200(events,runs배열)/경제일정200(events배열).관측435/51/463ms는단일샘플이며CDN포함가능,절감/개선율근거아님.
+-17:53KST새배포직전10분 error로그0건,장기무오류보장아님.숨김폴링장시간운영검수미실행.
+- 추가비용/요금제/DB/cron변경없음.실제IO감소량은추후동일조건비교.
+- 코드push완료,후속결과문서만미커밋.운영반영TODO해소,실측TODO유지.

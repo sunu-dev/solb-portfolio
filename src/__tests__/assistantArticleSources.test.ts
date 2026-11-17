@@ -1,3 +1,6 @@
+import { beforeAll, afterAll } from 'vitest';
+beforeAll(() => { process.env.JOOBI_NEWS_ENGINE = 'legacy'; });
+afterAll(() => { delete process.env.JOOBI_NEWS_ENGINE; });
 import { expect, it } from 'vitest';
 import type { ContentBlock } from '@anthropic-ai/sdk/resources/messages';
 import { articlePassages, fetchedArticleEvidence, assistantArticleSeeds, assistantArticleWindow, needsArticleSupplement } from '@/lib/assistantArticleSources';

@@ -85,7 +85,6 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   const scrollThumb = useRef<HTMLSpanElement>(null);
   const [scrollState,setScrollState] = useState({overflow:false,more:false});
   const input = useRef<HTMLTextAreaElement>(null);
-  const consentButton = useRef<HTMLButtonElement>(null);
   const fillQuestion = (text: string) => { setConfirmedSymbol(undefined); setCandidates([]); setQuestion(text); input.current?.focus(); };
   const resetConversation = () => { clear(); setFailedQuestion(null); setError(''); setStopped(false); setConfirmClear(false); };
   const resetTransient = () => { setFailedQuestion(null); setConfirmedSymbol(undefined); setCandidates([]); setError(''); setStopped(false); setConfirmClear(false); };
@@ -171,7 +170,9 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     view.addEventListener('scroll',update,{passive:true});update();
     return()=>{observer.disconnect();view.removeEventListener('scroll',update);if(frame)cancelAnimationFrame(frame);};
   },[embedded,scrollState.overflow]);
-  const stopWaiting = () => {
+  const stopWaiting = (event: React.MouseEvent<HTMLButtonElement>) => {
+    // Prevent this click from submitting if React replaces the stop control.
+    event.preventDefault();
     request.current?.abort(); request.current = null;
     setQuestion(draft => draft || pendingQuestion || '');
     setFailedQuestion(pendingQuestion);
@@ -256,7 +257,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     if (replyLocally(question.trim())) return;
     if (tooShort(question.trim()) || quota.remaining === 0) return;
     if (owner === 'guest') { savePendingQuestion(question, symbol === GENERAL_SUBJECT ? undefined : symbol); window.dispatchEvent(new CustomEvent('open-login')); return; }
-    if (!consent) { setError('AI 전송 안내를 확인한 뒤 ‘물어보기’를 눌러주세요.'); consentButton.current?.focus(); return; }
+    setConsent(true);
     void sendQuestion(true);
   };
   return <div data-empty={!answers.length && !loading && !failedQuestion} className={`${chat.chat}${!answers.length && !loading && !failedQuestion ? ` ${chat.empty}` : ''}${embedded ? ` ${chat.embedded}` : ''}`}>
@@ -277,6 +278,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
     {!!answers.length && <div className={chat.thread} aria-label="주비와 나눈 대화">
       {answers.map((answer, index) => {
         const latest = index === answers.length - 1;
+        const answerName = STOCK_KR[answer.symbol] || (answer.assistantEvidence?.price?.symbol === answer.symbol ? answer.assistantEvidence.price.label : undefined) || answer.symbol;
         // 같은 종목·같은 거래일 답이 이어지면 대상 표시를 반복하지 않는다.
         const previous = answers.slice(0, index).findLast(item => !item.local);
         const sameSubjectAsPrevious = !!previous && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
@@ -285,8 +287,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
           <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? joobiReplyReaction(answer.question, !!answer.local) : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
       <h3 ref={latest ? heading : undefined} tabIndex={-1} className="sr-only">주비의 답변: {answer.question}</h3>
-      {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : STOCK_KR[answer.symbol] && STOCK_KR[answer.symbol] !== answer.symbol ? `${STOCK_KR[answer.symbol]} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
-      {!answer.local && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에 적은 {STOCK_KR[answer.symbol] || answer.symbol}을 기준으로 답했어요.</p>}
+      {!answer.local && !answer.pricePreview && (answer.symbol !== GENERAL_SUBJECT || answer.market) && !sameSubjectAsPrevious && <p className={chat.answerSubject}>{answer.symbol === GENERAL_SUBJECT ? `${answer.market === 'us' ? '미국' : '한국'} 시장` : answerName !== answer.symbol ? `${answerName} · ${answer.symbol}` : answer.symbol}{answer.assistantEvidence?.price ? ` · ${answer.assistantEvidence.price.day} 거래일` : ''}</p>}
+      {!answer.local && answer.symbol !== symbol && <p className={chat.scopeNote}>질문에서 확인한 종목은 {answerName}예요.</p>}
       {answer.pricePreview && <PriceStrip preview={answer.pricePreview} />}
       <AnswerParagraphs text={answer.currentStatus} />
       {answer.keyAdvice.map((text, index) => <AnswerParagraphs key={index} text={text} />)}
@@ -328,7 +330,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
             event.preventDefault(); event.currentTarget.form?.requestSubmit();
           }
         }} />
-        <div className={chat.inputFooter}><JoobiAvatar size={28} mood={joobiComposerReaction({ options, clear: confirmClear, loading, stage, stopped, error: !!error, candidates: !!candidates.length, limited: quota.remaining === 0, typing: !!question.trim(), history: !!answers.length })} />{loading ? <button type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : owner !== 'guest' && !consent ? <button ref={consentButton} type="button" className={chat.send} disabled={tooShort(question.trim()) || (quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={`${id}-consent`} onClick={() => { if (request.current || replyLocally(question.trim()) || tooShort(question.trim()) || quota.remaining === 0) return; setConsent(true); void sendQuestion(true); }}>물어보기</button> : <button type="submit" className={`${chat.send} ${chat.sendIcon}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}><ArrowUp size={21} aria-hidden="true" /></button>}</div>
+        <div className={chat.inputFooter}><JoobiAvatar size={28} mood={joobiComposerReaction({ options, clear: confirmClear, loading, stage, stopped, error: !!error, candidates: !!candidates.length, limited: quota.remaining === 0, typing: !!question.trim(), history: !!answers.length })} />{loading ? <button key="stop" type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : <button key="send" type="submit" className={`${chat.send}${owner !== 'guest' && !consent ? '' : ` ${chat.sendIcon}`}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={owner !== 'guest' && !consent ? `${id}-consent` : undefined} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}>{owner !== 'guest' && !consent ? '물어보기' : <ArrowUp size={21} aria-hidden="true" />}</button>}</div>
       </div>
 
       {error && <p className={chat.error} role="alert">{error}</p>}
@@ -336,7 +338,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       {!!candidates.length && <div className={chat.stockChoices} aria-label="질문의 종목 확인">{candidates.map(candidate => <button key={candidate.symbol} type="button" aria-pressed={confirmedSymbol === candidate.symbol} onClick={() => { setConfirmedSymbol(candidate.symbol); setError(`${candidate.label} (${candidate.symbol})로 확인했어요. 질문을 보내주세요.`); }}>{candidate.label} ({candidate.symbol})</button>)}</div>}
       <div className={chat.composerInfo}>
         <div className={chat.composerMeta}><p className={chat.quotaNote} aria-live="polite">{stopped ? '중단한 질문도 횟수에 포함될 수 있어요' : quota.status === 'signed-out' ? '로그인 후 질문할 수 있어요' : typeof quota.remaining === 'number' ? quota.remaining === 0 ? '오늘 질문을 모두 사용했어요. 내일 다시 물어볼 수 있어요.' : `오늘 ${quota.remaining}번 더 물어볼 수 있어요` : '질문을 보내면 1회를 사용해요'}</p><button type="button" id={`${id}-privacy`} onClick={() => setOptions('privacy')}>전송 안내</button></div>
-        {owner !== 'guest' && !consent && <p id={`${id}-consent`}>물어보기를 누르면 질문·최근 대화·선택 종목을 AI에 보내요.</p>}
+        {owner !== 'guest' && !consent && <p id={`${id}-consent`}>버튼이나 Enter로 보내면 질문·최근 대화·선택 종목·헷갈리는 용어를 AI에 보내요.</p>}
       </div>
     </form>
     </div>

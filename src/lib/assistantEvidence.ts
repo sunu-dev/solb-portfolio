@@ -22,7 +22,7 @@ export interface PriceComparison {
   sessionState?: 'intraday' | 'closed' | 'unknown';
 }
 export interface AssistantEvidencePacket {
-  version: 1; symbol: string; period: AssistantPeriod; checkedAt: string;
+  version: 1; symbol: string; period: AssistantPeriod; checkedAt: string; subjectName?: string;
   price?: PriceComparison; comparisons: PriceComparison[];
   evidence: AssistantEvidence[]; gaps: string[];
   session?: AssistantSessionSelection;

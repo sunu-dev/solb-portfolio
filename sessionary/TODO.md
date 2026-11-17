@@ -1443,4 +1443,10 @@ CLI 환경: 2026-11-13 사용자 요청으로 전역 Vercel65.15.0 업데이트�
 
 - [ ] Supabase IO 경고: Free/Nano 확인,24시간 IO차트 로딩실패. 장애시각IO/IOwait/스왑 대조 후 상향/쿼리 개선 결정. digest유휴guard 적용됨. sessionary/2026-11-16-supabase-disk-io.md.
 
-- [ ] 저비용1차 최적화 perf/low-cost-20261116:공개읽기중복병합/경제일정숨김폴링중단 구현. 운영반영후 호출량비교 필요. 추가고정비없음. sessionary/2026-11-16-low-cost-optimization.md.
+- [ ] 저비용1차 최적화02be1b3 운영반영완료(dpl_F1BsPxHg7J6w3KQiQY3amQSNp1pG).공개읽기중복병합/경제일정숨김폴링중단,추가고정비없음.남은작업:동일조건호출량/IO비교. sessionary/2026-11-16-low-cost-optimization.md.
+
+- [ ] 11/17 질문 1회전송·중단 로컬수정(27검사/타입/lint통과), 브라우저 검수 및 운영반영 미실행. 시선AI11/16 뉴스핌 보도 누락단계/티커표시 조사. sessionary/2026-11-17-chat-submit-stop-quality.md.
+
+- [ ] 뉴스·답변 엔진 설계v1 구현 A→D: docs/JOOBI_NEWS_ANSWER_ENGINE.md. 먼저 근거상태·탈락사유 및 누락기사 회귀검사.
+
+- [ ] 엔진v1 로컬구현/전체검사/빌드 완료, 실API1사례 유료호출승인 대기(자동검토거절). 실보도 접근/생성/비용·지연 검수 뒤 운영전보고. 배포미실행. 설계30+10실평가/충돌의미판정은 후속.

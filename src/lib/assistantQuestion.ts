@@ -1,3 +1,4 @@
+import { assessAssistantNews, newsAssessmentPrompt, newsEngineEnabled } from './assistantNewsAssessment';
 import { ASSISTANT_PERIODS, ASSISTANT_INDUSTRIES, validateAssistantInsights, assistantPriceClaimsMatch, assistantMoneyClaimsMatch, assistantElectionClaimsMatch, type AssistantIndustry, type AssistantPeriod, type AssistantEvidencePacket } from './assistantEvidence';
 import { financialTerm, financialTermMatches } from './financialTerms';
 import { fundProfile } from './fundExploration';
@@ -191,6 +192,11 @@ export function assistantUnsourcedCauseIssue(report: Record<string, unknown>, op
 
 export function assistantQuestionPrompt(question: AssistantQuestion, context: { business?: string; product?: string; prices?: string; evidence?: AssistantEvidencePacket; withoutReporting?: boolean }) {
   const evidence = context.evidence;
+  const newsContract = newsEngineEnabled() && assistantNeedsArticles(question) && evidence;
+  if (newsContract) {
+    const state = assessAssistantNews(evidence).state;
+    context = { ...context, withoutReporting: state === 'context_only' || state === 'unavailable' };
+  }
   const intent = assistantConversationIntent(question);
   const status = intent === 'explain' && assistantStatusQuestion(question) && !assistantNeedsArticles(question);
   const cause = intent === 'explain' && (assistantNeedsArticles(question) || status);
@@ -211,6 +217,8 @@ export function assistantQuestionPrompt(question: AssistantQuestion, context: { 
   if (intent !== 'explain') return assistantDecisionPrompt(question, intent, contract, publicContext ? { ...publicContext, price: undefined, comparisons: [] } : undefined,
     context.withoutReporting ? '이번에는 최근 기사 본문이나 발표 자료를 구하지 못했어요. 최근 소식이나 주가가 움직인 이유를 아는 것처럼 말하지 마세요. 확인하지 못했다는 점은 한 문장으로만 밝히고, 판단 기준 설명에 집중하세요. assistantInsights는 []로 두세요.' : undefined);
   return `주비는 주식 초보자의 개인 주식비서예요. 이 답을 읽은 사람이 뉴스가 자기 종목과 어떻게 이어지는지 이해할 수 있게 설명하세요.
+
+${newsContract ? newsAssessmentPrompt(evidence) : ''}
 
 [답변의 기준]
 처음 투자하는 사람이 읽어요. 질문한 기간의 실제 움직임에 바로 답하고, 관련 사건 → 제품·고객의 변화 → 앞으로 벌 돈에 대한 기대의 연결을 쉬운 말로 풀어주세요. 상승 질문을 하락 우려 설명으로 바꾸지 마세요. 뉴스 제목을 나열하거나 가격을 다시 읽어주는 답은 피하세요.
@@ -245,7 +253,7 @@ ${evidence?.evidence.some(e => e.id === 'R1') ? '' : context.product ?? ''}
 ${context.prices ?? ''}
 
 [JSON 출력]
-${context.withoutReporting && cause ? `이번에는 이 움직임을 설명하는 기사 본문이나 발표 자료를 구하지 못했어요. 그러니 원인을 말하지 마세요. '실적 기대', '차익 실현', '수급', '투자 심리', '금리'처럼 흔히 드는 이유를 후보로 나열하지도 마세요. '~ 때문에', '~ 영향으로', '~ 덕분에'로 문장을 잇지 마세요.
+${context.withoutReporting && cause ? `이번에는 이 움직임을 설명하는 기사 본문이나 발표 자료를 충분히 확보하지 못했어요. 시장 기사만 있어도 회사 사건을 확보한 것은 아니에요. 그러니 원인을 말하지 마세요. '실적 기대', '차익 실현', '수급', '투자 심리', '금리'처럼 흔히 드는 이유를 후보로 나열하지도 마세요. '~ 때문에', '~ 영향으로', '~ 덕분에'로 문장을 잇지 마세요.
 왜 움직였는지 묻는 질문이면 본문은 세 가지로 끝내요. (가) 이 기간 가격이 어떻게 움직였는지 (나) 같은 기간 시장·업종 가격과 비교하면 이 종목만 움직였는지, 함께 움직였는지 — 비교 가격이 없으면 이 부분은 빼요 (다) 왜 움직였는지는 확인하지 못했다는 한 문장. 함께 움직였다는 것은 관찰이지 원인이 아니에요.\n다른 것을 묻는 이어지는 질문이면 새로 물은 점에 답하되, 움직인 이유를 아는 것처럼 쓰지 마세요.
 keyAdvice와 assistantInsights는 반드시 []. followUps에는 원인을 이미 아는 것처럼 묻는 질문을 넣지 말고, 이 회사가 하는 일이나 가격 비교를 읽는 법처럼 지금 답할 수 있는 질문을 넣어요.
 아래 기준 중 기사·보도가 있어야 쓸 수 있는 항목은 이번에는 적용하지 않아요.

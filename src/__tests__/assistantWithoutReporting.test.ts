@@ -166,7 +166,7 @@ describe('the prompt when no reporting was found', () => {
     evidence: [{ id: 'P1', kind: 'price', title: 'NAVER', text: '가격 변화 1.2%', url: 'https://finance.yahoo.com/quote/035420.KS/history/', publisher: 'Yahoo Finance', publishedAt: '2026-11-10T06:30:00Z', checkedAt: '2026-11-10T07:00:00Z' }] };
   it('forbids naming a cause and asks for the price comparison and the unconfirmed reason', () => {
     const prompt = assistantQuestionPrompt(q('오늘 왜 움직였어요?'), { evidence: packet, withoutReporting: true });
-    expect(prompt).toContain('기사 본문이나 발표 자료를 구하지 못했어요');
+    expect(prompt).toContain('기사 본문이나 발표 자료를 충분히 확보하지 못했어요');
     expect(prompt).toContain('원인을 말하지 마세요');
     expect(prompt).toContain('확인하지 못했다는 한 문장');
     expect(prompt).toContain('keyAdvice와 assistantInsights는 반드시 []');
