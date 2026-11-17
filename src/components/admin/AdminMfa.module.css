@@ -4,7 +4,7 @@
 .card p { line-height: 1.7; }
 .eyebrow, .help { color: var(--text-secondary); font-size: 13px; }
 .form { display: grid; gap: 12px; margin: 24px 0; }
-.form input { min-width: 0; width: 100%; font-size: 24px; letter-spacing: .2em; }
+.form input[inputmode="numeric"] { min-width: 0; width: 100%; font-size: 24px; letter-spacing: .2em; }
 .form select { display: block; width: 100%; }
 .qr { display: block; max-width: 100%; height: auto; margin: 20px auto; background: white; }
 .secret { display: block; overflow-wrap: anywhere; margin: 12px 0; }

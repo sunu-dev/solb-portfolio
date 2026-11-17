@@ -1,6 +1,6 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 인증앱 이름 주비 관리자 운영반영완료. 사용자 실제등록 대기.
+담당: Codex — 이메일없는 계정 MFA복구 구현/검증완료,운영반영진행.
 브랜치: main
 검증 기준/원격main: d4e58e6. 인증앱 issuer/friendlyName 주비 관리자.
 현재운영:d4e58e6, dpl_59UN3wKymqCB2W7bfazgKJum9AqA READY/joobi.kr alias일치.
@@ -61,3 +61,10 @@
 - d4e58e6 push/운영READY, CI44035502119 verify/build 성공.
 - 운영/admin200 및 실제제공JS의 issuer 주비 관리자 확인. 실제인증앱등록은 사용자대기.
 - 인계문서만 후속로컬커밋. 미추적.playwright-mcp/유지. 서버프로세스없음.
+
+MFA 실제등록실패 후속
+- Auth /factors500 AccountName must be set:카카오계정email없음. 한글issuer문제아님.
+- 동일계정 이메일연결/본인확인→QR등록 UI추가.전체3001/도구4/타입/게이트통과.
+- 기본SMTP는 프로젝트팀메일만 허용,Resend도메인미인증. SMTP/DNS/계정변경·실메일발송없음. 사용자팀메일수신가능여부질문대기.
+- 실이메일연결/실QR/실TOTP검증 미완료. 기록 sessionary/2026-11-17-mfa-email-repair.md.
+- 앤스로픽상장질문:기업자체 최신상장보도/사업현황검색 후 조건부전망 필요. 엔진수정은 아직미실행,TODO기록.
