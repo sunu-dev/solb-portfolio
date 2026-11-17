@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomInt, randomUUID } from 'node:crypto';
 import { requireServiceClient } from '@/lib/supabaseServer';
-import { isAdminIdentity } from '@/lib/adminAuth';
+import { requireAdmin } from '@/lib/adminAuth';
 
 
 // 모듈 스코프에서 클라이언트를 만들면 키가 없을 때 **빌드 전체가 실패**한다
@@ -18,14 +18,10 @@ function generateCode(prefix: string): string {
 // POST /api/codes/generate — 관리자 코드 발급
 export async function POST(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return auth.res;
 
-    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const {
       type = 'invite',
@@ -121,14 +117,10 @@ export async function POST(req: NextRequest) {
 // GET /api/codes/generate — 코드 목록 조회 (관리자)
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return auth.res;
 
-    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const type = req.nextUrl.searchParams.get('type');
 
@@ -153,14 +145,10 @@ export async function GET(req: NextRequest) {
 // PATCH /api/codes/generate — 코드 활성화/비활성화
 export async function PATCH(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    const auth = await requireAdmin(req);
+    if (!auth.ok) return auth.res;
 
-    const { data: { user }, error: authError } = await supabaseAdmin().auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-    if (!isAdminIdentity(user)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
 
     const { code, is_active } = await req.json() as { code: string; is_active: boolean };
 

@@ -19,7 +19,7 @@ const mock = vi.hoisted(() => ({
   getUser: vi.fn(),
 }));
 
-vi.mock('@/lib/adminAuth', () => ({ isAdminIdentity: () => true }));
+vi.mock('@/lib/adminAuth', () => ({ requireAdmin: async () => ({ ok: true, userId: 'admin-user', email: null }) }));
 vi.mock('@/lib/supabaseServer', () => ({
   requireServiceClient: () => ({
     auth: { getUser: mock.getUser },

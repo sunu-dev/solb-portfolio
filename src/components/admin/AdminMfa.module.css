@@ -1,0 +1,11 @@
+.shell { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text-primary); }
+.card { width: min(100%, 440px); padding: 28px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); }
+.card h1 { margin: 8px 0 20px; font-size: 28px; }
+.card p { line-height: 1.7; }
+.eyebrow, .help { color: var(--text-secondary); font-size: 13px; }
+.form { display: grid; gap: 12px; margin: 24px 0; }
+.form input { min-width: 0; width: 100%; font-size: 24px; letter-spacing: .2em; }
+.form select { display: block; width: 100%; }
+.qr { display: block; max-width: 100%; height: auto; margin: 20px auto; background: white; }
+.secret { display: block; overflow-wrap: anywhere; margin: 12px 0; }
+.card a { display: inline-block; margin-top: 12px; color: var(--text-secondary); }

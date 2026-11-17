@@ -8,13 +8,9 @@ import { redactAiAuditExport } from '@/lib/aiAuditExport';
 // (Next가 page data 수집 중 이 모듈을 import한다). 요청 시점 지연 생성으로 국소화.
 const supabaseAdmin = () => requireServiceClient();
 
-/** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
-async function verifyAdmin(req: NextRequest): Promise<boolean> {
-  return (await requireAdmin(req)).ok;
-}
-
 export async function GET(req: NextRequest) {
-  if (!await verifyAdmin(req)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.res;
 
   if (req.nextUrl.searchParams.get('export') === '1') {
     const { data, error } = await supabaseAdmin()
@@ -94,7 +90,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!await verifyAdmin(req)) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  const auth = await requireAdmin(req);
+  if (!auth.ok) return auth.res;
   const body = await req.json() as { id?: number; reviewNote?: string };
   if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 

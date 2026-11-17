@@ -18,7 +18,8 @@ const CONFIG_READ_TIMEOUT_MS = 8000;
 
 /** 관리자 판정은 `@/lib/adminAuth` 한 곳이 SSOT. 이 파일에는 목록을 두지 않는다. */
 async function isAdminRequest(req: NextRequest): Promise<boolean> {
-  return isAdminIdentity(await resolveUser(req));
+  const user = await resolveUser(req);
+  return isAdminIdentity(user) && user?.aal === 'aal2';
 }
 
 // GET /api/config — 공개 키만 반환. 관리자 토큰이 있으면 전체 반환.

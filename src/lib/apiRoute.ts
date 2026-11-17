@@ -127,6 +127,7 @@ export function defineRoute(config: RouteConfig): NextRouteHandler {
       if (config.auth === 'admin') {
         if (!user) return jsonError(401, 'unauthorized', '로그인이 필요해요.');
         if (!isAdmin) return jsonError(403, 'forbidden', '접근 권한이 없어요.');
+        if (user.aal !== 'aal2') return jsonError(403, 'mfa_required', '관리자 2단계 인증이 필요해요.');
       }
     }
 

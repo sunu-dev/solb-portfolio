@@ -53,6 +53,7 @@ export function isAdminIdentity(user: AdminIdentity | null | undefined): boolean
 }
 
 export interface ResolvedUser {
+  aal?: 'aal1' | 'aal2';
   id: string;
   email: string | null;
 }
@@ -95,7 +96,15 @@ export async function resolveUserOutcome(req: NextRequest): Promise<ResolveOutco
       if (!client) return { status: 'unavailable' };
       const { data: { user }, error } = await client.auth.getUser(authHeader.slice(7));
       if (error) return classifyAuthFailure(error);
-      return user ? { status: 'ok', user: { id: user.id, email: user.email ?? null } }
+      // Only read claims AFTER Auth has validated this exact bearer token.
+      let aal: ResolvedUser['aal'];
+      if (user) {
+        try {
+          const payload = JSON.parse(Buffer.from(authHeader.slice(7).split('.')[1], 'base64url').toString());
+          if (payload.sub === user.id && payload.aal === 'aal2') aal = 'aal2';
+        } catch { /* Missing/malformed assurance fails closed. */ }
+      }
+      return user ? { status: 'ok', user: { id: user.id, email: user.email ?? null, ...(aal ? { aal } : {}) } }
         : { status: 'anonymous' };
     }, 5000, req.signal);
   } catch (error) {
@@ -150,6 +159,9 @@ export async function requireAdmin(
   }
   if (!isAdminIdentity(user)) {
     return { ok: false, res: NextResponse.json({ error: 'forbidden', code: 'forbidden' }, { status: 403 }) };
+  }
+  if (user.aal !== 'aal2') {
+    return { ok: false, res: NextResponse.json({ error: '관리자 2단계 인증이 필요해요.', code: 'mfa_required' }, { status: 403, headers: { 'Cache-Control': 'private, no-store' } }) };
   }
   return { ok: true, userId: user.id, email: user.email };
 }

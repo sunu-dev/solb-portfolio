@@ -1,114 +1,50 @@
 주비 공통 작업 인계 — 최신 상태
 갱신일: 2026-11-17
-담당: Codex — 보안패치 구현·검증 완료. 사용자 직접push 대기.
+담당: Codex — 보안패치/관리자MFA 검증완료, 사용자 명시승인으로 이번 push/운영검증 진행.
 브랜치: main
-검증 기준: 보안패치 커밋3fc5311. 원격/마지막확인 운영6355927, 새배포 미실행.
-최신 요청: CI/보안 수정 진행 승인. CI수정495dd9c + 보안패치 검증완료.
-마지막확인 운영: origin/main6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY
-배포 URL: solb-portfolio-9dq8xnkj4-sunudevelop-1252s-projects.vercel.app
-복구 후보: 3d9a4d8 / dpl_BmS74iHEaS6YtcxHmKVxR3LtF3KH
+검증 기준: 보안3fc5311/문서4f58944 이후 MFA작업트리.
+마지막확인 원격/운영:6355927, dpl_9xVrTLHSm1vyX9fv7iXZXQjpHPUF READY.
+운영주소: https://joobi.kr
 
 필수 규칙
-- AGENTS.md → 이 파일 → 관련 기록. 제품 변경 전 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
-- main push는 운영 자동배포. 기본 사용자 직접 push. 이번에는 후속 운영배포 지시로6355927 push 완료.
-- 운영 인증·계정 데이터·DB·환경변수 변경 없음.
+- AGENTS.md → HANDOFF → 관련기록. 제품원칙 docs/JOOBI_EXPLANATION_PRINCIPLES.md.
+- main push는 운영 자동배포. 기본 사용자 직접push. 이번 “응 푸쉬해줘” 후속지시로 예외승인.
+- 추가 유료모델호출 승인없음. 마지막4회 모두사용. DB/키/클라우드계정설정 변경없음.
 
-최신 운영 반영 — 뉴스 검색 오류/회사 별칭
-- 3d9a4d8 커밋/main push 완료. joobi.kr inspect에서 위 배포 READY 일치.
-- 홈 /api/market-watch /api/economic-events 각각 HTTP200 확인.
-- mk.co.kr provider 접근불가로 검색 전체400 발생 확인. allowed_domains에서 제거.
-- 시선에이아이/시선 에이아이 별칭 및 겹친 회사명 오인식 수정.
-- 검색 설정오류400/401/403/404시 생성 중단/503/횟수 미차감. 오류를 기사없음으로 숨기지 않음.
-- 사용자 최대4호출/추정1달러 이내 승인. 진단1+실검색1+실생성1=3호출 사용.
-- 뉴스핌11/16기사 수집6.264초, 생성5.136초. 실제 응답 정규화 오프라인 replay 통과.
-- 운영 로그인 실대화 최종검수는 미실행. 기사와 상승의 직접인과는 확정하지 않음.
-- 배포 전 전체2971통과18생략/빌드/lint 통과. 이번 후속 error로그 조회는 미실행.
-- 상세 sessionary/2026-11-17-chat-submit-stop-quality.md, docs/JOOBI_NEWS_ANSWER_ENGINE.md.
+이번 변경
+- d66fd8e 뉴스회사식별/본문추출/어제오늘분리/답변품질 개선, db95c25 인계.
+- 495dd9c scripts/**/*.cjs require규칙만off/지역module변수수정. 앱규칙유지.
+- 3fc5311 Next/eslint-config-next16.4.6,glob14.0.2/minimatch11.0.1 override,최종audit0건.
+- 운영unsafe-eval 제거/dev유지,frame-ancestors self 추가. unsafe-inline 정적렌더 호환상 유지.
+- 관리자TOTP 등록/검증 UI와 /admin layout. 서버 getUser 검증후 JWT aal2/sub확인.
+- requireAdmin/defineRoute admin/초대코드/설정/감사API 보호. 통계직접DB조회→MFA강제 overview API.
+- /api/me/admin은 isAdmin/mfaRequired만 반환. 인증전 등록진입 허용,관리데이터는 차단.
+- 등록QR/키는 UI메모리만. 실제등록은 운영자가 자신의 인증앱으로 진행해야 함.
+- 실제DB RLS/클라우드Supabase·Vercel·GitHub 계정MFA는 별도,변경하지 않음.
 
-현재 사전 작업 — 운영 배포 완료
-- 기존5개 체험 유지 + 나머지53개에 수치/분할/캔들/단계별 구조 체험 추가. 전체58개.
-- stock-split/reverse-split: 조각 수·주당가격이 바뀌어도 전체가치 보존.
-- distribution: 지급 전→현금 분배→가격 하락. 현금+상품가치 합계 함께 표시.
-- 재무지표/환율/가격/차트: 가상 숫자 변경, 서로 다른 단위는 길이 비교 생략.
-- 채권/기초지수/자산: 단계별 구조 강조. 모든 항목이 개별3D영상인 것은 아님.
-- 자동재생 없음. 44px 버튼/aria-pressed/aria-live/reduced-motion 지원.
-- 신규 src/lib/dictionaryScenes.ts, DictionaryScenarioStage.tsx/.module.css.
-- DictionaryConceptStage.tsx에서 기존5개 이외 시나리오 렌더러 연결.
-- 전체2974통과19생략. 타입/ESLint/webpack production build 통과.
-- UI/alerts/한국어/darkmode/tour lint 통과. 기존 ai-chok 고아마커 경고1 유지.
-- 실제 컴포넌트 로컬 브라우저: 390px에서58개 전부 버튼 클릭/체험 표시/가로넘침 없음.
-- 분할 모바일/분배금 데스크톱 스크린샷 시각검수. 어두운 토큰+모션감소 전환 확인.
-- 브라우저는 격리된 실제 컴포넌트 harness. 운영 전체 사전/실기기/사용자 미감 검수 별도.
-- 상세 sessionary/2026-11-17-dictionary-all-concepts.md.
+검증
+- 전체2997통과22생략/도구4/타입/제품게이트통과. ESLint0오류52기존경고.
+- 기본Turbopack production build통과. 보안patch 실제npm ci/최종audit0 통과.
+- MFA신규13검사:미인증/위조/일반사용자/타사용자sub/장애/정상AAL2/코드·통계API차단.
+- production번들 브라우저+합성응답:등록QR/잘못된코드/정상인증→관리화면,390px넘침없음.
+- 실제계정등록/실TOTP검증은 미실행. 로컬검수서버종료. 유료API0회.
+- /private/tmp/joobi-mfa-{verify,eslint,boundary,build}.log.
+- 상세 sessionary/2026-11-17-admin-mfa.md 및 2026-11-17-ci-security-review.md.
 
 다음 작업
-1. 사용자push 후 보안패치의 운영 CSP·홈·사전·질문창 검증.
-2. 사용자push 후 GitHub CI verify/build와 Vercel READY/alias 확인. 운영실대화 후속.
-3. 뉴스 엔진30+10사례 평가/근거 충돌 판정 후속. 사용자에게 조사 전가·반복문구 추가 검토.
+1. 이번승인 push 후 GitHub verify/build 및 Vercel READY/alias/CSP 검증.
+2. 운영자 /admin 인증앱등록·실검수. Supabase 등 플랫폼계정 MFA는 별도확인.
+3. 뉴스엔진30+10사례평가/원래탈락기사진단/근거충돌판정.
 
-유지할 후속 문제
-- Supabase Free/Nano IO 경고:24시간 IO차트 로딩실패. 장애시간 IOwait/스왑 상관 미확정.
-- 저비용 최적화02be1b3 운영. 공개읽기 캐시/동시병합/경제일정 숨김폴링 중단. 실제 IO절감 미확정.
-- 계정/config 지연:재연결로 회복하나 근본원인 미확정. 운영 저장·복습 검수는 별도.
-- 사전 전체 디자인 기준 docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md. 폰트/기존 읽기 UI 유지.
-- 전체 미해결 sessionary/TODO.md. 과거 이력 sessionary/2026-11-16-*.md.
-
-환경·미커밋
-- 제품d66fd8e/CI495dd9c/보안3fc5311 로컬main 커밋완료. 새push/배포 없음. .playwright-mcp/ 기존 로컬 산출물은 추적하지 않음.
-- 로컬 검수3017 종료확인. 유료API호출/DB/키 변경없음.
-- /private/tmp/joobi-dictionary-all 로컬 harness 및 화면. 검사 /private/tmp/dictionary-*.log.
-- Vercel CLI65.15.0.65.16.0 업그레이드 미수행.
-
-사전 운영검증(11/17)
-- 원격2971통과22생략/도구4통과/production build READY. joobi.kr alias일치.
-- 홈/시장/경제일정200. 새배포 최근10분error조회0건(단기관찰).
-- 운영 guest 사전 주식분할2대1(5만원×2주=10만원), 분배금95+5=100 조작 확인.390px 가로넘침없음.
-- 계정저장/유료API호출없음. 실기기/사용자최종미감 검수 별도.
-- /private/tmp/joobi-dictionary-final-{inspect,alias,errors}.json* 및 final-build.log.
-
-챗봇 사용자 검수 실패(11/17 13:27 KST 요청)
-- 최신 배포6355927 READY 확인. 가장 최근 ai-analysis 요청 검색2회 각각fetch1/accepted0/entity_rejected1.
-- 최종assessment unavailable/primary0/background0. 이전API400 재발 증거없음.
-- 가져온 기사 URL/제목/사용한 회사별칭은 현 로그에 없어 관련기사 오탈락인지 엉뚱한기사 검색인지 미확정.
-- 다음: 공개기사 진단메타 보강/실패본문 확보→회사식별·본문추출 검사. 어제+오늘 복합시간 처리 별도 확인.
-- 이번엔 읽기전용 조사. 제품수정/추가유료API/배포없음. /private/tmp/joobi-answer-audit-logs.jsonl.
-
-챗봇 후속수정(11/17 13:38 KST)
-- 회사뉴스 식별에 시선AI 한글/띄어쓰기 별칭 추가. 탈락기사 공개URL/제목/종목 진단 및 재검색 회피목록 전달.
-- 제목에 회사가 없지만 본문앞에서 종목 움직임을 명시한 테마주 보도를 relevant_event로 인정. 다른회사 단독제목/시장기사는 여전히 제외. 직접원인 확정 금지.
-- 어제+오늘 질문: 어제 근거기간 보존, 오늘가격 별도조회/latestPrice/P99. 최신자료가 어제인 경우 오늘로 취급안함.
-- 질문가격전제도 어제 문장 기준. 오늘하락을 어제상승과 혼동하지 않음.
-- 이전API승인 남은1회사용: 서울경제11/16 전파탐지 테마주기사 실제확보. 총4/4회소진.
-- 당시 운영에서 탈락한 두 기사URL은 여전히 미확보. 새재현에서 후속판정 제목제한이 실제기사 버리는 문제 추가확인.
-- 실제응답 재사용+공개시세조회(유료0회)로 relevant_event/sourceA1,어제11/16+26.23%,오늘11/17 13:17KST -3.44% 확보 확인. 현재시세로 재사용금지.
-- 전체2981통과20생략,후속관련58통과,tsc/ESLint/webpack빌드통과. 이후 opt-in검증파일 추가는 타입통과.
-- 추가승인12회 모두사용: 검색4회/생성6회 성공, 마지막생성2회 provider 사용한도400. 이후 모델호출 중단. 새배포없음.
-- 최종 전체2984통과22생략,타입/ESLint/webpack빌드 통과. 로그 /private/tmp/joobi-reliability-release-*.log.
-- 뉴스핌 해당일 회사기사 독립검색2회 성공. AI요약/관련기사 제거,짧은본문/로그인 제품문장 보존 수정.
-- 생성6회에서 구체적 회사기술/관련사건/오늘가격시각 확인. 마지막 문구수정 후 실제생성은 한도오류로 미검증.
-- 최종 추가4회 생성 성공: 원질문/한글별칭·명시적 오늘하락 질문 검수. 기존 공개근거·시세 스냅샷 재사용, 현재시세 검증 아님.
-- 개선: 겹친 가능성/딱딱한 한계문구 축약,불필요한 인증이력 제거,사업자료에 기사ID 대용 금지,기술개선중 상태 보존.
-- 최종 전체2984통과22생략/타입/ESLint 통과. 최종 next build --webpack 통과. /private/tmp/joobi-reliability-deploy-build.log.
-- 실제생성 /private/tmp/joobi-reliability-answerfinal1~4.json,전체검사 joobi-reliability-final-tests.log. 추가호출허용량4/4 사용.
-- 다음: 사용자 git push origin main→운영READY/alias/공개응답 검증. 전종목30+10사례 평가는 후속.
-- 비용조사 중 모델호출0. 로컬키 콘솔마스킹 식별정보 일치. 운영변수 sensitive로 값 미반환: 불일치 증거 아님.
-- 전체운영변수 다운로드/콘솔키 상세열기 자동검토 거절. 후속 허가된 단일변수 조회는 값 비공개로 대조불가.
-- 키/과금 개인계정 내역은 저장소에 기록하지 않음. 결제/한도/키 변경 없음.
-- 공개본문/실응답 /private/tmp/joobi-reliability-{response,packet,replay}.json. 생성검증파일 assistantReliabilityAnswerLive.test.ts.
-- 코드/이전배포결과기록 d66fd8e 커밋. 인계상태 후속문서커밋 예정. 서버프로세스없음.
-
-CI/보안 검토(11/17)
-- 최신원격CI44016686499 verify실패/build생략. 전체lint141오류(140require+1module변수) 재현.
-- scripts/**/*.cjs만 require규칙off,앱error유지. 지역module변수명변경. 전체lint0오류52기존경고.
-- 도구4/인증·한도·저장경계136통과3생략/구문검사통과. 런타임변경없어 빌드반복미실행.
-- npm audit전체중간15/운영6(고유GHSA3),높음·치명적0. Next16.4.3 패치필요;발생조건직접사용 미발견.
-- CSP unsafe-inline/eval 존재. 운영홈200/AI·관리자GET401/HSTS등확인. DB실제RLS·MFA 미검증.
-- 상세 sessionary/2026-11-17-ci-security-review.md. 패키지/운영설정/DB/키 변경없음.
-
-보안패치 검증(11/17 후속)
-- Next/eslint-config-next16.4.6, Sentry glob14.0.2/영향받는 minimatch11.0.1 override. 최종audit0건.
-- 운영unsafe-eval 제거/dev유지,frame-ancestors self 추가. unsafe-inline은 정적렌더 호환상 유지.
-- 한국어게이트에 걸린 프롬프트 금지예시를 같은 의미로 정리. 전체2984통과22생략/도구4/타입/게이트통과.
-- 전체ESLint0오류52기존경고. 기본Turbopack빌드통과. 잠금파일 선택의존성복구 후 실제npm ci통과.
-- 로컬production 홈200/CSP확인/사전·분할설명·질문창 열기통과. Vercel통계스크립트 로컬404만 확인.
-- 실제RLS/MFA·로그인후실대화/운영검증 별도. 보고서 sessionary/2026-11-17-ci-security-review.md.
+이전 완료·유지할 맥락
+- 사전58개 체험6355927 운영. 분할/분배금운영조작·390px확인.실기기/사용자미감검수별도.
+- 디자인기준 docs/JOOBI_DICTIONARY_DESIGN_SYSTEM.md. 기록 sessionary/2026-11-17-dictionary-all-concepts.md.
+- 챗봇13:27운영실패:회사검색2개 entity_rejected,원URL미기록. 원문두개자체는 미확보.
+- 후속실기사검수로 제목없는테마기사배제 추가결함수정. 다른회사기술/시장기사를 회사원인으로 오인하지 않음.
+- 뉴스핌당일기사 독립검색2회/최종생성4회 성공. snapshot은 현재시세가 아님.
+- 실제생성 /private/tmp/joobi-reliability-answerfinal1~4.json. 마지막승인4/4소진.
+- 기록 sessionary/2026-11-17-answer-reliability.md 등 신뢰성 세션로그,docs/JOOBI_NEWS_ANSWER_ENGINE.md.
+- SupabaseFree/Nano IO경고:24시간차트실패,장애시간IOwait/스왑상관미확정.
+- 저비용최적화02be1b3 운영,실제IO절감미확정. 계정/config재연결지연 근본원인미확정.
+- 과금조사는 개인계정정보 저장하지 않음. 운영키sensitive반환안됨은 키불일치증거 아님.
+- 전체TODO sessionary/TODO.md. .playwright-mcp/ 기존검수산출물은 추적하지 않음.

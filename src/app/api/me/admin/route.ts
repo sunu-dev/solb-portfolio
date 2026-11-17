@@ -15,8 +15,8 @@ export const GET = defineRoute({
   name: '/api/me/admin',
   auth: 'optional',
   deferLog: true,
-  handler: async ({ isAdmin }) =>
-    NextResponse.json({ isAdmin }, {
+  handler: async ({ isAdmin, user }) =>
+    NextResponse.json({ isAdmin, mfaRequired: isAdmin && user?.aal !== 'aal2' }, {
       headers: { 'Cache-Control': 'private, no-store' },
     }),
 });
