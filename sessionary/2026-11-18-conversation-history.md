@@ -39,3 +39,11 @@
 - 사용자 완료후운영반영 승인. 원격mainc9ff6b4,로컬e61d4b8(문서1개앞섬) 확인.
 - 운영DB에 migration20261118000100 단독적용 및 이력applied등록. RLS켜짐,anon SELECT/함수실행불가,authenticated 직접UPDATE불가/저장RPC실행가능 확인.
 - 기존테이블데이터변경없음. 앱배포진행.
+
+## 운영반영 완료
+- 사용자지시로2207e28 main push. 기본Git인증이타계정이라403,기존sunu-dev토큰을해당프로세스에만사용해성공. 전역계정설정변경없음.
+- dpl_BV2YL2GHgYUtvbQvXWfBpek2ou61 READY,joobi.kr/www/기본alias확인. GitHub CI44260501959 success.
+- 운영DB권한검증에이어REST익명조회/저장각401(42501)확인. 유료AI0회.
+- 운영390px사전아이콘빈텍스트/44x44/열기확인. 게스트챗로그인안내,실제제공JS이전대화/전체삭제/저장RPC/p_owner확인. /privacy개인대화보관안내확인.
+- 새배포최근5분runtime error0건(배포직후짧은관찰). 실회원질문생성·새로고침·삭제는미실행;로컬합성브라우저/임시Postgres검증과구분.
+- 제품push완료,최종운영결과문서만후속로컬커밋. 서버/임시DB컨테이너없음.
