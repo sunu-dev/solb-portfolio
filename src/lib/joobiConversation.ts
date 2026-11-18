@@ -4,6 +4,9 @@ import type { AssistantSessionReference } from './assistantSession';
 import type { JoobiPricePreview } from './joobiProgress';
 
 export interface ConversationAnswer {
+  historyId?: string;
+  createdAt?: string;
+  savedSources?: { title: string; url: string }[];
   qualityReceipt?: string;
   /** AI에 보내지 않고 화면에서 바로 답한 인사·감사. 다음 질문의 대화 맥락으로 보내지 않는다. */
   local?: boolean;
@@ -36,6 +39,17 @@ export function createConversationStore() {
     update(key: string, change: (previous: Conversation) => Conversation) {
       const next = change(threads.get(key) ?? EMPTY_CONVERSATION);
       threads.set(key, { question: next.question.slice(0, 600), answers: next.answers.slice(-CONVERSATION_TURN_LIMIT) });
+      emit();
+    },
+    restore(key: string, answers: ConversationAnswer[]) {
+      const current = threads.get(key) ?? EMPTY_CONVERSATION;
+      const merged = new Map<string | number, ConversationAnswer>();
+      for (const a of [...answers, ...current.answers]) merged.set(a.historyId ?? a.turnId, a);
+      const ordered = [...merged.values()].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+      threads.set(key, { ...current, answers: ordered.slice(-CONVERSATION_TURN_LIMIT) }); emit();
+    },
+    removeStored(id?: string) {
+      for (const [key, c] of threads) threads.set(key, { ...c, answers: id ? c.answers.filter(a => a.historyId !== id) : [] });
       emit();
     },
     clear(key?: string) { if (key === undefined) threads.clear(); else threads.delete(key); emit(); },

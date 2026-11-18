@@ -21,6 +21,7 @@ import { STOCK_KR } from '@/config/constants';
 import { assistantAsksBack, assistantSmallTalk, assistantSmallTalkReply } from '@/lib/assistantSmallTalk';
 import { assistantChoiceClarification, assistantShortReply } from '@/lib/assistantIntent';
 import { savePendingQuestion, takePendingQuestion } from '@/lib/joobiPendingQuestion';
+import ConversationHistory, { ConversationSaveStatus } from './ConversationHistory';
 import readingUI from '@/components/ui/ReadingUI.module.css';
 
 function ConversationOptions({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -59,7 +60,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
   const [market, setMarket] = useState<'kr' | 'us'>(initialSymbol && !isKoreanStockSymbol(initialSymbol) ? 'us' : 'kr');
   const [period, setPeriod] = useState<AssistantPeriod>('1d');
   const { question, setQuestion, answers, setAnswers, clear, copyDraftTo } = useJoobiConversation(`${symbol}:${market}:${period}`);
-  const [options, setOptions] = useState<'context' | 'privacy' | null>(null);
+  const [options, setOptions] = useState<'context' | 'privacy' | 'history' | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -205,7 +206,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       phase = 'answer';
       const response = await fetch('/api/ai-analysis', { method: 'POST', signal: controller.signal, headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ questionId: ASSISTANT_QUESTION.id, questionText: submittedQuestion, confirmedSymbol, questionConsent: true, symbol, questionPeriod: period, questionMarket: market, historySymbol: symbol,
-          questionHistory: answers.filter(item => !item.local).slice(-3).map(item => ({ symbol: item.symbol, market: item.market, period: item.period, sessionReference: item.sessionReference, industryFocus: item.industryFocus, question: item.question, answer: [item.currentStatus, ...item.keyAdvice, ...(item.assistantInsights ?? []).map(insight => insight.text), item.conclusion.desc].join('\n').slice(0, 1800) })),
+          questionHistory: answers.filter(item => !item.local).slice(-3).map(item => ({ symbol: item.symbol, market: item.market, period: item.period, sessionReference: item.sessionReference, industryFocus: item.industryFocus, question: item.question, answer: [item.createdAt ? `이전 답변 작성 시각: ${item.createdAt} (당시 자료 기준)` : '', item.currentStatus, ...item.keyAdvice, ...(item.assistantInsights ?? []).map(insight => insight.text), item.conclusion.desc].join('\n').slice(0, 1800) })),
           unclearTerms: entries.filter(entry => entry.familiarity === 'confused' && entry.termId).slice(0, 8).map(entry => entry.termId) }) });
       const data = await readJoobiResponse(response, next => { if (request.current === controller) setStage(next); },
         next => { if (request.current !== controller || samePricePreview(next, shownPrices)) return; preview = next; setPricePreview(next); });
@@ -266,11 +267,12 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       <span className={chat.contextMeta}><span className={chat.subject}><MessageCircle size={15} aria-hidden="true" />{subject}</span><span className={chat.periodTag}>{ASSISTANT_PERIOD_LABELS[period]}</span></span>
       <span className={chat.settingsLabel}><SlidersHorizontal size={16} aria-hidden="true" />변경</span>
     </button>
+    {owner !== 'guest' && <><div className={chat.sessionNote}><button type="button" disabled={loading} onClick={() => setOptions('history')}>이전 대화</button></div><ConversationSaveStatus /></>}
     <div className={chat.readingArea}>
     <div ref={transcript} className={chat.transcript} role="region" aria-label="주비와 나눈 대화, 위아래로 스크롤" tabIndex={0}><div ref={transcriptContent}>
     {notice}
-    {!!answers.length && <div className={chat.sessionNote}><span>이 탭에서 나눈 이야기를 이어가요</span><button type="button" disabled={loading} onClick={() => setConfirmClear(true)}>대화 지우기</button></div>}
-    {confirmClear && <div className={chat.confirmation}><p>이 대화와 작성 중인 질문을 지울까요?</p><div><button type="button" onClick={() => setConfirmClear(false)}>계속 이야기하기</button><button type="button" onClick={resetConversation}>지우고 새로 시작</button></div></div>}
+    {!!answers.length && <div className={chat.sessionNote}><span>최근 대화를 이어가요</span><button type="button" disabled={loading} onClick={() => setConfirmClear(true)}>화면 비우기</button></div>}
+    {confirmClear && <div className={chat.confirmation}><p>이 화면과 작성 중인 질문을 비울까요? 계정에 저장된 기록은 이전 대화에서 삭제할 수 있어요.</p><div><button type="button" onClick={() => setConfirmClear(false)}>계속 이야기하기</button><button type="button" onClick={resetConversation}>지우고 새로 시작</button></div></div>}
     {!answers.length && !loading && !failedQuestion && <>
       <div className={chat.welcome}><JoobiAvatar large mood="hello" /><div><h3>{symbol === GENERAL_SUBJECT ? '주식, 어디가 궁금하세요?' : `${subject}, 어떤 점이 궁금하세요?`}</h3><p>주가가 왜 움직였는지, 낯선 말은 무슨 뜻인지 물어보세요.</p></div></div>
       {!question.trim() && <div className={chat.suggestions} role="group" aria-labelledby={`${id}-examples`}><p id={`${id}-examples`} className={chat.suggestionsLabel}>궁금한 질문을 골라보세요</p>{starters.map(text => <button type="button" key={text} className={chat.starterBubble} onClick={() => fillQuestion(text)}><MessageCircle size={18} strokeWidth={1.6} aria-hidden="true" /><span>{text}</span></button>)}</div>}
@@ -282,7 +284,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         // 같은 종목·같은 거래일 답이 이어지면 대상 표시를 반복하지 않는다.
         const previous = answers.slice(0, index).findLast(item => !item.local);
         const sameSubjectAsPrevious = !!previous && previous.assistantEvidence?.companyResearch?.id === answer.assistantEvidence?.companyResearch?.id && previous.symbol === answer.symbol && previous.market === answer.market && previous.assistantEvidence?.price?.day === answer.assistantEvidence?.price?.day;
-        return <section key={answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
+        return <section key={answer.historyId ?? answer.turnId} ref={latest ? latestMessage : undefined} className={chat.turn} aria-label={`${index + 1}번째 질문과 답변`}>
+          {answer.createdAt && <p className={chat.muted}><time dateTime={answer.createdAt}>{new Date(answer.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</time> · 당시 자료 기준</p>}
           <p className={chat.userMessage}><span className="sr-only">내 질문: </span>{answer.question}</p>
           <div className={chat.assistantLabel}><JoobiAvatar mood={latest && !loading ? joobiReplyReaction(answer.question, !!answer.local) : 'idle'} /><span>주비 <span className={chat.muted}>AI 주식비서</span></span></div>
     <article className={chat.response}>
@@ -304,7 +307,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       {!answer.local && !answer.followUps?.length && <p><FinancialText>{answer.conclusion.desc}</FinancialText></p>}
       {!answer.local && <details className={chat.detailGroup}><summary className={readingUI.disclosure}>답변에 제공한 자료</summary><p className={chat.muted}>제공한 자료 목록이에요. 답변의 모든 문장을 검증했다는 뜻은 아니에요.</p>
         {answer.assistantEvidence && <><p className={chat.muted}>자료를 받은 시각: {new Date(answer.assistantEvidence.checkedAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} (한국 시간)</p>{answer.assistantEvidence.gaps.map((gap, i) => <p className={chat.muted} key={i}>{gap}</p>)}</>}
-        {answer._meta?.sourceDetails?.length ? <ul className={chat.sourceList}>{answer._meta.sourceDetails.map((source, index) => <li key={index}>{source.url && /^https:\/\//.test(source.url) ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name} · {source.provider}<span className="sr-only"> (새 창)</span></a> : `${source.name} · ${source.provider}`}{source.note && <small>{source.note}</small>}</li>)}</ul> : <p>이번 질문에 연결된 출처 자료가 없어요. 최신 회사 소식이나 실적은 확인하지 못했어요.</p>}</details>}
+        {answer._meta?.sourceDetails?.length ? <ul className={chat.sourceList}>{answer._meta.sourceDetails.map((source, index) => <li key={index}>{source.url && /^https:\/\//.test(source.url) ? <a href={source.url} target="_blank" rel="noopener noreferrer">{source.name} · {source.provider}<span className="sr-only"> (새 창)</span></a> : `${source.name} · ${source.provider}`}{source.note && <small>{source.note}</small>}</li>)}</ul> : answer.savedSources?.length ? <ul className={chat.sourceList}>{answer.savedSources.map((source, index) => <li key={index}><a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}<span className="sr-only"> (새 창)</span></a></li>)}</ul> : <p>이번 질문에 연결된 출처 자료가 없어요. 최신 회사 소식이나 실적은 확인하지 못했어요.</p>}</details>}
       {latest && !!answer.followUps?.length && <div className={chat.followUps}><h4>{answer.local ? '이런 것부터 물어볼 수 있어요' : '여기서 더 궁금하다면'}</h4>{quota.remaining === 0 && <p className={chat.muted}>오늘은 질문을 모두 사용했어요. 용어 설명과 지난 답변은 계속 볼 수 있어요.</p>}{answer.followUps.map(text => <button type="button" key={text} className={chat.suggestion} disabled={loading || quota.remaining === 0} onClick={() => fillQuestion(text)}><span>{text}</span><ChevronRight size={18} aria-hidden="true" /></button>)}</div>}
       {answer.qualityReceipt && <AnswerFeedback receipt={answer.qualityReceipt} question={answer.question} answer={[answer.currentStatus, ...answer.keyAdvice, ...(answer.assistantInsights ?? []).map(insight => insight.text)].join('\n\n')} />}
       {answer.local ? <p className={chat.muted}>바로 드린 답이라 질문 횟수는 쓰지 않았어요.</p> : latest && <p className={chat.muted}>밑줄 있는 용어를 누르면 뜻을 읽고 내 주식사전에 저장할 수 있어요.</p>}
@@ -330,7 +333,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
             event.preventDefault(); event.currentTarget.form?.requestSubmit();
           }
         }} />
-        <div className={chat.inputFooter}><JoobiAvatar size={28} mood={joobiComposerReaction({ options, clear: confirmClear, loading, stage, stopped, error: !!error, candidates: !!candidates.length, limited: quota.remaining === 0, typing: !!question.trim(), history: !!answers.length })} />{loading ? <button key="stop" type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : <button key="send" type="submit" className={`${chat.send}${owner !== 'guest' && !consent ? '' : ` ${chat.sendIcon}`}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={owner !== 'guest' && !consent ? `${id}-consent` : undefined} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}>{owner !== 'guest' && !consent ? '물어보기' : <ArrowUp size={21} aria-hidden="true" />}</button>}</div>
+        <div className={chat.inputFooter}><JoobiAvatar size={28} mood={joobiComposerReaction({ options: options === 'history' ? 'privacy' : options, clear: confirmClear, loading, stage, stopped, error: !!error, candidates: !!candidates.length, limited: quota.remaining === 0, typing: !!question.trim(), history: !!answers.length })} />{loading ? <button key="stop" type="button" className={chat.stop} onClick={stopWaiting}>중단</button> : <button key="send" type="submit" className={`${chat.send}${owner !== 'guest' && !consent ? '' : ` ${chat.sendIcon}`}`} disabled={tooShort(question.trim()) || (owner !== 'guest' && quota.remaining === 0 && !clarifiesChoice(question.trim()))} aria-describedby={owner !== 'guest' && !consent ? `${id}-consent` : undefined} aria-label={owner === 'guest' ? '로그인하고 질문하기' : '질문 보내기'}>{owner !== 'guest' && !consent ? '물어보기' : <ArrowUp size={21} aria-hidden="true" />}</button>}</div>
       </div>
 
       {error && <p className={chat.error} role="alert">{error}</p>}
@@ -342,8 +345,8 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       </div>
     </form>
     </div>
-    {options && <ConversationOptions title={options === 'context' ? '대화 대상과 기간' : 'AI 전송·대화 보관'} onClose={() => setOptions(null)}>
-      {options === 'context' ? <>
+    {options && <ConversationOptions title={options === 'history' ? '이전 대화' : options === 'context' ? '대화 대상과 기간' : 'AI 전송·대화 보관'} onClose={() => setOptions(null)}>
+      {options === 'history' ? <ConversationHistory /> : options === 'context' ? <>
       <div className={chat.settings}>
         <div><label htmlFor={`${id}-stock`}>이야기할 종목</label>
           <div className={chat.selectWrap}><select id={`${id}-stock`} value={symbol} disabled={loading} onChange={event => chooseSymbol(event.target.value)}>
@@ -358,7 +361,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         <p className={chat.settingsNote}>종목·시장·기간별로 대화를 나눠요. 다른 대화를 보고 돌아와도 이 탭에서는 이어갈 수 있어요.</p>
       </div>
 
-      </> : <div className={chat.privacyCopy}><p>적은 질문과 최근 대화 3개, 선택한 종목·시장·기간, ‘아직 헷갈려요’로 표시한 용어를 보내요. 보유 수량·평균 매수가는 자동으로 보내지 않아요. 계좌번호·연락처는 적지 마세요. 인사나 고맙다는 말에는 AI에 보내지 않고 바로 답하며, 질문 횟수를 쓰지 않아요.</p><p>종목·시장·기간별 최근 대화 20개를 이 탭에서만 유지해요. 답변에는 직전 대화 3개를 보내요. 질문창을 닫아도 이어갈 수 있고, 새로고침·탭 닫기·로그아웃하면 지워져요. 로그인 전에 적은 질문 하나는 로그인한 뒤 입력창에 다시 보여드리고, 자동으로 보내지 않아요. 질문 유형·응답 시간·실패 여부는 원문 없이 30일간 집계해요. 버튼 평가는 계정과 연결해 보관해요. 별도로 동의해 제공한 검수 사례만 서버에 30일간 저장해요. 답변을 기다리다 창을 닫으면 기다리기가 중단돼요.</p>{owner !== 'guest' && <SharedAnswerCases key={owner} />}</div>}
+      </> : <div className={chat.privacyCopy}><p>적은 질문과 최근 대화 3개, 선택한 종목·시장·기간, ‘아직 헷갈려요’로 표시한 용어를 보내요. 보유 수량·평균 매수가는 자동으로 보내지 않아요. 계좌번호·연락처는 적지 마세요. 인사나 고맙다는 말에는 AI에 보내지 않고 바로 답하며, 질문 횟수를 쓰지 않아요.</p><p>로그인한 계정에는 완료된 질문과 답변을 최대 1,000개 저장해요. 이전 대화에서 날짜별로 읽거나 개별·전체 삭제할 수 있고, 회원 탈퇴 시 삭제돼요. 삭제한 내용은 지우고 중복 저장 방지용 식별자만 탈퇴할 때까지 남겨요. 새로고침하면 같은 종목·시장·기간의 최근 대화 20개를 불러와요. 답변에는 직전 대화 3개만 보내요. 작성 중이거나 답변을 받지 못한 질문, 로그인 전 대화는 계정에 저장하지 않아요. 저장 실패 안내가 있으면 창을 닫기 전에 다시 시도해 주세요. 로그인 전에 적은 질문 하나는 로그인한 뒤 입력창에 다시 보여드리고, 자동으로 보내지 않아요. 질문 유형·응답 시간·실패 여부는 원문 없이 30일간 집계해요. 버튼 평가는 계정과 연결해 보관해요. 별도로 동의해 제공한 검수 사례만 서버에 30일간 저장해요. 답변을 기다리다 창을 닫으면 기다리기가 중단돼요.</p>{owner !== 'guest' && <SharedAnswerCases key={owner} />}</div>}
     </ConversationOptions>}
   </div>;
 }

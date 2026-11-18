@@ -58,5 +58,5 @@ export default function PersonalLearningProvider({ owner, children }: { owner: s
       return true;
     } catch { return false; }
   };
-  return <Context.Provider value={{ owner, ready, entries, error, reload: () => reload.current(), save: entry => mutate(entry), remove: async id => { const entry = entries.find(item => item.id === id); return entry ? mutate(entry, true) : false; } }}><JoobiConversationProvider key={owner}>{children}<DictionaryOverlay /></JoobiConversationProvider></Context.Provider>;
+  return <Context.Provider value={{ owner, ready, entries, error, reload: () => reload.current(), save: entry => mutate(entry), remove: async id => { const entry = entries.find(item => item.id === id); return entry ? mutate(entry, true) : false; } }}><JoobiConversationProvider key={owner} owner={owner}>{children}<DictionaryOverlay /></JoobiConversationProvider></Context.Provider>;
 }

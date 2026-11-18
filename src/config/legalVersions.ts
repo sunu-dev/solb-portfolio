@@ -28,8 +28,8 @@ export const TERMS_EFFECTIVE_DATE = '2026년 7월 27일';
 /** 개인정보처리방침 (/privacy)
  *  v4 (2026-07-27): 무료 Gemini 운영에 맞춰 OCR을 비활성화하고,
  *  AI 외부 전송 범위를 공개 시장정보로 제한한 사실을 반영. */
-export const PRIVACY_VERSION = 'v4';
-export const PRIVACY_EFFECTIVE_DATE = '2026년 7월 27일';
+export const PRIVACY_VERSION = 'v5';
+export const PRIVACY_EFFECTIVE_DATE = '2026년 11월 18일';
 
 /** 만 18세 게이트 동의 — Gemini API Client 연령 요건과 성인 금융정보 서비스 기준 */
 export const AGE_GATE_VERSION = 'v2';
