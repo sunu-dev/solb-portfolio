@@ -340,6 +340,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
       {!loading && failedQuestion && !candidates.length && <button type="button" className={chat.retry} disabled={quota.remaining === 0} onClick={() => void sendQuestion(consent, failedQuestion)}>이 질문 다시 보내기</button>}
       {!!candidates.length && <div className={chat.stockChoices} aria-label="질문의 종목 확인">{candidates.map(candidate => <button key={candidate.symbol} type="button" aria-pressed={confirmedSymbol === candidate.symbol} onClick={() => { setConfirmedSymbol(candidate.symbol); setError(`${candidate.label} (${candidate.symbol})로 확인했어요. 질문을 보내주세요.`); }}>{candidate.label} ({candidate.symbol})</button>)}</div>}
       <div className={chat.composerInfo}>
+        <p aria-label="투자 정보 이용 안내">주비는 투자 이해를 돕는 참고 정보를 제공해요. 특정 종목의 매수·매도를 권유하거나 수익을 보장하지 않아요.</p>
         <div className={chat.composerMeta}><p className={chat.quotaNote} aria-live="polite">{stopped ? '중단한 질문도 횟수에 포함될 수 있어요' : quota.status === 'signed-out' ? '로그인 후 질문할 수 있어요' : typeof quota.remaining === 'number' ? quota.remaining === 0 ? '오늘 질문을 모두 사용했어요. 내일 다시 물어볼 수 있어요.' : `오늘 ${quota.remaining}번 더 물어볼 수 있어요` : '질문을 보내면 1회를 사용해요'}</p><button type="button" id={`${id}-privacy`} onClick={() => setOptions('privacy')}>전송 안내</button></div>
         {owner !== 'guest' && !consent && <p id={`${id}-consent`}>버튼이나 Enter로 보내면 질문·최근 대화·선택 종목·헷갈리는 용어를 AI에 보내요.</p>}
       </div>
@@ -361,7 +362,7 @@ export default function AskJoobi({ symbol: initialSymbol, embedded = false, noti
         <p className={chat.settingsNote}>종목·시장·기간별로 대화를 나눠요. 다른 대화를 보고 돌아와도 이 탭에서는 이어갈 수 있어요.</p>
       </div>
 
-      </> : <div className={chat.privacyCopy}><p>적은 질문과 최근 대화 3개, 선택한 종목·시장·기간, ‘아직 헷갈려요’로 표시한 용어를 보내요. 보유 수량·평균 매수가는 자동으로 보내지 않아요. 계좌번호·연락처는 적지 마세요. 인사나 고맙다는 말에는 AI에 보내지 않고 바로 답하며, 질문 횟수를 쓰지 않아요.</p><p>로그인한 계정에는 완료된 질문과 답변을 최대 1,000개 저장해요. 이전 대화에서 날짜별로 읽거나 개별·전체 삭제할 수 있고, 회원 탈퇴 시 삭제돼요. 삭제한 내용은 지우고 중복 저장 방지용 식별자만 탈퇴할 때까지 남겨요. 새로고침하면 같은 종목·시장·기간의 최근 대화 20개를 불러와요. 답변에는 직전 대화 3개만 보내요. 작성 중이거나 답변을 받지 못한 질문, 로그인 전 대화는 계정에 저장하지 않아요. 저장 실패 안내가 있으면 창을 닫기 전에 다시 시도해 주세요. 로그인 전에 적은 질문 하나는 로그인한 뒤 입력창에 다시 보여드리고, 자동으로 보내지 않아요. 질문 유형·응답 시간·실패 여부는 원문 없이 30일간 집계해요. 버튼 평가는 계정과 연결해 보관해요. 별도로 동의해 제공한 검수 사례만 서버에 30일간 저장해요. 답변을 기다리다 창을 닫으면 기다리기가 중단돼요.</p>{owner !== 'guest' && <SharedAnswerCases key={owner} />}</div>}
+      </> : <div className={chat.privacyCopy}><p>주비의 답변은 투자 이해를 돕기 위한 참고 정보예요. 특정 종목의 매수·매도나 매매 시점을 권유하지 않고, 원금이나 수익을 보장하지 않아요. AI 답변에는 오류가 있거나 자료가 늦게 반영될 수 있으니 중요한 내용은 출처와 기준 시각을 함께 확인해 주세요.</p><p>적은 질문과 최근 대화 3개, 선택한 종목·시장·기간, ‘아직 헷갈려요’로 표시한 용어를 보내요. 보유 수량·평균 매수가는 자동으로 보내지 않아요. 계좌번호·연락처는 적지 마세요. 인사나 고맙다는 말에는 AI에 보내지 않고 바로 답하며, 질문 횟수를 쓰지 않아요.</p><p>로그인한 계정에는 완료된 질문과 답변을 최대 1,000개 저장해요. 이전 대화에서 날짜별로 읽거나 개별·전체 삭제할 수 있고, 회원 탈퇴 시 삭제돼요. 삭제한 내용은 지우고 중복 저장 방지용 식별자만 탈퇴할 때까지 남겨요. 새로고침하면 같은 종목·시장·기간의 최근 대화 20개를 불러와요. 답변에는 직전 대화 3개만 보내요. 작성 중이거나 답변을 받지 못한 질문, 로그인 전 대화는 계정에 저장하지 않아요. 저장 실패 안내가 있으면 창을 닫기 전에 다시 시도해 주세요. 로그인 전에 적은 질문 하나는 로그인한 뒤 입력창에 다시 보여드리고, 자동으로 보내지 않아요. 질문 유형·응답 시간·실패 여부는 원문 없이 30일간 집계해요. 버튼 평가는 계정과 연결해 보관해요. 별도로 동의해 제공한 검수 사례만 서버에 30일간 저장해요. 답변을 기다리다 창을 닫으면 기다리기가 중단돼요.</p>{owner !== 'guest' && <SharedAnswerCases key={owner} />}</div>}
     </ConversationOptions>}
   </div>;
 }
